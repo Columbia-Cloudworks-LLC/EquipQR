@@ -1,17 +1,16 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { GoogleMap, LoadScript, MarkerF, InfoWindowF } from '@react-google-maps/api';
-import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Search, MapPin, AlertCircle } from 'lucide-react';
+import { Search, MapPin } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { FleetMapUpsell } from '@/components/fleet-map/FleetMapUpsell';
-import { parseLatLng, normalizeAddress } from '@/utils/geoUtils';
+import { parseLatLng } from '@/utils/geoUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -50,6 +49,7 @@ const FleetMap: React.FC = () => {
   const [skippedCount, setSkippedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [googleMapsKey, setGoogleMapsKey] = useState<string>('');
+  const isSubscriptionActive = !!subscription?.active;
 
   // Fetch Google Maps key on mount
   useEffect(() => {
@@ -67,13 +67,10 @@ const FleetMap: React.FC = () => {
     fetchGoogleMapsKey();
   }, []);
 
-  // Check subscription status
-  if (!subscription?.active) {
-    return <FleetMapUpsell onEnableFleetMap={() => { /* TODO: implement checkout redirect */ }} />;
-  }
-
   // Load equipment locations
   useEffect(() => {
+    if (!isSubscriptionActive) return;
+
     const loadEquipmentLocations = async () => {
       if (!currentOrganization?.id || !googleMapsKey) return;
 
@@ -91,7 +88,7 @@ const FleetMap: React.FC = () => {
     };
 
     loadEquipmentLocations();
-  }, [currentOrganization?.id, googleMapsKey]);
+  }, [currentOrganization?.id, googleMapsKey, isSubscriptionActive]);
 
   // Get equipment locations with precedence logic
   const getEquipmentLocations = async (organizationId: string): Promise<EquipmentLocation[]> => {
@@ -207,6 +204,10 @@ const FleetMap: React.FC = () => {
       location.serial_number.toLowerCase().includes(lowerSearch)
     );
   }, [equipmentLocations, searchTerm]);
+
+  if (!isSubscriptionActive) {
+    return <FleetMapUpsell onEnableFleetMap={() => { /* TODO: implement checkout redirect */ }} />;
+  }
 
   if (isLoading) {
     return (

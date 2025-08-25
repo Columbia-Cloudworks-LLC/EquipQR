@@ -19,7 +19,7 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
   onUpgrade,
   fleetMapSubscription
 }) => {
-  const { data: members = [] } = useOrganizationMembers(organization?.id || '');
+  const { data: _members = [] } = useOrganizationMembers(organization?.id || '');
   const { data: storageUsage, isLoading: storageLoading } = useOrganizationStorageUsage();
 
   const handlePurchaseSlots = (quantity: number) => {
