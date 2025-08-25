@@ -1,47 +1,66 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Mail } from 'lucide-react';
-import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useCreateOrganizationInvitation } from '@/hooks/useOrganizationInvitations';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { toast } from 'sonner';
 
 interface SimplifiedInvitationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  organizationId: string;
-  fleetMapSubscription?: FleetMapSubscription;
 }
 
 export const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProps> = ({
   open,
   onOpenChange,
-  organizationId,
-  fleetMapSubscription
 }) => {
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('member');
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [role, setRole] = useState<'admin' | 'member'>('member');
+  const { currentOrganization } = useSimpleOrganization();
+  const createInvitation = useCreateOrganizationInvitation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
+    if (!currentOrganization?.id) {
+      toast.error('No organization selected');
+      return;
+    }
+
+    if (!email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+
     try {
-      // Implementation would go here - for now just close dialog
-      console.log('Sending invitation:', { email, role, message, organizationId });
-      onOpenChange(false);
+      await createInvitation.mutateAsync({
+        email: email.trim(),
+        role,
+        organizationId: currentOrganization.id,
+      });
+      
+      toast.success('Invitation sent successfully');
       setEmail('');
       setRole('member');
-      setMessage('');
+      onOpenChange(false);
     } catch (error) {
       console.error('Failed to send invitation:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -49,13 +68,9 @@ export const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            Invite Team Member
-          </DialogTitle>
+          <DialogTitle>Invite New Member</DialogTitle>
           <DialogDescription>
-            Send an invitation to join your organization
-            {fleetMapSubscription?.active && ' with Fleet Map access'}
+            Send an invitation to join your organization.
           </DialogDescription>
         </DialogHeader>
         
@@ -65,7 +80,7 @@ export const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProp
             <Input
               id="email"
               type="email"
-              placeholder="colleague@company.com"
+              placeholder="Enter email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -74,46 +89,30 @@ export const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProp
           
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={setRole}>
+            <Select value={role} onValueChange={(value: 'admin' | 'member') => setRole(value)}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="member">Member</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="message">Personal Message (Optional)</Label>
-            <Textarea
-              id="message"
-              placeholder="Welcome to our team!"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={3}
-            />
-          </div>
-          
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end space-x-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                'Send Invitation'
-              )}
+            <Button
+              type="submit"
+              disabled={createInvitation.isPending}
+            >
+              {createInvitation.isPending ? 'Sending...' : 'Send Invitation'}
             </Button>
           </div>
         </form>

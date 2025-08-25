@@ -26,7 +26,7 @@ interface EquipmentFormProps {
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment }) => {
   const { attributes } = useCustomAttributes();
-  const { form, onSubmit, isEdit, isPending } = useEquipmentForm({ equipment, onClose });
+  const { form, onSubmit, isEdit, isPending } = useEquipmentForm(equipment, onClose);
 
   const handleCustomAttributeChange = (attributes: CustomAttribute[]) => {
     const attributesObject = attributes.reduce((acc, attr) => {

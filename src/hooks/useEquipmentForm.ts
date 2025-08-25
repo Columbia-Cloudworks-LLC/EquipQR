@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useAuth } from '@/hooks/useAuth';
 import { equipmentFormSchema, EquipmentFormData, EquipmentRecord } from '@/types/equipment';
-import { showErrorToast, showSuccessToast } from '@/utils/errorHandling';
+import { toast } from 'sonner';
 
 export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () => void) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -59,13 +59,21 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
       }
 
       const equipmentData = {
-        ...data,
+        name: data.name,
+        manufacturer: data.manufacturer,
+        model: data.model,
+        serial_number: data.serial_number,
+        status: data.status,
+        location: data.location,
+        installation_date: data.installation_date,
         organization_id: currentOrganization.id,
-        customer_id: null, // Make customer_id optional/nullable
+        customer_id: null,
         warranty_expiration: data.warranty_expiration || null,
         last_maintenance: data.last_maintenance || null,
         notes: data.notes || null,
+        custom_attributes: data.custom_attributes || {},
         image_url: data.image_url || null,
+        last_known_location: data.last_known_location || null,
         team_id: data.team_id || null,
         default_pm_template_id: data.default_pm_template_id || null,
         working_hours: 0,
@@ -83,14 +91,14 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      showSuccessToast('Equipment created successfully');
+      toast.success('Equipment created successfully');
       form.reset();
       setIsOpen(false);
       onSuccess?.();
     },
     onError: (error) => {
       console.error('Equipment creation error:', error);
-      showErrorToast(error, 'Equipment Creation');
+      toast.error('Failed to create equipment');
     }
   });
 
@@ -101,11 +109,19 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
       }
 
       const equipmentData = {
-        ...data,
+        name: data.name,
+        manufacturer: data.manufacturer,
+        model: data.model,
+        serial_number: data.serial_number,
+        status: data.status,
+        location: data.location,
+        installation_date: data.installation_date,
         warranty_expiration: data.warranty_expiration || null,
         last_maintenance: data.last_maintenance || null,
         notes: data.notes || null,
+        custom_attributes: data.custom_attributes || {},
         image_url: data.image_url || null,
+        last_known_location: data.last_known_location || null,
         team_id: data.team_id || null,
         default_pm_template_id: data.default_pm_template_id || null
       };
@@ -122,13 +138,13 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      showSuccessToast('Equipment updated successfully');
+      toast.success('Equipment updated successfully');
       setIsOpen(false);
       onSuccess?.();
     },
     onError: (error) => {
       console.error('Equipment update error:', error);
-      showErrorToast(error, 'Equipment Update');
+      toast.error('Failed to update equipment');
     }
   });
 
@@ -143,7 +159,8 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
   return {
     form,
     onSubmit,
-    isLoading: createMutation.isPending || updateMutation.isPending,
+    isEdit: !!initialData,
+    isPending: createMutation.isPending || updateMutation.isPending,
     isOpen,
     setIsOpen
   };
