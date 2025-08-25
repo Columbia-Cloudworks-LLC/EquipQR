@@ -146,10 +146,111 @@ export type Database = {
           },
         ]
       }
+      customer_contacts: {
+        Row: {
+          created_at: string
+          customer_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_sites: {
+        Row: {
+          address: Json | null
+          created_at: string
+          customer_id: string
+          id: string
+          name: string | null
+        }
+        Insert: {
+          address?: Json | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          name?: string | null
+        }
+        Update: {
+          address?: Json | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_sites_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment: {
         Row: {
           created_at: string
           custom_attributes: Json | null
+          customer_id: string | null
           default_pm_template_id: string | null
           id: string
           image_url: string | null
@@ -173,6 +274,7 @@ export type Database = {
         Insert: {
           created_at?: string
           custom_attributes?: Json | null
+          customer_id?: string | null
           default_pm_template_id?: string | null
           id?: string
           image_url?: string | null
@@ -196,6 +298,7 @@ export type Database = {
         Update: {
           created_at?: string
           custom_attributes?: Json | null
+          customer_id?: string | null
           default_pm_template_id?: string | null
           id?: string
           image_url?: string | null
@@ -217,6 +320,13 @@ export type Database = {
           working_hours?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "equipment_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "equipment_default_pm_template_id_fkey"
             columns: ["default_pm_template_id"]
@@ -399,6 +509,50 @@ export type Database = {
           work_order_id?: string | null
         }
         Relationships: []
+      }
+      geocoded_locations: {
+        Row: {
+          created_at: string
+          formatted_address: string | null
+          id: string
+          input_text: string
+          latitude: number
+          longitude: number
+          normalized_text: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          formatted_address?: string | null
+          id?: string
+          input_text: string
+          latitude: number
+          longitude: number
+          normalized_text: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          formatted_address?: string | null
+          id?: string
+          input_text?: string
+          latitude?: number
+          longitude?: number
+          normalized_text?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geocoded_locations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invitation_performance_logs: {
         Row: {
@@ -857,6 +1011,7 @@ export type Database = {
           billable_members: number | null
           billing_cycle: string | null
           created_at: string
+          customers_feature_enabled: boolean | null
           features: string[]
           fleet_map_enabled: boolean | null
           id: string
@@ -875,6 +1030,7 @@ export type Database = {
           billable_members?: number | null
           billing_cycle?: string | null
           created_at?: string
+          customers_feature_enabled?: boolean | null
           features?: string[]
           fleet_map_enabled?: boolean | null
           id?: string
@@ -893,6 +1049,7 @@ export type Database = {
           billable_members?: number | null
           billing_cycle?: string | null
           created_at?: string
+          customers_feature_enabled?: boolean | null
           features?: string[]
           fleet_map_enabled?: boolean | null
           id?: string

@@ -8,14 +8,80 @@ schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
-[functions.purchase-user-licenses]
+[db]
+port = 54322
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[realtime]
+enabled = true
+port = 54323
+ip_version = "ipv4"
+
+[studio]
+enabled = true
+port = 54324
+api_url = "http://127.0.0.1:54321"
+openai_api_key = "env(OPENAI_API_KEY)"
+
+[inbucket]
+enabled = true
+port = 54325
+smtp_port = 54326
+pop3_port = 54327
+
+[functions.geocode-location]
 verify_jwt = true
 
-[functions.stripe-license-webhook]
+[functions.create-fleetmap-checkout]
+verify_jwt = true
+
+[functions.public-google-maps-key]
 verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = true
 
 [functions.stripe-webhook]
 verify_jwt = false
 
-[functions.send-invitation-email]
-verify_jwt = true
+[functions.stripe-license-webhook]
+verify_jwt = false
+
+[auth]
+enabled = true
+port = 54320
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["https://ymxkzronkhwxzcdcbnwq.supabase.co/auth/v1/callback"]
+jwt_expiry = 3600
+refresh_token_rotation_enabled = true
+refresh_token_reuse_interval = 10
+enable_manual_linking = false
+
+[auth.external.google]
+enabled = false
+client_id = "env(GOOGLE_OAUTH_CLIENT_ID)"
+secret = "env(GOOGLE_OAUTH_CLIENT_SECRET)"
+redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
+
+[edge_runtime]
+inspector_port = 8083
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+template = {}
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+template = {}
+
+[[auth.external]]
+enabled = false

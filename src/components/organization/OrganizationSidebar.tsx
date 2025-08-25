@@ -4,21 +4,22 @@ import { SessionOrganization } from '@/contexts/SessionContext';
 import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
-import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
+import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { useOrganizationStorageUsage } from '@/hooks/useOrganizationStorageUsage';
 import SlotBasedBilling from '@/components/billing/SlotBasedBilling';
 
 interface OrganizationSidebarProps {
   organization: SessionOrganization;
   onUpgrade: () => void;
+  fleetMapSubscription?: FleetMapSubscription;
 }
 
 const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
   organization,
-  onUpgrade
+  onUpgrade,
+  fleetMapSubscription
 }) => {
   const { data: members = [] } = useOrganizationMembers(organization?.id || '');
-  const { data: fleetMapSubscription } = useFleetMapSubscription(organization?.id || '');
   const { data: storageUsage, isLoading: storageLoading } = useOrganizationStorageUsage();
 
   const handlePurchaseSlots = (quantity: number) => {
@@ -37,7 +38,7 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
       <div className="lg:sticky lg:top-6">
         <SlotBasedBilling
           storageUsedGB={storageLoading ? 0 : (storageUsage?.totalSizeGB || 0)}
-          fleetMapEnabled={fleetMapSubscription?.enabled || false}
+          fleetMapEnabled={fleetMapSubscription?.active || false}
           onPurchaseSlots={handlePurchaseSlots}
           onUpgradeToMultiUser={onUpgrade}
         />

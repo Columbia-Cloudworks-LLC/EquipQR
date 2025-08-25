@@ -1,25 +1,22 @@
 
 import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, Settings } from 'lucide-react';
-import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
-import { PagePermissions } from '@/hooks/usePagePermissions';
-import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
-import UnifiedMembersList from './UnifiedMembersList';
-import OrganizationSettingsTab from './OrganizationSettingsTab';
-import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Users, UserPlus, Settings } from 'lucide-react';
+import { useFleetMapSubscription, FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
+import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
+import { MemberManagement } from './MemberManagement';
+import OrganizationSettings from './OrganizationSettings';
 
 interface OrganizationTabsProps {
-  members: RealOrganizationMember[];
+  members: any[];
   organizationId: string;
   currentUserRole: 'owner' | 'admin' | 'member';
-  permissions: PagePermissions;
+  permissions: any;
   membersLoading: boolean;
-  fleetMapSubscription: FleetMapSubscription;
+  fleetMapSubscription?: FleetMapSubscription;
 }
 
 const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
@@ -30,58 +27,84 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   membersLoading,
   fleetMapSubscription
 }) => {
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
-  const isMobile = useIsMobile();
-  const { restrictions } = useSimplifiedOrganizationRestrictions(fleetMapSubscription?.enabled || false);
-
-  // Combine role-based permissions with organizational restrictions
-  const canInviteMembers = permissions.canInviteMembers && restrictions.canInviteMembers && restrictions.hasAvailableSlots;
-
-  const handleInviteSuccess = () => {
-    setInviteDialogOpen(false);
-    setActiveTab("members"); // Switch to members tab after successful invite
-  };
+  const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <div className={isMobile ? "px-4" : ""}>
-        <ScrollArea className="w-full">
-           <TabsList className={`grid w-full grid-cols-2 ${isMobile ? 'h-auto' : ''}`}>
-            <TabsTrigger value="overview" className={isMobile ? 'text-xs py-2' : ''}>
-              <Settings className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
-              {isMobile ? 'Settings' : 'Settings'}
-            </TabsTrigger>
-            <TabsTrigger value="members" className={isMobile ? 'text-xs py-2' : ''}>
-              <Users className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
-              {isMobile ? 'Members' : 'Members'}
-            </TabsTrigger>
-          </TabsList>
-        </ScrollArea>
-      </div>
+    <Tabs defaultValue="members" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="members" className="flex items-center gap-2">
+          <Users className="h-4 w-4" />
+          Members
+        </TabsTrigger>
+        <TabsTrigger value="settings" className="flex items-center gap-2">
+          <Settings className="h-4 w-4" />
+          Settings
+        </TabsTrigger>
+      </TabsList>
 
-      <div className={isMobile ? "px-4 mt-4" : "mt-6 space-y-4"}>
-        <TabsContent value="overview" className="space-y-4">
-          <OrganizationSettingsTab currentUserRole={currentUserRole} />
-        </TabsContent>
+      <TabsContent value="members" className="space-y-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Team Members</CardTitle>
+                <CardDescription>
+                  Manage your organization's team members and their roles
+                </CardDescription>
+              </div>
+              {permissions?.canInviteMembers && (
+                <Button
+                  onClick={() => setInvitationDialogOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Invite Member
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <MemberManagement
+              members={members}
+              organizationId={organizationId}
+              currentUserRole={currentUserRole}
+              isLoading={membersLoading}
+            />
+          </CardContent>
+        </Card>
 
-        <TabsContent value="members" className="space-y-4">
-          <UnifiedMembersList
-            members={members}
-            organizationId={organizationId}
-            currentUserRole={currentUserRole}
-            isLoading={membersLoading}
-            canInviteMembers={canInviteMembers}
-          />
-        </TabsContent>
-
+        {fleetMapSubscription && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Premium Features</CardTitle>
+              <CardDescription>Active premium features for your organization</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">Fleet Map</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Visualize equipment locations on an interactive map
+                  </p>
+                </div>
+                <Badge variant={fleetMapSubscription.active ? 'default' : 'secondary'}>
+                  {fleetMapSubscription.active ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <SimplifiedInvitationDialog
-          open={inviteDialogOpen}
-          onOpenChange={setInviteDialogOpen}
-          onSuccess={handleInviteSuccess}
+          open={invitationDialogOpen}
+          onOpenChange={setInvitationDialogOpen}
+          organizationId={organizationId}
         />
-      </div>
+      </TabsContent>
+
+      <TabsContent value="settings">
+        <OrganizationSettings organizationId={organizationId} />
+      </TabsContent>
     </Tabs>
   );
 };

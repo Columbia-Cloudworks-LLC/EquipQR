@@ -1,9 +1,11 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { showErrorToast } from '@/utils/errorHandling';
 
 export interface FleetMapSubscription {
   enabled: boolean;
+  active: boolean;
   status: 'active' | 'inactive' | 'cancelled';
   currentPeriodEnd?: string;
 }
@@ -13,7 +15,7 @@ export const useFleetMapSubscription = (organizationId: string) => {
     queryKey: ['fleet-map-subscription', organizationId],
     queryFn: async (): Promise<FleetMapSubscription> => {
       if (!organizationId) {
-        return { enabled: false, status: 'inactive' };
+        return { enabled: false, active: false, status: 'inactive' };
       }
 
       const { data, error } = await supabase
@@ -26,11 +28,13 @@ export const useFleetMapSubscription = (organizationId: string) => {
 
       if (error) {
         showErrorToast(error, 'Fleet Map Subscription Check');
-        return { enabled: false, status: 'inactive' };
+        return { enabled: false, active: false, status: 'inactive' };
       }
 
+      const isActive = !!data;
       return {
-        enabled: !!data,
+        enabled: isActive,
+        active: isActive,
         status: (data?.status as 'active' | 'inactive' | 'cancelled') || 'inactive',
         currentPeriodEnd: data?.current_period_end
       };
