@@ -5,16 +5,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Users, UserPlus, Settings } from 'lucide-react';
-import { useFleetMapSubscription, FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
+import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
 import { MemberManagement } from './MemberManagement';
 import { OrganizationSettings } from './OrganizationSettings';
 
+interface MemberItem {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  role?: string | null;
+}
+
+interface Permissions {
+  canInviteMembers?: boolean;
+}
+
 interface OrganizationTabsProps {
-  members: any[];
+  members: MemberItem[];
   organizationId: string;
   currentUserRole: 'owner' | 'admin' | 'member';
-  permissions: any;
+  permissions: Permissions;
   membersLoading: boolean;
   fleetMapSubscription?: FleetMapSubscription;
 }

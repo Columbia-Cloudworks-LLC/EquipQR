@@ -1,14 +1,22 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Package, Calendar, MapPin } from 'lucide-react';
 import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 
+interface OrganizationData {
+  plan?: string | null;
+}
+
+interface EquipmentItem {
+  status?: string | null;
+}
+
 interface OrganizationOverviewProps {
-  organization: any;
-  members: any[];
-  equipment: any[];
+  organization: OrganizationData | null;
+  members: unknown[];
+  equipment: EquipmentItem[];
   fleetMapSubscription?: FleetMapSubscription;
 }
 
@@ -40,9 +48,9 @@ const OrganizationOverview: React.FC<OrganizationOverviewProps> = ({
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{equipment.length}</div>
-          <p className="text-xs text-muted-foreground">
-            {equipment.filter((e: any) => e.status === 'active').length} active
-          </p>
+            <p className="text-xs text-muted-foreground">
+              {equipment.filter((e) => e.status === 'active').length} active
+            </p>
         </CardContent>
       </Card>
 

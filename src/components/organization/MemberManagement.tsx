@@ -12,8 +12,8 @@ interface MemberManagementProps {
 
 export const MemberManagement: React.FC<MemberManagementProps> = ({
   members,
-  organizationId,
-  currentUserRole,
+  organizationId: _organizationId,
+  currentUserRole: _currentUserRole,
   isLoading,
 }) => {
   if (isLoading) {

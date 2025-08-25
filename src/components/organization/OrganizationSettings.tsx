@@ -8,8 +8,8 @@ interface OrganizationSettingsProps {
 }
 
 export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
-  organizationId,
-  currentUserRole,
+  organizationId: _organizationId,
+  currentUserRole: _currentUserRole,
 }) => {
   return (
     <Card>
