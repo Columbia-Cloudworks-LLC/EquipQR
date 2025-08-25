@@ -69,7 +69,7 @@ const FleetMap: React.FC = () => {
 
   // Check subscription status
   if (!subscription?.active) {
-    return <FleetMapUpsell organizationId={currentOrganization?.id} />;
+    return <FleetMapUpsell onEnableFleetMap={() => { /* TODO: implement checkout redirect */ }} />;
   }
 
   // Load equipment locations

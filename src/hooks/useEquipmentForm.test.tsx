@@ -69,9 +69,9 @@ const createMockEquipment = (overrides: Partial<EquipmentRecord> = {}): Equipmen
   created_at: '2025-01-01T00:00:00Z',
   updated_at: '2025-01-01T00:00:00Z',
   working_hours: 0,
-  customer_id: null,
+  
   default_pm_template_id: null,
-  import_id: null,
+  
   ...overrides,
 });
 

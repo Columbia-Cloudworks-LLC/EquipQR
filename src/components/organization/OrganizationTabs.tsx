@@ -8,7 +8,7 @@ import { Users, UserPlus, Settings } from 'lucide-react';
 import { useFleetMapSubscription, FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
 import { MemberManagement } from './MemberManagement';
-import OrganizationSettings from './OrganizationSettings';
+import { OrganizationSettings } from './OrganizationSettings';
 
 interface OrganizationTabsProps {
   members: any[];
@@ -98,12 +98,11 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
         <SimplifiedInvitationDialog
           open={invitationDialogOpen}
           onOpenChange={setInvitationDialogOpen}
-          organizationId={organizationId}
         />
       </TabsContent>
 
       <TabsContent value="settings">
-        <OrganizationSettings organizationId={organizationId} />
+        <OrganizationSettings organizationId={organizationId} currentUserRole={currentUserRole} />
       </TabsContent>
     </Tabs>
   );

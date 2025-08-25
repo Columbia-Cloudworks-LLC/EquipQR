@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEquipment } from './useSupabaseData';
+import { useEquipmentByOrganization } from './useSupabaseData';
 import { createClient } from '@supabase/supabase-js';
 
 // Mock Supabase
@@ -72,7 +72,7 @@ describe('useEquipment', () => {
   });
 
   it('should fetch equipment data successfully', async () => {
-    const { result } = renderHook(() => useEquipment(), {
+    const { result } = renderHook(() => useEquipmentByOrganization('org-1'), {
       wrapper: createWrapper()
     });
 
@@ -90,7 +90,7 @@ describe('useEquipment', () => {
   });
 
   it('should handle loading state', () => {
-    const { result } = renderHook(() => useEquipment(), {
+    const { result } = renderHook(() => useEquipmentByOrganization('org-1'), {
       wrapper: createWrapper()
     });
 

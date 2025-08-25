@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateOrganizationInvitation } from '@/hooks/useOrganizationInvitations';
+import { useCreateInvitation } from '@/hooks/useOrganizationInvitations';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { toast } from 'sonner';
 
@@ -33,7 +33,7 @@ export const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProp
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'admin' | 'member'>('member');
   const { currentOrganization } = useSimpleOrganization();
-  const createInvitation = useCreateOrganizationInvitation();
+  const createInvitation = useCreateInvitation(currentOrganization?.id || '');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +52,6 @@ export const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProp
       await createInvitation.mutateAsync({
         email: email.trim(),
         role,
-        organizationId: currentOrganization.id,
       });
       
       toast.success('Invitation sent successfully');

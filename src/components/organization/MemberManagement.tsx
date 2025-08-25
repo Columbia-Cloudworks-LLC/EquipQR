@@ -38,7 +38,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
       <CardContent>
         <div className="space-y-4">
           {members.map((member) => (
-            <div key={member.user_id} className="flex items-center justify-between p-3 border rounded-lg">
+            <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
               <div>
                 <p className="font-medium">{member.name || member.email}</p>
                 <p className="text-sm text-muted-foreground">{member.email}</p>

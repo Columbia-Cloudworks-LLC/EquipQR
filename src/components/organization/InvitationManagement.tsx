@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { UserPlus, MoreHorizontal, Mail, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/hooks/useOrganizationInvitations';
-import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
+import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
 import { formatDistanceToNow } from 'date-fns';
 
 const InvitationManagement = () => {
