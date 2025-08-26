@@ -6,9 +6,9 @@
 
 -- Insert test profiles (users)
 INSERT INTO public.profiles (id, name, email, email_private, created_at, updated_at) VALUES
-  ('550e8400-e29b-41d4-a716-446655440000', 'Test Admin User', 'admin@test.equipqr.com', false, '2024-01-01 00:00:00+00', '2024-01-01 00:00:00+00'),
-  ('550e8400-e29b-41d4-a716-446655440001', 'Test Member User', 'member@test.equipqr.com', false, '2024-01-01 00:00:00+00', '2024-01-01 00:00:00+00'),
-  ('550e8400-e29b-41d4-a716-446655440002', 'Test Technician', 'tech@test.equipqr.com', false, '2024-01-01 00:00:00+00', '2024-01-01 00:00:00+00')
+  ('550e8400-e29b-41d4-a716-446655440000', 'Test Admin User', 'admin@test.equipqr.app', false, '2024-01-01 00:00:00+00', '2024-01-01 00:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'Test Member User', 'member@test.equipqr.app', false, '2024-01-01 00:00:00+00', '2024-01-01 00:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'Test Technician', 'tech@test.equipqr.app', false, '2024-01-01 00:00:00+00', '2024-01-01 00:00:00+00')
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert test organizations
