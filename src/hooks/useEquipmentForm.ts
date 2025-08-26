@@ -1,152 +1,167 @@
+
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from '@/hooks/use-toast';
-import { useCreateEquipment, useUpdateEquipment } from '@/hooks/useSupabaseData';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { 
-  createEquipmentValidationSchema, 
-  type EquipmentFormData, 
-  type EquipmentRecord 
-} from '@/types/equipment';
-import { useTeamMembership } from '@/hooks/useTeamMembership';
-import { useSession } from '@/hooks/useSession';
-import { createValidationContext } from '@/utils/validationHelpers';
+import { useAuth } from '@/hooks/useAuth';
+import { equipmentFormSchema, EquipmentFormData, EquipmentRecord } from '@/types/equipment';
+import { toast } from 'sonner';
 
-interface UseEquipmentFormProps {
-  equipment?: EquipmentRecord;
-  onClose: () => void;
-}
-
-export const useEquipmentForm = ({ equipment, onClose }: UseEquipmentFormProps) => {
-  const isEdit = !!equipment;
-  const { currentOrganization } = useSimpleOrganization();
+export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () => void) => {
+  const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
-  const createEquipmentMutation = useCreateEquipment(currentOrganization?.id || '');
-  const updateEquipmentMutation = useUpdateEquipment(currentOrganization?.id || '');
-  const { canManageEquipment, hasRole } = usePermissions();
-  const { teamMemberships } = useTeamMembership();
-  const { getCurrentOrganization } = useSession();
-
-  // Create validation context for role-based validation
-  const currentOrg = getCurrentOrganization();
-  const validationContext = createValidationContext(
-    currentOrg?.userRole || 'member',
-    currentOrg?.userRole === 'admin' || currentOrg?.userRole === 'owner',
-    teamMemberships || []
-  );
+  const { currentOrganization } = useSimpleOrganization();
+  const { user } = useAuth();
 
   const form = useForm<EquipmentFormData>({
-    resolver: zodResolver(createEquipmentValidationSchema(validationContext)),
-    defaultValues: {
-      name: equipment?.name || '',
-      manufacturer: equipment?.manufacturer || '',
-      model: equipment?.model || '',
-      serial_number: equipment?.serial_number || '',
-      status: equipment?.status || 'active',
-      location: equipment?.location || '',
-      installation_date: equipment?.installation_date || new Date().toISOString().split('T')[0],
-      warranty_expiration: equipment?.warranty_expiration || '',
-      last_maintenance: equipment?.last_maintenance || '',
-      notes: equipment?.notes || '',
-      custom_attributes: equipment?.custom_attributes || {},
-      image_url: equipment?.image_url || '',
-      last_known_location: equipment?.last_known_location || null,
-      team_id: equipment?.team_id || undefined
-    },
+    resolver: zodResolver(equipmentFormSchema),
+    defaultValues: initialData ? {
+      name: initialData.name,
+      manufacturer: initialData.manufacturer,
+      model: initialData.model,
+      serial_number: initialData.serial_number,
+      status: initialData.status,
+      location: initialData.location,
+      installation_date: initialData.installation_date,
+      warranty_expiration: initialData.warranty_expiration || '',
+      last_maintenance: initialData.last_maintenance || '',
+      notes: initialData.notes || '',
+      custom_attributes: initialData.custom_attributes || {},
+      image_url: initialData.image_url || '',
+      last_known_location: initialData.last_known_location || undefined,
+      team_id: initialData.team_id || '',
+      default_pm_template_id: initialData.default_pm_template_id || ''
+    } : {
+      name: '',
+      manufacturer: '',
+      model: '',
+      serial_number: '',
+      status: 'active' as const,
+      location: '',
+      installation_date: new Date().toISOString().split('T')[0],
+      warranty_expiration: '',
+      last_maintenance: '',
+      notes: '',
+      custom_attributes: {},
+      image_url: '',
+      last_known_location: undefined,
+      team_id: '',
+      default_pm_template_id: ''
+    }
   });
 
-  const onSubmit = async (values: EquipmentFormData) => {
-    if (!canManageEquipment()) {
-      toast({
-        title: "Permission Denied",
-        description: "You don't have permission to create equipment",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check team assignment requirements for non-admin users
-    const isAdminUser = hasRole(['owner', 'admin']);
-    if (!isAdminUser && (!values.team_id || values.team_id === 'unassigned')) {
-      toast({
-        title: "Team Assignment Required",
-        description: "Non-admin users must assign equipment to a team",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      if (isEdit) {
-        if (!equipment?.id) {
-          toast({
-            title: "Update Failed",
-            description: "Missing equipment ID",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        const equipmentData = {
-          name: values.name,
-          manufacturer: values.manufacturer,
-          model: values.model,
-          serial_number: values.serial_number,
-          status: values.status,
-          location: values.location,
-          installation_date: values.installation_date,
-          warranty_expiration: values.warranty_expiration || null,
-          last_maintenance: values.last_maintenance || null,
-          notes: values.notes || '',
-          custom_attributes: values.custom_attributes || {},
-          image_url: values.image_url || null,
-          last_known_location: values.last_known_location || null,
-          team_id: values.team_id === 'unassigned' ? null : (values.team_id || null),
-        } as const;
-
-        await updateEquipmentMutation.mutateAsync({
-          equipmentId: equipment.id,
-          equipmentData,
-        });
-
-        // Ensure dashboard stats refresh after update
-        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      } else {
-        // Ensure all required fields are present with proper values
-        const equipmentData = {
-          name: values.name,
-          manufacturer: values.manufacturer,
-          model: values.model,
-          serial_number: values.serial_number,
-          status: values.status,
-          location: values.location,
-          installation_date: values.installation_date,
-          warranty_expiration: values.warranty_expiration || null,
-          last_maintenance: values.last_maintenance || null,
-          notes: values.notes || '',
-          custom_attributes: values.custom_attributes || {},
-          image_url: values.image_url || null,
-          last_known_location: values.last_known_location || null,
-          team_id: values.team_id === 'unassigned' ? null : (values.team_id || null),
-          working_hours: 0, // Initialize with 0 hours for new equipment
-          default_pm_template_id: values.default_pm_template_id || null,
-          import_id: null
-        };
-        
-        await createEquipmentMutation.mutateAsync(equipmentData);
+  const createMutation = useMutation({
+    mutationFn: async (data: EquipmentFormData) => {
+      if (!currentOrganization?.id || !user?.id) {
+        throw new Error('Organization or user not found');
       }
-      onClose();
-    } catch (error) {
-      console.error('Error submitting equipment form:', error);
+
+      const equipmentData = {
+        name: data.name,
+        manufacturer: data.manufacturer,
+        model: data.model,
+        serial_number: data.serial_number,
+        status: data.status,
+        location: data.location,
+        installation_date: data.installation_date,
+        organization_id: currentOrganization.id,
+        customer_id: null,
+        warranty_expiration: data.warranty_expiration || null,
+        last_maintenance: data.last_maintenance || null,
+        notes: data.notes || null,
+        custom_attributes: data.custom_attributes || {},
+        image_url: data.image_url || null,
+        last_known_location: data.last_known_location || null,
+        team_id: data.team_id || null,
+        default_pm_template_id: data.default_pm_template_id || null,
+        working_hours: 0,
+        import_id: null
+      };
+
+      const { data: result, error } = await supabase
+        .from('equipment')
+        .insert(equipmentData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      toast.success('Equipment created successfully');
+      form.reset();
+      setIsOpen(false);
+      onSuccess?.();
+    },
+    onError: (error) => {
+      console.error('Equipment creation error:', error);
+      toast.error('Failed to create equipment');
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: EquipmentFormData) => {
+      if (!initialData?.id) {
+        throw new Error('Equipment ID not found');
+      }
+
+      const equipmentData = {
+        name: data.name,
+        manufacturer: data.manufacturer,
+        model: data.model,
+        serial_number: data.serial_number,
+        status: data.status,
+        location: data.location,
+        installation_date: data.installation_date,
+        warranty_expiration: data.warranty_expiration || null,
+        last_maintenance: data.last_maintenance || null,
+        notes: data.notes || null,
+        custom_attributes: data.custom_attributes || {},
+        image_url: data.image_url || null,
+        last_known_location: data.last_known_location || null,
+        team_id: data.team_id || null,
+        default_pm_template_id: data.default_pm_template_id || null
+      };
+
+      const { data: result, error } = await supabase
+        .from('equipment')
+        .update(equipmentData)
+        .eq('id', initialData.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      toast.success('Equipment updated successfully');
+      setIsOpen(false);
+      onSuccess?.();
+    },
+    onError: (error) => {
+      console.error('Equipment update error:', error);
+      toast.error('Failed to update equipment');
+    }
+  });
+
+  const onSubmit = (data: EquipmentFormData) => {
+    if (initialData) {
+      updateMutation.mutate(data);
+    } else {
+      createMutation.mutate(data);
     }
   };
 
   return {
     form,
     onSubmit,
-    isEdit,
-    isPending: createEquipmentMutation.isPending || updateEquipmentMutation.isPending
+    isEdit: !!initialData,
+    isPending: createMutation.isPending || updateMutation.isPending,
+    isOpen,
+    setIsOpen
   };
 };

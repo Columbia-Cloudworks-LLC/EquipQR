@@ -1,4 +1,3 @@
-
 project_id = "ymxkzronkhwxzcdcbnwq"
 
 [api]
@@ -19,3 +18,12 @@ verify_jwt = false
 
 [functions.send-invitation-email]
 verify_jwt = true
+
+[functions.geocode-location]
+verify_jwt = true
+
+[functions.create-fleetmap-checkout]
+verify_jwt = true
+
+[functions.public-google-maps-key]
+verify_jwt = false

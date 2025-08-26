@@ -13,7 +13,7 @@ import { useTeamMembership } from '@/hooks/useTeamMembership';
 import { useUpdateMemberRole, useRemoveMember } from '@/hooks/useOrganizationMembers';
 import { RealOrganizationMember } from '@/hooks/useOptimizedOrganizationMembers';
 import { getRoleBadgeVariant } from '@/utils/badgeVariants';
-import SimplifiedInvitationDialog from './SimplifiedInvitationDialog';
+import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import { toast } from 'sonner';
 

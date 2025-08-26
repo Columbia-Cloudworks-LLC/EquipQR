@@ -16,12 +16,7 @@ const DebugBillingContent: React.FC<{ currentOrganization: SimpleOrganization | 
   const [prettyView, setPrettyView] = useState(true);
   const organizationId = currentOrganization?.id;
 
-  const {
-    data: localBilling,
-    isLoading: localLoading,
-    error: localError,
-    refetch: refetchLocal,
-  } = useLocalBillingCalculation(organizationId);
+  const localBilling = useLocalBillingCalculation({ memberCount: 0, storageUsedGB: 0 });
 
   const {
     data: snapshotData,
@@ -31,9 +26,8 @@ const DebugBillingContent: React.FC<{ currentOrganization: SimpleOrganization | 
   } = useBillingSnapshot(organizationId);
 
   const handleRefreshAll = () => {
-    refetchLocal();
     refetchSnapshot();
-    toast.success('Refreshed both calculations');
+    toast.success('Refreshed snapshot');
   };
 
   const copyToClipboard = (data: unknown, label: string) => {
@@ -77,8 +71,8 @@ const DebugBillingContent: React.FC<{ currentOrganization: SimpleOrganization | 
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={handleRefreshAll} disabled={localLoading || snapshotLoading} size="sm">
-          <RefreshCw className={`h-4 w-4 mr-2 ${(localLoading || snapshotLoading) ? 'animate-spin' : ''}`} />
+        <Button onClick={handleRefreshAll} disabled={snapshotLoading} size="sm">
+          <RefreshCw className={`h-4 w-4 mr-2 ${snapshotLoading ? 'animate-spin' : ''}`} />
           Refresh All
         </Button>
         <Button 
@@ -147,15 +141,7 @@ const DebugBillingContent: React.FC<{ currentOrganization: SimpleOrganization | 
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-96">
-              {localLoading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : localError ? (
-                <div className="text-destructive text-sm">
-                  Error: {localError.message}
-                </div>
-              ) : localBilling ? (
+              {localBilling ? (
                 <pre className="text-xs">
                   {prettyView ? JSON.stringify(localBilling, null, 2) : JSON.stringify(localBilling)}
                 </pre>
