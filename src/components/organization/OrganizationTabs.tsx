@@ -12,9 +12,12 @@ import { OrganizationSettings } from './OrganizationSettings';
 
 interface MemberItem {
   id: string;
-  name?: string | null;
-  email?: string | null;
-  role?: string | null;
+  name: string;
+  email: string;
+  role: 'owner' | 'admin' | 'member';
+  status: 'active' | 'pending' | 'inactive';
+  joinedDate: string;
+  avatar?: string;
 }
 
 interface Permissions {

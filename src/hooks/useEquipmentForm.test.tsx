@@ -108,7 +108,7 @@ describe('useEquipmentForm', () => {
     , { wrapper: createWrapper(client) });
 
       await act(async () => {
-        await result.current.form.handleSubmit(result.current.onSubmit)(baseValues);
+        await result.current.onSubmit(baseValues);
       });
 
     expect(result.current.isEdit).toBe(false);
