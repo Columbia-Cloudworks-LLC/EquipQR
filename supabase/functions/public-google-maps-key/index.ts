@@ -12,18 +12,45 @@ serve(async (req) => {
   }
 
   try {
+    console.log("[public-google-maps-key] Function invoked", {
+      method: req.method,
+      url: req.url,
+      timestamp: new Date().toISOString()
+    });
+
     const browserKey = Deno.env.get("VITE_GOOGLE_MAPS_BROWSER_KEY");
+    console.log("[public-google-maps-key] Environment check", {
+      hasKey: !!browserKey,
+      keyLength: browserKey?.length || 0
+    });
+
     if (!browserKey) {
-      throw new Error("VITE_GOOGLE_MAPS_BROWSER_KEY is not configured");
+      console.error("[public-google-maps-key] Missing API key in environment");
+      return new Response(JSON.stringify({ 
+        error: "VITE_GOOGLE_MAPS_BROWSER_KEY is not configured in Supabase Edge Function secrets" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
     }
 
+    console.log("[public-google-maps-key] Successfully returning API key");
     return new Response(JSON.stringify({ key: browserKey }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { 
+        ...corsHeaders, 
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      },
       status: 200,
     });
   } catch (error) {
-    console.error(error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    console.error("[public-google-maps-key] Function error:", error);
+    return new Response(JSON.stringify({ 
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

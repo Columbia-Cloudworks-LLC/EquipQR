@@ -10,6 +10,8 @@ import { Search, MapPin } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { FleetMapUpsell } from '@/components/fleet-map/FleetMapUpsell';
+import { FleetMapErrorBoundary } from '@/components/fleet-map/FleetMapErrorBoundary';
+import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
 import { parseLatLng } from '@/utils/geoUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -26,9 +28,6 @@ interface EquipmentLocation {
   formatted_address?: string;
 }
 
-interface GoogleMapsKeyResponse {
-  key: string;
-}
 
 const mapContainerStyle = {
   width: '100%',
@@ -42,53 +41,50 @@ const defaultCenter = {
 
 const FleetMap: React.FC = () => {
   const { currentOrganization } = useSimpleOrganization();
-  const { data: subscription } = useFleetMapSubscription(currentOrganization?.id);
+  const { data: subscription, isLoading: subscriptionLoading } = useFleetMapSubscription(currentOrganization?.id);
+  const { googleMapsKey, isLoading: mapsKeyLoading, error: mapsKeyError, retry: retryMapsKey } = useGoogleMapsKey();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMarker, setSelectedMarker] = useState<EquipmentLocation | null>(null);
   const [equipmentLocations, setEquipmentLocations] = useState<EquipmentLocation[]>([]);
   const [skippedCount, setSkippedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [googleMapsKey, setGoogleMapsKey] = useState<string>('');
   const isSubscriptionActive = !!subscription?.active;
 
-  // Fetch Google Maps key on mount
-  useEffect(() => {
-    const fetchGoogleMapsKey = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke<GoogleMapsKeyResponse>('public-google-maps-key');
-        if (error) throw error;
-        setGoogleMapsKey(data.key);
-      } catch (error) {
-        console.error('Failed to fetch Google Maps key:', error);
-        toast.error('Failed to load map configuration');
-      }
-    };
-
-    fetchGoogleMapsKey();
-  }, []);
 
   // Load equipment locations
   useEffect(() => {
-    if (!isSubscriptionActive) return;
+    if (!isSubscriptionActive || subscriptionLoading) return;
 
     const loadEquipmentLocations = async () => {
       if (!currentOrganization?.id || !googleMapsKey) return;
+
+      console.log('[FleetMap] Loading equipment locations...', {
+        organizationId: currentOrganization.id,
+        hasGoogleMapsKey: !!googleMapsKey
+      });
 
       setIsLoading(true);
       try {
         const locations = await getEquipmentLocations(currentOrganization.id);
         setEquipmentLocations(locations);
         setSkippedCount(await getSkippedEquipmentCount(currentOrganization.id, locations.length));
+        
+        console.log('[FleetMap] Successfully loaded equipment locations:', {
+          locatedCount: locations.length,
+          skippedCount: await getSkippedEquipmentCount(currentOrganization.id, locations.length)
+        });
       } catch (error) {
-        console.error('Failed to load equipment locations:', error);
-        toast.error('Failed to load equipment locations');
+        console.error('[FleetMap] Failed to load equipment locations:', error);
+        toast.error('Failed to load equipment locations', {
+          description: error instanceof Error ? error.message : 'Unknown error occurred'
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     loadEquipmentLocations();
-  }, [currentOrganization?.id, googleMapsKey, isSubscriptionActive]);
+  }, [currentOrganization?.id, googleMapsKey, isSubscriptionActive, subscriptionLoading]);
 
   // Get equipment locations with precedence logic
   const getEquipmentLocations = async (organizationId: string): Promise<EquipmentLocation[]> => {
@@ -205,28 +201,65 @@ const FleetMap: React.FC = () => {
     );
   }, [equipmentLocations, searchTerm]);
 
-  if (!isSubscriptionActive) {
-    return <FleetMapUpsell onEnableFleetMap={() => { /* TODO: implement checkout redirect */ }} />;
-  }
-
-  if (isLoading) {
+  // Handle subscription loading
+  if (subscriptionLoading) {
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Fleet Map</h1>
-          <p className="text-muted-foreground">Loading equipment locations...</p>
+          <p className="text-muted-foreground">Checking subscription status...</p>
         </div>
       </div>
     );
   }
 
+  // Handle subscription not active
+  if (!isSubscriptionActive) {
+    return <FleetMapUpsell onEnableFleetMap={() => { /* TODO: implement checkout redirect */ }} />;
+  }
+
+  // Handle Google Maps key error
+  if (mapsKeyError) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Fleet Map</h1>
+        </div>
+        <FleetMapErrorBoundary 
+          error={mapsKeyError} 
+          onRetry={retryMapsKey}
+          isRetrying={mapsKeyLoading}
+        />
+      </div>
+    );
+  }
+
+  // Handle loading states
+  if (mapsKeyLoading || isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Fleet Map</h1>
+          <p className="text-muted-foreground">
+            {mapsKeyLoading ? 'Loading map configuration...' : 'Loading equipment locations...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle missing Google Maps key
   if (!googleMapsKey) {
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Fleet Map</h1>
-          <p className="text-muted-foreground">Loading map configuration...</p>
         </div>
+        <FleetMapErrorBoundary 
+          error="Google Maps API key not available. Please check the VITE_GOOGLE_MAPS_BROWSER_KEY secret configuration."
+          onRetry={retryMapsKey}
+          isRetrying={mapsKeyLoading}
+        />
       </div>
     );
   }
