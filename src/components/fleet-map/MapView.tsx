@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { GoogleMap, MarkerF, InfoWindowF, useJsApiLoader } from '@react-google-maps/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, ExternalLink } from 'lucide-react';
+import { MapPin, ExternalLink, Clock, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { formatDate, getRelativeTime } from '@/utils/basicDateFormatter';
 
 interface EquipmentLocation {
   id: string;
@@ -15,6 +16,10 @@ interface EquipmentLocation {
   lng: number;
   source: 'equipment' | 'geocoded' | 'scan';
   formatted_address?: string;
+  working_hours?: number;
+  last_maintenance?: string;
+  image_url?: string;
+  location_updated_at?: string;
 }
 
 interface MapViewProps {
@@ -131,29 +136,86 @@ export const MapView: React.FC<MapViewProps> = ({
           position={{ lat: selectedMarker.lat, lng: selectedMarker.lng }}
           onCloseClick={() => setSelectedMarker(null)}
         >
-          <div className="p-2 min-w-[250px]">
-            <div className="flex items-start justify-between mb-2">
-              <h3 className="font-semibold text-base">{selectedMarker.name}</h3>
-              <Badge 
-                variant={
-                  selectedMarker.source === 'equipment' ? 'default' :
-                  selectedMarker.source === 'geocoded' ? 'secondary' : 'outline'
-                }
-                className="ml-2 text-xs"
-              >
-                {selectedMarker.source}
-              </Badge>
+          <div className="p-3 min-w-[280px] max-w-[350px]">
+            {/* Header with image */}
+            <div className="flex gap-3 mb-3">
+              {selectedMarker.image_url && (
+                <div className="flex-shrink-0">
+                  <img 
+                    src={selectedMarker.image_url} 
+                    alt={selectedMarker.name}
+                    className="w-16 h-16 object-cover rounded-lg border"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between mb-1">
+                  <h3 className="font-semibold text-base truncate">{selectedMarker.name}</h3>
+                  <Badge 
+                    variant={
+                      selectedMarker.source === 'equipment' ? 'default' :
+                      selectedMarker.source === 'geocoded' ? 'secondary' : 'outline'
+                    }
+                    className="ml-2 text-xs flex-shrink-0"
+                  >
+                    {selectedMarker.source}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {selectedMarker.manufacturer} {selectedMarker.model}
+                </p>
+              </div>
             </div>
             
-            <div className="space-y-1 text-sm mb-3">
-              <p><strong>Manufacturer:</strong> {selectedMarker.manufacturer}</p>
-              <p><strong>Model:</strong> {selectedMarker.model}</p>
-              <p><strong>Serial:</strong> {selectedMarker.serial_number}</p>
+            {/* Equipment details */}
+            <div className="space-y-2 text-sm mb-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="font-medium">Serial:</span>
+                  <p className="text-muted-foreground truncate">{selectedMarker.serial_number}</p>
+                </div>
+                {selectedMarker.working_hours !== undefined && (
+                  <div>
+                    <span className="font-medium flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Hours:
+                    </span>
+                    <p className="text-muted-foreground">{selectedMarker.working_hours?.toLocaleString() || '0'}</p>
+                  </div>
+                )}
+              </div>
+              
+              {selectedMarker.last_maintenance && (
+                <div>
+                  <span className="font-medium flex items-center gap-1">
+                    <Wrench className="h-3 w-3" />
+                    Last Maintenance:
+                  </span>
+                  <p className="text-muted-foreground">{formatDate(selectedMarker.last_maintenance)}</p>
+                </div>
+              )}
+              
               {selectedMarker.formatted_address && (
-                <p className="text-muted-foreground flex items-start gap-1">
-                  <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                  <span className="text-xs">{selectedMarker.formatted_address}</span>
-                </p>
+                <div>
+                  <span className="font-medium flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    Address:
+                  </span>
+                  <p className="text-xs text-muted-foreground">{selectedMarker.formatted_address}</p>
+                </div>
+              )}
+              
+              {selectedMarker.location_updated_at && (
+                <div>
+                  <span className="font-medium">Location Updated:</span>
+                  <p className="text-xs text-muted-foreground">
+                    {getRelativeTime(selectedMarker.location_updated_at)}
+                  </p>
+                </div>
               )}
             </div>
             
