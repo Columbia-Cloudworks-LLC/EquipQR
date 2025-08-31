@@ -283,8 +283,15 @@ const FleetMap: React.FC = () => {
 
   // Handle subscription not active
   if (!isSubscriptionActive) {
+    const isOwner = currentOrganization?.userRole === 'owner';
+    
     const handleEnableFleetMap = async () => {
       if (!currentOrganization?.id) return;
+      
+      if (!isOwner) {
+        toast.error('Only organization owners can purchase features for this organization');
+        return;
+      }
       
       try {
         setIsCheckoutLoading(true);
@@ -292,7 +299,12 @@ const FleetMap: React.FC = () => {
           body: { organizationId: currentOrganization.id }
         });
         
-        if (error) throw error;
+        if (error) {
+          if (error.message?.includes('403') || error.message?.includes('owner')) {
+            throw new Error('Only organization owners can purchase features for this organization');
+          }
+          throw error;
+        }
         if (data?.url) {
           window.open(data.url, '_blank');
         }
@@ -323,7 +335,12 @@ const FleetMap: React.FC = () => {
             Refresh Status
           </Button>
         </div>
-        <FleetMapUpsell onEnableFleetMap={handleEnableFleetMap} isLoading={isCheckoutLoading} />
+        <FleetMapUpsell 
+          onEnableFleetMap={handleEnableFleetMap} 
+          isLoading={isCheckoutLoading}
+          canPurchase={isOwner}
+          helperText={isOwner ? undefined : 'Only organization owners can purchase Fleet Map'}
+        />
       </div>
     );
   }
