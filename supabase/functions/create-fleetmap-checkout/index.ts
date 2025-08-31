@@ -72,8 +72,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${origin}/dashboard/fleet-map?success=true`,
-      cancel_url: `${origin}/dashboard/fleet-map?cancelled=true`,
+      success_url: `${origin}/dashboard/fleet-map?activated=true&organizationId=${organizationId}`,
+      cancel_url: `${origin}/dashboard/fleet-map?cancelled=true&organizationId=${organizationId}`,
       metadata: {
         user_id: user.id,
         organization_id: organizationId,

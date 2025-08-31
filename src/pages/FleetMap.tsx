@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Search, MapPin } from 'lucide-react';
+import { Search, MapPin, RefreshCw } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { FleetMapUpsell } from '@/components/fleet-map/FleetMapUpsell';
@@ -15,6 +15,7 @@ import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
 import { parseLatLng } from '@/utils/geoUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface EquipmentLocation {
   id: string;
@@ -40,8 +41,8 @@ const defaultCenter = {
 };
 
 const FleetMap: React.FC = () => {
-  const { currentOrganization } = useSimpleOrganization();
-  const { data: subscription, isLoading: subscriptionLoading } = useFleetMapSubscription(currentOrganization?.id);
+  const { currentOrganization, switchOrganization } = useSimpleOrganization();
+  const { data: subscription, isLoading: subscriptionLoading, refetch: refetchSubscription } = useFleetMapSubscription(currentOrganization?.id);
   const { googleMapsKey, isLoading: mapsKeyLoading, error: mapsKeyError, retry: retryMapsKey } = useGoogleMapsKey();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMarker, setSelectedMarker] = useState<EquipmentLocation | null>(null);
@@ -49,8 +50,74 @@ const FleetMap: React.FC = () => {
   const [skippedCount, setSkippedCount] = useState(0);
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [isRefreshingSubscription, setIsRefreshingSubscription] = useState(false);
+  const queryClient = useQueryClient();
   const isSubscriptionActive = !!subscription?.active;
 
+
+  // Handle post-checkout activation
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const activated = urlParams.get('activated');
+    const organizationId = urlParams.get('organizationId');
+    const cancelled = urlParams.get('cancelled');
+    
+    if (activated === 'true' && organizationId) {
+      // Switch to the correct organization if needed
+      if (currentOrganization?.id !== organizationId) {
+        switchOrganization(organizationId);
+      }
+      
+      // Refresh subscription status
+      handleRefreshSubscription(organizationId);
+      
+      // Clean up URL parameters
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    } else if (cancelled === 'true') {
+      toast.info('Fleet Map subscription was cancelled');
+      // Clean up URL parameters
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [currentOrganization?.id, switchOrganization]);
+
+  // Refresh subscription function
+  const handleRefreshSubscription = async (orgId?: string) => {
+    const targetOrgId = orgId || currentOrganization?.id;
+    if (!targetOrgId) return;
+
+    try {
+      setIsRefreshingSubscription(true);
+      
+      const { data, error } = await supabase.functions.invoke('refresh-fleetmap-subscription', {
+        body: { organizationId: targetOrgId }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        // Invalidate and refetch subscription data
+        queryClient.invalidateQueries({ queryKey: ['fleet-map-subscription', targetOrgId] });
+        await refetchSubscription();
+        
+        toast.success('Fleet Map activated successfully!', {
+          description: 'Your subscription is now active and ready to use.'
+        });
+      } else {
+        toast.error('Fleet Map activation failed', {
+          description: data?.message || 'Please ensure you have an active subscription.'
+        });
+      }
+    } catch (error) {
+      console.error('Refresh subscription error:', error);
+      toast.error('Failed to refresh subscription status', {
+        description: error instanceof Error ? error.message : 'Please try again later'
+      });
+    } finally {
+      setIsRefreshingSubscription(false);
+    }
+  };
 
   // Load equipment locations
   useEffect(() => {
@@ -239,7 +306,26 @@ const FleetMap: React.FC = () => {
       }
     };
 
-    return <FleetMapUpsell onEnableFleetMap={handleEnableFleetMap} isLoading={isCheckoutLoading} />;
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Fleet Map</h1>
+            <p className="text-muted-foreground">Fleet Map subscription required</p>
+          </div>
+          <Button 
+            onClick={() => handleRefreshSubscription()} 
+            disabled={isRefreshingSubscription}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshingSubscription ? 'animate-spin' : ''}`} />
+            Refresh Status
+          </Button>
+        </div>
+        <FleetMapUpsell onEnableFleetMap={handleEnableFleetMap} isLoading={isCheckoutLoading} />
+      </div>
+    );
   }
 
   // Handle Google Maps key error
@@ -298,6 +384,15 @@ const FleetMap: React.FC = () => {
             Skipped: {skippedCount}
           </p>
         </div>
+        <Button 
+          onClick={() => handleRefreshSubscription()} 
+          disabled={isRefreshingSubscription}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshingSubscription ? 'animate-spin' : ''}`} />
+          Refresh Status
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
