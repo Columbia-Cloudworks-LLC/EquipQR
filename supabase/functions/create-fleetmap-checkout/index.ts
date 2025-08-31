@@ -44,6 +44,13 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     
+    // Get Fleet Map price ID from environment
+    const fleetMapPriceId = Deno.env.get("STRIPE_FLEETMAP_PRICE_ID");
+    if (!fleetMapPriceId) {
+      throw new Error("STRIPE_FLEETMAP_PRICE_ID environment variable is not configured");
+    }
+    logStep("Using Fleet Map price ID", { priceId: fleetMapPriceId });
+    
     // Check if customer exists
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId;
@@ -54,26 +61,13 @@ serve(async (req) => {
       logStep("Creating new customer");
     }
 
-    // Get price by lookup key
-    const prices = await stripe.prices.list({
-      lookup_keys: ['price_fleet_map_monthly'],
-      limit: 1
-    });
-
-    if (prices.data.length === 0) {
-      throw new Error("Fleet Map price not found with lookup key 'price_fleet_map_monthly'");
-    }
-
-    const priceId = prices.data[0].id;
-    logStep("Found price", { priceId });
-
     const origin = req.headers.get("origin") || "http://localhost:3000";
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: priceId,
+          price: fleetMapPriceId,
           quantity: 1,
         },
       ],
@@ -85,6 +79,13 @@ serve(async (req) => {
         organization_id: organizationId,
         feature_type: 'fleet_map'
       },
+      subscription_data: {
+        metadata: {
+          user_id: user.id,
+          organization_id: organizationId,
+          feature_type: 'fleet_map'
+        }
+      }
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
@@ -96,7 +97,20 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR in create-fleetmap-checkout", { message: errorMessage });
-    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
+    
+    // Return specific error messages for better UX
+    let userMessage = "An internal error occurred";
+    if (errorMessage.includes("STRIPE_FLEETMAP_PRICE_ID")) {
+      userMessage = "Fleet Map pricing is not configured. Please contact support.";
+    } else if (errorMessage.includes("STRIPE_SECRET_KEY")) {
+      userMessage = "Payment system is not configured. Please contact support.";
+    } else if (errorMessage.includes("User not authenticated")) {
+      userMessage = "Please log in to continue.";
+    } else if (errorMessage.includes("organizationId is required")) {
+      userMessage = "Organization information is missing. Please refresh and try again.";
+    }
+    
+    return new Response(JSON.stringify({ error: userMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
