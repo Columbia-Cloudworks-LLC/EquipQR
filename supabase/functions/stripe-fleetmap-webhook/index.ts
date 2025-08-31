@@ -80,13 +80,26 @@ serve(async (req) => {
         });
       }
 
-      // Check if this is a Fleet Map subscription by looking at the price
-      const hasFleetMapPrice = subscription.items.data.some(item => 
-        item.price.lookup_key === 'price_fleet_map_monthly'
-      );
+      // Check if this is a Fleet Map subscription by price ID, product ID, or metadata
+      const fleetMapPriceId = Deno.env.get("STRIPE_FLEETMAP_PRICE_ID");
+      const fleetMapProductId = Deno.env.get("STRIPE_FLEETMAP_PRODUCT_ID");
+      
+      const isFleetMapSubscription = subscription.items.data.some(item => {
+        // Check by price ID
+        if (fleetMapPriceId && item.price.id === fleetMapPriceId) return true;
+        // Check by product ID
+        if (fleetMapProductId && item.price.product === fleetMapProductId) return true;
+        // Check by lookup key (fallback)
+        if (item.price.lookup_key === 'price_fleet_map_monthly') return true;
+        return false;
+      }) || subscription.metadata?.feature_type === 'fleet_map';
 
-      if (!hasFleetMapPrice) {
-        logStep("Skipping non-Fleet Map subscription");
+      if (!isFleetMapSubscription) {
+        logStep("Skipping non-Fleet Map subscription", {
+          priceIds: subscription.items.data.map(item => item.price.id),
+          productIds: subscription.items.data.map(item => item.price.product),
+          metadata: subscription.metadata
+        });
         return new Response(JSON.stringify({ received: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 200,
