@@ -58,7 +58,6 @@ serve(async (req) => {
       if (event.type === "checkout.session.completed") {
         const session = event.data.object as Stripe.Checkout.Session;
         organizationId = session.metadata?.organization_id;
-        userId = session.metadata?.user_id;
         
         if (session.subscription && typeof session.subscription === 'string') {
           subscription = await stripe.subscriptions.retrieve(session.subscription);
