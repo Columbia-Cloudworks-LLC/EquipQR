@@ -42,6 +42,35 @@ serve(async (req) => {
     if (!organizationId) throw new Error("organizationId is required");
     logStep("Request data", { organizationId });
 
+    // Verify user is an owner of the organization
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    const { data: membership, error: membershipError } = await supabaseAdmin
+      .from('organization_members')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('organization_id', organizationId)
+      .eq('status', 'active')
+      .single();
+
+    if (membershipError || !membership) {
+      return new Response(JSON.stringify({ error: "User is not a member of this organization" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+
+    if (membership.role !== 'owner') {
+      return new Response(JSON.stringify({ error: "Only organization owners can purchase features for this organization" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+    logStep("Owner verification passed", { role: membership.role });
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     
     // Get Fleet Map price ID from environment

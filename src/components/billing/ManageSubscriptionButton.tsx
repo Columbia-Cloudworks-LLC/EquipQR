@@ -22,12 +22,12 @@ const ManageSubscriptionButton: React.FC<ManageSubscriptionButtonProps> = ({
   
   const userRole = currentOrganization?.userRole;
   
-  // Only allow owners and admins to manage subscriptions
-  const canManageSubscription = ['owner', 'admin'].includes(userRole || '');
+  // Only allow owners to manage subscriptions
+  const canManageSubscription = userRole === 'owner';
 
   const handleManageSubscription = async () => {
     if (!canManageSubscription) {
-      toast.error('Only organization owners and admins can manage subscriptions');
+      toast.error('Only organization owners can manage subscriptions');
       return;
     }
 

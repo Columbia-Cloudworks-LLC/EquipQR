@@ -1,21 +1,22 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { GoogleMap, LoadScript, MarkerF, InfoWindowF } from '@react-google-maps/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Search, MapPin, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { FleetMapUpsell } from '@/components/fleet-map/FleetMapUpsell';
 import { FleetMapErrorBoundary } from '@/components/fleet-map/FleetMapErrorBoundary';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
 import { parseLatLng } from '@/utils/geoUtils';
+import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { MapView } from '@/components/fleet-map/MapView';
 
 interface EquipmentLocation {
   id: string;
@@ -30,22 +31,13 @@ interface EquipmentLocation {
 }
 
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '600px'
-};
-
-const defaultCenter = {
-  lat: 39.8283,
-  lng: -98.5795 // Center of USA
-};
 
 const FleetMap: React.FC = () => {
   const { currentOrganization, switchOrganization } = useSimpleOrganization();
   const { data: subscription, isLoading: subscriptionLoading, refetch: refetchSubscription } = useFleetMapSubscription(currentOrganization?.id);
   const { googleMapsKey, isLoading: mapsKeyLoading, error: mapsKeyError, retry: retryMapsKey } = useGoogleMapsKey();
+  
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedMarker, setSelectedMarker] = useState<EquipmentLocation | null>(null);
   const [equipmentLocations, setEquipmentLocations] = useState<EquipmentLocation[]>([]);
   const [skippedCount, setSkippedCount] = useState(0);
   const [isDataLoading, setIsDataLoading] = useState(false);
@@ -283,8 +275,15 @@ const FleetMap: React.FC = () => {
 
   // Handle subscription not active
   if (!isSubscriptionActive) {
+    const isOwner = currentOrganization?.userRole === 'owner';
+    
     const handleEnableFleetMap = async () => {
       if (!currentOrganization?.id) return;
+      
+      if (!isOwner) {
+        toast.error('Only organization owners can purchase features for this organization');
+        return;
+      }
       
       try {
         setIsCheckoutLoading(true);
@@ -292,7 +291,12 @@ const FleetMap: React.FC = () => {
           body: { organizationId: currentOrganization.id }
         });
         
-        if (error) throw error;
+        if (error) {
+          if (error.message?.includes('403') || error.message?.includes('owner')) {
+            throw new Error('Only organization owners can purchase features for this organization');
+          }
+          throw error;
+        }
         if (data?.url) {
           window.open(data.url, '_blank');
         }
@@ -323,20 +327,26 @@ const FleetMap: React.FC = () => {
             Refresh Status
           </Button>
         </div>
-        <FleetMapUpsell onEnableFleetMap={handleEnableFleetMap} isLoading={isCheckoutLoading} />
+        <FleetMapUpsell 
+          onEnableFleetMap={handleEnableFleetMap} 
+          isLoading={isCheckoutLoading}
+          canPurchase={isOwner}
+          helperText={isOwner ? undefined : 'Only organization owners can purchase Fleet Map'}
+        />
       </div>
     );
   }
 
-  // Handle Google Maps key error
+  // Handle Google Maps API key loading error
   if (mapsKeyError) {
+    console.error('[FleetMap] Google Maps key error:', mapsKeyError);
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Fleet Map</h1>
         </div>
         <FleetMapErrorBoundary 
-          error={mapsKeyError} 
+          error={mapsKeyError || 'Failed to load Google Maps API key'} 
           onRetry={retryMapsKey}
           isRetrying={mapsKeyLoading}
         />
@@ -346,6 +356,11 @@ const FleetMap: React.FC = () => {
 
   // Handle loading states
   if (mapsKeyLoading || isDataLoading) {
+    console.log('[FleetMap] Loading state:', { 
+      mapsKeyLoading, 
+      isDataLoading, 
+      hasGoogleMapsKey: !!googleMapsKey 
+    });
     return (
       <div className="space-y-6">
         <div>
@@ -354,12 +369,22 @@ const FleetMap: React.FC = () => {
             {mapsKeyLoading ? 'Loading map configuration...' : 'Loading equipment locations...'}
           </p>
         </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-1 space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+          <div className="lg:col-span-3">
+            <Skeleton className="h-[600px] w-full" />
+          </div>
+        </div>
       </div>
     );
   }
 
   // Handle missing Google Maps key
   if (!googleMapsKey) {
+    console.error('[FleetMap] Missing Google Maps API key');
     return (
       <div className="space-y-6">
         <div>
@@ -445,14 +470,12 @@ const FleetMap: React.FC = () => {
                   <div
                     key={location.id}
                     className="p-2 border rounded cursor-pointer hover:bg-muted/50"
-                    onClick={() => setSelectedMarker(location)}
                   >
                     <div className="font-medium text-sm">{location.name}</div>
                     <div className="text-xs text-muted-foreground">
                       {location.manufacturer} {location.model}
                     </div>
                     <div className="flex items-center gap-1 mt-1">
-                      <MapPin className="h-3 w-3" />
                       <span className="text-xs capitalize">{location.source}</span>
                     </div>
                   </div>
@@ -466,72 +489,11 @@ const FleetMap: React.FC = () => {
         <div className="lg:col-span-3">
           <Card>
             <CardContent className="p-0">
-              <LoadScript googleMapsApiKey={googleMapsKey}>
-                <GoogleMap
-                  mapContainerStyle={mapContainerStyle}
-                  center={filteredLocations.length > 0 ? {
-                    lat: filteredLocations[0].lat,
-                    lng: filteredLocations[0].lng
-                  } : defaultCenter}
-                  zoom={filteredLocations.length > 0 ? 10 : 4}
-                  options={{
-                    zoomControl: true,
-                    streetViewControl: false,
-                    mapTypeControl: true,
-                    fullscreenControl: true,
-                  }}
-                >
-                  {filteredLocations.map((location) => (
-                    <MarkerF
-                      key={location.id}
-                      position={{ lat: location.lat, lng: location.lng }}
-                      onClick={() => setSelectedMarker(location)}
-                    />
-                  ))}
-
-                  {selectedMarker && (
-                    <InfoWindowF
-                      position={{ lat: selectedMarker.lat, lng: selectedMarker.lng }}
-                      onCloseClick={() => setSelectedMarker(null)}
-                    >
-                      <div className="p-2 min-w-[200px]">
-                        <h3 className="font-semibold">{selectedMarker.name}</h3>
-                        <p className="text-sm text-gray-600">
-                          {selectedMarker.manufacturer} {selectedMarker.model}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Serial: {selectedMarker.serial_number}
-                        </p>
-                        <Separator className="my-2" />
-                        <div className="flex items-center gap-1 text-xs">
-                          <MapPin className="h-3 w-3" />
-                          <span className="capitalize">
-                            From {selectedMarker.source}
-                            {selectedMarker.source === 'equipment' ? ' location' : 
-                             selectedMarker.source === 'geocoded' ? ' address' : 
-                             ' scan'}
-                          </span>
-                        </div>
-                        {selectedMarker.formatted_address && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            {selectedMarker.formatted_address}
-                          </p>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full mt-2"
-                          onClick={() => {
-                            window.location.href = `/dashboard/equipment?search=${encodeURIComponent(selectedMarker.name)}`;
-                          }}
-                        >
-                          View Details
-                        </Button>
-                      </div>
-                    </InfoWindowF>
-                  )}
-                </GoogleMap>
-              </LoadScript>
+              <MapView
+                googleMapsKey={googleMapsKey}
+                equipmentLocations={equipmentLocations}
+                filteredLocations={filteredLocations}
+              />
             </CardContent>
           </Card>
         </div>

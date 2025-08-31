@@ -7,11 +7,15 @@ import { MapPin, Loader2 } from 'lucide-react';
 interface FleetMapUpsellProps {
   onEnableFleetMap: () => void;
   isLoading?: boolean;
+  canPurchase?: boolean;
+  helperText?: string;
 }
 
 export const FleetMapUpsell: React.FC<FleetMapUpsellProps> = ({ 
   onEnableFleetMap, 
-  isLoading = false 
+  isLoading = false,
+  canPurchase = true,
+  helperText
 }) => {
   return (
     <div className="flex items-center justify-center min-h-[600px]">
@@ -34,9 +38,14 @@ export const FleetMapUpsell: React.FC<FleetMapUpsellProps> = ({
               <li>• Search and filter capabilities</li>
             </ul>
           </div>
+          {helperText && (
+            <div className="text-sm text-muted-foreground text-center p-3 bg-muted rounded-md">
+              {helperText}
+            </div>
+          )}
           <Button 
             onClick={onEnableFleetMap}
-            disabled={isLoading}
+            disabled={isLoading || !canPurchase}
             className="w-full"
             size="lg"
           >
@@ -45,6 +54,8 @@ export const FleetMapUpsell: React.FC<FleetMapUpsellProps> = ({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Setting up...
               </>
+            ) : !canPurchase ? (
+              'Contact Owner to Purchase'
             ) : (
               'Enable Fleet Map – $10/mo'
             )}
