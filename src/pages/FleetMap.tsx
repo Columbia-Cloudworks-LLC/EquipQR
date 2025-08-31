@@ -140,7 +140,7 @@ const FleetMap: React.FC = () => {
             .select('location')
             .eq('equipment_id', item.id)
             .not('location', 'is', null)
-            .order('created_at', { ascending: false })
+            .order('scanned_at', { ascending: false })
             .limit(1);
 
           if (!scansError && scans && scans.length > 0 && scans[0].location) {
@@ -215,7 +215,30 @@ const FleetMap: React.FC = () => {
 
   // Handle subscription not active
   if (!isSubscriptionActive) {
-    return <FleetMapUpsell onEnableFleetMap={() => { /* TODO: implement checkout redirect */ }} />;
+    const handleEnableFleetMap = async () => {
+      if (!currentOrganization?.id) return;
+      
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase.functions.invoke('create-fleetmap-checkout', {
+          body: { organizationId: currentOrganization.id }
+        });
+        
+        if (error) throw error;
+        if (data?.url) {
+          window.open(data.url, '_blank');
+        }
+      } catch (error) {
+        console.error('Fleet Map checkout error:', error);
+        toast.error('Failed to start Fleet Map subscription', {
+          description: error instanceof Error ? error.message : 'Please try again later'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    return <FleetMapUpsell onEnableFleetMap={handleEnableFleetMap} isLoading={isLoading} />;
   }
 
   // Handle Google Maps key error
@@ -403,8 +426,7 @@ const FleetMap: React.FC = () => {
                           size="sm"
                           className="w-full mt-2"
                           onClick={() => {
-                            // Navigate to equipment details - implement as needed
-                            console.log('Navigate to equipment:', selectedMarker.id);
+                            window.location.href = `/dashboard/equipment?search=${encodeURIComponent(selectedMarker.name)}`;
                           }}
                         >
                           View Details
