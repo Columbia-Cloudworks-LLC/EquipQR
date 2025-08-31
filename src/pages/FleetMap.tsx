@@ -28,6 +28,10 @@ interface EquipmentLocation {
   lng: number;
   source: 'equipment' | 'geocoded' | 'scan';
   formatted_address?: string;
+  working_hours?: number;
+  last_maintenance?: string;
+  image_url?: string;
+  location_updated_at?: string;
 }
 
 
@@ -151,7 +155,7 @@ const FleetMap: React.FC = () => {
     // Fetch all equipment for the organization
     const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
-      .select('id, name, manufacturer, model, serial_number, location')
+      .select('id, name, manufacturer, model, serial_number, location, working_hours, last_maintenance, image_url, updated_at')
       .eq('organization_id', organizationId);
 
     if (equipmentError) throw equipmentError;
@@ -163,12 +167,14 @@ const FleetMap: React.FC = () => {
       let coords: { lat: number; lng: number } | null = null;
       let source: 'equipment' | 'geocoded' | 'scan' = 'equipment';
       let formatted_address: string | undefined;
+      let location_updated_at: string | undefined;
 
       // A. Try to parse equipment.location as "lat, lng"
       if (item.location) {
         coords = parseLatLng(item.location);
         if (coords) {
           source = 'equipment';
+          location_updated_at = item.updated_at;
         }
       }
 
@@ -186,6 +192,21 @@ const FleetMap: React.FC = () => {
             coords = { lat: geocodeResult.lat, lng: geocodeResult.lng };
             source = 'geocoded';
             formatted_address = geocodeResult.formatted_address;
+            // Try to get geocoded location timestamp
+            try {
+              const { data: geocodedLocation } = await supabase
+                .from('geocoded_locations')
+                .select('updated_at')
+                .eq('organization_id', organizationId)
+                .eq('input_text', item.location)
+                .order('updated_at', { ascending: false })
+                .limit(1)
+                .single();
+              location_updated_at = geocodedLocation?.updated_at;
+            } catch (error) {
+              // Fallback to equipment updated_at
+              location_updated_at = item.updated_at;
+            }
           }
         } catch (error) {
           console.warn(`Geocoding failed for equipment ${item.id}:`, error);
@@ -197,7 +218,7 @@ const FleetMap: React.FC = () => {
         try {
           const { data: scans, error: scansError } = await supabase
             .from('scans')
-            .select('location')
+            .select('location, scanned_at')
             .eq('equipment_id', item.id)
             .not('location', 'is', null)
             .order('scanned_at', { ascending: false })
@@ -207,6 +228,7 @@ const FleetMap: React.FC = () => {
             coords = parseLatLng(scans[0].location);
             if (coords) {
               source = 'scan';
+              location_updated_at = scans[0].scanned_at;
             }
           }
         } catch (error) {
@@ -225,7 +247,11 @@ const FleetMap: React.FC = () => {
           lat: coords.lat,
           lng: coords.lng,
           source,
-          formatted_address
+          formatted_address,
+          working_hours: item.working_hours,
+          last_maintenance: item.last_maintenance,
+          image_url: item.image_url,
+          location_updated_at
         });
       }
     }
