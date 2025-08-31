@@ -47,7 +47,8 @@ const FleetMap: React.FC = () => {
   const [selectedMarker, setSelectedMarker] = useState<EquipmentLocation | null>(null);
   const [equipmentLocations, setEquipmentLocations] = useState<EquipmentLocation[]>([]);
   const [skippedCount, setSkippedCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(false);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const isSubscriptionActive = !!subscription?.active;
 
 
@@ -63,7 +64,7 @@ const FleetMap: React.FC = () => {
         hasGoogleMapsKey: !!googleMapsKey
       });
 
-      setIsLoading(true);
+      setIsDataLoading(true);
       try {
         const locations = await getEquipmentLocations(currentOrganization.id);
         setEquipmentLocations(locations);
@@ -79,7 +80,7 @@ const FleetMap: React.FC = () => {
           description: error instanceof Error ? error.message : 'Unknown error occurred'
         });
       } finally {
-        setIsLoading(false);
+        setIsDataLoading(false);
       }
     };
 
@@ -219,7 +220,7 @@ const FleetMap: React.FC = () => {
       if (!currentOrganization?.id) return;
       
       try {
-        setIsLoading(true);
+        setIsCheckoutLoading(true);
         const { data, error } = await supabase.functions.invoke('create-fleetmap-checkout', {
           body: { organizationId: currentOrganization.id }
         });
@@ -234,11 +235,11 @@ const FleetMap: React.FC = () => {
           description: error instanceof Error ? error.message : 'Please try again later'
         });
       } finally {
-        setIsLoading(false);
+        setIsCheckoutLoading(false);
       }
     };
 
-    return <FleetMapUpsell onEnableFleetMap={handleEnableFleetMap} isLoading={isLoading} />;
+    return <FleetMapUpsell onEnableFleetMap={handleEnableFleetMap} isLoading={isCheckoutLoading} />;
   }
 
   // Handle Google Maps key error
@@ -258,7 +259,7 @@ const FleetMap: React.FC = () => {
   }
 
   // Handle loading states
-  if (mapsKeyLoading || isLoading) {
+  if (mapsKeyLoading || isDataLoading) {
     return (
       <div className="space-y-6">
         <div>
