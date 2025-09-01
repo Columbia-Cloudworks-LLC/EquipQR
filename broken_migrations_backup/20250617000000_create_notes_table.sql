@@ -1,6 +1,16 @@
 -- Create the missing notes table that the first migration expects
 -- This table is referenced by foreign key constraints in 20250617044539 migration
 
+-- First create the missing handle_updated_at function
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create the missing notes table
 CREATE TABLE public.notes (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   equipment_id uuid NOT NULL,
