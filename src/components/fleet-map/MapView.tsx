@@ -154,7 +154,7 @@ export const MapView: React.FC<MapViewProps> = ({
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between mb-1">
-                  <h3 className="font-semibold text-base text-foreground truncate">{selectedMarker.name}</h3>
+                  <h3 className="font-semibold text-base truncate">{selectedMarker.name}</h3>
                   <Badge 
                     variant={
                       selectedMarker.source === 'equipment' ? 'default' :
@@ -175,12 +175,12 @@ export const MapView: React.FC<MapViewProps> = ({
             <div className="space-y-2 text-sm mb-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <span className="font-semibold text-foreground">Serial:</span>
+                  <span className="font-medium">Serial:</span>
                   <p className="text-muted-foreground truncate">{selectedMarker.serial_number}</p>
                 </div>
                 {selectedMarker.working_hours !== undefined && (
                   <div>
-                    <span className="font-semibold text-foreground flex items-center gap-1">
+                    <span className="font-medium flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       Hours:
                     </span>
@@ -191,7 +191,7 @@ export const MapView: React.FC<MapViewProps> = ({
               
               {selectedMarker.last_maintenance && (
                 <div>
-                  <span className="font-semibold text-foreground flex items-center gap-1">
+                  <span className="font-medium flex items-center gap-1">
                     <Wrench className="h-3 w-3" />
                     Last Maintenance:
                   </span>
@@ -201,7 +201,7 @@ export const MapView: React.FC<MapViewProps> = ({
               
               {selectedMarker.formatted_address && (
                 <div>
-                  <span className="font-semibold text-foreground flex items-center gap-1">
+                  <span className="font-medium flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
                     Address:
                   </span>
@@ -211,7 +211,7 @@ export const MapView: React.FC<MapViewProps> = ({
               
               {selectedMarker.location_updated_at && (
                 <div>
-                  <span className="font-semibold text-foreground">Location Updated:</span>
+                  <span className="font-medium">Location Updated:</span>
                   <p className="text-xs text-muted-foreground">
                     {getRelativeTime(selectedMarker.location_updated_at)}
                   </p>
