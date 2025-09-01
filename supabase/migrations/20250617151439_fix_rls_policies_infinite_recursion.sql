@@ -11,7 +11,7 @@ ALTER TABLE equipment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+-- Note: equipment_notes table is created later and RLS is enabled there
 
 -- Security definer functions (updated to prevent recursion)
 CREATE OR REPLACE FUNCTION public.get_user_organization_role(user_uuid uuid, org_id uuid)

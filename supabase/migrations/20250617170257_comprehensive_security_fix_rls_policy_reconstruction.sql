@@ -283,7 +283,7 @@ CREATE POLICY "secure_scans_delete_org_admins"
 
 -- NOTES TABLE
 CREATE POLICY "secure_notes_select_equipment_org" 
-  ON notes 
+  ON equipment_notes 
   FOR SELECT 
   USING (
     public.check_org_access_secure(auth.uid(), (
@@ -292,7 +292,7 @@ CREATE POLICY "secure_notes_select_equipment_org"
   );
 
 CREATE POLICY "secure_notes_insert_equipment_org" 
-  ON notes 
+  ON equipment_notes 
   FOR INSERT 
   WITH CHECK (
     author_id = auth.uid() AND
@@ -302,12 +302,12 @@ CREATE POLICY "secure_notes_insert_equipment_org"
   );
 
 CREATE POLICY "secure_notes_update_own" 
-  ON notes 
+  ON equipment_notes 
   FOR UPDATE 
   USING (author_id = auth.uid());
 
 CREATE POLICY "secure_notes_delete_own_or_admin" 
-  ON notes 
+  ON equipment_notes 
   FOR DELETE 
   USING (
     author_id = auth.uid() OR
@@ -316,16 +316,43 @@ CREATE POLICY "secure_notes_delete_own_or_admin"
     ))
   );
 
--- Step 4: Ensure all tables have RLS enabled
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE organization_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE equipment ENABLE ROW LEVEL SECURITY;
-ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE scans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+-- Step 4: Ensure all tables have RLS enabled (only if they exist)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profiles') THEN
+        ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'organizations') THEN
+        ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'organization_members') THEN
+        ALTER TABLE organization_members ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'teams') THEN
+        ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'team_members') THEN
+        ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'equipment') THEN
+        ALTER TABLE equipment ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'work_orders') THEN
+        ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'scans') THEN
+        ALTER TABLE scans ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    -- Note: equipment_notes table is created later and RLS is enabled there
+END $$;
 
 -- Step 5: Add missing database constraints for data integrity
 -- Ensure organization member counts are consistent
