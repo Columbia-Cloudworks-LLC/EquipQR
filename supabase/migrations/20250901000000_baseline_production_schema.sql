@@ -386,7 +386,7 @@ CREATE TRIGGER trigger_user_license_subscriptions_updated_at
   BEFORE UPDATE ON public.user_license_subscriptions
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
--- Create security definer functions
+-- Create security definer functions FIRST (before RLS policies)
 CREATE OR REPLACE FUNCTION public.is_org_admin(user_uuid uuid, org_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -688,7 +688,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Enable Row Level Security on all tables
+-- NOW enable Row Level Security on all tables (after functions are created)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
@@ -716,7 +716,7 @@ ALTER TABLE public.slot_purchases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.billing_exemptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_license_subscriptions ENABLE ROW LEVEL SECURITY;
 
--- Create RLS policies for profiles
+-- NOW create RLS policies (after functions and RLS are enabled)
 CREATE POLICY "Users can view all profiles" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (id = auth.uid());
 
