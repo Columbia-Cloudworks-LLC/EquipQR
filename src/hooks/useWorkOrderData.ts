@@ -283,19 +283,7 @@ export const useUpdateWorkOrderStatus = () => {
 
       if (error) throw error;
 
-      // Create notification for status change
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData.user && data.created_by !== userData.user.id) {
-        await supabase.from('notifications').insert({
-          organization_id: organizationId,
-          user_id: data.created_by,
-          type: `work_order_${status}`,
-          title: `Work Order ${status.replace('_', ' ').toUpperCase()}`,
-          message: `Work order "${data.title}" has been ${status.replace('_', ' ')}.`,
-          data: { work_order_id: workOrderId }
-        });
-      }
-
+      // Notifications are now handled by the database trigger
       return data;
     },
     onSuccess: (data, variables) => {

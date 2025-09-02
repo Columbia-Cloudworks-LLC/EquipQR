@@ -233,6 +233,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     organizations,
     userOrganizations: organizations, // Backward compatibility alias
     currentOrganization,
+    organizationId: currentOrganizationId,
     setCurrentOrganization,
     switchOrganization,
     isLoading,
@@ -246,3 +247,5 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     </SimpleOrganizationContext.Provider>
   );
 };
+
+
