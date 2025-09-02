@@ -145,7 +145,8 @@ CREATE POLICY "Admins can update working hours history" ON "public"."equipment_w
 DROP POLICY IF EXISTS "Users can create working hours history for accessible equipment" ON "public"."equipment_working_hours_history";
 CREATE POLICY "Users can create working hours history for accessible equipment" ON "public"."equipment_working_hours_history" 
   FOR INSERT WITH CHECK (
-    EXISTS (
+    "updated_by" = (select "auth"."uid"()) 
+    AND EXISTS (
       SELECT 1 FROM "public"."equipment" "e"
       WHERE "e"."id" = "equipment_working_hours_history"."equipment_id" 
       AND ("public"."is_org_admin"((select "auth"."uid"()), "e"."organization_id") 
@@ -153,7 +154,7 @@ CREATE POLICY "Users can create working hours history for accessible equipment" 
                AND "e"."team_id" IS NOT NULL 
                AND "e"."team_id" IN (
                  SELECT "tm"."team_id" FROM "public"."team_members" "tm"
-                 WHERE "tm"."user_id" = (select "auth"."uid"()) AND "tm"."status" = 'active'
+                 WHERE "tm"."user_id" = (select "auth"."uid"())
                )
               )
           )
@@ -171,7 +172,7 @@ CREATE POLICY "Users can view working hours history for accessible equipment" ON
                AND "e"."team_id" IS NOT NULL 
                AND "e"."team_id" IN (
                  SELECT "tm"."team_id" FROM "public"."team_members" "tm"
-                 WHERE "tm"."user_id" = (select "auth"."uid"()) AND "tm"."status" = 'active'
+                 WHERE "tm"."user_id" = (select "auth"."uid"())
                )
               )
           )
@@ -263,11 +264,8 @@ CREATE POLICY "users_create_invitations" ON "public"."organization_invitations"
 DROP POLICY IF EXISTS "users_delete_own_invitations" ON "public"."organization_invitations";
 CREATE POLICY "users_delete_own_invitations" ON "public"."organization_invitations" 
   FOR DELETE USING (
-    EXISTS (
-      SELECT 1 FROM "auth"."users" 
-      WHERE "users"."id" = (select "auth"."uid"()) 
-      AND "users"."email" = "organization_invitations"."email"
-    )
+    -- Users can delete invitations sent to their email
+    "email" = (select "auth"."email"())
   );
 
 -- Organization Slots policies
@@ -558,7 +556,7 @@ CREATE POLICY "Users can view work order images" ON "public"."work_order_images"
 -- Work Order Notes policies
 DROP POLICY IF EXISTS "work_order_notes_delete_own" ON "public"."work_order_notes";
 CREATE POLICY "work_order_notes_delete_own" ON "public"."work_order_notes" 
-  FOR DELETE USING ("created_by" = (select "auth"."uid"()));
+  FOR DELETE USING ("author_id" = (select "auth"."uid"()));
 
 DROP POLICY IF EXISTS "work_order_notes_insert_organization_members" ON "public"."work_order_notes";
 CREATE POLICY "work_order_notes_insert_organization_members" ON "public"."work_order_notes" 
@@ -582,7 +580,7 @@ CREATE POLICY "work_order_notes_select_organization_members" ON "public"."work_o
 
 DROP POLICY IF EXISTS "work_order_notes_update_own" ON "public"."work_order_notes";
 CREATE POLICY "work_order_notes_update_own" ON "public"."work_order_notes" 
-  FOR UPDATE USING ("created_by" = (select "auth"."uid"()));
+  FOR UPDATE USING ("author_id" = (select "auth"."uid"()));
 
 -- Work Order Status History policies
 DROP POLICY IF EXISTS "Admins can insert work order history" ON "public"."work_order_status_history";
@@ -606,10 +604,14 @@ CREATE POLICY "Users can view work order history for their organization" ON "pub
     )
   );
 
--- Notification Settings policies
-DROP POLICY IF EXISTS "notification_settings_user_policy" ON "public"."notification_settings";
-CREATE POLICY "notification_settings_user_policy" ON "public"."notification_settings" 
-  FOR ALL USING ("user_id" = (select "auth"."uid"()));
+-- Notification Settings policies (only if table exists)
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'notification_settings') THEN
+    EXECUTE 'DROP POLICY IF EXISTS "notification_settings_user_policy" ON "public"."notification_settings"';
+    EXECUTE 'CREATE POLICY "notification_settings_user_policy" ON "public"."notification_settings" FOR ALL USING ("user_id" = (select "auth"."uid"()))';
+  END IF;
+END $$;
 
 -- =============================================================================
 -- PART 2: Consolidate Remaining Multiple Permissive Policies
@@ -638,8 +640,14 @@ DROP POLICY IF EXISTS "view_org_subscriptions" ON "public"."organization_subscri
 CREATE POLICY "organization_subscriptions_select" ON "public"."organization_subscriptions" 
   FOR SELECT USING ("public"."is_org_member"((select "auth"."uid"()), "organization_id"));
 
-CREATE POLICY "organization_subscriptions_admin_manage" ON "public"."organization_subscriptions" 
-  FOR INSERT, UPDATE, DELETE USING ("public"."is_org_admin"((select "auth"."uid"()), "organization_id"));
+CREATE POLICY "organization_subscriptions_admin_insert" ON "public"."organization_subscriptions" 
+  FOR INSERT WITH CHECK ("public"."is_org_admin"((select "auth"."uid"()), "organization_id"));
+
+CREATE POLICY "organization_subscriptions_admin_update" ON "public"."organization_subscriptions" 
+  FOR UPDATE USING ("public"."is_org_admin"((select "auth"."uid"()), "organization_id"));
+
+CREATE POLICY "organization_subscriptions_admin_delete" ON "public"."organization_subscriptions" 
+  FOR DELETE USING ("public"."is_org_admin"((select "auth"."uid"()), "organization_id"));
 
 -- Organizations: Consolidate overlapping SELECT policies
 DROP POLICY IF EXISTS "invited_users_can_view_org_details" ON "public"."organizations";
@@ -765,8 +773,14 @@ DROP POLICY IF EXISTS "org_admins_manage_purchases" ON "public"."slot_purchases"
 CREATE POLICY "slot_purchases_select" ON "public"."slot_purchases" 
   FOR SELECT USING ("public"."is_org_member"((select "auth"."uid"()), "organization_id"));
 
-CREATE POLICY "slot_purchases_admin_manage" ON "public"."slot_purchases" 
-  FOR INSERT, UPDATE, DELETE USING ("public"."is_org_admin"((select "auth"."uid"()), "organization_id"));
+CREATE POLICY "slot_purchases_admin_insert" ON "public"."slot_purchases" 
+  FOR INSERT WITH CHECK ("public"."is_org_admin"((select "auth"."uid"()), "organization_id"));
+
+CREATE POLICY "slot_purchases_admin_update" ON "public"."slot_purchases" 
+  FOR UPDATE USING ("public"."is_org_admin"((select "auth"."uid"()), "organization_id"));
+
+CREATE POLICY "slot_purchases_admin_delete" ON "public"."slot_purchases" 
+  FOR DELETE USING ("public"."is_org_admin"((select "auth"."uid"()), "organization_id"));
 
 -- Stripe Event Logs: Consolidate all service role policies
 DROP POLICY IF EXISTS "deny_user_access_stripe_logs" ON "public"."stripe_event_logs";
@@ -790,8 +804,11 @@ CREATE POLICY "subscribers_update" ON "public"."subscribers"
     OR (select "auth"."role"()) = 'service_role'::text
   );
 
-CREATE POLICY "subscribers_insert_delete" ON "public"."subscribers" 
-  FOR INSERT, DELETE USING ((select "auth"."role"()) = 'service_role'::text);
+CREATE POLICY "subscribers_insert" ON "public"."subscribers" 
+  FOR INSERT WITH CHECK ((select "auth"."role"()) = 'service_role'::text);
+
+CREATE POLICY "subscribers_delete" ON "public"."subscribers" 
+  FOR DELETE USING ((select "auth"."role"()) = 'service_role'::text);
 
 -- Team Members: Consolidate overlapping SELECT policies
 DROP POLICY IF EXISTS "admins_manage_team_members" ON "public"."team_members";
@@ -805,8 +822,26 @@ CREATE POLICY "team_members_select" ON "public"."team_members"
     )
   );
 
-CREATE POLICY "team_members_admin_manage" ON "public"."team_members" 
-  FOR INSERT, UPDATE, DELETE USING (
+CREATE POLICY "team_members_admin_insert" ON "public"."team_members" 
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM "public"."teams" "t"
+      WHERE "t"."id" = "team_members"."team_id" 
+      AND "public"."is_org_admin"((select "auth"."uid"()), "t"."organization_id")
+    )
+  );
+
+CREATE POLICY "team_members_admin_update" ON "public"."team_members" 
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM "public"."teams" "t"
+      WHERE "t"."id" = "team_members"."team_id" 
+      AND "public"."is_org_admin"((select "auth"."uid"()), "t"."organization_id")
+    )
+  );
+
+CREATE POLICY "team_members_admin_delete" ON "public"."team_members" 
+  FOR DELETE USING (
     EXISTS (
       SELECT 1 FROM "public"."teams" "t"
       WHERE "t"."id" = "team_members"."team_id" 
@@ -842,8 +877,21 @@ CREATE POLICY "work_order_costs_select" ON "public"."work_order_costs"
     "created_by" = (select "auth"."uid"())
   );
 
-CREATE POLICY "work_order_costs_insert_update" ON "public"."work_order_costs" 
-  FOR INSERT, UPDATE USING (
+CREATE POLICY "work_order_costs_insert" ON "public"."work_order_costs" 
+  FOR INSERT WITH CHECK (
+    -- Admins can manage all costs
+    EXISTS (
+      SELECT 1 FROM "public"."work_orders" "wo"
+      WHERE "wo"."id" = "work_order_costs"."work_order_id" 
+      AND "public"."is_org_admin"((select "auth"."uid"()), "wo"."organization_id")
+    )
+    OR
+    -- Users can manage their own costs
+    "created_by" = (select "auth"."uid"())
+  );
+
+CREATE POLICY "work_order_costs_update" ON "public"."work_order_costs" 
+  FOR UPDATE USING (
     -- Admins can manage all costs
     EXISTS (
       SELECT 1 FROM "public"."work_orders" "wo"
@@ -925,6 +973,6 @@ ANALYZE "public"."work_order_costs";
 ANALYZE "public"."work_order_images";
 ANALYZE "public"."work_order_notes";
 ANALYZE "public"."work_order_status_history";
-ANALYZE "public"."notification_settings";
+-- ANALYZE "public"."notification_settings"; -- Table may not exist in all environments
 
 COMMIT;
