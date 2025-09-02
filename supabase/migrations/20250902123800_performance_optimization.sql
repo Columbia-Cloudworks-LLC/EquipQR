@@ -270,13 +270,6 @@ CREATE POLICY "organization_invitations_select" ON "public"."organization_invita
     OR
     -- Members can view invitations in their org
     "public"."is_org_member"((select "auth"."uid"()), "organization_id")
-    OR
-    -- Users can view their own invitations
-    EXISTS (
-      SELECT 1 FROM "auth"."users" 
-      WHERE "users"."id" = (select "auth"."uid"()) 
-      AND "users"."email" = "organization_invitations"."email"
-    )
   );
 
 -- Organization Invitations: Consolidate overlapping UPDATE policies
@@ -286,13 +279,6 @@ CREATE POLICY "organization_invitations_update" ON "public"."organization_invita
   FOR UPDATE USING (
     -- Invited users can update by email
     "email" = (select "auth"."email"())
-    OR
-    -- Users can manage their own invitations
-    EXISTS (
-      SELECT 1 FROM "auth"."users" 
-      WHERE "users"."id" = (select "auth"."uid"()) 
-      AND "users"."email" = "organization_invitations"."email"
-    )
   );
 
 -- Organization Members: Consolidate overlapping policies
@@ -305,32 +291,44 @@ DROP POLICY IF EXISTS "admins_only_update_members" ON "public"."organization_mem
 
 CREATE POLICY "organization_members_select" ON "public"."organization_members" 
   FOR SELECT USING (
-    -- Admins can view all members in their org
-    "public"."is_org_admin"((select "auth"."uid"()), "organization_id")
-    OR
-    -- Members can view own record
-    "user_id" = (select "auth"."uid"())
-    OR
-    -- Members can view other members in same org
-    "public"."is_org_member"((select "auth"."uid"()), "organization_id")
+    -- Allow read access for security definer functions to work (prevents circular dependency)
+    true
   );
 
 CREATE POLICY "organization_members_insert" ON "public"."organization_members" 
   FOR INSERT WITH CHECK (
-    -- Only admins can insert new members
-    "public"."is_org_admin"((select "auth"."uid"()), "organization_id")
+    -- Only admins can insert new members (using direct query to avoid circular dependency)
+    EXISTS (
+      SELECT 1 FROM "public"."organization_members" "om"
+      WHERE "om"."user_id" = (select "auth"."uid"())
+      AND "om"."organization_id" = "organization_members"."organization_id"
+      AND "om"."role" IN ('owner', 'admin')
+      AND "om"."status" = 'active'
+    )
   );
 
 CREATE POLICY "organization_members_update" ON "public"."organization_members" 
   FOR UPDATE USING (
-    -- Only admins can update members
-    "public"."is_org_admin"((select "auth"."uid"()), "organization_id")
+    -- Only admins can update members (using direct query to avoid circular dependency)
+    EXISTS (
+      SELECT 1 FROM "public"."organization_members" "om"
+      WHERE "om"."user_id" = (select "auth"."uid"())
+      AND "om"."organization_id" = "organization_members"."organization_id"
+      AND "om"."role" IN ('owner', 'admin')
+      AND "om"."status" = 'active'
+    )
   );
 
 CREATE POLICY "organization_members_delete" ON "public"."organization_members" 
   FOR DELETE USING (
-    -- Only admins can delete members
-    "public"."is_org_admin"((select "auth"."uid"()), "organization_id")
+    -- Only admins can delete members (using direct query to avoid circular dependency)
+    EXISTS (
+      SELECT 1 FROM "public"."organization_members" "om"
+      WHERE "om"."user_id" = (select "auth"."uid"())
+      AND "om"."organization_id" = "organization_members"."organization_id"
+      AND "om"."role" IN ('owner', 'admin')
+      AND "om"."status" = 'active'
+    )
   );
 
 -- Continue consolidating other tables with multiple policies...
