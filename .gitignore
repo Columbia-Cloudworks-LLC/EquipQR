@@ -27,4 +27,5 @@ dist-ssr
 .env
 
 # Backup Files used for Testing
-supabase\*.backup
+supabase/*.backup
+supabase/.temp/*
