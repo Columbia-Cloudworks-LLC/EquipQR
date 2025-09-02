@@ -19,6 +19,7 @@ export interface SimpleOrganizationContextType {
   organizations: SimpleOrganization[];
   userOrganizations: SimpleOrganization[]; // Backward compatibility alias
   currentOrganization: SimpleOrganization | null;
+  organizationId: string | null; // Convenience property for current organization ID
   setCurrentOrganization: (organizationId: string) => void;
   switchOrganization: (organizationId: string) => void;
   isLoading: boolean;

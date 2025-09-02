@@ -4,6 +4,8 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
+import NotificationBell from '@/components/notifications/NotificationBell';
+import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 
 interface TopBarProps {
   title?: string;
@@ -11,6 +13,8 @@ interface TopBarProps {
 }
 
 const TopBar: React.FC<TopBarProps> = ({ title, breadcrumb }) => {
+  const { organizationId } = useSimpleOrganization();
+
   return (
     <header 
       className="flex h-14 sm:h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b sm:border-b-0"
@@ -32,6 +36,12 @@ const TopBar: React.FC<TopBarProps> = ({ title, breadcrumb }) => {
             <h1 className="text-base sm:text-lg font-semibold truncate">{title}</h1>
           )}
         </div>
+        {/* Notification Bell on the right side */}
+        {organizationId && (
+          <div className="flex items-center gap-2">
+            <NotificationBell organizationId={organizationId} />
+          </div>
+        )}
       </div>
     </header>
   );

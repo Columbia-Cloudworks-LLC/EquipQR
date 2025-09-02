@@ -704,6 +704,54 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          organization_id: string
+          statuses: Json
+          team_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          organization_id: string
+          statuses?: Json
+          team_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          organization_id?: string
+          statuses?: Json
+          team_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_settings_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1971,6 +2019,10 @@ export type Database = {
         Args: { required_role: string; team_uuid: string; user_uuid: string }
         Returns: boolean
       }
+      cleanup_old_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       clear_rls_context: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -2036,6 +2088,14 @@ export type Database = {
           p_role: string
         }
         Returns: string
+      }
+      create_work_order_notifications: {
+        Args: {
+          changed_by_user_id: string
+          new_status: string
+          work_order_uuid: string
+        }
+        Returns: undefined
       }
       get_current_billing_period: {
         Args: Record<PropertyKey, never>
@@ -2219,6 +2279,17 @@ export type Database = {
           team_name: string
         }[]
       }
+      get_user_teams_for_notifications: {
+        Args: { user_uuid: string }
+        Returns: {
+          has_access: boolean
+          organization_id: string
+          organization_name: string
+          team_id: string
+          team_name: string
+          user_role: string
+        }[]
+      }
       handle_invitation_account_creation: {
         Args: { p_invitation_id: string; p_user_id: string }
         Returns: Json
@@ -2287,6 +2358,15 @@ export type Database = {
       set_rls_context: {
         Args: { context_name: string }
         Returns: undefined
+      }
+      should_notify_user_for_work_order: {
+        Args: {
+          organization_uuid: string
+          user_uuid: string
+          work_order_status: string
+          work_order_team_id: string
+        }
+        Returns: boolean
       }
       sync_stripe_subscription_slots: {
         Args: {

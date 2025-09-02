@@ -8,6 +8,7 @@ import ProfileSettings from '@/components/settings/ProfileSettings';
 import { EmailPrivacySettings } from '@/components/settings/EmailPrivacySettings';
 import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
+import NotificationSettings from '@/components/settings/NotificationSettings';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,6 +53,8 @@ const SettingsContent = () => {
       <ProfileSettings />
 
       <PersonalizationSettings />
+
+      <NotificationSettings />
 
       <EmailPrivacySettings 
         currentEmailPrivate={profile?.email_private || false}

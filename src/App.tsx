@@ -32,6 +32,7 @@ const Settings = lazy(() => import('@/pages/Settings'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const Support = lazy(() => import('@/pages/Support'));
 const PMTemplates = lazy(() => import('@/pages/PMTemplates'));
+const Notifications = lazy(() => import('@/pages/Notifications'));
 const InvitationAccept = lazy(() => import('@/pages/InvitationAccept'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
@@ -137,6 +138,7 @@ function App() {
                                 <Route path="/scanner" element={<QRScanner />} />
                                 <Route path="/billing" element={<Billing />} />
                                 <Route path="/pm-templates" element={<PMTemplates />} />
+                                <Route path="/notifications" element={<Notifications />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />
                                 <Route path="/debug/billing" element={<DebugBilling />} />
