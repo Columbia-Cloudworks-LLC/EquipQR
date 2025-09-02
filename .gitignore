@@ -25,3 +25,6 @@ dist-ssr
 *.sw?
 .vs/VSWorkspaceState.json
 .env
+
+# Backup Files used for Testing
+supabase\*.backup
