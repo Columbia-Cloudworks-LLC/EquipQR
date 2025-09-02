@@ -83,7 +83,7 @@ CREATE POLICY "members_create_notes" ON "public"."equipment_notes"
 
 DROP POLICY IF EXISTS "authors_manage_own_notes" ON "public"."equipment_notes";
 CREATE POLICY "authors_manage_own_notes" ON "public"."equipment_notes" 
-  FOR ALL USING ("created_by" = (select "auth"."uid"()));
+  FOR ALL USING ("author_id" = (select "auth"."uid"()));
 
 -- Equipment note images table policies
 DROP POLICY IF EXISTS "Users can delete images they uploaded" ON "public"."equipment_note_images";
@@ -209,7 +209,7 @@ CREATE POLICY "equipment_notes_delete" ON "public"."equipment_notes"
     )
     OR 
     -- Authors can delete their own notes
-    "created_by" = (select "auth"."uid"())
+    "author_id" = (select "auth"."uid"())
   );
 
 -- Equipment Notes: Consolidate overlapping SELECT policies
@@ -225,7 +225,7 @@ CREATE POLICY "equipment_notes_select" ON "public"."equipment_notes"
     )
     OR 
     -- Authors can view their own notes
-    "created_by" = (select "auth"."uid"())
+    "author_id" = (select "auth"."uid"())
   );
 
 -- Equipment Notes: Consolidate overlapping INSERT policies
