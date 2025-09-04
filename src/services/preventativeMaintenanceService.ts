@@ -363,7 +363,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
   },
   {
     id: 'brakes-7',
-    title: 'Check Brak / Inching Pedal Free Play',
+    title: 'Check Brake / Inching Pedal Free Play',
     description: 'Verify correct amount of free play in brake and inching pedals.',
     condition: undefined,
     required: true,
