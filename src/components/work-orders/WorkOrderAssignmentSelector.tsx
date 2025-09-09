@@ -34,8 +34,11 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
         workOrderId: workOrder.id,
         assigneeId: null,
         organizationId
+      }, {
+        onSuccess: () => {
+          onCancel();
+        }
       });
-      onCancel();
       return;
     }
 
@@ -46,8 +49,11 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
       workOrderId: workOrder.id,
       assigneeId: option.id,
       organizationId
+    }, {
+      onSuccess: () => {
+        onCancel();
+      }
     });
-    onCancel();
   };
 
   const getCurrentAssignmentValue = () => {
