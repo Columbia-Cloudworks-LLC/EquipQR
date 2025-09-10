@@ -1,0 +1,18 @@
+{
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "ms-vscode.vscode-eslint",
+    "ms-vscode.vscode-json",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+    "ms-vscode.vscode-todo-highlight",
+    "ms-vscode.vscode-thunder-client",
+    "supabase.supabase",
+    "ms-vscode.vscode-jest",
+    "usernamehw.errorlens",
+    "ms-vscode.vscode-json5",
+    "yzhang.markdown-all-in-one"
+  ]
+}
