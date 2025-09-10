@@ -21,9 +21,10 @@ A comprehensive fleet equipment management platform built with React, TypeScript
 
 ## 📋 Prerequisites
 
-- Node.js 18.x or 20.x
-- npm or yarn
-- Supabase account and project
+- **Node.js** 18.x or 20.x - [Download here](https://nodejs.org/)
+- **npm** (comes with Node.js) - We use npm exclusively (no yarn/pnpm/bun)
+- **Supabase account and project** - [Sign up here](https://supabase.com/)
+- **Modern browser** with ES2020+ support
 
 ## 🏗️ Installation
 
@@ -39,19 +40,26 @@ npm install
 ```
 
 3. Set up environment variables:
-Copy `.env.example` to `.env` and fill in your Supabase credentials:
+```bash
+# Copy the environment template
+cp .env.example .env
+```
+
+Edit `.env` with your Supabase credentials:
 ```env
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-Required environment variables:
+**Required environment variables:**
 - `VITE_SUPABASE_URL`: Your Supabase project URL
 - `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
 
-Optional environment variables:
-- `VITE_STRIPE_PUBLISHABLE_KEY`: For billing features
+**Optional environment variables:**
+- `VITE_STRIPE_PUBLISHABLE_KEY`: For billing features  
 - `VITE_GOOGLE_MAPS_API_KEY`: For fleet map functionality
+- `VITE_PRODUCTION_URL`: For production deployment
+- `VITE_ENABLE_DEVTOOLS`: Enable development tools (true/false)
 
 4. Start the development server:
 ```bash
@@ -149,12 +157,33 @@ src/
 
 ## 📖 Documentation
 
-- [Features Overview](./docs/features.md)
-- [Technical Guide](./docs/technical-guide.md)
-- [Deployment Guide](./docs/deployment.md)
-- [Work Order Workflow](./docs/work-order-workflow.md)
-- [Database Migrations](./docs/database-migrations.md)
-- [CI Testing Guide](./docs/ci-testing-reference.md)
+### Getting Started
+- [Developer Onboarding Guide](./docs/getting-started/developer-onboarding.md) - Complete setup guide
+- [API Reference](./docs/getting-started/api-reference.md) - Complete API documentation
+- [Troubleshooting Guide](./docs/getting-started/troubleshooting.md) - Common issues and solutions
+
+### Architecture & Design
+- [System Architecture](./docs/architecture/system-architecture.md) - High-level system design
+- [Database Schema](./docs/architecture/database-schema.md) - Complete database design
+- [Technical Guide](./docs/architecture/technical-guide.md) - Development patterns and best practices
+
+### Features & Business Logic
+- [Features Overview](./docs/features/features-overview.md) - Complete feature documentation
+- [Work Order Workflow](./docs/features/work-order-workflow.md) - Complete workflow documentation
+- [Roles and Permissions](./docs/features/roles-and-permissions.md) - RBAC system
+- [Billing and Pricing](./docs/features/billing-and-pricing.md) - Billing system documentation
+
+### Deployment & Operations
+- [Deployment Guide](./docs/deployment/deployment-guide.md) - Multi-platform deployment
+- [Database Migrations](./docs/deployment/database-migrations.md) - Schema management
+- [CI Testing Guide](./docs/deployment/ci-testing-reference.md) - Testing and quality gates
+
+### Maintenance & Operations
+- [Performance Optimization](./docs/maintenance/performance-optimization.md) - Performance tuning and monitoring
+- [Security Fixes](./docs/maintenance/security-fixes.md) - Security vulnerability tracking
+
+### Development Workflow
+- [Agents Guide](./agents.md) - Multi-agent development workflow
 
 ## 🤝 Contributing
 
