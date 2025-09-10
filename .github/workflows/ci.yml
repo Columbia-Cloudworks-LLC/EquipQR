@@ -2,9 +2,9 @@ name: Continuous Integration
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, preview ]
   push:
-    branches: [ main, develop ]
+    branches: [ main, preview ]
 
 permissions:
   contents: read

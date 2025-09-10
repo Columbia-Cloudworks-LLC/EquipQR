@@ -1,4 +1,8 @@
-# EquipQR - Fleet Equipment Management Platform
+<p align="center">
+  <img src="public/eqr-icons/inverse.png" alt="EquipQR Logo" width="180" />
+</p>
+
+# EquipQR: Fleet Equipment Management Platform
 
 A comprehensive fleet equipment management platform built with React, TypeScript, and modern web technologies.
 
