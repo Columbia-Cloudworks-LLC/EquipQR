@@ -183,7 +183,7 @@ src/
 - [Security Fixes](./docs/maintenance/security-fixes.md) - Security vulnerability tracking
 
 ### Development Workflow
-- [Agents Guide](./agents.md) - Multi-agent development workflow
+- [Agents Guide](./.cursor/agents.md) - Multi-agent development workflow
 
 ## 🤝 Contributing
 

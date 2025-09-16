@@ -577,7 +577,7 @@ console.log('Environment:', {
 - **API Reference**: `docs/api-reference.md`
 - **Developer Guide**: `docs/developer-onboarding.md`
 - **Architecture**: `docs/architecture.md`
-- **Agents Guide**: `agents.md`
+- **Agents Guide**: `../../.cursor/agents.md`
 
 ### Community Support
 
