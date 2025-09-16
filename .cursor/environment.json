@@ -1,6 +1,12 @@
 {
   "snapshot": "snapshot-20250914-d1534bb5-4dd3-42a9-90b8-cfc951f355a9",
-  "install": "npm install",
+  "install": "npm ci",
   "start": "npm run dev",
-  "terminals": []
+  "terminals": [
+    { "name": "Lint", "command": "npm run lint" },
+    { "name": "Typecheck", "command": "npm run type-check" },
+    { "name": "Tests (CI)", "command": "npm run test:ci" },
+    { "name": "Build", "command": "npm run build" },
+    { "name": "Size Limit", "command": "npm run size-check" }
+  ]
 }

@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",
+    "test:ci": "node scripts/test-ci.mjs",
     "analyze": "npm run build && npx vite-bundle-analyzer",
     "size-check": "npx size-limit",
     "type-check": "tsc --noEmit",
