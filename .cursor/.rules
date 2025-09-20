@@ -1,0 +1,201 @@
+# root .rules — Tech‑Neutral, Profile‑Deferred (v1)
+# Purpose: Universal guardrails for any app (frontend, backend, CLI) while deferring
+# stack‑specific choices (React vs Vue, Next vs Vite, export style, FP vs OOP) to a
+# selected *Profile Ruleset*. Keep this file safe, boring, and authoritative about
+# only the things that are truly universal.
+
+
+############################
+# 0) SCOPE & PRECEDENCE
+############################
+- These rules apply to the entire repository by default.
+- If a **Profile Ruleset** is present for a project (e.g., `profiles/react-next/.rules`,
+  `profiles/vue-vite/.rules`, `profiles/node-api/.rules`), then **the profile ruleset
+  OVERRIDES this root file** for:
+  - Architecture paradigm (FP vs OOP, component patterns)
+  - Export style (default vs named)
+  - UI libraries and framework‑specific conventions
+  - Performance vs readability tradeoffs
+
+Precedence order (highest wins):
+1. Project‑local profile `.rules` (closest to the code)
+2. Monorepo profile `.rules` under `profiles/<name>/.rules`
+3. This `root .rules`
+
+**Cursor Instruction:** When a profile `.rules` exists in the current project folder,
+follow it on any conflicting guidance and ignore the root for those topics.
+
+
+############################
+# 1) UNIVERSAL PRINCIPLES
+############################
+- Clarity > Cleverness. Choose the most readable solution that passes tests.
+- Small, composable units. Functions under ~50 lines; files under ~300 lines unless
+  a profile explicitly allows otherwise.
+- Single responsibility: each module does one thing well; avoid grab‑bag files.
+- Determinism: same inputs → same outputs; avoid hidden global state.
+- Idempotence for mutating operations and job runners where possible.
+- Explicit over implicit: name things what they are; avoid magic numbers and
+  implicit type coercions.
+- Document intent near hard decisions. A short rationale block beats silence.
+
+
+############################
+# 2) LANGUAGE & TYPING (TypeScript/JS, Rust, Python, etc.)
+############################
+- Prefer **TypeScript** for JS ecosystems with `strict` mode on.
+- No `any` unless documented with a TODO to remove; prefer precise types.
+- Use `unknown` instead of `any` at boundaries; narrow before use.
+- Keep public types in `@/types` or `packages/*/src/types` with barrel‑friendly
+  structure (profiles decide export style).
+- Runtime validation at boundaries (HTTP, DB, queue) using a schema lib selected by
+  the profile (e.g., Zod/Valibot for TS, serde for Rust, pydantic for Python).
+
+
+############################
+# 3) EXPORTS & IMPORTS (NEUTRAL BASELINE)
+############################
+- **Profiles decide** between default vs named exports and barrel usage.
+- Root stance (only if no profile is present):
+  - Prefer **named exports** for libraries/utilities.
+  - Allow a **single default export** for highly singular entry points (e.g., app
+    root, server bootstrap, CLI entry).
+- Import paths:
+  - Prefer absolute aliases (`@/feature/*`) over deep relative paths.
+  - No circular dependencies. If detected, split modules or elevate shared pieces.
+
+
+############################
+# 4) DIRECTORY & NAMING CONVENTIONS
+############################
+- Hyphen‑case directories, camelCase files for code, PascalCase for components/types.
+- One domain per folder: `features/<domain>` on the frontend; `services/<domain>`
+  or `modules/<domain>` on the backend.
+- Co‑locate tests with code or in `__tests__` (profile may choose).
+- Keep public API surfaces in `index` files; hide internals in submodules.
+
+
+############################
+# 5) TESTING & QUALITY GATES
+############################
+- Test pyramid: many unit tests, fewer integration tests, least e2e—but all three exist.
+- Every bug fix adds or updates a test that fails before the fix and passes after.
+- CI Gate (baseline order):
+  1) Lint
+  2) Type‑check (noEmit)
+  3) Unit/integration tests
+  4) Build
+- Snapshots are allowed, but keep them small and intentional; avoid golden files that
+  encode volatile data unless necessary.
+
+
+############################
+# 6) GIT & PR PRACTICES
+############################
+- Branch naming: `type/scope-short-description` (e.g., `feat/workorders-bulk-actions`).
+- Small PRs (< 400 lines diff) with clear title, context, and checklist.
+- No mixed concerns: refactors, features, and formatting each in separate commits/PRs.
+- PR must include: What changed, Why it was needed, How it was tested, Risk/rollback.
+- If CI is red, **do not merge**. Fix or revert quickly.
+
+
+############################
+# 7) SECURITY & SECRETS
+############################
+- No secrets in code or git history. Use env files or secret managers.
+- Principle of least privilege for API keys, DB roles, and service accounts.
+- Validate and sanitize all untrusted input. Encode on output (XSS/SQLi/Template‑inj).
+- Log security‑relevant events with correlation IDs; avoid logging secrets or PII.
+- Keep dependencies updated; flag and fix critical vulns before release.
+
+
+############################
+# 8) DATA & INTEGRATIONS
+############################
+- Migrations are the only safe way to change persisted schemas; never drift.
+- DB access via a single data layer per service; avoid ad‑hoc queries scattered in UI.
+- Version external APIs/queues/contracts; document payloads and error semantics.
+- Backfills and one‑off scripts are committed with runbooks and dry‑run modes.
+
+
+############################
+# 9) LOGGING, OBSERVABILITY & ERRORS
+############################
+- Structured logs (JSON) with `level`, `service`, `traceId`/`spanId`, and key context.
+- Errors carry actionable messages and are mapped to stable error codes/enums.
+- No silent catches. Either handle (with user‑visible outcome) or propagate.
+- Use feature‑level metrics and basic health checks. Profiles may mandate OpenTelemetry.
+
+
+############################
+# 10) PERFORMANCE vs READABILITY (BASELINE)
+############################
+- Prefer readability first; measure before optimizing.
+- Use profiling to justify optimizations; link findings in PR description.
+- Long‑running work should be cancelable and/or resumable where feasible.
+
+
+############################
+# 11) FRONTEND‑AGNOSTIC RULES
+############################
+- Do not mix ecosystems (e.g., React libs in Vue projects, Vue libs in React projects).
+  The active **Profile** defines the allowed UI libraries and patterns.
+- State management: prefer minimal state and derived data; avoid duplicated sources
+  of truth.
+- Accessibility is non‑optional: label controls, keyboard support, color contrast.
+- Internationalization strategy is defined by the profile; keep copy out of components.
+
+
+############################
+# 12) BACKEND‑AGNOSTIC RULES
+############################
+- Treat boundaries explicitly: HTTP controllers → service layer → data layer.
+- Pure business logic should not depend on transport frameworks.
+- Idempotent handlers for retries and webhooks where possible.
+- Timeouts, retries with jitter, and circuit breakers for network calls.
+
+
+############################
+# 13) TASKS FOR AI AGENTS (Cursor)
+############################
+When acting, Cursor should:
+1) Detect the nearest profile `.rules` up the directory tree.
+2) If present, adopt its guidance for architecture, exports, UI libs, and
+   perf/readability tradeoffs. Otherwise use the root defaults.
+3) Before large refactors, propose a plan with:
+   - Affected files and surface area
+   - Risks (types, runtime, build size)
+   - Test plan and acceptance checks
+4) Never introduce a second UI ecosystem into a project. If a suggestion would mix
+   stacks, abort and propose an alternative aligned with the active profile.
+5) Prefer incremental changes with passing CI at each step. If a step fails, open a
+   `-fix` task with minimal diffs to restore green.
+
+
+############################
+# 14) HOW TO ADD/USE PROFILES
+############################
+- Create one of the following (as needed):
+  - `profiles/react-next/.rules`
+  - `profiles/vue-vite/.rules`
+  - `profiles/node-api/.rules`
+- At the top of each profile, include:
+  - **Scope**: which apps/packages/folders it governs
+  - **Override Notice**: “This profile overrides root on architecture, exports,
+    UI libraries, and perf policy.”
+  - Concrete decisions (e.g., React + shadcn/Radix + Tailwind, named exports; or
+    Vue + Element Plus + Tailwind, avoid classes, etc.)
+- Each app/package must link to exactly **one** profile in its README (or place a
+  copy of the profile `.rules` at the project root).
+
+
+############################
+# 15) NON‑NEGOTIABLES
+############################
+- No cross‑framework imports (React UI into Vue or vice‑versa).
+- No secrets in code.
+- No red CI merges.
+- No circular deps.
+- Every bug fix gets a test.
+
+# End of root .rules

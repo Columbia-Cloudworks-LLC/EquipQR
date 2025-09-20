@@ -1,0 +1,163 @@
+# profiles/vue-vite/.rules — Vue 3 + Vite Profile (v1)
+# Purpose: Opinionated rules for Vue 3 apps using Vite, TypeScript, Tailwind,
+# and a performance‑forward posture. This profile OVERRIDES the root .rules for
+# architecture, exports, UI libraries, and perf policy.
+
+############################
+# 0) SCOPE & OVERRIDE
+############################
+- **Scope**: Only applies to projects/apps explicitly opting into this profile (e.g., apps/web-vue, apps/portal-vue).
+- **Override**: Supersedes root `.rules` for:
+  - Component architecture & patterns (Vue 3 Composition API)
+  - Export style
+  - UI library choices
+  - Performance policy
+- **Cursor Instruction**: Inside a folder governed by this profile, follow these rules over root on conflicts.
+
+
+############################
+# 1) TECH STACK & BASELINE
+############################
+- **Framework**: Vue 3 (Composition API, `<script setup>`).
+- **Bundler/Dev**: Vite.
+- **Language**: TypeScript with `"strict": true`.
+- **Styling**: Tailwind CSS.
+- **UI**: Element Plus (app shell & form controls) and Headless UI (Vue) for accessible primitives.
+- **Icons**: `@iconify/vue` or `lucide-vue-next`.
+- **State**: Pinia for global/feature state; prefer local component state when possible.
+- **Router**: Vue Router (route-based code splitting enabled).
+- **Forms**: `vee-validate` + `@vee-validate/zod` with Zod schemas.
+- **Data fetching (client)**: `@tanstack/vue-query` for cache & async flows when needed; otherwise simple composables.
+- **Runtime validation**: Zod at IO boundaries; shared types in `@/types`.
+
+
+############################
+# 2) EXPORT STYLE & MODULES
+############################
+- Prefer **named exports** for composables, stores, utilities, and components where applicable (JS modules).
+- **SFCs** (Single File Components) define the component via `<script setup>`; avoid default class‑style exports.
+- Barrel files (`index.ts`) are allowed per folder but must export only **public** symbols.
+- No circular dependencies. Split features or lift shared code to `@/shared` if needed.
+
+
+############################
+# 3) DIRECTORY LAYOUT
+############################
+- `src/app/` — App bootstrap (createApp, router, pinia, global styles).
+- `src/pages/` — Route components (used with file‑based routing if configured, or manual routes).
+- `src/components/` — Reusable presentational components (no remote data fetching).
+- `src/features/<domain>/` — Feature slices: UI + composables + store + service clients.
+- `src/composables/` — Cross‑feature composables (e.g., `useDebounce`, `useClipboard`).
+- `src/stores/` — Pinia stores per domain (if not colocated in features).
+- `src/lib/` — Framework adapters, clients, config.
+- `src/shared/` — Cross‑cutting pure utilities and primitives.
+- `src/types/` — Shared TypeScript types & zod schemas.
+- Tests co‑located as `*.spec.ts(x)` or `__tests__/` inside feature folders.
+
+
+############################
+# 4) COMPONENT & COMPOSABLE PATTERNS
+############################
+- Use **Composition API** with `<script setup>` and strongly typed props/emit.
+- Prefer **computed** and **derived state** over duplicating sources of truth.
+- Avoid class‑based components and Options API (unless migrating legacy code with a plan).
+- Keep components focused: presentational vs container boundaries; heavy logic moves to composables/stores.
+- Styling via Tailwind utilities; create small CSS modules only for exceptional cases.
+- Accessibility is non‑negotiable: semantic HTML, focus management, ARIA roles; prefer Headless UI primitives for interactive controls.
+
+
+############################
+# 5) DATA FETCHING, CACHING & IO BOUNDARIES
+############################
+- **Client fetch**: Use composables (`useFetchThing`) or `vue-query` hooks for cache, retries, and loading states.
+- **Server IO**: Keep HTTP/DB/queue clients in `src/lib` or `src/features/<domain>/services`; do not call raw fetch/axios from deep inside presentational components.
+- **Runtime validation**: Parse inbound data with Zod at the edge of your app; adapt to domain types immediately after parsing.
+- **Cache policy**: Perf‑forward — cache read‑heavy endpoints with sane stales (`staleTime`) and `gcTime` in vue‑query; document invalidation triggers.
+
+
+############################
+# 6) FORMS & MUTATIONS
+############################
+- Forms use `vee-validate` + Zod schemas; all inputs validate on submit and show inline errors.
+- Mutations via `vue-query` `useMutation` or composables; always provide pending/optimistic UI for non‑trivial actions.
+- Reconcile client state with server truth on success/settle; keep mutation side‑effects isolated inside composables/stores.
+
+
+############################
+# 7) AUTH & AUTHZ
+############################
+- Centralize auth in `src/lib/auth/*`; never trust client claims for authorization.
+- Protect sensitive operations server‑side; if using RLS databases, keep privileged ops behind server endpoints.
+- Tokens/keys are never exposed in the client bundle; use env injection only for truly public keys.
+
+
+############################
+# 8) UI LIBRARIES & DESIGN SYSTEM
+############################
+- **Allowed**: Tailwind, Element Plus, Headless UI (Vue), icon sets noted above.
+- **Forbidden**: React libraries (shadcn/ui, Radix React), MUI/AntD (unless approved in project README).
+- Keep a light design system: tokens (CSS vars), spacing/typography scales, component recipes in `src/components/ui/`.
+
+
+############################
+# 9) PERFORMANCE POLICY (PERF‑FORWARD)
+############################
+- Prioritize **time‑to‑interactive** and smoothness. Use Vite’s code‑splitting and lazy load below‑the‑fold routes/components.
+- Prefer **async components** with Suspense for heavy children; keep fallback UI friendly.
+- Watch bundle size (`vite-bundle-visualizer` or `rollup-plugin-visualizer`); set budgets and report diffs in PRs that add >50KB gz.
+- Memoization: prefer computed caching and `shallowRef`/`markRaw` judiciously for large objects.
+- Images: pre-size, use `<img decoding="async" loading="lazy">` or vetted image components.
+
+
+############################
+# 10) ERROR HANDLING & UX RESILIENCE
+############################
+- Use `onErrorCaptured` and error boundaries at sensible feature edges.
+- Surface user‑friendly messages; log technical details to structured logging (no PII/secrets).
+- Provide route‑level 404/empty states; design skeletons/loading for key views.
+
+
+############################
+# 11) TESTING & TOOLING
+############################
+- **Unit/Integration**: Vitest + Vue Test Utils.
+- **E2E**: Playwright for critical user journeys; run in CI on main branches.
+- Mock network boundaries; keep tests deterministic and fast.
+- **CI order**: Lint → Type‑check (noEmit) → Tests → Build.
+
+
+############################
+# 12) I18N & CONTENT
+############################
+- If internationalization is needed, use `vue-i18n` and keep messages in external files; avoid hardcoded strings in components.
+- Do not concatenate message fragments dynamically in templates; use params/formatting in i18n files.
+
+
+############################
+# 13) IMPORT PATHS & ALIASES
+############################
+- Use absolute aliases via Vite `resolve.alias`: `@/components`, `@/features`, `@/composables`, `@/stores`, `@/lib`, `@/types`.
+- No deep relative chains like `../../../thing`; create an alias or reorganize code.
+
+
+############################
+# 14) CURSOR EXECUTION GUIDELINES
+############################
+When acting in this profile, Cursor must:
+1) Implement features with **Composition API** and `<script setup>`; never introduce class‑based components.
+2) Use **named exports** for modules/composables; keep SFCs as SFCs (no class defaults).
+3) Never introduce React libraries or patterns; use Element Plus/Headless UI (Vue) only.
+4) Propose a refactor plan before large changes: affected files, risks, acceptance checks.
+5) Keep CI green at each step; if a gate fails, open a `-fix` task with the minimal diff.
+
+
+############################
+# 15) NON‑NEGOTIABLES (PROFILE)
+############################
+- No class‑based components; avoid Options API in new code.
+- No cross‑framework UI imports (React libs are forbidden).
+- No secrets in the client bundle.
+- No red CI merges.
+- Every bug fix gets a test.
+
+# End of Vue/Vite Profile .rules
