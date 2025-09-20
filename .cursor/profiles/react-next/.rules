@@ -1,0 +1,165 @@
+# profiles/react-next/.rules — React/Next Profile (v1)
+# Purpose: Opinionated rules for React + Next.js apps using TypeScript, Tailwind, shadcn/ui,
+# Radix UI, and a readability‑first posture. This profile OVERRIDES the root .rules for
+# architecture, exports, UI libraries, and perf policy.
+
+############################
+# 0) SCOPE & OVERRIDE
+############################
+- **Scope**: Only applies to projects/apps explicitly opting into this profile (e.g., apps/web, apps/dashboard).
+- **Override**: Supersedes root `.rules` for:
+  - Component architecture & patterns
+  - Export style
+  - UI library choices
+  - Performance vs readability policy
+- **Cursor Instruction**: When in a folder governed by this profile, follow these rules over root when conflicting.
+
+
+############################
+# 1) TECH STACK & BASELINE
+############################
+- **Framework**: Next.js (App Router).
+- **Language**: TypeScript with `"strict": true`.
+- **Styling**: Tailwind CSS.
+- **UI**: shadcn/ui on top of Radix UI primitives.
+- **Icons**: `lucide-react`.
+- **Charts**: `recharts` (or profile‑approved alternative).
+- **State**: Local component state + derived data; server state via **React Server Components** (RSC) and/or `@tanstack/react-query` when client caching is needed.
+- **Forms**: `react-hook-form` + `zod` resolver.
+- **Data validation**: Zod at runtime boundaries; shared types in `@/types`.
+- **Routing**: Next App Router (`app/`), Route Handlers for server endpoints.
+
+
+############################
+# 2) EXPORT STYLE & MODULES
+############################
+- Prefer **named exports** for components, hooks, and utilities to enable tree‑shaking and easier refactors.
+- Allow **default export** only for top‑level pages (e.g., `app/(segment)/page.tsx`) and single‑purpose entry components.
+- Barrel files (`index.ts`) are allowed per folder but must export **only public** symbols.
+- No circular deps. If detected, split features or elevate shared code to `@/shared`.
+
+
+############################
+# 3) DIRECTORY LAYOUT
+############################
+- `app/` — App Router entry, layouts, pages, route handlers, loading/empty/error UI.
+- `app/(marketing)` vs `app/(app)` — use route groups to separate concerns.
+- `src/components/` — Reusable presentational components (no data fetching).
+- `src/features/<domain>/` — Feature slices with UI + hooks + server logic scoped to domain.
+- `src/hooks/` — Cross‑feature hooks.
+- `src/lib/` — Framework adapters, clients, config, small helpers (no domain logic).
+- `src/shared/` — Cross‑cutting pure utilities and primitives.
+- `src/types/` — Shared TypeScript types & zod schemas (co‑located or mirrored).
+- Tests co‑located as `*.test.ts(x)` or `__tests__/` inside feature folders.
+
+
+############################
+# 4) COMPONENT PATTERNS
+############################
+- **Server Components (default)**: Prefer RSC for pages and heavy data reads; mark client components with `"use client"` sparingly.
+- **Client Components**: Only when you need interactivity (state, effects, refs, events).
+- **Composition over inheritance**: No class‑based React components.
+- **Props**: Define explicit prop types; avoid `any`; use discriminated unions for variants.
+- **Styling**: Tailwind utility classes; extract className builders with `clsx`/`cva` for variants.
+- **Accessibility**: Use Radix primitives or native elements; ensure labels, roles, and keyboard support.
+- **Loading & Error UI**: Provide `loading.tsx` and `error.tsx` per route segment when appropriate.
+
+
+############################
+# 5) DATA FETCHING & CACHING
+############################
+- **Server data**: Fetch in **Server Components** or **Route Handlers**; return typed data.
+- **Caching**:
+  - Use Next’s fetch cache options: `cache: 'force-cache' | 'no-store'` or `revalidate: <seconds>`.
+  - For user‑specific data, default to `no-store` unless a strong cache strategy is documented.
+  - Tag revalidation via `revalidateTag()` for coherent cache busting.
+- **Client cache**: Use `@tanstack/react-query` for live/interactive client data; define query keys in a central `src/lib/queryKeys.ts`.
+- **Validation**: Parse external data with Zod at the boundary; convert to typed domain objects immediately.
+
+
+############################
+# 6) FORMS & MUTATIONS
+############################
+- Prefer **Server Actions** for mutations when viable; otherwise Route Handlers (`app/api/*`).
+- Client forms: `react-hook-form` + `zodResolver`; keep input schemas co‑located with form component or feature slice.
+- Always show optimistic or pending UI for non‑trivial mutations; reconcile with server truth on settle.
+
+
+############################
+# 7) AUTH, ACCESS & RLS AWARENESS
+############################
+- Centralize auth in `src/lib/auth/*` (e.g., NextAuth or custom). Server Components read session via server helpers.
+- Do not trust client claims. Enforce authorization on the server (actions/handlers).
+- If using a DB with Row‑Level Security (RLS), keep all data writes on the server; never expose elevated keys to the client.
+
+
+############################
+# 8) UI LIBRARIES & DESIGN SYSTEM
+############################
+- **Allowed**: Tailwind, shadcn/ui components, Radix primitives, lucide-react icons.
+- **Forbidden**: Vue libraries (Element Plus, Headless UI for Vue), React MUI/AntD (unless explicitly approved in this project’s README).
+- Keep a `src/components/ui/` folder for shadcn components; do not fork them casually—prefer composition and tokens.
+
+
+############################
+# 9) PERFORMANCE POLICY (READABILITY FIRST)
+############################
+- Optimize **only** after measurement. Include findings (flamegraph, profiler notes) in PRs that add perf complexity.
+- Use Next’s automatic code‑splitting; add **dynamic imports** for large, below‑the‑fold components.
+- Memoization: `useMemo`/`useCallback` only for proven hot paths; remove if unnecessary.
+- Images via `next/image` with proper `sizes` and intrinsic dimensions.
+
+
+############################
+# 10) ERROR HANDLING & UX RESILIENCE
+############################
+- Throw typed errors in server code and map them to user‑friendly messages in UI.
+- Provide `not-found.tsx` for 404 cases; use `redirect()`/`notFound()` helpers.
+- Never swallow errors silently; log server errors with request context (but no secrets/PII).
+
+
+############################
+# 11) TESTING & TOOLING
+############################
+- **Unit/Integration**: Vitest + React Testing Library.
+- **E2E**: Playwright for critical flows; run in CI on main branches.
+- Keep tests fast and deterministic; mock network at the boundary layer.
+- **CI order**: Lint → Type‑check (noEmit) → Tests → Build.
+
+
+############################
+# 12) ACCESSIBILITY, I18N & CONTENT
+############################
+- All interactive controls must be reachable by keyboard and labeled.
+- Color contrast meets WCAG AA.
+- Copy lives in a `messages` or `content` module; avoid hardcoded strings in components when i18n is required.
+
+
+############################
+# 13) IMPORT PATHS & ALIASES
+############################
+- Use absolute aliases: `@/components`, `@/features`, `@/hooks`, `@/lib`, `@/types`.
+- No deep relative traversals like `../../../foo`—create a proper alias or move the code.
+
+
+############################
+# 14) CURSOR EXECUTION GUIDELINES
+############################
+When acting in this profile, Cursor must:
+1) Prefer Server Components for data‑heavy screens; propose `"use client"` only when interactivity demands it.
+2) Use named exports for all non‑page modules; default exports only for `page.tsx`/singular entries.
+3) Never introduce Vue ecosystems or non‑approved UI kits.
+4) For large refactors, propose a plan first: affected files, risks, acceptance checks.
+5) Keep CI green at each step; if a gate fails, open a `-fix` task with the minimal diff.
+
+
+############################
+# 15) NON‑NEGOTIABLES (PROFILE)
+############################
+- No class‑based React components.
+- No cross‑framework UI imports.
+- No secrets in the client bundle.
+- No red CI merges.
+- Every bug fix gets a test.
+
+# End of React/Next Profile .rules
