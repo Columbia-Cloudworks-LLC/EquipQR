@@ -2,10 +2,12 @@
 
 import { spawn } from 'child_process';
 import fs from 'fs';
+import path from 'path';
 
 // Run vitest with coverage
 console.log('🧪 Running tests with coverage...');
-const vitestProcess = spawn('npx', ['vitest', 'run', '--coverage'], {
+const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const vitestProcess = spawn(npmBin, ['run', 'test:coverage'], {
   stdio: 'inherit',
   env: process.env
 });
