@@ -41,5 +41,9 @@
       "main": true,
       "preview": true
     }
+  },
+  "github": {
+    "deploymentEnabled": true,
+    "autoAlias": false
   }
 }
