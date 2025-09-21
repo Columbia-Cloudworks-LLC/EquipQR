@@ -6,13 +6,33 @@ on:
 
 permissions:
   contents: read
+ 
 
 jobs:
   deployment-status:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     if: github.event.deployment_status.state == 'success' || github.event.deployment_status.state == 'failure'
     steps:
-      - name: Deployment Status Update
+      - name: Deployment Status Update (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "Deployment status: ${{ github.event.deployment_status.state }}"
+          if ('${{ github.event.deployment_status.deployment.environment }}' -ne '') {
+            Write-Host "Environment: ${{ github.event.deployment_status.deployment.environment }}"
+          }
+          if ('${{ github.event.deployment_status.deployment.ref }}' -ne '') {
+            Write-Host "Ref: ${{ github.event.deployment_status.deployment.ref }}"
+          }
+          if ('${{ github.event.deployment_status.state }}' -eq 'success') {
+            Write-Host "✅ Deployment successful!"
+          } else {
+            Write-Host "❌ Deployment failed"
+          }
+
+      - name: Deployment Status Update (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           echo "Deployment status: ${{ github.event.deployment_status.state }}"
           if [ "${{ github.event.deployment_status.deployment.environment }}" != "" ]; then
