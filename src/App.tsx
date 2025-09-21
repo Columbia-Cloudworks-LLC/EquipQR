@@ -116,7 +116,7 @@ function App() {
                           }>
                             <BrandedTopBar />
                           </Suspense>
-                          <main className="flex-1 p-3 sm:p-4 lg:p-6 xl:p-8 overflow-auto min-w-0">
+                          <main className="flex-1 overflow-auto min-w-0">
                             <Suspense fallback={
                               <div className="flex items-center justify-center h-64">
                                 <div className="text-center">
