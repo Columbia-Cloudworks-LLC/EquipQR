@@ -1,8 +1,7 @@
 import React from 'react';
-import { FieldPath, FieldValues, useController } from 'react-hook-form';
+import { FieldPath, FieldValues } from 'react-hook-form';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 
 interface TextFieldProps<

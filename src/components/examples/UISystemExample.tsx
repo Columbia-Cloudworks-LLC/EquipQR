@@ -15,8 +15,7 @@ import EmptyState from '@/components/ui/empty-state';
 import TableToolbar from '@/components/ui/table-toolbar';
 import { useAppToast } from '@/hooks/useAppToast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Package, Plus, Search, Trash2, Edit } from 'lucide-react';
-import LucideIcon from '@/components/ui/LucideIcon';
+import { Package, Plus, Trash2, Edit } from 'lucide-react';
 
 // Example form schema
 const exampleFormSchema = z.object({
@@ -31,7 +30,7 @@ type ExampleFormData = z.infer<typeof exampleFormSchema>;
 const UISystemExample: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchValue, setSearchValue] = useState('');
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const selectedCount = 0;
   const { success, error, info, warning } = useAppToast();
 
   const form = useForm<ExampleFormData>({
@@ -54,7 +53,7 @@ const UISystemExample: React.FC = () => {
   };
 
   const handleBulkAction = () => {
-    info({ title: 'Bulk action', description: `Performed action on ${selectedItems.length} items` });
+    info({ title: 'Bulk action', description: `Performed action on ${selectedCount} items` });
   };
 
   const breadcrumbs = [
@@ -206,7 +205,7 @@ const UISystemExample: React.FC = () => {
               searchValue={searchValue}
               onSearchChange={setSearchValue}
               searchPlaceholder="Search items..."
-              selectedCount={selectedItems.length}
+              selectedCount={selectedCount}
               bulkActions={[
                 {
                   label: 'Delete Selected',
