@@ -236,6 +236,11 @@ jobs:
         fi
         echo "APP_VERSION=${HEAD_TAG#v}" >> $GITHUB_ENV
         echo "APP_VERSION=${HEAD_TAG#v}" >> $GITHUB_OUTPUT
+        echo "📊 Version Information:"
+        echo "  HEAD tag: $HEAD_TAG"
+        echo "  App version: ${HEAD_TAG#v}"
+        echo "  All version tags:"
+        git tag -l "v*" | sort -V | tail -5
 
     - name: Export public env for Vite
       run: echo "VITE_APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
