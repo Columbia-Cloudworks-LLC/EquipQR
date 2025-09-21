@@ -11,12 +11,11 @@ env:
   MAIN_BRANCH: main
   PREVIEW_BRANCH: preview
   TAG_PREFIX: v
-  USE_SELF_HOSTED: 'true'
 
 jobs:
   bump:
     if: github.event.pull_request.merged == true
-    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     steps:
       - name: Checkout full history
         uses: actions/checkout@v4

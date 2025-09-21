@@ -15,12 +15,11 @@ permissions:
 env:
   NODE_VERSION: 20.x
   CACHE_VERSION: v1
-  USE_SELF_HOSTED: 'true'
 
 jobs:
   lint-and-typecheck:
     name: Lint & Type Check
-    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 10
     
     steps:
@@ -97,7 +96,7 @@ jobs:
 
   test:
     name: Test Suite
-    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 15
     
     strategy:
@@ -233,7 +232,7 @@ jobs:
 
   build:
     name: Build & Bundle Analysis
-    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 15
     needs: [lint-and-typecheck]
     
@@ -375,7 +374,7 @@ jobs:
 
   quality-gates:
     name: Quality Gates
-    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     needs: [test, security, build]
     timeout-minutes: 10
     

@@ -7,12 +7,10 @@ on:
 permissions:
   contents: read
  
-env:
-  USE_SELF_HOSTED: 'true'
 
 jobs:
   deployment-status:
-    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     if: github.event.deployment_status.state == 'success' || github.event.deployment_status.state == 'failure'
     steps:
       - name: Deployment Status Update (Windows)

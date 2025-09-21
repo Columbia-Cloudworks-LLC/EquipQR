@@ -7,13 +7,11 @@ on:
 permissions:
   contents: read
 
-env:
-  USE_SELF_HOSTED: 'true'
 
 jobs:
   notify-deployment:
     name: Notify Deployment
-    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview'
     
     steps:
