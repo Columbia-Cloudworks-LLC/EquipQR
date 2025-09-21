@@ -48,7 +48,7 @@ Ongoing maintenance and system optimization:
 
 Following the development process:
 
-- **[Agents Guide](../agents.md)** - Multi-agent development workflow and guidelines
+- **[Agents Guide](../.cursor/agents.md)** - Multi-agent development workflow and guidelines
 
 ## 🎯 Quick Navigation
 
@@ -120,7 +120,7 @@ Following the development process:
 #### Development Workflow
 - [Developer Onboarding](./getting-started/developer-onboarding.md) - Getting started
 - [Technical Guide](./architecture/technical-guide.md) - Development patterns
-- [Agents Guide](../agents.md) - Team workflow
+- [Agents Guide](../.cursor/agents.md) - Team workflow
 
 #### Deployment & DevOps
 - [Deployment Guide](./deployment/deployment-guide.md) - Platform-specific deployment

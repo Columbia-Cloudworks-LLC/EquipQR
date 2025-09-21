@@ -442,7 +442,7 @@ npm run analyze
 - **Documentation**: Check the `docs/` folder
 - **API Reference**: `docs/api-reference.md`
 - **Architecture Guide**: `docs/architecture.md`
-- **Agents Guide**: `agents.md` (development workflow)
+- **Agents Guide**: `../../.cursor/agents.md` (development workflow)
 
 ### Team Communication
 

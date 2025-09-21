@@ -1,0 +1,29 @@
+name: Deployment Status
+
+on:
+  deployment_status:
+  deployment:
+
+permissions:
+  contents: read
+
+jobs:
+  deployment-status:
+    runs-on: ubuntu-latest
+    if: github.event.deployment_status.state == 'success' || github.event.deployment_status.state == 'failure'
+    steps:
+      - name: Deployment Status Update
+        run: |
+          echo "Deployment status: ${{ github.event.deployment_status.state }}"
+          if [ "${{ github.event.deployment_status.deployment.environment }}" != "" ]; then
+            echo "Environment: ${{ github.event.deployment_status.deployment.environment }}"
+          fi
+          if [ "${{ github.event.deployment_status.deployment.ref }}" != "" ]; then
+            echo "Ref: ${{ github.event.deployment_status.deployment.ref }}"
+          fi
+          
+          if [ "${{ github.event.deployment_status.state }}" = "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed"
+          fi

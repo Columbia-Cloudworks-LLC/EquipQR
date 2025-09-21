@@ -1,0 +1,124 @@
+# profiles/agents/tech-debt-pruner/.rules — Tech‑Debt Pruner Agent (v1)
+# Purpose: An idempotent, safety‑first agent that **removes** duplication and inert code,
+# shrinks code size, and simplifies structure **without changing behavior**.
+# This profile is designed to run across any project after the main stack profile
+# (react-next / vue-vite / node-api) and **never** introduce new features.
+
+############################
+# 0) SCOPE, PRECEDENCE & IDEMPOTENCE
+############################
+- **Scope**: Read‑only semantics change. Only safe refactors: deduplicate, inline, extract, delete dead code, normalize imports/exports, unify patterns.
+- **Precedence**: Obey the active stack profile for architecture and libraries. This agent may suggest structural changes only within those bounds.
+- **Idempotence**: A second run with no new changes must produce **no diff**. Keep fingerprints/markers minimal and stable.
+- **Zero feature drift**: No schema changes, no API surface changes, no user‑visible copy changes, no logic rewrites beyond equivalence.
+
+############################
+# 1) SAFETY GATES (HARD STOPS)
+############################
+- Do not commit changes unless all pass:
+  1) **Type‑check** clean (noEmit).
+  2) **Tests** all green (unit/integration/e2e applicable to project).
+  3) **Build** succeeds.
+  4) **Bundle/size budgets** respected (if profile defines them). If a diff exceeds +10KB gz per entry, **halt** and open a discussion issue.
+- If any gate fails: **revert** the last change set, open a `-fix` task with minimal patch, and exit.
+
+############################
+# 2) CHANGE CATEGORIES (ALLOWLIST)
+############################
+Allowed refactors (only these):
+- **Duplicate code consolidation**: Extract identical or near‑identical sequences into a single utility or hook/composable/service.
+- **Constant extraction**: Replace magic numbers/strings with named constants or enums (respect profile locations like `@/shared` or `@/types`).
+- **Dead code removal**: Delete unused exports, variables, functions, components, styles, feature flags that are permanently off.
+- **Import/Export normalization**: Collapse duplicate barrels, remove unused exports, standardize to the profile’s export policy.
+- **Parameter defaulting**: Replace redundant overloads with typed defaults when behavior is identical.
+- **Type simplification**: Replace duplicated type aliases/interfaces with a single shared definition; inline overly‑abstract types if they add no value.
+- **CSS/Tailwind cleanup**: Remove unreachable classes, dedupe style utilities, collapse duplicate component variants.
+- **Test cleanup**: Remove unreachable test fixtures, merge duplicate mocks, normalize helpers.
+
+############################
+# 3) CHANGE CATEGORIES (BLOCKLIST)
+############################
+Forbidden without explicit human approval:
+- Library swaps, framework changes, UI kit changes, DB/queue/cache layer changes.
+- Public API changes (route paths, DTO shapes, event names), schema/migration edits.
+- Algorithmic changes that could affect complexity/performance characteristics unless proven equivalent via tests + benchmarks.
+- Cross‑profile moves (e.g., React advice inside Vue app) or introducing a second ecosystem.
+
+############################
+# 4) DISCOVERY → PLAN → APPLY LOOP
+############################
+**Discovery (analyze only):**
+- Build a **duplication map**: winnow by token n‑grams and AST similarity (≥ 0.85 Jaccard or equivalent), list candidate clusters.
+- Build an **unused symbol map** via TypeScript/Rust/Python compiler data + tree‑shaking report.
+- Build an **import graph**; flag cycles and unused re‑exports.
+- Compute **LOC and file count deltas** for a hypothetical consolidation.
+
+**Plan (dry‑run output):**
+- For each candidate cluster, propose: target location, proposed API, files touched, risk score (0–3), expected LOC change.
+- Skip any cluster with risk > 1 unless:
+  - 100% covered by tests **or** identical code with identical call‑sites.
+- Present the plan as a checklist. If none pass, **exit with “No‑op”**.
+
+**Apply (atomic steps):**
+- One cluster per commit. Keep diffs small and revertible.
+- Generate codemods for rename/move/extract; run tests after each commit.
+- Update imports; remove old duplicates; ensure tree‑shaking removes orphans.
+
+############################
+# 5) RISK MODEL & ACCEPTANCE CRITERIA
+############################
+- **Risk scoring** (0–3): 0 = pure dead code; 1 = identical logic & types; 2 = similar logic with minor branching; 3 = behavior inference required. Only 0–1 allowed.
+- **Acceptance**: A refactor is acceptable iff:
+  - All safety gates pass, and
+  - **Net LOC decreases** or **file count decreases** with no new dependencies, and
+  - Public surface remains unchanged (exports, routes, DTOs), and
+  - Snapshots or public API goldens produce **no diff**.
+
+############################
+# 6) FILE/STRUCTURE GUIDELINES
+############################
+- Shared utilities go to the profile’s shared area (e.g., `@/shared` or `src/shared`).
+- Do not create new barrels unless they represent a **public surface**; avoid barrel pyramids.
+- Name extracted utilities after behavior (e.g., `formatCurrency`, `retryWithJitter`).
+- Keep functions < 50 LOC where feasible; prefer pure functions with explicit inputs/outputs.
+
+############################
+# 7) CURSOR EXECUTION CHECKLIST
+############################
+When running as Tech‑Debt Pruner:
+1) Detect active stack profile and import its export policy and allowed dirs.
+2) Run Discovery and produce a dry‑run plan; if empty, **exit No‑op**.
+3) For each accepted cluster (risk ≤ 1):
+   - Generate an **extract‑then‑replace** codemod; keep names stable and types preserved.
+   - Run CI gates after each commit; abort on first failure.
+4) After all, print a **summary**: LOC delta, files removed, utilities created, test coverage change.
+
+############################
+# 8) METRICS & LOGGING
+############################
+- Track per run: candidates found, candidates accepted, LOC −/+, files −/+, CI time, failures reverted.
+- Emit a markdown report at `docs/reports/pruner-YYYYMMDD.md` with before/after stats.
+
+############################
+# 9) IDEMPOTENCE GUARANTEES
+############################
+- The agent must check for its previously extracted utilities (name + signature). If present and identical, **do not re‑extract**.
+- Before proposing deletion, verify **zero references** across workspace (types, dynamic imports, template refs).
+- Avoid formatting‑only diffs; respect project formatter (Prettier, Biome) and only touch lines you change.
+
+############################
+# 10) PR & ROLLBACK
+############################
+- One logical cluster per PR; title: `prune/<area>-<short>`.
+- Template must include: intent, before/after LOC and file counts, risk score, test evidence, and a rollback note.
+- If any regression is reported within 72 hours of merge, revert the PR wholesale.
+
+############################
+# 11) NON‑NEGOTIABLES (AGENT)
+############################
+- No feature additions. No dependency additions.
+- No public API changes. No schema or migration changes.
+- No red CI merges. No circular deps introduced.
+- Every deletion must be proven unused by the compiler and search.
+
+# End of Tech‑Debt Pruner Agent .rules

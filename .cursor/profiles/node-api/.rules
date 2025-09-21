@@ -1,0 +1,144 @@
+# profiles/node-api/.rules — Node + API/Profile (v1)
+# Purpose: Opinionated rules for building HTTP/RPC/Job backends in Node.js with TypeScript.
+# This profile OVERRIDES the root .rules for architecture, exports, runtime choices,
+# and performance policy.
+
+############################
+# 0) SCOPE & OVERRIDE
+############################
+- **Scope**: Applies to Node services (HTTP APIs, workers, CLI tools) that opt into this profile.
+- **Override**: Supersedes root `.rules` for:
+  - Layered architecture & module boundaries
+  - Export style
+  - Runtime libraries and operational patterns
+  - Performance and reliability policy
+- **Cursor Instruction**: Inside a folder governed by this profile, follow these rules over root on conflicts.
+
+
+############################
+# 1) RUNTIME & BASELINE
+############################
+- **Node**: LTS (current active LTS). ESM modules preferred; avoid CommonJS in new code.
+- **Language**: TypeScript with `"strict": true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`.
+- **Framework**: Prefer **Fastify** for HTTP (performance & type‑safety). **Express** allowed for legacy/middleware parity.
+- **Validation**: Zod (or Valibot) at all IO boundaries (HTTP, queue, cron). Parse first, then use typed domain objects.
+- **Logging**: Pino (structured JSON) with request correlation (traceId/spanId) and redact secrets.
+- **Env**: `dotenv` for local, but production uses a secret manager. Validate env with Zod on boot.
+
+
+############################
+# 2) ARCHITECTURE & LAYERS
+############################
+- **Boundaries** (clean architecture flavor):
+  - **Controller**/**Handler** (HTTP/RPC) → **Service** (use cases) → **Repository** (DB/Cache/Queue) → **Provider** (external SDKs)
+- No business logic in controllers; keep them thin (parse, authorize, delegate, map result → HTTP).
+- Repositories expose **interfaces**; provide implementations per DB/cache. Prefer dependency inversion in services.
+- Cross‑cutting utilities live in `src/shared` and are side‑effect free.
+
+
+############################
+# 3) EXPORT STYLE & MODULES
+############################
+- Prefer **named exports** for handlers, services, repositories, and utilities.
+- Allow a **single default export** ONLY for: server/bootstrap factory (e.g., `buildServer()`), CLI entry, or one‑shot scripts.
+- Barrel files allowed for public surfaces (e.g., `src/services/index.ts`) but never re‑export private internals.
+- Use path aliases (`@/services`, `@/repositories`, `@/shared`, `@/types`). No deep relative paths.
+
+
+############################
+# 4) HTTP API CONVENTIONS
+############################
+- **Routing**: Group by resource or feature (Fastify plugins per module). No mega routers.
+- **Versioning**: Prefix stable REST with `/v1` (or use content‑negotiation); deprecate with sunset headers.
+- **Contracts**: Maintain an **OpenAPI** spec (generated from source where possible). Keep examples up to date.
+- **Errors**: Map domain errors to HTTP status codes; return `{ error: { code, message, details? } }` shape.
+- **Security**: Helmet‑equivalent headers, CORS allow‑list, rate‑limit, input length limits, and body size caps.
+- **Auth**: Central middleware for authN; **authorization in handlers/services** with role/ACL checks.
+
+
+############################
+# 5) DATA LAYER & MIGRATIONS
+############################
+- Choose one ORM/Query layer per service (Prisma, Drizzle, Kysely). Do not mix.
+- **Migrations are mandatory**; never drift schemas. Store in repo and run on deploy.
+- For RLS databases (e.g., Postgres with RLS), keep privileged operations **server‑side** and use scoped roles.
+- Transactions wrap multi‑write operations; use **idempotency** keys for externalized retries.
+
+
+############################
+# 6) CACHING, QUEUES & JOBS
+############################
+- Cache reads with explicit TTLs and keys (Redis). Invalidate on write via events or tag patterns.
+- Background work uses a queue (BullMQ, RabbitMQ, or provider native). Define retry policy with backoff and max attempts.
+- Jobs must be **idempotent**; design for at‑least‑once delivery.
+- Long‑running tasks: use heartbeats and cancellation; store progress for visibility.
+
+
+############################
+# 7) PERFORMANCE & RELIABILITY
+############################
+- Targets: set SLOs for p95 latency and error rate per endpoint. Document them.
+- Measure with APM (OpenTelemetry instrumentation encouraged). Add span attributes for domain context.
+- Timeouts on all network calls; retries with jitter; circuit breakers for flaky deps.
+- Prefer streaming/ pagination for large responses; enforce response size limits.
+- Use Fastify’s schema compilation for request/response (w/ zod‑to‑json‑schema or native JSON schema).
+
+
+############################
+# 8) SECURITY PRACTICES
+############################
+- OWASP ASVS baseline: validate, sanitize, and encode outputs. Never echo raw input.
+- Do not log secrets/PII. Redact tokens; encrypt sensitive fields at rest when required.
+- Rotate keys; least‑privilege DB roles and cloud IAM. Use prepared statements/parameterized queries.
+- Access control evaluated server‑side; never trust client claims.
+
+
+############################
+# 9) OBSERVABILITY & OPERATIONS
+############################
+- **Logs**: Structured JSON; include `service`, `env`, `version`, `traceId`.
+- **Metrics**: Request counts, latency histograms, error rates per route, queue depth, worker success/fail counts.
+- **Health**: `/healthz` (shallow) and `/readyz` (dependencies check). Expose build/version info.
+- **Config**: Twelve‑Factor; immutable builds, config via environment; document required env vars.
+
+
+############################
+# 10) TESTING & CI
+############################
+- **Unit**: Pure services and helpers; no network or DB.
+- **Integration**: Handlers against in‑memory/ephemeral DB or test containers; use seed data.
+- **Contract**: Validate OpenAPI examples against handlers; consider Pact for consumer tests.
+- **E2E**: Minimal happy paths via supertest/lightweight harness.
+- CI order: Lint → Type‑check (noEmit) → Unit → Integration → Build → (optional) Contract/E2E.
+
+
+############################
+# 11) RELEASE & DEPLOY
+############################
+- Semantic versioning for packages; tag releases. Changelog updated by PRs.
+- Containerize with a slim base (distroless/Alpine if compatible). Run as non‑root. Read‑only FS when possible.
+- Startup probes + graceful shutdown (listen for SIGTERM; drain queue consumers).
+- Blue/green or rolling deploys; DB migrations run before or as part of rollout (ensure backward compatibility during transition).
+
+
+############################
+# 12) CURSOR EXECUTION GUIDELINES
+############################
+When acting in this profile, Cursor must:
+1) Generate Fastify handlers with Zod schemas for request/response. Keep controllers thin and delegate to services.
+2) Use **named exports** for modules; default only for `buildServer()` or CLI entry.
+3) Add types first; fail fast on invalid input (parse with Zod) and map errors to HTTP codes.
+4) For new features, propose a plan: affected endpoints, schema changes, migrations, tests.
+5) Keep CI green at each step; if a gate fails, open a `-fix` task with the minimal diff.
+
+
+############################
+# 13) NON‑NEGOTIABLES (PROFILE)
+############################
+- No secrets in code or logs.
+- No schema drift; all changes via migrations.
+- No red CI merges.
+- No circular dependencies.
+- Every bug fix adds a test.
+
+# End of Node/API Profile .rules

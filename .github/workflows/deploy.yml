@@ -1,0 +1,44 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main, preview]
+
+permissions:
+  contents: read
+
+jobs:
+  notify-deployment:
+    name: Notify Deployment
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tags
+        id: version
+        run: |
+          git fetch --tags --force
+          HEAD_TAG=$(git tag --points-at HEAD --list "v[0-9]*" | head -n1)
+          if [ -z "$HEAD_TAG" ]; then
+            HEAD_TAG=$(git describe --tags --abbrev=0 --match "v[0-9]*" 2>/dev/null || echo "v0.0.0")
+          fi
+          VERSION="${HEAD_TAG#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$HEAD_TAG" >> $GITHUB_OUTPUT
+
+      - name: Deployment notification
+        run: |
+          echo "🚀 Deployment triggered for ${{ github.ref_name }} branch"
+          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "Environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}"
+          echo "Vercel will handle the actual deployment automatically"
+          echo ""
+          echo "Expected URLs:"
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "  Production: https://equipqr.app"
+          else
+            echo "  Preview: https://preview.equipqr.app"
+          fi

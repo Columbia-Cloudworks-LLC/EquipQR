@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
 export default defineConfig({
@@ -22,7 +22,6 @@ export default defineConfig({
       'src/integrations/supabase/types.ts',
       'scripts/**',
       'supabase/**',
-      'functions/**',
       '**/*.d.ts',
       '**/*.config.*',
       '**/dist/**',
@@ -45,11 +44,9 @@ export default defineConfig({
       'src/components/equipment/csv-import/**', // Equipment CSV import wizard
       'src/components/ui/**', // UI primitives
       'src/components/equipment/CsvWizard.tsx', // Equipment CSV wizard
-      'src/contexts/CacheContext.tsx', // Cache context
       'src/contexts/SettingsContext.tsx', // Settings context
       'src/contexts/TeamContext.tsx', // Team context
       'src/contexts/UserContext.tsx', // User context
-      'src/contexts/PermissionProvider.tsx', // Permission context provider
       'src/hooks/**', // Hooks
       'src/services/**', // Service layer
       'src/utils/pdfGenerator.ts', // PDF generator utility
@@ -58,7 +55,6 @@ export default defineConfig({
       'src/utils/restrictions.ts', // Restrictions helper
       'src/utils/billing/**', // Billing utilities
       'src/pages/FleetMap.tsx', // Fleet map page
-      'src/pages/OrganizationAccept.tsx', // Organization accept page
       'src/pages/Reports.tsx', // Reports page
       // Exclude test files from coverage
       '**/*.test.{ts,tsx}',

@@ -118,30 +118,28 @@ vercel --prod
 ```
 
 #### `vercel.json` Configuration
-```json
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    }
-  ]
-}
-```
+The project includes a complete `vercel.json` configuration file with:
+- **Build Configuration**: Uses Vite framework with `npm run build`
+- **SPA Routing**: All routes rewritten to `/index.html` for React Router
+- **Security Headers**: X-Content-Type-Options, X-Frame-Options, Referrer-Policy
+- **Performance Headers**: Long-term caching for static assets
+- **Branch Deployment**: Automatic deployment for main and preview branches
+
+#### Environment Variables Setup
+Configure these environment variables in your Vercel project dashboard:
+
+**Required:**
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+
+**Optional:**
+- `VITE_APP_VERSION`: Application version (defaults to 'dev')
+- `VITE_STRIPE_PUBLISHABLE_KEY`: Stripe integration key
+- `VITE_GOOGLE_MAPS_API_KEY`: Google Maps API key
+
+#### Branch Configuration
+- **Production**: `main` branch deploys to `equipqr.app`
+- **Preview**: `preview` branch deploys to `preview.equipqr.app`
 
 ### Netlify Deployment
 ```bash
