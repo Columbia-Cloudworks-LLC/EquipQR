@@ -17,14 +17,14 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Write-Host "Deployment status: $env:GITHUB_EVENT_DEPLOYMENT_STATUS_STATE"
+          Write-Host "Deployment status: ${{ github.event.deployment_status.state }}"
           if ('${{ github.event.deployment_status.deployment.environment }}' -ne '') {
             Write-Host "Environment: ${{ github.event.deployment_status.deployment.environment }}"
           }
           if ('${{ github.event.deployment_status.deployment.ref }}' -ne '') {
             Write-Host "Ref: ${{ github.event.deployment_status.deployment.ref }}"
           }
-          if ($env:GITHUB_EVENT_DEPLOYMENT_STATUS_STATE -eq 'success') {
+          if ('${{ github.event.deployment_status.state }}' -eq 'success') {
             Write-Host "✅ Deployment successful!"
           } else {
             Write-Host "❌ Deployment failed"
