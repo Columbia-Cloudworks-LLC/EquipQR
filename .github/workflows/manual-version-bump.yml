@@ -16,9 +16,12 @@ on:
 permissions:
   contents: write
 
+env:
+  USE_SELF_HOSTED: 'true'
+
 jobs:
   create-tag:
-    runs-on: ubuntu-latest
+    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,7 +29,20 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Validate version format
+      - name: Validate version format (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $v = "${{ github.event.inputs.version }}"
+          if ($v -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
+            Write-Host '❌ Invalid version format. Expected format: v1.0.0'
+            exit 1
+          }
+          Write-Host "✅ Version format is valid: $v"
+
+      - name: Validate version format (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           VERSION="${{ github.event.inputs.version }}"
           if [[ ! $VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -35,8 +51,25 @@ jobs:
           fi
           echo "✅ Version format is valid: $VERSION"
 
-      - name: Check if tag exists
+      - name: Check if tag exists (Windows)
+        if: runner.os == 'Windows'
+        id: check-tag-win
+        shell: pwsh
+        run: |
+          $v = "${{ github.event.inputs.version }}"
+          git rev-parse $v *> $null
+          if ($LASTEXITCODE -eq 0) {
+            "exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "⚠️  Tag $v already exists"
+          } else {
+            "exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "✅ Tag $v does not exist, proceeding..."
+          }
+
+      - name: Check if tag exists (Unix)
+        if: runner.os != 'Windows'
         id: check-tag
+        shell: bash
         run: |
           VERSION="${{ github.event.inputs.version }}"
           if git rev-parse "$VERSION" > /dev/null 2>&1; then
@@ -47,8 +80,23 @@ jobs:
             echo "✅ Tag $VERSION does not exist, proceeding..."
           fi
 
-      - name: Create tag
-        if: steps.check-tag.outputs.exists == 'false'
+      - name: Create tag (Windows)
+        if: runner.os == 'Windows' && steps.check-tag-win.outputs.exists == 'false'
+        shell: pwsh
+        run: |
+          $v = "${{ github.event.inputs.version }}"
+          $m = "${{ github.event.inputs.message }}"
+          Write-Host "🏷️  Creating tag: $v"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "$v" -m "$m"
+          Write-Host "📤 Pushing tag to origin..."
+          git push origin "$v"
+          Write-Host "✅ Successfully created and pushed tag: $v"
+
+      - name: Create tag (Unix)
+        if: runner.os != 'Windows' && steps.check-tag.outputs.exists == 'false'
+        shell: bash
         run: |
           VERSION="${{ github.event.inputs.version }}"
           MESSAGE="${{ github.event.inputs.message }}"
@@ -63,7 +111,16 @@ jobs:
           
           echo "✅ Successfully created and pushed tag: $VERSION"
 
-      - name: Show current tags
+      - name: Show current tags (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "📊 Current version tags:"
+          git tag -l "v*" | sort -V | Select-Object -Last 10
+
+      - name: Show current tags (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           echo "📊 Current version tags:"
           git tag -l "v*" | sort -V | tail -10

@@ -1,0 +1,19 @@
+# GitHub Actions Runner Configuration
+# Change these values to switch between runner types
+
+# Runner Type Selection
+# Options: "github-hosted" or "self-hosted"
+runner_type: "self-hosted"
+
+# Self-hosted Runner Configuration
+self_hosted:
+  labels: "self-hosted, windows, x64"
+  name: "VIRAL-DESKTOP"
+  notes: "Ensure the runner is assigned to the Default group and this repo/group can use it."
+  service: true
+
+# GitHub-hosted Runner Configuration
+github_hosted:
+  os: "ubuntu-latest"
+  labels: "ubuntu-latest"
+

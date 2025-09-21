@@ -7,18 +7,38 @@ on:
 permissions:
   contents: read
 
+env:
+  USE_SELF_HOSTED: 'true'
+
 jobs:
   notify-deployment:
     name: Notify Deployment
-    runs-on: self-hosted  # Use self-hosted for deployment notifications
+    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview'
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get version from tags
+      - name: Get version from tags (Windows)
+        if: runner.os == 'Windows'
+        id: version_win
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git fetch --tags --force
+          $headTag = (git tag --points-at HEAD --list "v[0-9]*" | Select-Object -First 1)
+          if (-not $headTag) {
+            try { $headTag = git describe --tags --abbrev=0 --match "v[0-9]*" } catch { $headTag = 'v0.0.0' }
+          }
+          $version = $headTag.TrimStart('v')
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag=$headTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Get version from tags (Unix)
+        if: runner.os != 'Windows'
         id: version
+        shell: bash
         run: |
           git fetch --tags --force
           HEAD_TAG=$(git tag --points-at HEAD --list "v[0-9]*" | head -n1)
@@ -29,7 +49,26 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$HEAD_TAG" >> $GITHUB_OUTPUT
 
-      - name: Deployment notification
+      - name: Deployment notification (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "🚀 Deployment triggered for $env:GITHUB_REF_NAME branch"
+          Write-Host "Version: ${{ steps.version_win.outputs.version }}"
+          $envName = if ($env:GITHUB_REF -eq 'refs/heads/main') { 'production' } else { 'preview' }
+          Write-Host "Environment: $envName"
+          Write-Host "Vercel will handle the actual deployment automatically"
+          Write-Host ""
+          Write-Host "Expected URLs:"
+          if ($env:GITHUB_REF -eq 'refs/heads/main') {
+            Write-Host "  Production: https://equipqr.app"
+          } else {
+            Write-Host "  Preview: https://preview.equipqr.app"
+          }
+
+      - name: Deployment notification (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           echo "🚀 Deployment triggered for ${{ github.ref_name }} branch"
           echo "Version: ${{ steps.version.outputs.version }}"

@@ -15,11 +15,12 @@ permissions:
 env:
   NODE_VERSION: 20.x
   CACHE_VERSION: v1
+  USE_SELF_HOSTED: 'true'
 
 jobs:
   lint-and-typecheck:
     name: Lint & Type Check
-    runs-on: self-hosted
+    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 10
     
     steps:
@@ -42,14 +43,40 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-
           
-    - name: Enforce npm usage
+    - name: Enforce npm usage (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        if (Test-Path "yarn.lock" -or Test-Path "pnpm-lock.yaml") {
+          Write-Host "Detected non-npm lockfile. This project uses npm only."
+          exit 1
+        }
+
+    - name: Enforce npm usage (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         if [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
           echo "Detected non-npm lockfile. This project uses npm only."
           exit 1
         fi
         
-    - name: Install dependencies (with fallback)
+    - name: Install dependencies (with fallback) (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        try {
+          npm ci --prefer-offline --no-audit
+        } catch {
+          if (Test-Path "package-lock.json") { Remove-Item "package-lock.json" -Force }
+          npm install --package-lock-only --no-audit
+          npm ci --prefer-offline --no-audit
+        }
+
+    - name: Install dependencies (with fallback) (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         set -e
         npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
@@ -70,7 +97,7 @@ jobs:
 
   test:
     name: Test Suite
-    runs-on: self-hosted
+    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 15
     
     strategy:
@@ -97,14 +124,40 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-node-${{ matrix.node-version }}-${{ env.CACHE_VERSION }}-
           
-    - name: Enforce npm usage
+    - name: Enforce npm usage (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        if (Test-Path "yarn.lock" -or Test-Path "pnpm-lock.yaml") {
+          Write-Host "Detected non-npm lockfile. This project uses npm only."
+          exit 1
+        }
+
+    - name: Enforce npm usage (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         if [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
           echo "Detected non-npm lockfile. This project uses npm only."
           exit 1
         fi
         
-    - name: Install dependencies (with fallback)
+    - name: Install dependencies (with fallback) (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        try {
+          npm ci --prefer-offline --no-audit
+        } catch {
+          if (Test-Path "package-lock.json") { Remove-Item "package-lock.json" -Force }
+          npm install --package-lock-only --no-audit
+          npm ci --prefer-offline --no-audit
+        }
+
+    - name: Install dependencies (with fallback) (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         set -e
         npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
@@ -180,7 +233,7 @@ jobs:
 
   build:
     name: Build & Bundle Analysis
-    runs-on: self-hosted  # Use self-hosted for faster builds
+    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 15
     needs: [lint-and-typecheck]
     
@@ -204,14 +257,40 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-
           
-    - name: Enforce npm usage
+    - name: Enforce npm usage (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        if (Test-Path "yarn.lock" -or Test-Path "pnpm-lock.yaml") {
+          Write-Host "Detected non-npm lockfile. This project uses npm only."
+          exit 1
+        }
+
+    - name: Enforce npm usage (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         if [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
           echo "Detected non-npm lockfile. This project uses npm only."
           exit 1
         fi
         
-    - name: Install dependencies (with fallback)
+    - name: Install dependencies (with fallback) (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        try {
+          npm ci --prefer-offline --no-audit
+        } catch {
+          if (Test-Path "package-lock.json") { Remove-Item "package-lock.json" -Force }
+          npm install --package-lock-only --no-audit
+          npm ci --prefer-offline --no-audit
+        }
+
+    - name: Install dependencies (with fallback) (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         set -e
         npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
@@ -225,7 +304,31 @@ jobs:
     - name: Ensure tags available
       run: git fetch --tags --force
 
-    - name: Derive app version from tags
+    - name: Derive app version from tags (Windows)
+      if: runner.os == 'Windows'
+      id: ver_win
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $headTag = (git tag --points-at HEAD --list "v[0-9]*" | Select-Object -First 1)
+        if (-not $headTag) {
+          try {
+            $headTag = git describe --tags --abbrev=0 --match "v[0-9]*"
+          } catch {
+            $headTag = 'v0.0.0'
+          }
+        }
+        $appVersion = $headTag.TrimStart('v')
+        "APP_VERSION=$appVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "APP_VERSION=$appVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        Write-Host "📊 Version Information:"
+        Write-Host "  HEAD tag: $headTag"
+        Write-Host "  App version: $appVersion"
+        Write-Host "  Last 5 version tags:"
+        git tag -l "v*" | sort -V | Select-Object -Last 5
+
+    - name: Derive app version from tags (Unix)
+      if: runner.os != 'Windows'
       id: ver
       shell: bash
       run: |
@@ -241,7 +344,15 @@ jobs:
         echo "  All version tags:"
         git tag -l "v*" | sort -V | tail -5
 
-    - name: Export public env for Vite
+    - name: Export public env for Vite (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        "VITE_APP_VERSION=$env:APP_VERSION" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Export public env for Vite (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: echo "VITE_APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
 
     - name: Build application
@@ -264,7 +375,7 @@ jobs:
 
   quality-gates:
     name: Quality Gates
-    runs-on: self-hosted  # Use self-hosted for final checks
+    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     needs: [test, security, build]
     timeout-minutes: 10
     
@@ -288,14 +399,40 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-
           
-    - name: Enforce npm usage
+    - name: Enforce npm usage (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        if (Test-Path "yarn.lock" -or Test-Path "pnpm-lock.yaml") {
+          Write-Host "Detected non-npm lockfile. This project uses npm only."
+          exit 1
+        }
+
+    - name: Enforce npm usage (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         if [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
           echo "Detected non-npm lockfile. This project uses npm only."
           exit 1
         fi
         
-    - name: Install dependencies (with fallback)
+    - name: Install dependencies (with fallback) (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        try {
+          npm ci --prefer-offline --no-audit
+        } catch {
+          if (Test-Path "package-lock.json") { Remove-Item "package-lock.json" -Force }
+          npm install --package-lock-only --no-audit
+          npm ci --prefer-offline --no-audit
+        }
+
+    - name: Install dependencies (with fallback) (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         set -e
         npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
@@ -313,7 +450,29 @@ jobs:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         
-    - name: Check bundle size limits
+    - name: Check bundle size limits (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        if (-not (Test-Path "dist")) {
+          Write-Host "Build directory not found, running build..."
+          npm run build
+        }
+        $buildSize = (Get-ChildItem -Path dist -Recurse -File | Measure-Object -Property Length -Sum).Sum
+        $maxSize = 12MB
+        Write-Host "Build size: {0:N2}MB" -f ($buildSize/1MB)
+        Write-Host "Maximum allowed: 12MB"
+        if ($buildSize -gt $maxSize) {
+          Write-Host "❌ Build size {0:N2}MB exceeds maximum of 12MB" -f ($buildSize/1MB)
+          Write-Host "Large files in build (>1MB):"
+          Get-ChildItem -Path dist -Recurse -File | Where-Object { $_.Length -gt 1MB } | Sort-Object Length -Descending | Select-Object -First 10 | ForEach-Object { "{0:N2}MB `t {1}" -f ($_.Length/1MB), $_.FullName }
+          exit 1
+        }
+        Write-Host "✅ Build size within limits!"
+
+    - name: Check bundle size limits (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         if [ ! -d "dist" ]; then
           echo "Build directory not found, running build..."
@@ -337,7 +496,22 @@ jobs:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         
-    - name: Performance budget check
+    - name: Performance budget check (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Write-Host "📊 Performance Analysis:"
+        Write-Host "JavaScript bundles:"
+        Get-ChildItem dist/assets -Filter *.js -Recurse | Sort-Object Length -Descending | Select-Object -First 5 | ForEach-Object { "{0:N2}MB `t {1}" -f ($_.Length/1MB), $_.FullName }
+        Write-Host "CSS bundles:"
+        Get-ChildItem dist/assets -Filter *.css -Recurse | Sort-Object Length -Descending | Select-Object -First 3 | ForEach-Object { "{0:N2}MB `t {1}" -f ($_.Length/1MB), $_.FullName }
+        Write-Host "Images:"
+        $imgCount = (Get-ChildItem dist -Include *.png,*.jpg,*.svg -Recurse -File | Measure-Object).Count
+        Write-Host "Image count: $imgCount"
+
+    - name: Performance budget check (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         echo "📊 Performance Analysis:"
         echo "JavaScript bundles:"
@@ -347,7 +521,46 @@ jobs:
         echo "Images:"
         find dist -name "*.png" -o -name "*.jpg" -o -name "*.svg" | wc -l | xargs echo "Image count:"
         
-    - name: Check gzipped JS bundle sizes
+    - name: Check gzipped JS bundle sizes (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        if (-not (Test-Path "dist")) {
+          Write-Host "Build directory not found, running build..."
+          npm run build
+        }
+        Write-Host "📦 Checking gzipped JavaScript bundle sizes:"
+        $maxGzipSize = 512000
+        $failed = $false
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        function Get-GzipSizeBytes([string]$filePath) {
+          $bytes = [System.IO.File]::ReadAllBytes($filePath)
+          $outStream = New-Object System.IO.MemoryStream
+          $gzip = New-Object System.IO.Compression.GZipStream($outStream, [System.IO.Compression.CompressionLevel]::Optimal)
+          $gzip.Write($bytes, 0, $bytes.Length)
+          $gzip.Dispose()
+          $size = $outStream.Length
+          $outStream.Dispose()
+          return [int]$size
+        }
+        Get-ChildItem dist/assets -Filter *.js -File | ForEach-Object {
+          $gzipSize = Get-GzipSizeBytes $_.FullName
+          $sizeKB = [math]::Floor($gzipSize / 1024)
+          Write-Host "  $($_.Name): ${sizeKB}KB (gzipped)"
+          if ($gzipSize -gt $maxGzipSize) {
+            Write-Host "::error file=$($_.FullName)::Gzipped JS bundle $($_.Name) (${sizeKB}KB) exceeds 500KB limit"
+            $failed = $true
+          }
+        }
+        if ($failed) {
+          Write-Host "❌ One or more JS bundles exceed the 500KB gzipped size limit"
+          exit 1
+        }
+        Write-Host "✅ All JS bundles within 500KB gzipped limit"
+
+    - name: Check gzipped JS bundle sizes (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         if [ ! -d "dist" ]; then
           echo "Build directory not found, running build..."

@@ -11,11 +11,12 @@ env:
   MAIN_BRANCH: main
   PREVIEW_BRANCH: preview
   TAG_PREFIX: v
+  USE_SELF_HOSTED: 'true'
 
 jobs:
   bump:
     if: github.event.pull_request.merged == true
-    runs-on: self-hosted  # Use self-hosted for faster git operations
+    runs-on: ${{ env.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     steps:
       - name: Checkout full history
         uses: actions/checkout@v4
@@ -26,7 +27,22 @@ jobs:
       - name: Fetch tags
         run: git fetch --tags --force
 
-      - name: Determine last tag
+      - name: Determine last tag (Windows)
+        if: runner.os == 'Windows'
+        id: last_win
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          try {
+            $lastTag = git describe --tags --abbrev=0 --match "${env:TAG_PREFIX}[0-9]*"
+          } catch {
+            $lastTag = "${env:TAG_PREFIX}0.0.0"
+          }
+          "last_tag=$lastTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "Found last tag: $lastTag"
+
+      - name: Determine last tag (Unix)
+        if: runner.os != 'Windows'
         id: last
         shell: bash
         run: |
@@ -35,7 +51,41 @@ jobs:
           echo "last_tag=${LAST_TAG}" >> $GITHUB_OUTPUT
           echo "Found last tag: ${LAST_TAG}"
 
-      - name: Decide bump type
+      - name: Decide bump type (Windows)
+        if: runner.os == 'Windows'
+        id: bump_win
+        shell: pwsh
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD: ${{ github.event.pull_request.head.ref }}
+          PREVIEW: ${{ env.PREVIEW_BRANCH }}
+          MAIN: ${{ env.MAIN_BRANCH }}
+        run: |
+          Write-Host "Base branch: $env:BASE"
+          Write-Host "Head branch: $env:HEAD"
+          Write-Host "Preview branch: $env:PREVIEW"
+          Write-Host "Main branch: $env:MAIN"
+          $bump = ''
+          if ($env:BASE -eq $env:PREVIEW) {
+            $bump = 'minor'
+            Write-Host 'Minor bump: PR to preview branch'
+          } elseif ($env:BASE -eq $env:MAIN) {
+            if ($env:HEAD -eq $env:PREVIEW) {
+              $bump = 'major'
+              Write-Host 'Major bump: Preview to main branch'
+            } else {
+              $bump = 'patch'
+              Write-Host 'Patch bump: Feature to main branch'
+            }
+          } else {
+            Write-Host "Unsupported base branch '$env:BASE' – skipping."
+            "skip=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            exit 0
+          }
+          "bump_type=$bump" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Decide bump type (Unix)
+        if: runner.os != 'Windows'
         id: bump
         shell: bash
         run: |
@@ -43,12 +93,12 @@ jobs:
           HEAD="${{ github.event.pull_request.head.ref }}"
           PREVIEW="${{ env.PREVIEW_BRANCH }}"
           MAIN="${{ env.MAIN_BRANCH }}"
-
+          
           echo "Base branch: $BASE"
           echo "Head branch: $HEAD"
           echo "Preview branch: $PREVIEW"
           echo "Main branch: $MAIN"
-
+          
           if [ "$BASE" = "$PREVIEW" ]; then
             BUMP="minor"
             echo "Minor bump: PR to preview branch"
@@ -63,11 +113,35 @@ jobs:
           else
             echo "Unsupported base branch '$BASE' – skipping."; echo "skip=true" >> $GITHUB_OUTPUT; exit 0
           fi
-
+          
           echo "bump_type=${BUMP}" >> $GITHUB_OUTPUT
 
-      - name: Compute new version
-        if: steps.bump.outputs.skip != 'true'
+      - name: Compute new version (Windows)
+        if: runner.os == 'Windows' && steps.bump_win.outputs.skip != 'true'
+        id: newver_win
+        shell: pwsh
+        env:
+          LAST: ${{ steps.last_win.outputs.last_tag }}
+          BUMP: ${{ steps.bump_win.outputs.bump_type }}
+          TAG_PREFIX: ${{ env.TAG_PREFIX }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $v = $env:LAST.Substring($env:TAG_PREFIX.Length)
+          $parts = $v.Split('.')
+          [int]$ma = $parts[0]; [int]$mi = $parts[1]; [int]$pa = $parts[2]
+          Write-Host "Current version parts: MAJOR=$ma, MINOR=$mi, PATCH=$pa"
+          Write-Host "Bump type: $env:BUMP"
+          switch ($env:BUMP) {
+            'major' { $ma++; $mi = 0; $pa = 0 }
+            'minor' { $mi++; $pa = 0 }
+            'patch' { $pa++ }
+          }
+          $new = "$env:TAG_PREFIX$ma.$mi.$pa"
+          "new_tag=$new" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "New tag will be: $new"
+
+      - name: Compute new version (Unix)
+        if: runner.os != 'Windows' && steps.bump.outputs.skip != 'true'
         id: newver
         shell: bash
         env:
@@ -91,8 +165,21 @@ jobs:
           echo "new_tag=${NEW}" >> $GITHUB_OUTPUT
           echo "New tag will be: $NEW"
 
-      - name: Guard if tag exists already
-        if: steps.bump.outputs.skip != 'true'
+      - name: Guard if tag exists already (Windows)
+        if: runner.os == 'Windows' && steps.bump_win.outputs.skip != 'true'
+        shell: pwsh
+        env:
+          NEW: ${{ steps.newver_win.outputs.new_tag }}
+        run: |
+          git rev-parse "$env:NEW" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Tag $env:NEW already exists. Exiting."
+            exit 0
+          }
+          Write-Host "Tag $env:NEW does not exist. Proceeding with creation."
+
+      - name: Guard if tag exists already (Unix)
+        if: runner.os != 'Windows' && steps.bump.outputs.skip != 'true'
         shell: bash
         env:
           NEW: ${{ steps.newver.outputs.new_tag }}
@@ -102,8 +189,21 @@ jobs:
           fi
           echo "Tag $NEW does not exist. Proceeding with creation."
 
-      - name: Create and push tag
-        if: steps.bump.outputs.skip != 'true'
+      - name: Create and push tag (Windows)
+        if: runner.os == 'Windows' && steps.bump_win.outputs.skip != 'true'
+        shell: pwsh
+        env:
+          NEW: ${{ steps.newver_win.outputs.new_tag }}
+        run: |
+          Write-Host "Creating and pushing tag: $env:NEW"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "$env:NEW" -m "Automated version bump to $env:NEW"
+          git push origin "$env:NEW"
+          Write-Host "Successfully created and pushed tag: $env:NEW"
+
+      - name: Create and push tag (Unix)
+        if: runner.os != 'Windows' && steps.bump.outputs.skip != 'true'
         shell: bash
         env:
           NEW: ${{ steps.newver.outputs.new_tag }}
@@ -115,8 +215,18 @@ jobs:
           git push origin "$NEW"
           echo "Successfully created and pushed tag: $NEW"
 
-      - name: Output summary
-        if: steps.bump.outputs.skip != 'true'
+      - name: Output summary (Windows)
+        if: runner.os == 'Windows' && steps.bump_win.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          Write-Host "🎉 Version bump completed!"
+          Write-Host "Previous tag: ${{ steps.last_win.outputs.last_tag }}"
+          Write-Host "New tag: ${{ steps.newver_win.outputs.new_tag }}"
+          Write-Host "Bump type: ${{ steps.bump_win.outputs.bump_type }}"
+
+      - name: Output summary (Unix)
+        if: runner.os != 'Windows' && steps.bump.outputs.skip != 'true'
+        shell: bash
         run: |
           echo "🎉 Version bump completed!"
           echo "Previous tag: ${{ steps.last.outputs.last_tag }}"
