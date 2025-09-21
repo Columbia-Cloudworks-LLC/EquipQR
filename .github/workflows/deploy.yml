@@ -3,31 +3,19 @@ name: Deploy to Vercel
 on:
   push:
     branches: [main, preview]
-  pull_request:
-    branches: [main, preview]
 
 permissions:
   contents: read
-  deployments: write
 
 jobs:
-  deploy:
-    name: Deploy to Vercel
+  notify-deployment:
+    name: Notify Deployment
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview' || github.event_name == 'pull_request'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview'
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Get version from tags
         id: version
@@ -41,33 +29,16 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$HEAD_TAG" >> $GITHUB_OUTPUT
 
-      - name: Create deployment
-        id: deploy
+      - name: Deployment notification
         run: |
-          echo "Creating deployment for ${{ github.ref }}"
-          echo "Environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}"
+          echo "🚀 Deployment triggered for ${{ github.ref_name }} branch"
           echo "Version: ${{ steps.version.outputs.version }}"
-
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./
-          scope: ${{ secrets.VERCEL_ORG_ID }}
-        env:
-          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
-
-      - name: Deployment success
-        run: |
-          echo "✅ Successfully deployed to Vercel"
           echo "Environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}"
-          echo "Version: ${{ steps.version.outputs.version }}"
-
-      - name: Deployment failure
-        if: failure()
-        run: |
-          echo "❌ Deployment failed"
-          echo "Environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}"
-          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "Vercel will handle the actual deployment automatically"
+          echo ""
+          echo "Expected URLs:"
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "  Production: https://equipqr.app"
+          else
+            echo "  Preview: https://preview.equipqr.app"
+          fi

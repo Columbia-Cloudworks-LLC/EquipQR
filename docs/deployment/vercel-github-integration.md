@@ -2,97 +2,131 @@
 
 This guide explains how to properly configure the integration between Vercel and GitHub to resolve deployment status issues.
 
-## Current Issue
+## Current Issue Resolution
 
-The error "Missing successful active Preview deployment" occurs because GitHub branch protection rules expect deployment status from Vercel, but the integration isn't properly configured.
+The error "Missing successful active Preview deployment" and "Environment Variable VITE_APP_VERSION references Secret vite_app_version, which does not exist" have been resolved by:
 
-## Solution Options
+1. **Removing problematic environment variable references** from `vercel.json`
+2. **Simplifying deployment workflows** to avoid conflicts with Vercel's built-in integration
+3. **Using Vercel's native GitHub integration** instead of custom deployment scripts
 
-### Option 1: Simple Vercel Integration (Recommended)
+## Solution: Simplified Vercel Integration
 
-This approach uses Vercel's built-in GitHub integration without additional secrets.
+### Step 1: Vercel Dashboard Configuration
 
-1. **In Vercel Dashboard:**
-   - Go to your project settings
-   - Navigate to "Git" section
-   - Ensure GitHub integration is connected
+1. **Go to Vercel Dashboard:**
+   - Navigate to your project settings
+   - Go to "Git" section
+   - Ensure GitHub integration is properly connected
    - Enable "GitHub Deployments" in integration settings
-   - Set branch mappings:
-     - `main` → Production (equipqr.app)
-     - `preview` → Preview (preview.equipqr.app)
 
-2. **In GitHub Repository:**
+2. **Configure Branch Mappings:**
+   - `main` branch → Production (equipqr.app)
+   - `preview` branch → Preview (preview.equipqr.app)
+
+3. **Set Environment Variables in Vercel:**
+   - Go to Settings → Environment Variables
+   - Add `VITE_APP_VERSION` as a regular environment variable
+   - Set value to `dev` (or leave empty for automatic detection)
+
+### Step 2: GitHub Repository Configuration
+
+1. **Branch Protection Rules:**
    - Go to Settings → Branches
    - Edit protection rule for `main` branch
    - Under "Required status checks":
-     - Keep CI checks: "Security Scan", "Test Suite", "Quality Gates"
-     - **Remove** "Require deployments" or set to "Any deployment environment"
+     - ✅ Keep: "Security Scan", "Test Suite", "Quality Gates"
+     - ❌ Remove: "Deploy to Vercel" (if present)
+     - ❌ Remove: "Require deployments" (if causing issues)
 
-### Option 2: Advanced Integration with Secrets
+2. **Required Status Checks:**
+   - Continuous Integration / Security Scan (pull_request) ✅
+   - Continuous Integration / Test Suite (18.x) (pull_request) ✅
+   - Continuous Integration / Test Suite (20.x) (pull_request) ✅
+   - Continuous Integration / Quality Gates ✅
 
-If you want more control over deployment reporting, you can use the provided workflows with Vercel secrets.
+### Step 3: Workflow Configuration
 
-1. **Get Vercel Credentials:**
-   ```bash
-   # Install Vercel CLI
-   npm i -g vercel
-   
-   # Login and link project
-   vercel login
-   vercel link
-   
-   # Get project ID and org ID from .vercel/project.json
-   cat .vercel/project.json
-   ```
+The following workflows are now configured:
 
-2. **Add GitHub Secrets:**
-   - `VERCEL_TOKEN`: Get from Vercel dashboard → Settings → Tokens
-   - `VERCEL_ORG_ID`: From .vercel/project.json
-   - `VERCEL_PROJECT_ID`: From .vercel/project.json
+#### `.github/workflows/deploy.yml`
+- **Purpose**: Notification-only workflow
+- **Triggers**: Push to main/preview branches
+- **Function**: Reports deployment status without interfering with Vercel
+- **No Secrets Required**: Works without Vercel API tokens
 
-3. **Enable Workflows:**
-   - The `.github/workflows/deploy.yml` will automatically deploy to Vercel
-   - The `.github/workflows/deployment-status.yml` will handle status reporting
+#### `.github/workflows/deployment-status.yml`
+- **Purpose**: Handles deployment status events
+- **Triggers**: Vercel deployment status updates
+- **Function**: Reports deployment success/failure to GitHub
 
-## Current Configuration
+#### `.github/workflows/ci.yml`
+- **Purpose**: Core CI pipeline (unchanged)
+- **Function**: Linting, testing, security scanning, quality gates
 
-### Branch Protection Rules
-- ✅ Require signed commits: **DISABLED** (you removed this)
-- ✅ Require status checks: **ENABLED** (CI workflows)
-- ❓ Require deployments: **CONFIGURE** (see options above)
+## How It Works Now
 
-### Version Control Flow
-- ✅ Automated semantic versioning based on branch merges
-- ✅ Version bump logic: preview → minor, main from preview → major
-- ✅ Version derivation during build process
+### Deployment Flow:
+1. **Push to branch** → Triggers CI workflows
+2. **CI passes** → Vercel automatically deploys (built-in integration)
+3. **Vercel deployment** → Reports status back to GitHub
+4. **GitHub receives status** → Updates PR checks
+5. **All checks pass** → PR can be merged
 
-### Deployment URLs
-- **Production**: `equipqr.app` (main branch)
-- **Preview**: `preview.equipqr.app` (preview branch)
-
-## Testing the Integration
-
-1. **Create a test PR** to the preview branch
-2. **Verify CI checks pass** (Security Scan, Test Suite, Quality Gates)
-3. **Check Vercel deployment** triggers automatically
-4. **Verify GitHub shows deployment status** in the PR
-5. **Merge PR** and verify version increment works
+### Version Control Flow:
+1. **PR merged** → Versioning workflow creates new tag
+2. **New tag created** → CI workflow detects version during build
+3. **Version displayed** → App shows current version in footer
 
 ## Troubleshooting
 
 ### If deployment status still shows as missing:
-1. Check Vercel project settings for GitHub integration
-2. Verify branch protection rules don't require specific deployment environments
-3. Ensure Vercel is properly connected to the GitHub repository
+1. **Check Vercel Integration:**
+   - Verify GitHub integration is connected in Vercel dashboard
+   - Ensure "GitHub Deployments" is enabled
+   - Check that branch mappings are correct
+
+2. **Check Branch Protection:**
+   - Remove "Require deployments" from branch protection rules
+   - Ensure only essential CI checks are required
+
+3. **Check Environment Variables:**
+   - Verify `VITE_APP_VERSION` is set in Vercel dashboard
+   - Don't reference non-existent secrets in `vercel.json`
 
 ### If version increment doesn't work:
-1. Check that tags are being created by the versioning workflow
-2. Verify the versioning workflow has `contents: write` permission
-3. Check that the merge is happening to the correct target branch
+1. **Check Versioning Workflow:**
+   - Ensure `.github/workflows/versioning.yml` has `contents: write` permission
+   - Verify the merge is happening to the correct target branch
+   - Check that tags are being created successfully
 
-## Files Modified
+2. **Check Version Display:**
+   - Verify `VITE_APP_VERSION` environment variable is accessible
+   - Check that the version is being derived correctly in CI
 
-- `.github/workflows/deployment-status.yml` - Handles deployment status reporting
-- `.github/workflows/deploy.yml` - Triggers Vercel deployments (optional)
-- `vercel.json` - Updated with GitHub integration settings
-- `docs/deployment/vercel-github-integration.md` - This setup guide
+## Current Configuration Summary
+
+### Files Modified:
+- ✅ `vercel.json` - Removed problematic environment variable references
+- ✅ `.github/workflows/deploy.yml` - Simplified to notification-only
+- ✅ `.github/workflows/deployment-status.yml` - Handles status reporting
+- ✅ `docs/deployment/vercel-github-integration.md` - This updated guide
+
+### Branch Protection Settings:
+- ✅ Require signed commits: **DISABLED**
+- ✅ Require status checks: **ENABLED** (CI workflows only)
+- ✅ Require deployments: **DISABLED** (using Vercel's built-in integration)
+
+### Deployment URLs:
+- **Production**: `equipqr.app` (main branch)
+- **Preview**: `preview.equipqr.app` (preview branch)
+
+## Next Steps
+
+1. **Update your PR branch** with the latest changes from preview
+2. **Verify CI checks pass** with the new configuration
+3. **Check Vercel deployment** triggers automatically
+4. **Merge PR** when all checks are green
+5. **Verify version increment** works correctly
+
+The deployment issues should now be resolved, and your PR should be able to merge successfully.

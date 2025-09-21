@@ -3,44 +3,27 @@ name: Deployment Status
 on:
   deployment_status:
   deployment:
-  check_run:
-    types: [completed]
 
 permissions:
   contents: read
-  deployments: write
-  checks: write
 
 jobs:
-  update-deployment-status:
-    if: github.event.deployment_status.state == 'success' || github.event.deployment_status.state == 'failure'
+  deployment-status:
     runs-on: ubuntu-latest
+    if: github.event.deployment_status.state == 'success' || github.event.deployment_status.state == 'failure'
     steps:
-      - name: Update deployment status
+      - name: Deployment Status Update
         run: |
           echo "Deployment status: ${{ github.event.deployment_status.state }}"
           if [ "${{ github.event.deployment_status.deployment.environment }}" != "" ]; then
             echo "Environment: ${{ github.event.deployment_status.deployment.environment }}"
           fi
-          
-  verify-vercel-deployment:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'check_run' && github.event.check_run.name == 'Vercel'
-    steps:
-      - name: Check Vercel deployment status
-        run: |
-          echo "Vercel deployment check completed with status: ${{ github.event.check_run.conclusion }}"
-
-  notify-deployment-success:
-    runs-on: ubuntu-latest
-    if: github.event.deployment_status.state == 'success'
-    steps:
-      - name: Deployment Success Notification
-        run: |
-          echo "✅ Deployment successful!"
-          if [ "${{ github.event.deployment_status.deployment.environment }}" != "" ]; then
-            echo "Environment: ${{ github.event.deployment_status.deployment.environment }}"
-          fi
           if [ "${{ github.event.deployment_status.deployment.ref }}" != "" ]; then
             echo "Ref: ${{ github.event.deployment_status.deployment.ref }}"
+          fi
+          
+          if [ "${{ github.event.deployment_status.state }}" = "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed"
           fi
