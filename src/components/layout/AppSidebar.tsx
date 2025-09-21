@@ -46,7 +46,7 @@ import { useUser } from "@/contexts/UserContext";
 import { useSimpleOrganization } from "@/hooks/useSimpleOrganization";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar";
-import Icon from "@/components/ui/Icon";
+import Logo from "@/components/ui/Logo";
 
 const mainNavigation = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
@@ -92,25 +92,27 @@ const AppSidebar = () => {
   const hasCustomBranding = orgBackgroundColor && orgBackgroundColor !== '#ffffff';
   const isLightBrand = hasCustomBranding ? isLightColor(orgBackgroundColor) : true;
 
-  // Dynamic styles for branded sidebar
+  // Dynamic styles for branded sidebar using CSS variables
   const sidebarStyle = hasCustomBranding ? {
+    '--brand': orgBackgroundColor,
+    '--brand-foreground': isLightBrand ? '#1a1a1a' : '#ffffff',
     backgroundColor: orgBackgroundColor,
-  } : {};
+  } as React.CSSProperties : {};
 
   const textColorClass = hasCustomBranding 
-    ? (isLightBrand ? 'text-gray-900' : 'text-white')
+    ? 'text-brand-foreground'
     : '';
 
   const mutedTextColorClass = hasCustomBranding 
-    ? (isLightBrand ? 'text-gray-600' : 'text-gray-300')
+    ? (isLightBrand ? 'text-brand-foreground/70' : 'text-brand-foreground/70')
     : '';
 
   const hoverBackgroundClass = hasCustomBranding
-    ? (isLightBrand ? 'hover:bg-black/10' : 'hover:bg-white/20')
+    ? (isLightBrand ? 'hover:bg-brand-foreground/10' : 'hover:bg-brand-foreground/20')
     : '';
 
   const activeBackgroundClass = hasCustomBranding
-    ? (isLightBrand ? 'bg-black/15' : 'bg-white/25')
+    ? (isLightBrand ? 'bg-brand-foreground/15' : 'bg-brand-foreground/25')
     : '';
 
   return (
@@ -121,7 +123,7 @@ const AppSidebar = () => {
       >
         <SidebarHeader className="p-3 sm:p-4">
           <div className={cn("flex items-center gap-2 px-1 sm:px-2 py-1 sm:py-2", textColorClass)}>
-            <Icon size="sm" className="sm:w-6 sm:h-6" />
+            <Logo size="sm" />
             <span className="font-semibold text-base sm:text-lg">EquipQR</span>
           </div>
           <OrganizationSwitcher />
@@ -259,7 +261,7 @@ const AppSidebar = () => {
                     <div className={cn(
                       "flex aspect-square size-6 sm:size-8 items-center justify-center rounded-lg",
                       hasCustomBranding 
-                        ? (isLightBrand ? 'bg-black/20 text-gray-900' : 'bg-white/20 text-white')
+                        ? 'bg-brand-foreground/20 text-brand-foreground'
                         : 'bg-sidebar-primary text-sidebar-primary-foreground'
                     )}>
                       <User className="size-3 sm:size-4" />
