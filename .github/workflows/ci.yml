@@ -222,11 +222,30 @@ jobs:
         path: dist
         key: ${{ runner.os }}-build-${{ github.sha }}
         
+    - name: Ensure tags available
+      run: git fetch --tags --force
+
+    - name: Derive app version from tags
+      id: ver
+      shell: bash
+      run: |
+        # Prefer a tag exactly at HEAD; else fallback to latest tag
+        HEAD_TAG=$(git tag --points-at HEAD --list "v[0-9]*" | head -n1)
+        if [ -z "$HEAD_TAG" ]; then
+          HEAD_TAG=$(git describe --tags --abbrev=0 --match "v[0-9]*" 2>/dev/null || echo "v0.0.0")
+        fi
+        echo "APP_VERSION=${HEAD_TAG#v}" >> $GITHUB_ENV
+        echo "APP_VERSION=${HEAD_TAG#v}" >> $GITHUB_OUTPUT
+
+    - name: Export public env for Vite
+      run: echo "VITE_APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
+
     - name: Build application
       run: npm run build
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_APP_VERSION: ${{ env.VITE_APP_VERSION }}
         
     - name: Analyze bundle size
       run: npx size-limit

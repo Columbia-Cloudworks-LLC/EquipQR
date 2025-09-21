@@ -5,6 +5,10 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    // Expose environment variables to the client
+    __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION || 'dev'),
+  },
   server: {
     host: "::",
     port: 8080,

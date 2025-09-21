@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 
 export default function LegalFooter() {
   const currentYear = new Date().getFullYear();
+  const appVersion = import.meta.env.VITE_APP_VERSION || 'dev';
 
   return (
     <footer className="border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            © {currentYear} EquipQR by{' '}
+            © {currentYear} EquipQR v{appVersion} by{' '}
             <a 
               href="https://columbiacloudworks.com" 
               target="_blank" 
