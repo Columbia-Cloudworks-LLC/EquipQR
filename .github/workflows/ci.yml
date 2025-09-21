@@ -19,7 +19,7 @@ env:
 jobs:
   lint-and-typecheck:
     name: Lint & Type Check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
     
     steps:
@@ -38,17 +38,17 @@ jobs:
         path: |
           ~/.npm
           node_modules
-        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
-          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-
           
     - name: Enforce npm usage
       run: |
-        rm -f bun.lockb
         if [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
           echo "Detected non-npm lockfile. This project uses npm only."
           exit 1
         fi
+        
     - name: Install dependencies (with fallback)
       run: |
         set -e
@@ -70,7 +70,7 @@ jobs:
 
   test:
     name: Test Suite
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 15
     
     strategy:
@@ -99,11 +99,11 @@ jobs:
           
     - name: Enforce npm usage
       run: |
-        rm -f bun.lockb
         if [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
           echo "Detected non-npm lockfile. This project uses npm only."
           exit 1
         fi
+        
     - name: Install dependencies (with fallback)
       run: |
         set -e
@@ -128,7 +128,7 @@ jobs:
 
   security:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Keep security scans on GitHub-hosted for isolation
     timeout-minutes: 10
     
     steps:
@@ -147,17 +147,17 @@ jobs:
         path: |
           ~/.npm
           node_modules
-        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
-          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-
           
     - name: Enforce npm usage
       run: |
-        rm -f bun.lockb
         if [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
           echo "Detected non-npm lockfile. This project uses npm only."
           exit 1
         fi
+        
     - name: Install dependencies (with fallback)
       run: |
         set -e
@@ -180,7 +180,7 @@ jobs:
 
   build:
     name: Build & Bundle Analysis
-    runs-on: ubuntu-latest
+    runs-on: self-hosted  # Use self-hosted for faster builds
     timeout-minutes: 15
     needs: [lint-and-typecheck]
     
@@ -200,17 +200,17 @@ jobs:
         path: |
           ~/.npm
           node_modules
-        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
-          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-
           
     - name: Enforce npm usage
       run: |
-        rm -f bun.lockb
         if [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
           echo "Detected non-npm lockfile. This project uses npm only."
           exit 1
         fi
+        
     - name: Install dependencies (with fallback)
       run: |
         set -e
@@ -229,7 +229,6 @@ jobs:
       id: ver
       shell: bash
       run: |
-        # Prefer a tag exactly at HEAD; else fallback to latest tag
         HEAD_TAG=$(git tag --points-at HEAD --list "v[0-9]*" | head -n1)
         if [ -z "$HEAD_TAG" ]; then
           HEAD_TAG=$(git describe --tags --abbrev=0 --match "v[0-9]*" 2>/dev/null || echo "v0.0.0")
@@ -265,7 +264,7 @@ jobs:
 
   quality-gates:
     name: Quality Gates
-    runs-on: ubuntu-latest
+    runs-on: self-hosted  # Use self-hosted for final checks
     needs: [test, security, build]
     timeout-minutes: 10
     
@@ -285,17 +284,17 @@ jobs:
         path: |
           ~/.npm
           node_modules
-        key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
-          ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+          ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-
           
     - name: Enforce npm usage
       run: |
-        rm -f bun.lockb
         if [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
           echo "Detected non-npm lockfile. This project uses npm only."
           exit 1
         fi
+        
     - name: Install dependencies (with fallback)
       run: |
         set -e
