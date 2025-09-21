@@ -41,5 +41,12 @@
       "main": true,
       "preview": true
     }
+  },
+  "github": {
+    "deploymentEnabled": true,
+    "autoAlias": false
+  },
+  "env": {
+    "VITE_APP_VERSION": "@vite_app_version"
   }
 }

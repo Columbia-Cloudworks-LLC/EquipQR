@@ -1,0 +1,73 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main, preview]
+  pull_request:
+    branches: [main, preview]
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview' || github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get version from tags
+        id: version
+        run: |
+          git fetch --tags --force
+          HEAD_TAG=$(git tag --points-at HEAD --list "v[0-9]*" | head -n1)
+          if [ -z "$HEAD_TAG" ]; then
+            HEAD_TAG=$(git describe --tags --abbrev=0 --match "v[0-9]*" 2>/dev/null || echo "v0.0.0")
+          fi
+          VERSION="${HEAD_TAG#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$HEAD_TAG" >> $GITHUB_OUTPUT
+
+      - name: Create deployment
+        id: deploy
+        run: |
+          echo "Creating deployment for ${{ github.ref }}"
+          echo "Environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}"
+          echo "Version: ${{ steps.version.outputs.version }}"
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+        env:
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
+
+      - name: Deployment success
+        run: |
+          echo "✅ Successfully deployed to Vercel"
+          echo "Environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}"
+          echo "Version: ${{ steps.version.outputs.version }}"
+
+      - name: Deployment failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed"
+          echo "Environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}"
+          echo "Version: ${{ steps.version.outputs.version }}"
