@@ -43,9 +43,11 @@ vi.mock('@/integrations/supabase/client', () => {
   return { supabase };
 });
 
-// Mock hooks used by the component
-const mockResend = vi.fn().mockResolvedValue({});
-const mockCancel = vi.fn().mockResolvedValue({});
+// Hoisted mocks so they are available inside factory at mock time
+const { mockResend, mockCancel } = vi.hoisted(() => ({
+  mockResend: vi.fn().mockResolvedValue({}),
+  mockCancel: vi.fn().mockResolvedValue({}),
+}));
 vi.mock('@/hooks/useOrganizationInvitations', () => ({
   useOrganizationInvitations: vi.fn().mockReturnValue({
     data: [
@@ -66,6 +68,11 @@ const mockRemoveMember = vi.fn().mockResolvedValue({});
 vi.mock('@/hooks/useOrganizationMembers', () => ({
   useUpdateMemberRole: vi.fn().mockReturnValue({ mutateAsync: mockUpdateRole, isPending: false }),
   useRemoveMember: vi.fn().mockReturnValue({ mutateAsync: mockRemoveMember, isPending: false }),
+}));
+
+// Stub PurchaseLicensesButton to avoid provider dependency in tests
+vi.mock('@/components/billing/PurchaseLicensesButton', () => ({
+  default: () => null,
 }));
 
 // Import component after mocks to ensure they take effect

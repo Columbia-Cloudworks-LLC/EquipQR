@@ -57,6 +57,11 @@ vi.mock('@/hooks/useOrganizationSlots', () => ({
   }),
 }));
 
+// Stub PurchaseLicensesButton to avoid provider dependency in tests
+vi.mock('@/components/billing/PurchaseLicensesButton', () => ({
+  default: () => null,
+}));
+
 // Mock UnifiedMembersList child assertion occurs via button presence
 vi.mock('../UnifiedMembersList', async () => {
   const actual = await vi.importActual<any>('../UnifiedMembersList');
