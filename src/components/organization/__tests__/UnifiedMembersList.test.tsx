@@ -1,12 +1,47 @@
 import React from 'react';
 import { screen, fireEvent } from '@testing-library/react';
 import { customRender } from '@/test/utils/renderUtils';
-import UnifiedMembersList from '../UnifiedMembersList';
-import { createMockSupabaseClient } from '@/test/utils/mock-supabase';
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: createMockSupabaseClient(),
-}));
+// Mock Supabase client without referencing top-level variables (avoid hoist issue)
+vi.mock('@/integrations/supabase/client', () => {
+  const chain: any = {
+    select: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    eq: vi.fn(),
+    or: vi.fn(),
+    order: vi.fn(),
+    limit: vi.fn(),
+    nullsFirst: vi.fn(),
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    then: vi.fn().mockResolvedValue({ data: null, error: null }),
+  };
+  Object.keys(chain).forEach((k) => {
+    if (k !== 'single' && k !== 'then') chain[k].mockReturnValue(chain);
+  });
+  const supabase = {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user' } }, error: null }),
+      signInWithPassword: vi.fn(),
+      signUp: vi.fn(),
+      signOut: vi.fn(),
+      onAuthStateChange: vi.fn(),
+    },
+    from: vi.fn(() => chain),
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    storage: {
+      from: vi.fn(() => ({
+        upload: vi.fn(),
+        download: vi.fn(),
+        remove: vi.fn(),
+        list: vi.fn(),
+      })),
+    },
+  } as any;
+  return { supabase };
+});
 
 // Mock hooks used by the component
 const mockResend = vi.fn().mockResolvedValue({});
@@ -32,6 +67,9 @@ vi.mock('@/hooks/useOrganizationMembers', () => ({
   useUpdateMemberRole: vi.fn().mockReturnValue({ mutateAsync: mockUpdateRole, isPending: false }),
   useRemoveMember: vi.fn().mockReturnValue({ mutateAsync: mockRemoveMember, isPending: false }),
 }));
+
+// Import component after mocks to ensure they take effect
+import UnifiedMembersList from '../UnifiedMembersList';
 
 describe('UnifiedMembersList', () => {
   const baseMembers = [
