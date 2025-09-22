@@ -86,8 +86,64 @@ export const MockUserProvider = ({ children }: { children: React.ReactNode }) =>
   <div data-testid="mock-user-provider">{children}</div>
 );
 
-export const MockSimpleOrganizationProvider = ({ children }: { children: React.ReactNode }) => (
-  <div data-testid="mock-organization-provider">{children}</div>
+// Create a factory for customizable organization mock values
+export const createMockSimpleOrgValue = (overrides?: Partial<{
+  currentOrganization: any;
+  organizations: any[];
+  organizationId: string | null;
+  userRole: 'owner' | 'admin' | 'member';
+}>) => ({
+  organizations: overrides?.organizations || [{
+    id: 'org-1',
+    name: 'Test Org',
+    plan: 'free' as const,
+    memberCount: 1,
+    maxMembers: 10,
+    features: [],
+    userRole: overrides?.userRole || 'admin',
+    userStatus: 'active' as const,
+  }],
+  userOrganizations: overrides?.organizations || [{
+    id: 'org-1',
+    name: 'Test Org',
+    plan: 'free' as const,
+    memberCount: 1,
+    maxMembers: 10,
+    features: [],
+    userRole: overrides?.userRole || 'admin',
+    userStatus: 'active' as const,
+  }],
+  currentOrganization: overrides?.currentOrganization || {
+    id: 'org-1',
+    name: 'Test Org',
+    plan: 'free' as const,
+    memberCount: 1,
+    maxMembers: 10,
+    features: [],
+    userRole: overrides?.userRole || 'admin',
+    userStatus: 'active' as const,
+  },
+  organizationId: overrides?.organizationId || 'org-1',
+  setCurrentOrganization: vi.fn(),
+  switchOrganization: vi.fn(),
+  isLoading: false,
+  error: null,
+  refetch: vi.fn().mockResolvedValue(undefined),
+});
+
+// Import the context to provide proper mock
+import { SimpleOrganizationContext } from '@/contexts/SimpleOrganizationContext';
+
+export const MockSimpleOrganizationProvider = ({ 
+  children, 
+  value 
+}: { 
+  children: React.ReactNode;
+  value?: ReturnType<typeof createMockSimpleOrgValue>;
+}) => (
+  <SimpleOrganizationContext.Provider value={value ?? createMockSimpleOrgValue()}>
+    <div data-testid="mock-organization-provider">{children}</div>
+  </SimpleOrganizationContext.Provider>
 );
 
 export const MockSessionProvider2 = ({ children }: { children: React.ReactNode }) => (
