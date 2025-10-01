@@ -1,0 +1,7 @@
+---
+alwaysApply: true
+---
+- When suggesting edits: Use the format with `// ... existing code ...` for unchanged sections. Prioritize non-breaking changes.
+- Explore codebase: Use semantic search for patterns (e.g., "equipment query pattern"). Reference docs for context.
+- If unclear: Ask about specific features (e.g., PM templates workflow).
+- Updates: If rules conflict with new changes (e.g., post-Supabase fixes [[memory:8281322]]), suggest revisions.

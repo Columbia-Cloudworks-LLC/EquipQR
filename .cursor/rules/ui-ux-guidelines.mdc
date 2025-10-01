@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+- Follow `docs/architecture/ui-system-guide.md` and `tailwind.config.ts`:
+  - **Design Tokens**: Use CSS vars (e.g., `bg-primary`, `text-muted-foreground`). Support dark mode and org branding (e.g., `--brand` for sidebar).
+  - **Components**: Extend shadcn/ui (e.g., `Button`, `Dialog`, `Table`). Use `Page`/`PageHeader` for layouts, `Skeleton` for loading, `EmptyState` for no-data.
+  - **Forms**: `TextField`, `SelectField`, `TextareaField` from `src/components/form/`. Include labels, descriptions, validation errors.
+  - **Tables**: Use `TableToolbar` for search/filters/bulk actions. Paginate with `react-window` for large lists.
+  - **Dialogs**: Sizes (`sm` to `full`); always include `DialogHeader` with `DialogTitle`.
+  - **Toasts**: `useAppToast` hook for success/error/warning/info.
+  - **Icons**: `LucideIcon` with consistent sizes. Accessibility: ARIA labels, focus rings (`--focus-ring-color`).
+  - **Responsive**: Tailwind breakpoints (add `xs: 475px` from config). Mobile-first; test on small screens.
+  - **Consistency**: Space with `--content-padding` (e.g., `p-content`). Shadows/z-index from tokens. Animations via `tailwindcss-animate`.

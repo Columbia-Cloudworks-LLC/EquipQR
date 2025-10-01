@@ -166,8 +166,15 @@ export const checkUserOrgAccess = async (userId: string, organizationId: string)
   }
 };
 
+// Organization update payload type
+export interface OrganizationUpdatePayload {
+  name?: string;
+  logo?: string | null;
+  background_color?: string | null;
+}
+
 // Update organization information
-export const updateOrganization = async (organizationId: string, updates: { name?: string }): Promise<boolean> => {
+export const updateOrganization = async (organizationId: string, updates: OrganizationUpdatePayload): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('organizations')
@@ -180,7 +187,7 @@ export const updateOrganization = async (organizationId: string, updates: { name
     if (error) throw error;
     return true;
   } catch (error) {
-    logger.error('Error updating organization:', error);
+    logger.error('Error updating organization:', error, { organizationId, updates });
     return false;
   }
 };

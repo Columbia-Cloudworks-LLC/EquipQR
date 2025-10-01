@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useOptimizedOrganizationMembers } from '@/hooks/useOptimizedOrganizationMembers';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
@@ -7,12 +7,10 @@ import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
-import { OrganizationSettingsDialog } from '@/components/organization/OrganizationSettingsDialog';
 import RestrictedOrganizationAccess from '@/components/organization/RestrictedOrganizationAccess';
 
 const Organization = () => {
   const { currentOrganization, isLoading } = useSimpleOrganization();
-  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
 
   // Custom hooks for data and business logic
   const { data: members = [], isLoading: membersLoading } = useOptimizedOrganizationMembers(currentOrganization?.id || '');
@@ -43,16 +41,10 @@ const Organization = () => {
     );
   }
 
-  // Event handlers
-  const handleSettingsClick = () => {
-    setSettingsDialogOpen(true);
-  };
-
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
       <OrganizationHeader 
         organizationName={currentOrganization.name}
-        onSettingsClick={handleSettingsClick}
         currentUserRole={currentUserRole}
       />
 
@@ -63,13 +55,7 @@ const Organization = () => {
         permissions={permissions}
         membersLoading={membersLoading}
         fleetMapSubscription={fleetMapSubscription}
-      />
-
-      <OrganizationSettingsDialog
-        open={settingsDialogOpen}
-        onOpenChange={setSettingsDialogOpen}
         organization={currentOrganization}
-        currentUserRole={currentUserRole}
       />
     </div>
   );

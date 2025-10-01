@@ -8,6 +8,7 @@ import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { OrganizationSettings } from './OrganizationSettings';
 import UnifiedMembersList from './UnifiedMembersList';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
+import { SessionOrganization } from '@/contexts/SessionContext';
 
 interface MemberItem {
   id: string;
@@ -30,6 +31,7 @@ interface OrganizationTabsProps {
   permissions: Permissions;
   membersLoading: boolean;
   fleetMapSubscription?: FleetMapSubscription;
+  organization: SessionOrganization;
 }
 
 const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
@@ -38,7 +40,8 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   currentUserRole,
   permissions,
   membersLoading,
-  fleetMapSubscription
+  fleetMapSubscription,
+  organization
 }) => {
   const { data: slotAvailability } = useSlotAvailability(organizationId);
 
@@ -89,7 +92,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
       </TabsContent>
 
       <TabsContent value="settings">
-        <OrganizationSettings organizationId={organizationId} currentUserRole={currentUserRole} />
+        <OrganizationSettings organization={organization} currentUserRole={currentUserRole} />
       </TabsContent>
     </Tabs>
   );
