@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+- **Auth**: Use `AuthContext` for session/JWT. Auto-refresh tokens. Protect routes with guards.
+- **RBAC**: Check roles via `OrganizationContext`/`usePermissions` hook. UI: Conditionally render actions (e.g., `if (canEdit) <EditButton />`).
+- **RLS**: Never bypass in code; rely on Supabase policies (see `database-schema.md`). Queries: Always `.eq('organization_id', orgId)`.
+- **Validation**: Zod schemas for all inputs/APIs. Sanitize uploads (Supabase Storage).
+- **CSP**: From `vite.config.ts` – respect headers; avoid unsafe-eval in prod.
+- **Multi-Tenancy**: Isolate data by `organization_id`. For realtime: Filter subscriptions (e.g., `filter: 'organization_id=eq.${orgId}'`).
+- **Edge Functions**: For complex logic (e.g., `supabase/functions/`); validate JWT and permissions.
