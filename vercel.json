@@ -1,11 +1,20 @@
 {
+  "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "installCommand": "npm install",
   "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/dashboard",
+      "destination": "/dashboard/",
+      "permanent": false
     }
   ],
   "headers": [
@@ -35,15 +44,5 @@
         }
       ]
     }
-  ],
-  "git": {
-    "deploymentEnabled": {
-      "main": true,
-      "preview": true
-    }
-  },
-  "github": {
-    "deploymentEnabled": true,
-    "autoAlias": false
-  }
+  ]
 }
