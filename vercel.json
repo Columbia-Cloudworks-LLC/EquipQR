@@ -4,6 +4,13 @@
   "framework": "vite",
   "trailingSlash": false,
   "cleanUrls": true,
+  "routes": [
+    {
+      "src": "/[^.]+",
+      "dest": "/",
+      "status": 200
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
