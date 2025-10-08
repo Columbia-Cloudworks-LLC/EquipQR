@@ -1,14 +1,14 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserPlus, Settings } from 'lucide-react';
+import { Users, Settings } from 'lucide-react';
 import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
-import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
-import { MemberManagement } from './MemberManagement';
 import { OrganizationSettings } from './OrganizationSettings';
+import UnifiedMembersList from './UnifiedMembersList';
+import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
+import { SessionOrganization } from '@/contexts/SessionContext';
 
 interface MemberItem {
   id: string;
@@ -31,6 +31,7 @@ interface OrganizationTabsProps {
   permissions: Permissions;
   membersLoading: boolean;
   fleetMapSubscription?: FleetMapSubscription;
+  organization: SessionOrganization;
 }
 
 const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
@@ -39,9 +40,10 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   currentUserRole,
   permissions,
   membersLoading,
-  fleetMapSubscription
+  fleetMapSubscription,
+  organization
 }) => {
-  const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
+  const { data: slotAvailability } = useSlotAvailability(organizationId);
 
   return (
     <Tabs defaultValue="members" className="space-y-4">
@@ -57,35 +59,14 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
       </TabsList>
 
       <TabsContent value="members" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Team Members</CardTitle>
-                <CardDescription>
-                  Manage your organization's team members and their roles
-                </CardDescription>
-              </div>
-              {permissions?.canInviteMembers && (
-                <Button
-                  onClick={() => setInvitationDialogOpen(true)}
-                  className="flex items-center gap-2"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Invite Member
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <MemberManagement
-              members={members}
-              organizationId={organizationId}
-              currentUserRole={currentUserRole}
-              isLoading={membersLoading}
-            />
-          </CardContent>
-        </Card>
+        <UnifiedMembersList
+          members={members}
+          organizationId={organizationId}
+          currentUserRole={currentUserRole}
+          isLoading={membersLoading}
+          canInviteMembers={!!permissions?.canInviteMembers}
+          slotAvailability={slotAvailability}
+        />
 
         {fleetMapSubscription && (
           <Card>
@@ -108,15 +89,10 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
             </CardContent>
           </Card>
         )}
-
-        <SimplifiedInvitationDialog
-          open={invitationDialogOpen}
-          onOpenChange={setInvitationDialogOpen}
-        />
       </TabsContent>
 
       <TabsContent value="settings">
-        <OrganizationSettings organizationId={organizationId} currentUserRole={currentUserRole} />
+        <OrganizationSettings organization={organization} currentUserRole={currentUserRole} />
       </TabsContent>
     </Tabs>
   );
