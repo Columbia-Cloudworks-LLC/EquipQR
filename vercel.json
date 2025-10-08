@@ -3,18 +3,11 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "trailingSlash": false,
-  "cleanUrls": true,
-  "routes": [
-    {
-      "src": "/[^.]+",
-      "dest": "/",
-      "status": 200
-    }
-  ],
+  "cleanUrls": false,
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ],
   "headers": [
