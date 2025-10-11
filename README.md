@@ -40,31 +40,265 @@ npm install
 ```
 
 3. Set up environment variables:
-```bash
-# Copy the environment template
-cp .env.example .env
-```
 
-Edit `.env` with your Supabase credentials:
+Create a `.env` file in the project root with the following variables:
+
 ```env
+# ============================================
+# REQUIRED - Supabase Configuration
+# ============================================
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+
+# ============================================
+# OPTIONAL - External Service Integrations
+# ============================================
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# ============================================
+# OPTIONAL - Application Configuration
+# ============================================
+VITE_PRODUCTION_URL=https://your-domain.com
+VITE_APP_VERSION=1.0.0
+VITE_ENABLE_DEVTOOLS=false
 ```
 
-**Required environment variables:**
-- `VITE_SUPABASE_URL`: Your Supabase project URL
-- `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+### Environment Variables Reference
 
-**Optional environment variables:**
-- `VITE_STRIPE_PUBLISHABLE_KEY`: For billing features  
-- `VITE_GOOGLE_MAPS_API_KEY`: For fleet map functionality
-- `VITE_PRODUCTION_URL`: For production deployment
-- `VITE_ENABLE_DEVTOOLS`: Enable development tools (true/false)
+| Variable | Required | Purpose | Where to Get |
+|----------|----------|---------|--------------|
+| `VITE_SUPABASE_URL` | ✅ Yes | Your Supabase project URL | [Supabase Dashboard](https://supabase.com/dashboard) → Settings → API |
+| `VITE_SUPABASE_ANON_KEY` | ✅ Yes | Supabase anonymous/public key | [Supabase Dashboard](https://supabase.com/dashboard) → Settings → API |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | ⚠️ Optional | Stripe publishable key for billing | [Stripe Dashboard](https://dashboard.stripe.com/apikeys) |
+| `VITE_GOOGLE_MAPS_API_KEY` | ⚠️ Optional | Google Maps API key for fleet map | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
+| `VITE_PRODUCTION_URL` | ⚠️ Optional | Production URL for OAuth redirects | Your deployed application URL |
+| `VITE_APP_VERSION` | ⚠️ Optional | Application version (displayed in footer) | Any version string (e.g., "1.0.0") |
+| `VITE_ENABLE_DEVTOOLS` | ⚠️ Optional | Enable development tools | `true` or `false` (default: false) |
+
+> **Note**: All `VITE_*` variables are exposed to the client-side application. Never commit actual API keys to version control.
 
 4. Start the development server:
 ```bash
 npm run dev
 ```
+
+## 🔌 External API Requirements
+
+EquipQR integrates with several external services to provide full functionality. While Supabase is required, other services are optional depending on which features you want to enable.
+
+### Stripe (Optional - Required for Billing Features)
+
+Stripe powers the billing and subscription management features.
+
+**Setup Steps:**
+1. Create a Stripe account at [stripe.com](https://stripe.com)
+2. Get your API keys from the [Stripe Dashboard](https://dashboard.stripe.com/apikeys)
+3. Add `VITE_STRIPE_PUBLISHABLE_KEY` to your `.env` file
+4. Add `STRIPE_SECRET_KEY` to Supabase Edge Functions secrets (see Supabase setup below)
+5. Configure webhook endpoint and add `STRIPE_WEBHOOK_SECRET` to Supabase secrets
+
+**Required for:**
+- Organization subscription management
+- User license purchasing
+- Fleet map add-on subscriptions
+
+### Google Maps (Optional - Required for Fleet Map)
+
+Google Maps API enables fleet equipment location visualization and geocoding.
+
+**Setup Steps:**
+1. Create a project in [Google Cloud Console](https://console.cloud.google.com)
+2. Enable the following APIs:
+   - Maps JavaScript API
+   - Geocoding API
+3. Create credentials (API Key) from [API Credentials](https://console.cloud.google.com/apis/credentials)
+4. Add `VITE_GOOGLE_MAPS_API_KEY` to your `.env` file (client-side)
+5. Add `GOOGLE_MAPS_API_KEY` to Supabase Edge Functions secrets (server-side)
+
+**Required for:**
+- Fleet map visualization
+- Equipment location tracking
+- Address geocoding
+
+### Resend (Optional - Required for Email Invitations)
+
+Resend handles transactional emails for organization invitations.
+
+**Setup Steps:**
+1. Create an account at [resend.com](https://resend.com)
+2. Get your API key from the [Resend Dashboard](https://resend.com/api-keys)
+3. Verify your sending domain
+4. Add `RESEND_API_KEY` to Supabase Edge Functions secrets
+
+**Required for:**
+- Organization member invitations
+- Invitation email notifications
+
+### hCaptcha (Optional - Bot Protection)
+
+hCaptcha provides optional bot protection for forms.
+
+**Setup Steps:**
+1. Create an account at [hcaptcha.com](https://www.hcaptcha.com)
+2. Get your secret key from the hCaptcha dashboard
+3. Add `HCAPTCHA_SECRET_KEY` to Supabase Edge Functions secrets
+
+**Required for:**
+- Enhanced security on public forms (if enabled)
+
+## 🗄️ Supabase Project Setup
+
+Complete Supabase configuration is required for EquipQR to function. Follow these steps to set up your Supabase project.
+
+### 1. Create Supabase Project
+
+1. Go to [supabase.com](https://supabase.com) and sign up/sign in
+2. Click "New Project"
+3. Choose your organization and set project details
+4. Save your project URL and anon key for the `.env` file
+
+### 2. Authentication Configuration
+
+**Enable Email/Password Authentication:**
+1. Navigate to Authentication → Providers
+2. Enable "Email" provider
+3. Configure email templates (optional but recommended)
+
+**Configure Google OAuth (Optional):**
+1. Create OAuth credentials in [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Set authorized redirect URIs:
+   - `https://your-project-id.supabase.co/auth/v1/callback`
+3. In Supabase: Authentication → Providers → Google
+4. Enable Google provider and add Client ID and Client Secret
+5. Configure authorized redirect URLs in your application settings
+
+**Set Up Redirect URLs:**
+1. Go to Authentication → URL Configuration
+2. Add your site URL: `https://your-domain.com`
+3. Add redirect URLs:
+   - `http://localhost:8080/**` (for local development)
+   - `https://your-domain.com/**` (for production)
+
+### 3. Database Setup
+
+**Apply Migrations:**
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Login to Supabase
+npx supabase login
+
+# Link your project
+npx supabase link --project-ref your-project-ref
+
+# Apply migrations
+npx supabase db push
+```
+
+**Run Seed Data (Optional):**
+```bash
+# Run seed file if you want sample data
+npx supabase db reset
+```
+
+**Verify Row Level Security (RLS):**
+- All tables should have RLS enabled
+- Check policies in Database → Policies
+- Migrations in `supabase/migrations/` include RLS policies
+
+### 4. Edge Functions Secrets
+
+Configure required secrets for Supabase Edge Functions:
+
+1. Go to Settings → Edge Functions → Secrets
+2. Add the following secrets:
+
+| Secret Name | Required | Purpose |
+|-------------|----------|---------|
+| `STRIPE_SECRET_KEY` | For billing | Stripe API secret key |
+| `STRIPE_WEBHOOK_SECRET` | For billing | Stripe webhook signing secret |
+| `GOOGLE_MAPS_API_KEY` | For maps | Google Maps server-side API key |
+| `RESEND_API_KEY` | For emails | Resend API key for sending emails |
+| `HCAPTCHA_SECRET_KEY` | Optional | hCaptcha verification secret |
+| `PRODUCTION_URL` | Recommended | Your production application URL |
+
+**Add secrets via CLI:**
+```bash
+npx supabase secrets set STRIPE_SECRET_KEY=sk_test_...
+npx supabase secrets set GOOGLE_MAPS_API_KEY=AIza...
+npx supabase secrets set RESEND_API_KEY=re_...
+```
+
+### 5. Storage Configuration
+
+**Create Storage Buckets:**
+1. Navigate to Storage in Supabase Dashboard
+2. Create the following buckets:
+   - `equipment-images` - For equipment photos
+   - `organization-logos` - For organization branding
+
+**Configure Bucket Policies:**
+```sql
+-- Allow authenticated users to upload images for their organization
+CREATE POLICY "Users can upload org images"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'equipment-images' AND
+  auth.uid() IN (
+    SELECT user_id FROM organization_members 
+    WHERE organization_id = (storage.foldername(name))[1]::uuid
+  )
+);
+
+-- Allow public read access to organization logos
+CREATE POLICY "Public can view org logos"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'organization-logos');
+```
+
+### 6. Webhook Configuration (for Stripe)
+
+**Set up Stripe webhooks:**
+1. In Stripe Dashboard, go to Developers → Webhooks
+2. Add endpoint: `https://your-project-id.supabase.co/functions/v1/stripe-license-webhook`
+3. Select events to listen to:
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+4. Copy the webhook signing secret to `STRIPE_WEBHOOK_SECRET` in Supabase secrets
+
+## 🎨 App Branding
+
+EquipQR includes branding assets for use in the application and communications.
+
+**Logo Locations:**
+- **App Icons**: `public/eqr-icons/`
+  - `inverse.png` - Used in auth pages and emails (white logo on dark)
+  - `black.png` - Black logo variant
+  - `white.png` - White logo variant
+  - `grayscale.png` - Grayscale variant
+  - `columbia-cloudworks-logo.png` - Columbia Cloudworks branding
+
+- **Full Logos**: `public/eqr-logo/`
+  - `black.png` - Full black logo with text
+  - `transparent.png` - Logo with transparent background
+  - `grayscale.png` - Grayscale full logo
+  - `inverse.png` - Inverse full logo
+
+**Usage:**
+- Authentication pages use `eqr-icons/inverse.png`
+- Email invitations reference `eqr-icons/inverse.png`
+- Organization branding can be customized per tenant
+- Logos are served from the `/public` directory
+
+**Customization:**
+To use custom branding, replace the images in these directories while maintaining the same filenames and dimensions.
 
 ## 🧪 Testing
 
@@ -127,9 +361,15 @@ The project includes GitHub Actions workflows for:
 - Direct pushes to `main` or `develop` branches
 
 ### Required GitHub Secrets
-Add these secrets to your GitHub repository:
+Add these secrets to your GitHub repository (Settings → Secrets and variables → Actions):
 - `VITE_SUPABASE_URL` - Your Supabase project URL
 - `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
+
+**Optional Secrets** (if using these features):
+- `VITE_STRIPE_PUBLISHABLE_KEY` - For billing features
+- `VITE_GOOGLE_MAPS_API_KEY` - For fleet map
+
+> **Note**: Supabase Edge Function secrets should be configured directly in Supabase Dashboard, not GitHub. See the [Supabase Project Setup](#%EF%B8%8F-supabase-project-setup) section for details.
 
 ## 📁 Project Structure
 
