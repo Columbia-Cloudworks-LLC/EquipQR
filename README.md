@@ -233,32 +233,81 @@ npx supabase secrets set RESEND_API_KEY=re_...
 
 ### 5. Storage Configuration
 
+The application uses Supabase Storage for image uploads. You must create these buckets for the application to function properly.
+
 **Create Storage Buckets:**
 1. Navigate to Storage in Supabase Dashboard
-2. Create the following buckets:
-   - `equipment-images` - For equipment photos
-   - `organization-logos` - For organization branding
+2. Create the following buckets (exact names are required):
+   - `equipment-note-images` - For equipment note attachments
+   - `work-order-images` - For work order image attachments
 
 **Configure Bucket Policies:**
+
+For **equipment-note-images** bucket:
 ```sql
--- Allow authenticated users to upload images for their organization
-CREATE POLICY "Users can upload org images"
+-- Allow authenticated users to upload equipment note images
+CREATE POLICY "Users can upload equipment note images"
 ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK (
-  bucket_id = 'equipment-images' AND
+  bucket_id = 'equipment-note-images' AND
   auth.uid() IN (
-    SELECT user_id FROM organization_members 
-    WHERE organization_id = (storage.foldername(name))[1]::uuid
+    SELECT user_id FROM organization_members WHERE status = 'active'
   )
 );
 
--- Allow public read access to organization logos
-CREATE POLICY "Public can view org logos"
+-- Allow authenticated users to read equipment note images
+CREATE POLICY "Users can view equipment note images"
 ON storage.objects FOR SELECT
-TO public
-USING (bucket_id = 'organization-logos');
+TO authenticated
+USING (bucket_id = 'equipment-note-images');
+
+-- Allow users to delete their own equipment note images
+CREATE POLICY "Users can delete equipment note images"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+  bucket_id = 'equipment-note-images' AND
+  auth.uid() IN (
+    SELECT user_id FROM organization_members WHERE status = 'active'
+  )
+);
 ```
+
+For **work-order-images** bucket:
+```sql
+-- Allow authenticated users to upload work order images
+CREATE POLICY "Users can upload work order images"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'work-order-images' AND
+  auth.uid() IN (
+    SELECT user_id FROM organization_members WHERE status = 'active'
+  )
+);
+
+-- Allow authenticated users to read work order images
+CREATE POLICY "Users can view work order images"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'work-order-images');
+
+-- Allow users to delete work order images
+CREATE POLICY "Users can delete work order images"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+  bucket_id = 'work-order-images' AND
+  auth.uid() IN (
+    SELECT user_id FROM organization_members WHERE status = 'active'
+  )
+);
+```
+
+> **Important**: The bucket names must match exactly as shown above. The application code specifically references `equipment-note-images` and `work-order-images`. Using different names will cause image upload and deletion operations to fail.
+
+> **Note**: Organization logos are stored as URLs in the database, not in a separate storage bucket. They can be external URLs or uploaded to one of the existing buckets.
 
 ### 6. Webhook Configuration (for Stripe)
 
