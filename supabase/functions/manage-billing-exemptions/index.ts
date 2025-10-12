@@ -197,11 +197,17 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logStep("ERROR", { message: errorMessage, stack: errorStack });
+    
+    // Return generic error to user, don't expose internal details
+    return new Response(
+      JSON.stringify({ error: "An error occurred while processing your request. Please try again later." }), 
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
+    );
   }
 });
 
