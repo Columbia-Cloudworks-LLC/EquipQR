@@ -35,7 +35,8 @@ import {
   User,
   HelpCircle,
   ClipboardCheck,
-  Bug
+  Bug,
+  Shield
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ import { useSimpleOrganization } from "@/hooks/useSimpleOrganization";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar";
 import Logo from "@/components/ui/Logo";
+import { useSuperAdminAccess } from "@/hooks/useSuperAdminAccess";
 
 const mainNavigation = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
@@ -67,6 +69,7 @@ const managementNavigation = [
 
 const debugNavigation = [
   { title: "Billing Debug", url: "/dashboard/debug/billing", icon: Bug },
+  { title: "Exemptions Admin", url: "/dashboard/debug/exemptions-admin", icon: Shield, superAdminOnly: true },
 ];
 
 const AppSidebar = () => {
@@ -76,6 +79,7 @@ const AppSidebar = () => {
   const { currentOrganization } = useSimpleOrganization();
   const isMobile = useIsMobile();
   const { setOpenMobile } = useSidebar();
+  const { isSuperAdmin } = useSuperAdminAccess();
 
   const handleSignOut = async () => {
     await signOut();
@@ -215,6 +219,12 @@ const AppSidebar = () => {
                 <SidebarMenu>
                   {debugNavigation.map((item) => {
                     const isActive = location.pathname === item.url;
+                    
+                    // Hide super admin only items if user is not a super admin
+                    if ((item as any).superAdminOnly && !isSuperAdmin) {
+                      return null;
+                    }
+                    
                     return (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton 
