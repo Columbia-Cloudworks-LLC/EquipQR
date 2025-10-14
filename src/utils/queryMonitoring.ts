@@ -7,6 +7,8 @@ interface QueryLog {
   performance_notes?: string;
 }
 
+import { logger } from '@/utils/logger';
+
 class QueryMonitor {
   private logs: QueryLog[] = [];
   private isEnabled = process.env.NODE_ENV === 'development';
@@ -23,7 +25,7 @@ class QueryMonitor {
 
     // Log slow queries
     if (log.duration > 1000) {
-      console.warn('🐌 Slow query detected:', {
+      logger.warn('🐌 Slow query detected:', {
         query: log.query,
         duration: `${log.duration}ms`,
         timestamp: log.timestamp,
@@ -33,7 +35,7 @@ class QueryMonitor {
 
     // Log for debugging
     if (log.duration > 500) {
-      console.log('⚡ Query performance:', {
+      logger.debug('⚡ Query performance:', {
         query: log.query.substring(0, 100) + '...',
         duration: `${log.duration}ms`,
         indexes_used: log.indexes_used
@@ -104,21 +106,18 @@ export function monitorQuery<T>(
 // Performance monitoring utilities
 export const performanceUtils = {
   logIndexUsage: (queryName: string, indexes: string[]) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔍 Query "${queryName}" should use indexes:`, indexes);
-    }
+    logger.debug(`🔍 Query "${queryName}" should use indexes:`, indexes);
   },
 
   warnMissingIndex: (queryName: string, missingIndex: string) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`⚠️ Query "${queryName}" may benefit from index:`, missingIndex);
-    }
+    logger.warn(`⚠️ Query "${queryName}" may benefit from index:`, missingIndex);
   },
 
   reportQueryStats: () => {
     const stats = queryMonitor.getQueryStats();
-    if (stats && process.env.NODE_ENV === 'development') {
-      console.table(stats);
+    if (stats) {
+      // Use info for tables to keep errors reserved for real errors
+      logger.info('Query stats', stats);
     }
   }
 };

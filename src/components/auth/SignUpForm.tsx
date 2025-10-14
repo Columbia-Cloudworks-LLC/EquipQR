@@ -24,6 +24,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
     organizationName: ''
   });
   const [hcaptchaToken, setHcaptchaToken] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordMatch, setPasswordMatch] = useState<boolean | null>(null);
 
   const handleInputChange = (field: string, value: string) => {
@@ -39,6 +40,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
       } else {
         setPasswordMatch(null);
       }
+    }
+    if (field === 'email') {
+      const valid = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value);
+      setEmailError(valid || value.length === 0 ? null : 'Enter a valid email address');
     }
   };
 
@@ -113,6 +118,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
         <Input
           id="signup-name"
           type="text"
+          autoComplete="name"
           value={formData.name}
           onChange={(e) => handleInputChange('name', e.target.value)}
           required
@@ -124,10 +130,19 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
         <Input
           id="signup-email"
           type="email"
+          autoComplete="email"
+          inputMode="email"
+          autoCorrect="off"
+          autoCapitalize="none"
           value={formData.email}
           onChange={(e) => handleInputChange('email', e.target.value)}
           required
+          aria-invalid={emailError ? 'true' : 'false'}
+          aria-describedby={emailError ? 'signup-email-error' : undefined}
         />
+        {emailError && (
+          <p id="signup-email-error" className="text-sm text-destructive" aria-live="polite">{emailError}</p>
+        )}
       </div>
       
       <div className="space-y-2">
@@ -147,6 +162,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
         <Input
           id="signup-password"
           type="password"
+          autoComplete="new-password"
           value={formData.password}
           onChange={(e) => handleInputChange('password', e.target.value)}
           required
@@ -163,6 +179,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
           <Input
             id="signup-confirm-password"
             type="password"
+            autoComplete="new-password"
             value={formData.confirmPassword}
             onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
             required

@@ -2,15 +2,15 @@
 let lastNavigationEvent: string | null = null;
 let navigationEventCount = 0;
 
+import { logger } from '@/utils/logger';
+
 export const logNavigationEvent = (event: string, data?: unknown) => {
-  if (process.env.NODE_ENV === 'development') {
-    navigationEventCount++;
-    lastNavigationEvent = event;
-    
-    // Only log unique events or every 5th event to reduce noise
-    if (navigationEventCount === 1 || navigationEventCount % 5 === 0 || event !== lastNavigationEvent) {
-      console.log(`🧭 Navigation [${navigationEventCount}]:`, event, data || '');
-    }
+  navigationEventCount++;
+  lastNavigationEvent = event;
+  
+  // Only log unique events or every 5th event to reduce noise
+  if (navigationEventCount === 1 || navigationEventCount % 5 === 0 || event !== lastNavigationEvent) {
+    logger.debug(`🧭 Navigation [${navigationEventCount}]: ${event}`, data || '');
   }
 };
 

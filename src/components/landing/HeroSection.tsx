@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, QrCode, Shield, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from '@/components/ui/Logo';
+import { ExternalLink } from '@/components/ui/external-link';
 
 const HeroSection = () => {
   return (
@@ -57,14 +58,12 @@ const HeroSection = () => {
             <p className="text-sm text-muted-foreground mb-4">Field-tested solution</p>
             <div className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Currently deployed</span> at{' '}
-              <a 
-                href="https://3aequip.columbiacloudworks.com/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-primary hover:text-primary/80 transition-colors underline"
+              <ExternalLink 
+                href="https://3aequip.columbiacloudworks.com/"
+                className="text-primary hover:text-primary/80 transition-colors"
               >
                 3-A Equipment
-              </a>
+              </ExternalLink>
               , a heavy equipment repair shop
             </div>
           </div>

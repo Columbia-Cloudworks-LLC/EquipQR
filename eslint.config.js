@@ -27,6 +27,11 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "warn",
       "no-empty": "warn",
       "no-useless-catch": "warn",
+      // Disallow console usage in src except errors; allow in Supabase edge functions via ignores above
+      "no-console": [
+        "warn",
+        { allow: ["error"] }
+      ],
     },
   }
 );
