@@ -1,12 +1,18 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import PMTemplateView from '@/pages/PMTemplateView';
 import { TestProviders } from '@/test/utils/TestProviders';
 import { usePMTemplate } from '@/hooks/usePMTemplates';
 
 vi.mock('@/hooks/usePMTemplates', () => ({
-  usePMTemplate: vi.fn()
+  usePMTemplate: vi.fn(),
+  useClonePMTemplate: vi.fn(() => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+    isError: false,
+    error: null,
+  })),
 }));
 
 describe('PMTemplateView', () => {
@@ -29,19 +35,17 @@ describe('PMTemplateView', () => {
     } as unknown as ReturnType<typeof usePMTemplate>);
 
     render(
-      <TestProviders>
-        <MemoryRouter initialEntries={[`/dashboard/pm-templates/t1`] }>
-          <Routes>
-            <Route path="/dashboard/pm-templates/:templateId" element={<PMTemplateView />} />
-          </Routes>
-        </MemoryRouter>
+      <TestProviders initialEntries={[`/dashboard/pm-templates/t1`]}>
+        <Routes>
+          <Route path="/dashboard/pm-templates/:templateId" element={<PMTemplateView />} />
+        </Routes>
       </TestProviders>
     );
 
-    expect(await screen.findByText('Forklift PM')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Forklift PM' })).toBeInTheDocument();
     expect(screen.getByText('Table of Contents')).toBeInTheDocument();
-    expect(screen.getByText(/Visual Inspection/)).toBeInTheDocument();
-    expect(screen.getByText(/Electrical Inspection/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Visual Inspection/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Electrical Inspection/ })).toBeInTheDocument();
   });
 });
 
