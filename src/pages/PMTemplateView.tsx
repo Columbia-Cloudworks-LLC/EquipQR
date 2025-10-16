@@ -14,6 +14,9 @@ import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import { generateTemplatePreviewPDF } from '@/utils/templatePDF';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 const groupBySection = (items: PMChecklistItem[]) => {
   const groups = items.reduce((acc, item) => {
@@ -21,8 +24,12 @@ const groupBySection = (items: PMChecklistItem[]) => {
     acc[item.section].push(item);
     return acc;
   }, {} as Record<string, PMChecklistItem[]>);
-  const ordered = Object.keys(groups).sort().map((key) => ({ name: key, items: groups[key] }));
-  return ordered;
+  // Preserve original section order based on first occurrence in the input
+  const sectionOrder: string[] = [];
+  for (const item of items) {
+    if (!sectionOrder.includes(item.section)) sectionOrder.push(item.section);
+  }
+  return sectionOrder.map((name) => ({ name, items: groups[name] }));
 };
 
 const PMTemplateView: React.FC = () => {
@@ -36,11 +43,13 @@ const PMTemplateView: React.FC = () => {
 
   const [applyOpen, setApplyOpen] = useState(false);
   const [expanded, setExpanded] = useState<string[]>([]);
+  const [includeHandwriting, setIncludeHandwriting] = useState(false);
+  const [linesPerItem, setLinesPerItem] = useState(5);
 
   const sections = useMemo(() => {
     const data = Array.isArray(template?.template_data) ? (template?.template_data as PMChecklistItem[]) : [];
     return groupBySection(data);
-  }, [template]);
+  }, [template?.template_data]);
 
   const totalItems = useMemo(() => template?.template_data?.length || 0, [template]);
 
@@ -75,6 +84,10 @@ const PMTemplateView: React.FC = () => {
       sections,
       createdAt: template.created_at,
       updatedAt: template.updated_at,
+      options: { 
+        includeHandwritingLines: includeHandwriting, 
+        linesPerItem: includeHandwriting ? linesPerItem : 0
+      }
     });
   };
 
@@ -108,14 +121,6 @@ const PMTemplateView: React.FC = () => {
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleBack}>Back to Templates</Button>
-            <Button onClick={handleApply}>
-              <Wrench className="mr-2 h-4 w-4" />
-              Apply to Equipment
-            </Button>
-            <Button variant="outline" onClick={handleClone} disabled={!template}>
-              <Copy className="mr-2 h-4 w-4" />
-              Clone Template
-            </Button>
             {canEdit && (
               <Button variant="outline" onClick={handleEdit}>
                 <Edit className="mr-2 h-4 w-4" />
@@ -205,6 +210,56 @@ const PMTemplateView: React.FC = () => {
               <span>Total items: {totalItems}</span>
             </div>
 
+            {/* PDF Download Options */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="include-handwriting"
+                      checked={includeHandwriting}
+                      onCheckedChange={(checked) => setIncludeHandwriting(checked as boolean)}
+                    />
+                    <Label htmlFor="include-handwriting" className="text-sm font-normal cursor-pointer">
+                      Include space for handwriting
+                    </Label>
+                  </div>
+                  
+                  {includeHandwriting && (
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="lines-per-item" className="text-sm whitespace-nowrap">
+                        Lines per item:
+                      </Label>
+                      <Input
+                        id="lines-per-item"
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={linesPerItem}
+                        onChange={(e) => setLinesPerItem(Math.max(1, Math.min(10, parseInt(e.target.value) || 5)))}
+                        className="w-20"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 sm:ml-auto">
+                    <Button onClick={handleApply}>
+                      <Wrench className="mr-2 h-4 w-4" />
+                      Apply to Equipment
+                    </Button>
+                    <Button variant="outline" onClick={handleClone} disabled={!template || !canCreateCustomTemplates} title={!canCreateCustomTemplates ? 'Custom PM templates require user licenses' : ''}>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Clone Template
+                    </Button>
+                    <Button variant="outline" onClick={onDownloadPDF}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Download PDF
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Accordion type="multiple" value={expanded} onValueChange={(v) => setExpanded(v as string[])}>
               {sections.map((section) => (
                 <AccordionItem key={section.name} value={section.name} id={`section-${encodeURIComponent(section.name)}`}>
@@ -236,27 +291,6 @@ const PMTemplateView: React.FC = () => {
                 </AccordionItem>
               ))}
             </Accordion>
-
-            <div className="flex gap-2 pt-2">
-              <Button onClick={handleApply}>
-                <Wrench className="mr-2 h-4 w-4" />
-                Apply to Equipment
-              </Button>
-              <Button variant="outline" onClick={handleClone} disabled={!template || !canCreateCustomTemplates} title={!canCreateCustomTemplates ? 'Custom PM templates require user licenses' : ''}>
-                <Copy className="mr-2 h-4 w-4" />
-                Clone Template
-              </Button>
-              {canEdit && (
-                <Button variant="outline" onClick={handleEdit}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-              )}
-              <Button variant="outline" onClick={onDownloadPDF}>
-                <Download className="mr-2 h-4 w-4" />
-                Download PDF
-              </Button>
-            </div>
           </div>
         </div>
       )}

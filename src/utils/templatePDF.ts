@@ -8,6 +8,10 @@ export function generateTemplatePreviewPDF(params: {
   sections: { name: string; items: { id: string; title: string; description?: string; required: boolean }[] }[];
   createdAt: string;
   updatedAt: string;
+  options?: {
+    includeHandwritingLines?: boolean;
+    linesPerItem?: number;
+  };
 }): void {
   const doc = new jsPDF();
   let y = 20;
@@ -35,12 +39,33 @@ export function generateTemplatePreviewPDF(params: {
   addLine(`Updated: ${new Date(params.updatedAt).toLocaleString()}`, 9);
 
   // Sections
+  const includeLines = params.options?.includeHandwritingLines === true;
+  const linesPerItem = Math.max(0, Math.min(20, params.options?.linesPerItem ?? 5));
+
   params.sections.forEach((section) => {
     y += 4;
     addLine(section.name.toUpperCase(), 12, true);
     section.items.forEach((item, idx) => {
       addLine(`${idx + 1}. ${item.title} ${item.required ? '(Required)' : '(Optional)'}`, 10, true);
       if (item.description) addLine(item.description, 10, false);
+
+      if (includeLines && linesPerItem > 0) {
+        // Draw handwriting lines beneath each item for manual notes
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const left = 20;
+        const right = pageWidth - 20;
+        const spacing = 6;
+        for (let i = 0; i < linesPerItem; i++) {
+          const pageHeight = doc.internal.pageSize.getHeight();
+          if (y > pageHeight - 15) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.setLineWidth(0.3);
+          doc.line(left, y, right, y);
+          y += spacing;
+        }
+      }
     });
   });
 

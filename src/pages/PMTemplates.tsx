@@ -411,9 +411,14 @@ const PMTemplates = () => {
       {editingTemplate && (
         <Dialog open={!!editingTemplate} onOpenChange={(open) => !open && handleCloseEditor()}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
-            <DialogDescription className="sr-only">
-              {editingTemplate === 'new' ? 'Create a new PM template' : 'Edit existing PM template'}
-            </DialogDescription>
+            <DialogHeader>
+              <DialogTitle>
+                {editingTemplate === 'new' ? 'Create PM Template' : 'Edit PM Template'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingTemplate === 'new' ? 'Create a new PM template' : 'Edit existing PM template'}
+              </DialogDescription>
+            </DialogHeader>
             <ChecklistTemplateEditor
               template={editingTemplate === 'new' ? undefined : templateToEdit}
               onSave={handleCloseEditor}
