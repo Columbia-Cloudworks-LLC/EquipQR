@@ -18,6 +18,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
     email: '',
     password: ''
   });
+  const [errors, setErrors] = useState<{ email?: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +29,14 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
     setIsLoading(true);
 
     try {
+      // Inline validation
+      const emailValid = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(formData.email);
+      if (!emailValid) {
+        setErrors({ email: 'Enter a valid email address' });
+        return;
+      } else {
+        setErrors(null);
+      }
       const { error } = await signIn(formData.email, formData.password);
       
       if (error) {
@@ -45,16 +54,26 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
         <Input
           id="signin-email"
           type="email"
+          autoComplete="email"
+          inputMode="email"
+          autoCorrect="off"
+          autoCapitalize="none"
           value={formData.email}
           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
           required
+          aria-invalid={errors?.email ? 'true' : 'false'}
+          aria-describedby={errors?.email ? 'signin-email-error' : undefined}
         />
+        {errors?.email && (
+          <p id="signin-email-error" className="text-sm text-destructive" aria-live="polite">{errors.email}</p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="signin-password">Password</Label>
         <Input
           id="signin-password"
           type="password"
+          autoComplete="current-password"
           value={formData.password}
           onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
           required

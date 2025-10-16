@@ -38,6 +38,7 @@ const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
 const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin'));
+const PMTemplateView = lazy(() => import('@/pages/PMTemplateView'));
 
 
 const BrandedTopBar = () => {
@@ -139,6 +140,8 @@ function App() {
                                 <Route path="/scanner" element={<QRScanner />} />
                                 <Route path="/billing" element={<Billing />} />
                                 <Route path="/pm-templates" element={<PMTemplates />} />
+                                <Route path="/pm-templates/:templateId" element={<PMTemplateView />} />
+                                <Route path="/pm-templates/:templateId/view" element={<PMTemplateView />} />
                                 <Route path="/notifications" element={<Notifications />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />

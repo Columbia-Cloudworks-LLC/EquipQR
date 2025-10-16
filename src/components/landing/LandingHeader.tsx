@@ -1,4 +1,5 @@
 import React from 'react';
+import { useActiveSection } from '@/hooks/useActiveSection';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Logo from '@/components/ui/Logo';
@@ -35,6 +36,8 @@ const LandingHeader = () => {
     }
   };
 
+  const activeSection = useActiveSection(['features', 'pricing', 'about']);
+  const activeSectionToUse = isOnLandingPage ? activeSection : null;
   return (
     <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,16 +52,28 @@ const LandingHeader = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navigation.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                onClick={(e) => handleNavClick(e, item.href)}
-              >
-                {item.name}
-              </a>
-            ))}
+            {navigation.map((item) => {
+              const isHash = item.href.startsWith('#');
+              // Active logic only on landing page
+              let isActive = false;
+              if (isOnLandingPage && isHash) {
+                isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
+              }
+              return (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className={[
+                    'transition-colors',
+                    'text-muted-foreground hover:text-foreground',
+                    isActive ? 'text-foreground font-semibold' : ''
+                  ].join(' ')}
+                  onClick={(e) => handleNavClick(e, item.href)}
+                >
+                  {item.name}
+                </a>
+              );
+            })}
           </div>
 
           {/* Desktop CTA */}
@@ -81,16 +96,27 @@ const LandingHeader = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                 <div className="flex flex-col space-y-4 mt-8">
-                  {navigation.map((item) => (
-                    <a
-                      key={item.name}
-                      href={item.href}
-                      className="text-lg font-medium text-muted-foreground hover:text-foreground transition-colors"
-                      onClick={(e) => handleNavClick(e, item.href)}
-                    >
-                      {item.name}
-                    </a>
-                  ))}
+                  {navigation.map((item) => {
+                    const isHash = item.href.startsWith('#');
+                    let isActive = false;
+                    if (isOnLandingPage && isHash) {
+                      isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
+                    }
+                    return (
+                      <a
+                        key={item.name}
+                        href={item.href}
+                        className={[
+                          'text-lg font-medium transition-colors',
+                          'text-muted-foreground hover:text-foreground',
+                          isActive ? 'text-foreground font-semibold' : ''
+                        ].join(' ')}
+                        onClick={(e) => handleNavClick(e, item.href)}
+                      >
+                        {item.name}
+                      </a>
+                    );
+                  })}
                   <div className="pt-4 border-t border-border space-y-2">
                     <Button asChild variant="ghost" className="w-full justify-start">
                       <Link to="/auth">Sign In</Link>

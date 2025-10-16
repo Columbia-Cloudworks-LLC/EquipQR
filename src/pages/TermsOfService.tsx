@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ExternalLink } from '@/components/ui/external-link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,14 +30,9 @@ export default function TermsOfService() {
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
               By accessing and using EquipQR ("the Service"), developed by{' '}
-              <a 
-                href="https://columbiacloudworks.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-foreground transition-colors underline"
-              >
+              <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
                 COLUMBIA CLOUDWORKS LLC
-              </a>
+              </ExternalLink>
               , you accept and agree to be bound by the terms and 
               provision of this agreement. If you do not agree to abide by the above, please do not use this service.
             </p>
@@ -168,14 +164,9 @@ export default function TermsOfService() {
             <p>
               The Service and its original content, features, and functionality are and will remain the exclusive property 
               of{' '}
-              <a 
-                href="https://columbiacloudworks.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-foreground transition-colors underline"
-              >
+              <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
                 COLUMBIA CLOUDWORKS LLC
-              </a>
+              </ExternalLink>
               {' '}and its licensors. The Service is protected by copyright, trademark, and other laws.
             </p>
           </CardContent>

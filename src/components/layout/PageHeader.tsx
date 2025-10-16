@@ -28,7 +28,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav className="flex items-center space-x-1 text-sm text-muted-foreground" aria-label="Breadcrumb">
           {breadcrumbs.map((item, index) => (
-            <React.Fragment key={index}>
+            <div key={`${item.label}-${index}`} className="flex items-center">
               {index > 0 && (
                 <ChevronRight className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
               )}
@@ -44,7 +44,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
                   {item.label}
                 </span>
               )}
-            </React.Fragment>
+            </div>
           ))}
         </nav>
       )}
