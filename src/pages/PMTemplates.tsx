@@ -54,7 +54,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   const canDelete = isAdmin && isOrgTemplate && !template.is_protected && canCreateCustomTemplates;
   const canClone = canCreateCustomTemplates;
 
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const handleView = () => navigate(`/dashboard/pm-templates/${template.id}`);
 
   return (

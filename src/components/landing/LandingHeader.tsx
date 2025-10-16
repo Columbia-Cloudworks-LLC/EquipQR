@@ -36,7 +36,8 @@ const LandingHeader = () => {
     }
   };
 
-  const activeSection = isOnLandingPage ? useActiveSection(['features', 'pricing', 'about']) : null;
+  const activeSection = useActiveSection(['features', 'pricing', 'about']);
+  const activeSectionToUse = isOnLandingPage ? activeSection : null;
   return (
     <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -56,7 +57,7 @@ const LandingHeader = () => {
               // Active logic only on landing page
               let isActive = false;
               if (isOnLandingPage && isHash) {
-                isActive = activeSection ? `#${activeSection}` === item.href : false;
+                isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
               }
               return (
                 <a
@@ -99,7 +100,7 @@ const LandingHeader = () => {
                     const isHash = item.href.startsWith('#');
                     let isActive = false;
                     if (isOnLandingPage && isHash) {
-                      isActive = activeSection ? `#${activeSection}` === item.href : false;
+                      isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
                     }
                     return (
                       <a

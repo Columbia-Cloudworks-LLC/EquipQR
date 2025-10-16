@@ -1,7 +1,5 @@
 import jsPDF from 'jspdf';
 
-type Section = { name: string; items: { title: string; description?: string; required: boolean }[] };
-
 export function generateTemplatePreviewPDF(params: {
   name: string;
   description?: string;

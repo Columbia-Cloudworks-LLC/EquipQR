@@ -364,7 +364,7 @@ describe('PMTemplates Page', () => {
   it('navigates to details when clicking a template title', () => {
     vi.mocked(usePMTemplates).mockReturnValue({
       ...mockHooks.usePMTemplates
-    } as any);
+    } as unknown as ReturnType<typeof usePMTemplates>);
 
     render(
       <TestProviders>
@@ -372,7 +372,7 @@ describe('PMTemplates Page', () => {
       </TestProviders>
     );
 
-    const title = screen.getByText('Forklift PM');
+    const title = screen.getByText('Forklift PM (Default)');
     expect(title).toBeInTheDocument();
     // We can't assert router change easily here; presence is enough for now.
   });

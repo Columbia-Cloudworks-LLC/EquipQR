@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, CheckCircle, Users, Building } from 'lucide-react';
+import { Star, CheckCircle, Building } from 'lucide-react';
 import { ExternalLink } from '@/components/ui/external-link';
 
 const SocialProofSection = () => {

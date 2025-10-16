@@ -26,7 +26,7 @@ describe('PMTemplateView', () => {
         ]
       },
       isLoading: false
-    } as any);
+    } as unknown as ReturnType<typeof usePMTemplate>);
 
     render(
       <TestProviders>
