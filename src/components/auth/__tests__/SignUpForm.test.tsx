@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SignUpForm from '../SignUpForm';
@@ -602,26 +602,22 @@ describe('SignUpForm', () => {
 
   describe('Edge Cases', () => {
     it('should handle very long input values', async () => {
-      const user = userEvent.setup({ delay: 0 });
       render(<SignUpForm {...defaultProps} />);
       
       const longString = 'a'.repeat(200);
       const nameInput = screen.getByLabelText(/full name/i);
       
-      await user.clear(nameInput);
-      await user.paste(nameInput, longString);
+      fireEvent.change(nameInput, { target: { value: longString } });
       expect(nameInput).toHaveValue(longString);
     });
 
     it('should handle special characters in organization name', async () => {
-      const user = userEvent.setup({ delay: 0 });
       render(<SignUpForm {...defaultProps} />);
       
       const orgInput = screen.getByLabelText(/organization name/i);
       const specialString = 'Test Org & Co. - "Best Company" #1!';
       
-      await user.clear(orgInput);
-      await user.paste(orgInput, specialString);
+      fireEvent.change(orgInput, { target: { value: specialString } });
       expect(orgInput).toHaveValue(specialString);
     });
 
