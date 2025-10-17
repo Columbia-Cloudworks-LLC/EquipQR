@@ -54,12 +54,18 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   const canDelete = isAdmin && isOrgTemplate && !template.is_protected && canCreateCustomTemplates;
   const canClone = canCreateCustomTemplates;
 
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
   const handleView = () => navigate(`/dashboard/pm-templates/${template.id}`);
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="flex-grow cursor-pointer hover:bg-muted/50" onClick={handleView}>
+    <Card className="h-full flex flex-col hover:bg-muted/50 transition-colors">
+      <CardHeader
+        className="flex-grow cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onClick={handleView}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleView()}
+      >
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg line-clamp-2">{template.name}</CardTitle>
           <div className="flex gap-1 ml-2">
