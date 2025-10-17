@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ExternalLink } from '@/components/ui/external-link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,14 +30,9 @@ export default function PrivacyPolicy() {
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
               EquipQR ("we," "our," or "us"), developed by{' '}
-              <a 
-                href="https://columbiacloudworks.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-foreground transition-colors underline"
-              >
+              <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
                 COLUMBIA CLOUDWORKS LLC
-              </a>
+              </ExternalLink>
               , is committed to protecting your privacy. This Privacy Policy explains 
               how we collect, use, disclose, and safeguard your information when you use our fleet equipment 
               management platform and services.
@@ -212,14 +208,9 @@ export default function PrivacyPolicy() {
             <p>
               Email: nicholas.king@columbiacloudworks.com<br />
               Website: https://equipqr.app<br />
-              <a 
-                href="https://columbiacloudworks.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-foreground transition-colors underline"
-              >
+              <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
                 COLUMBIA CLOUDWORKS LLC
-              </a><br />
+              </ExternalLink><br />
               Address: Contact us for business address information
             </p>
           </CardContent>

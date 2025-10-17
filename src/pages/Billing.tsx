@@ -8,6 +8,7 @@ import LicenseMemberBilling from '@/components/billing/LicenseMemberBilling';
 import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
 import BillingHeader from '@/components/billing/BillingHeader';
 import RestrictedBillingAccess from '@/components/billing/RestrictedBillingAccess';
+import BillingExemptionsCard from '@/components/billing/BillingExemptionsCard';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
@@ -35,7 +36,8 @@ const Billing = () => {
 
   // Get user role for permission checks
   const userRole = currentOrganization?.userRole;
-  const canManageBilling = userRole === 'owner';
+  const canViewBilling = ['owner', 'admin'].includes(userRole || '');
+  const canManageBilling = userRole === 'owner'; // Only owners can manage payment methods
 
   // Calculate billing based on licenses
   const billing = slotAvailability ? calculateBilling({ members, slotAvailability, storageGB: storageUsedGB, fleetMapEnabled }) : null;
@@ -109,8 +111,8 @@ const Billing = () => {
     );
   }
 
-  // Only organization owners can access billing
-  if (!canManageBilling) {
+  // Only organization owners and admins can view billing
+  if (!canViewBilling) {
     return <RestrictedBillingAccess currentOrganizationName={currentOrganization.name} />;
   }
 
@@ -126,6 +128,9 @@ const Billing = () => {
 
       {/* License-based Member Billing */}
       <LicenseMemberBilling />
+
+      {/* Billing Exemptions (if any) */}
+      <BillingExemptionsCard organizationId={currentOrganization.id} />
 
       {/* Image Storage Quota */}
       <ImageStorageQuota organizationId={currentOrganization?.id} />

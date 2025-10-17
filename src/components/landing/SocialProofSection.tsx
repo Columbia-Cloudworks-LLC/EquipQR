@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, CheckCircle, Users, Building } from 'lucide-react';
+import { Star, CheckCircle, Building } from 'lucide-react';
+import { ExternalLink } from '@/components/ui/external-link';
 
 const SocialProofSection = () => {
   return (
@@ -26,14 +27,12 @@ const SocialProofSection = () => {
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold text-foreground mb-2">
-                    <a 
-                      href="https://3aequip.columbiacloudworks.com/" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:text-primary/80 transition-colors underline"
+                    <ExternalLink 
+                      href="https://3aequip.columbiacloudworks.com/"
+                      className="text-primary hover:text-primary/80 transition-colors"
                     >
                       3-A Equipment
-                    </a>
+                    </ExternalLink>
                   </h3>
                   <Badge variant="secondary" className="mb-4">Heavy Equipment Repair Shop</Badge>
                   <p className="text-muted-foreground leading-relaxed">

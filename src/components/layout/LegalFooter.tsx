@@ -1,5 +1,6 @@
 
 import { Link } from 'react-router-dom';
+import { ExternalLink } from '@/components/ui/external-link';
 
 export default function LegalFooter() {
   const currentYear = new Date().getFullYear();
@@ -11,31 +12,24 @@ export default function LegalFooter() {
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="text-sm text-muted-foreground">
             © {currentYear} EquipQR v{appVersion} by{' '}
-            <a 
-              href="https://columbiacloudworks.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors underline inline-flex items-center gap-2"
-            >
+            <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
               <img 
                 src="/eqr-icons/columbia-cloudworks-logo.png" 
                 alt="Columbia Cloudworks" 
                 className="w-4 h-4 sm:w-5 sm:h-5"
               />
               COLUMBIA CLOUDWORKS LLC
-            </a>
+            </ExternalLink>
             . All rights reserved.
           </div>
           
           <div className="flex flex-col sm:flex-row items-center gap-4 text-sm">
-            <a 
+            <ExternalLink 
               href="https://equipqr.app" 
-              target="_blank" 
-              rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               EquipQR.app
-            </a>
+            </ExternalLink>
             
             <div className="flex items-center gap-4">
               <Link 

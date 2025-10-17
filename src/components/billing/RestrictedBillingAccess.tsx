@@ -13,14 +13,16 @@ const RestrictedBillingAccess: React.FC<RestrictedBillingAccessProps> = () => {
   const { organizations, switchOrganization } = useSimpleOrganization();
   const navigate = useNavigate();
 
-  // Find organizations where the user is an owner
-  const ownedOrganizations = organizations.filter(org => org.userRole === 'owner');
+  // Find organizations where the user is an owner or admin
+  const managedOrganizations = organizations.filter(
+    org => org.userRole === 'owner' || org.userRole === 'admin'
+  );
 
-  const handleSwitchToOwnedOrganization = () => {
-    if (ownedOrganizations.length > 0) {
-      const firstOwnedOrg = ownedOrganizations[0];
-      switchOrganization(firstOwnedOrg.id);
-      // Navigate to billing page for the organization they own
+  const handleSwitchToManagedOrganization = () => {
+    if (managedOrganizations.length > 0) {
+      const firstManagedOrg = managedOrganizations[0];
+      switchOrganization(firstManagedOrg.id);
+      // Navigate to billing page for the organization they manage
       navigate('/dashboard/billing');
     }
   };
@@ -33,32 +35,31 @@ const RestrictedBillingAccess: React.FC<RestrictedBillingAccessProps> = () => {
             <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
             <div className="space-y-3 flex-1">
               <div className="text-sm text-foreground">
-                <strong>Access Restricted:</strong> You need to be an organization owner to manage billing. 
-                Billing is tied to the owner's personal Stripe account and finances.
+                <strong>Access Restricted:</strong> You need to be an organization owner or admin to view billing information.
               </div>
               <div className="text-sm text-muted-foreground">
-                Contact the organization owner if you need billing information{ownedOrganizations.length > 0 ? ', or' : '.'}
-                {ownedOrganizations.length > 0 && (
+                Contact an organization owner or admin if you need billing information{managedOrganizations.length > 0 ? ', or' : '.'}
+                {managedOrganizations.length > 0 && (
                   <>
                     {' '}
                     <button
-                      onClick={handleSwitchToOwnedOrganization}
+                      onClick={handleSwitchToManagedOrganization}
                       className="text-primary underline hover:no-underline"
                     >
-                      manage billing for your organization
+                      view billing for your organization
                     </button>
                     {' '}instead.
                   </>
                 )}
               </div>
-              {ownedOrganizations.length > 0 && (
+              {managedOrganizations.length > 0 && (
                 <Button 
-                  onClick={handleSwitchToOwnedOrganization}
+                  onClick={handleSwitchToManagedOrganization}
                   variant="outline"
                   size="sm"
                   className="mt-3"
                 >
-                  Switch to {ownedOrganizations[0].name}
+                  Switch to {managedOrganizations[0].name}
                 </Button>
               )}
             </div>

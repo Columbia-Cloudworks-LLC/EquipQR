@@ -2,32 +2,32 @@ name: Deployment Status
 
 on:
   deployment_status:
-  deployment:
 
 permissions:
   contents: read
- 
+  deployments: read
 
 jobs:
   deployment-status:
     runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
-    if: github.event.deployment_status.state == 'success' || github.event.deployment_status.state == 'failure'
+    if: contains(fromJson('["success","failure"]'), github.event.deployment_status.state)
     steps:
       - name: Deployment Status Update (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           Write-Host "Deployment status: ${{ github.event.deployment_status.state }}"
-          if ('${{ github.event.deployment_status.deployment.environment }}' -ne '') {
-            Write-Host "Environment: ${{ github.event.deployment_status.deployment.environment }}"
+          if ('${{ github.event.deployment_status.environment }}' -ne '') {
+            Write-Host "Environment: ${{ github.event.deployment_status.environment }}"
           }
-          if ('${{ github.event.deployment_status.deployment.ref }}' -ne '') {
-            Write-Host "Ref: ${{ github.event.deployment_status.deployment.ref }}"
+          if ('${{ github.event.deployment.ref }}' -ne '') {
+            Write-Host "Ref: ${{ github.event.deployment.ref }}"
           }
           if ('${{ github.event.deployment_status.state }}' -eq 'success') {
             Write-Host "✅ Deployment successful!"
           } else {
             Write-Host "❌ Deployment failed"
+            exit 1
           }
 
       - name: Deployment Status Update (Unix)
@@ -35,15 +35,16 @@ jobs:
         shell: bash
         run: |
           echo "Deployment status: ${{ github.event.deployment_status.state }}"
-          if [ "${{ github.event.deployment_status.deployment.environment }}" != "" ]; then
-            echo "Environment: ${{ github.event.deployment_status.deployment.environment }}"
+          if [ "${{ github.event.deployment_status.environment }}" != "" ]; then
+            echo "Environment: ${{ github.event.deployment_status.environment }}"
           fi
-          if [ "${{ github.event.deployment_status.deployment.ref }}" != "" ]; then
-            echo "Ref: ${{ github.event.deployment_status.deployment.ref }}"
+          if [ "${{ github.event.deployment.ref }}" != "" ]; then
+            echo "Ref: ${{ github.event.deployment.ref }}"
           fi
           
           if [ "${{ github.event.deployment_status.state }}" = "success" ]; then
             echo "✅ Deployment successful!"
           else
-            echo "❌ Deployment failed"
+            echo "❌ Deployment failed" 
+            exit 1
           fi

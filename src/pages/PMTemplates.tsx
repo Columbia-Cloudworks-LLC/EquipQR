@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { TemplateAssignmentDialog } from '@/components/pm-templates/TemplateAssignmentDialog';
 import { ChecklistTemplateEditor } from '@/components/organization/ChecklistTemplateEditor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -53,9 +54,18 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   const canDelete = isAdmin && isOrgTemplate && !template.is_protected && canCreateCustomTemplates;
   const canClone = canCreateCustomTemplates;
 
+  const navigate = useNavigate();
+  const handleView = () => navigate(`/dashboard/pm-templates/${template.id}`);
+
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="flex-grow">
+    <Card className="h-full flex flex-col hover:bg-muted/50 transition-colors">
+      <CardHeader
+        className="flex-grow cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onClick={handleView}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleView()}
+      >
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg line-clamp-2">{template.name}</CardTitle>
           <div className="flex gap-1 ml-2">
@@ -180,12 +190,14 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 };
 
 const PMTemplates = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentOrganization } = useSimpleOrganization();
   const { hasRole } = usePermissions();
   const { restrictions } = useSimplifiedOrganizationRestrictions();
   const { data: templates, isLoading } = usePMTemplates();
   
-  const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<string | null>(searchParams.get('edit'));
   const [templateToApply, setTemplateToApply] = useState<string | null>(null);
   const [cloneDialogOpen, setCloneDialogOpen] = useState<string | null>(null);
   const [cloneName, setCloneName] = useState('');
@@ -237,6 +249,10 @@ const PMTemplates = () => {
 
   const handleCloseEditor = () => {
     setEditingTemplate(null);
+    if (searchParams.get('edit')) {
+      searchParams.delete('edit');
+      setSearchParams(searchParams, { replace: true });
+    }
   };
 
   const handleApplyTemplate = (templateId: string) => {
@@ -401,9 +417,14 @@ const PMTemplates = () => {
       {editingTemplate && (
         <Dialog open={!!editingTemplate} onOpenChange={(open) => !open && handleCloseEditor()}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
-            <DialogDescription className="sr-only">
-              {editingTemplate === 'new' ? 'Create a new PM template' : 'Edit existing PM template'}
-            </DialogDescription>
+            <DialogHeader>
+              <DialogTitle>
+                {editingTemplate === 'new' ? 'Create PM Template' : 'Edit PM Template'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingTemplate === 'new' ? 'Create a new PM template' : 'Edit existing PM template'}
+              </DialogDescription>
+            </DialogHeader>
             <ChecklistTemplateEditor
               template={editingTemplate === 'new' ? undefined : templateToEdit}
               onSave={handleCloseEditor}

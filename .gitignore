@@ -29,3 +29,6 @@ dist-ssr
 # Backup Files used for Testing
 supabase/*.backup
 supabase/.temp/*
+
+# Coverage Files
+coverage/*

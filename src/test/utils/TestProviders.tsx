@@ -10,7 +10,7 @@ import {
 } from './mock-providers';
 
 // Test providers wrapper component
-export const TestProviders = ({ children }: { children: React.ReactNode }) => {
+export const TestProviders = ({ children, initialEntries }: { children: React.ReactNode; initialEntries?: string[] }) => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -20,7 +20,7 @@ export const TestProviders = ({ children }: { children: React.ReactNode }) => {
   });
 
   return (
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={initialEntries || ['/']}>
       <QueryClientProvider client={queryClient}>
         <MockAuthProvider>
           <MockSessionProvider>
