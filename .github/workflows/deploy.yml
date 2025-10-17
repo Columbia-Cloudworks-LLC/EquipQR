@@ -7,13 +7,12 @@ on:
 permissions:
   contents: read
 
-
 jobs:
   notify-deployment:
     name: Notify Deployment
     runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -79,3 +78,50 @@ jobs:
           else
             echo "  Preview: https://preview.equipqr.app"
           fi
+
+      - name: Trigger Vercel deploy hook (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          PREVIEW_HOOK: ${{ secrets.VERCEL_PREVIEW_DEPLOY_HOOK }}
+          PRODUCTION_HOOK: ${{ secrets.VERCEL_PRODUCTION_DEPLOY_HOOK }}
+        run: |
+          $hookUrl = if ($env:GITHUB_REF -eq 'refs/heads/main') { $env:PRODUCTION_HOOK } else { $env:PREVIEW_HOOK }
+          if ([string]::IsNullOrWhiteSpace($hookUrl)) {
+            throw "No Vercel deploy hook configured for branch $env:GITHUB_REF_NAME"
+          }
+
+          $environment = if ($env:GITHUB_REF -eq 'refs/heads/main') { 'production' } else { 'preview' }
+          Write-Host "Triggering Vercel $environment deploy hook..."
+
+          $response = Invoke-RestMethod -Method Post -Uri $hookUrl -ErrorAction Stop
+          if ($null -ne $response) {
+            Write-Host "Vercel response:"
+            $response | ConvertTo-Json -Depth 10
+          }
+
+      - name: Trigger Vercel deploy hook (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          PREVIEW_HOOK: ${{ secrets.VERCEL_PREVIEW_DEPLOY_HOOK }}
+          PRODUCTION_HOOK: ${{ secrets.VERCEL_PRODUCTION_DEPLOY_HOOK }}
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            HOOK_URL="$PRODUCTION_HOOK"
+            ENVIRONMENT="production"
+          else
+            HOOK_URL="$PREVIEW_HOOK"
+            ENVIRONMENT="preview"
+          fi
+
+          if [ -z "$HOOK_URL" ]; then
+            echo "No Vercel deploy hook configured for branch '${ENVIRONMENT}'."
+            exit 1
+          fi
+
+          echo "Triggering Vercel ${ENVIRONMENT} deploy hook..."
+          RESPONSE=$(curl -sS -X POST "$HOOK_URL" -d '' -f)
+          echo "Vercel response:"
+          echo "$RESPONSE"
+
