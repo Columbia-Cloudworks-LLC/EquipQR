@@ -2,16 +2,15 @@ name: Deployment Status
 
 on:
   deployment_status:
-  deployment:
 
 permissions:
   contents: read
- 
+  deployments: read
 
 jobs:
   deployment-status:
     runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
-    if: github.event.deployment_status.state == 'success' || github.event.deployment_status.state == 'failure'
+    if: contains(fromJson('["success","failure"]'), github.event.deployment_status.state)
     steps:
       - name: Deployment Status Update (Windows)
         if: runner.os == 'Windows'
@@ -28,6 +27,7 @@ jobs:
             Write-Host "✅ Deployment successful!"
           } else {
             Write-Host "❌ Deployment failed"
+            exit 1
           }
 
       - name: Deployment Status Update (Unix)
@@ -45,5 +45,6 @@ jobs:
           if [ "${{ github.event.deployment_status.state }}" = "success" ]; then
             echo "✅ Deployment successful!"
           else
-            echo "❌ Deployment failed"
+            echo "❌ Deployment failed" 
+            exit 1
           fi
