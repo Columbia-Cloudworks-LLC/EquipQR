@@ -18,11 +18,11 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Deployment status: ${{ github.event.deployment_status.state }}"
-          if ('${{ github.event.deployment_status.deployment.environment }}' -ne '') {
-            Write-Host "Environment: ${{ github.event.deployment_status.deployment.environment }}"
+          if ('${{ github.event.deployment_status.environment }}' -ne '') {
+            Write-Host "Environment: ${{ github.event.deployment_status.environment }}"
           }
-          if ('${{ github.event.deployment_status.deployment.ref }}' -ne '') {
-            Write-Host "Ref: ${{ github.event.deployment_status.deployment.ref }}"
+          if ('${{ github.event.deployment.ref }}' -ne '') {
+            Write-Host "Ref: ${{ github.event.deployment.ref }}"
           }
           if ('${{ github.event.deployment_status.state }}' -eq 'success') {
             Write-Host "✅ Deployment successful!"
@@ -35,11 +35,11 @@ jobs:
         shell: bash
         run: |
           echo "Deployment status: ${{ github.event.deployment_status.state }}"
-          if [ "${{ github.event.deployment_status.deployment.environment }}" != "" ]; then
-            echo "Environment: ${{ github.event.deployment_status.deployment.environment }}"
+          if [ "${{ github.event.deployment_status.environment }}" != "" ]; then
+            echo "Environment: ${{ github.event.deployment_status.environment }}"
           fi
-          if [ "${{ github.event.deployment_status.deployment.ref }}" != "" ]; then
-            echo "Ref: ${{ github.event.deployment_status.deployment.ref }}"
+          if [ "${{ github.event.deployment.ref }}" != "" ]; then
+            echo "Ref: ${{ github.event.deployment.ref }}"
           fi
           
           if [ "${{ github.event.deployment_status.state }}" = "success" ]; then
