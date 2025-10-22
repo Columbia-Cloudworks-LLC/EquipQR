@@ -28,8 +28,8 @@ serve(async (req) => {
   const apiKey = Deno.env.get("TYPESENSE_API_KEY") ?? "";
 
   const filters: string[] = [];
-  if (brand) filters.push(`brand:='${String(brand).replace(/'/g, "\\'")}'`);
-  if (category) filters.push(`category:='${String(category).replace(/'/g, "\\'")}'`);
+  if (brand) filters.push(`brand:='${String(brand).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`);
+  if (category) filters.push(`category:='${String(category).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`);
 
   const searchParams: Record<string, unknown> = {
     q,
