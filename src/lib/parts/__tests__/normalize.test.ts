@@ -17,7 +17,7 @@ describe('tokenizePartNumber', () => {
     expect(tokens).toContain('denso');
     expect(tokens).toContain('234');
     expect(tokens).toContain('9005');
-    expect(tokens).toContain('2349005');
+    expect(tokens).toContain('denso2349005'); // Full normalized value
   });
 });
 

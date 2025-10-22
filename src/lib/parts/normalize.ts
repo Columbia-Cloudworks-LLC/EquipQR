@@ -1,4 +1,4 @@
-const NON_ALNUM = /[\s_\-]+/g;
+const NON_ALNUM = /[\s_-]+/g;
 
 export function normalizePartNumber(value: string): string {
   const lower = value.toLowerCase().trim();
