@@ -20,11 +20,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { 
-  Home, 
-  Package, 
-  ClipboardList, 
-  Users, 
-  Map, 
+  Home,
+  Package,
+  ClipboardList,
+  Users,
+  Map,
   Building,
   QrCode,
   CreditCard,
@@ -36,7 +36,8 @@ import {
   HelpCircle,
   ClipboardCheck,
   Bug,
-  Shield
+  Shield,
+  PackageSearch
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,7 @@ const managementNavigation = [
 const debugNavigation = [
   { title: "Billing Debug", url: "/dashboard/debug/billing", icon: Bug },
   { title: "Exemptions Admin", url: "/dashboard/debug/exemptions-admin", icon: Shield, superAdminOnly: true },
+  { title: "Part Picker Admin", url: "/dashboard/debug/part-picker", icon: PackageSearch, superAdminOnly: true },
 ];
 
 const AppSidebar = () => {

@@ -38,6 +38,7 @@ const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
 const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin'));
+const PartPickerAdmin = lazy(() => import('@/pages/PartPickerAdmin'));
 const PMTemplateView = lazy(() => import('@/pages/PMTemplateView'));
 const PartPicker = lazy(() => import('@/pages/PartPicker'));
 
@@ -160,6 +161,7 @@ function App() {
                                 {!isDev && <Route path="part-picker" element={<Navigate to="/dashboard" replace />} />}
                                 {import.meta.env.DEV && <Route path="/debug/billing" element={<DebugBilling />} />}
                                 {import.meta.env.DEV && <Route path="/debug/exemptions-admin" element={<BillingExemptionsAdmin />} />}
+                                {import.meta.env.DEV && <Route path="/debug/part-picker" element={<PartPickerAdmin />} />}
                               </Routes>
                             </Suspense>
                           </main>
