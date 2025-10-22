@@ -41,6 +41,11 @@ const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin
 const PMTemplateView = lazy(() => import('@/pages/PMTemplateView'));
 const PartPicker = lazy(() => import('@/pages/PartPicker'));
 
+declare global {
+  // eslint-disable-next-line no-var
+  var __APP_DEV__: boolean | undefined;
+}
+
 
 const BrandedTopBar = () => {
   return <TopBar />;
@@ -58,6 +63,9 @@ const RedirectToWorkOrder = () => {
 };
 
 function App() {
+  const runtimeDevOverride = typeof globalThis !== 'undefined' ? globalThis.__APP_DEV__ : undefined;
+  const isDev = runtimeDevOverride ?? (import.meta.env.DEV === true || import.meta.env.DEV === 'true');
+
   return (
     <AppProviders>
       <Routes>
@@ -65,7 +73,8 @@ function App() {
         <Route path="/" element={<SmartLanding />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/debug-auth" element={<DebugAuth />} />
-        <Route path="/part-picker" element={<Navigate to="/dashboard/part-picker" replace />} />
+        {isDev && <Route path="/part-picker" element={<Navigate to="/dashboard/part-picker" replace />} />}
+        {!isDev && <Route path="/part-picker" element={<Navigate to="/dashboard" replace />} />}
         
         {/* Other public routes with suspense for lazy loading */}
         <Route path="/support" element={<Suspense fallback={<div>Loading...</div>}><Support /></Suspense>} />
@@ -147,7 +156,8 @@ function App() {
                                 <Route path="/notifications" element={<Notifications />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />
-                                <Route path="/part-picker" element={<PartPicker />} />
+                                {isDev && <Route path="part-picker" element={<PartPicker />} />}
+                                {!isDev && <Route path="part-picker" element={<Navigate to="/dashboard" replace />} />}
                                 {import.meta.env.DEV && <Route path="/debug/billing" element={<DebugBilling />} />}
                                 {import.meta.env.DEV && <Route path="/debug/exemptions-admin" element={<BillingExemptionsAdmin />} />}
                               </Routes>
