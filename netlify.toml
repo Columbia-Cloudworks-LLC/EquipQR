@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "git fetch --tags --force --prune && VERSION=$(sh ./scripts/get-version.sh) && echo Resolved version: $VERSION && VITE_APP_VERSION=$VERSION npm run build"
   publish = "dist"
 
 [[redirects]]
