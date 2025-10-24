@@ -56,9 +56,12 @@ export const useOptimizedTeams = () => {
       }
 
       // If we have access snapshot, filter teams based on access
-      // Otherwise, show all teams (fallback behavior)
+      // Owners and admins can see all org teams; members only see teams they're on
       let accessibleTeams = teams;
-      if (accessSnapshot && accessSnapshot.accessibleTeamIds.length > 0) {
+      const role = currentOrganization?.userRole;
+      const isElevated = role === 'owner' || role === 'admin';
+      
+      if (!isElevated && accessSnapshot && accessSnapshot.accessibleTeamIds.length > 0) {
         const accessibleTeamIds = new Set(accessSnapshot.accessibleTeamIds);
         accessibleTeams = teams.filter(team => accessibleTeamIds.has(team.id));
       }

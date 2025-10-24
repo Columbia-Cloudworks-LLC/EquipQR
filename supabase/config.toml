@@ -36,3 +36,9 @@ verify_jwt = true
 
 [functions.list-organizations-admin]
 verify_jwt = true
+
+[functions.parts-search]
+verify_jwt = false
+
+[functions.part-detail]
+verify_jwt = false
