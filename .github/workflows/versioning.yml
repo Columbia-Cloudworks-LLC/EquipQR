@@ -98,31 +98,45 @@ jobs:
           echo "Updating package.json to version ${{ steps.semver.outputs.next }}"
           npm pkg set version=${{ steps.semver.outputs.next }}
           if git diff --quiet -- package.json; then
-            echo "No version change (already at target). Skipping push/tag."
-            echo "skip=true" >> $GITHUB_OUTPUT
-            exit 0
+            echo "Version already at ${{ steps.semver.outputs.next }} in package.json"
+            echo "commit_needed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Version changed, creating commit"
+            git add package.json
+            git commit -m "chore: bump version to ${{ steps.semver.outputs.next }} [skip ci]"
+            echo "commit_needed=true" >> $GITHUB_OUTPUT
           fi
-          git add package.json
-          git commit -m "chore: bump version to ${{ steps.semver.outputs.next }} [skip ci]"
-          echo "skip=false" >> $GITHUB_OUTPUT
 
       - name: Push commit to base branch
-        if: steps.version_update.outputs.skip != 'true'
+        if: steps.version_update.outputs.commit_needed == 'true'
         run: |
           BASE="${{ github.event.pull_request.base.ref }}"
-          echo "Pushing to branch: $BASE"
+          echo "Pushing version bump commit to branch: $BASE"
           git push origin HEAD:"refs/heads/$BASE"
 
-      - name: Create and push tag
-        if: steps.version_update.outputs.skip != 'true'
+      - name: Check if tag exists on origin
+        id: tag_check
         run: |
           TAG="v${{ steps.semver.outputs.next }}"
-          echo "Creating tag: $TAG"
+          echo "Checking if tag $TAG exists on origin"
+          if git ls-remote --exit-code --tags origin "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists on origin"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag $TAG does not exist, will create"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create and push tag
+        if: steps.tag_check.outputs.exists != 'true'
+        run: |
+          TAG="v${{ steps.semver.outputs.next }}"
+          echo "Creating and pushing tag: $TAG"
           git tag -a "$TAG" -m "Release $TAG"
           git push origin "$TAG"
 
       - name: Create GitHub Release
-        if: steps.version_update.outputs.skip != 'true'
+        if: steps.tag_check.outputs.exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.semver.outputs.next }}
