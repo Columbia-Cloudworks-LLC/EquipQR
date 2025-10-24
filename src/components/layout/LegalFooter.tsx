@@ -1,10 +1,11 @@
 
 import { Link } from 'react-router-dom';
 import { ExternalLink } from '@/components/ui/external-link';
+import { APP_VERSION } from '@/lib/version';
 
 export default function LegalFooter() {
   const currentYear = new Date().getFullYear();
-  const appVersion = import.meta.env.VITE_APP_VERSION || 'dev';
+  const appVersion = APP_VERSION;
 
   return (
     <footer className="border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
