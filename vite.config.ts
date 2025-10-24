@@ -1,13 +1,18 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import fs from "fs";
 import { componentTagger } from "lovable-tagger";
+
+// Read package.json version safely at config time
+const pkg = JSON.parse(fs.readFileSync(new URL("./package.json", import.meta.url), "utf-8"));
+const PKG_VERSION = pkg.version || "0.0.0";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   define: {
-    // Expose environment variables to the client
-    __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION || 'dev'),
+    // Expose version to the client (prefers env var, falls back to package.json)
+    __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION || PKG_VERSION),
   },
   server: {
     host: "::",
