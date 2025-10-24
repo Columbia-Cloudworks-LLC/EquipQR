@@ -24,6 +24,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
     organizationName: ''
   });
   const [hcaptchaToken, setHcaptchaToken] = useState<string | null>(null);
+  const hcaptchaEnabled = Boolean(import.meta.env.VITE_HCAPTCHA_SITEKEY);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordMatch, setPasswordMatch] = useState<boolean | null>(null);
 
@@ -48,13 +49,14 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
   };
 
   const isFormValid = () => {
-    return formData.name.trim() && 
-           formData.email.trim() && 
-           formData.password.length >= 6 && 
-           formData.confirmPassword && 
-           formData.organizationName.trim() && 
-           passwordMatch === true && 
-           hcaptchaToken;
+    const baseValid = formData.name.trim() && 
+      formData.email.trim() && 
+      formData.password.length >= 6 && 
+      formData.confirmPassword && 
+      formData.organizationName.trim() && 
+      passwordMatch === true;
+
+    return hcaptchaEnabled ? (baseValid && !!hcaptchaToken) : baseValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,7 +81,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
             name: formData.name,
             organization_name: formData.organizationName
           },
-          captchaToken: hcaptchaToken
+          ...(hcaptchaEnabled && hcaptchaToken ? { captchaToken: hcaptchaToken } : {})
         }
       });
       
@@ -200,11 +202,13 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
         )}
       </div>
       
-      <HCaptchaComponent
-        onSuccess={handleHCaptchaVerify}
-        onError={handleHCaptchaError}
-        onExpire={handleHCaptchaExpire}
-      />
+      {hcaptchaEnabled && (
+        <HCaptchaComponent
+          onSuccess={handleHCaptchaVerify}
+          onError={handleHCaptchaError}
+          onExpire={handleHCaptchaExpire}
+        />
+      )}
       
       <Button 
         type="submit" 

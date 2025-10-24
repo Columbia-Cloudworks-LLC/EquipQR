@@ -149,11 +149,13 @@ export const useCreateInvitation = (organizationId: string) => {
         } catch {} // Silently fail
 
         // Get the created invitation data for return
-        const { data: createdInvitation, error: fetchError } = await supabase
+        const { data: createdRows, error: fetchError } = await supabase
           .from('organization_invitations')
-          .select('*')
+          .select('id, organization_id, email, role, status, expires_at, accepted_at, created_at, invitation_token')
           .eq('id', invitationId)
-          .single();
+          .eq('organization_id', organizationId);
+
+        const createdInvitation = Array.isArray(createdRows) ? createdRows[0] : createdRows;
 
         if (fetchError) {
           console.error(`[INVITATION] Fetch created invitation error:`, fetchError);
@@ -274,11 +276,13 @@ export const useResendInvitation = (organizationId: string) => {
           status: 'pending'
         })
         .eq('id', invitationId)
-        .select()
-        .single();
+        .eq('organization_id', organizationId)
+        .select('id, organization_id, email, role, status, expires_at, accepted_at, updated_at');
+
+      const updatedInvitation = Array.isArray(data) ? data[0] : data;
 
       if (error) throw error;
-      return data;
+      return updatedInvitation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });
@@ -313,11 +317,13 @@ export const useCancelInvitation = (organizationId: string) => {
         .from('organization_invitations')
         .update({ status: 'expired', expired_at: new Date().toISOString() })
         .eq('id', invitationId)
-        .select()
-        .single();
+        .eq('organization_id', organizationId)
+        .select('id, organization_id, email, role, status, expired_at, updated_at');
+
+      const cancelledInvitation = Array.isArray(data) ? data[0] : data;
 
       if (error) throw error;
-      return data;
+      return cancelledInvitation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });
