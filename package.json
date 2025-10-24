@@ -10,7 +10,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "vercel-build": "git fetch --tags --force --prune && VERSION=$(sh ./scripts/get-version.sh) && echo Resolved version: $VERSION && VITE_APP_VERSION=$VERSION vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
