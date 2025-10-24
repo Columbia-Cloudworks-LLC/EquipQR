@@ -66,7 +66,9 @@ export const useOrganizationInvitations = (organizationId: string) => {
             execution_time_ms: executionTime,
             success: true
           });
-        } catch {} // Silently fail
+        } catch {
+          // Silently fail - performance logging is non-critical
+        }
 
         return (invitationsData || []).map(invitation => ({
           id: invitation.id,
@@ -84,8 +86,9 @@ export const useOrganizationInvitations = (organizationId: string) => {
           declined_at: invitation.declined_at || undefined,
           expired_at: invitation.expired_at || undefined
         }));
-      } catch (error: any) {
+      } catch (error) {
         const executionTime = performance.now() - startTime;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         
         // Log performance error
         try {
@@ -93,9 +96,11 @@ export const useOrganizationInvitations = (organizationId: string) => {
             function_name: 'get_invitations',
             execution_time_ms: executionTime,
             success: false,
-            error_message: error.message
+            error_message: errorMessage
           });
-        } catch {} // Silently fail
+        } catch {
+          // Silently fail - performance logging is non-critical
+        }
         
         throw error;
       }
@@ -121,7 +126,9 @@ export const useCreateInvitation = (organizationId: string) => {
       
       try {
         // Use the atomic function that eliminates circular dependencies
-        console.log(`[INVITATION] Creating invitation for ${requestData.email} in org ${organizationId}`);
+        if (import.meta.env.DEV) {
+          console.log(`[INVITATION] Creating invitation for ${requestData.email} in org ${organizationId}`);
+        }
         
         const { data: invitationId, error } = await supabase.rpc('create_invitation_atomic', {
           p_organization_id: organizationId,
@@ -132,12 +139,16 @@ export const useCreateInvitation = (organizationId: string) => {
         });
 
         if (error) {
-          console.error(`[INVITATION] Creation error:`, error);
+          if (import.meta.env.DEV) {
+            console.error(`[INVITATION] Creation error:`, error);
+          }
           throw error;
         }
 
         const executionTime = performance.now() - startTime;
-        console.log(`[INVITATION] Creation took ${executionTime.toFixed(2)}ms`);
+        if (import.meta.env.DEV) {
+          console.log(`[INVITATION] Creation took ${executionTime.toFixed(2)}ms`);
+        }
 
         // Log performance success
         try {
@@ -146,17 +157,23 @@ export const useCreateInvitation = (organizationId: string) => {
             execution_time_ms: executionTime,
             success: true
           });
-        } catch {} // Silently fail
+        } catch {
+          // Silently fail - performance logging is non-critical
+        }
 
         // Get the created invitation data for return
-        const { data: createdInvitation, error: fetchError } = await supabase
+        const { data: createdRows, error: fetchError } = await supabase
           .from('organization_invitations')
-          .select('*')
+          .select('id, organization_id, email, role, status, expires_at, accepted_at, created_at, invitation_token')
           .eq('id', invitationId)
-          .single();
+          .eq('organization_id', organizationId);
+
+        const createdInvitation = Array.isArray(createdRows) ? createdRows[0] : createdRows;
 
         if (fetchError) {
-          console.error(`[INVITATION] Fetch created invitation error:`, fetchError);
+          if (import.meta.env.DEV) {
+            console.error(`[INVITATION] Fetch created invitation error:`, fetchError);
+          }
           throw fetchError;
         }
 
@@ -169,11 +186,13 @@ export const useCreateInvitation = (organizationId: string) => {
                 invitation_id: createdInvitation.id
               });
               
-              if (reserveError) {
+              if (reserveError && import.meta.env.DEV) {
                 console.warn('[INVITATION] Failed to reserve slot:', reserveError);
               }
             } catch (reserveError) {
-              console.warn('[INVITATION] Slot reservation error:', reserveError);
+              if (import.meta.env.DEV) {
+                console.warn('[INVITATION] Slot reservation error:', reserveError);
+              }
             }
           })();
         }
@@ -199,20 +218,27 @@ export const useCreateInvitation = (organizationId: string) => {
             });
 
             if (emailError) {
-              console.error('[INVITATION] Failed to send invitation email:', emailError);
-            } else {
+              if (import.meta.env.DEV) {
+                console.error('[INVITATION] Failed to send invitation email:', emailError);
+              }
+            } else if (import.meta.env.DEV) {
               console.log(`[INVITATION] Email sent successfully for ${requestData.email}`);
             }
           } catch (emailError) {
-            console.error('[INVITATION] Error calling email function:', emailError);
+            if (import.meta.env.DEV) {
+              console.error('[INVITATION] Error calling email function:', emailError);
+            }
           }
         }, 0);
 
-        console.log(`[INVITATION] Successfully created invitation ${createdInvitation.id} for ${requestData.email}`);
+        if (import.meta.env.DEV) {
+          console.log(`[INVITATION] Successfully created invitation ${createdInvitation.id} for ${requestData.email}`);
+        }
         return createdInvitation;
         
-      } catch (error: any) {
+      } catch (error) {
         const executionTime = performance.now() - startTime;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         
         // Log performance error
         try {
@@ -220,9 +246,11 @@ export const useCreateInvitation = (organizationId: string) => {
             function_name: 'create_invitation',
             execution_time_ms: executionTime,
             success: false,
-            error_message: error.message
+            error_message: errorMessage
           });
-        } catch {} // Silently fail
+        } catch {
+          // Silently fail - performance logging is non-critical
+        }
         
         throw error;
       }
@@ -232,7 +260,7 @@ export const useCreateInvitation = (organizationId: string) => {
       queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
       toast.success('Invitation sent successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Error creating invitation:', error);
       
       // Handle specific error types from the optimized function
@@ -274,11 +302,13 @@ export const useResendInvitation = (organizationId: string) => {
           status: 'pending'
         })
         .eq('id', invitationId)
-        .select()
-        .single();
+        .eq('organization_id', organizationId)
+        .select('id, organization_id, email, role, status, expires_at, accepted_at, updated_at');
+
+      const updatedInvitation = Array.isArray(data) ? data[0] : data;
 
       if (error) throw error;
-      return data;
+      return updatedInvitation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });
@@ -313,11 +343,13 @@ export const useCancelInvitation = (organizationId: string) => {
         .from('organization_invitations')
         .update({ status: 'expired', expired_at: new Date().toISOString() })
         .eq('id', invitationId)
-        .select()
-        .single();
+        .eq('organization_id', organizationId)
+        .select('id, organization_id, email, role, status, expired_at, updated_at');
+
+      const cancelledInvitation = Array.isArray(data) ? data[0] : data;
 
       if (error) throw error;
-      return data;
+      return cancelledInvitation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });

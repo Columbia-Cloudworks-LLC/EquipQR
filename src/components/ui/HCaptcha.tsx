@@ -12,10 +12,16 @@ const HCaptchaComponent: React.FC<HCaptchaComponentProps> = ({
   onError,
   onExpire
 }) => {
+  const siteKey = import.meta.env.VITE_HCAPTCHA_SITEKEY as string | undefined;
+
+  if (!siteKey) {
+    return null;
+  }
+
   return (
     <div className="flex justify-center my-4">
       <HCaptcha
-        sitekey="0a70b436-810e-423e-8100-14e6829a319e"
+        sitekey={siteKey}
         onVerify={onSuccess}
         onError={onError}
         onExpire={onExpire}

@@ -52,9 +52,9 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
         description: "Team created successfully",
       });
 
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['optimized-teams'] });
-      queryClient.invalidateQueries({ queryKey: ['teams-fallback'] });
+      // Invalidate relevant queries with org-scoped key
+      queryClient.invalidateQueries({ queryKey: ['optimized-teams', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['teams-fallback', organizationId] });
       
       // Reset form and close
       setName('');

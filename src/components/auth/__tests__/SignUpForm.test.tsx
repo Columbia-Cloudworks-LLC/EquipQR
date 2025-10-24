@@ -7,6 +7,9 @@ import SignUpForm from '../SignUpForm';
 import { supabase } from '@/integrations/supabase/client';
 import type { AuthError } from '@supabase/supabase-js';
 
+// Mock environment variable for hCaptcha
+vi.stubEnv('VITE_HCAPTCHA_SITEKEY', 'test-hcaptcha-site-key');
+
 // Mock Supabase
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
