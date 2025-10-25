@@ -514,11 +514,11 @@ jobs:
       run: |
         echo "📊 Performance Analysis:"
         echo "JavaScript bundles:"
-        find dist/assets -name "*.js" -exec du -sh {} \; | sort -hr | head -5
+        find dist/assets -name "*.js" -exec du -sh {} \; | sort -hr | awk 'NR<=5'
         echo "CSS bundles:"
-        find dist/assets -name "*.css" -exec du -sh {} \; | sort -hr | head -3
+        find dist/assets -name "*.css" -exec du -sh {} \; | sort -hr | awk 'NR<=3'
         echo "Images:"
-        find dist -name "*.png" -o -name "*.jpg" -o -name "*.svg" | wc -l | xargs echo "Image count:"
+        find dist -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.svg" \) | wc -l | xargs echo "Image count:"
         
     - name: Check gzipped JS bundle sizes (Windows)
       if: runner.os == 'Windows'
