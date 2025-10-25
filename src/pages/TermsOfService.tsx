@@ -1,7 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ExternalLink } from '@/components/ui/external-link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function TermsOfService() {
@@ -10,14 +8,14 @@ export default function TermsOfService() {
       <div className="mb-8">
         <Button variant="ghost" asChild className="mb-4">
           <Link to="/">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <span aria-hidden="true" className="mr-2">←</span>
             Back to Dashboard
           </Link>
         </Button>
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
           <p className="text-muted-foreground">
-            Last updated: {new Date().toLocaleDateString()}
+            Last Updated: 10/24/2025
           </p>
         </div>
       </div>
@@ -25,198 +23,234 @@ export default function TermsOfService() {
       <div className="space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Acceptance of Terms</CardTitle>
+            <CardTitle>Who We Are & How These Terms Work.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              By accessing and using EquipQR ("the Service"), developed by{' '}
-              <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
-                COLUMBIA CLOUDWORKS LLC
-              </ExternalLink>
-              , you accept and agree to be bound by the terms and 
-              provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+              These Terms of Service ("<strong>Terms</strong>") are a contract between <strong>Columbia Cloudworks LLC</strong>,
+              an Illinois limited liability company ("<strong>Company</strong>", "<strong>we</strong>", "<strong>us</strong>", or "<strong>our</strong>"),
+              and the person or entity that creates an account or otherwise uses <strong>EquipQR</strong> (the "<strong>Service</strong>")
+              ("<strong>Customer</strong>", "<strong>you</strong>", or "<strong>your</strong>"). If you are using the Service on behalf of an entity,
+              you represent that you have authority to bind that entity, and "you" refers to that entity. By accessing or using the Service, you agree to these Terms.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Description of Service</CardTitle>
+            <CardTitle>1) The Service.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              EquipQR is a fleet equipment management platform designed to help organizations efficiently manage their
-              equipment, track maintenance, and improve overall operational efficiency. The Service may include, but is
-              not limited to, features such as equipment tracking, maintenance scheduling, reporting, and user
-              management.
+              The Service is a fleet equipment management platform enabling equipment records, QR codes, maintenance scheduling, work orders, reporting, and user management. We may modify features from time to time. The Service is not an OEM specification, repair manual, or professional advice, and is not designed for high-risk or safety-critical use.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>User Accounts</CardTitle>
+            <CardTitle>2) Accounts & Organization Admins.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              To access certain features of the Service, you may be required to create a user account. You agree to
-              provide accurate, current, and complete information during the registration process and to update such
-              information to keep it accurate, current, and complete. You are responsible for maintaining the
-              confidentiality of your account credentials and for all activities that occur under your account.
+              You must provide accurate registration details and keep them current. You are responsible for all activities under your account and for maintaining the confidentiality of credentials. Organization administrators control user access and may view, restrict, or remove users.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Acceptable Use</CardTitle>
+            <CardTitle>3) Acceptable Use.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-            <p>
-              You agree to use the Service only for lawful purposes and in accordance with these Terms of Service. You
-              agree not to:
-            </p>
+            <p>You will not (and will not allow anyone to):</p>
             <ul className="list-disc pl-5">
-              <li>Use the Service in any way that violates any applicable laws or regulations.</li>
-              <li>
-                Engage in any conduct that could damage, disable, overburden, or impair the Service or interfere with
-                any other party's use of the Service.
-              </li>
-              <li>Attempt to gain unauthorized access to any portion of the Service or any other systems or networks.</li>
-              <li>Use the Service to transmit any viruses, malware, or other harmful code.</li>
-              <li>
-                Collect or harvest any information about other users of the Service without their consent.
-              </li>
+              <li>use the Service in violation of law or third-party rights (including IP and privacy rights);</li>
+              <li>upload malicious code;</li>
+              <li>probe, scan, or test the vulnerability of the Service;</li>
+              <li>access the Service to build a competing product;</li>
+              <li>scrape, bulk-export, or rate-limit-evade our APIs;</li>
+              <li>submit unlawful, harmful, or <strong>regulated</strong> data without our prior written consent (e.g., PCI cardholder data, PHI under HIPAA, or data of children under 13);</li>
+              <li>use the Service for <strong>high-risk activities</strong> where failure could lead to death, personal injury, or catastrophic damage (e.g., life support, nuclear facilities).</li>
             </ul>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Payment and Subscription</CardTitle>
+            <CardTitle>4) Customer Data & Privacy.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              Certain features of the Service may require payment of subscription fees. You agree to pay all fees and
-              charges associated with your subscription in accordance with the pricing and payment terms presented to
-              you. Subscriptions may be billed on a recurring basis, and you authorize us to automatically charge your
-              payment method for the applicable subscription fees.
+              "<strong>Customer Data</strong>" means data, files, content, and information you (or your users) submit to the Service. As between the parties, <strong>you own Customer Data</strong>. You grant us a non-exclusive, worldwide, royalty-free license to host, copy, process, transmit, and display Customer Data <strong>solely as necessary</strong> to provide and improve the Service and to comply with law.
+            </p>
+            <p>
+              We process personal data in accordance with our <Link to="/privacy-policy" className="underline">Privacy Policy</Link>. If you require a data processing agreement (DPA), you may request one at any time.
+            </p>
+            <p>
+              Upon termination or expiration, you may export Customer Data for <strong>30 days</strong>. After that, we may delete or de-identify Customer Data from active systems, except where retention is required by law or for legitimate business records.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Termination</CardTitle>
+            <CardTitle>5) Third-Party Services.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              We may terminate or suspend your access to the Service at any time, with or without cause, and without
-              prior notice. Upon termination, your right to use the Service will immediately cease.
+              The Service may interoperate with or depend on third-party products and services (e.g., hosting, databases, payments). We do not control third-party services and are not responsible for their acts or omissions. Your use of any third-party service is subject to that provider’s terms.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Disclaimer of Warranties</CardTitle>
+            <CardTitle>6) Subscriptions; Billing; Taxes.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS, WITHOUT ANY WARRANTIES OF ANY KIND,
-              EITHER EXPRESS OR IMPLIED. TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, WE DISCLAIM ALL
-              WARRANTIES, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-              PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+              Paid plans bill in advance and <strong>auto-renew</strong> for the same term unless canceled. You authorize us (and our payment processor) to charge all fees using your selected payment method. <strong>Fees are non-refundable</strong> except where required by law. You are responsible for all applicable <strong>taxes</strong> and government charges, excluding our U.S. income taxes.
+            </p>
+            <p>
+              We may change prices with <strong>30 days’ prior notice</strong>; new prices take effect on the <strong>next renewal</strong>. If you disagree, cancel before renewal. Downgrades take effect on the next term. Trials may be limited and may be ended at any time.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Limitation of Liability</CardTitle>
+            <CardTitle>7) Security; Availability; No SLA.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL WE BE LIABLE FOR ANY INDIRECT,
-              INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER
-              INCURRED DIRECTLY OR INDIRECTLY, ARISING OUT OF YOUR USE OF THE SERVICE.
+              We implement commercially reasonable administrative, technical, and physical safeguards. The Service may be unavailable from time to time for maintenance, upgrades, or events beyond our reasonable control. <strong>No service-level agreement</strong> applies unless otherwise agreed in a signed writing.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Governing Law</CardTitle>
+            <CardTitle>8) Suspension & Termination.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              These Terms of Service shall be governed by and construed in accordance with the laws of Delaware, without
-              regard to its conflict of law principles.
+              We may suspend or terminate your access if: (a) you materially breach these Terms and fail to cure within <strong>10 days</strong> after notice; (b) you fail to pay fees; or (c) we reasonably believe your use presents legal, security, or operational risk. You may terminate at any time by canceling your subscription; termination is effective at the end of the current term. We will provide a <strong>30-day</strong> window post-termination for data export (except in cases of unlawful activity or significant security risk).
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Intellectual Property Rights</CardTitle>
+            <CardTitle>9) Intellectual Property; License; Feedback.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              The Service and its original content, features, and functionality are and will remain the exclusive property 
-              of{' '}
-              <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
-                COLUMBIA CLOUDWORKS LLC
-              </ExternalLink>
-              {' '}and its licensors. The Service is protected by copyright, trademark, and other laws.
+              We and our licensors own the Service, its software, and all related IP. Subject to these Terms and payment of fees, we grant you a limited, non-exclusive, non-transferable, non-sublicensable license to access and use the Service during your subscription term for your internal business purposes.
+            </p>
+            <p>
+              You will not (and will not permit anyone to): (a) copy, modify, translate, or create derivative works of the Service; (b) reverse engineer, decompile, disassemble, or attempt to discover the source code of the Service; (c) bypass, remove, or defeat any security or usage controls; or (d) use the Service for timesharing or service bureau purposes.
+            </p>
+            <p>
+              <strong>Feedback.</strong> If you provide ideas or suggestions about the Service ("<strong>Feedback</strong>"), you grant us a nonexclusive, perpetual, irrevocable, royalty-free license to use the Feedback for any purpose.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Changes to Terms</CardTitle>
+            <CardTitle>10) Indemnification.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              We reserve the right to modify or revise these Terms of Service at any time. We will notify you of any
-              changes by posting the new Terms of Service on this page. Your continued use of the Service after the
-              effective date of any changes constitutes your acceptance of the new Terms of Service.
+              <strong>Our IP Indemnity.</strong> We will defend you against third-party claims alleging that the Service infringes a U.S. patent, copyright, or trademark, and pay damages and costs finally awarded, provided you promptly notify us and cooperate. We may (at our option) <strong>modify or replace</strong> the Service to avoid infringement or <strong>refund</strong> prepaid fees for the remaining term and terminate your access. We have no obligation for claims based on combinations, modifications not made by us, or use after we notify you to stop.
+            </p>
+            <p>
+              <strong>Your Indemnity.</strong> You will defend and indemnify us from third-party claims arising from Customer Data, your use of the Service in violation of these Terms, or your violation of law or third-party rights.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Entire Agreement</CardTitle>
+            <CardTitle>11) Disclaimers.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              These Terms of Service constitute the entire agreement between you and us regarding your use of the
-              Service and supersede all prior and contemporaneous agreements and understandings, whether written or
-              oral.
+              THE SERVICE IS PROVIDED “AS IS” AND “AS AVAILABLE.” TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
+            <CardTitle>12) Limitation of Liability.</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              If you have any questions about these Terms of Service, please contact us at:
+              To the fullest extent permitted by law, <strong>our total liability</strong> for any claim arising out of or relating to the Service or these Terms will not exceed the <strong>amounts you actually paid</strong> for the Service in the <strong>12 months</strong> before the event giving rise to liability. We will not be liable for any indirect, incidental, special, consequential, or punitive damages, or lost profits or revenues. These limits apply even if a remedy fails of its essential purpose.
             </p>
             <p>
-              Email: nicholas.king@columbiacloudworks.com<br />
-              Website: https://equipqr.app<br />
-              <a 
-                href="https://columbiacloudworks.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-foreground transition-colors underline"
-              >
-                COLUMBIA CLOUDWORKS LLC
-              </a>
+              <strong>Exclusions:</strong> The foregoing cap does <strong>not</strong> limit your payment obligations or either party’s liability for violation of the other party’s IP rights, or for willful, unlawful conduct.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>13) Changes to These Terms.</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              We may update these Terms from time to time. For <strong>material</strong> changes, we will provide <strong>30 days’ prior notice</strong> by email or in-app notice. Changes apply <strong>prospectively</strong> and take effect on the <strong>next renewal</strong>. If you do not agree, you may cancel before the effective date.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>14) Governing Law; Venue; Notices; Miscellaneous.</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              These Terms are governed by the laws of <strong>Illinois</strong>, without regard to conflicts of laws. The parties consent to the <strong>exclusive jurisdiction and venue</strong> of the state and federal courts located in <strong>Illinois</strong>.
+            </p>
+            <p>
+              <strong>Notices.</strong> Notices will be sent to the contacts in your account and to <a href="mailto:legal@columbiacloudworks.com" className="underline">legal@columbiacloudworks.com</a> (or another posted address).
+            </p>
+            <p>
+              <strong>Assignment.</strong> You may not assign these Terms without our prior written consent; we may assign to an affiliate or in connection with a merger, acquisition, or sale of assets.
+            </p>
+            <p>
+              <strong>Export & Sanctions.</strong> You will comply with U.S. export control and economic sanctions laws.
+            </p>
+            <p>
+              <strong>U.S. Government End-Users.</strong> The Service is “commercial computer software” subject to restricted rights.
+            </p>
+            <p>
+              <strong>Waiver; Severability; Order of Precedence; Survival.</strong> A waiver must be in writing; unenforceable terms are severed; order of precedence is: an executed order form (if any), then these Terms, then online policies; provisions that by their nature survive, do survive.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>15) Entire Agreement.</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              These Terms are the entire agreement between you and us regarding the Service and supersede all prior or contemporaneous agreements on that subject.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>16) Contact.</CardTitle>
+          </CardHeader>
+          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+            <p>
+              <strong>Columbia Cloudworks LLC</strong> • Email: <a href="mailto:nicholas.king@columbiacloudworks.com" className="underline">nicholas.king@columbiacloudworks.com</a> • Website: <a href="https://equipqr.app" target="_blank" rel="noopener noreferrer" className="underline">https://equipqr.app</a>
             </p>
           </CardContent>
         </Card>
