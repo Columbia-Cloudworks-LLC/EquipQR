@@ -14,6 +14,7 @@ interface InvitationData {
   email: string;
   role: 'admin' | 'member';
   status: string;
+  organization_id: string;
   organization_name: string;
   inviter_name: string;
   message?: string;
@@ -68,6 +69,7 @@ const InvitationAccept = () => {
           email: invitation.email,
           role: invitation.role as 'admin' | 'member',
           status: invitation.status,
+          organization_id: invitation.organization_id,
           organization_name: invitation.organization_name || 'Unknown Organization',
           inviter_name: invitation.invited_by_name || 'Unknown User',
           message: invitation.message,
@@ -219,6 +221,8 @@ const InvitationAccept = () => {
     const authParams = new URLSearchParams();
     authParams.set('tab', 'signup');
     if (invitation.email) authParams.set('email', invitation.email);
+    if (invitation.organization_id) authParams.set('invitedOrgId', invitation.organization_id);
+    if (invitation.organization_name) authParams.set('invitedOrgName', invitation.organization_name);
 
     navigate(`/auth?${authParams.toString()}`, { replace: true });
     return null;

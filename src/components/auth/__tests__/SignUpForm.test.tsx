@@ -679,4 +679,155 @@ describe('SignUpForm', () => {
       expect(screen.getByLabelText(/confirm password/i)).toHaveFocus();
     });
   });
+
+  describe('Invitation-based Signup', () => {
+    it('should show info banner when invitedOrgName is provided', () => {
+      render(
+        <SignUpForm 
+          {...defaultProps} 
+          invitedOrgName="Acme Corporation"
+        />
+      );
+      
+      expect(screen.getByText(/You'll join/i)).toBeInTheDocument();
+      expect(screen.getByText(/Acme Corporation/i)).toBeInTheDocument();
+      expect(screen.getByText(/choose a different name for your own workspace/i)).toBeInTheDocument();
+    });
+
+    it('should show error when organization name matches invited org name', async () => {
+      const user = userEvent.setup();
+      render(
+        <SignUpForm 
+          {...defaultProps} 
+          invitedOrgName="Acme Corporation"
+        />
+      );
+      
+      const orgInput = screen.getByLabelText(/organization name/i);
+      await user.type(orgInput, 'Acme Corporation');
+      
+      await waitFor(() => {
+        expect(screen.getByText(/Please choose a different name than "Acme Corporation"/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should show error for case-insensitive match', async () => {
+      const user = userEvent.setup();
+      render(
+        <SignUpForm 
+          {...defaultProps} 
+          invitedOrgName="Acme Corporation"
+        />
+      );
+      
+      const orgInput = screen.getByLabelText(/organization name/i);
+      await user.type(orgInput, 'acme corporation');
+      
+      await waitFor(() => {
+        const errorElement = document.getElementById('signup-org-error');
+        expect(errorElement).toBeInTheDocument();
+        expect(errorElement).toHaveTextContent(/Please choose a different name than "Acme Corporation"/i);
+      });
+    });
+
+    it('should disable submit button when org name matches invited org', async () => {
+      const user = userEvent.setup();
+      render(
+        <SignUpForm 
+          {...defaultProps} 
+          invitedOrgName="Acme Corporation"
+        />
+      );
+      
+      // Fill all fields
+      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
+      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
+      await user.type(screen.getByLabelText(/organization name/i), 'Acme Corporation');
+      await user.type(screen.getByLabelText('Password'), 'password123');
+      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
+      await user.click(screen.getByTestId('hcaptcha-success'));
+      
+      const submitButton = screen.getByRole('button', { name: /create account & organization/i });
+      expect(submitButton).toBeDisabled();
+    });
+
+    it('should enable submit when org name is different from invited org', async () => {
+      const user = userEvent.setup();
+      render(
+        <SignUpForm 
+          {...defaultProps} 
+          invitedOrgName="Acme Corporation"
+        />
+      );
+      
+      // Fill all fields with different org name
+      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
+      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
+      await user.type(screen.getByLabelText(/organization name/i), 'My Company');
+      await user.type(screen.getByLabelText('Password'), 'password123');
+      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
+      await user.click(screen.getByTestId('hcaptcha-success'));
+      
+      const submitButton = screen.getByRole('button', { name: /create account & organization/i });
+      expect(submitButton).toBeEnabled();
+    });
+
+    it('should include invitation metadata in signUp call', async () => {
+      const user = userEvent.setup();
+      render(
+        <SignUpForm 
+          {...defaultProps} 
+          invitedOrgId="org-123"
+          invitedOrgName="Acme Corporation"
+        />
+      );
+      
+      // Fill all fields
+      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
+      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
+      await user.type(screen.getByLabelText(/organization name/i), 'My Company');
+      await user.type(screen.getByLabelText('Password'), 'password123');
+      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
+      await user.click(screen.getByTestId('hcaptcha-success'));
+      
+      const submitButton = screen.getByRole('button', { name: /create account & organization/i });
+      await user.click(submitButton);
+      
+      await waitFor(() => {
+        expect(mockSignUp).toHaveBeenCalledWith({
+          email: 'john@example.com',
+          password: 'password123',
+          options: {
+            emailRedirectTo: expect.any(String),
+            data: {
+              name: 'John Doe',
+              organization_name: 'My Company',
+              invited_organization_id: 'org-123',
+              invited_organization_name: 'Acme Corporation',
+              signup_source: 'invite'
+            },
+            captchaToken: 'mock-captcha-token'
+          }
+        });
+      });
+    });
+
+    it('should update placeholder text when invited', () => {
+      render(
+        <SignUpForm 
+          {...defaultProps} 
+          invitedOrgName="Acme Corporation"
+        />
+      );
+      
+      const orgInput = screen.getByLabelText(/organization name/i);
+      expect(orgInput).toHaveAttribute('placeholder', 'Enter your organization name (not Acme Corporation)');
+    });
+
+    it('should not show banner when no invitation', () => {
+      render(<SignUpForm {...defaultProps} />);
+      
+      expect(screen.queryByText(/You'll join/i)).not.toBeInTheDocument();
+    });
+  });
 });

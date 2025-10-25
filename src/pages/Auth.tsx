@@ -65,12 +65,19 @@ const Auth = () => {
     setSuccess(null);
   };
 
-  // Parse query params for tab/email
-  const { defaultTab, prefillEmail } = useMemo(() => {
+  // Parse query params for tab/email/invitation info
+  const { defaultTab, prefillEmail, invitedOrgId, invitedOrgName } = useMemo(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab') || 'signin';
     const email = params.get('email') || undefined;
-    return { defaultTab: tab, prefillEmail: email };
+    const orgId = params.get('invitedOrgId') || undefined;
+    const orgName = params.get('invitedOrgName') || undefined;
+    return { 
+      defaultTab: tab, 
+      prefillEmail: email,
+      invitedOrgId: orgId,
+      invitedOrgName: orgName
+    };
   }, [location.search]);
 
   if (authLoading) {
@@ -155,6 +162,8 @@ const Auth = () => {
                   isLoading={isLoading}
                   setIsLoading={setIsLoading}
                   prefillEmail={prefillEmail}
+                  invitedOrgId={invitedOrgId}
+                  invitedOrgName={invitedOrgName}
                 />
                 
                 <div className="mt-4">
