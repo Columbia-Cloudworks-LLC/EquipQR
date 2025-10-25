@@ -13,12 +13,13 @@ interface SignUpFormProps {
   onError: (error: string) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  prefillEmail?: string;
 }
 
-const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, setIsLoading }) => {
+const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, setIsLoading, prefillEmail }) => {
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
+    email: prefillEmail || '',
     password: '',
     confirmPassword: '',
     organizationName: ''
