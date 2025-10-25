@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,15 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError, isLoading, 
   const hcaptchaEnabled = Boolean(import.meta.env.VITE_HCAPTCHA_SITEKEY);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordMatch, setPasswordMatch] = useState<boolean | null>(null);
+
+  // Sync email field with prefillEmail when it changes (e.g., switching invitations)
+  useEffect(() => {
+    if (prefillEmail && prefillEmail !== formData.email) {
+      setFormData(prev => ({ ...prev, email: prefillEmail }));
+      const valid = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(prefillEmail);
+      setEmailError(valid || prefillEmail.length === 0 ? null : 'Enter a valid email address');
+    }
+  }, [prefillEmail]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));

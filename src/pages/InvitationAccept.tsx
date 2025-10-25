@@ -211,24 +211,17 @@ const InvitationAccept = () => {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <Mail className="h-12 w-12 text-primary mx-auto mb-4" />
-            <CardTitle>Sign In Required</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-muted-foreground mb-4">
-              Please sign in to accept this invitation to join <strong>{invitation.organization_name}</strong>.
-            </p>
-            <Button onClick={() => navigate('/auth')}>
-              Sign In
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    // Store pending redirect back to this invitation URL
+    const currentPath = window.location.pathname + window.location.search;
+    sessionStorage.setItem('pendingRedirect', currentPath);
+
+    // Build auth URL with signup tab and prefilled email
+    const authParams = new URLSearchParams();
+    authParams.set('tab', 'signup');
+    if (invitation.email) authParams.set('email', invitation.email);
+
+    navigate(`/auth?${authParams.toString()}`, { replace: true });
+    return null;
   }
 
   return (
