@@ -13,8 +13,8 @@ permissions:
 
 jobs:
   auto-merge:
-    if: startsWith(github.event.pull_request.title, 'chore: bump version to ')
     runs-on: ubuntu-latest
+    if: startsWith(github.event.pull_request.title, 'chore: bump version to ')
     steps:
       - name: Auto-approve version bump PR
         uses: hmarr/auto-approve-action@v4
