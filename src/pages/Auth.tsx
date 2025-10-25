@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,6 +17,7 @@ import LegalFooter from '@/components/layout/LegalFooter';
 const Auth = () => {
   const navigate = useNavigate();
   const { user, signInWithGoogle, isLoading: authLoading } = useAuth();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -64,6 +65,14 @@ const Auth = () => {
     setSuccess(null);
   };
 
+  // Parse query params for tab/email
+  const { defaultTab, prefillEmail } = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab') || 'signin';
+    const email = params.get('email') || undefined;
+    return { defaultTab: tab, prefillEmail: email };
+  }, [location.search]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -95,7 +104,7 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
+            <Tabs defaultValue={defaultTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -145,6 +154,7 @@ const Auth = () => {
                   onError={handleError}
                   isLoading={isLoading}
                   setIsLoading={setIsLoading}
+                  prefillEmail={prefillEmail}
                 />
                 
                 <div className="mt-4">
