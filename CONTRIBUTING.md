@@ -46,61 +46,80 @@ EquipQR uses a three-branch strategy to maintain code quality and controlled rel
 
 2. **Staging** (`preview` branch)
    - Merge `dev` → `preview` via Pull Request
-   - Triggers CI checks and minor version bump
+   - Triggers CI checks
    - Deploys to preview.equipqr.app for user testing
 
 3. **Production** (`main` branch)
    - Merge `preview` → `main` via Pull Request
-   - Triggers strict CI checks and major version bump
+   - Triggers strict CI checks
    - Deploys to equipqr.app (production)
 
 4. **Hotfixes** (direct to `main`)
    - Emergency fixes can go directly to `main`
-   - Triggers patch version bump
    - Should be rare; prefer the normal flow
+
+**Note**: Versions are created manually using the Manual Version Bump workflow after deployments are verified, not automatically on merge.
 
 ## Versioning & Release Process
 
-EquipQR uses **automated semantic versioning** with git tags and GitHub releases.
+EquipQR uses **manual semantic versioning** with git tags and GitHub releases.
 
 ### How It Works
 
-When a pull request is merged to `preview` or `main`, the versioning workflow automatically:
+Versions are created manually by maintainers through a GitHub Actions workflow:
 
-1. **Computes the next version** based on the target branch:
-   - `dev` → `preview`: **Minor** bump (v1.0.0 → v1.1.0)
-   - `preview` → `main`: **Major** bump (v1.1.0 → v2.0.0)
-   - `hotfix` → `main`: **Patch** bump (v2.0.0 → v2.0.1)
+1. **Navigate to the workflow**:
+   - Go to **Actions** → **Manual Version Bump**
+   - Click **Run workflow**
+   - Select the branch (typically `main` or `preview`)
 
-2. **Creates a version bump Pull Request**:
-   - Title: `chore: bump version to X.Y.Z`
-   - Updates `package.json` with the new version
-   - Tagged with `release` and `automated` labels
+2. **Enter version information**:
+   - **Version**: Enter the new version number (e.g., `1.2.3` - without `v` prefix)
+   - **Message**: Optional release message (defaults to "Release vX.Y.Z")
+   - The workflow displays current version and suggested bumps in the job summary
 
-3. **Requires maintainer approval**:
-   - Review the version bump PR
-   - Manually approve and merge it
-   - No automated merge for security reasons
-
-4. **Creates tag and release** when bump PR merges:
-   - Git tag: `vX.Y.Z`
-   - GitHub Release with auto-generated notes
+3. **Workflow automatically**:
+   - Validates version format
+   - Checks if tag already exists
+   - Updates `package.json` with new version
+   - Commits the change: `chore: bump version to X.Y.Z`
+   - Creates git tag: `vX.Y.Z`
+   - Pushes commit and tag to the repository
+   - Creates GitHub Release with auto-generated notes
    - Triggers deployment with the new version
+
+### Semantic Versioning Guidelines
+
+Follow semantic versioning principles when choosing version numbers:
+
+- **Major** (X.0.0): Breaking changes, significant new features
+  - Example: `1.5.3` → `2.0.0`
+- **Minor** (X.Y.0): New features, backward-compatible changes
+  - Example: `1.5.3` → `1.6.0`
+- **Patch** (X.Y.Z): Bug fixes, minor improvements
+  - Example: `1.5.3` → `1.5.4`
 
 ### Version Display
 
 The application displays the current version in the footer:
 - Local development: `vdev`
-- Preview deployment: `v1.X.0` (minor versions)
-- Production deployment: `v2.X.0` (major versions)
+- Deployed environments: Shows the version from the latest git tag (e.g., `v1.2.3`)
 
-### Retry Failed Tagging
+### Rollback
 
-If a version bump PR merged but tag/release creation failed:
-1. Go to Actions → Versioning workflow
-2. Find the failed run for the merged bump PR
-3. Click "Re-run jobs"
-4. The workflow will create the missing tag/release
+If a version is created incorrectly:
+
+```bash
+# Delete tag locally and remotely
+git tag -d vX.Y.Z
+git push origin --delete vX.Y.Z
+
+# Delete GitHub Release via GitHub UI (Releases → Delete)
+
+# Revert package.json commit if needed
+git revert <commit-sha>
+git push origin <branch>
+```
 
 ### Reference Documentation
 
@@ -157,16 +176,12 @@ gh pr create --base preview --head dev --title "Your feature description"
 
 ### Preview Branch (`preview`)
 
-**On Feature PRs** (e.g., `dev` → `preview`):
+**On Pull Requests** (e.g., `dev` → `preview`):
 - ✅ Linting (ESLint)
 - ✅ Type checking (TypeScript)
 - ✅ Unit tests with coverage
 - ✅ Build validation
 - ✅ Security scan (npm audit)
-
-**On Version Bump PRs**:
-- May skip intensive checks (maintainer discretion)
-- Simple package.json change, low risk
 
 ### Main Branch (`main`)
 
@@ -362,15 +377,12 @@ npm run test:watch
 4. Request review from maintainers
 5. Make requested changes
 6. Maintainer approves and merges
-7. Version bump PR is auto-created
-8. Maintainer reviews and merges version bump PR
-9. Tag/release created automatically
-10. Deployment triggered
+7. Deployment triggered
+8. After successful deployment, maintainer manually creates version using the Manual Version Bump workflow
 
 ### Merge Strategy
 
 - **Squash and merge** for feature PRs (clean history)
-- **Merge commit** for version bump PRs (preserve version commit)
 
 ---
 
