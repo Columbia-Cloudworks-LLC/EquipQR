@@ -63,6 +63,12 @@ Verify compliance with `.specify/memory/constitution.md` principles:
 - [ ] Memoization where appropriate
 - [ ] Bundle size impact assessed
 
+**VII. End-to-End Observability & Testing**
+- [ ] Playwright E2E tests for critical user journeys
+- [ ] Multi-environment validation (dev, preview, production)
+- [ ] MCP tool integration documented (Vercel, Stripe, GitKraken, Supabase)
+- [ ] Idempotent feature development approach
+
 ## Project Structure
 
 ### Documentation (this feature)

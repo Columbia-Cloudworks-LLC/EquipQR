@@ -1,11 +1,21 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version: 1.0.0 (Initial Constitution)
+Version: 1.0.0 → 1.1.0 (MINOR - New Principle Added)
 Ratification Date: 2025-10-13
-Last Amended: 2025-10-13
+Last Amended: 2025-10-25
 
-New Principles:
+Modified Principles:
+- None (existing principles unchanged)
+
+Added Sections:
+✅ VII. End-to-End Observability & Testing (NEW)
+  - Playwright browser testing across environments
+  - MCP tool integration (Vercel, Stripe, GitKraken, Supabase)
+  - Multi-environment validation (dev, preview, production)
+  - Idempotent feature development
+
+Existing Principles (Unchanged):
 ✅ I. Multi-Tenancy & Data Isolation (NON-NEGOTIABLE)
 ✅ II. Type Safety & Code Quality (NON-NEGOTIABLE)
 ✅ III. Component Architecture & Modularity
@@ -13,21 +23,16 @@ New Principles:
 ✅ V. Test Coverage & Quality Gates (NON-NEGOTIABLE)
 ✅ VI. Performance & Bundle Optimization
 
-New Sections:
-✅ Security Requirements
-✅ Development Workflow
-✅ Performance Standards
-✅ Governance
-
 Template Updates Required:
-⚠️ .specify/templates/plan-template.md - Update Constitution Check section
-⚠️ .specify/templates/spec-template.md - Verify requirements alignment
-⚠️ .specify/templates/tasks-template.md - Add principle-driven task types
+✅ .specify/templates/plan-template.md - Add Principle VII to Constitution Check
+✅ .specify/templates/spec-template.md - Add observability edge cases
+✅ .specify/templates/tasks-template.md - Add observability task types
+✅ .specify/templates/commands/README.md - Reference Principle VII
 
-Follow-up Actions:
-- Create .specify/templates/commands/ directory if missing
-- Validate all SpecKit commands reference constitution
-- Update project README.md to reference constitution
+Version Bump Rationale:
+MINOR (1.0.0 → 1.1.0) - New principle added without breaking existing governance.
+This is a material expansion of guidance adding mandatory observability requirements
+for end-to-end testing and MCP tool integration.
 -->
 
 # EquipQR Constitution
@@ -180,6 +185,43 @@ Fast load times and efficient resource usage are critical for user experience.
 
 **Rationale:** Performance directly impacts user satisfaction and conversion. Bundle size limits prevent bloat. Lazy loading improves initial load time for better Core Web Vitals.
 
+### VII. End-to-End Observability & Testing
+
+Complete system observability enables idempotent feature development and rapid issue resolution across all environments.
+
+**Mandatory Requirements:**
+- **Multi-Environment Testing**: All features MUST be validated in dev, preview (preview.equipqr.app), and production (equipqr.app)
+- **Playwright Integration**: End-to-end browser tests MUST use Playwright with real user credentials
+- **MCP Tool Integration**: Development workflows MUST leverage available MCP tools:
+  - **Vercel MCP**: Deployment validation, build logs, environment inspection
+  - **Stripe MCP**: Billing flow validation, subscription testing, webhook verification
+  - **GitKraken MCP**: Repository state inspection, branch management, PR validation
+  - **Supabase MCP**: Database queries, RLS policy verification, real-time subscription testing
+- **Idempotent Development**: Features MUST be developed and tested in a way that allows repeatable validation at every step
+- **Full-Stack Visibility**: Developers MUST be able to observe and validate every layer (frontend, backend, database, external services)
+
+**Testing Workflow:**
+- E2E tests MUST authenticate with real credentials in test environments
+- Tests MUST validate complete user journeys across all integrated services
+- Pre-deployment validation MUST verify functionality in preview environment
+- Production smoke tests MUST run post-deployment to verify core workflows
+- MCP tools MUST be used to inspect system state during debugging
+
+**Observable Checkpoints:**
+- Database state (via Supabase MCP)
+- Deployment status and logs (via Vercel MCP)
+- Payment flow completion (via Stripe MCP)
+- Repository and PR state (via GitKraken MCP)
+- Browser UI state and user interactions (via Playwright)
+
+**Rationale:** End-to-end observability prevents inconsistencies between environments and enables confident deployments. MCP tool integration provides deep system introspection without custom tooling. Playwright tests with real credentials validate actual user experiences rather than mocked scenarios. Idempotent development practices ensure features can be validated repeatedly, catching regressions early.
+
+**Testing Verification:**
+- E2E test suite MUST cover critical user journeys
+- Tests MUST run successfully in all three environments (dev, preview, production)
+- MCP tools MUST be documented in test procedures for debugging
+- Feature PRs MUST include E2E test validation evidence
+
 ## Security Requirements
 
 ### Authentication & Session Management
@@ -329,4 +371,4 @@ When constitution changes:
 - Database schema and RLS: `docs/architecture/database-schema.md`
 - RBAC system: `docs/features/roles-and-permissions.md`
 
-**Version**: 1.0.0 | **Ratified**: 2025-10-13 | **Last Amended**: 2025-10-13
+**Version**: 1.1.0 | **Ratified**: 2025-10-13 | **Last Amended**: 2025-10-25

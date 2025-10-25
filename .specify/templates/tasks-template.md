@@ -18,6 +18,7 @@ description: "Task list template for feature implementation"
 - Security: Add RBAC checks, input validation with Zod
 - Testing: Maintain 70% coverage, add integration tests
 - Performance: Code splitting, memoization, bundle size checks
+- Observability: Add Playwright E2E tests, validate across environments (dev/preview/production), integrate MCP tools
 
 ## Format: `[ID] [P?] [Story] Description`
 - **[P]**: Can run in parallel (different files, no dependencies)
@@ -81,6 +82,9 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Setup TanStack Query hooks in `src/hooks/`
 - [ ] TXXX Add RBAC permission checks in services
 - [ ] TXXX Configure organization context integration
+- [ ] TXXX [P] Create Playwright E2E tests for critical user journeys
+- [ ] TXXX [P] Document MCP tool validation steps (Vercel, Stripe, GitKraken, Supabase)
+- [ ] TXXX Setup multi-environment test configuration (dev/preview/production)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

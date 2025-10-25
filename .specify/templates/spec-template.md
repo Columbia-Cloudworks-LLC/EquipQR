@@ -83,6 +83,9 @@
 - Multi-tenancy: What if user tries to access another organization's data?
 - Security: What if user lacks required permissions?
 - Input: What if data fails validation?
+- Observability: How can this feature be validated across dev, preview, and production?
+- E2E Testing: What are the critical user journeys that need Playwright validation?
+- MCP Integration: Which external services (Vercel, Stripe, GitKraken, Supabase) need validation?
 
 ## Requirements *(mandatory)*
 
