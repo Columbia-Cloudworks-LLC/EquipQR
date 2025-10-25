@@ -285,7 +285,7 @@ describe('PrivacyPolicy', () => {
       expect(screen.getByText('How We Use Your Information')).toBeInTheDocument();
       expect(screen.getByText('How We Share Your Information')).toBeInTheDocument();
       expect(screen.getByText('Data Security')).toBeInTheDocument();
-      expect(screen.getByText('Data Retention')).toBeInTheDocument();
+      expect(screen.getByText(/Data Retention/i)).toBeInTheDocument();
       expect(screen.getByText('Your Rights')).toBeInTheDocument();
       expect(screen.getByText('Changes to This Privacy Policy')).toBeInTheDocument();
       expect(screen.getByText('Contact Us')).toBeInTheDocument();

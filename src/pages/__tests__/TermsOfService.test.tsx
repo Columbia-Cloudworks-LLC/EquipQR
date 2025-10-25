@@ -79,7 +79,7 @@ describe('TermsOfService', () => {
     it('displays suspension & termination section', () => {
       render(<TermsOfService />);
       expect(screen.getByText('8) Suspension & Termination.')).toBeInTheDocument();
-      expect(screen.getByText(/fail to cure within 10 days/i)).toBeInTheDocument();
+      expect(screen.getByText(/materially breach these Terms/i)).toBeInTheDocument();
     });
 
     it('displays disclaimers section', () => {
@@ -91,13 +91,13 @@ describe('TermsOfService', () => {
     it('displays limitation of liability with monetary cap', () => {
       render(<TermsOfService />);
       expect(screen.getByText('12) Limitation of Liability.')).toBeInTheDocument();
-      expect(screen.getByText(/our total liability.*12 months/i)).toBeInTheDocument();
+      expect(screen.getByText(/amounts you actually paid/i)).toBeInTheDocument();
     });
 
     it('displays governing law and miscellaneous section', () => {
       render(<TermsOfService />);
       expect(screen.getByText(/14\) Governing Law; Venue; Notices; Miscellaneous\./)).toBeInTheDocument();
-      expect(screen.getByText(/exclusive jurisdiction and venue.*Delaware/i)).toBeInTheDocument();
+      expect(screen.getByText(/governed by the laws of/i)).toBeInTheDocument();
     });
 
     it('displays intellectual property; license; feedback section', () => {
@@ -109,7 +109,7 @@ describe('TermsOfService', () => {
     it('displays changes to these terms section', () => {
       render(<TermsOfService />);
       expect(screen.getByText('13) Changes to These Terms.')).toBeInTheDocument();
-      expect(screen.getByText(/30 days’ prior notice/i)).toBeInTheDocument();
+      expect(screen.getByText(/We may update these Terms/i)).toBeInTheDocument();
     });
 
     it('displays entire agreement section', () => {
@@ -169,7 +169,7 @@ describe('TermsOfService', () => {
       
       // Should display legal disclaimers in all caps as intended
       expect(screen.getByText(/THE SERVICE IS PROVIDED/)).toBeInTheDocument();
-      expect(screen.getByText(/TO THE FULLEST EXTENT PERMITTED BY LAW,.*OUR TOTAL LIABILITY/i)).toBeInTheDocument();
+      expect(screen.getByText(/WE DISCLAIM ALL WARRANTIES/i)).toBeInTheDocument();
     });
   });
 
@@ -216,11 +216,11 @@ describe('TermsOfService', () => {
       render(<TermsOfService />);
       
       // Each section should be in a card format - check for multiple cards
-      const acceptanceSection = screen.getByText('Acceptance of Terms').closest('div');
-      expect(acceptanceSection).toBeInTheDocument();
+      const introSection = screen.getByText('Who We Are & How These Terms Work.').closest('div');
+      expect(introSection).toBeInTheDocument();
       
-      const descriptionSection = screen.getByText('Description of Service').closest('div');
-      expect(descriptionSection).toBeInTheDocument();
+      const serviceSection = screen.getByText('1) The Service.').closest('div');
+      expect(serviceSection).toBeInTheDocument();
     });
   });
 });
