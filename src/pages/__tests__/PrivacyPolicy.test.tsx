@@ -86,7 +86,7 @@ describe('PrivacyPolicy', () => {
     it('displays data retention section', () => {
       render(<PrivacyPolicy />);
       
-      expect(screen.getByText('Data Retention')).toBeInTheDocument();
+      expect(screen.getByText(/Data Retention/i)).toBeInTheDocument();
       expect(screen.getByText(/We retain your information for as long as necessary/)).toBeInTheDocument();
     });
 

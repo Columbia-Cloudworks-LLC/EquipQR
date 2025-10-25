@@ -37,6 +37,9 @@ export default function PrivacyPolicy() {
               how we collect, use, disclose, and safeguard your information when you use our fleet equipment 
               management platform and services.
             </p>
+            <p>
+              Your use of the Service is subject to our <Link to="/terms-of-service" className="underline">Terms of Service</Link>. Capitalized terms not defined here have the meanings given in the Terms.
+            </p>
           </CardContent>
         </Card>
 
@@ -126,6 +129,9 @@ export default function PrivacyPolicy() {
                 processors, and analytics providers.
               </li>
               <li>
+                <strong>Subprocessors:</strong> We may engage vetted subprocessors to help operate the Service. If we publish a subprocessor list, we will link it from this policy.
+              </li>
+              <li>
                 <strong>Business Partners:</strong> We may share your information with our business partners who
                 offer products or services that may be of interest to you.
               </li>
@@ -156,17 +162,23 @@ export default function PrivacyPolicy() {
               of transmission over the Internet or method of electronic storage is completely secure, so we cannot
               guarantee absolute security.
             </p>
+            <p>
+              For more on our security posture and availability commitments, see the <Link to="/terms-of-service" className="underline">Terms of Service</Link>.
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Data Retention</CardTitle>
+            <CardTitle>Data Retention; Export & Deletion</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
               We retain your information for as long as necessary to fulfill the purposes outlined in this Privacy
               Policy, unless a longer retention period is required or permitted by law.
+            </p>
+            <p>
+              Upon termination or expiration of your subscription, you may export Customer Data for <strong>30 days</strong>. After that window, we may delete or de-identify Customer Data from active systems, except where retention is required by law or for legitimate business records, as further described in the <Link to="/terms-of-service" className="underline">Terms of Service</Link>.
             </p>
           </CardContent>
         </Card>
@@ -180,6 +192,9 @@ export default function PrivacyPolicy() {
               You have certain rights regarding your information, including the right to access, correct, or delete
               your information. You may also have the right to object to or restrict certain processing of your
               information. To exercise these rights, please contact us using the contact information provided below.
+            </p>
+            <p>
+              If your organization requires a Data Processing Agreement (DPA), you can request one at any time by contacting us. We will provide our standard DPA for review and execution.
             </p>
           </CardContent>
         </Card>

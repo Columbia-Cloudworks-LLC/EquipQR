@@ -31,10 +31,9 @@ describe('TermsOfService', () => {
       expect(heading).toHaveTextContent('Terms of Service');
     });
 
-    it('shows last updated date', () => {
+    it('shows static last updated date', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText(/Last updated:\s*\d{1,2}\/\d{1,2}\/\d{4}/)).toBeInTheDocument();
+      expect(screen.getByText('Last Updated: 10/24/2025')).toBeInTheDocument();
     });
 
     it('includes back to dashboard link', () => {
@@ -46,105 +45,98 @@ describe('TermsOfService', () => {
   });
 
   describe('Terms Sections', () => {
-    it('displays acceptance of terms section', () => {
+    it('displays who we are section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Acceptance of Terms')).toBeInTheDocument();
-      expect(screen.getByText(/By accessing and using EquipQR/)).toBeInTheDocument();
+      expect(screen.getByText('Who We Are & How These Terms Work.')).toBeInTheDocument();
+      expect(screen.getByText(/These Terms of Service.*are a contract between/i)).toBeInTheDocument();
     });
 
-    it('displays description of service section', () => {
+    it('displays service description section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Description of Service')).toBeInTheDocument();
-      expect(screen.getByText(/EquipQR is a fleet equipment management platform/)).toBeInTheDocument();
+      expect(screen.getByText('1) The Service.')).toBeInTheDocument();
+      expect(screen.getByText(/fleet equipment management platform/i)).toBeInTheDocument();
     });
 
-    it('displays user accounts section', () => {
+    it('displays accounts & organization admins section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('User Accounts')).toBeInTheDocument();
-      expect(screen.getByText(/To access certain features of the Service/)).toBeInTheDocument();
+      expect(screen.getByText('2) Accounts & Organization Admins.')).toBeInTheDocument();
+      expect(screen.getByText(/You must provide accurate registration details/i)).toBeInTheDocument();
     });
 
-    it('displays acceptable use section', () => {
+    it('displays acceptable use section with specifics', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Acceptable Use')).toBeInTheDocument();
-      expect(screen.getByText(/You agree to use the Service only for lawful purposes/)).toBeInTheDocument();
+      expect(screen.getByText('3) Acceptable Use.')).toBeInTheDocument();
+      expect(screen.getByText(/scrape, bulk-export, or rate-limit-evade/i)).toBeInTheDocument();
     });
 
-    it('displays payment and subscription section', () => {
+    it('displays subscriptions; billing; taxes section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Payment and Subscription')).toBeInTheDocument();
-      expect(screen.getByText(/Certain features of the Service may require payment/)).toBeInTheDocument();
+      expect(screen.getByText('6) Subscriptions; Billing; Taxes.')).toBeInTheDocument();
+      expect(screen.getByText(/auto-renew/i)).toBeInTheDocument();
+      expect(screen.getByText(/Fees are non-refundable/i)).toBeInTheDocument();
     });
 
-    it('displays termination section', () => {
+    it('displays suspension & termination section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Termination')).toBeInTheDocument();
-      expect(screen.getByText(/We may terminate or suspend your access/)).toBeInTheDocument();
+      expect(screen.getByText('8) Suspension & Termination.')).toBeInTheDocument();
+      expect(screen.getByText(/fail to cure within 10 days/i)).toBeInTheDocument();
     });
 
-    it('displays disclaimer of warranties section', () => {
+    it('displays disclaimers section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Disclaimer of Warranties')).toBeInTheDocument();
-      expect(screen.getByText(/THE SERVICE IS PROVIDED ON AN "AS IS"/)).toBeInTheDocument();
+      expect(screen.getByText('11) Disclaimers.')).toBeInTheDocument();
+      expect(screen.getByText(/THE SERVICE IS PROVIDED/i)).toBeInTheDocument();
     });
 
-    it('displays limitation of liability section', () => {
+    it('displays limitation of liability with monetary cap', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Limitation of Liability')).toBeInTheDocument();
-      expect(screen.getByText(/IN NO EVENT SHALL WE BE LIABLE/i)).toBeInTheDocument();
+      expect(screen.getByText('12) Limitation of Liability.')).toBeInTheDocument();
+      expect(screen.getByText(/our total liability.*12 months/i)).toBeInTheDocument();
     });
 
-    it('displays governing law section', () => {
+    it('displays governing law and miscellaneous section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Governing Law')).toBeInTheDocument();
-      expect(screen.getByText(/These Terms of Service shall be governed by and construed/)).toBeInTheDocument();
+      expect(screen.getByText(/14\) Governing Law; Venue; Notices; Miscellaneous\./)).toBeInTheDocument();
+      expect(screen.getByText(/exclusive jurisdiction and venue.*Delaware/i)).toBeInTheDocument();
     });
 
-    it('displays intellectual property rights section', () => {
+    it('displays intellectual property; license; feedback section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Intellectual Property Rights')).toBeInTheDocument();
-      expect(screen.getByText(/The Service and its original content/)).toBeInTheDocument();
+      expect(screen.getByText('9) Intellectual Property; License; Feedback.')).toBeInTheDocument();
+      expect(screen.getByText(/reverse engineer, decompile, disassemble/i)).toBeInTheDocument();
     });
 
-    it('displays changes to terms section', () => {
+    it('displays changes to these terms section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Changes to Terms')).toBeInTheDocument();
-      expect(screen.getByText(/We reserve the right to modify or revise/)).toBeInTheDocument();
+      expect(screen.getByText('13) Changes to These Terms.')).toBeInTheDocument();
+      expect(screen.getByText(/30 days’ prior notice/i)).toBeInTheDocument();
     });
 
     it('displays entire agreement section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Entire Agreement')).toBeInTheDocument();
-      expect(screen.getByText(/These Terms of Service constitute the entire agreement/)).toBeInTheDocument();
+      expect(screen.getByText('15) Entire Agreement.')).toBeInTheDocument();
+      expect(screen.getByText(/These Terms are the entire agreement/i)).toBeInTheDocument();
     });
 
-    it('displays contact information section', () => {
+    it('displays contact section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText('Contact Information')).toBeInTheDocument();
-      expect(screen.getByText(/If you have any questions about these Terms of Service/)).toBeInTheDocument();
+      expect(screen.getByText('16) Contact.')).toBeInTheDocument();
+      expect(screen.getByText(/nicholas\.king@columbiacloudworks\.com/i)).toBeInTheDocument();
     });
   });
 
   describe('External Links', () => {
-    it('includes Columbia CloudWorks links with correct attributes', () => {
+    it('includes Privacy Policy cross-link', () => {
+      render(<TermsOfService />);
+      const privacyLink = screen.getAllByRole('link').find(a => (a as HTMLAnchorElement).getAttribute('href') === '/privacy-policy');
+      expect(privacyLink).toBeTruthy();
+    });
+
+    it('includes Columbia CloudWorks links where present with correct attributes', () => {
       render(<TermsOfService />);
       
-      const cloudWorksLinks = screen.getAllByText('COLUMBIA CLOUDWORKS LLC');
-      
-      cloudWorksLinks.forEach(link => {
+      const links = screen.queryAllByText('COLUMBIA CLOUDWORKS LLC');
+      links.forEach(link => {
         expect(link.closest('a')).toHaveAttribute('href', 'https://columbiacloudworks.com');
         expect(link.closest('a')).toHaveAttribute('target', '_blank');
         expect(link.closest('a')).toHaveAttribute('rel', 'noopener noreferrer');
@@ -167,20 +159,17 @@ describe('TermsOfService', () => {
   describe('Legal Content', () => {
     it('includes proper list formatting in acceptable use section', () => {
       render(<TermsOfService />);
-      
-      expect(screen.getByText(/Use the Service in any way that violates any applicable laws/)).toBeInTheDocument();
-      expect(screen.getByText(/Engage in any conduct that could damage, disable/)).toBeInTheDocument();
-      expect(screen.getByText(/Attempt to gain unauthorized access/)).toBeInTheDocument();
-      expect(screen.getByText(/Use the Service to transmit any viruses/)).toBeInTheDocument();
-      expect(screen.getByText(/Collect or harvest any information about other users/)).toBeInTheDocument();
+      expect(screen.getByText(/probe, scan, or test the vulnerability/i)).toBeInTheDocument();
+      expect(screen.getByText(/access the Service to build a competing product/i)).toBeInTheDocument();
+      expect(screen.getByText(/scrape, bulk-export, or rate-limit-evade/i)).toBeInTheDocument();
     });
 
     it('displays all caps legal text correctly', () => {
       render(<TermsOfService />);
       
       // Should display legal disclaimers in all caps as intended
-      expect(screen.getByText(/THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS/)).toBeInTheDocument();
-      expect(screen.getByText(/TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL WE BE LIABLE/)).toBeInTheDocument();
+      expect(screen.getByText(/THE SERVICE IS PROVIDED/)).toBeInTheDocument();
+      expect(screen.getByText(/TO THE FULLEST EXTENT PERMITTED BY LAW,.*OUR TOTAL LIABILITY/i)).toBeInTheDocument();
     });
   });
 
