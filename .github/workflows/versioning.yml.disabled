@@ -1,0 +1,173 @@
+name: Versioning
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+      - preview
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: versioning-${{ github.event.pull_request.base.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bump-and-tag:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Switch to base branch
+        run: |
+          BASE="${{ github.event.pull_request.base.ref }}"
+          echo "Switching to base branch: $BASE"
+          git fetch origin "$BASE" --prune
+          git checkout -B "$BASE" "origin/$BASE"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Detect if this is a version-bump PR
+        id: detect
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $TITLE"
+          if [[ "$TITLE" == "chore: bump version to "* ]]; then
+            echo "is_bump_pr=true" >> $GITHUB_OUTPUT
+            echo "This is a version bump PR"
+          else
+            echo "is_bump_pr=false" >> $GITHUB_OUTPUT
+            echo "This is a regular PR"
+          fi
+
+      # Steps for regular PRs: create version bump PR
+      - name: Determine bump type
+        id: bump
+        if: steps.detect.outputs.is_bump_pr != 'true'
+        run: |
+          BASE="${{ github.event.pull_request.base.ref }}"
+          HEAD="${{ github.event.pull_request.head.ref }}"
+          
+          echo "Base branch: $BASE"
+          echo "Head branch: $HEAD"
+          
+          if [ "$BASE" = "preview" ]; then
+            echo "type=minor" >> $GITHUB_OUTPUT
+            echo "Bump type: MINOR (→ preview)"
+          elif [ "$BASE" = "main" ]; then
+            echo "type=major" >> $GITHUB_OUTPUT
+            echo "Bump type: MAJOR (→ main)"
+          else
+            echo "type=patch" >> $GITHUB_OUTPUT
+            echo "Bump type: PATCH (default)"
+          fi
+
+      - name: Compute next version from latest tag
+        id: semver
+        if: steps.detect.outputs.is_bump_pr != 'true'
+        run: |
+          LATEST=$(git describe --tags --abbrev=0 --match "v[0-9]*" 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST"
+          
+          V=${LATEST#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$V"
+          
+          case "${{ steps.bump.outputs.type }}" in
+            major)
+              MAJOR=$((MAJOR+1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR+1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH+1))
+              ;;
+          esac
+          
+          NEXT="$MAJOR.$MINOR.$PATCH"
+          echo "next=$NEXT" >> $GITHUB_OUTPUT
+          echo "Next version: $NEXT"
+
+      - name: Update package.json version (for PR)
+        if: steps.detect.outputs.is_bump_pr != 'true'
+        run: |
+          echo "Updating package.json to version ${{ steps.semver.outputs.next }}"
+          npm pkg set version=${{ steps.semver.outputs.next }}
+
+      - name: Create version bump PR
+        if: steps.detect.outputs.is_bump_pr != 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: bump version to ${{ steps.semver.outputs.next }} [skip ci]"
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          add-paths: |
+            package.json
+          branch: version/bump-${{ github.event.pull_request.base.ref }}-${{ steps.semver.outputs.next }}
+          delete-branch: true
+          base: ${{ github.event.pull_request.base.ref }}
+          title: "chore: bump version to ${{ steps.semver.outputs.next }}"
+          body: |
+            Automated version bump to `${{ steps.semver.outputs.next }}` after merge to `${{ github.event.pull_request.base.ref }}`.
+            
+            **Bump type:** ${{ steps.bump.outputs.type }}
+            **Previous version:** Latest tag on base branch
+            **New version:** ${{ steps.semver.outputs.next }}
+            
+            This PR will auto-merge once created.
+          labels: release,automated
+
+      # Steps for version bump PRs: create tag and release
+      - name: Read package.json version (for tagging)
+        id: readver
+        if: steps.detect.outputs.is_bump_pr == 'true'
+        run: |
+          VER=$(node -p "require('./package.json').version")
+          echo "ver=$VER" >> $GITHUB_OUTPUT
+          echo "Version from package.json: $VER"
+
+      - name: Check if tag exists on origin
+        id: tag_check
+        if: steps.detect.outputs.is_bump_pr == 'true'
+        run: |
+          TAG="v${{ steps.readver.outputs.ver }}"
+          echo "Checking if tag $TAG exists on origin"
+          if git ls-remote --exit-code --tags origin "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists on origin"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag $TAG does not exist, will create"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create and push tag
+        if: steps.detect.outputs.is_bump_pr == 'true' && steps.tag_check.outputs.exists != 'true'
+        run: |
+          TAG="v${{ steps.readver.outputs.ver }}"
+          echo "Creating and pushing tag: $TAG"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub Release
+        if: steps.detect.outputs.is_bump_pr == 'true' && steps.tag_check.outputs.exists != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.readver.outputs.ver }}
+          generate_release_notes: true
+          name: Release v${{ steps.readver.outputs.ver }}
