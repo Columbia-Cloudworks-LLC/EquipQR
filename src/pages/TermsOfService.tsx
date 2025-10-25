@@ -28,7 +28,7 @@ export default function TermsOfService() {
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
               These Terms of Service ("<strong>Terms</strong>") are a contract between <strong>Columbia Cloudworks LLC</strong>,
-              a Delaware limited liability company ("<strong>Company</strong>", "<strong>we</strong>", "<strong>us</strong>", or "<strong>our</strong>"),
+              an Illinois limited liability company ("<strong>Company</strong>", "<strong>we</strong>", "<strong>us</strong>", or "<strong>our</strong>"),
               and the person or entity that creates an account or otherwise uses <strong>EquipQR</strong> (the "<strong>Service</strong>")
               ("<strong>Customer</strong>", "<strong>you</strong>", or "<strong>your</strong>"). If you are using the Service on behalf of an entity,
               you represent that you have authority to bind that entity, and "you" refers to that entity. By accessing or using the Service, you agree to these Terms.
@@ -213,7 +213,7 @@ export default function TermsOfService() {
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              These Terms are governed by the laws of <strong>Delaware</strong>, without regard to conflicts of laws. The parties consent to the <strong>exclusive jurisdiction and venue</strong> of the state and federal courts located in <strong>Delaware</strong>.
+              These Terms are governed by the laws of <strong>Illinois</strong>, without regard to conflicts of laws. The parties consent to the <strong>exclusive jurisdiction and venue</strong> of the state and federal courts located in <strong>Illinois</strong>.
             </p>
             <p>
               <strong>Notices.</strong> Notices will be sent to the contacts in your account and to <a href="mailto:legal@columbiacloudworks.com" className="underline">legal@columbiacloudworks.com</a> (or another posted address).
