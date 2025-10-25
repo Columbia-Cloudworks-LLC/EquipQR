@@ -22,6 +22,7 @@ All command templates MUST reference and enforce compliance with `.specify/memor
 - **Security**: Include RBAC and input validation requirements
 - **Testing**: Mandate test coverage and quality gates
 - **Performance**: Check bundle size and optimization requirements
+- **Observability**: Require Playwright E2E tests and multi-environment validation (dev/preview/production) with MCP tool integration
 
 ## Creating New Commands
 
