@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { ExternalLink } from '@/components/ui/external-link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
