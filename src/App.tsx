@@ -31,6 +31,7 @@ const Billing = lazy(() => import('@/pages/Billing'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const Support = lazy(() => import('@/pages/Support'));
+const DashboardSupport = lazy(() => import('@/pages/Support').then(module => ({ default: module.DashboardSupport })));
 const PMTemplates = lazy(() => import('@/pages/PMTemplates'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const InvitationAccept = lazy(() => import('@/pages/InvitationAccept'));
@@ -148,6 +149,7 @@ function App() {
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />
                                 <Route path="/part-picker" element={<PartPicker />} />
+                                <Route path="/support" element={<DashboardSupport />} />
                                 {import.meta.env.DEV && <Route path="/debug/billing" element={<DebugBilling />} />}
                                 {import.meta.env.DEV && <Route path="/debug/exemptions-admin" element={<BillingExemptionsAdmin />} />}
                               </Routes>
