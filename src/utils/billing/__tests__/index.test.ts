@@ -306,9 +306,10 @@ describe('calculateBilling', () => {
 
 describe('Helper functions', () => {
   describe('isFreeOrganization', () => {
-    it('should return true for single active user', () => {
+    it('should return false when billing is disabled (always returns false)', () => {
       const members = [createMember('active', 'owner')];
-      expect(isFreeOrganization(members)).toBe(true);
+      // Billing is disabled by default, so this returns false
+      expect(isFreeOrganization(members)).toBe(false);
     });
 
     it('should return false for multiple active users', () => {
@@ -319,12 +320,13 @@ describe('Helper functions', () => {
       expect(isFreeOrganization(members)).toBe(false);
     });
 
-    it('should ignore pending users for free determination', () => {
+    it('should return false when billing is disabled (ignores pending users)', () => {
       const members = [
         createMember('active', 'owner'),
         createMember('pending', 'member')
       ];
-      expect(isFreeOrganization(members)).toBe(true);
+      // Billing is disabled by default, so this returns false
+      expect(isFreeOrganization(members)).toBe(false);
     });
   });
 
@@ -334,13 +336,15 @@ describe('Helper functions', () => {
       expect(hasLicenses(slotAvailability)).toBe(true);
     });
 
-    it('should return false when no licenses are purchased', () => {
+    it('should return true when no licenses are purchased (billing disabled)', () => {
       const slotAvailability = createSlotAvailability(0, 0);
-      expect(hasLicenses(slotAvailability)).toBe(false);
+      // Billing is disabled, so this returns true (unlimited licenses)
+      expect(hasLicenses(slotAvailability)).toBe(true);
     });
 
-    it('should return false when slot availability is undefined', () => {
-      expect(hasLicenses(undefined)).toBe(false);
+    it('should return true when slot availability is undefined (billing disabled)', () => {
+      // Billing is disabled, so this returns true (unlimited licenses)
+      expect(hasLicenses(undefined)).toBe(true);
     });
   });
 
@@ -379,9 +383,10 @@ describe('Helper functions', () => {
   });
 
   describe('shouldBlockInvitation', () => {
-    it('should block invitation when no slots available', () => {
+    it('should not block invitation when billing is disabled', () => {
       const slotAvailability = createSlotAvailability(3, 3);
-      expect(shouldBlockInvitation(slotAvailability)).toBe(true);
+      // Billing is disabled, so this never blocks invitations
+      expect(shouldBlockInvitation(slotAvailability)).toBe(false);
     });
 
     it('should allow invitation when slots available', () => {
