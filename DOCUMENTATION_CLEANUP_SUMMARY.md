@@ -106,14 +106,32 @@ Moved to `docs/archive/historical-fixes/` for historical reference:
 
 ---
 
+## Experimental Validator Removal (Additional Cleanup)
+
+**Date**: October 28, 2025  
+**Commit**: `06ff112`
+
+Removed experimental documentation validation system (47 files total):
+- ✅ `.doc-validator/` directory (3 config files)
+- ✅ `scripts/doc-validator/` directory (29 TypeScript files + configs)
+- ✅ `specs/001-documentation-standards-and/` directory (14 spec files)
+- ✅ `checklists/documentation-audit.md`
+
+**Reason**: System was experimental and being discarded per team decision. Also resolves P1 badge feedback about negative quality scores bug in `metrics.ts`.
+
+**Reference**: [PR #338 Discussion](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/338#discussion_r2471215352)
+
+---
+
 ## Summary Statistics
 
 | Category | Count |
 |----------|-------|
-| **Files Deleted** | 16 |
+| **Files Deleted (Documentation)** | 16 |
+| **Files Deleted (Experimental Validator)** | 47 |
 | **Files Archived** | 3 |
 | **Files Updated** | 4 |
-| **Total Files Changed** | 23 |
+| **Total Files Changed** | 70 |
 
 ---
 
