@@ -1,6 +1,7 @@
 
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { isFreeOrganization } from './billing';
+import { isBillingDisabled } from '@/lib/flags';
 
 export interface OrganizationRestrictions {
   canManageTeams: boolean;
@@ -16,6 +17,19 @@ export const getOrganizationRestrictions = (
   members: RealOrganizationMember[],
   fleetMapEnabled: boolean = false
 ): OrganizationRestrictions => {
+  // Billing is disabled - grant all features to all organizations
+  if (isBillingDisabled()) {
+    return {
+      canManageTeams: true,
+      canAssignEquipmentToTeams: true,
+      canUploadImages: true,
+      canAccessFleetMap: fleetMapEnabled,
+      canInviteMembers: true,
+      maxMembers: 1000, // Unlimited for free users
+      maxStorage: 1000 // Large storage limit
+    };
+  }
+  
   const isFree = isFreeOrganization(members);
   
   if (isFree) {
