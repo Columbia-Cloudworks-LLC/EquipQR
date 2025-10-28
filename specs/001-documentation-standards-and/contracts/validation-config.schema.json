@@ -1,0 +1,209 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://equipqr.app/schemas/doc-validation-config.json",
+  "title": "Documentation Validation Configuration",
+  "description": "Configuration schema for documentation quality assurance validation rules",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Configuration schema version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "default": "1.0.0"
+    },
+    "mode": {
+      "type": "string",
+      "description": "Validation mode",
+      "enum": ["incremental", "full"],
+      "default": "incremental"
+    },
+    "rules": {
+      "type": "object",
+      "description": "Rule configuration by category",
+      "properties": {
+        "quality": {
+          "$ref": "#/definitions/categoryConfig"
+        },
+        "sync": {
+          "$ref": "#/definitions/categoryConfig"
+        },
+        "structure": {
+          "$ref": "#/definitions/categoryConfig"
+        },
+        "accessibility": {
+          "$ref": "#/definitions/categoryConfig"
+        },
+        "deprecation": {
+          "$ref": "#/definitions/categoryConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "paths": {
+      "type": "object",
+      "description": "Path configuration for validation",
+      "properties": {
+        "include": {
+          "type": "array",
+          "description": "Glob patterns for files to include in validation",
+          "items": {
+            "type": "string"
+          },
+          "default": ["docs/**/*.md", "specs/**/*.md", "*.md"]
+        },
+        "exclude": {
+          "type": "array",
+          "description": "Glob patterns for files to exclude from validation",
+          "items": {
+            "type": "string"
+          },
+          "default": ["node_modules/**", "dist/**", "coverage/**"]
+        },
+        "glossaryPath": {
+          "type": "string",
+          "description": "Path to glossary file",
+          "default": "docs/glossary.yaml"
+        },
+        "deprecationLogPath": {
+          "type": "string",
+          "description": "Path to consolidated deprecation log",
+          "default": "docs/DEPRECATIONS.md"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "description": "Output configuration",
+      "properties": {
+        "format": {
+          "type": "array",
+          "description": "Output formats to generate",
+          "items": {
+            "type": "string",
+            "enum": ["json", "console", "pr-comment"]
+          },
+          "default": ["json", "console"]
+        },
+        "jsonPath": {
+          "type": "string",
+          "description": "Path for JSON metrics report output",
+          "default": ".doc-validation/results.json"
+        },
+        "baselinePath": {
+          "type": "string",
+          "description": "Path to baseline metrics for trend comparison",
+          "default": ".doc-validation/baseline.json"
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "description": "Performance optimization settings",
+      "properties": {
+        "enableCaching": {
+          "type": "boolean",
+          "description": "Enable AST and link validation caching",
+          "default": true
+        },
+        "cachePath": {
+          "type": "string",
+          "description": "Directory for cache files",
+          "default": ".doc-validation/cache"
+        },
+        "maxConcurrency": {
+          "type": "integer",
+          "description": "Maximum concurrent file validations",
+          "minimum": 1,
+          "maximum": 32,
+          "default": 8
+        },
+        "linkCacheTTL": {
+          "type": "integer",
+          "description": "External link cache TTL in milliseconds",
+          "minimum": 0,
+          "default": 86400000
+        }
+      }
+    },
+    "exemptions": {
+      "type": "array",
+      "description": "Files or rules exempt from validation",
+      "items": {
+        "$ref": "#/definitions/exemption"
+      }
+    }
+  },
+  "required": ["version"],
+  "definitions": {
+    "categoryConfig": {
+      "type": "object",
+      "description": "Configuration for a validation category",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable all rules in this category",
+          "default": true
+        },
+        "rules": {
+          "type": "object",
+          "description": "Individual rule configurations",
+          "patternProperties": {
+            "^FR-\\d{3}$": {
+              "$ref": "#/definitions/ruleConfig"
+            }
+          }
+        }
+      }
+    },
+    "ruleConfig": {
+      "type": "object",
+      "description": "Configuration for an individual validation rule",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable this rule",
+          "default": true
+        },
+        "severity": {
+          "type": "string",
+          "description": "Override default severity",
+          "enum": ["error", "warning", "info"]
+        },
+        "config": {
+          "type": "object",
+          "description": "Rule-specific configuration options",
+          "additionalProperties": true
+        }
+      }
+    },
+    "exemption": {
+      "type": "object",
+      "description": "Exemption for specific files or rules",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "File path or glob pattern to exempt"
+        },
+        "rules": {
+          "type": "array",
+          "description": "Rule IDs to exempt for this file",
+          "items": {
+            "type": "string",
+            "pattern": "^FR-\\d{3}$"
+          }
+        },
+        "reason": {
+          "type": "string",
+          "description": "Justification for exemption"
+        },
+        "expiresAt": {
+          "type": "string",
+          "description": "ISO 8601 date when exemption expires",
+          "format": "date-time"
+        }
+      },
+      "required": ["file", "reason"]
+    }
+  }
+}
+

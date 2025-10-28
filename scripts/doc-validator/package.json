@@ -1,0 +1,51 @@
+{
+  "name": "@equipqr/doc-validator",
+  "version": "1.0.0",
+  "description": "Documentation validation and quality assurance system for EquipQR",
+  "type": "module",
+  "main": "dist/cli/index.js",
+  "bin": {
+    "doc-validate": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src tests --ext .ts"
+  },
+  "keywords": [
+    "documentation",
+    "validation",
+    "quality",
+    "markdown",
+    "cli"
+  ],
+  "author": "EquipQR Team",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.1.0",
+    "unified": "^11.0.4",
+    "remark-parse": "^11.0.0",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.0",
+    "unist-util-visit": "^5.0.0",
+    "simple-git": "^3.20.0",
+    "yaml": "^2.3.4",
+    "zod": "^3.22.4",
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.5.4",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

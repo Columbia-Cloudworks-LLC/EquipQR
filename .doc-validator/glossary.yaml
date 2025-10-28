@@ -1,0 +1,99 @@
+schema_version: "1.0"
+
+terms:
+  - term: Equipment
+    definition: Physical asset tracked in the system (machinery, tools, vehicles, etc.)
+    category: Domain Model
+    synonyms:
+      - Asset
+    deprecatedTerms:
+      - Machine
+      - Item
+    usage: "Use 'Equipment' in all documentation. 'Asset' is acceptable in financial contexts."
+
+  - term: Work Order
+    definition: Request for maintenance or repair work on equipment
+    category: Domain Model
+    synonyms:
+      - Service Request
+      - Maintenance Request
+    deprecatedTerms:
+      - Ticket
+      - Job
+    usage: "Prefer 'Work Order' for consistency. Avoid 'Ticket' which is ambiguous."
+
+  - term: Organization
+    definition: Tenant entity in the multi-tenant system (company, department, or team)
+    category: Domain Model
+    synonyms:
+      - Tenant
+      - Company
+    deprecatedTerms:
+      - Account
+      - Client
+    usage: "Use 'Organization' in user-facing documentation. 'Tenant' is acceptable in technical architecture docs."
+
+  - term: QR Code
+    definition: Quick Response code used to identify and track equipment
+    category: Feature
+    synonyms:
+      - QR Tag
+    deprecatedTerms:
+      - Barcode
+    usage: "Use 'QR Code' consistently. Our system specifically uses QR codes, not traditional barcodes."
+
+  - term: Technician
+    definition: User role responsible for performing maintenance and repairs
+    category: User Role
+    synonyms:
+      - Maintenance Technician
+      - Service Technician
+    deprecatedTerms:
+      - Worker
+      - Operator
+    usage: "Use 'Technician' as the primary term."
+
+  - term: Admin
+    definition: User role with full system administration privileges
+    category: User Role
+    synonyms:
+      - Administrator
+      - System Admin
+    deprecatedTerms:
+      - Super User
+      - Root
+    usage: "Use 'Admin' in UI and general documentation. 'Administrator' is acceptable in formal contexts."
+
+  - term: RLS
+    definition: Row Level Security - Supabase/PostgreSQL security feature for multi-tenancy
+    category: Technical
+    synonyms:
+      - Row-Level Security
+    deprecatedTerms: []
+    usage: "Use 'RLS' in technical documentation. Spell out 'Row Level Security' on first use in guides."
+
+  - term: Supabase
+    definition: Backend-as-a-Service platform providing database, auth, and storage
+    category: Technical
+    synonyms: []
+    deprecatedTerms: []
+    usage: "Always capitalize as 'Supabase'. Never 'SupaBase' or 'supabase' (except in code)."
+
+  - term: TanStack Query
+    definition: Data fetching and caching library (formerly React Query)
+    category: Technical
+    synonyms:
+      - React Query
+    deprecatedTerms: []
+    usage: "Use 'TanStack Query' in current documentation. 'React Query' is acceptable for historical context."
+
+  - term: Preventive Maintenance
+    definition: Scheduled maintenance performed to prevent equipment failures
+    category: Feature
+    synonyms:
+      - PM
+      - Scheduled Maintenance
+    deprecatedTerms:
+      - Routine Maintenance
+    usage: "Use 'Preventive Maintenance' or 'PM' (spell out on first use)."
+

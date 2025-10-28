@@ -140,7 +140,6 @@ interface TeamMember {
 ### Management Section
 - **Organization** (`/organization`) - Company and organizational settings
 - **QR Scanner** (`/scanner`) - QR code scanning functionality
-- **Billing** (`/billing`) - Subscription and payment management
 - **Settings** (`/settings`) - Application configuration
 
 ## Key Components

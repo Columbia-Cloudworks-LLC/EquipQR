@@ -1,0 +1,69 @@
+# Glossary Schema Definition
+# 
+# Defines the structure for .doc-validator/glossary.yaml
+# Contains canonical terminology for documentation consistency validation
+
+# YAML Schema (for human readability - TypeScript schema in glossary-schema.ts)
+
+schema_version: "1.0"
+
+# List of canonical terms
+terms:
+  - term: string           # Required: The canonical term
+    definition: string     # Required: Clear definition
+    category: string       # Optional: Grouping (e.g., "Domain Model", "UI Component")
+    synonyms:             # Optional: Approved alternative names
+      - string
+    deprecatedTerms:      # Optional: Old terms that should be flagged
+      - string
+    usage: string         # Optional: Example usage or context
+
+# Example glossary file:
+
+example:
+  schema_version: "1.0"
+  terms:
+    - term: Equipment
+      definition: Physical asset tracked in the system (machinery, tools, vehicles)
+      category: Domain Model
+      synonyms:
+        - Asset
+        - Item
+      deprecatedTerms:
+        - Machine
+      usage: "Use 'Equipment' in documentation; 'Asset' is acceptable in financial contexts"
+    
+    - term: Work Order
+      definition: Request for maintenance or repair work on equipment
+      category: Domain Model
+      synonyms:
+        - Service Request
+        - Maintenance Request
+      deprecatedTerms:
+        - Ticket
+      usage: "Prefer 'Work Order' over 'Service Request' for consistency"
+    
+    - term: Organization
+      definition: Top-level tenant entity in multi-tenant architecture
+      category: Multi-Tenancy
+      synonyms:
+        - Tenant
+        - Company
+      deprecatedTerms:
+        - Account
+      usage: "Use 'Organization' in user-facing documentation; 'Tenant' in technical architecture docs"
+    
+    - term: Row Level Security
+      definition: Database-level access control that filters data by organization
+      category: Security
+      synonyms:
+        - RLS
+      deprecatedTerms: []
+      usage: "Abbreviate as 'RLS' after first use in technical documentation"
+
+# Validation rules:
+# - term: must be unique across all entries
+# - definition: cannot be empty
+# - synonyms: must not conflict with other canonical terms
+# - deprecatedTerms: should not appear as canonical terms elsewhere
+

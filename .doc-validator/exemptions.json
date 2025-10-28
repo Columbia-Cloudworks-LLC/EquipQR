@@ -1,0 +1,15 @@
+{
+  "exemptedUrls": [
+    "https://example.com/*"
+  ],
+  "exemptedDomains": [
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0"
+  ],
+  "exemptionReasons": {
+    "localhost": "Local development - not accessible from CI",
+    "example.com": "Example URLs used in documentation templates"
+  }
+}
+
