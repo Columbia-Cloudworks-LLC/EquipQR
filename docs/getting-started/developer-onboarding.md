@@ -150,7 +150,6 @@ src/
 │   ├── work-orders/    # Work order components
 │   ├── teams/          # Team management components
 │   ├── auth/           # Authentication components
-│   ├── billing/        # Billing and subscription components
 │   └── layout/         # Layout components (sidebar, nav, etc.)
 ├── pages/              # Route-level page components
 ├── hooks/              # Custom React hooks

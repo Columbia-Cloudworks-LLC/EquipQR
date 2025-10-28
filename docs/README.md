@@ -27,7 +27,6 @@ Understanding the features, business rules and workflows:
 - **[Features Overview](./features/features-overview.md)** - Comprehensive feature documentation
 - **[Work Order Workflow](./features/work-order-workflow.md)** - Complete work order lifecycle documentation
 - **[Roles and Permissions](./features/roles-and-permissions.md)** - RBAC system and security model
-- **[Billing and Pricing](./features/billing-and-pricing.md)** - Billing system and pricing model
 
 ### 🚀 Deployment & Operations
 
@@ -70,7 +69,6 @@ Following the development process:
 1. Explore [Features Overview](./features/features-overview.md)
 2. Understand [Work Order Workflow](./features/work-order-workflow.md)
 3. Review [Roles and Permissions](./features/roles-and-permissions.md)
-4. Check [Billing System](./features/billing-and-pricing.md)
 
 ### For DevOps Engineers
 1. **READ FIRST**: [Migration Rules Quick Reference](./deployment/migration-rules-quick-reference.md) ⚠️
@@ -133,7 +131,6 @@ Following the development process:
 #### Business Logic & Features
 - [Features Overview](./features/features-overview.md) - All platform features
 - [Work Order Workflow](./features/work-order-workflow.md) - Business processes
-- [Billing System](./features/billing-and-pricing.md) - Payment and pricing
 
 ## 🤝 Contributing to Documentation
 
