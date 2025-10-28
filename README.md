@@ -53,7 +53,6 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 # ============================================
 # OPTIONAL - External Service Integrations
 # ============================================
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 
 # ============================================
@@ -70,7 +69,6 @@ VITE_ENABLE_DEVTOOLS=false
 |----------|----------|---------|--------------|
 | `VITE_SUPABASE_URL` | ✅ Yes | Your Supabase project URL | [Supabase Dashboard](https://supabase.com/dashboard) → Settings → API |
 | `VITE_SUPABASE_ANON_KEY` | ✅ Yes | Supabase anonymous/public key | [Supabase Dashboard](https://supabase.com/dashboard) → Settings → API |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | ⚠️ Optional | Stripe publishable key for billing | [Stripe Dashboard](https://dashboard.stripe.com/apikeys) |
 | `VITE_GOOGLE_MAPS_API_KEY` | ⚠️ Optional | Google Maps API key for fleet map | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
 | `VITE_PRODUCTION_URL` | ⚠️ Optional | Production URL for OAuth redirects | Your deployed application URL |
 | `VITE_APP_VERSION` | ⚠️ Optional | Application version (displayed in footer) | Any version string (e.g., "1.0.0") |
@@ -87,21 +85,8 @@ npm run dev
 
 EquipQR integrates with several external services to provide full functionality. While Supabase is required, other services are optional depending on which features you want to enable.
 
-### Stripe (Optional - Required for Billing Features)
+> **Note**: EquipQR is completely free to use. There are no billing or subscription features.
 
-Stripe powers the billing and subscription management features.
-
-**Setup Steps:**
-1. Create a Stripe account at [stripe.com](https://stripe.com)
-2. Get your API keys from the [Stripe Dashboard](https://dashboard.stripe.com/apikeys)
-3. Add `VITE_STRIPE_PUBLISHABLE_KEY` to your `.env` file
-4. Add `STRIPE_SECRET_KEY` to Supabase Edge Functions secrets (see Supabase setup below)
-5. Configure webhook endpoint and add `STRIPE_WEBHOOK_SECRET` to Supabase secrets
-
-**Required for:**
-- Organization subscription management
-- User license purchasing
-- Fleet map add-on subscriptions
 
 ### Google Maps (Optional - Required for Fleet Map)
 
@@ -217,8 +202,6 @@ Configure required secrets for Supabase Edge Functions:
 
 | Secret Name | Required | Purpose |
 |-------------|----------|---------|
-| `STRIPE_SECRET_KEY` | For billing | Stripe API secret key |
-| `STRIPE_WEBHOOK_SECRET` | For billing | Stripe webhook signing secret |
 | `GOOGLE_MAPS_API_KEY` | For maps | Google Maps server-side API key |
 | `RESEND_API_KEY` | For emails | Resend API key for sending emails |
 | `HCAPTCHA_SECRET_KEY` | Optional | hCaptcha verification secret |
@@ -226,9 +209,9 @@ Configure required secrets for Supabase Edge Functions:
 
 **Add secrets via CLI:**
 ```bash
-npx supabase secrets set STRIPE_SECRET_KEY=sk_test_...
 npx supabase secrets set GOOGLE_MAPS_API_KEY=AIza...
 npx supabase secrets set RESEND_API_KEY=re_...
+npx supabase secrets set HCAPTCHA_SECRET_KEY=your_key...
 ```
 
 ### 5. Storage Configuration
@@ -309,18 +292,6 @@ USING (
 
 > **Note**: Organization logos are stored as URLs in the database, not in a separate storage bucket. They can be external URLs or uploaded to one of the existing buckets.
 
-### 6. Webhook Configuration (for Stripe)
-
-**Set up Stripe webhooks:**
-1. In Stripe Dashboard, go to Developers → Webhooks
-2. Add endpoint: `https://your-project-id.supabase.co/functions/v1/stripe-license-webhook`
-3. Select events to listen to:
-   - `customer.subscription.created`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-   - `invoice.payment_succeeded`
-   - `invoice.payment_failed`
-4. Copy the webhook signing secret to `STRIPE_WEBHOOK_SECRET` in Supabase secrets
 
 ## 🎨 App Branding
 
@@ -415,7 +386,6 @@ Add these secrets to your GitHub repository (Settings → Secrets and variables 
 - `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
 
 **Optional Secrets** (if using these features):
-- `VITE_STRIPE_PUBLISHABLE_KEY` - For billing features
 - `VITE_GOOGLE_MAPS_API_KEY` - For fleet map
 
 > **Note**: Supabase Edge Function secrets should be configured directly in Supabase Dashboard, not GitHub. See the [Supabase Project Setup](#%EF%B8%8F-supabase-project-setup) section for details.
@@ -460,7 +430,6 @@ src/
 - [Features Overview](./docs/features/features-overview.md) - Complete feature documentation
 - [Work Order Workflow](./docs/features/work-order-workflow.md) - Complete workflow documentation
 - [Roles and Permissions](./docs/features/roles-and-permissions.md) - RBAC system
-- [Billing and Pricing](./docs/features/billing-and-pricing.md) - Billing system documentation
 
 ### Deployment & Operations
 - [Deployment Guide](./docs/deployment/deployment-guide.md) - Multi-platform deployment
