@@ -80,7 +80,8 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
 
       // Add equipment to join table for multi-equipment support
       // Always include the primary equipment, plus any additional equipment
-      const equipmentIds = [data.equipmentId, ...(data.equipmentIds || [])];
+      // Deduplicate to avoid UNIQUE constraint violations
+      const equipmentIds = Array.from(new Set([data.equipmentId, ...(data.equipmentIds || [])]));
       const primaryId = data.primaryEquipmentId || data.equipmentId;
 
       try {
