@@ -14,6 +14,7 @@ import { useWorkOrderSubmission } from '@/hooks/useWorkOrderSubmission';
 import { WorkOrderFormHeader } from './form/WorkOrderFormHeader';
 import { WorkOrderBasicFields } from './form/WorkOrderBasicFields';
 import { WorkOrderEquipmentSelector } from './form/WorkOrderEquipmentSelector';
+import { WorkOrderMultiEquipmentSelector } from './form/WorkOrderMultiEquipmentSelector';
 import { WorkOrderPMSection } from './form/WorkOrderPMSection';
 import { WorkOrderDescriptionField } from './form/WorkOrderDescriptionField';
 import { WorkOrderFormActions } from './form/WorkOrderFormActions';
@@ -129,6 +130,29 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
             isEditMode={isEditMode}
             isEquipmentPreSelected={isEquipmentPreSelected}
           />
+
+          {/* Multi-Equipment Selector - Show only when primary equipment is selected */}
+          {form.values.equipmentId && (() => {
+            // Get team_id from selected equipment
+            const selectedEquipment = allEquipment.find(eq => eq.id === form.values.equipmentId);
+            const teamId = selectedEquipment?.team_id || preSelectedEquipment?.team_id;
+            
+            return teamId ? (
+              <WorkOrderMultiEquipmentSelector
+                primaryEquipmentId={form.values.equipmentId}
+                primaryEquipmentTeamId={teamId}
+                workOrderId={workOrder?.id}
+                selectedEquipmentIds={form.values.equipmentIds || []}
+                onSelectionChange={(equipmentIds) => {
+                  form.setValue('equipmentIds', equipmentIds);
+                  // Update primary equipment ID if not set
+                  if (!form.values.primaryEquipmentId) {
+                    form.setValue('primaryEquipmentId', form.values.equipmentId);
+                  }
+                }}
+              />
+            ) : null;
+          })()}
 
           {form.values.isHistorical && (
             <WorkOrderHistoricalFields

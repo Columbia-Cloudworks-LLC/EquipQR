@@ -140,7 +140,7 @@ describe('UnifiedMembersList', () => {
     expect(screen.getByText('invitee@example.com')).toBeInTheDocument();
   });
 
-  it('disables Invite button when no seats are available and shows seat badge', async () => {
+  it('does not disable Invite button when billing is disabled (billing disabled by default)', async () => {
     customRender(
       <UnifiedMembersList
         members={baseMembers}
@@ -153,7 +153,8 @@ describe('UnifiedMembersList', () => {
     );
 
     const inviteBtn = await screen.findByRole('button', { name: /invite member/i });
-    expect(inviteBtn).toBeDisabled();
+    // With billing disabled by default, invitations are never blocked
+    expect(inviteBtn).not.toBeDisabled();
 
     // Seat status badge text
     expect(screen.getByText(/Seats: 2\/2/i)).toBeInTheDocument();

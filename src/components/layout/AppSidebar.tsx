@@ -62,15 +62,18 @@ const managementNavigation = [
   { title: "Organization", url: "/dashboard/organization", icon: Building },
   { title: "PM Templates", url: "/dashboard/pm-templates", icon: ClipboardCheck, adminOnly: true },
   { title: "QR Scanner", url: "/dashboard/scanner", icon: QrCode },
-  { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
+  // Billing removed - app is now free
+  // { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
   { title: "Reports", url: "/dashboard/reports", icon: FileText },
   { title: "Settings", url: "/dashboard/settings", icon: Settings },
 ];
 
-const debugNavigation = [
-  { title: "Billing Debug", url: "/dashboard/debug/billing", icon: Bug },
-  { title: "Exemptions Admin", url: "/dashboard/debug/exemptions-admin", icon: Shield, superAdminOnly: true },
-];
+// Billing debug routes removed
+// const debugNavigation = [
+//   { title: "Billing Debug", url: "/dashboard/debug/billing", icon: Bug },
+//   { title: "Exemptions Admin", url: "/dashboard/debug/exemptions-admin", icon: Shield, superAdminOnly: true },
+// ];
+const debugNavigation: Array<{ title: string; url: string; icon: any; superAdminOnly?: boolean }> = [];
 
 const AppSidebar = () => {
   const location = useLocation();

@@ -1,5 +1,6 @@
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { SlotAvailability } from '@/hooks/useOrganizationSlots';
+import { isBillingDisabled } from '@/lib/flags';
 
 // Utility function to handle floating-point precision for monetary calculations
 function roundToTwoDecimals(value: number): number {
@@ -183,11 +184,19 @@ export function calculateBilling(state: BillingState): BillingCalculation {
 
 // Helper functions for common operations
 export function isFreeOrganization(members: RealOrganizationMember[]): boolean {
+  // Billing is disabled - no organization is considered "free"
+  if (isBillingDisabled()) {
+    return false;
+  }
   const activeMembers = members.filter(member => member.status === 'active');
   return activeMembers.length === 1;
 }
 
 export function hasLicenses(slotAvailability?: SlotAvailability): boolean {
+  // Billing is disabled - always report as having licenses
+  if (isBillingDisabled()) {
+    return true;
+  }
   return !!(slotAvailability && slotAvailability.total_purchased > 0);
 }
 
@@ -229,6 +238,10 @@ export function getSlotStatus(slotAvailability: SlotAvailability, totalNeeded: n
 }
 
 export function shouldBlockInvitation(slotAvailability?: SlotAvailability): boolean {
+  // Billing is disabled - never block invitations
+  if (isBillingDisabled()) {
+    return false;
+  }
   if (!slotAvailability) return false;
   return slotAvailability.available_slots <= 0;
 }

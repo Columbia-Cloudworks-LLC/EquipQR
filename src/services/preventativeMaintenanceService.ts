@@ -917,7 +917,7 @@ export const createPM = async (data: CreatePMData): Promise<PreventativeMaintena
   }
 };
 
-// Get PM by work order ID
+// Get PM by work order ID (legacy - returns first PM found)
 export const getPMByWorkOrderId = async (workOrderId: string): Promise<PreventativeMaintenance | null> => {
   try {
     const { data, error } = await supabase
@@ -935,6 +935,100 @@ export const getPMByWorkOrderId = async (workOrderId: string): Promise<Preventat
   } catch (error) {
     logger.error('Error in getPMByWorkOrderId:', error);
     return null;
+  }
+};
+
+// Get PM by work order AND equipment (multi-equipment support)
+export const getPMByWorkOrderAndEquipment = async (
+  workOrderId: string,
+  equipmentId: string
+): Promise<PreventativeMaintenance | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('preventative_maintenance')
+      .select('*')
+      .eq('work_order_id', workOrderId)
+      .eq('equipment_id', equipmentId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      logger.error('Error fetching PM by work order and equipment:', error);
+      return null;
+    }
+
+    return data || null;
+  } catch (error) {
+    logger.error('Error in getPMByWorkOrderAndEquipment:', error);
+    return null;
+  }
+};
+
+// Get all PMs for a work order (all equipment)
+export const getPMsByWorkOrderId = async (
+  workOrderId: string
+): Promise<PreventativeMaintenance[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('preventative_maintenance')
+      .select('*')
+      .eq('work_order_id', workOrderId)
+      .order('created_at');
+
+    if (error) {
+      logger.error('Error fetching PMs for work order:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    logger.error('Error in getPMsByWorkOrderId:', error);
+    return [];
+  }
+};
+
+// Create PM for multiple equipment (multi-equipment work orders)
+export const createPMsForEquipment = async (
+  workOrderId: string,
+  equipmentIds: string[],
+  organizationId: string,
+  checklistData: PMChecklistItem[],
+  notes?: string,
+  templateId?: string
+): Promise<PreventativeMaintenance[]> => {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      logger.error('User not authenticated');
+      return [];
+    }
+
+    // Create PM for each equipment
+    const pmRecords = equipmentIds.map((equipmentId) => ({
+      work_order_id: workOrderId,
+      equipment_id: equipmentId,
+      organization_id: organizationId,
+      created_by: userData.user.id,
+      checklist_data: checklistData as unknown as Json,
+      notes,
+      template_id: templateId,
+      status: 'pending',
+    }));
+
+    const { data, error } = await supabase
+      .from('preventative_maintenance')
+      .insert(pmRecords)
+      .select();
+
+    if (error) {
+      logger.error('Error creating PMs for equipment:', error);
+      return [];
+    }
+
+    logger.info(`Created ${data.length} PM records for work order ${workOrderId}`);
+    return data;
+  } catch (error) {
+    logger.error('Error in createPMsForEquipment:', error);
+    return [];
   }
 };
 
