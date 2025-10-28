@@ -8,7 +8,7 @@ const workOrderFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
   description: z.string().min(1, "Description is required").max(1000, "Description must be less than 1000 characters"),
   equipmentId: z.string().min(1, "Equipment is required"),
-  equipmentIds: z.array(z.string()).min(1, "At least one equipment is required"),
+  equipmentIds: z.array(z.string()), // Array for additional equipment - can be empty
   primaryEquipmentId: z.string().optional(),
   priority: z.enum(['low', 'medium', 'high']),
   dueDate: z.string().optional().nullable(),
