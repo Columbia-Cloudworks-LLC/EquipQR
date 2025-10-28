@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clipboard } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useWorkOrderDetailsData } from '@/hooks/useWorkOrderDetailsData';
 import { useWorkOrderDetailsActions } from '@/hooks/useWorkOrderDetailsActions';
+import { useWorkOrderEquipment } from '@/hooks/useWorkOrderEquipment';
 import { logNavigationEvent } from '@/utils/navigationDebug';
 import WorkOrderDetailsInfo from '@/components/work-orders/WorkOrderDetailsInfo';
 import WorkOrderTimeline from '@/components/work-orders/WorkOrderTimeline';
@@ -13,6 +14,7 @@ import WorkOrderImagesSection from '@/components/work-orders/WorkOrderImagesSect
 import WorkOrderFormEnhanced from '@/components/work-orders/WorkOrderFormEnhanced';
 import PMChecklistComponent from '@/components/work-orders/PMChecklistComponent';
 import WorkOrderCostsSection from '@/components/work-orders/WorkOrderCostsSection';
+import { WorkOrderEquipmentSelector } from '@/components/work-orders/WorkOrderEquipmentSelector';
 import { WorkOrderDetailsMobileHeader } from '@/components/work-orders/details/WorkOrderDetailsMobileHeader';
 import { WorkOrderDetailsDesktopHeader } from '@/components/work-orders/details/WorkOrderDetailsDesktopHeader';
 import { WorkOrderDetailsStatusLockWarning } from '@/components/work-orders/details/WorkOrderDetailsStatusLockWarning';
@@ -22,6 +24,9 @@ import { WorkOrderDetailsSidebar } from '@/components/work-orders/details/WorkOr
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
   const isMobile = useIsMobile();
+
+  // State for selected equipment (for multi-equipment work orders)
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
 
   // Use custom hooks for data and actions
   const {
@@ -40,7 +45,17 @@ const WorkOrderDetails = () => {
     canEdit,
     baseCanAddNotes,
     currentOrganization
-  } = useWorkOrderDetailsData(workOrderId || '');
+  } = useWorkOrderDetailsData(workOrderId || '', selectedEquipmentId);
+
+  // Update selectedEquipmentId when workOrder loads
+  React.useEffect(() => {
+    if (workOrder?.equipment_id && !selectedEquipmentId) {
+      setSelectedEquipmentId(workOrder.equipment_id);
+    }
+  }, [workOrder?.equipment_id, selectedEquipmentId]);
+  
+  // Fetch linked equipment for multi-equipment support
+  const { data: linkedEquipment = [] } = useWorkOrderEquipment(workOrderId || '');
 
   const {
     isEditFormOpen,
@@ -116,6 +131,15 @@ const WorkOrderDetails = () => {
       <div className={`${isMobile ? 'block' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'} p-4 lg:p-6`}>
         {/* Main Content */}
         <div className={`${isMobile ? 'space-y-4' : 'lg:col-span-2 space-y-6'}`}>
+          {/* Equipment Selector for Multi-Equipment Work Orders */}
+          {linkedEquipment.length > 1 && (
+            <WorkOrderEquipmentSelector
+              workOrderId={workOrder.id}
+              selectedEquipmentId={selectedEquipmentId}
+              onEquipmentChange={setSelectedEquipmentId}
+            />
+          )}
+
           {/* Work Order Details */}
           <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
 
@@ -131,6 +155,7 @@ const WorkOrderDetails = () => {
           {/* PM Checklist Section - Now positioned after costs */}
           {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
             <PMChecklistComponent 
+              key={selectedEquipmentId} // Force re-render on equipment change
               pm={pmData} 
               onUpdate={handlePMUpdate}
               readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}

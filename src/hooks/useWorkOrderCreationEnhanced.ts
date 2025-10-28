@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { createWorkOrder } from '@/services/supabaseDataService';
 import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
+import { addEquipmentToWorkOrder } from '@/services/workOrderEquipmentService';
+import { createPMsForEquipment } from '@/services/preventativeMaintenanceService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -11,6 +13,8 @@ export interface EnhancedCreateWorkOrderData {
   title: string;
   description: string;
   equipmentId: string;
+  equipmentIds?: string[];
+  primaryEquipmentId?: string;
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
   equipmentWorkingHours?: number;
@@ -74,6 +78,21 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
         throw new Error('Failed to create work order');
       }
 
+      // Add equipment to join table for multi-equipment support
+      const equipmentIds = data.equipmentIds || [data.equipmentId];
+      const primaryId = data.primaryEquipmentId || data.equipmentId;
+
+      try {
+        await addEquipmentToWorkOrder({
+          workOrderId: workOrder.id,
+          equipmentIds,
+          primaryEquipmentId: primaryId,
+        });
+      } catch (error) {
+        console.error('Failed to add equipment to work order:', error);
+        toast.error('Work order created but failed to link equipment');
+      }
+
       // If equipment working hours are provided, update equipment
       if (data.equipmentWorkingHours && data.equipmentWorkingHours > 0) {
         try {
@@ -94,19 +113,38 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
         }
       }
 
-      // If PM is required, initialize the PM checklist with template
-      if (data.hasPM) {
+      // If PM is required, create PMs for ALL equipment
+      if (data.hasPM && equipmentIds.length > 0) {
         try {
-          await initializePMChecklist.mutateAsync({
-            workOrderId: workOrder.id,
-            equipmentId: data.equipmentId,
-            organizationId: currentOrganization.id,
-            templateId: data.pmTemplateId,
-          });
+          // Get checklist data from template (existing logic)
+          let checklistData = null;
+          let notes = '';
+          
+          if (data.pmTemplateId) {
+            const { data: template } = await supabase
+              .from('pm_templates')
+              .select('checklist_data, notes')
+              .eq('id', data.pmTemplateId)
+              .single();
+            
+            if (template) {
+              checklistData = template.checklist_data;
+              notes = template.notes || '';
+            }
+          }
+
+          // Create PMs for all equipment
+          await createPMsForEquipment(
+            workOrder.id,
+            equipmentIds,
+            currentOrganization.id,
+            checklistData,
+            notes,
+            data.pmTemplateId
+          );
         } catch (error) {
-          console.error('Failed to initialize PM checklist:', error);
-          // Don't throw error here - work order was created successfully
-          toast.error('Work order created but failed to initialize PM checklist');
+          console.error('Failed to create PMs for equipment:', error);
+          toast.error('Work order created but PM initialization failed for some equipment');
         }
       }
 

@@ -1,11 +1,11 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
-import { usePMByWorkOrderId } from '@/hooks/usePMData';
+import { usePMByWorkOrderAndEquipment } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import type { Tables } from '@/integrations/supabase/types';
 
-export const useWorkOrderDetailsData = (workOrderId: string) => {
+export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId?: string) => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
 
@@ -20,8 +20,11 @@ export const useWorkOrderDetailsData = (workOrderId: string) => {
     workOrder?.equipment_id || ''
   );
 
-  // Fetch PM data if work order has PM enabled
-  const { data: pmData, isLoading: pmLoading } = usePMByWorkOrderId(workOrderId || '');
+  // Fetch PM data for specific equipment if work order has PM enabled
+  const { data: pmData, isLoading: pmLoading } = usePMByWorkOrderAndEquipment(
+    workOrderId || '',
+    selectedEquipmentId || workOrder?.equipment_id || ''
+  );
 
   const permissionLevels = useWorkOrderPermissionLevels();
 
