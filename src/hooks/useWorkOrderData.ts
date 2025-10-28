@@ -152,14 +152,32 @@ export const useUploadWorkOrderImage = () => {
     mutationFn: async ({
       workOrderId,
       file,
-      description
+      description,
+      organizationId
     }: {
       workOrderId: string;
       file: File;
       description?: string;
+      organizationId?: string;
     }) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
+
+      // Get organization_id if not provided
+      let orgId = organizationId;
+      if (!orgId) {
+        const { data: workOrder } = await supabase
+          .from('work_orders')
+          .select('organization_id')
+          .eq('id', workOrderId)
+          .single();
+        if (!workOrder) throw new Error('Work order not found');
+        orgId = workOrder.organization_id;
+      }
+
+      // Check storage quota before uploading
+      const { validateStorageQuota } = await import('@/utils/storageQuota');
+      await validateStorageQuota(orgId, file.size);
 
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
