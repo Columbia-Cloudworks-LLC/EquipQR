@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
 import { exportEquipmentCSV } from '@/services/equipmentCSVService';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 import type { EquipmentRecord } from '@/types/equipment';
 
 import EquipmentForm from '@/components/equipment/EquipmentForm';
@@ -29,14 +31,20 @@ const Equipment = () => {
     filters,
     sortConfig,
     filteredAndSortedEquipment,
+    paginatedEquipment,
     filterOptions,
     isLoading,
     hasActiveFilters,
     equipment,
+    currentPage,
+    pageSize,
+    totalPages,
+    totalFilteredCount,
     updateFilter,
     updateSort,
     clearFilters,
-    applyQuickFilter
+    applyQuickFilter,
+    setCurrentPage
   } = useEquipmentFiltering(currentOrganization?.id);
   
   const [showForm, setShowForm] = useState<boolean>(false);
@@ -136,7 +144,7 @@ const Equipment = () => {
       <EquipmentSortHeader
         sortConfig={sortConfig}
         onSortChange={updateSort}
-        resultCount={filteredAndSortedEquipment.length}
+        resultCount={totalFilteredCount}
         totalCount={equipment.length}
         canExport={canExport}
         onExportCSV={handleExportCSV}
@@ -144,7 +152,7 @@ const Equipment = () => {
       />
 
       <EquipmentGrid
-        equipment={filteredAndSortedEquipment}
+        equipment={paginatedEquipment}
         searchQuery={filters.search}
         statusFilter={filters.status}
         organizationName={currentOrganization.name}
@@ -152,6 +160,40 @@ const Equipment = () => {
         onShowQRCode={setShowQRCode}
         onAddEquipment={handleAddEquipment}
       />
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t pt-4">
+          <p className="text-sm text-muted-foreground">
+            Showing {(currentPage - 1) * pageSize + 1} to{' '}
+            {Math.min(currentPage * pageSize, totalFilteredCount)} of{' '}
+            {totalFilteredCount} results
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage <= 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            <span className="text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Equipment Form Modal */}
       <EquipmentForm 

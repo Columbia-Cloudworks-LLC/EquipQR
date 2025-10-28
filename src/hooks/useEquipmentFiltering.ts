@@ -42,6 +42,8 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   const [filters, setFilters] = useState<EquipmentFilters>(initialFilters);
   const [sortConfig, setSortConfig] = useState<SortConfig>(initialSort);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(24); // 24 items per page (2 rows of 12 on lg screens)
 
   // Get equipment data using explicit organization ID
   const { data: equipment = [], isLoading } = useSyncEquipmentByOrganization(organizationId);
@@ -184,6 +186,13 @@ export const useEquipmentFiltering = (organizationId?: string) => {
     return filtered;
   }, [equipment, filters, sortConfig]);
 
+  // Paginate the filtered and sorted equipment
+  const paginatedEquipment = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredAndSortedEquipment.slice(startIndex, endIndex);
+  }, [filteredAndSortedEquipment, currentPage, pageSize]);
+
   // Quick filter presets
   const applyQuickFilter = useCallback((type: string) => {
     switch (type) {
@@ -212,6 +221,7 @@ export const useEquipmentFiltering = (organizationId?: string) => {
         }));
         break;
     }
+    setCurrentPage(1);
   }, []);
 
   const updateFilter = useCallback((key: keyof EquipmentFilters, value: EquipmentFilters[keyof EquipmentFilters]) => {
@@ -219,18 +229,25 @@ export const useEquipmentFiltering = (organizationId?: string) => {
       ...prev,
       [key]: value
     }));
-  }, []);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [currentPage]);
 
   const updateSort = useCallback((field: string) => {
     setSortConfig(prev => ({
       field,
       direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
-  }, []);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [currentPage]);
 
   const clearFilters = useCallback(() => {
     setFilters(initialFilters);
     setSortConfig(initialSort);
+    setCurrentPage(1);
   }, []);
 
   const hasActiveFilters = useMemo(() => {
@@ -246,19 +263,27 @@ export const useEquipmentFiltering = (organizationId?: string) => {
     });
   }, [filters]);
 
+  const totalPages = Math.ceil(filteredAndSortedEquipment.length / pageSize);
+
   return {
     filters,
     sortConfig,
     showAdvancedFilters,
-    filteredAndSortedEquipment,
+    filteredAndSortedEquipment, // Full filtered list for counts
+    paginatedEquipment, // Current page of equipment
     filterOptions,
     isLoading,
     hasActiveFilters,
     equipment, // Return raw equipment data
+    currentPage,
+    pageSize,
+    totalPages,
+    totalFilteredCount: filteredAndSortedEquipment.length,
     updateFilter,
     updateSort,
     clearFilters,
     applyQuickFilter,
+    setCurrentPage,
     setShowAdvancedFilters
   };
 };
