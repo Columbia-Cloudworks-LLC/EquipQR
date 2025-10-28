@@ -43,7 +43,7 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>(initialSort);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(24); // 24 items per page (2 rows of 12 on lg screens)
+  const [pageSize, setPageSize] = useState(10); // Default to 10 items per page
 
   // Get equipment data using explicit organization ID
   const { data: equipment = [], isLoading } = useSyncEquipmentByOrganization(organizationId);
@@ -284,6 +284,7 @@ export const useEquipmentFiltering = (organizationId?: string) => {
     clearFilters,
     applyQuickFilter,
     setCurrentPage,
+    setPageSize,
     setShowAdvancedFilters
   };
 };

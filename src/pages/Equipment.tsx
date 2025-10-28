@@ -8,6 +8,7 @@ import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
 import { exportEquipmentCSV } from '@/services/equipmentCSVService';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { EquipmentRecord } from '@/types/equipment';
 
 import EquipmentForm from '@/components/equipment/EquipmentForm';
@@ -44,7 +45,8 @@ const Equipment = () => {
     updateSort,
     clearFilters,
     applyQuickFilter,
-    setCurrentPage
+    setCurrentPage,
+    setPageSize
   } = useEquipmentFiltering(currentOrganization?.id);
   
   const [showForm, setShowForm] = useState<boolean>(false);
@@ -161,37 +163,70 @@ const Equipment = () => {
         onAddEquipment={handleAddEquipment}
       />
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t pt-4">
-          <p className="text-sm text-muted-foreground">
-            Showing {(currentPage - 1) * pageSize + 1} to{' '}
-            {Math.min(currentPage * pageSize, totalFilteredCount)} of{' '}
-            {totalFilteredCount} results
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage <= 1}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
-            </Button>
-            <span className="text-sm">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+      {/* Pagination and Page Size Selector */}
+      {(totalPages > 1 || totalFilteredCount > 0) && (
+        <div className="flex flex-col gap-4 border-t pt-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {totalFilteredCount > 0 ? (
+                <>
+                  Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                  {Math.min(currentPage * pageSize, totalFilteredCount)} of{' '}
+                  {totalFilteredCount} results
+                </>
+              ) : (
+                'No results found'
+              )}
+            </p>
+            
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground">Items per page:</label>
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(value) => {
+                  setPageSize(Number(value));
+                  setCurrentPage(1); // Reset to first page when page size changes
+                }}
+              >
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <span className="text-sm">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
