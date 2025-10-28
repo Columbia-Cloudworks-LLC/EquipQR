@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { SeveritySchema, ValidationCategorySchema } from './validation-config-schema';
+import { SeveritySchema } from './validation-config-schema';
 
 /**
  * Single validation result
