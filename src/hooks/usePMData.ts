@@ -6,7 +6,6 @@ import {
   getPMByWorkOrderAndEquipment,
   getPMsByWorkOrderId,
   updatePM,
-  PreventativeMaintenance,
   UpdatePMData,
 } from '@/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
