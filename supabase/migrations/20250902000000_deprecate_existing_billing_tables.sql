@@ -15,7 +15,25 @@ COMMENT ON TABLE organization_subscriptions IS 'DEPRECATED: Billing removed 2025
 COMMENT ON TABLE stripe_event_logs IS 'DEPRECATED: Billing removed 2025-01-15. Table preserved for historical data. Billing disabled by default via BILLING_DISABLED flag.';
 
 -- =============================================================================
--- 2. Add deprecation comments to billing-related columns in organizations
+-- 2. Create universal entitlements view
+-- =============================================================================
+-- This view simulates that all users have full access to all features
+-- Note: Using profiles table to avoid exposing auth.users
+-- Moved from 20250115000000 because it depends on profiles table
+
+CREATE OR REPLACE VIEW user_entitlements AS
+SELECT 
+  p.id AS user_id,
+  'free'::text AS plan,
+  true AS is_active,
+  now() AS granted_at,
+  NULL::timestamptz AS subscription_end
+FROM public.profiles p;
+
+COMMENT ON VIEW user_entitlements IS 'Universal entitlements view: all users have full access. Created 2025-01-15 as part of billing removal. Uses profiles table for security.';
+
+-- =============================================================================
+-- 3. Add deprecation comments to billing-related columns in organizations
 -- =============================================================================
 
 DO $$

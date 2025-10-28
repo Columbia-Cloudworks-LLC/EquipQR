@@ -13,24 +13,8 @@
 
 -- Organization column deprecation comments also moved to later migration
 
--- =============================================================================
--- 2. Create universal entitlements view
--- =============================================================================
--- This view simulates that all users have full access to all features
--- Note: Using profiles table to avoid exposing auth.users
-
-CREATE OR REPLACE VIEW user_entitlements AS
-SELECT 
-  p.id AS user_id,
-  'free'::text AS plan,
-  true AS is_active,
-  now() AS granted_at,
-  NULL::timestamptz AS subscription_end
-FROM public.profiles p;
-
-COMMENT ON VIEW user_entitlements IS 'Universal entitlements view: all users have full access. Created 2025-01-15 as part of billing removal. Uses profiles table for security.';
-
--- Billing constraints check removed - table references moved to later migration
+-- user_entitlements view creation moved to 20250902000000_deprecate_existing_billing_tables.sql
+-- because it depends on the profiles table which is created in remote_schema.sql
 
 -- =============================================================================
 -- 4. Create helper function to check if billing is disabled
@@ -61,9 +45,8 @@ COMMENT ON FUNCTION billing_is_disabled IS 'Returns true if billing is disabled.
 CREATE OR REPLACE FUNCTION user_has_access(user_uuid UUID) RETURNS boolean AS $$
 BEGIN
   -- All users have access when billing is disabled
-  RETURN billing_is_disabled() OR EXISTS (
-    SELECT 1 FROM user_entitlements WHERE user_id = user_uuid AND is_active = true
-  );
+  -- Simplified to not depend on user_entitlements view (which is created in later migration)
+  RETURN billing_is_disabled();
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET search_path = public, pg_temp;
