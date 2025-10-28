@@ -7,28 +7,11 @@
 -- 1. Add deprecation comments to billing tables
 -- =============================================================================
 
-COMMENT ON TABLE user_license_subscriptions IS 'DEPRECATED: Billing removed 2025-01-15. Table preserved for historical data. Billing disabled by default via BILLING_DISABLED flag.';
-COMMENT ON TABLE billing_events IS 'DEPRECATED: Billing removed 2025-01-15. Table preserved for historical data. Billing disabled by default via BILLING_DISABLED flag.';
-COMMENT ON TABLE billing_usage IS 'DEPRECATED: Billing removed 2025-01-15. Table preserved for historical data. Billing disabled by default via BILLING_DISABLED flag.';
-COMMENT ON TABLE billing_exemptions IS 'DEPRECATED: Billing removed 2025-01-15. Table preserved for historical data. Billing disabled by default via BILLING_DISABLED flag.';
-COMMENT ON TABLE billing_features IS 'DEPRECATED: Billing removed 2025-01-15. Table preserved for historical data. Billing disabled by default via BILLING_DISABLED flag.';
+-- Note: Actual table deprecation comments moved to 20250902000000_deprecate_existing_billing_tables.sql
+-- to ensure they run AFTER the tables are created in remote_schema.sql
+-- This migration only contains non-table-dependent logic
 
--- Add deprecation comments to billing-related columns
-DO $$
-BEGIN
-  -- Deprecate subscription-related columns in organizations table (if they exist)
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'stripe_customer_id') THEN
-    EXECUTE 'COMMENT ON COLUMN organizations.stripe_customer_id IS ''DEPRECATED: Billing removed 2025-01-15. Column preserved for historical data.''';
-  END IF;
-  
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'subscription_status') THEN
-    EXECUTE 'COMMENT ON COLUMN organizations.subscription_status IS ''DEPRECATED: Billing removed 2025-01-15. Column preserved for historical data.''';
-  END IF;
-  
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'plan_id') THEN
-    EXECUTE 'COMMENT ON COLUMN organizations.plan_id IS ''DEPRECATED: Billing removed 2025-01-15. Column preserved for historical data.''';
-  END IF;
-END $$;
+-- Organization column deprecation comments also moved to later migration
 
 -- =============================================================================
 -- 2. Create universal entitlements view
@@ -47,30 +30,7 @@ FROM public.profiles p;
 
 COMMENT ON VIEW user_entitlements IS 'Universal entitlements view: all users have full access. Created 2025-01-15 as part of billing removal. Uses profiles table for security.';
 
--- =============================================================================
--- 3. Ensure billing constraints don't block user operations
--- =============================================================================
--- Make billing-related columns nullable where they might block operations
--- (Only if they currently have NOT NULL constraints)
-
-DO $$
-BEGIN
-  -- Ensure user_license_subscriptions doesn't block user creation
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_license_subscriptions' AND column_name = 'organization_id' AND is_nullable = 'NO') THEN
-    -- Only attempt if NOT NULL constraint exists
-    IF EXISTS (
-      SELECT 1 FROM information_schema.table_constraints tc
-      JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name
-      WHERE tc.table_name = 'user_license_subscriptions'
-      AND ccu.column_name = 'organization_id'
-      AND tc.constraint_type = 'NOT NULL'
-    ) THEN
-      -- This would require ALTER COLUMN, which we'll skip to avoid breaking changes
-      -- Instead, we'll ensure the table is not required for user operations
-      NULL;
-    END IF;
-  END IF;
-END $$;
+-- Billing constraints check removed - table references moved to later migration
 
 -- =============================================================================
 -- 4. Create helper function to check if billing is disabled
@@ -143,12 +103,7 @@ COMMENT ON FUNCTION user_has_access IS 'Check if user has access to features. Re
 --    DROP FUNCTION IF EXISTS billing_is_disabled() CASCADE;
 --    DROP FUNCTION IF EXISTS user_has_access(UUID) CASCADE;
 --
--- 2. Remove deprecation comments (or leave them - they're harmless):
---    COMMENT ON TABLE user_license_subscriptions IS NULL;
---    COMMENT ON TABLE billing_events IS NULL;
---    COMMENT ON TABLE billing_usage IS NULL;
---    COMMENT ON TABLE billing_exemptions IS NULL;
---    COMMENT ON TABLE billing_features IS NULL;
+-- 2. Remove deprecation comments (see 20250902000000_deprecate_existing_billing_tables.sql)
 --
 -- 3. Set BILLING_DISABLED=false in environment
 -- 4. Re-enable routes in App.tsx
