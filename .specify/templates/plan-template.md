@@ -69,6 +69,14 @@ Verify compliance with `.specify/memory/constitution.md` principles:
 - [ ] MCP tool integration documented (Vercel, Stripe, GitKraken, Supabase)
 - [ ] Idempotent feature development approach
 
+**Database Migration Integrity** (if feature includes migrations):
+- [ ] Migration format: `YYYYMMDDHHMMSS_descriptive_name.sql`
+- [ ] Production state verified with `mcp_supabase_list_migrations` before changes
+- [ ] No renaming of applied migrations
+- [ ] Idempotent operations (`IF NOT EXISTS`, `IF NOT NULL`)
+- [ ] Local/remote timestamp sync validated
+- [ ] Migration validation script passed: `node scripts/supabase-fix-migrations.mjs`
+
 ## Project Structure
 
 ### Documentation (this feature)

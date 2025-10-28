@@ -35,6 +35,7 @@ Everything needed to deploy and maintain EquipQR:
 
 - **[Deployment Guide](./deployment/deployment-guide.md)** - Multi-platform deployment instructions
 - **[Database Migrations](./deployment/database-migrations.md)** - Schema management and migration strategies
+- **[Migration Rules Quick Reference](./deployment/migration-rules-quick-reference.md)** - ⚠️ **CRITICAL** migration rules and best practices
 - **[CI Testing Reference](./deployment/ci-testing-reference.md)** - Testing strategies and quality gates
 
 ### 🔧 Maintenance & Operations
@@ -59,10 +60,11 @@ Following the development process:
 4. Keep [Troubleshooting Guide](./getting-started/troubleshooting.md) handy
 
 ### For System Administrators
-1. Review [Deployment Guide](./deployment/deployment-guide.md)
-2. Understand [Database Schema](./architecture/database-schema.md)
-3. Set up [CI Testing](./deployment/ci-testing-reference.md)
-4. Monitor [Performance](./maintenance/performance-optimization.md)
+1. **READ FIRST**: [Migration Rules Quick Reference](./deployment/migration-rules-quick-reference.md) ⚠️
+2. Review [Deployment Guide](./deployment/deployment-guide.md)
+3. Understand [Database Schema](./architecture/database-schema.md)
+4. Set up [CI Testing](./deployment/ci-testing-reference.md)
+5. Monitor [Performance](./maintenance/performance-optimization.md)
 
 ### For Product Managers
 1. Explore [Features Overview](./features/features-overview.md)
@@ -71,10 +73,11 @@ Following the development process:
 4. Check [Billing System](./features/billing-and-pricing.md)
 
 ### For DevOps Engineers
-1. Study [System Architecture](./architecture/system-architecture.md)
-2. Master [Deployment Guide](./deployment/deployment-guide.md)
-3. Implement [CI/CD Pipeline](./deployment/ci-testing-reference.md)
-4. Optimize [Performance](./maintenance/performance-optimization.md)
+1. **READ FIRST**: [Migration Rules Quick Reference](./deployment/migration-rules-quick-reference.md) ⚠️
+2. Study [System Architecture](./architecture/system-architecture.md)
+3. Master [Deployment Guide](./deployment/deployment-guide.md)
+4. Implement [CI/CD Pipeline](./deployment/ci-testing-reference.md)
+5. Optimize [Performance](./maintenance/performance-optimization.md)
 
 ## 📖 Document Status
 

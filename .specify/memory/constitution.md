@@ -1,19 +1,23 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version: 1.0.0 → 1.1.0 (MINOR - New Principle Added)
+Version: 1.1.0 → 1.2.0 (MINOR - Database Migration Governance Added)
 Ratification Date: 2025-10-13
-Last Amended: 2025-10-25
+Last Amended: 2025-10-28
 
-Modified Principles:
-- None (existing principles unchanged)
+Modified Sections:
+✅ Development Workflow - Added Database Migration Integrity subsection
+✅ Pull Request Process - Added migration validation step
+✅ CI/CD Quality Gates - Added migration verification requirement
 
 Added Sections:
-✅ VII. End-to-End Observability & Testing (NEW)
-  - Playwright browser testing across environments
-  - MCP tool integration (Vercel, Stripe, GitKraken, Supabase)
-  - Multi-environment validation (dev, preview, production)
-  - Idempotent feature development
+✅ Database Migration Integrity (NEW)
+  - Never rename applied migrations (timestamps are permanent)
+  - Production is source of truth
+  - Mandatory MCP tool verification
+  - Migration naming conventions
+  - Idempotent operations requirement
+  - Local/remote sync validation
 
 Existing Principles (Unchanged):
 ✅ I. Multi-Tenancy & Data Isolation (NON-NEGOTIABLE)
@@ -22,17 +26,20 @@ Existing Principles (Unchanged):
 ✅ IV. Security & Access Control (NON-NEGOTIABLE)
 ✅ V. Test Coverage & Quality Gates (NON-NEGOTIABLE)
 ✅ VI. Performance & Bundle Optimization
+✅ VII. End-to-End Observability & Testing
 
 Template Updates Required:
-✅ .specify/templates/plan-template.md - Add Principle VII to Constitution Check
-✅ .specify/templates/spec-template.md - Add observability edge cases
-✅ .specify/templates/tasks-template.md - Add observability task types
-✅ .specify/templates/commands/README.md - Reference Principle VII
+✅ .specify/templates/plan-template.md - Add migration integrity checks
+✅ .specify/templates/tasks-template.md - Add migration validation tasks
+⚠️  .specify/templates/spec-template.md - Review needed (no changes expected)
+⚠️  .specify/templates/commands/README.md - Review needed (no changes expected)
 
 Version Bump Rationale:
-MINOR (1.0.0 → 1.1.0) - New principle added without breaking existing governance.
-This is a material expansion of guidance adding mandatory observability requirements
-for end-to-end testing and MCP tool integration.
+MINOR (1.1.0 → 1.2.0) - Material expansion of governance adding mandatory database
+migration integrity requirements. Introduces new quality gates (MCP tool verification
+before migration changes) and critical workflow rules (never rename applied migrations).
+This is based on production incidents documented in MIGRATION_RULES_ADDED_TO_SPEC.md
+where migration renaming caused deployment failures and local/remote database mismatches.
 -->
 
 # EquipQR Constitution
@@ -255,17 +262,50 @@ Complete system observability enables idempotent feature development and rapid i
 - **preview**: Staging environment for pre-production testing
 - **feature branches**: Named `[issue-number]-feature-name`
 
+### Database Migration Integrity (CRITICAL)
+
+**The Golden Rule**: Once a migration has been applied to production, its timestamp is **PERMANENT and IMMUTABLE**.
+
+#### Mandatory Requirements:
+- **Migration Format**: `YYYYMMDDHHMMSS_descriptive_name.sql` (year, month, day, hour, minute, second)
+- **Never Rename Applied Migrations**: Production timestamps are permanent; renaming causes deployment failures
+- **Production is Source of Truth**: Always verify production state before making migration changes
+- **MCP Tool Verification**: Use `mcp_supabase_list_migrations` to check production before any migration work
+- **Idempotent Operations**: Use `IF NOT EXISTS`, `IF NOT NULL`, etc. for safe repeated execution
+- **Local/Remote Sync**: Local migration files MUST match production timestamps exactly
+
+#### Migration Workflow:
+1. **Before Migration Work**: Check production with `mcp_supabase_list_migrations(project_id)`
+2. **Create Migration**: Use current timestamp, never backdate
+3. **Write Migration**: Use idempotent operations (`CREATE TABLE IF NOT EXISTS`)
+4. **Test Locally**: Run `supabase db reset` to verify complete migration chain
+5. **Validate**: Run `node scripts/supabase-fix-migrations.mjs`
+6. **Deploy**: After deployment, timestamp becomes permanent
+7. **Never Rename**: Applied migrations are immutable forever
+
+#### Fixing Local/Remote Mismatch:
+- Use MCP tools to list production migrations
+- Create placeholder files for missing migrations with exact production timestamps
+- Revert any incorrectly renamed files to match production
+- Never assume local is correct
+
+**Rationale**: Migration renaming causes "Remote migration versions not found" errors, deployment failures, and database state mismatches. Production is the authoritative source; local files must conform. This rule prevents costly production incidents.
+
+**Reference**: `docs/deployment/migration-rules-quick-reference.md`, `docs/deployment/database-migrations.md`
+
 ### Pull Request Process
 1. Create feature branch from `main` or `preview`
 2. Implement changes with tests
-3. Ensure all quality gates pass locally:
+3. **If PR includes migrations**: Verify production state with MCP tools first
+4. Ensure all quality gates pass locally:
    - `npm run lint` - ESLint
    - `npm run type-check` - TypeScript
    - `npm run test:coverage` - Tests with 70% coverage
-4. Open PR to target branch
-5. Code review required (minimum 1 approval)
-6. CI/CD pipeline runs all quality gates
-7. Merge only after all checks pass
+   - **If migrations**: `node scripts/supabase-fix-migrations.mjs`
+5. Open PR to target branch
+6. Code review required (minimum 1 approval)
+7. CI/CD pipeline runs all quality gates
+8. Merge only after all checks pass
 
 ### CI/CD Quality Gates
 
@@ -292,9 +332,17 @@ Complete system observability enables idempotent feature development and rapid i
 - Bundle size limits (12MB total, 500KB JS gzipped)
 - Performance budget analysis
 
+**Migration Integrity Job** (if migrations changed):
+- Migration filename validation (`node scripts/supabase-fix-migrations.mjs`)
+- Production state verification via MCP tools
+- Local/remote timestamp consistency check
+- Migration idempotency verification (contains `IF NOT EXISTS` clauses)
+- No renamed migration detection
+
 ### Code Review Requirements
 - All PRs require review before merge
 - Focus areas:
+  - **Migrations**: Timestamp format, idempotency, RLS policies, production state verification
   - Security: RLS policies, input validation, permission checks
   - Architecture: Component boundaries, separation of concerns
   - Testing: Coverage, edge cases, integration tests
@@ -371,4 +419,4 @@ When constitution changes:
 - Database schema and RLS: `docs/architecture/database-schema.md`
 - RBAC system: `docs/features/roles-and-permissions.md`
 
-**Version**: 1.1.0 | **Ratified**: 2025-10-13 | **Last Amended**: 2025-10-25
+**Version**: 1.2.0 | **Ratified**: 2025-10-13 | **Last Amended**: 2025-10-28
