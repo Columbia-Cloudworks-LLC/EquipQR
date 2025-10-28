@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
+
 import { HardDrive, AlertCircle } from 'lucide-react';
 import { MAX_STORAGE_GB } from '@/utils/storageQuota';
 
