@@ -7,6 +7,7 @@ import { Users, Settings } from 'lucide-react';
 import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { OrganizationSettings } from './OrganizationSettings';
 import UnifiedMembersList from './UnifiedMembersList';
+import StorageUsageCard from './StorageUsageCard';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { SessionOrganization } from '@/contexts/SessionContext';
 
@@ -59,6 +60,9 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
       </TabsList>
 
       <TabsContent value="members" className="space-y-4">
+        {/* Storage Usage */}
+        <StorageUsageCard organizationId={organizationId} />
+
         <UnifiedMembersList
           members={members}
           organizationId={organizationId}

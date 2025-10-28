@@ -30,10 +30,26 @@ supabase/migrations/
 
 ## Migration Best Practices
 
-### 1. Baseline-First Rule
+### 1. Never Rename Applied Migrations ⚠️
+**CRITICAL RULE**: Once a migration has been applied to production, NEVER rename or change its timestamp.
+
+- Production migration timestamps are permanent and immutable
+- Renaming creates a mismatch between local and remote databases
+- Supabase will report "Remote migration versions not found in local migrations directory"
+- **Always check production migrations before renaming** using Supabase MCP tools:
+  ```bash
+  # Use mcp_supabase_list_migrations to see production state
+  ```
+
+**If you need to fix migration order:**
+- ✅ For NEW migrations: Set correct timestamp before first deployment
+- ✅ For historical issues: Create placeholder files matching production timestamps
+- ❌ Never rename migrations already applied to production
+
+### 2. Baseline-First Rule
 Critical tables like `work_orders`, `equipment`, and `organizations` must have baseline `CREATE TABLE` migrations that run early in the sequence. This ensures `supabase db reset` works correctly.
 
-### 2. Idempotent Operations
+### 3. Idempotent Operations
 Always use safe operations that won't fail if run multiple times:
 ```sql
 -- ✅ Safe operations
@@ -46,7 +62,27 @@ CREATE TABLE public.example_table (...);  -- Fails if table exists
 ALTER TABLE public.example_table ADD COLUMN new_column text;  -- Fails if column exists
 ```
 
-### 3. Row Level Security (RLS)
+### 4. Production is Source of Truth
+**Always verify production state before making migration changes:**
+
+```bash
+# Check what migrations are applied in production
+# Use Supabase MCP tools: mcp_supabase_list_migrations
+
+# Compare with local migrations
+ls supabase/migrations/*.sql
+
+# Create placeholder files for any missing migrations
+# Match production timestamps exactly
+```
+
+**If local and remote are out of sync:**
+1. Use MCP tools to list production migrations
+2. Create placeholder files for any missing locally
+3. Revert any incorrectly renamed migrations to match production
+4. Never assume local is correct - production is the source of truth
+
+### 5. Row Level Security (RLS)
 Always enable RLS on new tables and create appropriate policies:
 ```sql
 -- Enable RLS
@@ -59,7 +95,7 @@ FOR SELECT
 USING (user_id = auth.uid());
 ```
 
-### 4. Constraints and Validation
+### 6. Constraints and Validation
 Use validation triggers instead of CHECK constraints for time-based validations:
 ```sql
 -- ❌ Avoid CHECK constraints with time functions
@@ -193,26 +229,41 @@ $$;
 
 ### Common Issues
 
-#### 1. Migration Fails on `db reset`
+#### 1. Remote Migration Versions Not Found
+**Problem:** "Remote migration versions not found in local migrations directory"
+**Cause:** Local migration files renamed/missing while production has different versions.
+**Solution:** 
+- Use Supabase MCP tools to list production migrations
+- Create placeholder files matching production timestamps exactly
+- Revert any renamed migrations to match production
+- Never rename migrations after they've been applied to production
+
+#### 2. Migration Fails on `db reset`
 **Problem:** `ALTER TABLE` statements fail because base table doesn't exist.
 **Solution:** Ensure baseline `CREATE TABLE` migrations exist early in the sequence.
 
-#### 2. Invalid Migration Filenames
+#### 3. Invalid Migration Filenames
 **Problem:** Files named `-.sql` or with dashes get skipped.
 **Solution:** Run `node scripts/supabase-fix-migrations.mjs` to normalize names.
 
-#### 3. Constraint Violations
+#### 4. Constraint Violations
 **Problem:** CHECK constraints with `now()` cause restoration failures.
 **Solution:** Replace with validation triggers.
 
-#### 4. RLS Policy Conflicts
+#### 5. RLS Policy Conflicts
 **Problem:** Duplicate or conflicting policies prevent table access.
 **Solution:** Use `DROP POLICY IF EXISTS` before creating new policies.
 
 ### Debugging Commands
 ```bash
-# Check migration status
+# Check local migration status
 supabase migration list
+
+# Check production migrations (use Supabase MCP tools)
+# mcp_supabase_list_migrations with project_id
+
+# Compare local vs remote
+ls supabase/migrations/*.sql | sort
 
 # View specific migration
 cat supabase/migrations/20250822120000_migration_name.sql
@@ -223,6 +274,9 @@ supabase db diff
 # Inspect table structure
 supabase db shell
 \d+ table_name
+
+# Validate migration filenames
+node scripts/supabase-fix-migrations.mjs
 ```
 
 ### Emergency Recovery

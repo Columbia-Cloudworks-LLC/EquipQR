@@ -19,6 +19,7 @@ description: "Task list template for feature implementation"
 - Testing: Maintain 70% coverage, add integration tests
 - Performance: Code splitting, memoization, bundle size checks
 - Observability: Add Playwright E2E tests, validate across environments (dev/preview/production), integrate MCP tools
+- Migration Integrity: Format `YYYYMMDDHHMMSS_name.sql`, verify production with MCP tools, use idempotent operations, never rename applied migrations
 
 ## Format: `[ID] [P?] [Story] Description`
 - **[P]**: Can run in parallel (different files, no dependencies)
@@ -85,6 +86,15 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX [P] Create Playwright E2E tests for critical user journeys
 - [ ] TXXX [P] Document MCP tool validation steps (Vercel, Stripe, GitKraken, Supabase)
 - [ ] TXXX Setup multi-environment test configuration (dev/preview/production)
+
+**Migration tasks (if feature includes database changes):**
+- [ ] TXXX Verify production state with `mcp_supabase_list_migrations(project_id)`
+- [ ] TXXX Create migration file with format `YYYYMMDDHHMMSS_descriptive_name.sql`
+- [ ] TXXX Write idempotent migration (use `IF NOT EXISTS`, `IF NOT NULL`)
+- [ ] TXXX Add RLS policies in migration for new tables
+- [ ] TXXX Test with `supabase db reset` to verify complete migration chain
+- [ ] TXXX Validate with `node scripts/supabase-fix-migrations.mjs`
+- [ ] TXXX Update TypeScript types after schema changes
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

@@ -27,7 +27,8 @@ const FleetMap = lazy(() => import('@/pages/FleetMap'));
 const Organization = lazy(() => import('@/pages/Organization'));
 const QRScanner = lazy(() => import('@/pages/QRScanner'));
 const QRRedirect = lazy(() => import('@/pages/QRRedirect'));
-const Billing = lazy(() => import('@/pages/Billing'));
+// Billing and monetization features removed
+// const Billing = lazy(() => import('@/pages/Billing'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const Support = lazy(() => import('@/pages/Support'));
@@ -37,8 +38,8 @@ const Notifications = lazy(() => import('@/pages/Notifications'));
 const InvitationAccept = lazy(() => import('@/pages/InvitationAccept'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
-const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
-const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin'));
+// const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
+// const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin'));
 const PMTemplateView = lazy(() => import('@/pages/PMTemplateView'));
 const PartPicker = lazy(() => import('@/pages/PartPicker'));
 
@@ -141,7 +142,8 @@ function App() {
                                 <Route path="/fleet-map" element={<FleetMap />} />
                                 <Route path="/organization" element={<Organization />} />
                                 <Route path="/scanner" element={<QRScanner />} />
-                                <Route path="/billing" element={<Billing />} />
+                                {/* Billing route removed - billing is now free */}
+                                {/* <Route path="/billing" element={<Billing />} /> */}
                                 <Route path="/pm-templates" element={<PMTemplates />} />
                                 <Route path="/pm-templates/:templateId" element={<PMTemplateView />} />
                                 <Route path="/pm-templates/:templateId/view" element={<PMTemplateView />} />
@@ -150,8 +152,9 @@ function App() {
                                 <Route path="/reports" element={<Reports />} />
                                 <Route path="/part-picker" element={<PartPicker />} />
                                 <Route path="/support" element={<DashboardSupport />} />
-                                {import.meta.env.DEV && <Route path="/debug/billing" element={<DebugBilling />} />}
-                                {import.meta.env.DEV && <Route path="/debug/exemptions-admin" element={<BillingExemptionsAdmin />} />}
+                                {/* Billing debug routes removed */}
+                                {/* {import.meta.env.DEV && <Route path="/debug/billing" element={<DebugBilling />} />} */}
+                                {/* {import.meta.env.DEV && <Route path="/debug/exemptions-admin" element={<BillingExemptionsAdmin />} />} */}
                               </Routes>
                             </Suspense>
                           </main>

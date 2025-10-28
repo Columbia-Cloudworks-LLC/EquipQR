@@ -1,5 +1,6 @@
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { SlotAvailability } from '@/hooks/useOrganizationSlots';
+import { isBillingDisabled } from '@/lib/flags';
 
 export interface SimplifiedOrganizationRestrictions {
   canManageTeams: boolean;
@@ -17,6 +18,20 @@ export const getSimplifiedOrganizationRestrictions = (
   slotAvailability: SlotAvailability,
   fleetMapEnabled: boolean = false
 ): SimplifiedOrganizationRestrictions => {
+  // Billing is disabled - grant all features to all organizations
+  if (isBillingDisabled()) {
+    return {
+      canManageTeams: true,
+      canAssignEquipmentToTeams: true,
+      canUploadImages: true,
+      canAccessFleetMap: fleetMapEnabled,
+      canInviteMembers: true,
+      canCreateCustomPMTemplates: true,
+      hasAvailableSlots: true,
+      upgradeMessage: ''
+    };
+  }
+  
   const activeMemberCount = members.filter(member => member.status === 'active').length;
   // Organization is free only if it has a single user AND no available slots (neither purchased nor exempted)
   const isFree = activeMemberCount === 1 && slotAvailability.available_slots === 0;

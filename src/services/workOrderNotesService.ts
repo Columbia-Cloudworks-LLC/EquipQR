@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
+import { validateStorageQuota } from '@/utils/storageQuota';
 
 export interface WorkOrderNote {
   id: string;
@@ -35,10 +36,27 @@ export const createWorkOrderNoteWithImages = async (
   content: string,
   hoursWorked: number = 0,
   isPrivate: boolean = false,
-  images: File[] = []
+  images: File[] = [],
+  organizationId?: string
 ): Promise<WorkOrderNote> => {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error('User not authenticated');
+
+  // Get organization_id if not provided
+  let orgId = organizationId;
+  if (!orgId) {
+    const { data: workOrder } = await supabase
+      .from('work_orders')
+      .select('organization_id')
+      .eq('id', workOrderId)
+      .single();
+    if (!workOrder) throw new Error('Work order not found');
+    orgId = workOrder.organization_id;
+  }
+
+  // Validate storage quota for all files before uploading
+  const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);
+  await validateStorageQuota(orgId, totalFileSize);
 
   // Create the note first
   const { data: note, error: noteError } = await supabase

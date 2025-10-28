@@ -90,7 +90,7 @@ describe('OrganizationTabs', () => {
     { id: 'u-1', name: 'Owner', email: 'owner@example.com', role: 'owner', status: 'active', joinedDate: '2024-01-01T00:00:00Z' },
   ];
 
-  it('disables Invite button when seat availability is exhausted', async () => {
+  it('does not disable Invite button when billing is disabled (billing disabled by default)', async () => {
     customRender(
       <OrganizationTabs
         members={members}
@@ -103,7 +103,8 @@ describe('OrganizationTabs', () => {
     );
 
     const inviteBtn = await screen.findByRole('button', { name: /invite member/i });
-    expect(inviteBtn).toBeDisabled();
+    // With billing disabled by default, invitations are never blocked
+    expect(inviteBtn).not.toBeDisabled();
   });
 });
 
