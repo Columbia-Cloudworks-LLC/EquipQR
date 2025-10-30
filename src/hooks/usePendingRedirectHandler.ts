@@ -16,7 +16,7 @@ export const usePendingRedirectHandler = () => {
     const pendingRedirect = sessionStorage.getItem('pendingRedirect');
     
     if (pendingRedirect) {
-      console.log('🔗 Found pending redirect:', pendingRedirect);
+      // Found pending redirect
       
       // Clear the pending redirect
       sessionStorage.removeItem('pendingRedirect');

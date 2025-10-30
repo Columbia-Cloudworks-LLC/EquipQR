@@ -41,7 +41,7 @@ export const useInvitationPerformance = () => {
     if (duration > 5000) {
       console.warn(`[PERFORMANCE] Slow operation detected: ${operationName} took ${duration.toFixed(2)}ms`);
     } else if (duration > 2000) {
-      console.log(`[PERFORMANCE] ${operationName} took ${duration.toFixed(2)}ms`);
+      // Performance warning: operation took longer than expected
     }
 
     return metric;

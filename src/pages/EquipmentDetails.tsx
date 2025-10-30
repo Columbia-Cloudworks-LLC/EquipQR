@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { TabsContent } from '@/components/ui/tabs';
 import { ArrowLeft, MapPin, Calendar, Package, QrCode, Trash2 } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
@@ -19,6 +18,7 @@ import ResponsiveEquipmentTabs from '@/components/equipment/ResponsiveEquipmentT
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 import { DeleteEquipmentDialog } from '@/components/equipment/DeleteEquipmentDialog';
+import { WorkingHoursTimelineModal } from '@/components/equipment/WorkingHoursTimelineModal';
 import { useCreateScan } from '@/hooks/useSupabaseData';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,6 +37,7 @@ const EquipmentDetails = () => {
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
   const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isWorkingHoursModalOpen, setIsWorkingHoursModalOpen] = useState(false);
   const [scanLogged, setScanLogged] = useState(false);
 
   const { user } = useAuth();
@@ -148,6 +149,14 @@ const EquipmentDetails = () => {
     navigate('/dashboard/equipment');
   };
 
+  const handleShowWorkingHours = () => {
+    setIsWorkingHoursModalOpen(true);
+  };
+
+  const handleCloseWorkingHours = () => {
+    setIsWorkingHoursModalOpen(false);
+  };
+
   // Check if current user is admin/owner
   const currentUserMember = organizationMembers?.find(member => member.id === user?.id);
   const isAdmin = currentUserMember?.role === 'owner' || currentUserMember?.role === 'admin';
@@ -209,18 +218,6 @@ const EquipmentDetails = () => {
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
 
   return (
     <div className={`space-y-6 ${isMobile ? 'pb-4' : ''}`}>
@@ -232,6 +229,7 @@ const EquipmentDetails = () => {
             onShowQRCode={handleShowQRCode}
             canDelete={isAdmin}
             onDelete={handleDeleteEquipment}
+            onShowWorkingHours={handleShowWorkingHours}
           />
         </div>
       ) : (
@@ -256,9 +254,6 @@ const EquipmentDetails = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className={getStatusColor(equipment.status)}>
-                {equipment.status}
-              </Badge>
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleShowQRCode}>
                   <QrCode className="h-4 w-4 mr-2" />
@@ -408,6 +403,14 @@ const EquipmentDetails = () => {
           onSuccess={handleDeleteSuccess}
         />
       )}
+
+      {/* Working Hours Timeline Modal */}
+      <WorkingHoursTimelineModal
+        open={isWorkingHoursModalOpen}
+        onClose={handleCloseWorkingHours}
+        equipmentId={equipment.id}
+        equipmentName={equipment.name}
+      />
     </div>
   );
 };

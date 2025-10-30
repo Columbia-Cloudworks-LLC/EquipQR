@@ -43,7 +43,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   const workOrderPermissions = permissions.workOrders.getDetailedPermissions(ensureWorkOrderData(workOrder));
   
   const canViewPMChecklist = workOrder.has_pm;
-  const canDownloadPMPDF = workOrder.has_pm && workOrder.status === 'completed';
+  const canDownloadPMPDF = workOrder.has_pm;
   const canDownloadCosts = workOrderPermissions.canEdit; // Only for managers/admins
   const canReassign = workOrderPermissions.canEdit && ['submitted', 'accepted', 'assigned'].includes(workOrder.status);
   const canReopen = workOrderPermissions.canEdit && ['completed', 'cancelled'].includes(workOrder.status);

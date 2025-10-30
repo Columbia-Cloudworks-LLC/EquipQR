@@ -1,277 +1,62 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Search, RefreshCw } from 'lucide-react';
+import { MapPin, QrCode } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
-import { FleetMapUpsell } from '@/components/fleet-map/FleetMapUpsell';
 import { FleetMapErrorBoundary } from '@/components/fleet-map/FleetMapErrorBoundary';
-import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
-import { parseLatLng } from '@/utils/geoUtils';
+import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';  
+import { useTeamFleetData } from '@/hooks/useTeamFleetData';
 import { Skeleton } from '@/components/ui/skeleton';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
 import { MapView } from '@/components/fleet-map/MapView';
+import { TeamSelector } from '@/components/fleet-map/TeamSelector';
+import { FleetSearchBox } from '@/components/fleet-map/FleetSearchBox';
+import { FleetSummary } from '@/components/fleet-map/FleetSummary';
 
-interface EquipmentLocation {
-  id: string;
-  name: string;
-  manufacturer: string;
-  model: string;
-  serial_number: string;
-  lat: number;
-  lng: number;
-  source: 'equipment' | 'geocoded' | 'scan';
-  formatted_address?: string;
-  working_hours?: number;
-  last_maintenance?: string;
-  image_url?: string;
-  location_updated_at?: string;
-}
 
 
 
 const FleetMap: React.FC = () => {
-  const { currentOrganization, switchOrganization } = useSimpleOrganization();
-  const { data: subscription, isLoading: subscriptionLoading, refetch: refetchSubscription } = useFleetMapSubscription(currentOrganization?.id);
   const { googleMapsKey, isLoading: mapsKeyLoading, error: mapsKeyError, retry: retryMapsKey } = useGoogleMapsKey();
+  const { data: teamFleetData, isLoading: teamFleetLoading, error: teamFleetError } = useTeamFleetData();
   
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [equipmentLocations, setEquipmentLocations] = useState<EquipmentLocation[]>([]);
-  const [skippedCount, setSkippedCount] = useState(0);
-  const [isDataLoading, setIsDataLoading] = useState(false);
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
-  const [isRefreshingSubscription, setIsRefreshingSubscription] = useState(false);
-  const queryClient = useQueryClient();
-  const isSubscriptionActive = !!subscription?.active;
 
 
-  // Handle post-checkout activation
+
+  // Set default team selection when data loads
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const activated = urlParams.get('activated');
-    const organizationId = urlParams.get('organizationId');
-    const cancelled = urlParams.get('cancelled');
+    if (teamFleetData?.teams.length > 0 && !selectedTeamId) {
+      const firstTeamWithData = teamFleetData.teams.find(team => team.hasLocationData);
+      if (firstTeamWithData) {
+        setSelectedTeamId(firstTeamWithData.id);
+      } else if (teamFleetData.teams.length > 1) {
+        // If no team has location data but there are multiple teams, show "All Teams"
+        setSelectedTeamId('all');
+      }
+    }
+  }, [teamFleetData, selectedTeamId]);
+
+  // Get selected team data
+  const selectedTeam = useMemo(() => {
+    if (!teamFleetData || !selectedTeamId || selectedTeamId === 'all') return null;
+    return teamFleetData.teams.find(team => team.id === selectedTeamId) || null;
+  }, [teamFleetData, selectedTeamId]);
+
+  // Get equipment locations for selected team
+  const equipmentLocations = useMemo(() => {
+    if (!teamFleetData) return [];
     
-    if (activated === 'true' && organizationId) {
-      // Switch to the correct organization if needed
-      if (currentOrganization?.id !== organizationId) {
-        switchOrganization(organizationId);
-      }
-      
-      // Refresh subscription status
-      handleRefreshSubscription(organizationId);
-      
-      // Clean up URL parameters
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
-    } else if (cancelled === 'true') {
-      toast.info('Fleet Map subscription was cancelled');
-      // Clean up URL parameters
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
+    if (selectedTeamId === 'all') {
+      // Return all equipment from all teams
+      return teamFleetData.teamEquipmentData.flatMap(team => team.equipment);
+    } else {
+      // Return equipment from selected team
+      const teamData = teamFleetData.teamEquipmentData.find(team => team.teamId === selectedTeamId);
+      return teamData?.equipment || [];
     }
-  }, [currentOrganization?.id, switchOrganization]);
-
-  // Refresh subscription function
-  const handleRefreshSubscription = async (orgId?: string) => {
-    const targetOrgId = orgId || currentOrganization?.id;
-    if (!targetOrgId) return;
-
-    try {
-      setIsRefreshingSubscription(true);
-      
-      const { data, error } = await supabase.functions.invoke('refresh-fleetmap-subscription', {
-        body: { organizationId: targetOrgId }
-      });
-
-      if (error) throw error;
-
-      if (data?.success) {
-        // Invalidate and refetch subscription data
-        queryClient.invalidateQueries({ queryKey: ['fleet-map-subscription', targetOrgId] });
-        await refetchSubscription();
-        
-        toast.success('Fleet Map activated successfully!', {
-          description: 'Your subscription is now active and ready to use.'
-        });
-      } else {
-        toast.error('Fleet Map activation failed', {
-          description: data?.message || 'Please ensure you have an active subscription.'
-        });
-      }
-    } catch (error) {
-      console.error('Refresh subscription error:', error);
-      toast.error('Failed to refresh subscription status', {
-        description: error instanceof Error ? error.message : 'Please try again later'
-      });
-    } finally {
-      setIsRefreshingSubscription(false);
-    }
-  };
-
-  // Load equipment locations
-  useEffect(() => {
-    if (!isSubscriptionActive || subscriptionLoading) return;
-
-    const loadEquipmentLocations = async () => {
-      if (!currentOrganization?.id || !googleMapsKey) return;
-
-      console.log('[FleetMap] Loading equipment locations...', {
-        organizationId: currentOrganization.id,
-        hasGoogleMapsKey: !!googleMapsKey
-      });
-
-      setIsDataLoading(true);
-      try {
-        const locations = await getEquipmentLocations(currentOrganization.id);
-        setEquipmentLocations(locations);
-        setSkippedCount(await getSkippedEquipmentCount(currentOrganization.id, locations.length));
-        
-        console.log('[FleetMap] Successfully loaded equipment locations:', {
-          locatedCount: locations.length,
-          skippedCount: await getSkippedEquipmentCount(currentOrganization.id, locations.length)
-        });
-      } catch (error) {
-        console.error('[FleetMap] Failed to load equipment locations:', error);
-        toast.error('Failed to load equipment locations', {
-          description: error instanceof Error ? error.message : 'Unknown error occurred'
-        });
-      } finally {
-        setIsDataLoading(false);
-      }
-    };
-
-    loadEquipmentLocations();
-  }, [currentOrganization?.id, googleMapsKey, isSubscriptionActive, subscriptionLoading]);
-
-  // Get equipment locations with precedence logic
-  const getEquipmentLocations = async (organizationId: string): Promise<EquipmentLocation[]> => {
-    // Fetch all equipment for the organization
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('equipment')
-      .select('id, name, manufacturer, model, serial_number, location, working_hours, last_maintenance, image_url, updated_at')
-      .eq('organization_id', organizationId);
-
-    if (equipmentError) throw equipmentError;
-    if (!equipment) return [];
-
-    const locations: EquipmentLocation[] = [];
-
-    for (const item of equipment) {
-      let coords: { lat: number; lng: number } | null = null;
-      let source: 'equipment' | 'geocoded' | 'scan' = 'equipment';
-      let formatted_address: string | undefined;
-      let location_updated_at: string | undefined;
-
-      // A. Try to parse equipment.location as "lat, lng"
-      if (item.location) {
-        coords = parseLatLng(item.location);
-        if (coords) {
-          source = 'equipment';
-          location_updated_at = item.updated_at;
-        }
-      }
-
-      // B. If not parseable and non-empty, try geocoding
-      if (!coords && item.location?.trim()) {
-        try {
-          const { data: geocodeResult, error: geocodeError } = await supabase.functions.invoke('geocode-location', {
-            body: {
-              organizationId,
-              input: item.location
-            }
-          });
-
-          if (!geocodeError && geocodeResult?.lat && geocodeResult?.lng) {
-            coords = { lat: geocodeResult.lat, lng: geocodeResult.lng };
-            source = 'geocoded';
-            formatted_address = geocodeResult.formatted_address;
-            // Try to get geocoded location timestamp
-            try {
-              const { data: geocodedLocation } = await supabase
-                .from('geocoded_locations')
-                .select('updated_at')
-                .eq('organization_id', organizationId)
-                .eq('input_text', item.location)
-                .order('updated_at', { ascending: false })
-                .limit(1)
-                .single();
-              location_updated_at = geocodedLocation?.updated_at;
-            } catch (error) {
-              // Fallback to equipment updated_at
-              location_updated_at = item.updated_at;
-            }
-          }
-        } catch (error) {
-          console.warn(`Geocoding failed for equipment ${item.id}:`, error);
-        }
-      }
-
-      // C. If still no coords, try latest scan with geo-tag
-      if (!coords) {
-        try {
-          const { data: scans, error: scansError } = await supabase
-            .from('scans')
-            .select('location, scanned_at')
-            .eq('equipment_id', item.id)
-            .not('location', 'is', null)
-            .order('scanned_at', { ascending: false })
-            .limit(1);
-
-          if (!scansError && scans && scans.length > 0 && scans[0].location) {
-            coords = parseLatLng(scans[0].location);
-            if (coords) {
-              source = 'scan';
-              location_updated_at = scans[0].scanned_at;
-            }
-          }
-        } catch (error) {
-          console.warn(`Failed to fetch scans for equipment ${item.id}:`, error);
-        }
-      }
-
-      // If we have coordinates, add to locations
-      if (coords) {
-        locations.push({
-          id: item.id,
-          name: item.name,
-          manufacturer: item.manufacturer,
-          model: item.model,
-          serial_number: item.serial_number,
-          lat: coords.lat,
-          lng: coords.lng,
-          source,
-          formatted_address,
-          working_hours: item.working_hours,
-          last_maintenance: item.last_maintenance,
-          image_url: item.image_url,
-          location_updated_at
-        });
-      }
-    }
-
-    return locations;
-  };
-
-  // Get count of equipment that couldn't be located
-  const getSkippedEquipmentCount = async (organizationId: string, locatedCount: number): Promise<number> => {
-    const { count, error } = await supabase
-      .from('equipment')
-      .select('*', { count: 'exact', head: true })
-      .eq('organization_id', organizationId);
-
-    if (error) {
-      console.error('Failed to count total equipment:', error);
-      return 0;
-    }
-
-    return (count || 0) - locatedCount;
-  };
+  }, [teamFleetData, selectedTeamId]);
 
   // Filter equipment based on search term
   const filteredLocations = useMemo(() => {
@@ -286,112 +71,43 @@ const FleetMap: React.FC = () => {
     );
   }, [equipmentLocations, searchTerm]);
 
-  // Handle subscription loading
-  if (subscriptionLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Fleet Map</h1>
-          <p className="text-muted-foreground">Checking subscription status...</p>
-        </div>
-      </div>
-    );
-  }
+  // Check if we have sufficient location data
+  const hasLocationData = teamFleetData?.hasLocationData || false;
+  const isLoading = teamFleetLoading || mapsKeyLoading;
+  const error = teamFleetError || mapsKeyError;
 
-  // Handle subscription not active
-  if (!isSubscriptionActive) {
-    const isOwner = currentOrganization?.userRole === 'owner';
-    
-    const handleEnableFleetMap = async () => {
-      if (!currentOrganization?.id) return;
-      
-      if (!isOwner) {
-        toast.error('Only organization owners can purchase features for this organization');
-        return;
-      }
-      
-      try {
-        setIsCheckoutLoading(true);
-        const { data, error } = await supabase.functions.invoke('create-fleetmap-checkout', {
-          body: { organizationId: currentOrganization.id }
-        });
-        
-        if (error) {
-          if (error.message?.includes('403') || error.message?.includes('owner')) {
-            throw new Error('Only organization owners can purchase features for this organization');
-          }
-          throw error;
-        }
-        if (data?.url) {
-          window.open(data.url, '_blank');
-        }
-      } catch (error) {
-        console.error('Fleet Map checkout error:', error);
-        toast.error('Failed to start Fleet Map subscription', {
-          description: error instanceof Error ? error.message : 'Please try again later'
-        });
-      } finally {
-        setIsCheckoutLoading(false);
-      }
-    };
 
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Fleet Map</h1>
-            <p className="text-muted-foreground">Fleet Map subscription required</p>
-          </div>
-          <Button 
-            onClick={() => handleRefreshSubscription()} 
-            disabled={isRefreshingSubscription}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshingSubscription ? 'animate-spin' : ''}`} />
-            Refresh Status
-          </Button>
-        </div>
-        <FleetMapUpsell 
-          onEnableFleetMap={handleEnableFleetMap} 
-          isLoading={isCheckoutLoading}
-          canPurchase={isOwner}
-          helperText={isOwner ? undefined : 'Only organization owners can purchase Fleet Map'}
-        />
-      </div>
-    );
-  }
-
-  // Handle Google Maps API key loading error
-  if (mapsKeyError) {
-    console.error('[FleetMap] Google Maps key error:', mapsKeyError);
+  // Handle errors
+  if (error) {
+    console.error('[FleetMap] Error:', error);
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Fleet Map</h1>
         </div>
         <FleetMapErrorBoundary 
-          error={mapsKeyError || 'Failed to load Google Maps API key'} 
-          onRetry={retryMapsKey}
-          isRetrying={mapsKeyLoading}
+          error={error instanceof Error ? error.message : 'Failed to load fleet data'} 
+          onRetry={() => window.location.reload()}
+          isRetrying={false}
         />
       </div>
     );
   }
 
   // Handle loading states
-  if (mapsKeyLoading || isDataLoading) {
+  if (isLoading) {
+    // Loading state
     console.log('[FleetMap] Loading state:', { 
       mapsKeyLoading, 
-      isDataLoading, 
-      hasGoogleMapsKey: !!googleMapsKey 
+      hasGoogleMapsKey: !!googleMapsKey,
+      hasLocationData
     });
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Fleet Map</h1>
           <p className="text-muted-foreground">
-            {mapsKeyLoading ? 'Loading map configuration...' : 'Loading equipment locations...'}
+            {teamFleetLoading ? 'Loading team fleet data...' : 'Loading map configuration...'}
           </p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -401,6 +117,84 @@ const FleetMap: React.FC = () => {
           </div>
           <div className="lg:col-span-3">
             <Skeleton className="h-[600px] w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle case where no equipment has sufficient location data for mapping
+  if (!hasLocationData && !isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Fleet Map</h1>
+          <p className="text-muted-foreground">
+            {teamFleetData?.totalLocatedCount === 0 
+              ? 'No equipment with location data found' 
+              : `Insufficient location data for mapping (${teamFleetData?.totalLocatedCount || 0} of ${teamFleetData?.totalEquipmentCount || 0} equipment items have location data)`
+            }
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1 space-y-4">
+            <FleetSummary
+              selectedTeam={null}
+              selectedTeamId={null}
+              equipmentLocations={[]}
+              totalEquipmentCount={teamFleetData?.totalEquipmentCount || 0}
+              totalLocatedCount={teamFleetData?.totalLocatedCount || 0}
+            />
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <QrCode className="h-4 w-4" />
+                  Get Started
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  To view your equipment on the fleet map, you need to add location data first.
+                </p>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">How to add locations:</p>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Scan QR codes to capture GPS coordinates</li>
+                    <li>• Add coordinates manually in equipment settings</li>
+                    <li>• Enter addresses for geocoding</li>
+                  </ul>
+                </div>
+                <Button 
+                  onClick={() => window.location.href = '/dashboard/scanner'}
+                  className="w-full"
+                >
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Scan QR Code
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Map placeholder */}
+          <div className="lg:col-span-3">
+            <Card>
+              <CardContent className="p-0">
+                <div className="h-[600px] w-full bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center">
+                  <div className="text-center space-y-4">
+                    <MapPin className="h-12 w-12 text-muted-foreground/50 mx-auto" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-muted-foreground">No Location Data</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Scan QR codes or add location data to see your equipment on the map
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -424,107 +218,59 @@ const FleetMap: React.FC = () => {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+  // Only render the full map interface if we have location data
+  if (hasLocationData) {
+    return (
+      <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Fleet Map</h1>
           <p className="text-sm text-muted-foreground">
-            Source order: Equipment location → Geocoded address → Latest scan. 
-            Skipped: {skippedCount}
+            Showing equipment from accessible teams with location data
           </p>
         </div>
-        <Button 
-          onClick={() => handleRefreshSubscription()} 
-          disabled={isRefreshingSubscription}
-          variant="outline"
-          size="sm"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshingSubscription ? 'animate-spin' : ''}`} />
-          Refresh Status
-        </Button>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar */}
-        <div className="lg:col-span-1 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-4 w-4" />
-                Search Equipment
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Input
-                placeholder="Search by name, manufacturer, model, or serial..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1 space-y-4">
+            <TeamSelector
+              teams={teamFleetData?.teams || []}
+              selectedTeamId={selectedTeamId}
+              onTeamChange={setSelectedTeamId}
+              isLoading={teamFleetLoading}
+            />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Fleet Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm">Total Equipment:</span>
-                <Badge variant="secondary">{equipmentLocations.length + skippedCount}</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Plotted:</span>
-                <Badge variant="default">{filteredLocations.length}</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Skipped:</span>
-                <Badge variant="destructive">{skippedCount}</Badge>
-              </div>
-            </CardContent>
-          </Card>
+            <FleetSearchBox
+              value={searchTerm}
+              onChange={setSearchTerm}
+              disabled={!selectedTeamId}
+            />
 
-          {/* Equipment List */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Equipment List</CardTitle>
-            </CardHeader>
-            <CardContent className="max-h-64 overflow-y-auto">
-              <div className="space-y-2">
-                {filteredLocations.map((location) => (
-                  <div
-                    key={location.id}
-                    className="p-2 border rounded cursor-pointer hover:bg-muted/50"
-                  >
-                    <div className="font-medium text-sm">{location.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {location.manufacturer} {location.model}
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <span className="text-xs capitalize">{location.source}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            <FleetSummary
+              selectedTeam={selectedTeam}
+              selectedTeamId={selectedTeamId}
+              equipmentLocations={filteredLocations}
+              totalEquipmentCount={teamFleetData?.totalEquipmentCount || 0}
+              totalLocatedCount={teamFleetData?.totalLocatedCount || 0}
+            />
+          </div>
 
-        {/* Map */}
-        <div className="lg:col-span-3">
-          <Card>
-            <CardContent className="p-0">
+          {/* Map */}
+          <div className="lg:col-span-3">
+            <FleetMapErrorBoundary>
               <MapView
                 googleMapsKey={googleMapsKey}
                 equipmentLocations={equipmentLocations}
                 filteredLocations={filteredLocations}
               />
-            </CardContent>
-          </Card>
+            </FleetMapErrorBoundary>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // This should not be reached due to the conditions above, but just in case
+  return null;
 };
 
 export default FleetMap;

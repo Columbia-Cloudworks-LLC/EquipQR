@@ -3,7 +3,6 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Package, Calendar, MapPin } from 'lucide-react';
-import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 
 interface OrganizationData {
   plan?: string | null;
@@ -17,14 +16,12 @@ interface OrganizationOverviewProps {
   organization: OrganizationData | null;
   members: unknown[];
   equipment: EquipmentItem[];
-  fleetMapSubscription?: FleetMapSubscription;
 }
 
 const OrganizationOverview: React.FC<OrganizationOverviewProps> = ({
   organization,
   members,
-  equipment,
-  fleetMapSubscription
+  equipment
 }) => {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -74,12 +71,12 @@ const OrganizationOverview: React.FC<OrganizationOverviewProps> = ({
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            <Badge variant={fleetMapSubscription?.active ? 'default' : 'secondary'}>
-              {fleetMapSubscription?.active ? 'Active' : 'Inactive'}
+            <Badge variant="default">
+              Available
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Premium add-on feature
+            Interactive equipment mapping
           </p>
         </CardContent>
       </Card>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { QrCode, MapPin, Calendar, Package } from 'lucide-react';
+import { QrCode, MapPin, Calendar, Package, Clock } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getStatusColor } from '@/utils/equipmentHelpers';
 
@@ -18,6 +18,7 @@ interface Equipment {
   last_maintenance?: string;
   image_url?: string;
   default_pm_template_id?: string | null;
+  working_hours?: number | null;
 }
 
 interface EquipmentCardProps {
@@ -32,22 +33,45 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
+  const handleCardClick = () => {
+    navigate(`/dashboard/equipment/${equipment.id}`);
+  };
+
+  const handleQRClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onShowQRCode(equipment.id);
+  };
+
   return (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader>
+    <Card 
+      className="hover:shadow-lg transition-shadow cursor-pointer"
+      onClick={handleCardClick}
+    >
+      <CardHeader className={isMobile ? "p-4 pb-3" : ""}>
         <div className="flex items-start justify-between">
-          <div>
+          <div className="flex-1 min-w-0">
             <CardTitle className="text-lg">{equipment.name}</CardTitle>
             <CardDescription>
               {equipment.manufacturer} {equipment.model}
             </CardDescription>
+            <div className="mt-1.5">
+              <Badge className={`${getStatusColor(equipment.status)} text-xs`} variant="outline">
+                {equipment.status}
+              </Badge>
+            </div>
           </div>
-          <Badge className={getStatusColor(equipment.status)}>
-            {equipment.status}
-          </Badge>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 flex-shrink-0"
+            onClick={handleQRClick}
+          >
+            <QrCode className="h-4 w-4" />
+            <span className="sr-only">Show QR Code</span>
+          </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className={`space-y-3 md:space-y-4 ${isMobile ? "px-4 pb-4" : ""}`}>
         {/* Equipment Image */}
         <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
           {equipment.image_url ? (
@@ -69,40 +93,28 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <span className="font-medium">Serial:</span>
-            <span className="text-muted-foreground">{equipment.serial_number}</span>
+            <span className="text-muted-foreground break-words">{equipment.serial_number}</span>
           </div>
           <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">{equipment.location}</span>
+            <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-muted-foreground truncate">{equipment.location}</span>
           </div>
-          {equipment.last_maintenance && (
+          <div className={`flex ${isMobile ? 'flex-col items-start gap-1.5' : 'items-center gap-4 flex-wrap'}`}>
+            {equipment.last_maintenance && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground text-xs md:text-sm">
+                  Last maintenance: {new Date(equipment.last_maintenance).toLocaleDateString()}
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">
-                Last maintenance: {new Date(equipment.last_maintenance).toLocaleDateString()}
+              <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-muted-foreground text-xs md:text-sm font-medium">
+                {equipment.working_hours?.toLocaleString() || '0'} hours
               </span>
             </div>
-          )}
-        </div>
-        
-        <div className={isMobile ? "space-y-2" : "flex gap-2"}>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className={isMobile ? "w-full" : "flex-1"}
-            onClick={() => onShowQRCode(equipment.id)}
-          >
-            <QrCode className="h-4 w-4 mr-2" />
-            QR Code
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className={isMobile ? "w-full" : "flex-1"}
-            onClick={() => navigate(`/dashboard/equipment/${equipment.id}`)}
-          >
-            View Details
-          </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

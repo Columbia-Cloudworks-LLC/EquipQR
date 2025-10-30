@@ -125,7 +125,7 @@ export const useCreateScan = (organizationId: string) => {
           queryKey: ['scans', 'equipment', organizationId, variables.equipmentId] 
         });
         
-        console.log('Scan logged successfully');
+        // Scan logged successfully
       } else {
         console.error('Failed to log scan');
       }

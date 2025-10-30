@@ -30,7 +30,7 @@ const RealMemberBilling = () => {
     );
   }
 
-  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
+  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: true });
   const { totalUsers, billableUsers, cost: totalMembersCost } = { totalUsers: billing.userSlots.totalUsers, billableUsers: billing.userSlots.billableUsers, cost: billing.userSlots.totalCost };
   const isFree = isFreeOrganization(members);
 

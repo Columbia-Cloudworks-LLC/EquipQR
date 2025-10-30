@@ -25,7 +25,6 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const initializePMChecklist = useInitializePMChecklist();
 
   return useMutation({
     mutationFn: async (data: EnhancedCreateWorkOrderData) => {
@@ -48,7 +47,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
       }
 
       // Create the work order
-      const workOrderData = {
+const workOrderData = {
         title: data.title,
         description: data.description,
         equipment_id: data.equipmentId,
@@ -66,7 +65,8 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
         is_historical: false,
         historical_start_date: null,
         historical_notes: null,
-        created_by_admin: null
+        created_by_admin: null,
+        equipment_working_hours_at_creation: data.equipmentWorkingHours || null
       };
 
       const workOrder = await createWorkOrder(currentOrganization.id, workOrderData);
