@@ -10,6 +10,7 @@ const workOrderFormSchema = z.object({
   equipmentId: z.string().min(1, "Equipment is required"),
   priority: z.enum(['low', 'medium', 'high']),
   dueDate: z.string().optional().nullable(),
+  equipmentWorkingHours: z.number().optional().nullable(),
   hasPM: z.boolean().default(false),
   pmTemplateId: z.string().optional().nullable(),
   assignmentType: z.enum(['unassigned', 'user', 'team']).optional(),

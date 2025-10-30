@@ -81,6 +81,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           equipmentId: data.equipmentId,
           priority: data.priority,
           dueDate: data.dueDate || undefined,
+          equipmentWorkingHours: data.equipmentWorkingHours || undefined,
           hasPM: data.hasPM || false,
           pmTemplateId: data.pmTemplateId || undefined,
           assignmentType: data.assignmentType === 'unassigned' ? undefined : data.assignmentType,

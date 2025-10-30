@@ -918,12 +918,16 @@ export const createPM = async (data: CreatePMData): Promise<PreventativeMaintena
 };
 
 // Get PM by work order ID (legacy - returns first PM found)
-export const getPMByWorkOrderId = async (workOrderId: string): Promise<PreventativeMaintenance | null> => {
+export const getPMByWorkOrderId = async (
+  workOrderId: string,
+  organizationId: string
+): Promise<PreventativeMaintenance | null> => {
   try {
     const { data, error } = await supabase
       .from('preventative_maintenance')
       .select('*')
       .eq('work_order_id', workOrderId)
+      .eq('organization_id', organizationId)
       .single();
 
     if (error && error.code !== 'PGRST116') {
@@ -941,18 +945,84 @@ export const getPMByWorkOrderId = async (workOrderId: string): Promise<Preventat
 // Get PM by work order AND equipment (multi-equipment support)
 export const getPMByWorkOrderAndEquipment = async (
   workOrderId: string,
-  equipmentId: string
+  equipmentId: string,
+  organizationId: string
 ): Promise<PreventativeMaintenance | null> => {
   try {
-    const { data, error } = await supabase
+    if (!workOrderId || !equipmentId || !organizationId) {
+      logger.error('Missing required parameters for getPMByWorkOrderAndEquipment', {
+        workOrderId,
+        equipmentId,
+        organizationId
+      });
+      return null;
+    }
+
+    // Try querying with .maybeSingle() first to avoid 406 when no rows exist
+    // .maybeSingle() returns null instead of error when 0 rows, which is better for RLS
+    let { data, error } = await supabase
       .from('preventative_maintenance')
       .select('*')
       .eq('work_order_id', workOrderId)
       .eq('equipment_id', equipmentId)
-      .single();
+      .eq('organization_id', organizationId)
+      .maybeSingle();
+    
+    // If maybeSingle fails with 406, try with limit(1) and handle manually
+    if (error) {
+      const httpStatus = (error as { status?: number }).status || (error as { statusCode?: number }).statusCode;
+      if (httpStatus === 406) {
+        logger.debug('maybeSingle returned 406, trying limit(1) approach', { workOrderId, equipmentId, organizationId });
+        const { data: multiData, error: multiError } = await supabase
+          .from('preventative_maintenance')
+          .select('*')
+          .eq('work_order_id', workOrderId)
+          .eq('equipment_id', equipmentId)
+          .eq('organization_id', organizationId)
+          .limit(1);
+        
+        if (multiError) {
+          error = multiError;
+        } else {
+          data = multiData && multiData.length > 0 ? multiData[0] : null;
+          error = null;
+        }
+      }
+    }
 
-    if (error && error.code !== 'PGRST116') {
-      logger.error('Error fetching PM by work order and equipment:', error);
+    // Handle errors - treat both PGRST116 and 406 as "no rows found"
+    // 406 can occur when RLS blocks the query or when .single() gets 0 rows in certain conditions
+    if (error) {
+      const httpStatus = (error as { status?: number }).status || (error as { statusCode?: number }).statusCode;
+      
+      // Both PGRST116 and 406 can mean "no rows found" - treat as acceptable
+      if (error.code === 'PGRST116' || httpStatus === 406 || error.message?.includes('406')) {
+        if (httpStatus === 406 || error.message?.includes('406')) {
+          logger.debug('No PM record found (406) - likely RLS blocked or record missing', { 
+            workOrderId, 
+            equipmentId, 
+            organizationId,
+            errorCode: error.code,
+            errorMessage: error.message
+          });
+        } else {
+          logger.debug('No PM record found for work order', { workOrderId, equipmentId, organizationId });
+        }
+        return null;
+      }
+      
+      // Other errors are logged as errors
+      logger.error('Error fetching PM by work order and equipment:', {
+        error,
+        errorCode: error.code,
+        httpStatus,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: (error as { hint?: string }).hint,
+        workOrderId,
+        equipmentId,
+        organizationId
+      });
       return null;
     }
 
@@ -965,13 +1035,15 @@ export const getPMByWorkOrderAndEquipment = async (
 
 // Get all PMs for a work order (all equipment)
 export const getPMsByWorkOrderId = async (
-  workOrderId: string
+  workOrderId: string,
+  organizationId: string
 ): Promise<PreventativeMaintenance[]> => {
   try {
     const { data, error } = await supabase
       .from('preventative_maintenance')
       .select('*')
       .eq('work_order_id', workOrderId)
+      .eq('organization_id', organizationId)
       .order('created_at');
 
     if (error) {
@@ -1055,6 +1127,13 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
       }
     }
 
+    logger.debug('Updating PM', { 
+      pmId, 
+      checklistDataCount: data.checklistData?.length,
+      hasNotes: !!data.notes,
+      status: data.status 
+    });
+
     const { data: pm, error } = await supabase
       .from('preventative_maintenance')
       .update(updateData)
@@ -1063,13 +1142,51 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
       .single();
 
     if (error) {
-      logger.error('Error updating PM:', error);
+      logger.error('Error updating PM:', { 
+        error, 
+        errorCode: error.code, 
+        errorMessage: error.message,
+        errorDetails: error.details,
+        pmId,
+        updateData 
+      });
       return null;
+    }
+
+    if (pm) {
+      // Verify the data was actually saved by checking checklist_data
+      const savedChecklistCount = Array.isArray(pm.checklist_data) ? pm.checklist_data.length : 0;
+      const requestedChecklistCount = Array.isArray(data.checklistData) ? data.checklistData.length : 0;
+      
+      logger.debug('PM updated successfully', { 
+        pmId: pm.id, 
+        workOrderId: pm.work_order_id,
+        equipmentId: pm.equipment_id,
+        organizationId: pm.organization_id,
+        savedChecklistCount,
+        requestedChecklistCount,
+        checklistMatches: savedChecklistCount === requestedChecklistCount,
+        status: pm.status,
+        firstItemCondition: Array.isArray(pm.checklist_data) && pm.checklist_data.length > 0 
+          ? (pm.checklist_data[0] as { condition?: number })?.condition 
+          : 'no items'
+      });
+      
+      // Warn if the saved data doesn't match what we sent
+      if (savedChecklistCount !== requestedChecklistCount) {
+        logger.warn('PM saved but checklist count mismatch', {
+          pmId: pm.id,
+          savedCount: savedChecklistCount,
+          requestedCount: requestedChecklistCount
+        });
+      }
+    } else {
+      logger.error('PM update returned null data', { pmId });
     }
 
     return pm;
   } catch (error) {
-    logger.error('Error in updatePM:', error);
+    logger.error('Error in updatePM:', { error, pmId, data });
     return null;
   }
 };

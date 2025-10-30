@@ -20,6 +20,10 @@ import { WorkOrderDetailsDesktopHeader } from '@/components/work-orders/details/
 import { WorkOrderDetailsStatusLockWarning } from '@/components/work-orders/details/WorkOrderDetailsStatusLockWarning';
 import { WorkOrderDetailsPMInfo } from '@/components/work-orders/details/WorkOrderDetailsPMInfo';
 import { WorkOrderDetailsSidebar } from '@/components/work-orders/details/WorkOrderDetailsSidebar';
+import { WorkOrderDetailsMobile } from '@/components/work-orders/details/WorkOrderDetailsMobile';
+import { WorkOrderNotesMobile } from '@/components/work-orders/details/WorkOrderNotesMobile';
+import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
+import { toast } from 'sonner';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -27,6 +31,7 @@ const WorkOrderDetails = () => {
 
   // State for selected equipment (for multi-equipment work orders)
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
+  const [pmInitializing, setPmInitializing] = useState(false);
 
   // Use custom hooks for data and actions
   const {
@@ -35,6 +40,7 @@ const WorkOrderDetails = () => {
     pmData,
     workOrderLoading,
     pmLoading,
+    pmError,
     permissionLevels,
     formMode,
     isWorkOrderLocked,
@@ -47,12 +53,95 @@ const WorkOrderDetails = () => {
     currentOrganization
   } = useWorkOrderDetailsData(workOrderId || '', selectedEquipmentId);
 
+  const initializePMChecklist = useInitializePMChecklist();
+
   // Update selectedEquipmentId when workOrder loads
   React.useEffect(() => {
     if (workOrder?.equipment_id && !selectedEquipmentId) {
       setSelectedEquipmentId(workOrder.equipment_id);
     }
   }, [workOrder?.equipment_id, selectedEquipmentId]);
+
+  // Auto-initialize PM if work order has_pm=true but no PM record exists
+  // Use ref to prevent multiple initializations
+  const pmInitializationAttempted = React.useRef<string | null>(null);
+  
+  React.useEffect(() => {
+    const workOrderKey = workOrder?.id && workOrder?.equipment_id 
+      ? `${workOrder.id}-${selectedEquipmentId || workOrder.equipment_id}` 
+      : null;
+
+    // Only initialize if we're certain no PM exists
+    // Don't initialize if:
+    // - Query is loading (wait for it to finish)
+    // - Query is in error state (might be RLS issue - don't create duplicate)
+    // - We've already attempted initialization for this work order/equipment combo
+    const shouldInitializePM = 
+      workOrderKey &&
+      workOrderKey !== pmInitializationAttempted.current &&
+      workOrder?.has_pm && 
+      !pmData && 
+      !pmLoading && // Query has finished loading
+      !pmError && // Don't initialize if query has error - might be RLS issue causing 406
+      !pmInitializing &&
+      !workOrderLoading &&
+      workOrder?.equipment_id &&
+      currentOrganization?.id &&
+      (permissionLevels.isManager || permissionLevels.isTechnician);
+
+    if (shouldInitializePM) {
+      pmInitializationAttempted.current = workOrderKey;
+      setPmInitializing(true);
+      const equipmentId = selectedEquipmentId || workOrder.equipment_id;
+      
+      initializePMChecklist.mutate(
+        {
+          workOrderId: workOrder.id,
+          equipmentId: equipmentId,
+          organizationId: currentOrganization.id,
+          templateId: equipment?.default_pm_template_id || undefined
+        },
+        {
+          onSuccess: () => {
+            toast.success('PM checklist initialized');
+            setPmInitializing(false);
+          },
+          onError: (error) => {
+            console.error('Failed to initialize PM:', error);
+            toast.error('Failed to initialize PM checklist');
+            setPmInitializing(false);
+            // Reset the ref so we can try again
+            pmInitializationAttempted.current = null;
+          }
+        }
+      );
+    }
+
+    // Reset ref when pmData appears (PM was successfully created or loaded)
+    // BUT only reset if the PM ID matches what we were initializing
+    // This prevents resetting when a different PM appears (like after a re-initialization bug)
+    if (pmData && pmInitializationAttempted.current === workOrderKey) {
+      // Check if this is the PM we just initialized or loaded
+      // If PM data exists and matches our work order, clear the ref
+      if (pmData.work_order_id === workOrder?.id) {
+        pmInitializationAttempted.current = null;
+      }
+    }
+  }, [
+    workOrder?.has_pm,
+    workOrder?.id,
+    workOrder?.equipment_id,
+    pmData,
+    pmLoading,
+    pmInitializing,
+    workOrderLoading,
+    selectedEquipmentId,
+    currentOrganization?.id,
+    permissionLevels.isManager,
+    permissionLevels.isTechnician,
+    equipment?.default_pm_template_id
+    // Note: initializePMChecklist is intentionally omitted to prevent loop
+  ]);
   
   // Fetch linked equipment for multi-equipment support
   const { data: linkedEquipment = [] } = useWorkOrderEquipment(workOrderId || '');
@@ -103,7 +192,16 @@ const WorkOrderDetails = () => {
     <div className="min-h-screen bg-background">
       {/* Mobile Header */}
       <WorkOrderDetailsMobileHeader
-        workOrder={workOrder}
+        workOrder={{
+          ...workOrder,
+          equipment: equipment ? {
+            name: equipment.name,
+            status: equipment.status,
+            location: equipment.location
+          } : undefined,
+          team: workOrder.teamName ? { name: workOrder.teamName } : undefined,
+          created_at: workOrder.createdAt
+        }}
         canEdit={canEdit}
         organizationId={currentOrganization.id}
         onEditClick={handleEditWorkOrder}
@@ -140,74 +238,216 @@ const WorkOrderDetails = () => {
             />
           )}
 
-          {/* Work Order Details */}
-          <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
+          {/* Mobile-Optimized Layout */}
+          {isMobile ? (
+            <>
+              {/* Mobile Work Order Details */}
+              <WorkOrderDetailsMobile
+                workOrder={{
+                  ...workOrder,
+                  created_at: workOrder.createdAt,
+                  due_date: workOrder.dueDate,
+                  has_pm: workOrder.has_pm,
+                  pm_status: pmData?.status,
+                  pm_progress: pmData ? (() => {
+                    try {
+                      const checklist = typeof pmData.checklist_data === 'string' 
+                        ? JSON.parse(pmData.checklist_data) 
+                        : pmData.checklist_data;
+                      return Array.isArray(checklist) 
+                        ? checklist.filter((item: any) => item.condition !== null && item.condition !== undefined).length 
+                        : 0;
+                    } catch {
+                      return 0;
+                    }
+                  })() : 0,
+                  pm_total: pmData ? (() => {
+                    try {
+                      const checklist = typeof pmData.checklist_data === 'string' 
+                        ? JSON.parse(pmData.checklist_data) 
+                        : pmData.checklist_data;
+                      return Array.isArray(checklist) ? checklist.length : 0;
+                    } catch {
+                      return 0;
+                    }
+                  })() : 0
+                }}
+                equipment={equipment ? {
+                  id: equipment.id,
+                  name: equipment.name,
+                  manufacturer: equipment.manufacturer,
+                  model: equipment.model,
+                  serial_number: equipment.serialNumber,
+                  status: equipment.status,
+                  location: equipment.location
+                } : undefined}
+                team={workOrder.teamName ? { id: '', name: workOrder.teamName } : undefined}
+                assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
+                costs={undefined} // TODO: Add costs data
+                onStatusChange={handleStatusUpdate}
+                onPriorityChange={(priority) => {
+                  // TODO: Implement priority change
+                  console.log('Priority change:', priority);
+                }}
+                onViewEquipment={() => {
+                  if (equipment) {
+                    window.location.href = `/dashboard/equipment/${equipment.id}`;
+                  }
+                }}
+                onAddNote={() => {
+                  // TODO: Focus on notes section
+                  console.log('Add note');
+                }}
+                onUploadImage={() => {
+                  // TODO: Focus on images section
+                  console.log('Upload image');
+                }}
+                onDownloadPDF={() => {
+                  // TODO: Implement PDF download
+                  console.log('Download PDF');
+                }}
+                onViewPMDetails={() => {
+                  // TODO: Expand PM details
+                  console.log('View PM details');
+                }}
+                canEdit={canEdit}
+              />
 
-          {/* Costs Section - Now positioned above PM checklist and only show to managers and technicians */}
-          {(permissionLevels.isManager || permissionLevels.isTechnician) && (
-            <WorkOrderCostsSection 
-              workOrderId={workOrder.id}
-              canAddCosts={canAddCosts && !isWorkOrderLocked}
-              canEditCosts={canEditCosts && !isWorkOrderLocked}
-            />
+              {/* PM Checklist - Responsive */}
+              {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <PMChecklistComponent
+                  pm={pmData}
+                  onUpdate={() => {
+                    // Refresh PM data after updates
+                    console.log('PM updated');
+                  }}
+                  readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
+                  isAdmin={permissionLevels.isManager}
+                  workOrder={workOrder}
+                  equipment={equipment}
+                  team={workOrder.team}
+                  organization={currentOrganization}
+                  assignee={workOrder.assignee}
+                />
+              )}
+
+              {/* Mobile PM Loading State */}
+              {workOrder.has_pm && pmLoading && (permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clipboard className="h-5 w-5" />
+                      Loading PM Checklist...
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-32 bg-muted animate-pulse rounded" />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Mobile PM Info for Requestors */}
+              <WorkOrderDetailsPMInfo 
+                workOrder={workOrder}
+                pmData={pmData}
+                permissionLevels={permissionLevels}
+              />
+
+              {/* Mobile Notes Section */}
+              <WorkOrderNotesMobile 
+                workOrderId={workOrder.id}
+                canAddNotes={canAddNotes}
+                showPrivateNotes={permissionLevels.isManager}
+                onAddNote={(note) => {
+                  // TODO: Implement note addition
+                  console.log('Add note:', note);
+                }}
+              />
+
+              {/* Mobile Images Section */}
+              <WorkOrderImagesSection 
+                workOrderId={workOrder.id}
+                canUpload={canUpload}
+              />
+
+              {/* Mobile Timeline */}
+              <WorkOrderTimeline 
+                workOrder={workOrder} 
+                showDetailedHistory={permissionLevels.isManager}
+              />
+            </>
+          ) : (
+            <>
+              {/* Desktop Layout - Keep existing structure */}
+              <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
+
+              {/* Costs Section - Now positioned above PM checklist and only show to managers and technicians */}
+              {(permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <WorkOrderCostsSection 
+                  workOrderId={workOrder.id}
+                  canAddCosts={canAddCosts && !isWorkOrderLocked}
+                  canEditCosts={canEditCosts && !isWorkOrderLocked}
+                />
+              )}
+
+              {/* PM Checklist Section - Now positioned after costs */}
+              {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <PMChecklistComponent 
+                  key={selectedEquipmentId} // Force re-render on equipment change
+                  pm={pmData} 
+                  onUpdate={handlePMUpdate}
+                  readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
+                  isAdmin={permissionLevels.isManager}
+                  workOrder={workOrder}
+                  equipment={equipment}
+                  team={{ name: workOrder.teamName }}
+                  organization={currentOrganization}
+                  assignee={{ name: workOrder.assigneeName }}
+                />
+              )}
+
+              {/* PM Loading State */}
+              {workOrder.has_pm && pmLoading && (permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clipboard className="h-5 w-5" />
+                      Loading PM Checklist...
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-32 bg-muted animate-pulse rounded" />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* PM Info for Requestors */}
+              <WorkOrderDetailsPMInfo 
+                workOrder={workOrder}
+                pmData={pmData}
+                permissionLevels={permissionLevels}
+              />
+
+              {/* Notes Section */}
+              <WorkOrderNotesSection 
+                workOrderId={workOrder.id}
+                canAddNotes={canAddNotes}
+                showPrivateNotes={permissionLevels.isManager}
+              />
+
+              {/* Images Section */}
+              <WorkOrderImagesSection 
+                workOrderId={workOrder.id}
+                canUpload={canUpload}
+              />
+
+              {/* Timeline - Show appropriate level of detail based on permissions */}
+              <WorkOrderTimeline 
+                workOrder={workOrder} 
+                showDetailedHistory={permissionLevels.isManager}
+              />
+            </>
           )}
-
-          {/* PM Checklist Section - Now positioned after costs */}
-          {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
-            <PMChecklistComponent 
-              key={selectedEquipmentId} // Force re-render on equipment change
-              pm={pmData} 
-              onUpdate={handlePMUpdate}
-              readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
-              isAdmin={permissionLevels.isManager}
-              workOrder={workOrder}
-              equipment={equipment}
-              team={{ name: workOrder.teamName }}
-              organization={currentOrganization}
-              assignee={{ name: workOrder.assigneeName }}
-            />
-          )}
-
-          {/* PM Loading State */}
-          {workOrder.has_pm && pmLoading && (permissionLevels.isManager || permissionLevels.isTechnician) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clipboard className="h-5 w-5" />
-                  Loading PM Checklist...
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-32 bg-muted animate-pulse rounded" />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* PM Info for Requestors */}
-          <WorkOrderDetailsPMInfo 
-            workOrder={workOrder}
-            pmData={pmData}
-            permissionLevels={permissionLevels}
-          />
-
-          {/* Notes Section */}
-          <WorkOrderNotesSection 
-            workOrderId={workOrder.id}
-            canAddNotes={canAddNotes}
-            showPrivateNotes={permissionLevels.isManager}
-          />
-
-          {/* Images Section */}
-          <WorkOrderImagesSection 
-            workOrderId={workOrder.id}
-            canUpload={canUpload}
-          />
-
-          {/* Timeline - Show appropriate level of detail based on permissions */}
-          <WorkOrderTimeline 
-            workOrder={workOrder} 
-            showDetailedHistory={permissionLevels.isManager}
-          />
         </div>
 
         {/* Sidebar - Mobile overlay or desktop sidebar */}

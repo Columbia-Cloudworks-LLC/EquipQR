@@ -27,9 +27,9 @@ const EnhancedWorkOrderStatusManager: React.FC<EnhancedWorkOrderStatusManagerPro
 
   // Check if this work order has a PM requirement
   const { data: pmRecord, isLoading: pmLoading } = useQuery({
-    queryKey: ['pmByWorkOrder', workOrder.id],
-    queryFn: () => getPMByWorkOrderId(workOrder.id),
-    enabled: workOrder.has_pm || workOrder.pm_required,
+    queryKey: ['pmByWorkOrder', workOrder.id, organizationId],
+    queryFn: () => getPMByWorkOrderId(workOrder.id, organizationId),
+    enabled: (workOrder.has_pm || workOrder.pm_required) && !!organizationId,
   });
 
   const getStatusIcon = (status: string) => {

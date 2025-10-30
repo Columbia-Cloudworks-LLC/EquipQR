@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,6 +18,8 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
 import { SaveStatus } from '@/components/ui/SaveStatus';
 import { toast } from 'sonner';
+import { useUpdatePM } from '@/hooks/usePMData';
+import { useQueryClient } from '@tanstack/react-query';
 import PrintExportDropdown from './PrintExportDropdown';
 import { PMChecklistPDFGenerator } from '@/utils/pdfGenerator';
 import { workOrderRevertService } from '@/services/workOrderRevertService';
@@ -47,6 +49,8 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   assignee
 }) => {
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
+  const updatePMMutation = useUpdatePM();
   const [checklist, setChecklist] = useState<PMChecklistItem[]>([]);
   const [notes, setNotes] = useState(pm.notes || '');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -58,6 +62,20 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showSetAllOKDialog, setShowSetAllOKDialog] = useState(false);
   const [isSettingAllOK, setIsSettingAllOK] = useState(false);
+  const [isManuallyUpdated, setIsManuallyUpdated] = useState(false);
+
+  // Use ref to always have access to latest checklist state in callbacks
+  const checklistRef = useRef(checklist);
+  const notesRef = useRef(notes);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    checklistRef.current = checklist;
+  }, [checklist]);
+
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
 
   // Browser storage for backup
   const storageKey = `pm-checklist-${pm.id}`;
@@ -69,36 +87,51 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
   // Auto-save functionality
   const handleAutoSave = useCallback(async () => {
-    if (readOnly || !hasUnsavedChanges) return;
+    if (readOnly) return;
+    
+    // Use refs to get the latest values
+    const currentChecklist = checklistRef.current;
+    const currentNotes = notesRef.current;
     
     try {
       setSaveStatus('saving');
-      await updatePM(pm.id, {
-        checklistData: checklist,
-        notes,
-        status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
+      const result = await updatePMMutation.mutateAsync({
+        pmId: pm.id,
+        data: {
+          checklistData: currentChecklist,
+          notes: currentNotes,
+          status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
+        }
       });
-      setSaveStatus('saved');
-      setLastSaved(new Date());
-      setHasUnsavedChanges(false);
-      clearStorage(); // Clear backup after successful save
+      
+      if (result) {
+        setSaveStatus('saved');
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
+        clearStorage(); // Clear backup after successful save
+        
+        // Refresh the component to show the updated data
+        onUpdate();
+      } else {
+        setSaveStatus('error');
+      }
     } catch (error) {
       setSaveStatus('error');
       console.error('Auto-save failed:', error);
     }
-  }, [pm.id, checklist, notes, pm.status, readOnly, hasUnsavedChanges, clearStorage]);
+  }, [pm.id, pm.status, readOnly, clearStorage, updatePMMutation, onUpdate]);
 
   const { triggerAutoSave, cancelAutoSave } = useAutoSave({
     onSave: handleAutoSave,
     selectionDelay: 3000,
-    enabled: !readOnly && hasUnsavedChanges
+    enabled: !readOnly
   });
 
   useEffect(() => {
     // Only initialize once to prevent unnecessary resets
-    if (isInitialized) return;
+    // Also skip if we have manual updates to prevent overwriting user changes
+    if (isInitialized || isManuallyUpdated) return;
 
-    // Reduced logging for performance
     if (process.env.NODE_ENV === 'development') {
       console.log('🔧 Initializing PM Checklist:', pm.id);
     }
@@ -148,15 +181,26 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           parsedChecklist = [...defaultForkliftChecklist];
         }
       } else {
-        // Try to load from browser storage first
-        const storedData = loadFromStorage();
-        if (storedData && storedData.checklist && Array.isArray(storedData.checklist)) {
-          parsedChecklist = storedData.checklist;
-          setNotes(storedData.notes || '');
-          if (process.env.NODE_ENV === 'development') {
-            console.log('🔧 Loaded from browser storage');
+        // Try to load from browser storage first (only if PM data is empty)
+        try {
+          const stored = localStorage.getItem(storageKey);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+              if (parsed.data.checklist && Array.isArray(parsed.data.checklist)) {
+                parsedChecklist = parsed.data.checklist;
+                setNotes(parsed.data.notes || '');
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('🔧 Loaded from browser storage');
+                }
+              }
+            }
           }
-        } else {
+        } catch (error) {
+          console.warn('Failed to load from browser storage:', error);
+        }
+        
+        if (parsedChecklist.length === 0) {
           if (process.env.NODE_ENV === 'development') {
             console.log('🔧 Using default forklift checklist');
           }
@@ -189,15 +233,18 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       
       setIsInitialized(true);
     }
-  }, [pm.checklist_data, pm.id, isMobile, isInitialized, loadFromStorage]);
+  }, [pm.checklist_data, pm.id, isMobile, isInitialized, isManuallyUpdated, storageKey]);
 
   const handleInitializeChecklist = useCallback(async () => {
     try {
       setIsUpdating(true);
-      const updatedPM = await updatePM(pm.id, {
-        checklistData: defaultForkliftChecklist,
-        notes: notes || 'PM checklist initialized with default forklift maintenance items.',
-        status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
+      const updatedPM = await updatePMMutation.mutateAsync({
+        pmId: pm.id,
+        data: {
+          checklistData: defaultForkliftChecklist,
+          notes: notes || 'PM checklist initialized with default forklift maintenance items.',
+          status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
+        }
       });
 
       if (updatedPM) {
@@ -205,7 +252,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         setChecklist([...defaultForkliftChecklist]);
         setHasUnsavedChanges(false);
         clearStorage();
-        onUpdate();
+        // Don't call onUpdate() - the mutation hook already handles cache updates
       } else {
         toast.error('Failed to initialize checklist');
       }
@@ -215,7 +262,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     } finally {
       setIsUpdating(false);
     }
-  }, [pm.id, notes, pm.status, onUpdate, clearStorage]);
+  }, [pm.id, notes, pm.status, onUpdate, clearStorage, updatePMMutation]);
 
   const handleChecklistItemChange = useCallback((itemId: string, condition: 1 | 2 | 3 | 4 | 5) => {
     setChecklist(prev => prev.map(item => 
@@ -245,12 +292,19 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     setIsUpdating(true);
     cancelAutoSave(); // Cancel any pending auto-save
     
+    // Use refs to get the latest values
+    const currentChecklist = checklistRef.current;
+    const currentNotes = notesRef.current;
+    
     try {
       setSaveStatus('saving');
-      const updatedPM = await updatePM(pm.id, {
-        checklistData: checklist,
-        notes,
-        status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
+      const updatedPM = await updatePMMutation.mutateAsync({
+        pmId: pm.id,
+        data: {
+          checklistData: currentChecklist,
+          notes: currentNotes,
+          status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
+        }
       });
 
       if (updatedPM) {
@@ -259,6 +313,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
         clearStorage();
+        // Refresh the component to show the updated data
         onUpdate();
       } else {
         setSaveStatus('error');
@@ -271,7 +326,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     } finally {
       setIsUpdating(false);
     }
-  }, [pm.id, checklist, notes, pm.status, onUpdate, cancelAutoSave, clearStorage]);
+  }, [pm.id, pm.status, cancelAutoSave, clearStorage, updatePMMutation, onUpdate]);
 
   const completePM = async () => {
     const requiredItems = checklist.filter(item => item.required);
@@ -290,15 +345,18 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
     setIsUpdating(true);
     try {
-      const updatedPM = await updatePM(pm.id, {
-        checklistData: checklist,
-        notes,
-        status: 'completed' as const
+      const updatedPM = await updatePMMutation.mutateAsync({
+        pmId: pm.id,
+        data: {
+          checklistData: checklist,
+          notes,
+          status: 'completed' as const
+        }
       });
 
       if (updatedPM) {
         toast.success('PM completed successfully');
-        onUpdate();
+        // Don't call onUpdate() - the mutation hook already handles cache updates
       } else {
         toast.error('Failed to complete PM');
       }
@@ -340,14 +398,50 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         condition: 1 as const // Set to "OK" while preserving notes and other properties
       }));
       
-      // Save directly to database instead of relying on auto-save
-      const result = await updatePM(pm.id, {
-        checklistData: updatedChecklist,
+      // Optimistically update local state
+      setChecklist(updatedChecklist);
+      setIsManuallyUpdated(true);
+      
+      // Update cache optimistically
+      const updatedPM = {
+        ...pm,
+        checklist_data: updatedChecklist as unknown as typeof pm.checklist_data,
         notes: notes
+      };
+      
+      // Update query cache immediately with optimistic data
+      // Get organization ID from props (organization is passed in) or fallback to PM data
+      const orgId = organization?.id || workOrder?.organization_id || equipment?.organization_id || pm.organization_id;
+      if (orgId) {
+        const queryKey = ['preventativeMaintenance', workOrder?.id || pm.work_order_id, equipment?.id || pm.equipment_id, orgId];
+        queryClient.setQueryData(queryKey, updatedPM);
+      }
+      
+      // Save to database using mutation hook
+      console.log('💾 Saving PM with Set All to OK:', {
+        pmId: pm.id,
+        checklistItemCount: updatedChecklist.length,
+        itemsWithCondition: updatedChecklist.filter(item => item.condition !== null && item.condition !== undefined).length,
+        firstItemCondition: updatedChecklist[0]?.condition
+      });
+      
+      const result = await updatePMMutation.mutateAsync({
+        pmId: pm.id,
+        data: {
+          checklistData: updatedChecklist,
+          notes: notes
+        }
       });
 
       if (result) {
-        setChecklist(updatedChecklist);
+        console.log('✅ PM saved successfully:', {
+          pmId: result.id,
+          savedChecklistCount: Array.isArray(result.checklist_data) ? result.checklist_data.length : 'not array',
+          firstItemCondition: Array.isArray(result.checklist_data) && result.checklist_data[0] 
+            ? (result.checklist_data[0] as any)?.condition 
+            : 'N/A'
+        });
+        
         setHasUnsavedChanges(false);
         // Clear backup since we've saved successfully
         localStorage.removeItem(storageKey);
@@ -355,18 +449,26 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         toast.success('All items set to OK and PM saved successfully');
         setShowSetAllOKDialog(false);
         
-        // Update parent component
-        onUpdate();
+        // Don't call onUpdate() - the mutation hook already handles cache updates
+        // Calling it causes query invalidation that triggers re-initialization
+        // onUpdate();
       } else {
+        console.error('❌ PM update returned null - mutation may have failed');
+        // Rollback on failure
+        setChecklist(checklist);
+        setIsManuallyUpdated(false);
         throw new Error('Failed to update PM');
       }
     } catch (error) {
       console.error('Error setting all items to OK and saving:', error);
       toast.error('Failed to set all items to OK and save PM');
+      // Rollback optimistic update
+      setChecklist(checklist);
+      setIsManuallyUpdated(false);
     } finally {
       setIsSettingAllOK(false);
     }
-  }, [checklist, notes, pm.id, onUpdate, storageKey]);
+  }, [checklist, notes, pm, updatePMMutation, storageKey, queryClient, workOrder, equipment]);
 
   // Print/Export handlers
 

@@ -62,12 +62,37 @@ export const useInitializePMChecklist = () => {
       return pmRecord;
     },
     onSuccess: (pmRecord, variables) => {
-      // Invalidate relevant queries to refresh data
+      // Immediately set the query data with the created PM record
+      const queryKey = ['preventativeMaintenance', variables.workOrderId, variables.equipmentId, variables.organizationId];
+      queryClient.setQueryData(queryKey, pmRecord);
+      
+      // Invalidate all relevant PM queries with proper keys (marks as stale but keeps data)
       queryClient.invalidateQueries({ 
-        queryKey: ['preventativeMaintenance', variables.workOrderId] 
+        queryKey: ['preventativeMaintenance', variables.workOrderId, variables.equipmentId, variables.organizationId],
+        exact: true,
+        refetchType: 'none' // Don't trigger immediate refetch - keep cached data
+      });
+      // Also invalidate legacy queries and all PM queries for this work order
+      queryClient.invalidateQueries({ 
+        queryKey: ['preventativeMaintenance', variables.workOrderId],
+        exact: false,
+        refetchType: 'none'
       });
       queryClient.invalidateQueries({ 
-        queryKey: ['workOrder', variables.organizationId, variables.workOrderId] 
+        queryKey: ['preventativeMaintenance', 'all', variables.workOrderId, variables.organizationId],
+        exact: true,
+        refetchType: 'none'
+      });
+      // Invalidate work order queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['workOrder', variables.organizationId, variables.workOrderId],
+        exact: true,
+        refetchType: 'active' // OK to refetch work order
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['workOrder'],
+        exact: false,
+        refetchType: 'active'
       });
       
       toast.success('PM checklist initialized successfully');
