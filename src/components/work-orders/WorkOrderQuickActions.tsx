@@ -11,7 +11,6 @@ import { generateCostsCSV } from '@/services/workOrderCSVService';
 import { useToast } from '@/hooks/use-toast';
 import { useDeleteWorkOrder } from '@/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/hooks/useWorkOrderImageCount';
-import { WorkOrderData } from '@/types/workOrderDetails';
 import { WorkOrderLike, ensureWorkOrderData } from '@/utils/workOrderTypeConversion';
 
 interface WorkOrderQuickActionsProps {
@@ -64,7 +63,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
         title: "PDF Generated",
         description: "PM checklist PDF has been downloaded",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to generate PM PDF",
@@ -85,7 +84,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
         title: "CSV Generated",
         description: "Work order costs CSV has been downloaded",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error", 
         description: "Failed to generate costs CSV",
@@ -105,7 +104,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
       await deleteWorkOrderMutation.mutateAsync(workOrder.id);
       setShowDeleteDialog(false);
       onDeleteSuccess?.();
-    } catch (error) {
+    } catch {
       // Error is handled in the mutation
     }
   };
