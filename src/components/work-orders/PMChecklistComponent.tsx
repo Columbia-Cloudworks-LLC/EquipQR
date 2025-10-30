@@ -410,12 +410,17 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       };
       
       // Update query cache immediately with optimistic data
-      // Get organization ID from props (organization is passed in) or fallback to PM data
-      const orgId = organization?.id || workOrder?.organization_id || equipment?.organization_id || pm.organization_id;
-      if (orgId) {
-        const queryKey = ['preventativeMaintenance', workOrder?.id || pm.work_order_id, equipment?.id || pm.equipment_id, orgId];
-        queryClient.setQueryData(queryKey, updatedPM);
+      // Require organization ID to be present; throw error if missing
+      if (!organization?.id) {
+        toast.error('Organization ID is required for updating PM checklist, but is missing.');
+        setChecklist(checklist); // Rollback optimistic update
+        setIsManuallyUpdated(false);
+        setIsSettingAllOK(false);
+        return;
       }
+      const orgId = organization.id;
+      const queryKey = ['preventativeMaintenance', workOrder?.id || pm.work_order_id, equipment?.id || pm.equipment_id, orgId];
+      queryClient.setQueryData(queryKey, updatedPM);
       
       // Save to database using mutation hook
       console.log('💾 Saving PM with Set All to OK:', {
