@@ -11,8 +11,6 @@ import {
   Plus, 
   MessageSquare, 
   Camera,
-  Clock,
-  User,
   Lock
 } from 'lucide-react';
 
