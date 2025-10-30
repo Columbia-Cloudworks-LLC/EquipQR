@@ -3,19 +3,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, User, Clock, UserPlus, Users, UserX } from 'lucide-react';
+import { Calendar, User, Clock, Users, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
-import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
-import { useWorkOrderStatusUpdate } from '@/hooks/useWorkOrderStatusUpdate';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
-import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import { useWorkOrderStatusUpdate } from '@/hooks/useWorkOrderStatusUpdate';
+import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
+import { useWorkOrderContextualAssignment } from '@/hooks/useWorkOrderContextualAssignment';
 import { ensureWorkOrderData } from '@/utils/workOrderTypeConversion';
+import type { Database } from '@/integrations/supabase/types';
 
 interface MobileWorkOrderCardProps {
   order: EnhancedWorkOrder;
@@ -36,31 +34,14 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
   onAssignClick,
   onReopenClick
 }) => {
-  const quickAssignMutation = useQuickWorkOrderAssignment();
-  const statusUpdateMutation = useWorkOrderStatusUpdate();
   const permissions = useUnifiedPermissions();
-  const [currentUser, setCurrentUser] = React.useState<SupabaseUser | null>(null);
-
-  React.useEffect(() => {
-    const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-    };
-    getCurrentUser();
-  }, []);
+  const statusUpdateMutation = useWorkOrderStatusUpdate();
+  const assignmentMutation = useQuickWorkOrderAssignment();
+  const { assignmentOptions, isLoading: isLoadingAssignees } = useWorkOrderContextualAssignment(order);
 
   // Check if user can change status
   const workOrderPermissions = permissions.workOrders.getDetailedPermissions(ensureWorkOrderData(order));
   const canChangeStatus = workOrderPermissions.canChangeStatus;
-
-  const handleQuickAssignToMe = async () => {
-    if (!currentUser) return;
-    await quickAssignMutation.mutateAsync({
-      workOrderId: order.id,
-      assigneeId: currentUser.id,
-      organizationId: order.organizationId
-    });
-  };
 
   const handleStatusUpdate = (newStatus: Database["public"]["Enums"]["work_order_status"]) => {
     statusUpdateMutation.mutate({
@@ -72,6 +53,18 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
         onStatusUpdate(order.id, newStatus);
       }
     });
+  };
+
+  const handleAssignmentChange = async (assigneeId: string | null) => {
+    try {
+      await assignmentMutation.mutateAsync({
+        workOrderId: order.id,
+        assigneeId,
+        organizationId: order.organizationId
+      });
+    } catch (error) {
+      // Error is handled in the mutation
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -190,24 +183,43 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
             )}
 
             {/* Assigned User - Interactive */}
-            <WorkOrderAssignmentHover 
-              workOrder={order}
-              disabled={false}
-            >
-              <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">
-                {order.assigneeName ? (
-                  <>
-                    <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-muted-foreground">Assigned: {order.assigneeName}</span>
-                  </>
-                ) : (
-                  <>
-                    <UserX className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-muted-foreground">Unassigned</span>
-                  </>
-                )}
-              </div>
-            </WorkOrderAssignmentHover>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Assigned:</span>
+              <Select
+                value={order.assigneeId || 'unassigned'}
+                onValueChange={(value) => handleAssignmentChange(value === 'unassigned' ? null : value)}
+                disabled={assignmentMutation.isPending || isLoadingAssignees}
+              >
+                <SelectTrigger className="h-8 w-full max-w-[200px]">
+                  <div className="flex items-center justify-start w-full">
+                    {order.assigneeName ? (
+                      <span className="truncate text-left">{order.assigneeName}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Unassigned</span>
+                    )}
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">
+                    <div className="flex items-center gap-2">
+                      <UserX className="h-3 w-3" />
+                      <span>Unassigned</span>
+                    </div>
+                  </SelectItem>
+                  {assignmentOptions.map((assignee) => (
+                    <SelectItem key={assignee.id} value={assignee.id}>
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3" />
+                        <span>{assignee.name}</span>
+                        {assignee.role && (
+                          <span className="text-xs text-muted-foreground">({assignee.role})</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Date Info */}
             <div className="flex items-center gap-2">
@@ -255,56 +267,12 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
                 workOrder={order}
                 onAssignClick={onAssignClick}
                 onReopenClick={onReopenClick}
-                hideReassign
+                onStatusUpdate={onStatusUpdate}
+                onDeleteSuccess={() => {
+                  // Handle delete success if needed
+                  console.log('Work order deleted');
+                }}
               />
-            </div>
-
-            <div className="flex gap-2">
-              {order.status === 'submitted' && !order.assigneeName && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleQuickAssignToMe}
-                  disabled={quickAssignMutation.isPending || !currentUser}
-                  className="flex-1"
-                >
-                  <UserPlus className="h-3 w-3 mr-1" />
-                  Assign to Me
-                </Button>
-              )}
-              {order.status === 'submitted' && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => onAcceptClick(order)}
-                  disabled={isAccepting}
-                  className="flex-1"
-                >
-                  Accept
-                </Button>
-              )}
-              {order.status === 'assigned' && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleStatusUpdate('in_progress')}
-                  disabled={statusUpdateMutation.isPending}
-                  className="flex-1"
-                >
-                  Start Work
-                </Button>
-              )}
-              {order.status === 'in_progress' && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleStatusUpdate('completed')}
-                  disabled={statusUpdateMutation.isPending}
-                  className="flex-1"
-                >
-                  Complete
-                </Button>
-              )}
             </div>
           </div>
         </div>

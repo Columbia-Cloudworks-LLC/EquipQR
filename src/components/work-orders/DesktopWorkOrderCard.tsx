@@ -193,7 +193,6 @@ const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({
               workOrder={workOrder}
               onAssignClick={onAssignClick}
               onReopenClick={onReopenClick}
-              showInline
               hideReassign
             />
             <Button 
