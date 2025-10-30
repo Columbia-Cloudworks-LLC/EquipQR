@@ -60,7 +60,7 @@ export const useUpdatePM = () => {
     mutationFn: async ({ pmId, data }: { pmId: string; data: UpdatePMData }) => {
       return await updatePM(pmId, data);
     },
-    onSuccess: (updatedPM, variables) => {
+    onSuccess: (updatedPM) => {
       if (updatedPM && currentOrganization?.id) {
         // Update specific query cache immediately with returned data
         queryClient.setQueryData(

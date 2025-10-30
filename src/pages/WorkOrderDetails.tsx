@@ -23,6 +23,7 @@ import { WorkOrderDetailsSidebar } from '@/components/work-orders/details/WorkOr
 import { WorkOrderDetailsMobile } from '@/components/work-orders/details/WorkOrderDetailsMobile';
 import { WorkOrderNotesMobile } from '@/components/work-orders/details/WorkOrderNotesMobile';
 import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
+import { PMChecklistItem } from '@/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
 
 const WorkOrderDetails = () => {
@@ -139,8 +140,9 @@ const WorkOrderDetails = () => {
     currentOrganization?.id,
     permissionLevels.isManager,
     permissionLevels.isTechnician,
-    equipment?.default_pm_template_id
-    // Note: initializePMChecklist is intentionally omitted to prevent loop
+    equipment?.default_pm_template_id,
+    initializePMChecklist,
+    pmError
   ]);
   
   // Fetch linked equipment for multi-equipment support
@@ -255,7 +257,7 @@ const WorkOrderDetails = () => {
                         ? JSON.parse(pmData.checklist_data) 
                         : pmData.checklist_data;
                       return Array.isArray(checklist) 
-                        ? checklist.filter((item: any) => item.condition !== null && item.condition !== undefined).length 
+                        ? checklist.filter((item: PMChecklistItem) => item.condition !== null && item.condition !== undefined).length 
                         : 0;
                     } catch {
                       return 0;
@@ -287,7 +289,7 @@ const WorkOrderDetails = () => {
                 onStatusChange={handleStatusUpdate}
                 onPriorityChange={(priority) => {
                   // TODO: Implement priority change
-                  console.log('Priority change:', priority);
+                  // Priority change functionality to be implemented
                 }}
                 onViewEquipment={() => {
                   if (equipment) {
@@ -296,19 +298,19 @@ const WorkOrderDetails = () => {
                 }}
                 onAddNote={() => {
                   // TODO: Focus on notes section
-                  console.log('Add note');
+                  // Add note functionality to be implemented
                 }}
                 onUploadImage={() => {
                   // TODO: Focus on images section
-                  console.log('Upload image');
+                  // Upload image functionality to be implemented
                 }}
                 onDownloadPDF={() => {
                   // TODO: Implement PDF download
-                  console.log('Download PDF');
+                  // PDF download functionality to be implemented
                 }}
                 onViewPMDetails={() => {
                   // TODO: Expand PM details
-                  console.log('View PM details');
+                  // View PM details functionality to be implemented
                 }}
                 canEdit={canEdit}
               />
@@ -319,7 +321,7 @@ const WorkOrderDetails = () => {
                   pm={pmData}
                   onUpdate={() => {
                     // Refresh PM data after updates
-                    console.log('PM updated');
+                    // PM data has been updated
                   }}
                   readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
                   isAdmin={permissionLevels.isManager}
@@ -360,7 +362,7 @@ const WorkOrderDetails = () => {
                 showPrivateNotes={permissionLevels.isManager}
                 onAddNote={(note) => {
                   // TODO: Implement note addition
-                  console.log('Add note:', note);
+                  // Add note functionality to be implemented
                 }}
               />
 

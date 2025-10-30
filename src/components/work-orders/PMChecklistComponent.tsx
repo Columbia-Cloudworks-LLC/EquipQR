@@ -12,7 +12,7 @@ import { CheckCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw
 
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
 import { createSegmentsForSection } from '@/utils/pmChecklistHelpers';
-import { PMChecklistItem, PreventativeMaintenance, updatePM, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
+import { PMChecklistItem, PreventativeMaintenance, defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
@@ -79,7 +79,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
   // Browser storage for backup
   const storageKey = `pm-checklist-${pm.id}`;
-  const { loadFromStorage, clearStorage } = useBrowserStorage({
+  const { clearStorage } = useBrowserStorage({
     key: storageKey,
     data: { checklist, notes },
     enabled: !readOnly
@@ -132,9 +132,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     // Also skip if we have manual updates to prevent overwriting user changes
     if (isInitialized || isManuallyUpdated) return;
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔧 Initializing PM Checklist:', pm.id);
-    }
+    // Initialize PM Checklist
 
     try {
       let parsedChecklist: PMChecklistItem[] = [];
@@ -171,13 +169,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             };
           });
           
-          if (process.env.NODE_ENV === 'development') {
-            console.log('✅ Using saved checklist data:', parsedChecklist.length, 'items');
-          }
+          // Using saved checklist data
         } else {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('⚠️ Saved checklist data is invalid, using default');
-          }
+          // Saved checklist data is invalid, using default
           parsedChecklist = [...defaultForkliftChecklist];
         }
       } else {
@@ -190,9 +184,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
               if (parsed.data.checklist && Array.isArray(parsed.data.checklist)) {
                 parsedChecklist = parsed.data.checklist;
                 setNotes(parsed.data.notes || '');
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('🔧 Loaded from browser storage');
-                }
+                // Loaded from browser storage
               }
             }
           }
@@ -201,9 +193,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         }
         
         if (parsedChecklist.length === 0) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('🔧 Using default forklift checklist');
-          }
+          // Using default forklift checklist
           parsedChecklist = [...defaultForkliftChecklist];
         }
       }
@@ -262,7 +252,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     } finally {
       setIsUpdating(false);
     }
-  }, [pm.id, notes, pm.status, onUpdate, clearStorage, updatePMMutation]);
+  }, [pm.id, notes, pm.status, clearStorage, updatePMMutation]);
 
   const handleChecklistItemChange = useCallback((itemId: string, condition: 1 | 2 | 3 | 4 | 5) => {
     setChecklist(prev => prev.map(item => 
@@ -423,12 +413,6 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       queryClient.setQueryData(queryKey, updatedPM);
       
       // Save to database using mutation hook
-      console.log('💾 Saving PM with Set All to OK:', {
-        pmId: pm.id,
-        checklistItemCount: updatedChecklist.length,
-        itemsWithCondition: updatedChecklist.filter(item => item.condition !== null && item.condition !== undefined).length,
-        firstItemCondition: updatedChecklist[0]?.condition
-      });
       
       const result = await updatePMMutation.mutateAsync({
         pmId: pm.id,
@@ -439,13 +423,6 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       });
 
       if (result) {
-        console.log('✅ PM saved successfully:', {
-          pmId: result.id,
-          savedChecklistCount: Array.isArray(result.checklist_data) ? result.checklist_data.length : 'not array',
-          firstItemCondition: Array.isArray(result.checklist_data) && result.checklist_data[0] 
-            ? (result.checklist_data[0] as any)?.condition 
-            : 'N/A'
-        });
         
         setHasUnsavedChanges(false);
         // Clear backup since we've saved successfully
@@ -473,7 +450,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     } finally {
       setIsSettingAllOK(false);
     }
-  }, [checklist, notes, pm, updatePMMutation, storageKey, queryClient, workOrder, equipment]);
+  }, [checklist, notes, pm, updatePMMutation, storageKey, queryClient, workOrder, equipment, organization?.id]);
 
   // Print/Export handlers
 

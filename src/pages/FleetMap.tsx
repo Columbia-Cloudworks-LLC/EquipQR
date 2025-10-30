@@ -2,14 +2,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { MapPin, QrCode } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { FleetMapErrorBoundary } from '@/components/fleet-map/FleetMapErrorBoundary';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';  
 import { useTeamFleetData } from '@/hooks/useTeamFleetData';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
 import { MapView } from '@/components/fleet-map/MapView';
 import { TeamSelector } from '@/components/fleet-map/TeamSelector';
 import { FleetSearchBox } from '@/components/fleet-map/FleetSearchBox';
@@ -19,7 +17,6 @@ import { FleetSummary } from '@/components/fleet-map/FleetSummary';
 
 
 const FleetMap: React.FC = () => {
-  const { currentOrganization } = useSimpleOrganization();
   const { googleMapsKey, isLoading: mapsKeyLoading, error: mapsKeyError, retry: retryMapsKey } = useGoogleMapsKey();
   const { data: teamFleetData, isLoading: teamFleetLoading, error: teamFleetError } = useTeamFleetData();
   
@@ -99,8 +96,8 @@ const FleetMap: React.FC = () => {
 
   // Handle loading states
   if (isLoading) {
+    // Loading state
     console.log('[FleetMap] Loading state:', { 
-      teamFleetLoading,
       mapsKeyLoading, 
       hasGoogleMapsKey: !!googleMapsKey,
       hasLocationData

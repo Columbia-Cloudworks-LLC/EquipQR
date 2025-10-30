@@ -141,7 +141,7 @@ export const WorkOrderNotesMobile: React.FC<WorkOrderNotesMobileProps> = ({
                     variant="outline"
                     onClick={() => {
                       // TODO: Implement image upload
-                      console.log('Upload image');
+                      // Upload image functionality to be implemented
                     }}
                     className="px-3"
                   >

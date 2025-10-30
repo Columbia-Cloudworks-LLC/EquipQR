@@ -14,8 +14,7 @@ export interface OrganizationRestrictions {
 }
 
 export const getOrganizationRestrictions = (
-  members: RealOrganizationMember[],
-  fleetMapEnabled: boolean = false
+  members: RealOrganizationMember[]
 ): OrganizationRestrictions => {
   // Billing is disabled - grant all features to all organizations
   if (isBillingDisabled()) {

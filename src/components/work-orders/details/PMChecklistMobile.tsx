@@ -222,7 +222,7 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
               {checklist
                 .filter(item => item.condition && item.condition > 1)
                 .slice(0, 3)
-                .map((item, index) => (
+                .map((item) => (
                   <div key={item.id} className="flex items-center gap-2 text-sm p-2 bg-yellow-50 rounded">
                     {getConditionIcon(item.condition)}
                     <span className="flex-1 truncate">{item.description}</span>

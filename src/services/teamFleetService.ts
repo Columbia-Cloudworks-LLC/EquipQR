@@ -84,8 +84,7 @@ export const getAccessibleTeams = async (
  */
 export const getTeamEquipmentWithLocations = async (
   organizationId: string,
-  teamIds: string[],
-  isOrgAdmin: boolean
+  teamIds: string[]
 ): Promise<TeamEquipmentData[]> => {
   try {
     if (teamIds.length === 0) {
@@ -93,7 +92,7 @@ export const getTeamEquipmentWithLocations = async (
     }
 
     // Get equipment for accessible teams
-    let query = supabase
+    const query = supabase
       .from('equipment')
       .select(`
         id,
@@ -232,14 +231,10 @@ export const getTeamFleetData = async (
   isOrgAdmin: boolean
 ): Promise<TeamFleetData> => {
   try {
-    console.log('[getTeamFleetData] Starting with:', { organizationId, userTeamIds, isOrgAdmin });
-    
     // Get accessible teams
     const teams = await getAccessibleTeams(organizationId, userTeamIds, isOrgAdmin);
-    console.log('[getTeamFleetData] Accessible teams:', teams);
     
     if (teams.length === 0) {
-      console.log('[getTeamFleetData] No accessible teams found');
       return {
         teams: [],
         teamEquipmentData: [],

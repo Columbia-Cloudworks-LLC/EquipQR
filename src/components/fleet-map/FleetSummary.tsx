@@ -18,7 +18,6 @@ export const FleetSummary: React.FC<FleetSummaryProps> = ({
   selectedTeamId,
   equipmentLocations,
   totalEquipmentCount,
-  totalLocatedCount,
   isLoading = false
 }) => {
   if (isLoading) {

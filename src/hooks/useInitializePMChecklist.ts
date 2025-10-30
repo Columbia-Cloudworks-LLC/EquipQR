@@ -18,7 +18,7 @@ export const useInitializePMChecklist = () => {
       organizationId: string;
       templateId?: string;
     }) => {
-      console.log('🔧 Initializing PM checklist for work order:', workOrderId);
+      // Initializing PM checklist for work order
       
       let checklistData = defaultForkliftChecklist;
       let notes = 'PM checklist initialized with default forklift maintenance items.';
@@ -58,7 +58,7 @@ export const useInitializePMChecklist = () => {
         throw new Error('Failed to create PM record');
       }
 
-      console.log('✅ PM checklist initialized successfully:', pmRecord.id);
+      // PM checklist initialized successfully
       return pmRecord;
     },
     onSuccess: (pmRecord, variables) => {

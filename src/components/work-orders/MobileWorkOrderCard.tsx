@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, User, Clock, DollarSign, UserPlus, Users, UserX } from 'lucide-react';
+import { Calendar, User, Clock, UserPlus, Users, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';

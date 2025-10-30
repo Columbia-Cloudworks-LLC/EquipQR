@@ -25,7 +25,6 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const initializePMChecklist = useInitializePMChecklist();
 
   return useMutation({
     mutationFn: async (data: EnhancedCreateWorkOrderData) => {

@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle, Clock, AlertTriangle, Play, Pause, XCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';

@@ -2,8 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   getEquipmentWorkingHoursHistory, 
   getEquipmentCurrentWorkingHours,
-  updateEquipmentWorkingHours,
-  UpdateWorkingHoursData
+  updateEquipmentWorkingHours
 } from '@/services/equipmentWorkingHoursService';
 import { toast } from 'sonner';
 

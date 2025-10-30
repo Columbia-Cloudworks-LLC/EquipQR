@@ -15,8 +15,7 @@ export interface SimplifiedOrganizationRestrictions {
 
 export const getSimplifiedOrganizationRestrictions = (
   members: RealOrganizationMember[],
-  slotAvailability: SlotAvailability,
-  fleetMapEnabled: boolean = false
+  slotAvailability: SlotAvailability
 ): SimplifiedOrganizationRestrictions => {
   // Billing is disabled - grant all features to all organizations
   if (isBillingDisabled()) {

@@ -16,11 +16,10 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
   organization,
   onUpgrade
 }) => {
-  const { data: _members = [] } = useOrganizationMembers(organization?.id || '');
   const { data: storageUsage, isLoading: storageLoading } = useOrganizationStorageUsage();
 
   const handlePurchaseSlots = (quantity: number) => {
-    console.log('Purchase slots:', quantity);
+    // Purchase slots functionality
     onUpgrade();
   };
 

@@ -119,8 +119,8 @@ export const useEquipmentLocationCheck = (organizationId: string | null): Locati
           locatedCount
         });
 
-        console.log('[useEquipmentLocationCheck] Location check complete:', {
-          organizationId,
+        // Location check complete
+        setLocationData({
           equipmentCount: equipment.length,
           locatedCount,
           hasLocationData: hasMeaningfulLocationData,
