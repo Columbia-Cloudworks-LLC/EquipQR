@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Settings } from 'lucide-react';
-import { FleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import { OrganizationSettings } from './OrganizationSettings';
 import UnifiedMembersList from './UnifiedMembersList';
 import StorageUsageCard from './StorageUsageCard';
@@ -31,7 +30,6 @@ interface OrganizationTabsProps {
   currentUserRole: 'owner' | 'admin' | 'member';
   permissions: Permissions;
   membersLoading: boolean;
-  fleetMapSubscription?: FleetMapSubscription;
   organization: SessionOrganization;
 }
 
@@ -41,7 +39,6 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   currentUserRole,
   permissions,
   membersLoading,
-  fleetMapSubscription,
   organization
 }) => {
   const { data: slotAvailability } = useSlotAvailability(organizationId);
@@ -72,27 +69,6 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           slotAvailability={slotAvailability}
         />
 
-        {fleetMapSubscription && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Premium Features</CardTitle>
-              <CardDescription>Active premium features for your organization</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium">Fleet Map</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Visualize equipment locations on an interactive map
-                  </p>
-                </div>
-                <Badge variant={fleetMapSubscription.active ? 'default' : 'secondary'}>
-                  {fleetMapSubscription.active ? 'Active' : 'Inactive'}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </TabsContent>
 
       <TabsContent value="settings">

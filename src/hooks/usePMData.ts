@@ -15,9 +15,9 @@ export const usePMByWorkOrderId = (workOrderId: string) => {
   const { currentOrganization } = useOrganization();
 
   return useQuery({
-    queryKey: ['preventativeMaintenance', workOrderId],
-    queryFn: () => getPMByWorkOrderId(workOrderId),
-    enabled: !!workOrderId && !!currentOrganization,
+    queryKey: ['preventativeMaintenance', workOrderId, currentOrganization?.id],
+    queryFn: () => getPMByWorkOrderId(workOrderId, currentOrganization!.id),
+    enabled: !!workOrderId && !!currentOrganization?.id,
   });
 };
 
@@ -26,10 +26,17 @@ export const usePMByWorkOrderAndEquipment = (workOrderId: string, equipmentId: s
   const { currentOrganization } = useOrganization();
 
   return useQuery({
-    queryKey: ['preventativeMaintenance', workOrderId, equipmentId],
-    queryFn: () => getPMByWorkOrderAndEquipment(workOrderId, equipmentId),
-    enabled: !!workOrderId && !!equipmentId && !!currentOrganization,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    queryKey: ['preventativeMaintenance', workOrderId, equipmentId, currentOrganization?.id],
+    queryFn: () => getPMByWorkOrderAndEquipment(workOrderId, equipmentId, currentOrganization!.id),
+    enabled: !!workOrderId && !!equipmentId && !!currentOrganization?.id,
+    staleTime: 0, // Data is immediately stale - always refetch on mount after changes
+    // Keep data even if refetch fails - don't clear on error
+    retry: 1,
+    retryOnMount: true, // Refetch on mount to ensure we have latest data
+    // Prevent clearing data on refetch failure
+    refetchOnWindowFocus: false,
+    // Keep previous data when query fails - prevents clearing on 406 errors
+    placeholderData: (previousData) => previousData,
   });
 };
 
@@ -38,29 +45,43 @@ export const usePMsByWorkOrderId = (workOrderId: string) => {
   const { currentOrganization } = useOrganization();
 
   return useQuery({
-    queryKey: ['preventativeMaintenance', 'all', workOrderId],
-    queryFn: () => getPMsByWorkOrderId(workOrderId),
-    enabled: !!workOrderId && !!currentOrganization,
+    queryKey: ['preventativeMaintenance', 'all', workOrderId, currentOrganization?.id],
+    queryFn: () => getPMsByWorkOrderId(workOrderId, currentOrganization!.id),
+    enabled: !!workOrderId && !!currentOrganization?.id,
     staleTime: 2 * 60 * 1000,
   });
 };
 
 export const useUpdatePM = () => {
   const queryClient = useQueryClient();
+  const { currentOrganization } = useOrganization();
 
   return useMutation({
     mutationFn: async ({ pmId, data }: { pmId: string; data: UpdatePMData }) => {
       return await updatePM(pmId, data);
     },
     onSuccess: (updatedPM, variables) => {
-      if (updatedPM) {
+      if (updatedPM && currentOrganization?.id) {
+        // Update specific query cache immediately with returned data
+        queryClient.setQueryData(
+          ['preventativeMaintenance', updatedPM.work_order_id, updatedPM.equipment_id, currentOrganization.id],
+          updatedPM
+        );
+        
+        // Invalidate related queries to ensure fresh data on next load
         queryClient.invalidateQueries({ 
-          queryKey: ['preventativeMaintenance', updatedPM.work_order_id] 
+          queryKey: ['preventativeMaintenance', updatedPM.work_order_id],
+          exact: false,
+          refetchType: 'active' // Refetch active queries to get updated data
         });
         queryClient.invalidateQueries({ 
-          queryKey: ['workOrder'] 
+          queryKey: ['workOrder'],
+          exact: false,
+          refetchType: 'active' // OK to refetch work orders
         });
-        toast.success('PM updated successfully');
+        
+        // Only show toast if not already shown by caller
+        // (Some callers like handleSetAllToOK show their own toast)
       }
     },
     onError: (error) => {

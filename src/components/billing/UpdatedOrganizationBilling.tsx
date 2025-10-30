@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Users, HardDrive, Map, CreditCard, Crown, Info } from 'lucide-react';
+import { Users, HardDrive, CreditCard, Info } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { calculateBilling, isFreeOrganization } from '@/utils/billing';
@@ -12,23 +12,19 @@ import { getOrganizationRestrictions, getRestrictionMessage } from '@/utils/orga
 
 interface UpdatedOrganizationBillingProps {
   storageUsedGB: number;
-  fleetMapEnabled: boolean;
-  onToggleFleetMap: (enabled: boolean) => void;
   onUpgradeToMultiUser: () => void;
 }
 
 const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
   storageUsedGB,
-  fleetMapEnabled,
-  onToggleFleetMap,
   onUpgradeToMultiUser
 }) => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
 
-  const billing = calculateBilling({ members, storageGB: storageUsedGB, fleetMapEnabled });
+  const billing = calculateBilling({ members, storageGB: storageUsedGB, fleetMapEnabled: true });
   const isFree = isFreeOrganization(members);
-  const _restrictions = getOrganizationRestrictions(members, fleetMapEnabled);
+  const _restrictions = getOrganizationRestrictions(members, true);
 
   return (
     <div className="space-y-6">
@@ -215,57 +211,6 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
         </CardContent>
       </Card>
 
-      {/* Fleet Map Add-on */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Map className="h-5 w-5" />
-            Fleet Map Add-on
-            {billing.features.fleetMap.enabled && <Crown className="h-4 w-4 text-yellow-500" />}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium">Interactive Equipment Maps</div>
-                <div className="text-sm text-muted-foreground">
-                  Visualize equipment locations on interactive maps - $10/month
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant={billing.features.fleetMap.enabled ? 'default' : 'secondary'}>
-                  {billing.features.fleetMap.enabled ? 'Active' : 'Inactive'}
-                </Badge>
-                {!isFree && (
-                  <Button
-                    variant={billing.features.fleetMap.enabled ? 'destructive' : 'default'}
-                    size="sm"
-                    onClick={() => onToggleFleetMap(!billing.features.fleetMap.enabled)}
-                  >
-                    {billing.features.fleetMap.enabled ? 'Disable' : 'Enable'}
-                  </Button>
-                )}
-              </div>
-            </div>
-            
-            <div className="bg-muted p-4 rounded-lg">
-              <div className="flex justify-between items-center font-semibold">
-                <span>Fleet Map Add-on</span>
-                <span className="font-mono">${billing.features.fleetMap.cost.toFixed(2)}</span>
-              </div>
-            </div>
-
-            {isFree && (
-              <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                <div className="text-sm text-gray-600">
-                  Fleet Map requires a multi-user organization. Invite team members to unlock this premium feature.
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

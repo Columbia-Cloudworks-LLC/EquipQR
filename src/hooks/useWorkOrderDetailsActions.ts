@@ -48,12 +48,12 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
   };
 
   const handlePMUpdate = () => {
-    // Refresh PM data and work order data
+    // Don't invalidate PM queries - the mutation hook already handles cache updates
+    // Invalidating here causes refetches that can fail (406 errors) and trigger re-initialization
+    // Only invalidate work order queries to refresh status/completion state
     queryClient.invalidateQueries({ 
-      queryKey: ['preventativeMaintenance', workOrderId] 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['workOrder', organizationId, workOrderId] 
+      queryKey: ['workOrder', organizationId, workOrderId],
+      refetchType: 'active' // Only refetch active queries
     });
   };
 

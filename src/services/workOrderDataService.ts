@@ -24,6 +24,7 @@ export interface EnhancedWorkOrder {
   createdByName?: string;
   has_pm: boolean;
   pm_required: boolean;
+  equipment_working_hours_at_creation?: number;
   updated_at: string;
 }
 

@@ -21,7 +21,7 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
   );
 
   // Fetch PM data for specific equipment if work order has PM enabled
-  const { data: pmData, isLoading: pmLoading } = usePMByWorkOrderAndEquipment(
+  const { data: pmData, isLoading: pmLoading, isError: pmError } = usePMByWorkOrderAndEquipment(
     workOrderId || '',
     selectedEquipmentId || workOrder?.equipment_id || ''
   );
@@ -48,6 +48,7 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
     pmData,
     workOrderLoading,
     pmLoading,
+    pmError, // Expose PM query error state
     permissionLevels,
     formMode,
     isWorkOrderLocked,

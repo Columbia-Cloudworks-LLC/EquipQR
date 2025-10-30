@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Info, Clock } from "lucide-react";
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useWorkOrderAssignment } from '@/hooks/useWorkOrderAssignment';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
@@ -14,7 +15,6 @@ import { useWorkOrderSubmission } from '@/hooks/useWorkOrderSubmission';
 import { WorkOrderFormHeader } from './form/WorkOrderFormHeader';
 import { WorkOrderBasicFields } from './form/WorkOrderBasicFields';
 import { WorkOrderEquipmentSelector } from './form/WorkOrderEquipmentSelector';
-import { WorkOrderMultiEquipmentSelector } from './form/WorkOrderMultiEquipmentSelector';
 import { WorkOrderPMSection } from './form/WorkOrderPMSection';
 import { WorkOrderDescriptionField } from './form/WorkOrderDescriptionField';
 import { WorkOrderFormActions } from './form/WorkOrderFormActions';
@@ -40,6 +40,8 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
   initialIsHistorical = false
 }) => {
   const { currentOrganization } = useOrganization();
+  const [showWorkingHoursWarning, setShowWorkingHoursWarning] = useState(false);
+  const [pendingSubmission, setPendingSubmission] = useState<WorkOrderFormData | null>(null);
   
   const { form, isEditMode, checkForUnsavedChanges } = useWorkOrderForm({
     workOrder,
@@ -73,7 +75,29 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
   );
 
   const handleSubmit = async () => {
+    const formData = form.values;
+    
+    // Check if no working hours were updated during work order creation
+    if (!isEditMode && !formData.equipmentWorkingHours) {
+      setPendingSubmission(formData);
+      setShowWorkingHoursWarning(true);
+      return;
+    }
+    
     await form.handleSubmit(submitForm);
+  };
+
+  const handleConfirmSubmit = async () => {
+    setShowWorkingHoursWarning(false);
+    if (pendingSubmission) {
+      await submitForm(pendingSubmission);
+      setPendingSubmission(null);
+    }
+  };
+
+  const handleCancelSubmit = () => {
+    setShowWorkingHoursWarning(false);
+    setPendingSubmission(null);
   };
 
   const handleClose = () => {
@@ -131,28 +155,7 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
             isEquipmentPreSelected={isEquipmentPreSelected}
           />
 
-          {/* Multi-Equipment Selector - Show only when primary equipment is selected */}
-          {form.values.equipmentId && (() => {
-            // Get team_id from selected equipment
-            const selectedEquipment = allEquipment.find(eq => eq.id === form.values.equipmentId);
-            const teamId = selectedEquipment?.team_id || preSelectedEquipment?.team_id;
-            
-            return teamId ? (
-              <WorkOrderMultiEquipmentSelector
-                primaryEquipmentId={form.values.equipmentId}
-                primaryEquipmentTeamId={teamId}
-                workOrderId={workOrder?.id}
-                selectedEquipmentIds={form.values.equipmentIds || []}
-                onSelectionChange={(equipmentIds) => {
-                  form.setValue('equipmentIds', equipmentIds);
-                  // Update primary equipment ID if not set
-                  if (!form.values.primaryEquipmentId) {
-                    form.setValue('primaryEquipmentId', form.values.equipmentId);
-                  }
-                }}
-              />
-            ) : null;
-          })()}
+          {/* Multi-equipment selection removed: work orders now support a single equipment only */}
 
           {form.values.isHistorical && (
             <WorkOrderHistoricalFields
@@ -200,6 +203,37 @@ const WorkOrderFormEnhanced: React.FC<WorkOrderFormEnhancedProps> = ({
           />
         </div>
       </DialogContent>
+
+      {/* Working Hours Warning Dialog */}
+      <AlertDialog open={showWorkingHoursWarning} onOpenChange={setShowWorkingHoursWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-600" />
+              Equipment Working Hours Not Updated
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                You're about to create a work order without updating the equipment's working hours.
+              </p>
+              <p className="font-medium text-amber-800">
+                Are you sure you want to start work on this machine without documenting the current hours?
+              </p>
+              <p className="text-sm text-muted-foreground">
+                This information is important for maintenance scheduling and equipment lifecycle tracking.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelSubmit}>
+              Go Back & Update Hours
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSubmit} className="bg-amber-600 hover:bg-amber-700">
+              Yes, Create Without Hours
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

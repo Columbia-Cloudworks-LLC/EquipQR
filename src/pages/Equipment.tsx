@@ -125,7 +125,7 @@ const Equipment = () => {
   // Equipment data comes from the filtering hook
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <EquipmentHeader
         organizationName={currentOrganization.name}
         canCreate={canCreate}
@@ -166,7 +166,7 @@ const Equipment = () => {
       {/* Pagination and Page Size Selector */}
       {(totalPages > 1 || totalFilteredCount > 0) && (
         <div className="flex flex-col gap-4 border-t pt-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
               {totalFilteredCount > 0 ? (
                 <>
@@ -179,8 +179,8 @@ const Equipment = () => {
               )}
             </p>
             
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground">Items per page:</label>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <label className="text-sm text-muted-foreground whitespace-nowrap">Items per page:</label>
               <Select
                 value={pageSize.toString()}
                 onValueChange={(value) => {
@@ -188,7 +188,7 @@ const Equipment = () => {
                   setCurrentPage(1); // Reset to first page when page size changes
                 }}
               >
-                <SelectTrigger className="w-[100px]">
+                <SelectTrigger className="w-full sm:w-[100px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -203,28 +203,32 @@ const Equipment = () => {
           </div>
           
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={currentPage <= 1}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <span className="text-sm">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="flex-1 sm:flex-none h-10"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <span className="text-sm px-4 whitespace-nowrap">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="flex-1 sm:flex-none h-10"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           )}
         </div>

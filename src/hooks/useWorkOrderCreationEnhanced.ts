@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { createWorkOrder } from '@/services/supabaseDataService';
 import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
-import { addEquipmentToWorkOrder } from '@/services/workOrderEquipmentService';
-import { createPMsForEquipment } from '@/services/preventativeMaintenanceService';
+import { createPM } from '@/services/preventativeMaintenanceService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -13,8 +12,6 @@ export interface EnhancedCreateWorkOrderData {
   title: string;
   description: string;
   equipmentId: string;
-  equipmentIds?: string[];
-  primaryEquipmentId?: string;
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
   equipmentWorkingHours?: number;
@@ -51,7 +48,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
       }
 
       // Create the work order
-      const workOrderData = {
+const workOrderData = {
         title: data.title,
         description: data.description,
         equipment_id: data.equipmentId,
@@ -69,7 +66,8 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
         is_historical: false,
         historical_start_date: null,
         historical_notes: null,
-        created_by_admin: null
+        created_by_admin: null,
+        equipment_working_hours_at_creation: data.equipmentWorkingHours || null
       };
 
       const workOrder = await createWorkOrder(currentOrganization.id, workOrderData);
@@ -78,22 +76,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
         throw new Error('Failed to create work order');
       }
 
-      // Add equipment to join table for multi-equipment support
-      // Always include the primary equipment, plus any additional equipment
-      // Deduplicate to avoid UNIQUE constraint violations
-      const equipmentIds = Array.from(new Set([data.equipmentId, ...(data.equipmentIds || [])]));
-      const primaryId = data.primaryEquipmentId || data.equipmentId;
-
-      try {
-        await addEquipmentToWorkOrder({
-          workOrderId: workOrder.id,
-          equipmentIds,
-          primaryEquipmentId: primaryId,
-        });
-      } catch (error) {
-        console.error('Failed to add equipment to work order:', error);
-        toast.error('Work order created but failed to link equipment');
-      }
+      // Multi-equipment linking removed: work orders now support a single equipment only
 
       // If equipment working hours are provided, update equipment
       if (data.equipmentWorkingHours && data.equipmentWorkingHours > 0) {
@@ -115,8 +98,8 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
         }
       }
 
-      // If PM is required, create PMs for ALL equipment
-      if (data.hasPM && equipmentIds.length > 0) {
+      // If PM is required, create PM for the single equipment
+      if (data.hasPM && data.equipmentId) {
         try {
           // Get checklist data from template (existing logic)
           let checklistData = null;
@@ -135,18 +118,18 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
             }
           }
 
-          // Create PMs for all equipment
-          await createPMsForEquipment(
-            workOrder.id,
-            equipmentIds,
-            currentOrganization.id,
+          // Create PM for the single equipment
+          await createPM({
+            workOrderId: workOrder.id,
+            equipmentId: data.equipmentId,
+            organizationId: currentOrganization.id,
             checklistData,
             notes,
-            data.pmTemplateId
-          );
+            templateId: data.pmTemplateId
+          });
         } catch (error) {
-          console.error('Failed to create PMs for equipment:', error);
-          toast.error('Work order created but PM initialization failed for some equipment');
+          console.error('Failed to create PM for equipment:', error);
+          toast.error('Work order created but PM initialization failed');
         }
       }
 

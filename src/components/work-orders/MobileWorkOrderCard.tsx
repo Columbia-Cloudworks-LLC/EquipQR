@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, User, Clock, DollarSign, UserPlus, Users, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
@@ -13,6 +14,8 @@ import type { Database } from '@/integrations/supabase/types';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import { ensureWorkOrderData } from '@/utils/workOrderTypeConversion';
 
 interface MobileWorkOrderCardProps {
   order: EnhancedWorkOrder;
@@ -35,6 +38,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
 }) => {
   const quickAssignMutation = useQuickWorkOrderAssignment();
   const statusUpdateMutation = useWorkOrderStatusUpdate();
+  const permissions = useUnifiedPermissions();
   const [currentUser, setCurrentUser] = React.useState<SupabaseUser | null>(null);
 
   React.useEffect(() => {
@@ -44,6 +48,10 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
     };
     getCurrentUser();
   }, []);
+
+  // Check if user can change status
+  const workOrderPermissions = permissions.workOrders.getDetailedPermissions(ensureWorkOrderData(order));
+  const canChangeStatus = workOrderPermissions.canChangeStatus;
 
   const handleQuickAssignToMe = async () => {
     if (!currentUser) return;
@@ -58,6 +66,11 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
     statusUpdateMutation.mutate({
       workOrderId: order.id,
       newStatus
+    }, {
+      onSuccess: () => {
+        // Notify parent component of status change
+        onStatusUpdate(order.id, newStatus);
+      }
     });
   };
 
@@ -121,13 +134,10 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
             )}
           </div>
 
-          {/* Badges - Side by side on mobile */}
+          {/* Priority Badge */}
           <div className="flex gap-2 flex-wrap">
             <Badge className={getPriorityColor(order.priority)} variant="outline">
               {order.priority}
-            </Badge>
-            <Badge className={getStatusColor(order.status)} variant="outline">
-              {formatStatusText(order.status)}
             </Badge>
           </div>
 
@@ -142,6 +152,35 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
         <div className="space-y-4">
           {/* Key Information - Stacked vertically */}
           <div className="space-y-2 text-sm">
+            {/* Status - Editable Field */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Status:</span>
+              {canChangeStatus ? (
+                <Select
+                  value={order.status}
+                  onValueChange={(value) => handleStatusUpdate(value as Database["public"]["Enums"]["work_order_status"])}
+                  disabled={statusUpdateMutation.isPending}
+                >
+                  <SelectTrigger className={`h-8 w-full max-w-[180px] ${getStatusColor(order.status)} border`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="submitted">{formatStatusText('submitted')}</SelectItem>
+                    <SelectItem value="accepted">{formatStatusText('accepted')}</SelectItem>
+                    <SelectItem value="assigned">{formatStatusText('assigned')}</SelectItem>
+                    <SelectItem value="in_progress">{formatStatusText('in_progress')}</SelectItem>
+                    <SelectItem value="on_hold">{formatStatusText('on_hold')}</SelectItem>
+                    <SelectItem value="completed">{formatStatusText('completed')}</SelectItem>
+                    <SelectItem value="cancelled">{formatStatusText('cancelled')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Badge className={getStatusColor(order.status)} variant="outline">
+                  {formatStatusText(order.status)}
+                </Badge>
+              )}
+            </div>
+
             {/* Equipment Team - Static Display */}
             {order.equipmentTeamName && (
               <div className="flex items-center gap-2">
@@ -192,16 +231,6 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
                 className="flex-shrink-0"
               />
             </div>
-
-            {/* Creator Info */}
-            {order.createdByName && (
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-muted-foreground text-xs">
-                  Created by: {order.createdByName}
-                </span>
-              </div>
-            )}
 
             {/* Completion Date */}
             {order.completedDate && (

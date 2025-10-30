@@ -98,7 +98,6 @@ describe('OrganizationTabs', () => {
         currentUserRole="admin"
         permissions={{ canInviteMembers: true }}
         membersLoading={false}
-        fleetMapSubscription={undefined}
       />
     );
 
