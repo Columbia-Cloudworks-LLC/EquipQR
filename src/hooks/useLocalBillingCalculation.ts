@@ -1,23 +1,20 @@
 
 import { useMemo } from 'react';
-import { FleetMapSubscription } from './useFleetMapSubscription';
 
 interface UseLocalBillingCalculationProps {
   memberCount?: number;
   storageUsedGB?: number;
-  fleetMapSubscription?: FleetMapSubscription;
 }
 
 export const useLocalBillingCalculation = ({
   memberCount = 0,
-  storageUsedGB = 0,
-  fleetMapSubscription
+  storageUsedGB = 0
 }: UseLocalBillingCalculationProps) => {
   return useMemo(() => {
     // Base costs
     const userLicenseCost = Math.max(0, memberCount - 1) * 10; // First user free
     const storageOverageCost = Math.max(0, storageUsedGB - 1) * 0.10; // First GB free
-    const fleetMapCost = fleetMapSubscription?.active ? 10 : 0;
+    const fleetMapCost = 0; // Fleet map is now free
     
     const totalMonthlyCost = userLicenseCost + storageOverageCost + fleetMapCost;
     
@@ -38,11 +35,11 @@ export const useLocalBillingCalculation = ({
           total: storageOverageCost
         },
         fleetMap: {
-          enabled: fleetMapSubscription?.active || false,
-          unitPrice: 10,
-          total: fleetMapCost
+          enabled: true, // Fleet map is always available
+          unitPrice: 0,
+          total: 0
         }
       }
     };
-  }, [memberCount, storageUsedGB, fleetMapSubscription]);
+  }, [memberCount, storageUsedGB]);
 };

@@ -23,7 +23,7 @@ export const getOrganizationRestrictions = (
       canManageTeams: true,
       canAssignEquipmentToTeams: true,
       canUploadImages: true,
-      canAccessFleetMap: fleetMapEnabled,
+      canAccessFleetMap: true, // Always allow fleet map access
       canInviteMembers: true,
       maxMembers: 1000, // Unlimited for free users
       maxStorage: 1000 // Large storage limit
@@ -49,7 +49,7 @@ export const getOrganizationRestrictions = (
     canManageTeams: true,
     canAssignEquipmentToTeams: true,
     canUploadImages: true,
-    canAccessFleetMap: fleetMapEnabled,
+    canAccessFleetMap: true, // Always allow fleet map access
     canInviteMembers: true,
     maxMembers: 1000, // Large number for paid plans
     maxStorage: 5 + (members.length * 5) // 5GB base + 5GB per user

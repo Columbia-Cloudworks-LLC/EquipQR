@@ -28,7 +28,7 @@ const SimplifiedMemberBilling = () => {
     );
   }
 
-  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
+  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: true });
   const isFree = isFreeOrganization(members);
 
   return (

@@ -42,7 +42,7 @@ const LicenseMemberBilling = () => {
     );
   }
 
-  const billing = calculateBilling({ members, slotAvailability, storageGB: 0, fleetMapEnabled: false });
+  const billing = calculateBilling({ members, slotAvailability, storageGB: 0, fleetMapEnabled: true });
   const hasActiveLicenses = hasLicenses(slotAvailability);
 
   return (

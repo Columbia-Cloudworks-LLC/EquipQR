@@ -24,7 +24,7 @@ export const getSimplifiedOrganizationRestrictions = (
       canManageTeams: true,
       canAssignEquipmentToTeams: true,
       canUploadImages: true,
-      canAccessFleetMap: fleetMapEnabled,
+      canAccessFleetMap: true, // Always allow fleet map access
       canInviteMembers: true,
       canCreateCustomPMTemplates: true,
       hasAvailableSlots: true,
@@ -57,7 +57,7 @@ export const getSimplifiedOrganizationRestrictions = (
     canManageTeams: true,
     canAssignEquipmentToTeams: true,
     canUploadImages: true,
-    canAccessFleetMap: fleetMapEnabled,
+    canAccessFleetMap: true, // Always allow fleet map access
     canInviteMembers: hasAvailableSlots,
     canCreateCustomPMTemplates: true, // Paying customers can create custom PM templates
     hasAvailableSlots,
