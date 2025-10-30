@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Users } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { TeamFleetOption, EquipmentLocation } from '@/services/teamFleetService';
 
 interface FleetSummaryProps {
