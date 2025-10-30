@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, QrCode, Search, RefreshCw } from 'lucide-react';
+import { MapPin, QrCode } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { FleetMapErrorBoundary } from '@/components/fleet-map/FleetMapErrorBoundary';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';  
