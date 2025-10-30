@@ -11,7 +11,6 @@ import { getTeamFleetData, TeamFleetData } from '@/services/teamFleetService';
 export const useTeamFleetData = () => {
   const { currentOrganization } = useSimpleOrganization();
   const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
-  const { isManager } = useWorkOrderPermissionLevels();
   
   const userTeamIds = getUserTeamIds();
   const isOrgAdmin = currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
