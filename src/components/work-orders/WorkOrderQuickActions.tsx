@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, UserPlus, RotateCcw, Eye, MoreHorizontal, Trash2 } from 'lucide-react';
+import { FileText, Download, UserPlus, RotateCcw, Eye, MoreHorizontal, Trash2, Zap, CheckCircle, Play } from 'lucide-react';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useNavigate } from 'react-router-dom';
 import { generatePMChecklistPDF } from '@/services/workOrderPDFService';
@@ -11,6 +11,7 @@ import { generateCostsCSV } from '@/services/workOrderCSVService';
 import { useToast } from '@/hooks/use-toast';
 import { useDeleteWorkOrder } from '@/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/hooks/useWorkOrderImageCount';
+import { useWorkOrderStatusUpdate } from '@/hooks/useWorkOrderStatusUpdate';
 import { WorkOrderLike, ensureWorkOrderData } from '@/utils/workOrderTypeConversion';
 
 interface WorkOrderQuickActionsProps {
@@ -18,7 +19,7 @@ interface WorkOrderQuickActionsProps {
   onAssignClick?: () => void;
   onReopenClick?: () => void;
   onDeleteSuccess?: () => void;
-  showInline?: boolean;
+  onStatusUpdate?: (workOrderId: string, newStatus: string) => void;
   hideReassign?: boolean;
 }
 
@@ -27,7 +28,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   onAssignClick,
   onReopenClick,
   onDeleteSuccess,
-  showInline = false,
+  onStatusUpdate,
   hideReassign = false
 }) => {
   const permissions = useUnifiedPermissions();
@@ -38,6 +39,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const deleteWorkOrderMutation = useDeleteWorkOrder();
+  const statusUpdateMutation = useWorkOrderStatusUpdate();
   const { data: imageData } = useWorkOrderImageCount(workOrder?.id);
 
   const workOrderPermissions = permissions.workOrders.getDetailedPermissions(ensureWorkOrderData(workOrder));
@@ -109,7 +111,74 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
     }
   };
 
+  const handleStatusUpdate = async (newStatus: string) => {
+    try {
+      await statusUpdateMutation.mutateAsync({
+        workOrderId: workOrder.id,
+        newStatus: newStatus as any
+      });
+      onStatusUpdate?.(workOrder.id, newStatus);
+    } catch {
+      // Error is handled in the mutation
+    }
+  };
+
+  const handleAssignToMe = () => {
+    onAssignClick?.();
+  };
+
+  const handleAccept = () => {
+    handleStatusUpdate('accepted');
+  };
+
+  const handleStartWork = () => {
+    handleStatusUpdate('in_progress');
+  };
+
+  const handleComplete = () => {
+    handleStatusUpdate('completed');
+  };
+
   const actions = [
+    // Workflow Actions
+    {
+      key: 'assign-to-me',
+      label: 'Assign to Me',
+      icon: UserPlus,
+      show: workOrder.status === 'submitted' && !workOrder.assigneeName,
+      onClick: handleAssignToMe
+    },
+    {
+      key: 'accept',
+      label: 'Accept',
+      icon: CheckCircle,
+      show: workOrder.status === 'submitted',
+      onClick: handleAccept
+    },
+    {
+      key: 'start-work',
+      label: 'Start Work',
+      icon: Play,
+      show: workOrder.status === 'assigned',
+      onClick: handleStartWork
+    },
+    {
+      key: 'complete',
+      label: 'Complete',
+      icon: CheckCircle,
+      show: workOrder.status === 'in_progress',
+      onClick: handleComplete
+    },
+    // Separator
+    {
+      key: 'separator-1',
+      label: '---',
+      icon: null,
+      show: true,
+      onClick: null,
+      separator: true
+    },
+    // Document Actions
     {
       key: 'view-pm',
       label: 'View PM Checklist',
@@ -133,6 +202,16 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
       onClick: handleDownloadCosts,
       loading: isGeneratingCSV
     },
+    // Separator
+    {
+      key: 'separator-2',
+      label: '---',
+      icon: null,
+      show: true,
+      onClick: null,
+      separator: true
+    },
+    // Admin Actions
     {
       key: 'reassign',
       label: 'Reassign',
@@ -157,49 +236,38 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
     }
   ];
 
-  const visibleActions = actions.filter(action => action.show);
+  const visibleActions = actions.filter(action => action.show && !action.separator);
 
   if (visibleActions.length === 0) return null;
-
-  if (showInline && visibleActions.length <= 2) {
-    return (
-      <div className="flex gap-1">
-        {visibleActions.map(action => (
-          <Button
-            key={action.key}
-            variant="outline"
-            size="sm"
-            onClick={action.onClick}
-            disabled={action.loading}
-            className="h-8 px-2"
-          >
-            <action.icon className="h-3 w-3" />
-          </Button>
-        ))}
-      </div>
-    );
-  }
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-            <MoreHorizontal className="h-3 w-3" />
+          <Button variant="outline" size="sm" className="h-8">
+            <Zap className="h-3 w-3 mr-1" />
+            Take Action
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          {visibleActions.map(action => (
-            <DropdownMenuItem
-              key={action.key}
-              onClick={action.onClick}
-              disabled={action.loading}
-              className={`gap-2 ${action.destructive ? 'text-destructive focus:text-destructive' : ''}`}
-            >
-              <action.icon className="h-4 w-4" />
-              {action.label}
-            </DropdownMenuItem>
-          ))}
+          {actions.map((action, index) => {
+            if (action.separator) {
+              return <div key={action.key} className="border-t my-1" />;
+            }
+            if (!action.show) return null;
+            
+            return (
+              <DropdownMenuItem
+                key={action.key}
+                onClick={action.onClick}
+                disabled={action.loading}
+                className={`gap-2 ${action.destructive ? 'text-destructive focus:text-destructive' : ''}`}
+              >
+                {action.icon && <action.icon className="h-4 w-4" />}
+                {action.label}
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuContent>
       </DropdownMenu>
 
