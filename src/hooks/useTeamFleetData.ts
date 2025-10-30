@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useTeamMembership } from '@/hooks/useTeamMembership';
-import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
+
 import { getTeamFleetData, TeamFleetData } from '@/services/teamFleetService';
 
 /**
