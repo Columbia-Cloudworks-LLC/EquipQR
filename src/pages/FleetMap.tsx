@@ -223,7 +223,7 @@ const FleetMap: React.FC = () => {
   }
 
   // Only render the full map interface if we have location data
-  if (hasLocationData && googleMapsKey) {
+  if (hasLocationData) {
     return (
       <div className="space-y-6">
         <div>
