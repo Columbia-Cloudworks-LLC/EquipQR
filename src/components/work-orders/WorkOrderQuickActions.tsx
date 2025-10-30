@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, UserPlus, RotateCcw, Eye, MoreHorizontal, Trash2, Zap, CheckCircle, Play } from 'lucide-react';
+import { FileText, Download, UserPlus, RotateCcw, Eye, Trash2, Zap, CheckCircle, Play } from 'lucide-react';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useNavigate } from 'react-router-dom';
 import { generatePMChecklistPDF } from '@/services/workOrderPDFService';
