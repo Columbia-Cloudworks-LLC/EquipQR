@@ -14,7 +14,6 @@ import { MapView } from '@/components/fleet-map/MapView';
 import { TeamSelector } from '@/components/fleet-map/TeamSelector';
 import { FleetSearchBox } from '@/components/fleet-map/FleetSearchBox';
 import { FleetSummary } from '@/components/fleet-map/FleetSummary';
-import { EquipmentLocation } from '@/services/teamFleetService';
 
 
 
