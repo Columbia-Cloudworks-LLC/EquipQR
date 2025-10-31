@@ -247,8 +247,7 @@ export const getTeamFleetData = async (
     // Get equipment data for accessible teams
     const teamEquipmentData = await getTeamEquipmentWithLocations(
       organizationId,
-      teams.map(t => t.id),
-      isOrgAdmin
+      teams.map(t => t.id)
     );
 
     // Calculate totals

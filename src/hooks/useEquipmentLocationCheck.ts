@@ -118,15 +118,6 @@ export const useEquipmentLocationCheck = (organizationId: string | null): Locati
           equipmentCount: equipment.length,
           locatedCount
         });
-
-        // Location check complete
-        setLocationData({
-          equipmentCount: equipment.length,
-          locatedCount,
-          hasLocationData: hasMeaningfulLocationData,
-          locationDataRatio: equipment.length > 0 ? (locatedCount / equipment.length).toFixed(2) : 0
-        });
-
       } catch (error) {
         console.error('[useEquipmentLocationCheck] Error checking equipment locations:', error);
         setResult({
