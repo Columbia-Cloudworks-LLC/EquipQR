@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Bell, Check, Search, Filter, Calendar, Eye } from 'lucide-react';
 import { format } from 'date-fns';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { 
   useRealTimeNotifications, 
@@ -14,6 +14,7 @@ import {
   useMarkAllNotificationsAsRead
 } from '@/hooks/useNotificationSettings';
 import { useMarkNotificationAsRead, type Notification } from '@/hooks/useWorkOrderData';
+import { logger } from '@/utils/logger';
 
 const Notifications: React.FC = () => {
   const { organizationId } = useSimpleOrganization();
@@ -52,7 +53,7 @@ const Notifications: React.FC = () => {
       try {
         await markAsReadMutation.mutateAsync(notification.id);
       } catch (error) {
-        console.error('Error marking notification as read:', error);
+        logger.error('Error marking notification as read', error);
       }
     }
 
@@ -68,7 +69,7 @@ const Notifications: React.FC = () => {
     try {
       await markAllAsReadMutation.mutateAsync(organizationId);
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      logger.error('Error marking all notifications as read', error);
     }
   };
 

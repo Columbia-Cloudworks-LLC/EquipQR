@@ -6,8 +6,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Building2, CheckCircle, XCircle, Clock, Mail } from 'lucide-react';
+import { Building2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface InvitationData {
   id: string;
@@ -77,7 +78,7 @@ const InvitationAccept = () => {
         });
 
       } catch (err: unknown) {
-        console.error('Error fetching invitation:', err);
+        logger.error('Error fetching invitation', err);
         setError(err instanceof Error ? err.message : 'Failed to load invitation');
       } finally {
         setLoading(false);
@@ -116,7 +117,7 @@ const InvitationAccept = () => {
       navigate('/dashboard/organization');
 
     } catch (err: unknown) {
-      console.error('Error accepting invitation:', err);
+      logger.error('Error accepting invitation', err);
       toast.error(err instanceof Error ? err.message : 'Failed to accept invitation');
     } finally {
       setAccepting(false);

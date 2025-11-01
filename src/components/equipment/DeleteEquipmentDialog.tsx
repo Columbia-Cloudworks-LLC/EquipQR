@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -21,7 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, AlertTriangle } from 'lucide-react';
-import { getEquipmentDeletionImpact, type EquipmentDeletionImpact } from '@/services/deleteEquipmentService';
+import { getEquipmentDeletionImpact } from '@/services/deleteEquipmentService';
 import { useDeleteEquipment } from '@/hooks/useDeleteEquipment';
 
 interface DeleteEquipmentDialogProps {
@@ -64,7 +63,7 @@ export const DeleteEquipmentDialog = ({
       onOpenChange(false);
       setStep('initial');
       setAcknowledged(false);
-    } catch (error) {
+    } catch {
       // Error handling is done in the mutation
     }
   };

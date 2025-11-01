@@ -1,10 +1,11 @@
 // Validation utilities for the invitation system after RLS policy fixes
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 export interface ValidationResult {
   success: boolean;
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 /**
@@ -15,7 +16,7 @@ export const validateInvitationSystem = async (): Promise<ValidationResult[]> =>
 
   try {
     // Test 1: Check if user can fetch their own organization memberships
-    console.log('🧪 Testing organization membership access...');
+    logger.info('Testing organization membership access');
     const { data: memberships, error: membershipError } = await supabase
       .from('organization_members')
       .select('organization_id, role, status');
@@ -30,7 +31,7 @@ export const validateInvitationSystem = async (): Promise<ValidationResult[]> =>
       const orgId = memberships[0].organization_id;
 
       // Test 2: Check if invitation security functions work
-      console.log('🧪 Testing invitation security functions...');
+      logger.info('Testing invitation security functions');
       const { data: userData } = await supabase.auth.getUser();
       
       if (userData.user) {
@@ -46,7 +47,7 @@ export const validateInvitationSystem = async (): Promise<ValidationResult[]> =>
         });
 
         // Test 3: Check if invitation fetching works with new function
-        console.log('🧪 Testing invitation fetching...');
+        logger.info('Testing invitation fetching');
         const { data: invitations, error: invitationError } = await supabase.rpc('get_user_invitations_safe', {
           user_uuid: userData.user.id,
           org_id: orgId
@@ -61,7 +62,7 @@ export const validateInvitationSystem = async (): Promise<ValidationResult[]> =>
     }
 
     // Test 4: Check if session loading works without infinite recursion
-    console.log('🧪 Testing session loading...');
+    logger.info('Testing session loading');
     const sessionStart = performance.now();
     const { data: orgs, error: orgError } = await supabase
       .from('organizations')
@@ -75,11 +76,11 @@ export const validateInvitationSystem = async (): Promise<ValidationResult[]> =>
       details: { time: `${sessionTime.toFixed(2)}ms`, count: orgs?.length || 0, error: orgError?.message }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     results.push({
       success: false,
       message: 'Validation system error',
-      details: { error: error.message }
+      details: { error: error instanceof Error ? error.message : 'Unknown error' }
     });
   }
 
@@ -90,27 +91,22 @@ export const validateInvitationSystem = async (): Promise<ValidationResult[]> =>
  * Logs validation results in a readable format
  */
 export const logValidationResults = (results: ValidationResult[]) => {
-  console.log('\n🔍 INVITATION SYSTEM VALIDATION RESULTS\n');
+  logger.info('INVITATION SYSTEM VALIDATION RESULTS');
   
   results.forEach((result, index) => {
     const icon = result.success ? '✅' : '❌';
-    console.log(`${icon} Test ${index + 1}: ${result.message}`);
-    
-    if (result.details) {
-      console.log(`   Details:`, result.details);
-    }
-    console.log('');
+    logger.info(`${icon} Test ${index + 1}: ${result.message}`, result.details ?? {});
   });
 
   const passedTests = results.filter(r => r.success).length;
   const totalTests = results.length;
   
-  console.log(`📊 Summary: ${passedTests}/${totalTests} tests passed`);
+  logger.info(`Summary: ${passedTests}/${totalTests} tests passed`);
   
   if (passedTests === totalTests) {
-    console.log('🎉 All tests passed! Invitation system is working correctly.');
+    logger.info('All invitation system tests passed');
   } else {
-    console.log('⚠️ Some tests failed. Please check the details above.');
+    logger.warn('Some invitation system tests failed; check logged details');
   }
 };
 

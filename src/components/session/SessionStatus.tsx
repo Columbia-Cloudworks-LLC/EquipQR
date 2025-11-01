@@ -15,13 +15,6 @@ export const SessionStatus = () => {
     return formatDistanceToNow(new Date(sessionData.lastUpdated), { addSuffix: true });
   };
 
-  const getStatusColor = () => {
-    if (error) return 'text-red-500';
-    if (isLoading) return 'text-yellow-500';
-    if (sessionData) return 'text-green-500';
-    return 'text-gray-500';
-  };
-
   const getStatusIcon = () => {
     if (error) return <XCircle className="h-4 w-4 text-red-500" />;
     if (isLoading) return <RefreshCw className="h-4 w-4 animate-spin text-yellow-500" />;

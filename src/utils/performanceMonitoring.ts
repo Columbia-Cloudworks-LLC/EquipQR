@@ -1,5 +1,13 @@
 // Performance monitoring utilities for the optimization plan
-import React from 'react';
+import { logger } from '@/utils/logger';
+
+interface MetricSummary {
+  count: number;
+  avg: number;
+  min: number;
+  max: number;
+  latest: number;
+}
 
 export class PerformanceMonitor {
   private static instance: PerformanceMonitor;
@@ -62,10 +70,10 @@ export class PerformanceMonitor {
 
     // Log significant performance issues
     if (name === 'page-load' && value > 3000) {
-      console.warn(`Slow page load detected: ${value}ms`);
+      logger.warn(`Slow page load detected: ${value}ms`);
     }
     if (name === 'lcp' && value > 2500) {
-      console.warn(`Poor LCP detected: ${value}ms`);
+      logger.warn(`Poor LCP detected: ${value}ms`);
     }
   }
 
@@ -77,11 +85,10 @@ export class PerformanceMonitor {
     };
   }
 
-  getMetrics(name?: string) {
+  getMetrics(name?: string): MetricSummary | Record<string, MetricSummary> {
     if (name) {
       const values = this.metrics.get(name) || [];
       return {
-        name,
         count: values.length,
         avg: values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0,
         min: values.length > 0 ? Math.min(...values) : 0,
@@ -90,7 +97,7 @@ export class PerformanceMonitor {
       };
     }
 
-    const result: Record<string, any> = {};
+    const result: Record<string, MetricSummary> = {};
     for (const [key, values] of this.metrics.entries()) {
       result[key] = {
         count: values.length,

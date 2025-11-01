@@ -1,28 +1,11 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-}
-
-interface UserContextType {
-  currentUser: User | null;
-  isLoading: boolean;
-  setCurrentUser: (user: User | null) => void;
-}
-
-const UserContext = createContext<UserContextType | undefined>(undefined);
-
-export const useUser = () => {
-  const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
-  return context;
-};
+import {
+  UserContext,
+  type User,
+  type UserContextType,
+} from './user-context';
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user: authUser, isLoading: authLoading } = useAuth();
@@ -50,8 +33,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, [authUser, authLoading]);
 
+  const value: UserContextType = { currentUser, isLoading, setCurrentUser };
+
   return (
-    <UserContext.Provider value={{ currentUser, isLoading, setCurrentUser }}>
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );

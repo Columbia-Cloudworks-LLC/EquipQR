@@ -45,7 +45,7 @@ const PlaceholderInlineCost: React.FC<PlaceholderInlineCostProps> = ({
         unit_price_cents: Math.round(unitPrice * 100)
       });
       onCancel(); // Close the placeholder after successful save
-    } catch (error) {
+    } catch {
       // Error handling is done in the mutation hook
     }
   };

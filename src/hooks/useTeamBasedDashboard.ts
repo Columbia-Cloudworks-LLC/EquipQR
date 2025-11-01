@@ -3,7 +3,6 @@ import { getTeamBasedDashboardStats } from '@/services/teamBasedDashboardService
 import { getTeamAccessibleEquipment } from '@/services/teamBasedEquipmentService';
 import { getTeamBasedWorkOrders } from '@/services/teamBasedWorkOrderService';
 import { useTeamMembership } from '@/hooks/useTeamMembership';
-import { useOrganization } from '@/contexts/OrganizationContext';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 
 export const useTeamBasedDashboardStats = (organizationId?: string) => {

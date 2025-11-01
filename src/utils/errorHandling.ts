@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 export type ErrorSeverity = 'info' | 'warning' | 'error' | 'critical';
 export type ErrorCategory = 'network' | 'permission' | 'validation' | 'server' | 'unknown';
@@ -110,7 +111,7 @@ export const showErrorToast = (error: unknown, context?: string): StandardError 
   }
   
   // Log error for debugging
-  console.error(`[${standardError.id}] ${context || 'Error'}:`, {
+  logger.error(`[${standardError.id}] ${context || 'Error'}`, {
     ...standardError,
     timestamp: new Date().toISOString()
   });

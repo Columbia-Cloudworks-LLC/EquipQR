@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/ui/data-table';
 import type { Column } from '@/components/ui/data-table';
 import type { WorkingHoursHistoryEntry } from '@/services/equipmentWorkingHoursService';
+import { logger } from '@/utils/logger';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface WorkingHoursTimelineModalProps {
@@ -69,7 +70,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
       setNotes('');
       setIsAddingHours(false);
     } catch (error) {
-      console.error('Failed to update working hours:', error);
+      logger.error('Failed to update working hours', error);
     }
   };
 
@@ -79,7 +80,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
       const normalizedDate = dateString.replace(' ', 'T');
       return format(new Date(normalizedDate), 'MMM d, yyyy h:mm a');
     } catch (error) {
-      console.warn('Failed to format date:', dateString, error);
+      logger.warn('Failed to format working hours date', { dateString, error });
       return 'Invalid date';
     }
   };
@@ -109,7 +110,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
       key: 'created_at',
       title: 'Date',
       width: '180px',
-      render: (value, item, index) => (
+      render: (_value, item) => (
         <div className="text-sm">
           {item ? formatDate(item.created_at) : '-'}
         </div>
@@ -119,7 +120,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
       key: 'update_source',
       title: 'Source',
       width: '120px',
-      render: (value, item, index) => (
+      render: (_value, item) => (
         <div className="flex items-center gap-2">
           {item ? getSourceIcon(item.update_source) : null}
           <span className="text-sm">{item ? getSourceLabel(item.update_source) : '-'}</span>
@@ -130,7 +131,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
       key: 'updated_by_name',
       title: 'Updated By',
       width: '140px',
-      render: (value, item, index) => (
+      render: (_value, item) => (
         <div className="flex items-center gap-2">
           <User className="h-3 w-3" />
           <span className="text-sm">{item?.updated_by_name || 'Unknown'}</span>
@@ -141,7 +142,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
       key: 'hours_change',
       title: 'Hours Change',
       width: '140px',
-      render: (value, item, index) => (
+      render: (_value, item) => (
         <div className="flex items-center gap-2">
           <ArrowUpDown className="h-3 w-3" />
           <span className="text-sm font-medium">
@@ -158,7 +159,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
     {
       key: 'notes',
       title: 'Notes',
-      render: (value, item, index) => (
+      render: (_value, item) => (
         <div className="text-sm text-muted-foreground max-w-xs truncate">
           {item?.notes || '—'}
         </div>

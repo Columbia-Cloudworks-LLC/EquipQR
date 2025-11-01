@@ -40,12 +40,12 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn()
 }));
 
-vi.mock('@/contexts/UserContext', () => ({
+vi.mock('@/contexts/useUser', () => ({
   useUser: vi.fn()
 }));
 
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useUser } from '@/contexts/UserContext';
+import { useUser } from '@/contexts/useUser';
 import { useSession } from '@/hooks/useSession';
 
 // Mock the permission engine

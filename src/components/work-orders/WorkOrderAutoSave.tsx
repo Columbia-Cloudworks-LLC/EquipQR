@@ -24,9 +24,6 @@ export const WorkOrderAutoSave: React.FC<WorkOrderAutoSaveProps> = ({
   className
 }) => {
   const {
-    triggerTextSave,
-    triggerSelectionSave,
-    triggerManualSave,
     status,
     lastSaved,
     hasChanges
@@ -36,13 +33,6 @@ export const WorkOrderAutoSave: React.FC<WorkOrderAutoSaveProps> = ({
     storageKey: `work-order-${workOrderId}`,
     enabled
   });
-
-  // Methods available for parent components to use
-  const autoSaveMethods = {
-    triggerTextSave,
-    triggerSelectionSave,
-    triggerManualSave
-  };
 
   return (
     <AutoSaveIndicator

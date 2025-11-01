@@ -6,7 +6,7 @@ import TeamDetails from '@/pages/TeamDetails';
 
 // Keep real router but stub params/navigate
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<any>('react-router-dom');
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
     useParams: vi.fn(() => ({ teamId: 'team-1' })),
@@ -35,7 +35,7 @@ vi.mock('@/hooks/useTeamManagement', () => ({
 }));
 
 // Permissions (configurable per test)
-const perms = { canManageTeam: (_teamId?: string) => false };
+const perms: { canManageTeam: (teamId?: string) => boolean } = { canManageTeam: () => false };
 vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: vi.fn(() => perms),
 }));
@@ -45,10 +45,10 @@ vi.mock('@/components/teams/TeamMembersList', () => ({
   default: () => <div>Members List</div>,
 }));
 vi.mock('@/components/teams/TeamMetadataEditor', () => ({
-  default: ({ open }: any) => <div data-testid="metadata-editor">{open ? 'Open' : 'Closed'}</div>,
+  default: ({ open }: { open: boolean }) => <div data-testid="metadata-editor">{open ? 'Open' : 'Closed'}</div>,
 }));
 vi.mock('@/components/teams/AddTeamMemberDialog', () => ({
-  default: ({ open }: any) => <div data-testid="add-member-dialog">{open ? 'Open' : 'Closed'}</div>,
+  default: ({ open }: { open: boolean }) => <div data-testid="add-member-dialog">{open ? 'Open' : 'Closed'}</div>,
 }));
 
 describe('TeamDetails permissions gating', () => {

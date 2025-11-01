@@ -2,7 +2,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
+import { SettingsProvider } from '@/contexts/SettingsContext';
+import { useSettings } from '@/contexts/useSettings';
 import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
 import ProfileSettings from '@/components/settings/ProfileSettings';
 import { EmailPrivacySettings } from '@/components/settings/EmailPrivacySettings';

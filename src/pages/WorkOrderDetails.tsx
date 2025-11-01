@@ -287,7 +287,7 @@ const WorkOrderDetails = () => {
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
                 costs={undefined} // TODO: Add costs data
                 onStatusChange={handleStatusUpdate}
-                onPriorityChange={(priority) => {
+                onPriorityChange={() => {
                   // TODO: Implement priority change
                   // Priority change functionality to be implemented
                 }}
@@ -360,7 +360,7 @@ const WorkOrderDetails = () => {
                 workOrderId={workOrder.id}
                 canAddNotes={canAddNotes}
                 showPrivateNotes={permissionLevels.isManager}
-                onAddNote={(note) => {
+                onAddNote={() => {
                   // TODO: Implement note addition
                   // Add note functionality to be implemented
                 }}

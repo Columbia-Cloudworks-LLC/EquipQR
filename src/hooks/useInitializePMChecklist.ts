@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPM, defaultForkliftChecklist, PMChecklistItem } from '@/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 export const useInitializePMChecklist = () => {
   const queryClient = useQueryClient();
@@ -40,7 +41,7 @@ export const useInitializePMChecklist = () => {
             notes = `PM checklist initialized from template: ${template.name}`;
           }
         } catch (error) {
-          console.warn('Failed to fetch PM template, using default:', error);
+          logger.warn('Failed to fetch PM template, using default', error);
           // Fall back to default checklist
         }
       }
@@ -98,7 +99,7 @@ export const useInitializePMChecklist = () => {
       toast.success('PM checklist initialized successfully');
     },
     onError: (error) => {
-      console.error('❌ Error initializing PM checklist:', error);
+      logger.error('Error initializing PM checklist', error);
       toast.error('Failed to initialize PM checklist');
     }
   });

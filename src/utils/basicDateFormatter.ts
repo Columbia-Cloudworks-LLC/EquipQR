@@ -10,7 +10,7 @@ export const formatDate = (dateString: string): string => {
       return 'Invalid date';
     }
     return format(date, 'MMM dd, yyyy');
-  } catch (error) {
+  } catch {
     return 'Invalid date';
   }
 };
@@ -25,7 +25,7 @@ export const formatDateTime = (dateString: string): string => {
       return 'Invalid date';
     }
     return format(date, 'MMM dd, yyyy h:mm a');
-  } catch (error) {
+  } catch {
     return 'Invalid date';
   }
 };
@@ -49,7 +49,7 @@ export const getRelativeTime = (dateString: string): string => {
     }
     
     return formatDistanceToNow(date, { addSuffix: true });
-  } catch (error) {
+  } catch {
     return 'Invalid date';
   }
 };

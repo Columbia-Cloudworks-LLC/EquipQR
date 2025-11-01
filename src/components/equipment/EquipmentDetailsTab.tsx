@@ -14,6 +14,7 @@ import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
 import { useTeams } from "@/hooks/useTeamManagement";
 import { useSimpleOrganization } from "@/hooks/useSimpleOrganization";
 import { toast } from "sonner";
+import { logger } from '@/utils/logger';
 
 type Equipment = Tables<'equipment'>;
 
@@ -40,7 +41,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
       const date = new Date(dateString);
       return date.toISOString().split('T')[0];
     } catch (error) {
-      console.error('Error formatting date for input:', error);
+      logger.error('Error formatting date for input', error);
       return '';
     }
   };
@@ -48,7 +49,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   const handleFieldUpdate = async (field: keyof Equipment, value: string) => {
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Updating field ${String(field)} with value:`, value);
+        logger.debug(`Updating equipment field`, { field: String(field), value });
       }
       await updateEquipmentMutation.mutateAsync({
         equipmentId: equipment.id,
@@ -56,7 +57,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
       });
       toast.success(`${String(field)} updated successfully`);
     } catch (error) {
-      console.error(`Error updating ${String(field)}:`, error);
+      logger.error(`Error updating ${String(field)}`, error);
       toast.error(`Failed to update ${String(field)}`);
       throw error; // Re-throw to let InlineEditField handle the error state
     }
@@ -65,7 +66,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   const handleCustomAttributesUpdate = async (newAttributes: Record<string, string>) => {
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log('Updating custom attributes with value:', newAttributes);
+        logger.debug('Updating custom attributes', { newAttributes });
       }
       await updateEquipmentMutation.mutateAsync({
         equipmentId: equipment.id,
@@ -73,7 +74,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
       });
       toast.success('Custom attributes updated successfully');
     } catch (error) {
-      console.error('Error updating custom attributes:', error);
+      logger.error('Error updating custom attributes', error);
       toast.error('Failed to update custom attributes');
       throw error;
     }
@@ -84,7 +85,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
     try {
       const teamValue = teamId === 'unassigned' ? null : teamId;
       if (process.env.NODE_ENV === 'development') {
-        console.log('Updating team assignment with value:', teamValue);
+        logger.debug('Updating team assignment', { teamValue });
       }
       await updateEquipmentMutation.mutateAsync({
         equipmentId: equipment.id,
@@ -92,7 +93,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
       });
       toast.success('Team assignment updated successfully');
     } catch (error) {
-      console.error('Error updating team assignment:', error);
+      logger.error('Error updating team assignment', error);
       toast.error('Failed to update team assignment');
       throw error;
     }
@@ -135,7 +136,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
 
   // Debug logging
   if (process.env.NODE_ENV === 'development') {
-    console.log('Equipment data:', {
+    logger.debug('Equipment data snapshot', {
       serial_number: equipment.serial_number,
       installation_date: equipment.installation_date,
       warranty_expiration: equipment.warranty_expiration,

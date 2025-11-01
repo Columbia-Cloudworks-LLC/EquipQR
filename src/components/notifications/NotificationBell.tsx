@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Bell, Check, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { logger } from '@/utils/logger';
 import { 
   useRealTimeNotifications, 
   useNotificationSubscription,
@@ -45,7 +46,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
       try {
         await markAsReadMutation.mutateAsync(notification.id);
       } catch (error) {
-        console.error('Error marking notification as read:', error);
+        logger.error('Error marking notification as read', error);
       }
     }
 
@@ -60,7 +61,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
     try {
       await markAllAsReadMutation.mutateAsync(organizationId);
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      logger.error('Error marking all notifications as read', error);
     }
   };
 

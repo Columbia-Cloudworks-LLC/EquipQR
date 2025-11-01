@@ -1,5 +1,5 @@
 
-import { Organization, OrganizationMember } from './organization';
+import { Organization } from './organization';
 
 export interface UserOrganization extends Organization {
   userRole: 'owner' | 'admin' | 'member';

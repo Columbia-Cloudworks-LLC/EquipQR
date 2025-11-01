@@ -1,6 +1,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+import { logger } from '@/utils/logger';
 
 export interface OrganizationAdmin {
   id: string;
@@ -19,7 +21,9 @@ export const useOrganizationAdmins = (organizationId: string) => {
 
       const { data, error } = await supabase
         .from('organization_members')
-        .select(`
+        .select<(Database['public']['Tables']['organization_members']['Row'] & {
+          profiles: Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'name' | 'email'> | null;
+        })>(`
           user_id,
           role,
           profiles:user_id (
@@ -33,14 +37,14 @@ export const useOrganizationAdmins = (organizationId: string) => {
         .in('role', ['owner', 'admin']);
 
       if (error) {
-        console.error('Error fetching organization admins:', error);
+        logger.error('Error fetching organization admins', error);
         return [];
       }
 
-      return (data || []).map(member => ({
+      return (data || []).map((member) => ({
         id: member.user_id,
-        name: (member.profiles as any)?.name || 'Unknown',
-        email: (member.profiles as any)?.email || '',
+        name: member.profiles?.name ?? 'Unknown',
+        email: member.profiles?.email ?? '',
         role: member.role
       }));
     },

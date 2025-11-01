@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useSession } from '@/hooks/useSession';
+import { logger } from '@/utils/logger';
 import { 
   SimpleOrganizationContext, 
   SimpleOrganization, 
@@ -27,7 +28,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         setCurrentOrganizationId(stored);
       }
     } catch (error) {
-      console.warn('Failed to load current organization from storage:', error);
+      logger.warn('Failed to load current organization from storage', error);
     }
   }, []);
 
@@ -52,7 +53,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         .eq('status', 'active');
 
       if (membershipError) {
-        console.error('❌ SimpleOrganizationProvider: Error fetching memberships:', membershipError);
+        logger.error('SimpleOrganizationProvider: Error fetching memberships', membershipError);
         throw membershipError;
       }
 
@@ -69,7 +70,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         .in('id', orgIds);
 
       if (orgError) {
-        console.error('❌ SimpleOrganizationProvider: Error fetching organizations:', orgError);
+        logger.error('SimpleOrganizationProvider: Error fetching organizations', orgError);
         throw orgError;
       }
 
@@ -132,7 +133,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         try {
           localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
         } catch (error) {
-          console.warn('Failed to save synced organization to storage:', error);
+          logger.warn('Failed to save synced organization to storage', error);
         }
         setSyncWarningCount(0);
       }
@@ -160,7 +161,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         try {
           localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
         } catch (error) {
-          console.warn('Failed to save current organization to storage:', error);
+          logger.warn('Failed to save current organization to storage', error);
         }
         return;
       }
@@ -172,7 +173,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
       try {
         localStorage.setItem(CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
       } catch (error) {
-        console.warn('Failed to save current organization to storage:', error);
+        logger.warn('Failed to save current organization to storage', error);
       }
     }
   }, [currentOrganizationId, organizations, getPrioritizedOrganization, sessionContext]);
@@ -187,14 +188,14 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     if (currentOrganizationId && organizations.length > 0) {
       const orgExists = organizations.some(org => org.id === currentOrganizationId);
       if (!orgExists) {
-        console.warn('⚠️ SimpleOrganizationProvider: Current organization not found in user organizations, resetting');
+        logger.warn('SimpleOrganizationProvider: Current organization not found in user organizations, resetting');
         const prioritizedOrgId = getPrioritizedOrganization(organizations);
         // Resetting to prioritized organization
         setCurrentOrganizationId(prioritizedOrgId);
         try {
           localStorage.setItem(CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
         } catch (error) {
-          console.warn('Failed to save current organization to storage:', error);
+          logger.warn('Failed to save current organization to storage', error);
         }
       }
     }
@@ -206,7 +207,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     try {
       localStorage.setItem(CURRENT_ORG_STORAGE_KEY, organizationId);
     } catch (error) {
-      console.warn('Failed to save current organization to storage:', error);
+      logger.warn('Failed to save current organization to storage', error);
     }
   }, []);
 

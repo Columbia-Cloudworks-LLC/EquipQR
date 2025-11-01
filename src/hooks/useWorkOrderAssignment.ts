@@ -20,7 +20,7 @@ export interface WorkOrderAssignmentData {
   organizationAdmins: AssignmentOption[];
 }
 
-export const useWorkOrderAssignment = (organizationId: string, equipmentId?: string) => {
+export const useWorkOrderAssignment = (organizationId: string) => {
   const { getCurrentOrganization, getUserTeamIds } = useSession();
   const currentOrg = getCurrentOrganization();
   

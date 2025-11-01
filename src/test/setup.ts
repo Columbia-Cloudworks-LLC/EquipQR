@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import '@testing-library/jest-dom';
 import { afterEach, beforeAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
@@ -175,11 +176,18 @@ beforeAll(() => {
   // Run a11y checks periodically during tests
   let a11yCheckInterval: NodeJS.Timeout;
   
-  (globalThis as any).startA11yChecks = () => {
+  type A11yGlobal = typeof globalThis & {
+    startA11yChecks?: () => void;
+    stopA11yChecks?: () => void;
+  };
+
+  const globalWithA11y = globalThis as A11yGlobal;
+
+  globalWithA11y.startA11yChecks = () => {
     a11yCheckInterval = setInterval(checkDialogA11y, 100);
   };
 
-  (globalThis as any).stopA11yChecks = () => {
+  globalWithA11y.stopA11yChecks = () => {
     if (a11yCheckInterval) {
       clearInterval(a11yCheckInterval);
     }

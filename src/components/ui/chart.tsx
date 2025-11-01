@@ -2,6 +2,7 @@ import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
 import { cn } from "@/lib/utils"
+import { logger } from '@/utils/logger'
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
@@ -70,7 +71,7 @@ const sanitizeColor = (color: string): string => {
   // Only allow hex colors, rgb/rgba values, and CSS color names
   const colorRegex = /^(#[0-9a-fA-F]{3,6}|rgb\([\d\s,]+\)|rgba\([\d\s,.]+\)|[a-zA-Z]+)$/;
   if (!colorRegex.test(color)) {
-    console.warn(`Invalid color value detected: ${color}. Using fallback.`);
+    logger.warn(`Invalid color value detected: ${color}. Using fallback.`)
     return '#000000'; // Safe fallback color
   }
   return color;

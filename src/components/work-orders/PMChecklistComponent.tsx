@@ -24,6 +24,7 @@ import PrintExportDropdown from './PrintExportDropdown';
 import { PMChecklistPDFGenerator } from '@/utils/pdfGenerator';
 import { workOrderRevertService } from '@/services/workOrderRevertService';
 import { WorkOrderData, EquipmentData, TeamMemberData, OrganizationData } from '@/types/workOrderDetails';
+import { logger } from '@/utils/logger';
 
 interface PMChecklistComponentProps {
   pm: PreventativeMaintenance;
@@ -117,7 +118,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       }
     } catch (error) {
       setSaveStatus('error');
-      console.error('Auto-save failed:', error);
+      logger.error('Auto-save failed', error);
     }
   }, [pm.id, pm.status, readOnly, clearStorage, updatePMMutation, onUpdate]);
 
@@ -189,7 +190,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             }
           }
         } catch (error) {
-          console.warn('Failed to load from browser storage:', error);
+          logger.warn('Failed to load PM checklist from browser storage', error);
         }
         
         if (parsedChecklist.length === 0) {
@@ -210,7 +211,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       
       setIsInitialized(true);
     } catch (error) {
-      console.error('❌ Error parsing checklist data:', error);
+      logger.error('Error parsing checklist data', error);
       setChecklist([...defaultForkliftChecklist]);
       
       // Initialize sections for default checklist (all collapsed)
@@ -247,7 +248,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         toast.error('Failed to initialize checklist');
       }
     } catch (error) {
-      console.error('❌ Error initializing checklist:', error);
+      logger.error('Error initializing checklist', error);
       toast.error('Failed to initialize checklist');
     } finally {
       setIsUpdating(false);
@@ -310,7 +311,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         toast.error('Failed to update PM checklist');
       }
     } catch (error) {
-      console.error('❌ Error updating PM:', error);
+      logger.error('Error updating PM', error);
       setSaveStatus('error');
       toast.error('Failed to update PM checklist');
     } finally {
@@ -351,7 +352,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         toast.error('Failed to complete PM');
       }
     } catch (error) {
-      console.error('Error completing PM:', error);
+      logger.error('Error completing PM', error);
       toast.error('Failed to complete PM');
     } finally {
       setIsUpdating(false);
@@ -373,7 +374,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         toast.error(result.error || 'Failed to revert PM completion');
       }
     } catch (error) {
-      console.error('Error reverting PM completion:', error);
+      logger.error('Error reverting PM completion', error);
       toast.error('Failed to revert PM completion');
     } finally {
       setIsReverting(false);
@@ -435,14 +436,14 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         // Calling it causes query invalidation that triggers re-initialization
         // onUpdate();
       } else {
-        console.error('❌ PM update returned null - mutation may have failed');
+        logger.error('PM update returned null - mutation may have failed');
         // Rollback on failure
         setChecklist(checklist);
         setIsManuallyUpdated(false);
         throw new Error('Failed to update PM');
       }
-    } catch (error) {
-      console.error('Error setting all items to OK and saving:', error);
+  } catch (error) {
+    logger.error('Error setting all items to OK and saving', error);
       toast.error('Failed to set all items to OK and save PM');
       // Rollback optimistic update
       setChecklist(checklist);
@@ -468,7 +469,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       });
       toast.success('PDF downloaded successfully');
     } catch (error) {
-      console.error('Error downloading PDF:', error);
+      logger.error('Error downloading PM checklist PDF', error);
       toast.error('Failed to download PDF');
     }
   }, [pm, checklist, workOrder, equipment, team, organization, assignee]);
@@ -666,6 +667,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                 <Badge className={getStatusColor()}>
                   {pm.status.replace('_', ' ').toUpperCase()}
                 </Badge>
+                {hasUnsavedChanges && (
+                  <Badge variant="outline" className="text-xs">Unsaved changes</Badge>
+                )}
                 {!readOnly && (
                   <SaveStatus 
                     status={saveStatus} 
@@ -689,6 +693,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                   <Badge className={getStatusColor()}>
                     {pm.status.replace('_', ' ').toUpperCase()}
                   </Badge>
+                  {hasUnsavedChanges && (
+                    <Badge variant="outline" className="text-xs">Unsaved changes</Badge>
+                  )}
                   <span className="text-sm text-muted-foreground">
                     Progress: {completedItems.length}/{totalItems} items completed
                   </span>

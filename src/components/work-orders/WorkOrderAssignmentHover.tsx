@@ -2,13 +2,14 @@ import React, { useState, useCallback } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Users, UserX, Shield } from 'lucide-react';
-import { useWorkOrderContextualAssignment } from '@/hooks/useWorkOrderContextualAssignment';
+import { User, UserX, Shield } from 'lucide-react';
+import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/hooks/useWorkOrderContextualAssignment';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 interface WorkOrderAssignmentHoverProps {
-  workOrder: any;
+  workOrder: AssignmentWorkOrderContext;
   children: React.ReactNode;
   disabled?: boolean;
 }
@@ -24,7 +25,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
   const { assignmentOptions, isLoading, hasTeamAssignment } = useWorkOrderContextualAssignment(workOrder);
   const assignmentMutation = useQuickWorkOrderAssignment();
 
-  const handleAssignment = useCallback(async (assignmentData: { type: 'assign' | 'unassign', id?: string }) => {
+  const handleAssignment = useCallback(async (assignmentData: { type: 'assign' | 'unassign'; id?: string }) => {
     if (isAssigning) return;
     
     setIsAssigning(true);
@@ -34,11 +35,20 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
       if (assignmentData.type === 'assign') {
         assigneeId = assignmentData.id;
       }
+      const organizationId = workOrder.organization_id ?? workOrder.organizationId;
+      if (!organizationId) {
+        toast({
+          title: "Missing organization",
+          description: "Cannot update assignment without an organization context.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       await assignmentMutation.mutateAsync({
         workOrderId: workOrder.id,
         assigneeId,
-        organizationId: workOrder.organization_id
+        organizationId
       });
       
       toast({
@@ -48,6 +58,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
           : `Work order assigned successfully`,
       });
     } catch (error) {
+      logger.error('Failed to update assignment', error);
       toast({
         title: "Error",
         description: "Failed to update assignment",
@@ -56,7 +67,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
     } finally {
       setIsAssigning(false);
     }
-  }, [isAssigning, assignmentMutation, workOrder.id, workOrder.organization_id, toast]);
+  }, [assignmentMutation, isAssigning, toast, workOrder.id, workOrder.organizationId, workOrder.organization_id]);
 
   if (disabled) return <>{children}</>;
 

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getOptimizedWorkOrdersByOrganization, type WorkOrder } from '@/services/optimizedSupabaseDataService';
+import { getOptimizedWorkOrdersByOrganization } from '@/services/optimizedSupabaseDataService';
 
 // OPTIMIZED: Better caching strategy and reduced refetch frequency
 export const useOptimizedEnhancedWorkOrders = (organizationId?: string) => {

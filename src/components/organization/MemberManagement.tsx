@@ -12,10 +12,12 @@ interface MemberManagementProps {
 
 export const MemberManagement: React.FC<MemberManagementProps> = ({
   members,
-  organizationId: _organizationId,
-  currentUserRole: _currentUserRole,
+  organizationId,
+  currentUserRole,
   isLoading,
 }) => {
+  const viewingRoleLabel = currentUserRole === 'owner' ? 'Organization Owner' : currentUserRole === 'admin' ? 'Organization Admin' : 'Member';
+
   if (isLoading) {
     return (
       <Card>
@@ -28,11 +30,11 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   }
 
   return (
-    <Card>
+    <Card data-organization-id={organizationId}>
       <CardHeader>
         <CardTitle>Members</CardTitle>
         <CardDescription>
-          Manage your organization members and their roles
+          Manage your organization members and their roles. Viewing as {viewingRoleLabel}.
         </CardDescription>
       </CardHeader>
       <CardContent>

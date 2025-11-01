@@ -1,4 +1,6 @@
 
+import { logger } from '@/utils/logger';
+
 const SESSION_STORAGE_KEY = 'equipqr_session_data';
 const ORGANIZATION_PREFERENCE_KEY = 'equipqr_current_org';
 const SESSION_VERSION = 2;
@@ -19,9 +21,9 @@ export const saveOrganizationPreference = (organizationId: string | null) => {
       selectionTimestamp: new Date().toISOString()
     };
     localStorage.setItem(ORGANIZATION_PREFERENCE_KEY, JSON.stringify(preference));
-    console.log('🔒 Organization preference saved:', organizationId);
+    logger.debug('Organization preference saved', { organizationId });
   } catch (error) {
-    console.warn('Failed to save organization preference:', error);
+    logger.warn('Failed to save organization preference', error);
   }
 };
 
@@ -37,14 +39,14 @@ export const getOrganizationPreference = (): { selectedOrgId: string | null; sel
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     if (timestamp < twentyFourHoursAgo) {
-      console.log('⏰ Organization preference expired, clearing');
+      logger.info('Organization preference expired, clearing');
       localStorage.removeItem(ORGANIZATION_PREFERENCE_KEY);
       return null;
     }
     
     return preference;
   } catch (error) {
-    console.warn('Failed to get organization preference:', error);
+    logger.warn('Failed to get organization preference', error);
     localStorage.removeItem(ORGANIZATION_PREFERENCE_KEY);
     return null;
   }
@@ -53,9 +55,8 @@ export const getOrganizationPreference = (): { selectedOrgId: string | null; sel
 export const clearOrganizationPreference = () => {
   try {
     localStorage.removeItem(ORGANIZATION_PREFERENCE_KEY);
-    //console.log('🗑️ Organization preference cleared');
   } catch (error) {
-    console.warn('Failed to clear organization preference:', error);
+    logger.warn('Failed to clear organization preference', error);
   }
 };
 
@@ -69,7 +70,7 @@ export const shouldRefreshSession = (lastRefresh?: string): boolean => {
     // Only refresh if it's been more than 15 minutes
     return lastRefreshTime < fifteenMinutesAgo;
   } catch (error) {
-    console.warn('Error checking refresh time:', error);
+    logger.warn('Error checking session refresh time', error);
     return true;
   }
 };

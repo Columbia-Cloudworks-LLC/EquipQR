@@ -19,9 +19,9 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
   onViewPM
 }) => {
   const { data: latestPM, isLoading } = useQuery({
-    queryKey: ['latestPM', equipmentId],
+    queryKey: ['latestPM', organizationId, equipmentId],
     queryFn: () => getLatestCompletedPM(equipmentId),
-    enabled: !!equipmentId,
+    enabled: !!equipmentId && !!organizationId,
   });
 
   if (isLoading) {

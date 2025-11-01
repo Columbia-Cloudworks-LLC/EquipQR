@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { CacheManagerContext } from '@/contexts/CacheManagerContext';
+import { CacheManagerContext } from '@/contexts/cache-manager-context';
 
 export const useCacheManagerContext = () => {
   const context = useContext(CacheManagerContext);

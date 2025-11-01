@@ -1,7 +1,21 @@
 import { vi } from 'vitest';
 
+type SupabaseChain = {
+  select: ReturnType<typeof vi.fn>;
+  insert: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  or: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+  nullsFirst: ReturnType<typeof vi.fn>;
+  single: ReturnType<typeof vi.fn>;
+  then: ReturnType<typeof vi.fn>;
+};
+
 export const stubSupabase = () => {
-  const chain: any = {
+  const chain: SupabaseChain = {
     select: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
@@ -15,9 +29,9 @@ export const stubSupabase = () => {
     then: vi.fn().mockResolvedValue({ data: null, error: null }),
   };
   
-  Object.keys(chain).forEach(k => {
-    if (k !== 'single' && k !== 'then') {
-      chain[k].mockReturnValue(chain);
+  (Object.keys(chain) as Array<keyof SupabaseChain>).forEach((key) => {
+    if (key !== 'single' && key !== 'then') {
+      chain[key].mockReturnValue(chain);
     }
   });
   

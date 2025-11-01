@@ -22,13 +22,15 @@ interface DesktopEquipmentFiltersProps {
   onFilterChange: (key: keyof EquipmentFilters, value: string) => void;
   onClearFilters: () => void;
   filterOptions: FilterOptions;
+  hasActiveFilters: boolean;
 }
 
 export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = ({
   filters,
   onFilterChange,
   onClearFilters,
-  filterOptions
+  filterOptions,
+  hasActiveFilters
 }) => {
   return (
     <Card>
@@ -110,9 +112,10 @@ export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = (
               <Button
                 variant="outline"
                 onClick={onClearFilters}
+                disabled={!hasActiveFilters}
                 className="w-full"
               >
-                Clear Filters
+                {hasActiveFilters ? 'Clear Filters' : 'No Active Filters'}
               </Button>
             </div>
           </div>

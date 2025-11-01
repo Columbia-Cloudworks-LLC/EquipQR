@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 
 const SubscriptionManagement = () => {
   const { 
-    subscriptionData, 
     isLoading, 
     error, 
     checkSubscription, 
@@ -51,6 +50,23 @@ const SubscriptionManagement = () => {
       <Card>
         <CardContent className="p-6">
           <div className="h-32 bg-muted animate-pulse rounded" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle>Subscription Error</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-destructive">{error}</p>
+          <Button onClick={handleRefresh} variant="outline" className="mt-4">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
         </CardContent>
       </Card>
     );

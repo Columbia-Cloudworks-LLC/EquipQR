@@ -8,8 +8,7 @@ import {
   Wifi, 
   WifiOff, 
   RefreshCw, 
-  Trash2, 
-  Activity,
+  Trash2,
   Clock,
   AlertCircle
 } from 'lucide-react';

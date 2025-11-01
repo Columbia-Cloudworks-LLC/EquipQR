@@ -6,8 +6,11 @@ import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 interface WorkOrderDescriptionFieldProps {
   values: WorkOrderFormData;
   errors: Record<string, string>;
-  setValue: (field: keyof WorkOrderFormData, value: any) => void;
-  preSelectedEquipment?: any;
+  setValue: <K extends keyof WorkOrderFormData>(field: K, value: WorkOrderFormData[K]) => void;
+  preSelectedEquipment?: {
+    id?: string;
+    name?: string;
+  } | null;
 }
 
 export const WorkOrderDescriptionField: React.FC<WorkOrderDescriptionFieldProps> = ({

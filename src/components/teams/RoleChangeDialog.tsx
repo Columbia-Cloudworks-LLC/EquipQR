@@ -11,15 +11,23 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { TeamWithMembers } from '@/services/teamService';
 import { useTeamMembers } from '@/hooks/useTeamManagement';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { logger } from '@/utils/logger';
+
+type TeamRole = 'manager' | 'technician' | 'requestor' | 'viewer';
+
+type RoleChangeMember = (TeamWithMembers['members'][number] & {
+  name?: string | null;
+  email?: string | null;
+}) | null;
 
 interface RoleChangeDialogProps {
   open: boolean;
   onClose: () => void;
-  member: any;
+  member: RoleChangeMember;
   team: TeamWithMembers;
 }
 
@@ -31,7 +39,7 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
 }) => {
   const { currentOrganization } = useOrganization();
   const { updateRole } = useTeamMembers(team.id, currentOrganization?.id);
-  const [selectedRole, setSelectedRole] = useState<string>(member?.role || '');
+  const [selectedRole, setSelectedRole] = useState<TeamRole | ''>(member?.role ?? '');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,15 +50,15 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
       await updateRole.mutateAsync({
         teamId: team.id,
         userId: member.user_id,
-        role: selectedRole as 'manager' | 'technician'
+        role: selectedRole
       });
       onClose();
     } catch (error) {
-      console.error('Failed to update member role:', error);
+      logger.error('Failed to update member role', error);
     }
   };
 
-  const roleOptions = [
+  const roleOptions: Array<{ value: TeamRole; label: string; description: string }> = [
     { value: 'manager', label: 'Manager', description: 'Can manage team members and assign work orders' },
     { value: 'technician', label: 'Technician', description: 'Can update work orders and record maintenance' },
     { value: 'requestor', label: 'Requestor', description: 'Can create work orders and view assigned equipment' },

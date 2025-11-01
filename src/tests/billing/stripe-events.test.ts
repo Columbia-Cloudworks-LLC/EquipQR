@@ -1,5 +1,5 @@
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type MockInstance } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock the supabase client
@@ -14,6 +14,17 @@ vi.mock('@/integrations/supabase/client', () => ({
     }))
   }
 }));
+
+type SupabaseFromHandlers = {
+  insert: (...args: unknown[]) => unknown;
+  select?: (...args: unknown[]) => unknown;
+  eq?: (...args: unknown[]) => { single: (...args: unknown[]) => unknown };
+};
+
+const supabaseFromMock = supabase.from as unknown as MockInstance<
+  [string],
+  SupabaseFromHandlers
+>;
 
 describe('Stripe Event Logging', () => {
   beforeEach(() => {
@@ -104,7 +115,7 @@ describe('Stripe Event Logging', () => {
         message: 'duplicate key value violates unique constraint'
       });
 
-      (supabase.from as any).mockReturnValue({
+      supabaseFromMock.mockReturnValue({
         insert: mockInsert
       });
 
@@ -117,8 +128,9 @@ describe('Stripe Event Logging', () => {
 
       try {
         await supabase.from('stripe_event_logs').insert(eventLog);
-      } catch (error: any) {
-        expect(error.code).toBe('23505');
+      } catch (error) {
+        const supabaseError = error as { code?: string };
+        expect(supabaseError?.code).toBe('23505');
         expect(mockInsert).toHaveBeenCalledWith(eventLog);
       }
     });
@@ -129,7 +141,7 @@ describe('Stripe Event Logging', () => {
         error: null
       });
 
-      (supabase.from as any).mockReturnValue({
+      supabaseFromMock.mockReturnValue({
         insert: mockInsert
       });
 
@@ -249,7 +261,7 @@ describe('Stripe Event Logging', () => {
         error: null
       });
 
-      (supabase.from as any).mockImplementation((table: string) => {
+      supabaseFromMock.mockImplementation((table: string) => {
         if (table === 'webhook_events') {
           return { insert: webhookEventsInsert };
         }
@@ -262,8 +274,9 @@ describe('Stripe Event Logging', () => {
       // Test webhook_events gating
       try {
         await supabase.from('webhook_events').insert({ event_id: 'evt_dual_123' });
-      } catch (error: any) {
-        expect(error.code).toBe('23505');
+      } catch (error) {
+        const supabaseError = error as { code?: string };
+        expect(supabaseError?.code).toBe('23505');
         expect(webhookEventsInsert).toHaveBeenCalledWith({ event_id: 'evt_dual_123' });
       }
 

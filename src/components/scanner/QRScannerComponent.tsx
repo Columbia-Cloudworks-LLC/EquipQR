@@ -1,28 +1,31 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface QRScannerComponentProps {
   onScan: (result: string) => void;
-  onError: (error: any) => void;
+  onError: (error: unknown) => void;
 }
 
 const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const scanningRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    startCamera();
-    return () => {
-      stopCamera();
-    };
+  const stopCamera = useCallback(() => {
+    scanningRef.current = false;
+    const currentStream = streamRef.current;
+    if (currentStream) {
+      currentStream.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
   }, []);
 
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -34,7 +37,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError
 
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        setStream(mediaStream);
+        streamRef.current = mediaStream;
         scanningRef.current = true;
         
         videoRef.current.onloadedmetadata = () => {
@@ -43,19 +46,18 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError
         };
       }
     } catch (err) {
-      console.error('Error accessing camera:', err);
+      logger.error('Error accessing camera', err);
       setError('Unable to access camera. Please ensure camera permissions are granted.');
       onError(err);
     }
-  };
+  }, [onError]);
 
-  const stopCamera = () => {
-    scanningRef.current = false;
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
+  useEffect(() => {
+    void startCamera();
+    return () => {
+      stopCamera();
+    };
+  }, [startCamera, stopCamera]);
 
   const startScanning = () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -79,14 +81,14 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
       try {
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        context.getImageData(0, 0, canvas.width, canvas.height);
         // Simple QR code detection simulation
         // In a real implementation, you would use a QR code library here
         // For now, we'll simulate a scan by checking if user clicks on the video
         
         requestAnimationFrame(scan);
       } catch (err) {
-        console.error('Scanning error:', err);
+        logger.error('Scanning error', err);
         requestAnimationFrame(scan);
       }
     };

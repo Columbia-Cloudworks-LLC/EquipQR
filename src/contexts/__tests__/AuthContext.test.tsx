@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
@@ -348,7 +349,7 @@ describe('AuthContext', () => {
       await result.current!.signOut();
     });
 
-    expect(console.warn).toHaveBeenCalledWith('Server-side logout failed:', mockError);
+    expect(console.warn).toHaveBeenCalledWith('⚠️ Server-side logout failed', mockError);
     expect(result.current?.user).toBe(null);
     expect(result.current?.session).toBe(null);
   });

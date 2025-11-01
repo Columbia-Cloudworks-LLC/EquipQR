@@ -3,8 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import TeamRepository from '@/services/repositories/TeamRepository';
 import { 
   removeTeamMember,
-  getAvailableUsersForTeam,
-  TeamWithMembers
+  getAvailableUsersForTeam
 } from '@/services/teamService';
 
 // Hook for managing teams in an organization

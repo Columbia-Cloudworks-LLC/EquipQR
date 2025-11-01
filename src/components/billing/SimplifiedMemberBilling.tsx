@@ -8,7 +8,6 @@ import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { calculateBilling, isFreeOrganization } from '@/utils/billing';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import MemberTable from '@/components/billing/MemberTable';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const SimplifiedMemberBilling = () => {
   const { currentOrganization } = useSimpleOrganization();

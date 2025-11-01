@@ -1,14 +1,10 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from '@/hooks/useSession';
-
-interface DataMigrationContextType {
-  useSupabaseData: boolean;
-  toggleDataSource: () => void;
-  isReady: boolean;
-}
-
-export const DataMigrationContext = createContext<DataMigrationContextType | undefined>(undefined);
+import {
+  DataMigrationContext,
+  type DataMigrationContextType,
+} from './data-migration-context';
 
 interface DataMigrationProviderProps {
   children: React.ReactNode;
@@ -35,12 +31,14 @@ export const DataMigrationProvider: React.FC<DataMigrationProviderProps> = ({ ch
 
   const isReady = !isLoading;
 
+  const value: DataMigrationContextType = {
+    useSupabaseData,
+    toggleDataSource,
+    isReady
+  };
+
   return (
-    <DataMigrationContext.Provider value={{
-      useSupabaseData,
-      toggleDataSource,
-      isReady
-    }}>
+    <DataMigrationContext.Provider value={value}>
       {children}
     </DataMigrationContext.Provider>
   );

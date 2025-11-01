@@ -15,6 +15,9 @@ export default function DistributorRow({ name, phone, website, email }: Distribu
       <td className="py-2">
         {website ? <a className="text-primary underline" href={website} target="_blank" rel="noreferrer">Open site</a> : '-'}
       </td>
+      <td className="py-2">
+        {email ? <a className="text-primary underline" href={`mailto:${email}`}>Email</a> : '-'}
+      </td>
     </tr>
   );
 }

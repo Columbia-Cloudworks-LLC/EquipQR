@@ -1,5 +1,5 @@
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type MockInstance } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock the supabase client
@@ -16,6 +16,16 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
+type SupabaseFromHandlers = {
+  insert: (...args: unknown[]) => unknown;
+  select?: (...args: unknown[]) => unknown;
+};
+
+const supabaseFromMock = supabase.from as unknown as MockInstance<
+  [string],
+  SupabaseFromHandlers
+>;
+
 describe('Webhook Event Idempotency', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -28,7 +38,7 @@ describe('Webhook Event Idempotency', () => {
         error: null
       });
 
-      (supabase.from as any).mockReturnValue({
+      supabaseFromMock.mockReturnValue({
         insert: mockInsert
       });
 
@@ -46,7 +56,7 @@ describe('Webhook Event Idempotency', () => {
         details: 'Key (event_id)=(evt_duplicate_456) already exists.'
       });
 
-      (supabase.from as any).mockReturnValue({
+      supabaseFromMock.mockReturnValue({
         insert: mockInsert
       });
 
@@ -54,9 +64,10 @@ describe('Webhook Event Idempotency', () => {
       
       try {
         await supabase.from('webhook_events').insert({ event_id: eventId });
-      } catch (error: any) {
-        expect(error.code).toBe('23505');
-        expect(error.message).toContain('duplicate key value violates unique constraint');
+      } catch (error) {
+        const supabaseError = error as { code?: string; message?: string };
+        expect(supabaseError?.code).toBe('23505');
+        expect(supabaseError?.message).toContain('duplicate key value violates unique constraint');
         expect(mockInsert).toHaveBeenCalledWith({ event_id: eventId });
       }
     });
@@ -79,7 +90,7 @@ describe('Webhook Event Idempotency', () => {
           error: null
         });
 
-        (supabase.from as any).mockReturnValue({
+        supabaseFromMock.mockReturnValue({
           insert: mockInsert
         });
 
@@ -99,7 +110,7 @@ describe('Webhook Event Idempotency', () => {
         message: 'could not connect to server'
       });
 
-      (supabase.from as any).mockReturnValue({
+      supabaseFromMock.mockReturnValue({
         insert: mockInsert
       });
 
@@ -107,9 +118,10 @@ describe('Webhook Event Idempotency', () => {
       
       try {
         await supabase.from('webhook_events').insert({ event_id: eventId });
-      } catch (error: any) {
-        expect(error.code).toBe('08006');
-        expect(error.message).toContain('could not connect to server');
+      } catch (error) {
+        const supabaseError = error as { code?: string; message?: string };
+        expect(supabaseError?.code).toBe('08006');
+        expect(supabaseError?.message).toContain('could not connect to server');
       }
     });
 
@@ -126,22 +138,24 @@ describe('Webhook Event Idempotency', () => {
 
       // Test duplicate error
       let mockInsert = vi.fn().mockRejectedValueOnce(duplicateError);
-      (supabase.from as any).mockReturnValue({ insert: mockInsert });
+      supabaseFromMock.mockReturnValue({ insert: mockInsert });
 
       try {
         await supabase.from('webhook_events').insert({ event_id: 'evt_dup_123' });
-      } catch (error: any) {
-        expect(error.code).toBe('23505');
+      } catch (error) {
+        const supabaseError = error as { code?: string };
+        expect(supabaseError?.code).toBe('23505');
       }
 
       // Test other error
       mockInsert = vi.fn().mockRejectedValueOnce(otherError);
-      (supabase.from as any).mockReturnValue({ insert: mockInsert });
+      supabaseFromMock.mockReturnValue({ insert: mockInsert });
 
       try {
         await supabase.from('webhook_events').insert({ event_id: 'evt_other_123' });
-      } catch (error: any) {
-        expect(error.code).toBe('42P01');
+      } catch (error) {
+        const supabaseError = error as { code?: string };
+        expect(supabaseError?.code).toBe('42P01');
       }
     });
   });
@@ -153,7 +167,7 @@ describe('Webhook Event Idempotency', () => {
         error: null
       });
 
-      (supabase.from as any).mockReturnValue({
+      supabaseFromMock.mockReturnValue({
         insert: mockInsert
       });
 
@@ -186,7 +200,7 @@ describe('Webhook Event Idempotency', () => {
           error: null
         });
 
-        (supabase.from as any).mockReturnValue({
+        supabaseFromMock.mockReturnValue({
           insert: mockInsert
         });
 
@@ -208,7 +222,7 @@ describe('Webhook Event Idempotency', () => {
         error: null
       });
 
-      (supabase.from as any).mockReturnValue({
+      supabaseFromMock.mockReturnValue({
         insert: mockInsert
       });
 

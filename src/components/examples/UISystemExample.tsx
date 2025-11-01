@@ -47,7 +47,7 @@ const UISystemExample: React.FC = () => {
     setIsLoading(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    success({ title: 'Form submitted', description: 'Data saved successfully' });
+    success({ title: 'Form submitted', description: `Saved details for ${data.name}` });
     form.reset();
     setIsLoading(false);
   };

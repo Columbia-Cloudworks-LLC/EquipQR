@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect } from 'react';
+import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { cacheManager } from '@/services/cacheManager';
 import { backgroundSync } from '@/services/backgroundSync';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
@@ -9,7 +9,7 @@ export const useCacheInvalidation = () => {
   const queryClient = useQueryClient();
 
   // Initialize cache manager with query client
-  React.useEffect(() => {
+  useEffect(() => {
     cacheManager.setQueryClient(queryClient);
   }, [queryClient]);
 
@@ -63,9 +63,9 @@ export const useCacheInvalidation = () => {
 // Hook for optimistic updates with automatic rollback
 export const useOptimisticUpdates = () => {
   const optimisticUpdate = useCallback(async <T>(
-    queryKey: any[],
+    queryKey: QueryKey,
     updater: (old: T | undefined) => T,
-    mutationFn: () => Promise<any>
+    mutationFn: () => Promise<unknown>
   ) => {
     const timer = performanceMonitor.startTimer('optimistic-update');
     

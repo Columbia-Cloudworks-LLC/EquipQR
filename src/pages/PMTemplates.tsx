@@ -190,7 +190,6 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 };
 
 const PMTemplates = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentOrganization } = useSimpleOrganization();
   const { hasRole } = usePermissions();

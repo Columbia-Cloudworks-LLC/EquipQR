@@ -73,7 +73,7 @@ const CustomAttributesSection: React.FC<CustomAttributesSectionProps> = ({
         )}
 
         <div className="space-y-3">
-          {attributes.map((attribute, index) => (
+          {attributes.map((attribute) => (
             <div key={attribute.id} className="flex gap-2 items-start">
               <div className="flex-1">
                 <Label htmlFor={`attr-key-${attribute.id}`} className="sr-only">

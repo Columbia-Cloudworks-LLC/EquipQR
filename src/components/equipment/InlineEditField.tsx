@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, X, Edit2 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface InlineEditFieldProps {
   value: string;
@@ -43,12 +44,12 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
     setIsSaving(true);
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log('InlineEditField saving:', { type, oldValue: value, newValue: editValue });
+        logger.debug('InlineEditField saving', { type, oldValue: value, newValue: editValue });
       }
       await onSave(editValue);
       setIsEditing(false);
     } catch (error) {
-      console.error('Error saving field:', error);
+      logger.error('Error saving field', error);
       setEditValue(value); // Reset to original value on error
     } finally {
       setIsSaving(false);
@@ -86,7 +87,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
           return date.toLocaleDateString();
         }
       } catch (error) {
-        console.error('Error formatting date for display:', error);
+        logger.error('Error formatting date for display', error);
       }
     }
     

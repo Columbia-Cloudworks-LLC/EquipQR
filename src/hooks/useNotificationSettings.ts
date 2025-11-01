@@ -108,8 +108,6 @@ export const useUpdateNotificationSettings = () => {
 
 // Hook to get real-time notifications with Supabase subscriptions
 export const useRealTimeNotifications = (organizationId: string) => {
-  const queryClient = useQueryClient();
-
   return useQuery({
     queryKey: ['notifications', organizationId],
     queryFn: async () => {

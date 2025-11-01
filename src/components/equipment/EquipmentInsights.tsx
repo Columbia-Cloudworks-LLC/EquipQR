@@ -8,9 +8,7 @@ import {
   Wrench, 
   XCircle, 
   AlertTriangle,
-  MapPin,
-  Building,
-  Calendar
+  MapPin
 } from 'lucide-react';
 
 interface Equipment {
@@ -105,17 +103,15 @@ const EquipmentInsights: React.FC<EquipmentInsightsProps> = ({
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active': return CheckCircle;
-      case 'maintenance': return Wrench;
-      case 'inactive': return XCircle;
-      default: return Package;
-    }
-  };
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="space-y-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-muted-foreground">
+        <span>Showing {filteredTotal} of {totalEquipment} equipment items</span>
+        {filteredTotal !== totalEquipment && (
+          <span className="text-xs sm:text-sm">{filteredTotal} match current filters</span>
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Status Overview */}
       <Card>
         <CardHeader className="pb-3">
@@ -234,7 +230,32 @@ const EquipmentInsights: React.FC<EquipmentInsightsProps> = ({
           )}
         </CardContent>
       </Card>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center">
+            <Package className="h-4 w-4 mr-2" />
+            Top Manufacturers
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {topManufacturers.length > 0 ? (
+            topManufacturers.map(([manufacturer, count]) => (
+              <div key={manufacturer} className="flex items-center justify-between">
+                <span className="text-sm truncate" title={manufacturer}>
+                  {manufacturer.length > 15 ? `${manufacturer.substring(0, 15)}...` : manufacturer}
+                </span>
+                <Badge variant="outline" className="text-xs">
+                  {count}
+                </Badge>
+              </div>
+            ))
+          ) : (
+            <div className="text-sm text-muted-foreground">No data available</div>
+          )}
+        </CardContent>
+      </Card>
     </div>
+  </div>
   );
 };
 

@@ -3,7 +3,7 @@ import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Users, User, Shield, Info, UserCheck } from 'lucide-react';
+import { User, Shield, Info, UserCheck } from 'lucide-react';
 import { EnhancedAssignmentOption } from '@/hooks/useWorkOrderAssignmentEnhanced';
 
 interface EnhancedWorkOrderAssignmentSelectorProps {
@@ -12,9 +12,6 @@ interface EnhancedWorkOrderAssignmentSelectorProps {
   onChange: (value: string, type: 'admin') => void;
   placeholder?: string;
   disabled?: boolean;
-  hasEquipmentTeam?: boolean;
-  assignmentStrategy: 'admin_based';
-  teamName?: string;
 }
 
 const EnhancedWorkOrderAssignmentSelector: React.FC<EnhancedWorkOrderAssignmentSelectorProps> = ({
@@ -22,10 +19,7 @@ const EnhancedWorkOrderAssignmentSelector: React.FC<EnhancedWorkOrderAssignmentS
   value,
   onChange,
   placeholder = "Select assignee",
-  disabled = false,
-  hasEquipmentTeam = true,
-  assignmentStrategy,
-  teamName
+  disabled = false
 }) => {
   const handleChange = (selectedValue: string) => {
     const option = options.find(opt => opt.id === selectedValue);

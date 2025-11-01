@@ -3,7 +3,6 @@ import {
   getTeamMembersOptimized, 
   getTeamByIdOptimized,
   isTeamManager as isTeamManagerOptimized,
-  OptimizedTeam,
   OptimizedTeamMember 
 } from '@/services/optimizedTeamService';
 import { TeamWithMembers } from '@/services/teamService';

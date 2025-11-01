@@ -3,12 +3,14 @@
  * These functions help simulate and test the QR redirect flow
  */
 
+import { logger } from '@/utils/logger';
+
 export const QRTestHelper = {
   /**
    * Simulate scanning a QR code by navigating to the QR redirect URL
    */
   simulateQRScan: (equipmentId: string) => {
-    console.log('🧪 Simulating QR scan for equipment:', equipmentId);
+    logger.debug('Simulating QR scan for equipment', { equipmentId });
     window.location.href = `/qr/${equipmentId}`;
   },
 
@@ -17,7 +19,7 @@ export const QRTestHelper = {
    */
   checkPendingRedirect: () => {
     const pendingRedirect = sessionStorage.getItem('pendingRedirect');
-    console.log('🔍 Pending redirect:', pendingRedirect);
+    logger.debug('Pending redirect', { pendingRedirect });
     return pendingRedirect;
   },
 
@@ -26,7 +28,7 @@ export const QRTestHelper = {
    */
   clearPendingRedirect: () => {
     sessionStorage.removeItem('pendingRedirect');
-    console.log('🗑️ Cleared pending redirect');
+    logger.debug('Cleared pending redirect');
   },
 
   /**
@@ -35,7 +37,7 @@ export const QRTestHelper = {
   setTestPendingRedirect: (equipmentId: string) => {
     const testRedirect = `/equipment/${equipmentId}?qr=true`;
     sessionStorage.setItem('pendingRedirect', testRedirect);
-    console.log('🧪 Set test pending redirect:', testRedirect);
+    logger.debug('Set test pending redirect', { testRedirect });
   },
 
   /**
@@ -45,12 +47,15 @@ export const QRTestHelper = {
     const sessionData = localStorage.getItem('equipqr_session_data');
     if (sessionData) {
       try {
-        const parsed = JSON.parse(sessionData);
-        console.log('🏢 Current session organizations:', parsed.organizations);
-        console.log('🎯 Current organization ID:', parsed.currentOrganizationId);
+        const parsed = JSON.parse(sessionData) as {
+          organizations?: unknown;
+          currentOrganizationId?: string;
+        };
+        logger.debug('Current session organizations', { organizations: parsed.organizations });
+        logger.debug('Current organization ID', { organizationId: parsed.currentOrganizationId });
         return parsed;
       } catch (error) {
-        console.error('❌ Error parsing session data:', error);
+        logger.error('Error parsing session data', error);
       }
     }
     return null;
@@ -59,5 +64,10 @@ export const QRTestHelper = {
 
 // Make available globally for testing in browser console
 if (typeof window !== 'undefined') {
-  (window as any).QRTestHelper = QRTestHelper;
+  type WindowWithQRTestHelper = typeof window & {
+    QRTestHelper?: typeof QRTestHelper;
+  };
+
+  const windowWithHelper = window as WindowWithQRTestHelper;
+  windowWithHelper.QRTestHelper = QRTestHelper;
 }

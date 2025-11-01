@@ -1,27 +1,10 @@
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { UserSettings } from '@/types/settings';
+import React, { ReactNode } from 'react';
 import { useUserSettings } from '@/hooks/useUserSettings';
-
-interface SettingsContextType {
-  settings: UserSettings;
-  updateSetting: <K extends keyof UserSettings>(
-    key: K,
-    value: UserSettings[K]
-  ) => void;
-  resetSettings: () => void;
-  isLoading: boolean;
-}
-
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
-
-export const useSettings = () => {
-  const context = useContext(SettingsContext);
-  if (context === undefined) {
-    throw new Error('useSettings must be used within a SettingsProvider');
-  }
-  return context;
-};
+import {
+  SettingsContext,
+  type SettingsContextType,
+} from './settings-context';
 
 interface SettingsProviderProps {
   children: ReactNode;

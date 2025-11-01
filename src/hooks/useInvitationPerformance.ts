@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { logger } from '@/utils/logger';
 
 interface PerformanceMetrics {
   operationName: string;
@@ -39,7 +40,7 @@ export const useInvitationPerformance = () => {
 
     // Log performance warning if operation is slow
     if (duration > 5000) {
-      console.warn(`[PERFORMANCE] Slow operation detected: ${operationName} took ${duration.toFixed(2)}ms`);
+      logger.warn(`[PERFORMANCE] Slow operation detected: ${operationName} took ${duration.toFixed(2)}ms`);
     } else if (duration > 2000) {
       // Performance warning: operation took longer than expected
     }

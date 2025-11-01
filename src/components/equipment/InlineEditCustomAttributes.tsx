@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Edit2, Check, X } from 'lucide-react';
 import CustomAttributesSection from './CustomAttributesSection';
-import { useCustomAttributes, type CustomAttribute } from '@/hooks/useCustomAttributes';
+import type { CustomAttribute } from '@/hooks/useCustomAttributes';
 
 interface InlineEditCustomAttributesProps {
   value: Record<string, string>;

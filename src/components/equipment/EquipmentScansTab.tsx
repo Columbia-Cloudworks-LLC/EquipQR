@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { QrCode, Calendar, MapPin, User, Clock, MessageSquare } from 'lucide-react';
@@ -138,7 +137,7 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
           {/* Timeline line */}
           <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border"></div>
           
-          {scans.map((scan, index) => (
+          {scans.map((scan) => (
             <div key={scan.id} className="relative flex gap-6">
               {/* Timeline dot */}
               <div className="relative z-10">

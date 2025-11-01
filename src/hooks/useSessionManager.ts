@@ -4,6 +4,7 @@ import { SessionData, SessionTeamMembership, SessionOrganization } from '@/conte
 import { SessionDataService } from '@/services/sessionDataService';
 import { SessionStorageService } from '@/services/sessionStorageService';
 import { getOrganizationPreference, saveOrganizationPreference, shouldRefreshSession, getSessionVersion } from '@/utils/sessionPersistence';
+import { logger } from '@/utils/logger';
 
 interface UseSessionManagerProps {
   user: User | null;
@@ -96,7 +97,7 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
     
     const organization = sessionData.organizations.find(org => org.id === organizationId);
     if (!organization) {
-      console.warn('Organization not found:', organizationId);
+      logger.warn('Organization not found during session switch', { organizationId });
       throw new Error(`Organization ${organizationId} not found in user's organizations`);
     }
     
@@ -116,7 +117,7 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       onSessionUpdate(updatedSessionData);
       SessionStorageService.saveSessionToStorage(updatedSessionData);
     } catch (error) {
-      console.error('Error switching organization:', error);
+      logger.error('Error switching organization', error);
     }
   }, [user, onSessionUpdate, createSessionData]);
 

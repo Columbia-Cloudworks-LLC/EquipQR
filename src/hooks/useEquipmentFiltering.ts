@@ -48,7 +48,7 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   // Get equipment data using explicit organization ID
   const { data: equipment = [], isLoading } = useSyncEquipmentByOrganization(organizationId);
   const { data: teams = [] } = useSyncTeamsByOrganization(organizationId);
-  const { canManageOrganization } = usePermissions();
+  usePermissions();
 
   // Extract unique values for filter options
   const filterOptions = useMemo(() => {

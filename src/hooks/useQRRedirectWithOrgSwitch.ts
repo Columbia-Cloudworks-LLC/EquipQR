@@ -190,17 +190,10 @@ export const useQRRedirectWithOrgSwitch = ({
     }
   };
 
-  const handleProceed = () => {
-    if (state.targetPath && onComplete) {
-      onComplete(state.targetPath);
-    }
-  };
-
   return {
     state,
     isSwitchingOrg,
     handleOrgSwitch,
-    handleProceed,
     retry: checkEquipmentOrganization
   };
 };

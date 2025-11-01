@@ -19,7 +19,8 @@ export const useOrganizationStats = (organization: SessionOrganization | null): 
 
   // Determine plan based on active member count and slot availability
   const activeMemberCount = members.filter(m => m.status === 'active').length;
-  const plan = activeMemberCount === 1 ? 'Starter (Free)' : 'Pay-as-you-go';
+  const hasPurchasedSlots = Boolean(slotAvailability && slotAvailability.total_purchased > 0);
+  const plan = activeMemberCount === 1 && !hasPurchasedSlots ? 'Starter (Free)' : 'Pay-as-you-go';
   
   // Feature count based on plan type
   const featureCount = activeMemberCount === 1 ? 3 : 6; // Basic vs full features

@@ -4,26 +4,44 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, User, Users, UserX } from 'lucide-react';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
-import { WorkOrder } from '@/services/syncDataService';
+import type { EnhancedWorkOrder as EnhancedWorkOrderSummary } from '@/services/workOrdersEnhancedService';
+import type { EnhancedWorkOrder as EnhancedWorkOrderDetail } from '@/services/workOrderDataService';
+import type { WorkOrderData } from '@/types/workOrder';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import PMProgressIndicator from './PMProgressIndicator';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
+import type { AssignmentWorkOrderContext } from '@/hooks/useWorkOrderContextualAssignment';
 
-interface ExtendedWorkOrder extends WorkOrder {
-  created_date: string;
-  due_date?: string;
-  estimated_hours?: number;
-  completed_date?: string;
-  has_pm?: boolean;
-}
+type DesktopWorkOrder = EnhancedWorkOrderSummary & Partial<EnhancedWorkOrderDetail>;
 
 interface DesktopWorkOrderCardProps {
-  workOrder: ExtendedWorkOrder;
+  workOrder: DesktopWorkOrder;
   onNavigate: (id: string) => void;
   onAssignClick?: () => void;
   onReopenClick?: () => void;
 }
+
+const mapToWorkOrderData = (workOrder: DesktopWorkOrder): WorkOrderData => ({
+  id: workOrder.id,
+  title: workOrder.title,
+  description: workOrder.description,
+  equipmentId: workOrder.equipmentId ?? workOrder.equipment_id ?? '',
+  organizationId: workOrder.organizationId ?? workOrder.organization_id ?? '',
+  priority: workOrder.priority,
+  status: workOrder.status,
+  assigneeId: workOrder.assigneeId ?? workOrder.assignee_id,
+  assigneeName: workOrder.assigneeName,
+  teamId: workOrder.teamId ?? workOrder.team_id,
+  teamName: workOrder.teamName ?? workOrder.equipmentTeamName,
+  createdDate: workOrder.createdDate ?? workOrder.created_date ?? '',
+  created_date: workOrder.created_date ?? workOrder.createdDate ?? '',
+  dueDate: workOrder.dueDate ?? workOrder.due_date,
+  estimatedHours: workOrder.estimatedHours ?? workOrder.estimated_hours,
+  completedDate: workOrder.completedDate ?? workOrder.completed_date,
+  equipmentName: workOrder.equipmentName,
+  createdByName: workOrder.createdByName,
+});
 
 const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({ 
   workOrder, 
@@ -32,6 +50,20 @@ const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({
   onReopenClick
 }) => {
   const permissions = useUnifiedPermissions();
+  const workOrderData = mapToWorkOrderData(workOrder);
+  const detailedPermissions = permissions.workOrders.getDetailedPermissions(workOrderData);
+  const equipmentTeamName = workOrder.equipmentTeamName ?? workOrder.teamName;
+  const createdDateValue = workOrder.created_date ?? workOrder.createdDate;
+  const dueDateValue = workOrder.due_date ?? workOrder.dueDate;
+  const estimatedHoursValue = workOrder.estimated_hours ?? workOrder.estimatedHours;
+  const completedDateValue = workOrder.completed_date ?? workOrder.completedDate;
+
+  const assignmentContext: AssignmentWorkOrderContext = {
+    ...workOrder,
+    organization_id: workOrder.organization_id ?? workOrder.organizationId ?? '',
+    equipment_id: workOrder.equipment_id ?? workOrder.equipmentId ?? '',
+    equipmentTeamId: workOrder.equipmentTeamId ?? workOrder.team_id,
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -97,38 +129,38 @@ const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({
             <div>
               <div className="font-medium">Created</div>
               <div className="text-muted-foreground">
-                {new Date(workOrder.created_date).toLocaleDateString()}
+              {createdDateValue ? new Date(createdDateValue).toLocaleDateString() : '—'}
               </div>
             </div>
           </div>
 
-          {workOrder.due_date && (
+          {dueDateValue && (
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="font-medium">Due Date</div>
                 <div className="text-muted-foreground">
-                  {new Date(workOrder.due_date).toLocaleDateString()}
+                  {new Date(dueDateValue).toLocaleDateString()}
                 </div>
               </div>
             </div>
           )}
 
           {/* Equipment Team - Static Display */}
-          {(workOrder as any).equipmentTeamName && (
+          {equipmentTeamName && (
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="font-medium">Equipment Team</div>
-                <div className="text-muted-foreground">{(workOrder as any).equipmentTeamName}</div>
+                <div className="text-muted-foreground">{equipmentTeamName}</div>
               </div>
             </div>
           )}
 
           {/* Assigned User - Interactive */}
           <WorkOrderAssignmentHover 
-            workOrder={workOrder}
-            disabled={!permissions.workOrders.getDetailedPermissions(workOrder as any).canEditAssignment}
+            workOrder={assignmentContext}
+            disabled={!detailedPermissions.canEditAssignment}
           >
             <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">
               {workOrder.assigneeName ? (
@@ -163,13 +195,13 @@ const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({
         )}
 
         {/* Estimated Hours and Completion */}
-        {workOrder.estimated_hours && (
+        {estimatedHoursValue && (
           <div className={`mt-4 ${workOrder.has_pm ? '' : 'pt-4 border-t'}`}>
             <div className="text-sm">
-              <span className="font-medium">Estimated time:</span> {workOrder.estimated_hours} hours
-              {workOrder.completed_date && (
+              <span className="font-medium">Estimated time:</span> {estimatedHoursValue} hours
+              {completedDateValue && (
                 <span className="ml-4">
-                  <span className="font-medium">Completed:</span> {new Date(workOrder.completed_date).toLocaleDateString()}
+                  <span className="font-medium">Completed:</span> {new Date(completedDateValue).toLocaleDateString()}
                 </span>
               )}
             </div>
@@ -180,7 +212,7 @@ const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({
         <div className="flex items-center justify-between mt-4 pt-4 border-t">
           <div className="flex items-center gap-4">
             {/* Cost Display - Only for team managers and org admins */}
-            {permissions.workOrders.getDetailedPermissions(workOrder as any).canEdit && (
+            {detailedPermissions.canEdit && (
               <WorkOrderCostSubtotal 
                 workOrderId={workOrder.id}
                 className="text-sm"

@@ -3,6 +3,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,8 +14,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   // Debugging logs for auth state (dev only to prevent PII logging)
   if (import.meta.env.DEV) {
-    console.log('🔒 ProtectedRoute - Auth state:', { 
-      user: user ? `${user.email} (${user.id})` : 'null', 
+    logger.debug('ProtectedRoute auth state', {
+      user: user ? `${user.email} (${user.id})` : 'null',
       isLoading,
       timestamp: new Date().toISOString()
     });
@@ -33,13 +34,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (!user) {
     if (import.meta.env.DEV) {
-      console.log('🔒 ProtectedRoute - Redirecting to auth (no user)');
+      logger.info('ProtectedRoute redirecting to auth (no user)');
     }
     return <Navigate to="/auth" replace />;
   }
 
   if (import.meta.env.DEV) {
-    console.log('🔒 ProtectedRoute - Access granted');
+    logger.info('ProtectedRoute access granted');
   }
   return <>{children}</>;
 };

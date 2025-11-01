@@ -16,6 +16,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from '@/hooks/use-toast';
 import { calculateBilling, hasLicenses } from '@/utils/billing';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { logger } from '@/utils/logger';
 
 const Billing = () => {
   const { currentOrganization } = useSimpleOrganization();
@@ -85,7 +86,8 @@ const Billing = () => {
         title: 'Opening Subscription Management...',
         description: 'Redirecting to Stripe Customer Portal',
       });
-    } catch (_error) {
+    } catch (error) {
+      logger.error('Failed to open subscription management', error);
       toast({
         title: 'Error',
         description: 'Failed to open subscription management. Please try again.',

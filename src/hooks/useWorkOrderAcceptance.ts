@@ -2,9 +2,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { toast } from 'sonner';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
+import { logger } from '@/utils/logger';
 
 interface AcceptWorkOrderParams {
   workOrderId: string;
@@ -69,7 +69,7 @@ export const useWorkOrderAcceptance = () => {
       toast.success('Work order accepted successfully');
     },
     onError: (error) => {
-      console.error('Error accepting work order:', error);
+      logger.error('Error accepting work order', error);
       const errorMessage = getErrorMessage(error);
       const specificMessage = errorMessage.includes('permission')
         ? "You don't have permission to accept this work order. Contact your administrator."

@@ -1,26 +1,11 @@
 
-import React, { createContext, useContext } from 'react';
+import React from 'react';
 import { useSession } from '@/hooks/useSession';
-
-export interface TeamMembership {
-  team_id: string;
-  team_name: string;
-  role: 'manager' | 'technician' | 'requestor' | 'viewer';
-  joined_date: string;
-}
-
-export interface TeamMembershipContextType {
-  teamMemberships: TeamMembership[];
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-  hasTeamRole: (teamId: string, role: string) => boolean;
-  hasTeamAccess: (teamId: string) => boolean;
-  canManageTeam: (teamId: string) => boolean;
-  getUserTeamIds: () => string[];
-}
-
-export const TeamContext = createContext<TeamMembershipContextType | undefined>(undefined);
+import {
+  TeamContext,
+  type TeamMembership,
+  type TeamMembershipContextType,
+} from './team-context';
 
 export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { 
@@ -59,3 +44,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </TeamContext.Provider>
   );
 };
+
+export { TeamContext };
+export type { TeamMembership, TeamMembershipContextType };

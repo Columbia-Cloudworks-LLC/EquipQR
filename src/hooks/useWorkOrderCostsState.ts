@@ -34,19 +34,19 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
   }, []);
 
   const removeCost = useCallback((id: string) => {
-    setCosts(prev => prev.map(cost => 
-      cost.id === id 
-        ? cost.isNew 
-          ? null // Remove new items completely
-          : { ...cost, isDeleted: true } // Mark existing items as deleted
-        : cost
-    ).filter(Boolean) as WorkOrderCostItem[]);
+    setCosts(prev => prev.flatMap((cost) => {
+      if (cost.id !== id) return cost;
+      if (cost.isNew) {
+        return [];
+      }
+      return { ...cost, isDeleted: true };
+    }));
   }, []);
 
-  const updateCost = useCallback((id: string, field: keyof WorkOrderCostItem, value: any) => {
+  const updateCost = useCallback(<K extends keyof WorkOrderCostItem>(id: string, field: K, value: WorkOrderCostItem[K]) => {
     setCosts(prev => prev.map(cost => {
       if (cost.id === id) {
-        const updatedCost = { ...cost, [field]: value };
+        const updatedCost: WorkOrderCostItem = { ...cost, [field]: value };
         
         // Recalculate total when quantity or unit price changes
         if (field === 'quantity' || field === 'unit_price_cents') {

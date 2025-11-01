@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from 'react';
+import { logger } from '@/utils/logger';
 
 interface UseBrowserStorageOptions<T> {
   key: string;
@@ -17,7 +18,7 @@ export const useBrowserStorage = <T>({ key, data, enabled = true }: UseBrowserSt
         timestamp: Date.now()
       }));
     } catch (error) {
-      console.warn('Failed to save to localStorage:', error);
+      logger.warn('Failed to save to localStorage', error);
     }
   }, [key, data, enabled]);
 
@@ -35,7 +36,7 @@ export const useBrowserStorage = <T>({ key, data, enabled = true }: UseBrowserSt
         }
       }
     } catch (error) {
-      console.warn('Failed to load from localStorage:', error);
+      logger.warn('Failed to load from localStorage', error);
     }
     
     return null;
@@ -48,7 +49,7 @@ export const useBrowserStorage = <T>({ key, data, enabled = true }: UseBrowserSt
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      console.warn('Failed to clear localStorage:', error);
+      logger.warn('Failed to clear localStorage', error);
     }
   }, [key, enabled]);
 

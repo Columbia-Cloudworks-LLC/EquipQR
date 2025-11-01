@@ -2,6 +2,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -23,14 +24,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('🔐 AuthProvider - Setting up auth listener');
+    logger.debug('AuthProvider - Setting up auth listener');
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (import.meta.env.DEV) {
-          console.log('🔐 Auth state change:', { 
-            event, 
+          logger.debug('Auth state change', {
+            event,
             user: session?.user?.email || 'none',
             timestamp: new Date().toISOString()
           });
@@ -67,9 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (import.meta.env.DEV) {
-        console.log('🔐 Initial session check:', { 
+        logger.debug('Initial session check', {
           user: session?.user?.email || 'none',
-          hasSession: !!session 
+          hasSession: !!session
         });
       }
       setSession(session);
@@ -125,17 +126,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.warn('Server-side logout failed:', error);
+        logger.warn('Server-side logout failed', error);
         // Continue with cleanup even if server logout fails
       }
     } catch (error) {
-      console.error('Exception during logout:', error);
+      logger.error('Exception during logout', error);
     } finally {
       // Clear application-specific session storage
       try {
         sessionStorage.removeItem('pendingRedirect');
       } catch (sessionError) {
-        console.warn('Error clearing sessionStorage:', sessionError);
+        logger.warn('Error clearing sessionStorage', sessionError);
       }
       
       // Reset local state

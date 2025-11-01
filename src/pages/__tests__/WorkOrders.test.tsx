@@ -31,12 +31,15 @@ vi.mock('@/contexts/OrganizationContext', () => ({
   }))
 }));
 
-vi.mock('@/contexts/UserContext', () => ({
+vi.mock('@/contexts/useUser', () => ({
   useUser: vi.fn(() => ({
     currentUser: { id: 'test-user', email: 'test@test.com', name: 'Test User' },
     isLoading: false,
     setCurrentUser: vi.fn()
   })),
+}));
+
+vi.mock('@/contexts/UserContext', () => ({
   UserProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
 
