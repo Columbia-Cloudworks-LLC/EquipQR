@@ -349,7 +349,7 @@ describe('AuthContext', () => {
       await result.current!.signOut();
     });
 
-    expect(console.warn).toHaveBeenCalledWith('Server-side logout failed:', mockError);
+    expect(console.warn).toHaveBeenCalledWith('⚠️ Server-side logout failed', mockError);
     expect(result.current?.user).toBe(null);
     expect(result.current?.session).toBe(null);
   });
