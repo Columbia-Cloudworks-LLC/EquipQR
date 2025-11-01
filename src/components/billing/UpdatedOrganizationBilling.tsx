@@ -24,6 +24,7 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
 
   const billing = calculateBilling({ members, storageGB: storageUsedGB, fleetMapEnabled: true });
   const isFree = isFreeOrganization(members);
+  const restrictions = getOrganizationRestrictions(members);
 
   return (
     <div className="space-y-6">
@@ -111,7 +112,7 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
                   First user is always free, additional users are $10/month each
                 </div>
               </div>
-              <Badge variant="outline">{billing.userSlots.totalUsers} total</Badge>
+              <Badge variant="outline">{billing.userSlots.totalUsers} / {restrictions.maxMembers} allowed</Badge>
             </div>
             
             <div className="bg-muted p-4 rounded-lg">
@@ -167,7 +168,7 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
                 </div>
               </div>
               <Badge variant="outline">
-                {isFree ? 'Disabled' : `${billing.storage.usedGB.toFixed(1)} GB used`}
+                {isFree ? 'Disabled' : `${billing.storage.usedGB.toFixed(1)} GB / ${restrictions.maxStorage} GB`}
               </Badge>
             </div>
             
@@ -210,6 +211,18 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
         </CardContent>
       </Card>
 
+      {(!restrictions.canManageTeams || !restrictions.canUploadImages || !restrictions.canAccessFleetMap) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Feature Availability</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            {!restrictions.canManageTeams && <p>{getRestrictionMessage('canManageTeams')}</p>}
+            {!restrictions.canUploadImages && <p>{getRestrictionMessage('canUploadImages')}</p>}
+            {!restrictions.canAccessFleetMap && <p>{getRestrictionMessage('canAccessFleetMap')}</p>}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

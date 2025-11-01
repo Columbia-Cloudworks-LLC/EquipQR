@@ -5,9 +5,17 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, UserMinus, Edit3, Clock } from 'lucide-react';
 import WorkOrderAssignmentSelector from './WorkOrderAssignmentSelector';
+import type { AssignmentWorkOrderContext } from '@/hooks/useWorkOrderContextualAssignment';
 
 interface WorkOrderAssigneeDisplayProps {
-  workOrder: any;
+  workOrder: AssignmentWorkOrderContext & {
+    assigneeName?: string | null;
+    assignee?: { name?: string | null } | null;
+    assignee_id?: string | null;
+    assigneeId?: string | null;
+    acceptance_date?: string | null;
+    acceptanceDate?: string | null;
+  };
   organizationId: string;
   canManageAssignment: boolean;
   showEditControls?: boolean;
@@ -20,11 +28,13 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
   showEditControls = true
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const assigneeId = workOrder.assignee_id ?? workOrder.assigneeId ?? null;
+  const acceptanceDate = workOrder.acceptance_date ?? workOrder.acceptanceDate ?? null;
 
   const getAssignmentDisplay = () => {
     const assigneeName = workOrder.assigneeName || workOrder.assignee?.name;
     
-    if (workOrder.assignee_id && assigneeName) {
+    if (assigneeId && assigneeName) {
       return {
         type: 'user',
         name: assigneeName,
@@ -97,11 +107,11 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
         </div>
 
         {/* Assignment timing info */}
-        {workOrder.acceptance_date && (
+        {acceptanceDate && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
             <Clock className="h-4 w-4" />
             <span>
-              Accepted {new Date(workOrder.acceptance_date).toLocaleDateString()}
+              Accepted {new Date(acceptanceDate).toLocaleDateString()}
             </span>
           </div>
         )}

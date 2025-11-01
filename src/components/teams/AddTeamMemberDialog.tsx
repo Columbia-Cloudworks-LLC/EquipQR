@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTeamMembers } from '@/hooks/useTeamManagement';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -58,7 +58,7 @@ const AddTeamMemberDialog: React.FC<AddTeamMemberDialogProps> = ({
       setSelectedUser('');
       setSelectedRole('technician');
       onClose();
-    } catch (error) {
+    } catch {
       // Error is handled by the mutation
     }
   };

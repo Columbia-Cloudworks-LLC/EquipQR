@@ -4,11 +4,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { User, UserMinus, Check, X } from 'lucide-react';
-import { useWorkOrderContextualAssignment } from '@/hooks/useWorkOrderContextualAssignment';
+import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/hooks/useWorkOrderContextualAssignment';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 
 interface WorkOrderAssignmentSelectorProps {
-  workOrder: any;
+  workOrder: AssignmentWorkOrderContext & {
+    assignee_id?: string | null;
+    assigneeId?: string | null;
+  };
   organizationId: string;
   onCancel: () => void;
   disabled?: boolean;
@@ -21,6 +24,7 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
   disabled = false
 }) => {
   const [selectedValue, setSelectedValue] = useState<string>('');
+  const currentAssigneeId = workOrder.assignee_id ?? workOrder.assigneeId ?? '';
   
   // Use contextual assignment based on equipment team assignment
   const { assignmentOptions, isLoading: optionsLoading, hasTeamAssignment } = useWorkOrderContextualAssignment(workOrder);
@@ -57,8 +61,7 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
   };
 
   const getCurrentAssignmentValue = () => {
-    if (workOrder.assignee_id) return workOrder.assignee_id;
-    return '';
+    return currentAssigneeId;
   };
 
   const isAssignmentChanged = selectedValue && selectedValue !== getCurrentAssignmentValue();
@@ -99,7 +102,7 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
                       <div className="flex-1">
                         <div className="flex items-center gap-1">
                           <span>{option.name}</span>
-                          {workOrder.assignee_id === option.id && (
+                              {currentAssigneeId === option.id && (
                             <Badge variant="outline" className="text-xs">Current</Badge>
                           )}
                         </div>

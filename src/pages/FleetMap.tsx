@@ -3,7 +3,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MapPin, QrCode } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { FleetMapErrorBoundary } from '@/components/fleet-map/FleetMapErrorBoundary';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';  
 import { useTeamFleetData } from '@/hooks/useTeamFleetData';
@@ -12,6 +11,7 @@ import { MapView } from '@/components/fleet-map/MapView';
 import { TeamSelector } from '@/components/fleet-map/TeamSelector';
 import { FleetSearchBox } from '@/components/fleet-map/FleetSearchBox';
 import { FleetSummary } from '@/components/fleet-map/FleetSummary';
+import { logger } from '@/utils/logger';
 
 
 
@@ -79,7 +79,7 @@ const FleetMap: React.FC = () => {
 
   // Handle errors
   if (error) {
-    console.error('[FleetMap] Error:', error);
+    logger.error('[FleetMap] Error', error);
     return (
       <div className="space-y-6">
         <div>
@@ -97,8 +97,8 @@ const FleetMap: React.FC = () => {
   // Handle loading states
   if (isLoading) {
     // Loading state
-    console.log('[FleetMap] Loading state:', { 
-      mapsKeyLoading, 
+    logger.debug('[FleetMap] Loading state', {
+      mapsKeyLoading,
       hasGoogleMapsKey: !!googleMapsKey,
       hasLocationData
     });
@@ -203,7 +203,7 @@ const FleetMap: React.FC = () => {
 
   // Handle missing Google Maps key
   if (!googleMapsKey) {
-    console.error('[FleetMap] Missing Google Maps API key');
+    logger.error('[FleetMap] Missing Google Maps API key');
     return (
       <div className="space-y-6">
         <div>

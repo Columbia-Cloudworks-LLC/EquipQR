@@ -40,7 +40,6 @@ export const normalizeCanonicalKey = (value: string): string => {
  * Auto-map headers to standard fields using synonyms
  */
 export const autoMapHeaders = (headers: string[]): ColumnMapping[] => {
-  const mappings: ColumnMapping[] = [];
   const usedFields = new Set<string>();
   
   // Track duplicate headers

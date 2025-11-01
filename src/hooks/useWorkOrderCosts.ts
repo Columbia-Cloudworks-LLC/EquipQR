@@ -1,14 +1,13 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 import {
   getWorkOrderCosts,
   createWorkOrderCost,
   updateWorkOrderCost,
   deleteWorkOrderCost,
-  type CreateWorkOrderCostData,
-  type UpdateWorkOrderCostData,
-  type WorkOrderCost
+  type UpdateWorkOrderCostData
 } from '@/services/workOrderCostsService';
 
 export const useWorkOrderCosts = (workOrderId: string) => {
@@ -29,7 +28,7 @@ export const useCreateWorkOrderCost = () => {
       toast.success('Cost item added successfully');
     },
     onError: (error) => {
-      console.error('Error creating cost item:', error);
+      logger.error('Error creating cost item', error);
       toast.error('Failed to add cost item');
     }
   });
@@ -46,7 +45,7 @@ export const useUpdateWorkOrderCost = () => {
       toast.success('Cost item updated successfully');
     },
     onError: (error) => {
-      console.error('Error updating cost item:', error);
+      logger.error('Error updating cost item', error);
       toast.error('Failed to update cost item');
     }
   });
@@ -57,13 +56,13 @@ export const useDeleteWorkOrderCost = () => {
 
   return useMutation({
     mutationFn: deleteWorkOrderCost,
-    onSuccess: (_, costId) => {
+    onSuccess: () => {
       // We need to invalidate all cost queries since we don't have the work order ID in the response
       queryClient.invalidateQueries({ queryKey: ['work-order-costs'] });
       toast.success('Cost item deleted successfully');
     },
     onError: (error) => {
-      console.error('Error deleting cost item:', error);
+      logger.error('Error deleting cost item', error);
       toast.error('Failed to delete cost item');
     }
   });

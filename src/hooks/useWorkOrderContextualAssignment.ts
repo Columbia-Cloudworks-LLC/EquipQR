@@ -8,7 +8,16 @@ interface AssignmentOption {
   role?: string;
 }
 
-export function useWorkOrderContextualAssignment(workOrder: any) {
+export interface AssignmentWorkOrderContext {
+  id: string;
+  organization_id?: string;
+  organizationId?: string;
+  equipment_id?: string;
+  equipmentId?: string;
+  equipmentTeamId?: string | null;
+}
+
+export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrderContext) {
   const { data: assignmentOptions = [], isLoading, error } = useQuery({
     queryKey: ['workOrderContextualAssignment', workOrder?.id, workOrder?.equipment_id || workOrder?.equipmentId],
     queryFn: async (): Promise<AssignmentOption[]> => {

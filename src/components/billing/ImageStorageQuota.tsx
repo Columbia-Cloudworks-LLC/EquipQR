@@ -4,9 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { HardDrive, Image, AlertTriangle, Info } from 'lucide-react';
+import { HardDrive, AlertTriangle, Info } from 'lucide-react';
 import { useOrganizationStorageUsage } from '@/hooks/useOrganizationStorageUsage';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ImageStorageQuotaProps {
   organizationId?: string;
@@ -14,7 +13,6 @@ interface ImageStorageQuotaProps {
 
 const ImageStorageQuota: React.FC<ImageStorageQuotaProps> = ({ organizationId }) => {
   const { data: storageUsage, isLoading, error } = useOrganizationStorageUsage(organizationId);
-  const isMobile = useIsMobile();
 
   if (isLoading) {
     return (

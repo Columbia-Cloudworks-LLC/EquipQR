@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -428,17 +428,32 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
     enabled: true
   });
 
+  const hasLoadedDraftRef = useRef(false);
+
   useEffect(() => {
-    if (!template?.id) {
-      const draft = loadFromStorage() as unknown as { templateName?: string; templateDescription?: string; checklistItems?: PMChecklistItem[] } | null;
-      if (draft) {
-        if (draft.templateName !== undefined) setTemplateName(draft.templateName);
-        if (draft.templateDescription !== undefined) setTemplateDescription(draft.templateDescription);
-        if (draft.checklistItems && Array.isArray(draft.checklistItems)) setChecklistItems(draft.checklistItems);
-      }
+    if (template?.id || hasLoadedDraftRef.current) {
+      return;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    const draft = loadFromStorage() as unknown as {
+      templateName?: string;
+      templateDescription?: string;
+      checklistItems?: PMChecklistItem[];
+    } | null;
+
+    if (!draft) {
+      hasLoadedDraftRef.current = true;
+      return;
+    }
+
+    if (draft.templateName !== undefined) setTemplateName(draft.templateName);
+    if (draft.templateDescription !== undefined) setTemplateDescription(draft.templateDescription);
+    if (draft.checklistItems && Array.isArray(draft.checklistItems)) {
+      setChecklistItems(draft.checklistItems);
+    }
+
+    hasLoadedDraftRef.current = true;
+  }, [template?.id, loadFromStorage]);
 
   // Autosave for existing templates
   const isExisting = !!template?.id;

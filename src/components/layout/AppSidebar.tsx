@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
+import {
   Home, 
   Package, 
   ClipboardList, 
@@ -27,30 +27,36 @@ import {
   Map, 
   Building,
   QrCode,
-  CreditCard,
   Settings,
   FileText,
   ChevronUp,
   LogOut,
   User,
   HelpCircle,
-  ClipboardCheck,
-  Bug,
-  Shield
+  ClipboardCheck
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { isLightColor } from "@/lib/utils";
 import OrganizationSwitcher from "@/components/organization/OrganizationSwitcher";
 import { useAuth } from "@/hooks/useAuth";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/useUser";
 import { useSimpleOrganization } from "@/hooks/useSimpleOrganization";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSidebar } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar-context";
 import Logo from "@/components/ui/Logo";
 import { useSuperAdminAccess } from "@/hooks/useSuperAdminAccess";
 
-const mainNavigation = [
+interface NavigationItem {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  adminOnly?: boolean;
+  superAdminOnly?: boolean;
+}
+
+const mainNavigation: NavigationItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
   { title: "Equipment", url: "/dashboard/equipment", icon: Package },
   { title: "Work Orders", url: "/dashboard/work-orders", icon: ClipboardList },
@@ -58,7 +64,7 @@ const mainNavigation = [
   { title: "Fleet Map", url: "/dashboard/fleet-map", icon: Map },
 ];
 
-const managementNavigation = [
+const managementNavigation: NavigationItem[] = [
   { title: "Organization", url: "/dashboard/organization", icon: Building },
   { title: "PM Templates", url: "/dashboard/pm-templates", icon: ClipboardCheck, adminOnly: true },
   { title: "QR Scanner", url: "/dashboard/scanner", icon: QrCode },
@@ -69,11 +75,11 @@ const managementNavigation = [
 ];
 
 // Billing debug routes removed
-// const debugNavigation = [
+// const debugNavigation: NavigationItem[] = [
 //   { title: "Billing Debug", url: "/dashboard/debug/billing", icon: Bug },
 //   { title: "Exemptions Admin", url: "/dashboard/debug/exemptions-admin", icon: Shield, superAdminOnly: true },
 // ];
-const debugNavigation: Array<{ title: string; url: string; icon: any; superAdminOnly?: boolean }> = [];
+const debugNavigation: NavigationItem[] = [];
 
 const AppSidebar = () => {
   const location = useLocation();
@@ -224,7 +230,7 @@ const AppSidebar = () => {
                     const isActive = location.pathname === item.url;
                     
                     // Hide super admin only items if user is not a super admin
-                    if ((item as any).superAdminOnly && !isSuperAdmin) {
+                    if (item.superAdminOnly && !isSuperAdmin) {
                       return null;
                     }
                     

@@ -1,15 +1,38 @@
 import jsPDF from 'jspdf';
 import { PMChecklistItem, PreventativeMaintenance } from '@/services/preventativeMaintenanceService';
 
+interface WorkOrderSummary {
+  id: string;
+  status?: string;
+  title?: string;
+}
+
+interface EquipmentSummary {
+  name?: string;
+  working_hours?: number | null;
+}
+
+interface TeamSummary {
+  name?: string;
+}
+
+interface OrganizationSummary {
+  name?: string;
+}
+
+interface AssigneeSummary {
+  name?: string;
+}
+
 export interface PDFGeneratorOptions {
   includeProgress?: boolean;
   includeNotes?: boolean;
   includeTimestamps?: boolean;
-  workOrder?: any;
-  equipment?: any;
-  team?: any;
-  organization?: any;
-  assignee?: any;
+  workOrder?: WorkOrderSummary;
+  equipment?: EquipmentSummary;
+  team?: TeamSummary;
+  organization?: OrganizationSummary;
+  assignee?: AssigneeSummary;
 }
 
 export class PMChecklistPDFGenerator {
@@ -75,10 +98,8 @@ export class PMChecklistPDFGenerator {
 
   generatePDF(pm: PreventativeMaintenance, checklist: PMChecklistItem[], options: PDFGeneratorOptions = {}): jsPDF {
     const {
-      includeProgress = true,
       includeNotes = true,
       includeTimestamps = true,
-      workOrder,
       equipment,
       team,
       organization,

@@ -1,13 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Printer, Download, FileText, ChevronDown } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PrintExportDropdownProps {

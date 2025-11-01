@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useQRRedirectWithOrgSwitch } from '@/hooks/useQRRedirectWithOrgSwitch';
+import { logger } from '@/utils/logger';
 
 interface QRRedirectHandlerProps {
   equipmentId: string | undefined;
@@ -14,11 +15,13 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
   const [shouldNavigate, setShouldNavigate] = React.useState(false);
   const [navigationTarget, setNavigationTarget] = React.useState<string | null>(null);
   
-  const { state, isSwitchingOrg, handleOrgSwitch, handleProceed, retry } = useQRRedirectWithOrgSwitch({
+  const { state, isSwitchingOrg, handleOrgSwitch, retry } = useQRRedirectWithOrgSwitch({
     equipmentId,
     onComplete: (targetPath) => {
       // Allow parent component to run any additional logic here (analytics, toasts, etc.)
-      console.log('🎯 QR redirect complete, navigating to:', targetPath);
+      if (import.meta.env.DEV) {
+        logger.info('QR redirect complete, navigating', { targetPath });
+      }
       setNavigationTarget(targetPath);
       setShouldNavigate(true);
     }

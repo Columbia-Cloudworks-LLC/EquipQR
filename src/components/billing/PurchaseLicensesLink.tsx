@@ -14,7 +14,6 @@ import { ShoppingCart, Users } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PurchaseLicensesLinkProps {
   children: React.ReactNode;
@@ -31,7 +30,6 @@ const PurchaseLicensesLink: React.FC<PurchaseLicensesLinkProps> = ({
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const isMobile = useIsMobile();
 
   const userRole = currentOrganization?.userRole;
   const canPurchaseLicenses = userRole === 'owner';

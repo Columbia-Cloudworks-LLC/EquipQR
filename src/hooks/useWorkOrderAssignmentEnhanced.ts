@@ -24,7 +24,7 @@ export interface EnhancedWorkOrderAssignmentData {
   assignmentStrategy: 'admin_based';
 }
 
-export const useWorkOrderAssignmentEnhanced = (organizationId: string, equipmentId?: string) => {
+export const useWorkOrderAssignmentEnhanced = (organizationId: string) => {
   const { getCurrentOrganization, getUserTeamIds } = useSession();
   const currentOrg = getCurrentOrganization();
   

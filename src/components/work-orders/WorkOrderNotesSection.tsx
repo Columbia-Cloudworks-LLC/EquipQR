@@ -12,13 +12,12 @@ import { Plus, MessageSquare, Images, Clock, User, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { 
-  createWorkOrderNoteWithImages, 
+import {
+  createWorkOrderNoteWithImages,
   getWorkOrderNotesWithImages,
-  deleteWorkOrderImage,
-  type WorkOrderNoteImage
 } from '@/services/workOrderNotesService';
 import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
+import { logger } from '@/utils/logger';
 
 interface WorkOrderNotesSectionProps {
   workOrderId: string;
@@ -63,24 +62,15 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       toast.success('Note created successfully');
     },
     onError: (error) => {
-      console.error('Failed to create note:', error);
+      logger.error('Failed to create note', error);
       toast.error('Failed to create note');
     }
   });
 
-  // Delete image mutation
-  // Currently not used in UI but kept for future implementation
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const deleteImageMutation = useMutation({
-    mutationFn: deleteWorkOrderImage,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-order-notes-with-images', workOrderId] });
-      queryClient.invalidateQueries({ queryKey: ['work-order-images', workOrderId] });
-    }
-  });
-
 const handleCreateNoteWithImages = async (files: File[]): Promise<void> => {
-  console.log('🔍 handleCreateNoteWithImages called with files:', files.length);
+  if (import.meta.env.DEV) {
+    logger.debug('handleCreateNoteWithImages called', { fileCount: files.length });
+  }
   
   // Generate content if none provided
   let noteContent = formData.content.trim();
@@ -92,22 +82,26 @@ const handleCreateNoteWithImages = async (files: File[]): Promise<void> => {
       const fileNames = files.map(f => f.name).join(', ');
       noteContent = `${userName} uploaded ${files.length} images: ${fileNames}`;
     }
-    console.log('🔍 Auto-generated note content:', noteContent);
+    if (import.meta.env.DEV) {
+      logger.debug('Auto-generated note content', { noteContent });
+    }
   }
   
   if (!noteContent) {
-    console.error('❌ No content or images provided');
+    logger.error('No content or images provided for note creation');
     toast.error('Please enter note content or upload images');
     return;
   }
   
   try {
-    console.log('🔍 Calling createNoteMutation with:', {
-      content: noteContent,
-      hoursWorked: formData.hoursWorked,
-      isPrivate: formData.isPrivate,
-      images: files.length
-    });
+    if (import.meta.env.DEV) {
+      logger.debug('Calling createNoteMutation', {
+        contentLength: noteContent.length,
+        hoursWorked: formData.hoursWorked,
+        isPrivate: formData.isPrivate,
+        imageCount: files.length
+      });
+    }
     
     await createNoteMutation.mutateAsync({
       content: noteContent,
@@ -116,9 +110,11 @@ const handleCreateNoteWithImages = async (files: File[]): Promise<void> => {
       images: files
     });
     
-    console.log('✅ createNoteMutation completed successfully');
+    if (import.meta.env.DEV) {
+      logger.info('createNoteMutation completed successfully');
+    }
   } catch (error) {
-    console.error('❌ Error in handleCreateNoteWithImages:', error);
+    logger.error('Error in handleCreateNoteWithImages', error);
     // Re-throw the error so ImageUploadWithNote can handle it properly
     throw error;
   }
@@ -136,13 +132,6 @@ const handleCreateNoteWithImages = async (files: File[]): Promise<void> => {
       isPrivate: formData.isPrivate,
       images: []
     });
-  };
-
-  // Function to check if user can delete image
-  // Currently not used in UI but kept for future implementation  
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const canDeleteImage = (image: WorkOrderNoteImage) => {
-    return image.uploaded_by === user?.id;
   };
 
   const formatDate = (dateString: string) => {

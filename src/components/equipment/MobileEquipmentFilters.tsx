@@ -20,12 +20,14 @@ interface FilterOptions {
   teams: Team[];
 }
 
+type EquipmentFilterKey = keyof EquipmentFilters;
+
 interface MobileEquipmentFiltersProps {
   filters: EquipmentFilters;
   activeFilterCount: number;
   showMobileFilters: boolean;
   onShowMobileFiltersChange: (show: boolean) => void;
-  onFilterChange: (key: keyof EquipmentFilters, value: any) => void;
+  onFilterChange: <K extends EquipmentFilterKey>(key: K, value: EquipmentFilters[K]) => void;
   onClearFilters: () => void;
   onQuickFilter: (preset: string) => void;
   filterOptions: FilterOptions;
@@ -52,6 +54,29 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
           onChange={(e) => onFilterChange('search', e.target.value)}
           className="pl-10 h-12 text-base"
         />
+      </div>
+
+      {/* Quick Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {[
+          { label: 'Maintenance Due', value: 'maintenance-due' },
+          { label: 'Warranty Expiring', value: 'warranty-expiring' },
+          { label: 'Recently Added', value: 'recently-added' },
+          { label: 'Active Only', value: 'active-only' }
+        ].map((preset) => (
+          <Button
+            key={preset.value}
+            size="sm"
+            variant="outline"
+            className="whitespace-nowrap"
+            onClick={() => {
+              onQuickFilter(preset.value);
+              onShowMobileFiltersChange(false);
+            }}
+          >
+            {preset.label}
+          </Button>
+        ))}
       </div>
 
       {/* Filter Button with Active Count */}

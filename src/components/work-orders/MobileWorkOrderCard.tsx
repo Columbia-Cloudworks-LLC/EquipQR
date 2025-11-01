@@ -14,6 +14,8 @@ import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment
 import { useWorkOrderContextualAssignment } from '@/hooks/useWorkOrderContextualAssignment';
 import { ensureWorkOrderData } from '@/utils/workOrderTypeConversion';
 import type { Database } from '@/integrations/supabase/types';
+import { logger } from '@/utils/logger';
+import { Loader2 } from 'lucide-react';
 
 interface MobileWorkOrderCardProps {
   order: EnhancedWorkOrder;
@@ -62,7 +64,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
         assigneeId,
         organizationId: order.organizationId
       });
-    } catch (error) {
+    } catch {
       // Error is handled in the mutation
     }
   };
@@ -108,7 +110,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString();
-    } catch (error) {
+    } catch {
       return 'Invalid Date';
     }
   };
@@ -186,14 +188,14 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground">Assigned:</span>
               <Select
-                value={order.assigneeId || 'unassigned'}
+                value={order.assignedTo?.id || 'unassigned'}
                 onValueChange={(value) => handleAssignmentChange(value === 'unassigned' ? null : value)}
-                disabled={assignmentMutation.isPending || isLoadingAssignees}
+                disabled={isUpdating || isLoadingAssignees || assignmentMutation.isPending}
               >
-                <SelectTrigger className="h-8 w-full max-w-[200px]">
-                  <div className="flex items-center justify-start w-full">
-                    {order.assigneeName ? (
-                      <span className="truncate text-left">{order.assigneeName}</span>
+                <SelectTrigger className="w-full">
+                  <div className="flex items-center gap-2">
+                    {order.assignedTo?.name ? (
+                      <span className="truncate text-left">{order.assignedTo.name}</span>
                     ) : (
                       <span className="text-muted-foreground">Unassigned</span>
                     )}
@@ -263,6 +265,23 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
                   View Details
                 </Link>
               </Button>
+              {order.status === 'submitted' && (
+                <Button
+                  size="sm"
+                  className="flex-1 justify-center"
+                  onClick={() => onAcceptClick(order)}
+                  disabled={isAccepting}
+                >
+                  {isAccepting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Accepting...
+                    </>
+                  ) : (
+                    'Accept'
+                  )}
+                </Button>
+              )}
               <WorkOrderQuickActions
                 workOrder={order}
                 onAssignClick={onAssignClick}
@@ -270,7 +289,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
                 onStatusUpdate={onStatusUpdate}
                 onDeleteSuccess={() => {
                   // Handle delete success if needed
-                  console.log('Work order deleted');
+                  logger.info('Work order deleted');
                 }}
               />
             </div>

@@ -14,7 +14,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 export interface Column<T> {
   key: keyof T | string;
   title: string;
-  render?: (value: any, item: T, index: number) => React.ReactNode;
+  render?: (value: unknown, item: T, index: number) => React.ReactNode;
   sortable?: boolean;
   width?: string;
 }
@@ -38,7 +38,22 @@ export interface DataTableProps<T> {
   className?: string;
 }
 
-export function DataTable<T extends Record<string, any>>({
+const resolveNestedValue = (source: unknown, path: string): unknown => {
+  if (!source || typeof source !== 'object') {
+    return undefined;
+  }
+
+  return path.split('.').reduce<unknown>((acc, segment) => {
+    if (acc && typeof acc === 'object') {
+      const record = acc as Record<string, unknown>;
+      return record[segment];
+    }
+
+    return undefined;
+  }, source);
+};
+
+export function DataTable<T extends Record<string, unknown>>({
   data,
   columns,
   isLoading = false,
@@ -62,7 +77,7 @@ export function DataTable<T extends Record<string, any>>({
 
   const renderCell = (column: Column<T>, item: T, index: number) => {
     const value = typeof column.key === 'string' && column.key.includes('.') 
-      ? column.key.split('.').reduce((obj, key) => obj?.[key], item)
+      ? resolveNestedValue(item, column.key)
       : item[column.key as keyof T];
 
     if (column.render) {

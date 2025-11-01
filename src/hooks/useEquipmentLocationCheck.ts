@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { parseLatLng } from '@/utils/geoUtils';
+import { logger } from '@/utils/logger';
 
 interface LocationCheckResult {
   hasLocationData: boolean;
@@ -98,7 +99,7 @@ export const useEquipmentLocationCheck = (organizationId: string | null): Locati
               }
             } catch (error) {
               // Ignore scan errors, continue checking
-              console.warn(`Failed to check scans for equipment ${item.id}:`, error);
+              logger.warn(`Failed to check scans for equipment ${item.id}`, error);
             }
           }
 
@@ -119,7 +120,7 @@ export const useEquipmentLocationCheck = (organizationId: string | null): Locati
           locatedCount
         });
       } catch (error) {
-        console.error('[useEquipmentLocationCheck] Error checking equipment locations:', error);
+        logger.error('[useEquipmentLocationCheck] Error checking equipment locations', error);
         setResult({
           hasLocationData: false,
           isLoading: false,

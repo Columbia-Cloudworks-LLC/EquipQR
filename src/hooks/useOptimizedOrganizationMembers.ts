@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useMemo } from 'react';
+import type { Database } from '@/integrations/supabase/types';
+import { logger } from '@/utils/logger';
 
 export interface RealOrganizationMember {
   id: string;
@@ -13,6 +15,13 @@ export interface RealOrganizationMember {
   avatar?: string;
 }
 
+type OrganizationMemberRow = Database['public']['Tables']['organization_members']['Row'];
+type ProfileRow = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'name' | 'email'>;
+
+type OrganizationMemberRecord = OrganizationMemberRow & {
+  profiles: ProfileRow | null;
+};
+
 // Optimized with single query using joins and better caching
 export const useOptimizedOrganizationMembers = (organizationId: string) => {
   return useQuery({
@@ -23,7 +32,7 @@ export const useOptimizedOrganizationMembers = (organizationId: string) => {
       // Single optimized query with join instead of separate calls
       const { data, error } = await supabase
         .from('organization_members')
-        .select(`
+        .select<OrganizationMemberRecord>(`
           id,
           role,
           status,
@@ -39,14 +48,14 @@ export const useOptimizedOrganizationMembers = (organizationId: string) => {
         .order('joined_date', { ascending: false });
 
       if (error) {
-        console.error('Error fetching organization members:', error);
+        logger.error('Error fetching organization members', error);
         throw error;
       }
 
-      return (data || []).map(member => ({
+      return (data || []).map((member) => ({
         id: member.user_id,
-        name: (member.profiles as any)?.name || 'Unknown',
-        email: (member.profiles as any)?.email || '',
+        name: member.profiles?.name ?? 'Unknown',
+        email: member.profiles?.email ?? '',
         role: member.role as 'owner' | 'admin' | 'member',
         status: member.status as 'active' | 'pending' | 'inactive',
         joinedDate: member.joined_date,
@@ -79,11 +88,20 @@ export const useOrganizationMemberStats = (organizationId: string) => {
 };
 
 // Optimized mutation with optimistic updates
+interface UpdateMemberRoleVariables {
+  memberId: string;
+  newRole: 'admin' | 'member';
+}
+
+interface MutateContext {
+  previousMembers?: RealOrganizationMember[];
+}
+
 export const useUpdateMemberRole = (organizationId: string) => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async ({ memberId, newRole }: { memberId: string; newRole: 'admin' | 'member' }) => {
+  return useMutation<OrganizationMemberRow, Error, UpdateMemberRoleVariables, MutateContext>({
+    mutationFn: async ({ memberId, newRole }) => {
       const { data, error } = await supabase
         .from('organization_members')
         .update({ role: newRole })
@@ -99,7 +117,7 @@ export const useUpdateMemberRole = (organizationId: string) => {
       // Optimistic update
       await queryClient.cancelQueries({ queryKey: ['organization-members-optimized', organizationId] });
       
-      const previousMembers = queryClient.getQueryData(['organization-members-optimized', organizationId]);
+      const previousMembers = queryClient.getQueryData<RealOrganizationMember[]>(['organization-members-optimized', organizationId]);
       
       queryClient.setQueryData(['organization-members-optimized', organizationId], (old: RealOrganizationMember[] | undefined) => {
         if (!old) return old;
@@ -110,12 +128,12 @@ export const useUpdateMemberRole = (organizationId: string) => {
       
       return { previousMembers };
     },
-    onError: (error, variables, context) => {
+    onError: (error, _variables, context) => {
       // Rollback on error
       if (context?.previousMembers) {
         queryClient.setQueryData(['organization-members-optimized', organizationId], context.previousMembers);
       }
-      console.error('Error updating member role:', error);
+      logger.error('Error updating member role', error);
       toast.error('Failed to update member role');
     },
     onSuccess: () => {
@@ -136,12 +154,12 @@ interface RemovalResult {
 export const useRemoveMember = (organizationId: string) => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (memberId: string) => {
+  return useMutation<RemovalResult, Error, string, MutateContext>({
+    mutationFn: async (memberId) => {
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.rpc('remove_organization_member_safely', {
+      const { data, error } = await supabase.rpc<RemovalResult>('remove_organization_member_safely', {
         user_uuid: memberId,
         org_id: organizationId,
         removed_by: currentUser.user.id
@@ -149,7 +167,7 @@ export const useRemoveMember = (organizationId: string) => {
 
       if (error) throw error;
 
-      const result = data as unknown as RemovalResult;
+      const result = data;
 
       // The function returns a JSON object with success status and details
       if (!result?.success) {
@@ -162,7 +180,7 @@ export const useRemoveMember = (organizationId: string) => {
       // Optimistic update
       await queryClient.cancelQueries({ queryKey: ['organization-members-optimized', organizationId] });
       
-      const previousMembers = queryClient.getQueryData(['organization-members-optimized', organizationId]);
+      const previousMembers = queryClient.getQueryData<RealOrganizationMember[]>(['organization-members-optimized', organizationId]);
       
       queryClient.setQueryData(['organization-members-optimized', organizationId], (old: RealOrganizationMember[] | undefined) => {
         if (!old) return old;
@@ -171,13 +189,14 @@ export const useRemoveMember = (organizationId: string) => {
       
       return { previousMembers };
     },
-    onError: (error, variables, context) => {
+    onError: (error, _variables, context) => {
       // Rollback on error
       if (context?.previousMembers) {
         queryClient.setQueryData(['organization-members-optimized', organizationId], context.previousMembers);
       }
-      console.error('Error removing member:', error);
-      toast.error(error.message || 'Failed to remove member');
+      logger.error('Error removing member', error);
+      const message = error instanceof Error ? error.message : 'Failed to remove member';
+      toast.error(message);
     },
     onSuccess: (data) => {
       // Show detailed success message based on what happened
