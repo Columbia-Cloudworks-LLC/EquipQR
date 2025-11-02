@@ -95,6 +95,9 @@ export class CacheManager {
     this.queryClient.invalidateQueries({ 
       queryKey: ['teams-optimized', organizationId] 
     });
+    this.queryClient.invalidateQueries({
+      queryKey: ['team', organizationId, teamId]
+    });
     
     // Invalidate work orders (team assignments might have changed)
     this.queryClient.invalidateQueries({ 

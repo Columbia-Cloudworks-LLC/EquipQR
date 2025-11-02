@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { logger } from '@/utils/logger';
 
 type SaveTrigger = 'text' | 'selection' | 'manual';
 
@@ -60,7 +61,7 @@ export const useAutoSave = ({
       } catch (error) {
         setStatus('error');
         if (process.env.NODE_ENV === 'development') {
-          console.warn('Auto-save failed:', error);
+          logger.warn('Auto-save failed', error);
         }
       } finally {
         saveRequestRef.current = undefined;

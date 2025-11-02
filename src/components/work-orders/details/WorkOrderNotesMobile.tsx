@@ -13,6 +13,7 @@ import {
   Camera,
   Lock
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface WorkOrderNotesMobileProps {
   workOrderId: string;
@@ -49,14 +50,14 @@ export const WorkOrderNotesMobile: React.FC<WorkOrderNotesMobileProps> = ({
       setHoursWorked(0);
       setIsPrivate(false);
     } catch (error) {
-      console.error('Error adding note:', error);
+      logger.error('Error adding work order note', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Card>
+    <Card data-workorder-id={workOrderId}>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />

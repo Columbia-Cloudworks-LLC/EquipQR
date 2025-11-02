@@ -10,7 +10,7 @@ import { useWorkOrderFilters } from '@/hooks/useWorkOrderFilters';
 
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTeams } from '@/hooks/useTeamManagement';
-import { useUser } from '@/contexts/UserContext';
+import { useUser } from '@/contexts/useUser';
 import { WorkOrderAcceptanceModalState, WorkOrderData } from '@/types/workOrder';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import WorkOrderAcceptanceModal from '@/components/work-orders/WorkOrderAcceptanceModal';

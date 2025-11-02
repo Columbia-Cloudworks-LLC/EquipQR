@@ -9,7 +9,7 @@ import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 interface WorkOrderHistoricalFieldsProps {
   values: Partial<WorkOrderFormData>;
   errors: Record<string, string>;
-  setValue: (field: keyof WorkOrderFormData, value: any) => void;
+  setValue: <K extends keyof WorkOrderFormData>(field: K, value: WorkOrderFormData[K]) => void;
 }
 
 export const WorkOrderHistoricalFields: React.FC<WorkOrderHistoricalFieldsProps> = ({
@@ -40,7 +40,7 @@ export const WorkOrderHistoricalFields: React.FC<WorkOrderHistoricalFieldsProps>
           <Label htmlFor="status">Status</Label>
           <Select
             value={values.status || 'accepted'}
-            onValueChange={(value) => setValue('status', value)}
+            onValueChange={(value) => setValue('status', value as WorkOrderFormData['status'])}
           >
             <SelectTrigger>
               <SelectValue />

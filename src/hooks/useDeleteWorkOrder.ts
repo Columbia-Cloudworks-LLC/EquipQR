@@ -44,7 +44,7 @@ export const useDeleteWorkOrder = () => {
         description: "The work order and all associated data have been permanently deleted.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Delete work order error:', error);
       toast({
         title: "Delete Failed",

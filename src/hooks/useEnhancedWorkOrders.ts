@@ -1,6 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { getEnhancedWorkOrdersByOrganization, type EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
+import { getEnhancedWorkOrdersByOrganization } from '@/services/workOrdersEnhancedService';
 
 export const useEnhancedWorkOrders = (organizationId?: string) => {
   return useQuery({

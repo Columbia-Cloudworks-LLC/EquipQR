@@ -2,7 +2,7 @@ import React, { memo, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Calendar, User } from 'lucide-react';
+import { Search, Calendar } from 'lucide-react';
 import OptimizedWorkOrderCard from './OptimizedWorkOrderCard';
 import { useDebouncedSearch } from '@/hooks/useDebounced';
 import { WorkOrder } from '@/services/optimizedSupabaseDataService';

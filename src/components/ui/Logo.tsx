@@ -39,6 +39,7 @@ const Logo: React.FC<LogoProps> = ({
       src="/eqr-icons/inverse.png"
       alt="EquipQR"
       className={`${sizeClasses[size]} w-auto ${className}`}
+      data-logo-variant={logoVariant}
     />
   );
 };

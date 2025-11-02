@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { logger } from '@/utils/logger';
 
 export const useMemoryOptimization = () => {
   const cleanupRef = useRef<(() => void)[]>([]);
@@ -9,10 +10,11 @@ export const useMemoryOptimization = () => {
 
   const clearMemory = () => {
     // Force garbage collection if available (Chrome DevTools)
-    if (typeof window !== 'undefined' && 'gc' in window) {
+    if (typeof window !== 'undefined') {
       try {
-        (window as any).gc();
-      } catch (e) {
+        const gc = (window as { gc?: () => void }).gc;
+        gc?.();
+      } catch {
         // gc() is not available in production
       }
     }
@@ -31,7 +33,7 @@ export const useMemoryOptimization = () => {
         try {
           task();
         } catch (error) {
-          console.warn('Cleanup task failed:', error);
+          logger.warn('Cleanup task failed', error);
         }
       });
       cleanupRef.current = [];

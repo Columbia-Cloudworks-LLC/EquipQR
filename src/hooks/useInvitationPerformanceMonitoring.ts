@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 export interface PerformanceMetric {
   functionName: string;
@@ -53,7 +54,9 @@ export const useInvitationPerformanceMonitoring = () => {
             success,
             error_message: error || null
           });
-        } catch {} // Silently fail
+        } catch (rpcError) {
+          logger.warn('Failed to log invitation performance metric', rpcError);
+        }
       })();
     }
 

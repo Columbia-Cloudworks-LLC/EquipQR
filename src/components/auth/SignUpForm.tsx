@@ -42,11 +42,15 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
 
   // Sync email field with prefillEmail when it changes (e.g., switching invitations)
   useEffect(() => {
-    if (prefillEmail && prefillEmail !== formData.email) {
-      setFormData(prev => ({ ...prev, email: prefillEmail }));
+    if (!prefillEmail) return;
+    setFormData(prev => {
+      if (prefillEmail === prev.email) {
+        return prev;
+      }
       const valid = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(prefillEmail);
       setEmailError(valid || prefillEmail.length === 0 ? null : 'Enter a valid email address');
-    }
+      return { ...prev, email: prefillEmail };
+    });
   }, [prefillEmail]);
 
   const handleInputChange = (field: string, value: string) => {

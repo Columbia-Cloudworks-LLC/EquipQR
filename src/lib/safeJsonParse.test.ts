@@ -24,7 +24,7 @@ describe('safeJsonParse', () => {
     
     expect(result).toEqual(fallback);
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      'Failed to parse JSON:', 
+      '⚠️ Failed to parse JSON', 
       expect.any(SyntaxError)
     );
   });
@@ -42,7 +42,7 @@ describe('safeJsonParse', () => {
     safeJsonParse('invalid json', fallback, { context: 'template: test-123' });
     
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      'Failed to parse JSON for template: test-123:', 
+      '⚠️ Failed to parse JSON for template: test-123', 
       expect.any(SyntaxError)
     );
   });

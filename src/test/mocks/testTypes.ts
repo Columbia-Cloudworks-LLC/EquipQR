@@ -2,8 +2,8 @@
  * Test-specific type definitions and mock data factories
  */
 
-import { SessionData, SessionOrganization } from '@/contexts/SessionContext';
-import { User } from '@/contexts/UserContext';
+import { SessionOrganization } from '@/contexts/SessionContext';
+import { User } from '@/contexts/user-context';
 import { SimpleOrganization } from '@/contexts/SimpleOrganizationContext';
 import { vi } from 'vitest';
 

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { parseLatLng } from '@/utils/geoUtils';
+import { logger } from '@/utils/logger';
 
 export interface TeamFleetOption {
   id: string;
@@ -68,13 +69,13 @@ export const getAccessibleTeams = async (
     const { data: teams, error } = await query.order('name');
     
     if (error) {
-      console.error('Error fetching accessible teams:', error);
+      logger.error('Error fetching accessible teams', error);
       throw error;
     }
     
     return teams || [];
   } catch (error) {
-    console.error('Error in getAccessibleTeams:', error);
+    logger.error('Error in getAccessibleTeams', error);
     throw error;
   }
 };
@@ -117,7 +118,7 @@ export const getTeamEquipmentWithLocations = async (
     const { data: equipment, error } = await query;
 
     if (error) {
-      console.error('Error fetching team equipment:', error);
+      logger.error('Error fetching team equipment', error);
       throw error;
     }
 
@@ -188,7 +189,7 @@ export const getTeamEquipmentWithLocations = async (
             }
           }
         } catch (error) {
-          console.warn(`Failed to fetch scans for equipment ${item.id}:`, error);
+          logger.warn(`Failed to fetch scans for equipment ${item.id}`, error);
         }
       }
 
@@ -217,7 +218,7 @@ export const getTeamEquipmentWithLocations = async (
 
     return Array.from(teamEquipmentMap.values());
   } catch (error) {
-    console.error('Error in getTeamEquipmentWithLocations:', error);
+    logger.error('Error in getTeamEquipmentWithLocations', error);
     throw error;
   }
 };
@@ -247,8 +248,7 @@ export const getTeamFleetData = async (
     // Get equipment data for accessible teams
     const teamEquipmentData = await getTeamEquipmentWithLocations(
       organizationId,
-      teams.map(t => t.id),
-      isOrgAdmin
+      teams.map(t => t.id)
     );
 
     // Calculate totals
@@ -278,7 +278,7 @@ export const getTeamFleetData = async (
       totalLocatedCount
     };
   } catch (error) {
-    console.error('Error in getTeamFleetData:', error);
+    logger.error('Error in getTeamFleetData', error);
     throw error;
   }
 };

@@ -13,13 +13,16 @@ import { useDeleteWorkOrder } from '@/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/hooks/useWorkOrderImageCount';
 import { useWorkOrderStatusUpdate } from '@/hooks/useWorkOrderStatusUpdate';
 import { WorkOrderLike, ensureWorkOrderData } from '@/utils/workOrderTypeConversion';
+import type { Database } from '@/integrations/supabase/types';
+
+type WorkOrderStatus = Database['public']['Enums']['work_order_status'];
 
 interface WorkOrderQuickActionsProps {
   workOrder: WorkOrderLike;
   onAssignClick?: () => void;
   onReopenClick?: () => void;
   onDeleteSuccess?: () => void;
-  onStatusUpdate?: (workOrderId: string, newStatus: string) => void;
+  onStatusUpdate?: (workOrderId: string, newStatus: WorkOrderStatus) => void;
   hideReassign?: boolean;
 }
 
@@ -111,11 +114,11 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
     }
   };
 
-  const handleStatusUpdate = async (newStatus: string) => {
+  const handleStatusUpdate = async (newStatus: WorkOrderStatus) => {
     try {
       await statusUpdateMutation.mutateAsync({
         workOrderId: workOrder.id,
-        newStatus: newStatus as any
+        newStatus
       });
       onStatusUpdate?.(workOrder.id, newStatus);
     } catch {
@@ -250,7 +253,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          {actions.map((action, index) => {
+          {actions.map((action) => {
             if (action.separator) {
               return <div key={action.key} className="border-t my-1" />;
             }

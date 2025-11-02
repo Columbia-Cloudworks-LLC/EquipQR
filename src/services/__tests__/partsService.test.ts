@@ -5,7 +5,7 @@ vi.mock('@/integrations/supabase/client', () => {
   return {
     supabase: {
       functions: {
-        invoke: vi.fn(async (name: string, opts: any) => {
+        invoke: vi.fn(async (name: string) => {
           if (name === 'parts-search') {
             return { data: { results: [{ id: '1', canonical_mpn: '2349005', title: 'O2 Sensor', brand: 'Denso', category: 'Emission Control', distributor_count: 2, has_distributors: true }] } };
           }

@@ -9,8 +9,11 @@ import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 interface WorkOrderBasicFieldsProps {
   values: WorkOrderFormData;
   errors: Record<string, string>;
-  setValue: (field: keyof WorkOrderFormData, value: any) => void;
-  preSelectedEquipment?: any;
+  setValue: <K extends keyof WorkOrderFormData>(field: K, value: WorkOrderFormData[K]) => void;
+  preSelectedEquipment?: {
+    id?: string;
+    name?: string;
+  } | null;
 }
 
 export const WorkOrderBasicFields: React.FC<WorkOrderBasicFieldsProps> = ({
@@ -45,7 +48,7 @@ export const WorkOrderBasicFields: React.FC<WorkOrderBasicFieldsProps> = ({
           <Label>Priority *</Label>
           <Select 
             value={values.priority} 
-            onValueChange={(value) => setValue('priority', value as 'low' | 'medium' | 'high')}
+            onValueChange={(value) => setValue('priority', value as WorkOrderFormData['priority'])}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select priority" />
