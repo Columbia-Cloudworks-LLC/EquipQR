@@ -3,7 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface GoogleMapsKeyResponse {
-  key: string;
+  key?: string;
+  error?: string;
+  details?: string;
 }
 
 interface UseGoogleMapsKeyResult {
@@ -34,13 +36,30 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
         }
       );
       
+      console.log('[FleetMap] Edge function response:', { 
+        data: JSON.stringify(data), 
+        error, 
+        hasData: !!data, 
+        hasError: !!error,
+        dataKeys: data ? Object.keys(data) : []
+      });
+      
       if (error) {
-        console.error('[FleetMap] Edge function error:', error);
-        throw new Error(`Edge function failed: ${error.message}`);
+        console.error('[FleetMap] Edge function error object:', error);
+        // Extract error message from various possible locations
+        const errorMsg = error.message || (error as any)?.error || JSON.stringify(error);
+        throw new Error(`Edge function failed: ${errorMsg}`);
+      }
+      
+      // Check if the response contains an error (edge function returned error in data)
+      if (data?.error) {
+        const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+        console.error('[FleetMap] Edge function returned error in data:', errorMsg);
+        throw new Error(errorMsg);
       }
       
       if (!data?.key) {
-        console.error('[FleetMap] No API key in response:', data);
+        console.error('[FleetMap] No API key in response. Full response:', JSON.stringify(data, null, 2));
         throw new Error('Google Maps API key not found in response');
       }
       
