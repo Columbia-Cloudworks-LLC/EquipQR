@@ -179,7 +179,6 @@ describe('MapView', () => {
       );
 
       // Get the initial options reference
-      const firstRender = screen.getByTestId('google-map');
 
       // Rerender with same props
       rerender(
