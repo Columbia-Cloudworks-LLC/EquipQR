@@ -1,8 +1,8 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useEquipmentNotesPermissions } from '@/hooks/useEquipmentNotesPermissions';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useEquipmentNotesPermissions } from './hooks/useEquipmentNotesPermissions';
 import ImageGallery from '@/components/common/ImageGallery';
 import { 
   getAllEquipmentImages, 
@@ -26,7 +26,7 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
   currentDisplayImage
 }) => {
   const queryClient = useQueryClient();
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const permissions = useEquipmentNotesPermissions(equipmentTeamId);
 

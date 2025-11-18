@@ -1,6 +1,7 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useSyncWorkOrderById, useSyncEquipmentById } from '@/services/syncDataService';
+import { useSyncWorkOrderById } from '@/services/syncDataService';
+import { useEquipmentById } from '@/components/equipment/hooks/useEquipment';
 import { usePMByWorkOrderAndEquipment } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import type { Tables } from '@/integrations/supabase/types';
@@ -15,9 +16,9 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
     workOrderId || ''
   );
   
-  const { data: equipment } = useSyncEquipmentById(
-    currentOrganization?.id || '', 
-    workOrder?.equipment_id || ''
+  const { data: equipment } = useEquipmentById(
+    currentOrganization?.id, 
+    workOrder?.equipment_id
   );
 
   // Fetch PM data for specific equipment if work order has PM enabled
@@ -62,3 +63,4 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
     currentOrganization
   };
 };
+

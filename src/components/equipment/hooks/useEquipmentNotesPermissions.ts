@@ -1,5 +1,5 @@
 
-import { useUnifiedPermissions } from './useUnifiedPermissions';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { EquipmentNote } from '@/types/equipmentNotes';
 
 export interface EquipmentNotesPermissions {

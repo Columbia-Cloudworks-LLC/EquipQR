@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, AlertTriangle, TrendingUp } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { calculateBilling, getSlotStatus } from '@/utils/billing';
@@ -19,7 +19,7 @@ interface SlotBasedBillingProps {
 const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
   storageUsedGB
 }) => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability, isLoading } = useSlotAvailability(currentOrganization?.id || '');
 

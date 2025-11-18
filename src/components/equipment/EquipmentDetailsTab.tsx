@@ -12,7 +12,7 @@ import { WorkingHoursTimelineModal } from "./WorkingHoursTimelineModal";
 import { useUpdateEquipment } from "@/hooks/useSupabaseData";
 import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
 import { useTeams } from "@/hooks/useTeamManagement";
-import { useSimpleOrganization } from "@/hooks/useSimpleOrganization";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { toast } from "sonner";
 import { logger } from '@/utils/logger';
 
@@ -26,7 +26,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   const [showQRCode, setShowQRCode] = React.useState(false);
   const [showWorkingHoursModal, setShowWorkingHoursModal] = React.useState(false);
   const permissions = useUnifiedPermissions();
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { data: teams = [] } = useTeams(currentOrganization?.id);
   const updateEquipmentMutation = useUpdateEquipment(currentOrganization?.id || '');
 

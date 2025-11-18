@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, AlertCircle } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { calculateBilling, isFreeOrganization } from '@/utils/billing';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import MemberTable from '@/components/billing/MemberTable';
 
 const SimplifiedMemberBilling = () => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { data: members = [], isLoading } = useOrganizationMembers(currentOrganization?.id || '');
 
   const userRole = currentOrganization?.userRole;

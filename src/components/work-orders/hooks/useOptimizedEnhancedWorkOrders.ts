@@ -14,3 +14,4 @@ export const useOptimizedEnhancedWorkOrders = (organizationId?: string) => {
     refetchInterval: false, // Disable automatic refetching
   });
 };
+

@@ -1,7 +1,7 @@
 
 
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/hooks/useWorkOrderCreationEnhanced';
+import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/components/work-orders/hooks/useWorkOrderCreationEnhanced';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/hooks/useWorkOrderUpdate';
 import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from '@/hooks/useHistoricalWorkOrders';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';

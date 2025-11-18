@@ -4,10 +4,10 @@ import { Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTeams } from '@/hooks/useTeams';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 const TeamQuickList = () => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { hasRole } = usePermissions();
   const { teams, isLoading } = useTeams();
 

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Users, ClipboardList, AlertTriangle } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWorkOrders, useTeamBasedDashboardAccess } from '@/hooks/useTeamBasedDashboard';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
@@ -10,7 +10,7 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 import TeamQuickList from '@/components/dashboard/TeamQuickList';
 
 const Dashboard = () => {
-  const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
+  const { currentOrganization, isLoading: orgLoading } = useOrganization();
   const organizationId = currentOrganization?.id;
   
   const { hasTeamAccess, isLoading: accessLoading } = useTeamBasedDashboardAccess();

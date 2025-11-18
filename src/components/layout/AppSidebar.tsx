@@ -42,7 +42,7 @@ import { isLightColor } from "@/lib/utils";
 import OrganizationSwitcher from "@/components/organization/OrganizationSwitcher";
 import { useAuth } from "@/hooks/useAuth";
 import { useUser } from "@/contexts/useUser";
-import { useSimpleOrganization } from "@/hooks/useSimpleOrganization";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import Logo from "@/components/ui/Logo";
@@ -85,7 +85,7 @@ const AppSidebar = () => {
   const location = useLocation();
   const { signOut } = useAuth();
   const { currentUser } = useUser();
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const isMobile = useIsMobile();
   const { setOpenMobile } = useSidebar();
   const { isSuperAdmin } = useSuperAdminAccess();

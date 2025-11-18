@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { QrCode, AlertCircle, CheckCircle, ArrowLeft, Camera } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useSyncEquipmentById } from '@/services/syncDataService';
+import { useEquipmentById } from '@/components/equipment/hooks/useEquipment';
 import { useToast } from '@/hooks/use-toast';
 import QRScannerComponent from '@/components/scanner/QRScannerComponent';
 
@@ -21,9 +21,9 @@ const QRScanner = () => {
   const [scannedEquipmentId, setScannedEquipmentId] = useState<string | null>(null);
 
   // Use sync hook for resolved equipment
-  const { data: resolvedEquipment } = useSyncEquipmentById(
-    currentOrganization?.id || '', 
-    scannedEquipmentId || ''
+  const { data: resolvedEquipment } = useEquipmentById(
+    currentOrganization?.id, 
+    scannedEquipmentId || undefined
   );
 
   const handleScan = useCallback((result: string) => {

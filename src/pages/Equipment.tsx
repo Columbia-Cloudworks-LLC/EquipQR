@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
+import { useEquipmentFiltering } from '@/components/equipment/hooks/useEquipmentFiltering';
 import { exportEquipmentCSV } from '@/services/equipmentCSVService';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import EquipmentLoadingState from '@/components/equipment/EquipmentLoadingState'
 import ImportCsvWizard from '@/components/equipment/ImportCsvWizard';
 
 const Equipment = () => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { canCreateEquipment, hasRole } = usePermissions();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();

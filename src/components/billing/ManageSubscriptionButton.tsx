@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 
 interface ManageSubscriptionButtonProps {
@@ -18,7 +18,7 @@ const ManageSubscriptionButton: React.FC<ManageSubscriptionButtonProps> = ({
   className = ''
 }) => {
   const { openCustomerPortal } = useSubscription();
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   
   const userRole = currentOrganization?.userRole;
   

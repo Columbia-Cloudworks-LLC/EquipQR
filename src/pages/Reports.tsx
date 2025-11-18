@@ -2,8 +2,9 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, FileText } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useSyncEquipmentByOrganization, useSyncWorkOrdersByOrganization, useSyncDashboardStats } from '@/services/syncDataService';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useEquipment } from '@/components/equipment/hooks/useEquipment';
+import { useSyncWorkOrdersByOrganization, useSyncDashboardStats } from '@/services/syncDataService';
 import ReportFilters from '@/components/reports/ReportFilters';
 import ReportCharts from '@/components/reports/ReportCharts';
 import ReportExport from '@/components/reports/ReportExport';
@@ -22,13 +23,13 @@ export interface ReportFilters {
 }
 
 const Reports = () => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const [filters, setFilters] = useState<ReportFilters>({
     type: 'equipment',
     dateRange: { from: undefined, to: undefined }
   });
 
-  const { data: equipment = [], isLoading: equipmentLoading } = useSyncEquipmentByOrganization(currentOrganization?.id);
+  const { data: equipment = [], isLoading: equipmentLoading } = useEquipment(currentOrganization?.id);
   const { data: workOrders = [], isLoading: workOrdersLoading } = useSyncWorkOrdersByOrganization(currentOrganization?.id);
   const { data: dashboardStats, isLoading: statsLoading } = useSyncDashboardStats(currentOrganization?.id);
 

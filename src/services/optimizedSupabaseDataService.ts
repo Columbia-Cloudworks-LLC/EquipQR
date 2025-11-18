@@ -207,6 +207,7 @@ export const getOptimizedNotesByEquipmentId = async (organizationId: string, equ
 };
 
 // OPTIMIZED: Batch equipment queries
+// @deprecated Use EquipmentService.getAll() instead. Will be removed in Phase 2.
 export const getOptimizedEquipmentByOrganization = async (organizationId: string): Promise<Equipment[]> => {
   try {
     const { data, error } = await supabase

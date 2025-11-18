@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label';
 
 import { Search, Package, Loader2 } from 'lucide-react';
 import { usePMTemplate } from '@/hooks/usePMTemplates';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useSyncEquipmentByOrganization } from '@/services/syncDataService';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useEquipment } from '@/components/equipment/hooks/useEquipment';
 import { useCreateWorkOrder } from '@/hooks/useWorkOrderCreation';
 import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
 import { toast } from 'sonner';
@@ -26,9 +26,9 @@ export const TemplateApplicationDialog: React.FC<TemplateApplicationDialogProps>
   open,
   onClose
 }) => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { data: template } = usePMTemplate(templateId);
-  const { data: equipment = [] } = useSyncEquipmentByOrganization(currentOrganization?.id);
+  const { data: equipment = [] } = useEquipment(currentOrganization?.id);
   const createWorkOrder = useCreateWorkOrder();
   const initializePM = useInitializePMChecklist();
   

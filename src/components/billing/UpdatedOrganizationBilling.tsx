@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, HardDrive, CreditCard, Info } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { calculateBilling, isFreeOrganization } from '@/utils/billing';
 import { getOrganizationRestrictions, getRestrictionMessage } from '@/utils/organizationRestrictions';
 
@@ -19,7 +19,7 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
   storageUsedGB,
   onUpgradeToMultiUser
 }) => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
 
   const billing = calculateBilling({ members, storageGB: storageUsedGB, fleetMapEnabled: true });

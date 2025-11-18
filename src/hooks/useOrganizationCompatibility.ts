@@ -1,9 +1,10 @@
 
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization as useOrganizationFromContext } from '@/contexts/OrganizationContext';
 
 // Backward compatibility layer for existing organization hooks
+// @deprecated Use useOrganization from '@/contexts/OrganizationContext' directly
 export const useSupabaseOrganization = () => {
-  const { currentOrganization, userOrganizations, switchOrganization, isLoading, error } = useSimpleOrganization();
+  const { currentOrganization, userOrganizations, switchOrganization, isLoading, error, refetch } = useOrganizationFromContext();
 
   return {
     currentOrganization,
@@ -11,18 +12,10 @@ export const useSupabaseOrganization = () => {
     switchOrganization,
     isLoading,
     error,
-    refetch: () => Promise.resolve() // Placeholder for refetch functionality
+    refetch: refetch || (() => Promise.resolve()) // Use refetch from context if available
   };
 };
 
-export const useOrganization = () => {
-  const { currentOrganization, userOrganizations, switchOrganization, isLoading, error } = useSimpleOrganization();
-
-  return {
-    currentOrganization,
-    userOrganizations,
-    switchOrganization,
-    isLoading,
-    error
-  };
-};
+// Re-export useOrganization from context for backward compatibility
+// @deprecated Import directly from '@/contexts/OrganizationContext' instead
+export { useOrganizationFromContext as useOrganization };

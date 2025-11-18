@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users, Crown } from 'lucide-react';
 import { useOrganizationMembers, RealOrganizationMember } from '@/hooks/useOrganizationMembers';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { calculateBilling, isFreeOrganization } from '@/utils/billing';
 import {
   Table,
@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table';
 
 const RealMemberBilling = () => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { data: members = [], isLoading } = useOrganizationMembers(currentOrganization?.id || '');
 
   if (isLoading) {

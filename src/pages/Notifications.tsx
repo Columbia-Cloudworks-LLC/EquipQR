@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Bell, Check, Search, Filter, Calendar, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { 
   useRealTimeNotifications, 
   useNotificationSubscription,
@@ -17,7 +17,7 @@ import { useMarkNotificationAsRead, type Notification } from '@/hooks/useWorkOrd
 import { logger } from '@/utils/logger';
 
 const Notifications: React.FC = () => {
-  const { organizationId } = useSimpleOrganization();
+  const { organizationId } = useOrganization();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');

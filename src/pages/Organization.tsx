@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOptimizedOrganizationMembers } from '@/hooks/useOptimizedOrganizationMembers';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 
@@ -9,7 +9,7 @@ import OrganizationTabs from '@/components/organization/OrganizationTabs';
 import RestrictedOrganizationAccess from '@/components/organization/RestrictedOrganizationAccess';
 
 const Organization = () => {
-  const { currentOrganization, isLoading } = useSimpleOrganization();
+  const { currentOrganization, isLoading } = useOrganization();
 
   // Custom hooks for data and business logic
   const { data: members = [], isLoading: membersLoading } = useOptimizedOrganizationMembers(currentOrganization?.id || '');

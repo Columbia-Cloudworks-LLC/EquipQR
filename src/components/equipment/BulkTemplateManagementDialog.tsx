@@ -9,8 +9,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 import { Package, Loader2, AlertCircle, Trash2, RefreshCw } from 'lucide-react';
 import { usePMTemplates } from '@/hooks/usePMTemplates';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useBulkAssignTemplate, useBulkRemoveTemplates, useBulkChangeTemplate } from '@/hooks/useEquipmentTemplateManagement';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useBulkAssignTemplate, useBulkRemoveTemplates, useBulkChangeTemplate } from './hooks/useEquipmentTemplateManagement';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EquipmentRecord } from '@/types/equipment';
 
@@ -27,7 +27,7 @@ export const BulkTemplateManagementDialog: React.FC<BulkTemplateManagementDialog
   open,
   onClose
 }) => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { data: templates = [] } = usePMTemplates();
   
   const bulkAssignTemplate = useBulkAssignTemplate();

@@ -20,8 +20,8 @@ import { Package, Info } from "lucide-react";
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { useSyncEquipmentByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
-import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/hooks/useWorkOrderCreationEnhanced';
+import { useEquipment, useEquipmentById } from '@/components/equipment/hooks/useEquipment';
+import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/components/work-orders/hooks/useWorkOrderCreationEnhanced';
 import { useWorkOrderAssignment } from '@/hooks/useWorkOrderAssignment';
 
 const requestFormSchema = z.object({
@@ -49,10 +49,10 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
   const { currentOrganization } = useOrganization();
   const createWorkOrderMutation = useCreateWorkOrderEnhanced();
   
-  const { data: allEquipment = [] } = useSyncEquipmentByOrganization(currentOrganization?.id);
-  const { data: preSelectedEquipment } = useSyncEquipmentById(
-    currentOrganization?.id || '', 
-    equipmentId || ''
+  const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
+  const { data: preSelectedEquipment } = useEquipmentById(
+    currentOrganization?.id, 
+    equipmentId
   );
 
   const initialValues: Partial<RequestFormData> = {

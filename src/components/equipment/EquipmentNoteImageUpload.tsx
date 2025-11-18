@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, X } from 'lucide-react';
-import { useUploadEquipmentNoteImage } from '@/hooks/useEquipmentNotes';
+import { useUploadEquipmentNoteImage } from './hooks/useEquipmentNotes';
 
 interface EquipmentNoteImageUploadProps {
   open: boolean;

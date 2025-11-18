@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useEquipment } from '@/hooks/useEquipment';
+import { useEquipment } from './useEquipment';
 import { useSyncTeamsByOrganization } from '@/services/syncDataService';
 import { usePermissions } from '@/hooks/usePermissions';
 

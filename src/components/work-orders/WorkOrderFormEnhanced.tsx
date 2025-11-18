@@ -10,7 +10,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useWorkOrderAssignment } from '@/hooks/useWorkOrderAssignment';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 import { useWorkOrderForm, WorkOrderFormData } from '@/hooks/useWorkOrderForm';
-import { useEquipmentSelection } from '@/hooks/useEquipmentSelection';
+import { useEquipmentSelection } from '@/components/equipment/hooks/useEquipmentSelection';
 import { useWorkOrderSubmission } from '@/hooks/useWorkOrderSubmission';
 import { WorkOrderFormHeader } from './form/WorkOrderFormHeader';
 import { WorkOrderBasicFields } from './form/WorkOrderBasicFields';

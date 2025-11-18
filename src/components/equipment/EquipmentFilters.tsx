@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileEquipmentFilters } from './MobileEquipmentFilters';
 import { DesktopEquipmentFilters } from './DesktopEquipmentFilters';
-import { EquipmentFilters as EquipmentFiltersType } from '@/hooks/useEquipmentFiltering';
+import { EquipmentFilters as EquipmentFiltersType } from './hooks/useEquipmentFiltering';
 
 interface Team {
   id: string;

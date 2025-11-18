@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
@@ -25,7 +25,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   onStatusUpdate 
 }) => {
   const { toast } = useToast();
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const permissions = useUnifiedPermissions();
   const acceptanceMutation = useWorkOrderAcceptance();
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);

@@ -1,5 +1,5 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEquipment, useEquipmentById } from '@/hooks/useEquipment';
+import { useEquipment, useEquipmentById } from './useEquipment';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 
 interface UseEquipmentSelectionProps {

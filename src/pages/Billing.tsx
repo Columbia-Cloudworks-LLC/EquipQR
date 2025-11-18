@@ -9,7 +9,7 @@ import ImageStorageQuota from '@/components/billing/ImageStorageQuota';
 import BillingHeader from '@/components/billing/BillingHeader';
 import RestrictedBillingAccess from '@/components/billing/RestrictedBillingAccess';
 import BillingExemptionsCard from '@/components/billing/BillingExemptionsCard';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -19,7 +19,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { logger } from '@/utils/logger';
 
 const Billing = () => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability } = useSlotAvailability(currentOrganization?.id || '');
