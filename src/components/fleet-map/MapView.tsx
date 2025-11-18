@@ -39,6 +39,14 @@ const defaultCenter = {
   lng: -98.5795 // Center of USA
 };
 
+const MAP_OPTIONS = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: true,
+  fullscreenControl: true,
+};
+
 // Stabilize libraries prop to prevent re-initialization
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ["places"];
 
@@ -107,13 +115,7 @@ export const MapView: React.FC<MapViewProps> = ({
       mapContainerStyle={mapContainerStyle}
       center={mapCenter}
       zoom={filteredLocations.length > 0 ? 6 : 4}
-      options={{
-        disableDefaultUI: false,
-        zoomControl: true,
-        streetViewControl: false,
-        mapTypeControl: true,
-        fullscreenControl: true,
-      }}
+      options={MAP_OPTIONS}
     >
       {/* Equipment Markers */}
       {filteredLocations.map((location) => (
