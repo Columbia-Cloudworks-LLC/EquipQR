@@ -33,3 +33,6 @@ supabase/.temp/*
 
 # Coverage Files
 coverage/*
+
+# Repomix Files
+repomix*.xml

@@ -161,16 +161,7 @@ export const getTeamEquipmentWithLocations = async (
         }
       }
 
-      // B. If not parseable and non-empty, assume it can be geocoded
-      if (!coords && item.location?.trim()) {
-        // For now, we'll assume it can be geocoded and count it as having location data
-        // In a real implementation, you might want to actually geocode it
-        coords = { lat: 0, lng: 0 }; // Placeholder coordinates
-        source = 'geocoded';
-        location_updated_at = item.updated_at;
-      }
-
-      // C. Check for latest scan with geo-tag
+      // B. Check for latest scan with geo-tag
       if (!coords) {
         try {
           const { data: scans, error: scansError } = await supabase
@@ -267,8 +258,8 @@ export const getTeamFleetData = async (
       };
     });
 
-    // Only consider it has location data if we have a meaningful number of equipment items plotted
-    const hasLocationData = totalLocatedCount >= 2 || (totalEquipmentCount > 0 && (totalLocatedCount / totalEquipmentCount) >= 0.2);
+    // Show map if we have at least one item with location data
+    const hasLocationData = totalLocatedCount > 0;
 
     return {
       teams: teamOptions,
