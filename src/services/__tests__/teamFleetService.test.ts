@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { getTeamFleetData, getTeamEquipmentWithLocations } from '../teamFleetService';
-import { parseLatLng } from '@/utils/geoUtils';
-
 // Mock the supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
