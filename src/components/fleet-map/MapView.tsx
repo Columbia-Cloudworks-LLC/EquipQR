@@ -57,6 +57,7 @@ export const MapView: React.FC<MapViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const [selectedMarker, setSelectedMarker] = useState<EquipmentLocation | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
 
   // Load Google Maps API - only called when googleMapsKey is available
   const { isLoaded: isMapsLoaded, loadError: mapsLoadError } = useJsApiLoader({
@@ -65,15 +66,16 @@ export const MapView: React.FC<MapViewProps> = ({
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
-  if (import.meta.env.DEV) {
-    logger.debug('[MapView] Component rendered', {
-      hasGoogleMapsKey: !!googleMapsKey,
-      googleMapsKeyLength: googleMapsKey?.length || 0,
-      isMapsLoaded,
-      mapsLoadError: mapsLoadError?.message,
-      filteredLocationsCount: filteredLocations.length
-    });
-  }
+  // Handle map load
+  const onMapLoad = React.useCallback((mapInstance: google.maps.Map) => {
+    setMap(mapInstance);
+    if (import.meta.env.DEV) {
+      logger.debug('[MapView] Map loaded successfully', {
+        center: mapInstance.getCenter()?.toJSON(),
+        zoom: mapInstance.getZoom()
+      });
+    }
+  }, []);
 
   // Calculate map center based on equipment locations
   const mapCenter = useMemo(() => {
@@ -85,6 +87,24 @@ export const MapView: React.FC<MapViewProps> = ({
 
     return { lat: avgLat, lng: avgLng };
   }, [filteredLocations, equipmentLocations]);
+
+  if (import.meta.env.DEV) {
+    logger.debug('[MapView] Component rendered', {
+      hasGoogleMapsKey: !!googleMapsKey,
+      googleMapsKeyLength: googleMapsKey?.length || 0,
+      isMapsLoaded,
+      mapsLoadError: mapsLoadError?.message,
+      filteredLocationsCount: filteredLocations.length,
+      equipmentLocationsCount: equipmentLocations.length,
+      sampleLocation: filteredLocations.length > 0 ? {
+        id: filteredLocations[0].id,
+        name: filteredLocations[0].name,
+        lat: filteredLocations[0].lat,
+        lng: filteredLocations[0].lng
+      } : null,
+      mapCenter
+    });
+  }
 
   // Handle loading states
   if (!isMapsLoaded) {
@@ -116,25 +136,32 @@ export const MapView: React.FC<MapViewProps> = ({
       center={mapCenter}
       zoom={filteredLocations.length > 0 ? 6 : 4}
       options={MAP_OPTIONS}
+      onLoad={onMapLoad}
+      onUnmount={() => setMap(null)}
     >
       {/* Equipment Markers */}
-      {filteredLocations.map((location) => (
-        <MarkerF
-          key={location.id}
-          position={{ lat: location.lat, lng: location.lng }}
-          onClick={() => setSelectedMarker(location)}
-          icon={{
-            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="#3B82F6" stroke="#1E40AF" stroke-width="2"/>
-                <circle cx="12" cy="10" r="3" fill="white"/>
-              </svg>
-            `),
-            scaledSize: new window.google.maps.Size(32, 32),
-            anchor: new window.google.maps.Point(16, 32)
-          }}
-        />
-      ))}
+      {filteredLocations.map((location) => {
+        // Create icon only when Google Maps is fully loaded
+        const icon = isMapsLoaded && window.google?.maps ? {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="#3B82F6" stroke="#1E40AF" stroke-width="2"/>
+              <circle cx="12" cy="10" r="3" fill="white"/>
+            </svg>
+          `),
+          scaledSize: new window.google.maps.Size(32, 32),
+          anchor: new window.google.maps.Point(16, 32)
+        } : undefined;
+
+        return (
+          <MarkerF
+            key={location.id}
+            position={{ lat: location.lat, lng: location.lng }}
+            onClick={() => setSelectedMarker(location)}
+            icon={icon}
+          />
+        );
+      })}
 
       {/* Info Window */}
       {selectedMarker && (

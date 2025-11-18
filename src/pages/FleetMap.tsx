@@ -77,21 +77,31 @@ const FleetMap: React.FC = () => {
   const error = teamFleetError || mapsKeyError;
 
 
-  // Handle errors
+  // Handle errors (only if error message is non-empty)
   if (error) {
     logger.error('[FleetMap] Error', error);
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Fleet Map</h1>
+    // Extract error message from Error object or use string directly
+    const errorMessage = typeof error === 'string' 
+      ? error 
+      : error instanceof Error 
+        ? error.message 
+        : 'Failed to load fleet data';
+    
+    // Only show error if message is non-empty
+    if (errorMessage && errorMessage.trim()) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Fleet Map</h1>
+          </div>
+          <FleetMapErrorBoundary 
+            error={errorMessage} 
+            onRetry={() => window.location.reload()}
+            isRetrying={false}
+          />
         </div>
-        <FleetMapErrorBoundary 
-          error={error instanceof Error ? error.message : 'Failed to load fleet data'} 
-          onRetry={() => window.location.reload()}
-          isRetrying={false}
-        />
-      </div>
-    );
+      );
+    }
   }
 
   // Handle loading states
@@ -202,15 +212,16 @@ const FleetMap: React.FC = () => {
   }
 
   // Handle missing Google Maps key
-  if (!googleMapsKey) {
-    logger.error('[FleetMap] Missing Google Maps API key');
+  if (!googleMapsKey && !mapsKeyLoading) {
+    logger.error('[FleetMap] Missing Google Maps API key', { mapsKeyError });
+    const errorMessage = mapsKeyError || "Google Maps API key not available. Please check the VITE_GOOGLE_MAPS_BROWSER_KEY secret configuration.";
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Fleet Map</h1>
         </div>
         <FleetMapErrorBoundary 
-          error="Google Maps API key not available. Please check the VITE_GOOGLE_MAPS_BROWSER_KEY secret configuration."
+          error={errorMessage}
           onRetry={retryMapsKey}
           isRetrying={mapsKeyLoading}
         />
@@ -220,6 +231,151 @@ const FleetMap: React.FC = () => {
 
   // Only render the full map interface if we have location data
   if (hasLocationData) {
+    // Check if selected team/filter has location data
+    const selectedTeamHasLocationData = equipmentLocations.length > 0;
+    const filteredHasLocationData = filteredLocations.length > 0;
+    
+    // If selected team has no location data, show helpful message
+    if (!selectedTeamHasLocationData && selectedTeamId && selectedTeamId !== 'all') {
+      const teamName = selectedTeam?.name || 'this team';
+      return (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Fleet Map</h1>
+            <p className="text-sm text-muted-foreground">
+              Showing equipment from accessible teams with location data
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Sidebar */}
+            <div className="lg:col-span-1 space-y-4">
+              <TeamSelector
+                teams={teamFleetData?.teams || []}
+                selectedTeamId={selectedTeamId}
+                onTeamChange={setSelectedTeamId}
+                isLoading={teamFleetLoading}
+              />
+
+              <FleetSearchBox
+                value={searchTerm}
+                onChange={setSearchTerm}
+                disabled={!selectedTeamId}
+              />
+
+              <FleetSummary
+                selectedTeam={selectedTeam}
+                selectedTeamId={selectedTeamId}
+                equipmentLocations={filteredLocations}
+                totalEquipmentCount={teamFleetData?.totalEquipmentCount || 0}
+                totalLocatedCount={teamFleetData?.totalLocatedCount || 0}
+              />
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <QrCode className="h-4 w-4" />
+                    Add Location Data
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    {teamName} has no equipment with location data yet. Scan QR codes on equipment belonging to this team to generate map data.
+                  </p>
+                  <Button 
+                    onClick={() => window.location.href = '/dashboard/scanner'}
+                    className="w-full"
+                  >
+                    <QrCode className="h-4 w-4 mr-2" />
+                    Scan QR Code
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Map placeholder */}
+            <div className="lg:col-span-3">
+              <Card>
+                <CardContent className="p-0">
+                  <div className="h-[600px] w-full bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center">
+                    <div className="text-center space-y-4">
+                      <MapPin className="h-12 w-12 text-muted-foreground/50 mx-auto" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-muted-foreground">No Location Data for {teamName}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Scan QR codes on equipment belonging to this team to see them on the map
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // If search filter has no results but team has data, show message
+    if (!filteredHasLocationData && selectedTeamHasLocationData && searchTerm.trim()) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Fleet Map</h1>
+            <p className="text-sm text-muted-foreground">
+              Showing equipment from accessible teams with location data
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Sidebar */}
+            <div className="lg:col-span-1 space-y-4">
+              <TeamSelector
+                teams={teamFleetData?.teams || []}
+                selectedTeamId={selectedTeamId}
+                onTeamChange={setSelectedTeamId}
+                isLoading={teamFleetLoading}
+              />
+
+              <FleetSearchBox
+                value={searchTerm}
+                onChange={setSearchTerm}
+                disabled={!selectedTeamId}
+              />
+
+              <FleetSummary
+                selectedTeam={selectedTeam}
+                selectedTeamId={selectedTeamId}
+                equipmentLocations={filteredLocations}
+                totalEquipmentCount={teamFleetData?.totalEquipmentCount || 0}
+                totalLocatedCount={teamFleetData?.totalLocatedCount || 0}
+              />
+            </div>
+
+            {/* Map placeholder */}
+            <div className="lg:col-span-3">
+              <Card>
+                <CardContent className="p-0">
+                  <div className="h-[600px] w-full bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center">
+                    <div className="text-center space-y-4">
+                      <MapPin className="h-12 w-12 text-muted-foreground/50 mx-auto" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-muted-foreground">No Results</h3>
+                        <p className="text-sm text-muted-foreground">
+                          No equipment matches your search criteria. Try adjusting your search terms.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Render map with location data
     return (
       <div className="space-y-6">
         <div>
@@ -256,13 +412,29 @@ const FleetMap: React.FC = () => {
 
           {/* Map */}
           <div className="lg:col-span-3">
-            <FleetMapErrorBoundary>
+            {googleMapsKey && filteredHasLocationData ? (
               <MapView
                 googleMapsKey={googleMapsKey}
                 equipmentLocations={equipmentLocations}
                 filteredLocations={filteredLocations}
               />
-            </FleetMapErrorBoundary>
+            ) : (
+              <Card>
+                <CardContent className="p-0">
+                  <div className="h-[600px] w-full bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center">
+                    <div className="text-center space-y-4">
+                      <MapPin className="h-12 w-12 text-muted-foreground/50 mx-auto" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-muted-foreground">Loading Map...</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Preparing to display equipment locations
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
