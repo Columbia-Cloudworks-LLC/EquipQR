@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, ExternalLink, Clock, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDate, getRelativeTime } from '@/utils/basicDateFormatter';
+import { logger } from '@/utils/logger';
 
 interface EquipmentLocation {
   id: string;
@@ -38,6 +39,14 @@ const defaultCenter = {
   lng: -98.5795 // Center of USA
 };
 
+const MAP_OPTIONS = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: true,
+  fullscreenControl: true,
+};
+
 // Stabilize libraries prop to prevent re-initialization
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ["places"];
 
@@ -56,23 +65,26 @@ export const MapView: React.FC<MapViewProps> = ({
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
-  console.log('[MapView] Component rendered:', {
-    hasGoogleMapsKey: !!googleMapsKey,
-    googleMapsKeyLength: googleMapsKey?.length || 0,
-    isMapsLoaded,
-    mapsLoadError: mapsLoadError?.message,
-    filteredLocationsCount: filteredLocations.length
-  });
+  if (import.meta.env.DEV) {
+    logger.debug('[MapView] Component rendered', {
+      hasGoogleMapsKey: !!googleMapsKey,
+      googleMapsKeyLength: googleMapsKey?.length || 0,
+      isMapsLoaded,
+      mapsLoadError: mapsLoadError?.message,
+      filteredLocationsCount: filteredLocations.length
+    });
+  }
 
   // Calculate map center based on equipment locations
   const mapCenter = useMemo(() => {
-    if (filteredLocations.length === 0) return defaultCenter;
-    
-    const avgLat = filteredLocations.reduce((sum, loc) => sum + loc.lat, 0) / filteredLocations.length;
-    const avgLng = filteredLocations.reduce((sum, loc) => sum + loc.lng, 0) / filteredLocations.length;
-    
+    const locations = filteredLocations.length > 0 ? filteredLocations : equipmentLocations;
+    if (locations.length === 0) return defaultCenter;
+
+    const avgLat = locations.reduce((sum, loc) => sum + loc.lat, 0) / locations.length;
+    const avgLng = locations.reduce((sum, loc) => sum + loc.lng, 0) / locations.length;
+
     return { lat: avgLat, lng: avgLng };
-  }, [filteredLocations]);
+  }, [filteredLocations, equipmentLocations]);
 
   // Handle loading states
   if (!isMapsLoaded) {
@@ -103,13 +115,7 @@ export const MapView: React.FC<MapViewProps> = ({
       mapContainerStyle={mapContainerStyle}
       center={mapCenter}
       zoom={filteredLocations.length > 0 ? 6 : 4}
-      options={{
-        disableDefaultUI: false,
-        zoomControl: true,
-        streetViewControl: false,
-        mapTypeControl: true,
-        fullscreenControl: true,
-      }}
+      options={MAP_OPTIONS}
     >
       {/* Equipment Markers */}
       {filteredLocations.map((location) => (

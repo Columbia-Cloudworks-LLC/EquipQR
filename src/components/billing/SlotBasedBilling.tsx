@@ -12,14 +12,12 @@ import PurchaseLicensesButton from './PurchaseLicensesButton';
 
 interface SlotBasedBillingProps {
   storageUsedGB: number;
-  fleetMapEnabled: boolean;
   onPurchaseSlots: (quantity: number) => void;
   onUpgradeToMultiUser: () => void;
 }
 
 const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
-  storageUsedGB,
-  fleetMapEnabled
+  storageUsedGB
 }) => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
@@ -48,7 +46,7 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
     );
   }
 
-  const billing = calculateBilling({ members, slotAvailability: safeSlotAvailability, storageGB: storageUsedGB, fleetMapEnabled });
+  const billing = calculateBilling({ members, slotAvailability: safeSlotAvailability, storageGB: storageUsedGB, fleetMapEnabled: true });
   const slotStatus = getSlotStatus(safeSlotAvailability, billing.currentUsage.totalSlotsNeeded);
   const isFreeOrg = members.filter(m => m.status === 'active').length === 1 && safeSlotAvailability.total_purchased === 0;
 

@@ -20,7 +20,7 @@ export const useSmartAutoSave = <T>({
   const lastStorageDataRef = useRef<string>('');
 
   // Browser storage for backup
-  const { saveToStorage } = useBrowserStorage({
+  useBrowserStorage({
     key: storageKey,
     data,
     enabled
@@ -36,14 +36,10 @@ export const useSmartAutoSave = <T>({
   // Optimized save function
   const handleSave = useCallback(async () => {
     if (!hasDataChanged(data)) return;
-    
-    try {
-      await onSave(data);
-      lastSavedDataRef.current = structuredClone(data);
-      setHasChanges(false);
-    } catch (error) {
-      throw error;
-    }
+
+    await onSave(data);
+    lastSavedDataRef.current = structuredClone(data);
+    setHasChanges(false);
   }, [data, onSave, hasDataChanged]);
 
   // Auto-save with smart detection

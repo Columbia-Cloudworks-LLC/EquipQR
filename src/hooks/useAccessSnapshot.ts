@@ -37,7 +37,7 @@ export const useAccessSnapshot = () => {
 
       try {
         // Fallback to direct queries since RPC doesn't exist yet
-        console.log('Using direct queries for access snapshot');
+        // Using direct queries for access snapshot
         return await getFallbackAccessSnapshot(user.id);
       } catch (error) {
         console.error('Access snapshot queries failed:', error);

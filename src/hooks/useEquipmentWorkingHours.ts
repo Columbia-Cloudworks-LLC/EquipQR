@@ -2,8 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   getEquipmentWorkingHoursHistory, 
   getEquipmentCurrentWorkingHours,
-  updateEquipmentWorkingHours,
-  UpdateWorkingHoursData
+  updateEquipmentWorkingHours
 } from '@/services/equipmentWorkingHoursService';
 import { toast } from 'sonner';
 
@@ -42,8 +41,14 @@ export const useUpdateEquipmentWorkingHours = () => {
       queryClient.invalidateQueries({ 
         queryKey: ['equipment-current-working-hours', variables.equipmentId] 
       });
+      
+      // Invalidate all equipment queries - this will match:
+      // ['equipment', organizationId]
+      // ['equipment', organizationId, equipmentId]
+      // And any other equipment-related queries
       queryClient.invalidateQueries({ 
-        queryKey: ['equipment', variables.equipmentId] 
+        queryKey: ['equipment'],
+        exact: false
       });
     },
     onError: (error) => {

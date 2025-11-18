@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useUser } from '@/contexts/UserContext';
+import { useUser } from '@/contexts/useUser';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';

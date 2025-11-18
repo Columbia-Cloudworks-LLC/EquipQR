@@ -4,7 +4,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import MobileWorkOrderCard from '@/components/work-orders/MobileWorkOrderCard';
 import DesktopWorkOrderCard from '@/components/work-orders/DesktopWorkOrderCard';
 import { WorkOrdersEmptyState } from './WorkOrdersEmptyState';
-import { WorkOrderData } from '@/types/workOrder';
 import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
 
 interface WorkOrdersListProps {

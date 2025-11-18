@@ -8,12 +8,10 @@ import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { calculateBilling, isFreeOrganization } from '@/utils/billing';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import MemberTable from '@/components/billing/MemberTable';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const SimplifiedMemberBilling = () => {
   const { currentOrganization } = useSimpleOrganization();
   const { data: members = [], isLoading } = useOrganizationMembers(currentOrganization?.id || '');
-  const _isMobile = useIsMobile();
 
   const userRole = currentOrganization?.userRole;
   const canManageBilling = ['owner', 'admin'].includes(userRole || '');
@@ -28,7 +26,7 @@ const SimplifiedMemberBilling = () => {
     );
   }
 
-  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
+  const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: true });
   const isFree = isFreeOrganization(members);
 
   return (

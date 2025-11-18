@@ -1,15 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Download, BarChart3, FileText } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { BarChart3, FileText } from 'lucide-react';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useSyncEquipmentByOrganization, useSyncWorkOrdersByOrganization, useSyncDashboardStats } from '@/services/syncDataService';
 import ReportFilters from '@/components/reports/ReportFilters';

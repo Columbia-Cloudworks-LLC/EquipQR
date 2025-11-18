@@ -1,5 +1,6 @@
 import { format, formatInTimeZone } from 'date-fns-tz';
 import { UserSettings } from '@/types/settings';
+import { logger } from '@/utils/logger';
 
 export const formatDateInUserSettings = (
   date: Date | string,
@@ -19,7 +20,7 @@ export const formatDateInUserSettings = (
     return formatInTimeZone(dateObj, settings.timezone, formatPattern);
   } catch (error) {
     // Fallback to default formatting if timezone or format fails
-    console.warn('Date formatting failed, using fallback:', error);
+    logger.warn('Date formatting failed, using fallback', error);
     return format(dateObj, formatPattern);
   }
 };
@@ -34,7 +35,7 @@ export const formatTimeInUserSettings = (
   try {
     return formatInTimeZone(dateObj, settings.timezone, timePattern);
   } catch (error) {
-    console.warn('Time formatting failed, using fallback:', error);
+    logger.warn('Time formatting failed, using fallback', error);
     return format(dateObj, timePattern);
   }
 };
@@ -55,7 +56,7 @@ export const formatRelativeDate = (
     const dayPattern = 'EEE h:mm a'; // Default to 12-hour format
     try {
       return formatInTimeZone(dateObj, settings.timezone, dayPattern);
-    } catch (error) {
+    } catch {
       return format(dateObj, dayPattern);
     }
   } else {

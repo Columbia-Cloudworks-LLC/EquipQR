@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, MoreVertical, UserMinus, Mail, Calendar, Users } from "lucide-react";
+import { Search, MoreVertical, UserMinus, Users } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDebouncedSearch } from "@/hooks/useDebounced";
 import { useUpdateMemberRole, useRemoveMember, type RealOrganizationMember } from "@/hooks/useOptimizedOrganizationMembers";
@@ -247,19 +247,6 @@ export default function OptimizedMembersList({
     members.filter(m => m.role === 'owner').length, 
     [members]
   );
-
-  // Permission checks
-  const canEditMember = useCallback((member: RealOrganizationMember): boolean => {
-    if (currentUserRole === 'owner') return true;
-    if (currentUserRole === 'admin' && member.role !== 'owner') return true;
-    return false;
-  }, [currentUserRole]);
-
-  const canRemoveMember = useCallback((member: RealOrganizationMember): boolean => {
-    if (currentUserRole === 'owner' && member.role !== 'owner') return true;
-    if (currentUserRole === 'admin' && member.role === 'member') return true;
-    return false;
-  }, [currentUserRole]);
 
   const isLastOwner = useCallback((member: RealOrganizationMember): boolean => {
     return member.role === 'owner' && ownerCount === 1;

@@ -73,7 +73,7 @@ export const useQRRedirectWithOrgSwitch = ({
 
       // Check if we need to switch organizations
       if (!currentOrg || currentOrg.id !== equipmentInfo.organizationId) {
-        console.log('🔄 Need to switch organization from', currentOrg?.id, 'to', equipmentInfo.organizationId);
+        // Need to switch organization
         
         // Check if user has multiple organizations
         const hasMultipleOrgs = await checkUserHasMultipleOrganizations();
@@ -166,7 +166,7 @@ export const useQRRedirectWithOrgSwitch = ({
     try {
       setIsSwitchingOrg(true);
       
-      console.log('🔄 Switching to organization:', state.equipmentInfo.organizationId);
+      // Switching to organization
       
       await switchOrganization(state.equipmentInfo.organizationId);
       
@@ -190,17 +190,10 @@ export const useQRRedirectWithOrgSwitch = ({
     }
   };
 
-  const handleProceed = () => {
-    if (state.targetPath && onComplete) {
-      onComplete(state.targetPath);
-    }
-  };
-
   return {
     state,
     isSwitchingOrg,
     handleOrgSwitch,
-    handleProceed,
     retry: checkEquipmentOrganization
   };
 };

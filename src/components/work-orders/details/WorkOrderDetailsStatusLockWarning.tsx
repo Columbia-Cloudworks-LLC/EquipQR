@@ -4,13 +4,15 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { workOrderRevertService } from '@/services/workOrderRevertService';
+import { logger } from '@/utils/logger';
+import type { WorkOrderLike } from '@/utils/workOrderTypeConversion';
 
 interface WorkOrderDetailsStatusLockWarningProps {
-  workOrder: any;
+  workOrder: Pick<WorkOrderLike, 'id' | 'status'>;
   isWorkOrderLocked: boolean;
   baseCanAddNotes: boolean;
   isAdmin?: boolean;
-  onStatusUpdate?: (newStatus: string) => void;
+  onStatusUpdate?: (newStatus: WorkOrderLike['status']) => void;
 }
 
 export const WorkOrderDetailsStatusLockWarning: React.FC<WorkOrderDetailsStatusLockWarningProps> = ({
@@ -45,6 +47,7 @@ export const WorkOrderDetailsStatusLockWarning: React.FC<WorkOrderDetailsStatusL
         });
       }
     } catch (error) {
+      logger.error('Failed to revert work order status', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",

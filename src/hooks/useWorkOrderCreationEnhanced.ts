@@ -3,10 +3,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { createWorkOrder } from '@/services/supabaseDataService';
-import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
 import { createPM } from '@/services/preventativeMaintenanceService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 export interface EnhancedCreateWorkOrderData {
   title: string;
@@ -25,7 +25,6 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const initializePMChecklist = useInitializePMChecklist();
 
   return useMutation({
     mutationFn: async (data: EnhancedCreateWorkOrderData) => {
@@ -48,7 +47,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
       }
 
       // Create the work order
-      const workOrderData = {
+const workOrderData = {
         title: data.title,
         description: data.description,
         equipment_id: data.equipmentId,
@@ -66,7 +65,8 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
         is_historical: false,
         historical_start_date: null,
         historical_notes: null,
-        created_by_admin: null
+        created_by_admin: null,
+        equipment_working_hours_at_creation: data.equipmentWorkingHours || null
       };
 
       const workOrder = await createWorkOrder(currentOrganization.id, workOrderData);
@@ -89,11 +89,12 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
           });
 
           if (error) {
-            console.error('Failed to update equipment working hours:', error);
+            logger.error('Failed to update equipment working hours', error);
             toast.error('Work order created but failed to update equipment hours');
           }
         } catch (error) {
-          console.error('Error updating equipment working hours:', error);
+          logger.error('Error updating equipment working hours', error);
+          toast.error('Work order created but failed to update equipment hours');
         }
       }
 
@@ -127,7 +128,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
             templateId: data.pmTemplateId
           });
         } catch (error) {
-          console.error('Failed to create PM for equipment:', error);
+          logger.error('Failed to create PM for equipment', error);
           toast.error('Work order created but PM initialization failed');
         }
       }
@@ -151,7 +152,7 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
       }
     },
     onError: (error) => {
-      console.error('Error creating work order:', error);
+      logger.error('Error creating work order', error);
       toast.error('Failed to create work order');
     },
   });

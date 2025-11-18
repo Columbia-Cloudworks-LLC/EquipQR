@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Bell, Settings, Users } from 'lucide-react';
 import { 
   useUserTeamsForNotifications, 
@@ -12,7 +11,6 @@ import {
   type UserTeamForNotifications,
   type NotificationSetting
 } from '@/hooks/useNotificationSettings';
-import { toast } from 'sonner';
 
 const WORK_ORDER_STATUSES = [
   { value: 'submitted', label: 'Submitted' },

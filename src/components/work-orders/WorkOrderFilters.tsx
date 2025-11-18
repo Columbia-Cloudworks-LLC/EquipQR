@@ -51,6 +51,29 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
           />
         </div>
 
+        {/* Quick Filters */}
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[
+            { label: 'My Work', value: 'my-work' },
+            { label: 'Urgent', value: 'urgent' },
+            { label: 'Overdue', value: 'overdue' },
+            { label: 'Unassigned', value: 'unassigned' }
+          ].map((preset) => (
+            <Button
+              key={preset.value}
+              size="sm"
+              variant="outline"
+              className="whitespace-nowrap"
+              onClick={() => {
+                onQuickFilter(preset.value);
+                onShowMobileFiltersChange(false);
+              }}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+
         {/* Filter Button with Active Count */}
         <div className="flex gap-2">
           <Sheet open={showMobileFilters} onOpenChange={onShowMobileFiltersChange}>
@@ -260,7 +283,25 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
               </SelectContent>
             </Select>
           </div>
-          
+
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: 'My Work', value: 'my-work' },
+              { label: 'Urgent', value: 'urgent' },
+              { label: 'Overdue', value: 'overdue' },
+              { label: 'Unassigned', value: 'unassigned' }
+            ].map((preset) => (
+              <Button
+                key={preset.value}
+                size="sm"
+                variant="outline"
+                onClick={() => onQuickFilter(preset.value)}
+              >
+                {preset.label}
+              </Button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <Select value={filters.assigneeFilter} onValueChange={(value) => onFilterChange('assigneeFilter', value)}>
               <SelectTrigger>

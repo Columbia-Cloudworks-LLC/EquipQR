@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { z } from 'zod';
 import {
   Dialog,
@@ -181,6 +181,12 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
             Your request will be submitted for review and will be automatically assigned to an appropriate admin for processing.
           </AlertDescription>
         </Alert>
+
+        {assignmentData.organizationAdmins.length > 0 && (
+          <div className="text-xs text-muted-foreground">
+            Notifications will be sent to: {assignmentData.organizationAdmins.map(admin => admin.name).join(', ')}
+          </div>
+        )}
 
         <div className="space-y-6">
           <Card>
