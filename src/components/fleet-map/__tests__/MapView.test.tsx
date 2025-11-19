@@ -33,12 +33,19 @@ vi.mock('@/utils/logger', () => ({
 }));
 
 // Mock window.google.maps for icon creation
+interface GoogleMapsMock {
+  maps: {
+    Size: (width: number, height: number) => { width: number; height: number };
+    Point: (x: number, y: number) => { x: number; y: number };
+  };
+}
+
 global.window.google = {
   maps: {
     Size: vi.fn((width: number, height: number) => ({ width, height })),
     Point: vi.fn((x: number, y: number) => ({ x, y })),
   },
-} as any;
+} as unknown as GoogleMapsMock;
 
 describe('MapView', () => {
   const mockEquipmentLocations = [

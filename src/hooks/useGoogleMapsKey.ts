@@ -36,18 +36,15 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
         }
       );
       
-      console.log('[FleetMap] Edge function response:', { 
-        data: JSON.stringify(data), 
-        error, 
-        hasData: !!data, 
-        hasError: !!error,
-        dataKeys: data ? Object.keys(data) : []
-      });
-      
       if (error) {
         console.error('[FleetMap] Edge function error object:', error);
         // Extract error message from various possible locations
-        const errorMsg = error.message || (error as any)?.error || JSON.stringify(error);
+        interface ErrorWithError {
+          message?: string;
+          error?: string;
+        }
+        const errorWithError = error as ErrorWithError;
+        const errorMsg = error.message || errorWithError.error || JSON.stringify(error);
         throw new Error(`Edge function failed: ${errorMsg}`);
       }
       

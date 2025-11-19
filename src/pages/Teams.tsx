@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Users, Plus, Search, Settings, UserCheck, Eye, Wrench } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useTeams, type Team } from '@/hooks/useTeams';
+import { useTeams } from '@/hooks/useTeams';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useNavigate } from 'react-router-dom';
 import CreateTeamDialog from '@/components/teams/CreateTeamDialog';
