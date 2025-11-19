@@ -1,5 +1,14 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { EquipmentService } from '../EquipmentService';
+
+// Mock the supabase client
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: vi.fn()
+  }
+}));
+
+const { supabase } = await import('@/integrations/supabase/client');
 
 describe('EquipmentService', () => {
   let service: EquipmentService;
@@ -11,6 +20,19 @@ describe('EquipmentService', () => {
 
   describe('getAll', () => {
     it('should fetch all equipment successfully', async () => {
+      const mockEquipment = [
+        { id: 'eq-1', name: 'Equipment 1', organization_id: 'test-org', status: 'active' },
+        { id: 'eq-2', name: 'Equipment 2', organization_id: 'test-org', status: 'maintenance' }
+      ];
+
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
       const result = await service.getAll();
       
       expect(result.success).toBe(true);
@@ -19,6 +41,18 @@ describe('EquipmentService', () => {
     });
 
     it('should filter equipment by status', async () => {
+      const mockEquipment = [
+        { id: 'eq-1', name: 'Equipment 1', organization_id: 'test-org', status: 'active' }
+      ];
+
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
       const result = await service.getAll({ status: 'active' });
       
       expect(result.success).toBe(true);
@@ -27,6 +61,19 @@ describe('EquipmentService', () => {
 
     it('should filter equipment by location', async () => {
       const location = 'Warehouse A';
+      const mockEquipment = [
+        { id: 'eq-1', name: 'Equipment 1', organization_id: 'test-org', location }
+      ];
+
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        ilike: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
       const result = await service.getAll({ location });
       
       expect(result.success).toBe(true);
@@ -34,6 +81,19 @@ describe('EquipmentService', () => {
     });
 
     it('should apply pagination correctly', async () => {
+      const mockEquipment = [
+        { id: 'eq-1', name: 'Equipment 1', organization_id: 'test-org' }
+      ];
+
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        range: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
       const result = await service.getAll({}, { page: 1, limit: 2 });
       
       expect(result.success).toBe(true);
@@ -43,6 +103,16 @@ describe('EquipmentService', () => {
 
   describe('getById', () => {
     it('should fetch equipment by id successfully', async () => {
+      const mockEquipment = { id: 'eq-1', name: 'Equipment 1', organization_id: 'test-org' };
+
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
       const result = await service.getById('eq-1');
       
       expect(result.success).toBe(true);
@@ -51,6 +121,14 @@ describe('EquipmentService', () => {
     });
 
     it('should handle non-existent equipment', async () => {
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } })
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
       const result = await service.getById('non-existent');
       
       expect(result.success).toBe(false);
@@ -71,6 +149,16 @@ describe('EquipmentService', () => {
         warranty_expiration: '2025-01-01',
         last_maintenance: '2024-01-01'
       };
+
+      const mockEquipment = { id: 'eq-new', ...equipmentData, organization_id: 'test-org' };
+
+      const mockQuery = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await service.create(equipmentData);
       
@@ -113,6 +201,17 @@ describe('EquipmentService', () => {
         status: 'maintenance' as const
       };
 
+      const mockEquipment = { id: 'eq-1', ...updateData, organization_id: 'test-org' };
+
+      const mockQuery = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
       const result = await service.update('eq-1', updateData);
       
       expect(result.success).toBe(true);
@@ -121,6 +220,15 @@ describe('EquipmentService', () => {
     });
 
     it('should handle non-existent equipment update', async () => {
+      const mockQuery = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } })
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
       const result = await service.update('non-existent', { name: 'Updated' });
       
       expect(result.success).toBe(false);
@@ -130,6 +238,17 @@ describe('EquipmentService', () => {
 
   describe('delete', () => {
     it('should delete equipment successfully', async () => {
+      const mockQuery = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis()
+      };
+      
+      // The second eq() call should resolve with no error
+      mockQuery.eq.mockReturnValueOnce(mockQuery);
+      mockQuery.eq.mockResolvedValueOnce({ data: null, error: null });
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
       const result = await service.delete('eq-1');
       
       expect(result.success).toBe(true);
@@ -137,6 +256,13 @@ describe('EquipmentService', () => {
     });
 
     it('should handle non-existent equipment deletion', async () => {
+      const mockQuery = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } })
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
       const result = await service.delete('non-existent');
       
       expect(result.success).toBe(false);
@@ -146,6 +272,20 @@ describe('EquipmentService', () => {
 
   describe('getStatusCounts', () => {
     it('should return status counts', async () => {
+      const mockEquipment = [
+        { status: 'active' },
+        { status: 'active' },
+        { status: 'maintenance' },
+        { status: 'inactive' }
+      ];
+
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
       const result = await service.getStatusCounts();
       
       expect(result.success).toBe(true);
