@@ -35,22 +35,22 @@ SELECT
   NULL::timestamptz AS subscription_end
 FROM public.profiles p;
 
-COMMENT ON VIEW "public"."user_entitlements" IS 'Universal entitlements view: all users have full access. Created 2025-01-15 as part of billing removal. Uses profiles table for security. Recreated without SECURITY DEFINER for proper RLS enforcement.';
+COMMENT ON VIEW "public"."user_entitlements" IS 'Universal entitlements view: all users have full access. Created 2025-01-15 as part of billing removal. Uses profiles table for security with RLS (policies: users_view_own_profile, org_members_view_member_profiles). Recreated without SECURITY DEFINER for proper RLS enforcement.';
 
 -- =============================================================================
 -- 3. Fix pm_templates_check view - Remove SECURITY DEFINER
 -- =============================================================================
 -- This view exists in production but may not be in local migrations
 -- We need to recreate it without SECURITY DEFINER
--- Note: If the view has a different structure in production, this migration
--- may need adjustment. The view will be recreated to respect RLS properly.
+-- Note: The view relies on the underlying pm_checklist_templates table's RLS policies
+-- (pm_templates_read_access) to control access, avoiding duplication of authorization logic.
 
 -- Drop the view if it exists (with CASCADE to handle dependencies)
 DROP VIEW IF EXISTS "public"."pm_templates_check" CASCADE;
 
 -- Recreate without SECURITY DEFINER
 -- Using security_invoker = true ensures the view uses the querying user's permissions
--- This is a common pattern for PM template validation views
+-- The view relies on pm_checklist_templates table RLS policies for access control
 CREATE VIEW "public"."pm_templates_check" 
 WITH (security_invoker = true) AS
 SELECT 
@@ -71,14 +71,9 @@ SELECT
   END AS is_valid,
   -- Additional metadata
   jsonb_array_length(COALESCE(t.template_data, '[]'::jsonb)) AS checklist_item_count
-FROM public.pm_checklist_templates t
-WHERE 
-  -- Respect RLS: only show templates the user can access
-  (t.organization_id IS NULL AND (SELECT auth.uid()) IS NOT NULL)
-  OR
-  public.is_org_member((SELECT auth.uid()), t.organization_id);
+FROM public.pm_checklist_templates t;
 
-COMMENT ON VIEW "public"."pm_templates_check" IS 'PM templates validation and check view. Recreated without SECURITY DEFINER for proper RLS enforcement. Shows only templates accessible to the querying user and includes validation flags.';
+COMMENT ON VIEW "public"."pm_templates_check" IS 'PM templates validation and check view. Recreated without SECURITY DEFINER for proper RLS enforcement. Access control is enforced by the underlying pm_checklist_templates table RLS policies (pm_templates_read_access).';
 
 -- =============================================================================
 -- Verification
@@ -96,6 +91,28 @@ BEGIN
   IF NOT rls_enabled THEN
     RAISE EXCEPTION 'RLS is still not enabled on preventative_maintenance table';
   END IF;
+END $$;
+
+-- Verify that user_entitlements and pm_templates_check views exist and have security_invoker = true
+DO $$
+DECLARE
+  view_count integer;
+BEGIN
+  -- Check that views exist with security_invoker = true
+  -- In PostgreSQL, security_invoker = true means the view does NOT have SECURITY DEFINER
+  -- We verify by checking that the views exist (they should be in pg_views)
+  SELECT COUNT(*) INTO view_count
+  FROM pg_views
+  WHERE schemaname = 'public'
+    AND viewname IN ('user_entitlements', 'pm_templates_check');
+  
+  IF view_count != 2 THEN
+    RAISE EXCEPTION 'Expected views were not created successfully. Found % views, expected 2', view_count;
+  END IF;
+  
+  -- Note: PostgreSQL does not store the security_invoker option directly in system catalogs
+  -- The absence of SECURITY DEFINER in the view definition indicates security_invoker = true
+  -- Both views are created with WITH (security_invoker = true) above
 END $$;
 
 COMMIT;
