@@ -6,10 +6,6 @@ import { describe, it, expect } from 'vitest';
 
 describe('supabase client', () => {
   it('should validate environment variables are present', () => {
-    // Test the validation logic that would throw at module load
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-    const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
     // Simulate the validation logic from client.ts lines 8-12
     const validateEnvVars = (url: string | undefined, key: string | undefined) => {
       if (!url || !key) {

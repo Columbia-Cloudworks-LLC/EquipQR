@@ -735,7 +735,7 @@ describe('SignUpForm', () => {
       
       // Set prefillEmail back to test@example.com - should not update since different
       // Then set it to manual@example.com - should not trigger update since it matches
-      const { rerender } = render(
+      render(
         <SignUpForm 
           {...defaultProps} 
           prefillEmail="manual@example.com"

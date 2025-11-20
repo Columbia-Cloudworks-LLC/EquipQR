@@ -1,18 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { BILLING_DISABLED, FeatureFlags, isBillingEnabled, isBillingDisabled } from './flags';
 
 describe('flags', () => {
-  let originalEnv: typeof import.meta.env;
-
-  beforeEach(() => {
-    // Save original env
-    originalEnv = { ...import.meta.env };
-  });
-
-  afterEach(() => {
-    // Restore original env
-    Object.assign(import.meta.env, originalEnv);
-  });
 
   it('should have FeatureFlags.billing.disabled matching BILLING_DISABLED', () => {
     expect(FeatureFlags.billing.disabled).toBe(BILLING_DISABLED);
