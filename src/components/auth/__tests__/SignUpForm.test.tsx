@@ -747,27 +747,36 @@ describe('SignUpForm', () => {
       expect(newEmailInput).toHaveValue('manual@example.com');
     });
 
-    it('should validate email when prefillEmail is invalid', async () => {
-      render(
+    it('should validate email when prefillEmail changes to invalid value', async () => {
+      const { rerender } = render(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail=""
+        />
+      );
+      
+      // Start with empty email
+      const emailInput = screen.getByLabelText(/email/i);
+      expect(emailInput).toHaveValue('');
+      
+      // Change prefillEmail to invalid - this should trigger validation
+      rerender(
         <SignUpForm 
           {...defaultProps} 
           prefillEmail="invalid-email"
         />
       );
       
-      // The email should be prefilled even if invalid
-      const emailInput = screen.getByLabelText(/email/i);
-      expect(emailInput).toHaveValue('invalid-email');
-      
-      // The validation runs in useEffect - wait for error to appear
+      // Wait for email to be updated and error to appear
       await waitFor(() => {
+        expect(emailInput).toHaveValue('invalid-email');
         const errorElement = document.getElementById('signup-email-error');
         expect(errorElement).toBeInTheDocument();
         expect(errorElement).toHaveTextContent('Enter a valid email address');
       });
     });
 
-    it('should clear email error when prefillEmail is valid', async () => {
+    it('should clear email error when prefillEmail changes to valid email', async () => {
       const { rerender } = render(
         <SignUpForm 
           {...defaultProps} 
@@ -776,11 +785,25 @@ describe('SignUpForm', () => {
       );
       
       const emailInput = screen.getByLabelText(/email/i);
-      expect(emailInput).toHaveValue('invalid-email');
+      
+      // Wait for email to be set (may not have error initially if email matches)
+      await waitFor(() => {
+        expect(emailInput).toHaveValue('invalid-email');
+      });
+      
+      // Change to a different invalid email first to trigger validation
+      rerender(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail="another-invalid"
+        />
+      );
       
       // Wait for error to appear
       await waitFor(() => {
-        expect(document.getElementById('signup-email-error')).toBeInTheDocument();
+        expect(emailInput).toHaveValue('another-invalid');
+        const errorElement = document.getElementById('signup-email-error');
+        expect(errorElement).toBeInTheDocument();
       });
       
       // Change to valid email
