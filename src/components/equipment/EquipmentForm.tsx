@@ -10,7 +10,7 @@ import {
 import { Form } from "@/components/ui/form";
 import CustomAttributesSection from './CustomAttributesSection';
 import { useCustomAttributes, type CustomAttribute } from '@/hooks/useCustomAttributes';
-import { useEquipmentForm } from '@/hooks/useEquipmentForm';
+import { useEquipmentForm } from './hooks/useEquipmentForm';
 import { type EquipmentRecord } from '@/types/equipment';
 import EquipmentBasicInfoSection from './form/EquipmentBasicInfoSection';
 import EquipmentStatusLocationSection from './form/EquipmentStatusLocationSection';

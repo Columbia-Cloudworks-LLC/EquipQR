@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useSimpleOrganization } from './useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface SuperAdminAccess {
   isSuperAdmin: boolean;
@@ -13,7 +13,7 @@ interface SuperAdminAccess {
  * specified by VITE_SUPER_ADMIN_ORG_ID environment variable
  */
 export function useSuperAdminAccess(): SuperAdminAccess {
-  const { currentOrganization, isLoading } = useSimpleOrganization();
+  const { currentOrganization, isLoading } = useOrganization();
   
   const superAdminOrgId = import.meta.env.VITE_SUPER_ADMIN_ORG_ID || null;
   

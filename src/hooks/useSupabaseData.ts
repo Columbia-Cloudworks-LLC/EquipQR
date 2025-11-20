@@ -4,6 +4,7 @@ import * as supabaseService from '@/services/supabaseDataService';
 import { toast } from '@/hooks/use-toast';
 
 // Equipment hooks
+// @deprecated Use useEquipment from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
 export const useEquipmentByOrganization = (organizationId?: string) => {
   return useQuery({
     queryKey: ['equipment', organizationId],
@@ -13,6 +14,7 @@ export const useEquipmentByOrganization = (organizationId?: string) => {
   });
 };
 
+// @deprecated Use useEquipmentById from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
 export const useEquipmentById = (organizationId: string, equipmentId?: string) => {
   return useQuery({
     queryKey: ['equipment', organizationId, equipmentId],
@@ -177,6 +179,7 @@ export const useUpdateWorkOrderStatus = (organizationId: string) => {
   });
 };
 
+// @deprecated Use useCreateEquipment from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
 export const useCreateEquipment = (organizationId: string) => {
   const queryClient = useQueryClient();
 
@@ -293,6 +296,7 @@ export const useCreateNote = (organizationId: string) => {
   });
 };
 
+// @deprecated Use useUpdateEquipment from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
 export const useUpdateEquipment = (organizationId: string) => {
   const queryClient = useQueryClient();
 

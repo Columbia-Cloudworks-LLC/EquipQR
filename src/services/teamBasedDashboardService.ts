@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { getAccessibleEquipmentIds } from './teamBasedEquipmentService';
+import { getAccessibleEquipmentIds } from './EquipmentService';
 
 export interface TeamBasedDashboardStats {
   totalEquipment: number;

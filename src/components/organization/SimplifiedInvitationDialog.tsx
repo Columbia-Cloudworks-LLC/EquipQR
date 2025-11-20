@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCreateInvitation } from '@/hooks/useOrganizationInvitations';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 
 interface SimplifiedInvitationDialogProps {
@@ -32,7 +32,7 @@ export const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProp
 }) => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'admin' | 'member'>('member');
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const createInvitation = useCreateInvitation(currentOrganization?.id || '');
 
   const handleSubmit = async (e: React.FormEvent) => {

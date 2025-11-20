@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { TemplateAssignmentDialog } from '@/components/pm-templates/TemplateAssignmentDialog';
 import { PMChecklistItem } from '@/services/preventativeMaintenanceService';
 import { Copy, Download, Edit, Globe, ListTree, Lock, Shield, Wrench } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import { generateTemplatePreviewPDF } from '@/utils/templatePDF';
@@ -37,7 +37,7 @@ const PMTemplateView: React.FC = () => {
   const navigate = useNavigate();
   const { data: template, isLoading } = usePMTemplate(templateId);
   const cloneTemplate = useClonePMTemplate();
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { hasRole } = usePermissions();
   const { restrictions } = useSimplifiedOrganizationRestrictions();
 

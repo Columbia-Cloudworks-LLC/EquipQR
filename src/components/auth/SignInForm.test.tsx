@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import SignInForm from './SignInForm';
@@ -96,6 +96,26 @@ describe('SignInForm', () => {
     await user.click(submitButton);
 
     // Form validation should prevent submission
+    expect(mockSignIn).not.toHaveBeenCalled();
+  });
+
+  it('should validate email format and prevent submission with invalid email', async () => {
+    const user = userEvent.setup();
+    render(<SignInForm {...defaultProps} />);
+
+    const emailInput = screen.getByLabelText('Email');
+    const passwordInput = screen.getByLabelText('Password');
+    const submitButton = screen.getByRole('button', { name: 'Sign In' });
+
+    // Enter invalid email - native HTML5 validation will prevent submission
+    await user.type(emailInput, 'invalid-email');
+    await user.type(passwordInput, 'password123');
+    
+    // Try to submit - should be blocked by native validation
+    // The form won't submit with invalid email format
+    fireEvent.click(submitButton);
+    
+    // signIn should not be called due to HTML5 validation
     expect(mockSignIn).not.toHaveBeenCalled();
   });
 

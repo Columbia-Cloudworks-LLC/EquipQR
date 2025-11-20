@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface RestrictedBillingAccessProps {
   currentOrganizationName: string;
 }
 
 const RestrictedBillingAccess: React.FC<RestrictedBillingAccessProps> = () => {
-  const { organizations, switchOrganization } = useSimpleOrganization();
+  const { organizations, switchOrganization } = useOrganization();
   const navigate = useNavigate();
 
   // Find organizations where the user is an owner or admin

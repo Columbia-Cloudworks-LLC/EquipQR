@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteEquipmentCascade } from '@/services/deleteEquipmentService';
 import { useToast } from '@/hooks/use-toast';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 export const useDeleteEquipment = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
 
   return useMutation({
     mutationFn: ({ equipmentId, orgId }: { equipmentId: string; orgId: string }) => 

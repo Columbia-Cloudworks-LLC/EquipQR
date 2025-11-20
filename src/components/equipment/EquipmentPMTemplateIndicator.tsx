@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Wrench, X } from 'lucide-react';
 import { usePMTemplate } from '@/hooks/usePMTemplates';
-import { useRemoveTemplateFromEquipment } from '@/hooks/useEquipmentTemplateManagement';
+import { useRemoveTemplateFromEquipment } from './hooks/useEquipmentTemplateManagement';
 import { usePermissions } from '@/hooks/usePermissions';
 
 interface EquipmentPMTemplateIndicatorProps {

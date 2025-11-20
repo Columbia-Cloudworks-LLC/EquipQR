@@ -57,7 +57,6 @@ export const MapView: React.FC<MapViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const [selectedMarker, setSelectedMarker] = useState<EquipmentLocation | null>(null);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
 
   // Load Google Maps API - only called when googleMapsKey is available
   const { isLoaded: isMapsLoaded, loadError: mapsLoadError } = useJsApiLoader({
@@ -68,7 +67,6 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Handle map load
   const onMapLoad = React.useCallback((mapInstance: google.maps.Map) => {
-    setMap(mapInstance);
     if (import.meta.env.DEV) {
       logger.debug('[MapView] Map loaded successfully', {
         center: mapInstance.getCenter()?.toJSON(),
@@ -137,7 +135,6 @@ export const MapView: React.FC<MapViewProps> = ({
       zoom={filteredLocations.length > 0 ? 6 : 4}
       options={MAP_OPTIONS}
       onLoad={onMapLoad}
-      onUnmount={() => setMap(null)}
     >
       {/* Equipment Markers */}
       {filteredLocations.map((location) => {

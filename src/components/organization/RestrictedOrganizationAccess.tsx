@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ interface RestrictedOrganizationAccessProps {
 const RestrictedOrganizationAccess: React.FC<RestrictedOrganizationAccessProps> = ({
   currentOrganizationName
 }) => {
-  const { organizations, switchOrganization } = useSimpleOrganization();
+  const { organizations, switchOrganization } = useOrganization();
   const navigate = useNavigate();
 
   // Find organizations where user is an owner

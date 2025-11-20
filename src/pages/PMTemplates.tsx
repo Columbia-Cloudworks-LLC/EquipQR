@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import { usePMTemplates, usePMTemplate, useClonePMTemplate, useDeletePMTemplate } from '@/hooks/usePMTemplates';
@@ -191,7 +191,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
 const PMTemplates = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { hasRole } = usePermissions();
   const { restrictions } = useSimplifiedOrganizationRestrictions();
   const { data: templates, isLoading } = usePMTemplates();

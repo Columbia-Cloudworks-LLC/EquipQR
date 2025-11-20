@@ -4,9 +4,6 @@ import React from 'react';
 import Equipment from '@/pages/Equipment';
 import { render } from '@/test/utils/test-utils';
 
-vi.mock('@/hooks/useSimpleOrganization', () => ({
-  useSimpleOrganization: vi.fn(() => ({ currentOrganization: { id: 'org-1', name: 'Org 1' } })),
-}));
 
 vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: () => ({ 
@@ -16,21 +13,28 @@ vi.mock('@/hooks/usePermissions', () => ({
 }));
 
 // Mock filtering hook to control states
-vi.mock('@/hooks/useEquipmentFiltering', () => ({
+vi.mock('@/components/equipment/hooks/useEquipmentFiltering', () => ({
   useEquipmentFiltering: vi.fn(() => ({
     filters: { search: '', status: 'all' },
     sortConfig: { field: 'name', direction: 'asc' },
     showAdvancedFilters: false,
     filteredAndSortedEquipment: [],
+    paginatedEquipment: [],
     filterOptions: { manufacturers: [], locations: [], teams: [] },
     isLoading: false,
     hasActiveFilters: false,
     equipment: [],
+    currentPage: 1,
+    pageSize: 10,
+    totalPages: 0,
+    totalFilteredCount: 0,
     updateFilter: vi.fn(),
     updateSort: vi.fn(),
     clearFilters: vi.fn(),
     applyQuickFilter: vi.fn(),
     setShowAdvancedFilters: vi.fn(),
+    setCurrentPage: vi.fn(),
+    setPageSize: vi.fn(),
   })),
 }));
 
@@ -79,8 +83,12 @@ vi.mock('@/components/equipment/QRCodeDisplay', () => ({
   ),
 }));
 
-import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useEquipmentFiltering } from '@/components/equipment/hooks/useEquipmentFiltering';
+import { useOrganization } from '@/contexts/OrganizationContext';
+
+vi.mock('@/contexts/OrganizationContext', () => ({
+  useOrganization: vi.fn(() => ({ currentOrganization: { id: 'org-1', name: 'Org 1' } })),
+}));
 
 describe('Equipment page', () => {
   beforeEach(() => {
@@ -88,7 +96,7 @@ describe('Equipment page', () => {
   });
 
   it('shows message when no organization is selected', () => {
-    (useSimpleOrganization as ReturnType<typeof vi.fn>).mockReturnValue({ currentOrganization: null });
+    (useOrganization as ReturnType<typeof vi.fn>).mockReturnValue({ currentOrganization: null });
 
     // Ensure hook returns something minimal even when org null
     (useEquipmentFiltering as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -96,15 +104,22 @@ describe('Equipment page', () => {
       sortConfig: { field: 'name', direction: 'asc' },
       showAdvancedFilters: false,
       filteredAndSortedEquipment: [],
+      paginatedEquipment: [],
       filterOptions: { manufacturers: [], locations: [], teams: [] },
       isLoading: false,
       hasActiveFilters: false,
       equipment: [],
+      currentPage: 1,
+      pageSize: 10,
+      totalPages: 0,
+      totalFilteredCount: 0,
       updateFilter: vi.fn(),
       updateSort: vi.fn(),
       clearFilters: vi.fn(),
       applyQuickFilter: vi.fn(),
       setShowAdvancedFilters: vi.fn(),
+      setCurrentPage: vi.fn(),
+      setPageSize: vi.fn(),
     });
 
     render(<Equipment />);
@@ -114,21 +129,28 @@ describe('Equipment page', () => {
   });
 
   it('renders loading state', () => {
-    (useSimpleOrganization as ReturnType<typeof vi.fn>).mockReturnValue({ currentOrganization: { id: 'org-1', name: 'Org 1' } });
+    (useOrganization as ReturnType<typeof vi.fn>).mockReturnValue({ currentOrganization: { id: 'org-1', name: 'Org 1' } });
     (useEquipmentFiltering as ReturnType<typeof vi.fn>).mockReturnValue({
       filters: { search: '', status: 'all' },
       sortConfig: { field: 'name', direction: 'asc' },
       showAdvancedFilters: false,
       filteredAndSortedEquipment: [],
+      paginatedEquipment: [],
       filterOptions: { manufacturers: [], locations: [], teams: [] },
       isLoading: true,
       hasActiveFilters: false,
       equipment: [],
+      currentPage: 1,
+      pageSize: 10,
+      totalPages: 0,
+      totalFilteredCount: 0,
       updateFilter: vi.fn(),
       updateSort: vi.fn(),
       clearFilters: vi.fn(),
       applyQuickFilter: vi.fn(),
       setShowAdvancedFilters: vi.fn(),
+      setCurrentPage: vi.fn(),
+      setPageSize: vi.fn(),
     });
 
     render(<Equipment />);
@@ -136,28 +158,35 @@ describe('Equipment page', () => {
   });
 
   it('renders counts and opens form and QR modal', () => {
-    (useSimpleOrganization as ReturnType<typeof vi.fn>).mockReturnValue({ currentOrganization: { id: 'org-1', name: 'Org 1' } });
+    (useOrganization as ReturnType<typeof vi.fn>).mockReturnValue({ currentOrganization: { id: 'org-1', name: 'Org 1' } });
 
     (useEquipmentFiltering as ReturnType<typeof vi.fn>).mockReturnValue({
       filters: { search: '', status: 'all' },
       sortConfig: { field: 'name', direction: 'asc' },
       showAdvancedFilters: false,
       filteredAndSortedEquipment: [{ id: '1' }, { id: '2' }],
+      paginatedEquipment: [{ id: '1' }, { id: '2' }],
       filterOptions: { manufacturers: [], locations: [], teams: [] },
       isLoading: false,
       hasActiveFilters: false,
       equipment: [{ id: '1', name: 'Excavator' }, { id: '2', name: 'Bulldozer' }, { id: '3', name: 'Forklift' }],
+      currentPage: 1,
+      pageSize: 10,
+      totalPages: 1,
+      totalFilteredCount: 2,
       updateFilter: vi.fn(),
       updateSort: vi.fn(),
       clearFilters: vi.fn(),
       applyQuickFilter: vi.fn(),
       setShowAdvancedFilters: vi.fn(),
+      setCurrentPage: vi.fn(),
+      setPageSize: vi.fn(),
     });
 
     render(<Equipment />);
 
-    // The mock shows undefined values because the hook returns different structure
-    expect(screen.getByText('SortHeader resultCount= totalCount=3')).toBeInTheDocument();
+    // The mock shows the correct values now
+    expect(screen.getByText('SortHeader resultCount=2 totalCount=3')).toBeInTheDocument();
 
     // Open form
     fireEvent.click(screen.getByText('Add Equipment'));

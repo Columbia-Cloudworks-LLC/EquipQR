@@ -37,6 +37,7 @@ export interface DashboardStats {
 }
 
 // Equipment functions
+// @deprecated Use EquipmentService.getAll() instead. Will be removed in Phase 2.
 export const getEquipmentByOrganization = async (organizationId: string): Promise<Equipment[]> => {
   try {
     const { data, error } = await supabase
@@ -57,6 +58,7 @@ export const getEquipmentByOrganization = async (organizationId: string): Promis
   }
 };
 
+// @deprecated Use EquipmentService.getById() instead. Will be removed in Phase 2.
 export const getEquipmentById = async (organizationId: string, equipmentId: string): Promise<Equipment | undefined> => {
   try {
     const { data, error } = await supabase
@@ -494,6 +496,7 @@ export const updateWorkOrderStatus = async (
 };
 
 // Create equipment
+// @deprecated Use EquipmentService.create() instead. Will be removed in Phase 2.
 export const createEquipment = async (
   organizationId: string,
   equipmentData: Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>
@@ -611,6 +614,7 @@ export const createNote = async (
 };
 
 // Update equipment
+// @deprecated Use EquipmentService.update() instead. Will be removed in Phase 2.
 export const updateEquipment = async (
   organizationId: string,
   equipmentId: string,

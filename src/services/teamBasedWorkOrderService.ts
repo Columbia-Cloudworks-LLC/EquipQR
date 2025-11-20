@@ -2,7 +2,7 @@ import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
-import { getAccessibleEquipmentIds } from './teamBasedEquipmentService';
+import { getAccessibleEquipmentIds } from './EquipmentService';
 
 export interface TeamBasedWorkOrderFilters {
   status?: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled' | 'all';

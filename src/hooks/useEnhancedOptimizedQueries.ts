@@ -32,6 +32,7 @@ export const useEnhancedOptimizedWorkOrders = (organizationId?: string) => {
   return query;
 };
 
+// @deprecated Use useEquipment from '@/components/equipment/hooks/useEquipment' with enableBackgroundSync option instead. Will be removed in Phase 2.
 export const useEnhancedOptimizedEquipment = (organizationId?: string) => {
   const query = useOptimizedEquipment(organizationId);
   const { subscribeToOrganization } = useBackgroundSync();

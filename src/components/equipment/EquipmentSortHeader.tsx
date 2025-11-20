@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
-import { SortConfig } from '@/hooks/useEquipmentFiltering';
+import { SortConfig } from './hooks/useEquipmentFiltering';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface EquipmentSortHeaderProps {

@@ -680,6 +680,155 @@ describe('SignUpForm', () => {
     });
   });
 
+  describe('Email Prefilling', () => {
+    it('should prefill email when prefillEmail prop is provided', () => {
+      render(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail="prefilled@example.com"
+        />
+      );
+      
+      const emailInput = screen.getByLabelText(/email/i);
+      expect(emailInput).toHaveValue('prefilled@example.com');
+    });
+
+    it('should update email when prefillEmail prop changes', async () => {
+      const { rerender } = render(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail="first@example.com"
+        />
+      );
+      
+      const emailInput = screen.getByLabelText(/email/i);
+      expect(emailInput).toHaveValue('first@example.com');
+      
+      // Change prefillEmail prop
+      rerender(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail="second@example.com"
+        />
+      );
+      
+      await waitFor(() => {
+        expect(emailInput).toHaveValue('second@example.com');
+      });
+    });
+
+    it('should not update email if prefillEmail matches current email', async () => {
+      const user = userEvent.setup();
+      render(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail="test@example.com"
+        />
+      );
+      
+      const emailInput = screen.getByLabelText(/email/i);
+      expect(emailInput).toHaveValue('test@example.com');
+      
+      // User changes email manually
+      await user.clear(emailInput);
+      await user.type(emailInput, 'manual@example.com');
+      
+      // Set prefillEmail back to test@example.com - should not update since different
+      // Then set it to manual@example.com - should not trigger update since it matches
+      render(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail="manual@example.com"
+        />
+      );
+      
+      const newEmailInput = screen.getByLabelText(/email/i);
+      // Should still have the value (either from initial state or from manual input)
+      expect(newEmailInput).toHaveValue('manual@example.com');
+    });
+
+    it('should validate email when prefillEmail changes to invalid value', async () => {
+      const { rerender } = render(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail=""
+        />
+      );
+      
+      // Start with empty email
+      const emailInput = screen.getByLabelText(/email/i);
+      expect(emailInput).toHaveValue('');
+      
+      // Change prefillEmail to invalid - this should trigger validation
+      rerender(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail="invalid-email"
+        />
+      );
+      
+      // Wait for email to be updated and error to appear
+      await waitFor(() => {
+        expect(emailInput).toHaveValue('invalid-email');
+        const errorElement = document.getElementById('signup-email-error');
+        expect(errorElement).toBeInTheDocument();
+        expect(errorElement).toHaveTextContent('Enter a valid email address');
+      });
+    });
+
+    it('should clear email error when prefillEmail changes to valid email', async () => {
+      const { rerender } = render(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail="invalid-email"
+        />
+      );
+      
+      const emailInput = screen.getByLabelText(/email/i);
+      
+      // Wait for email to be set (may not have error initially if email matches)
+      await waitFor(() => {
+        expect(emailInput).toHaveValue('invalid-email');
+      });
+      
+      // Change to a different invalid email first to trigger validation
+      rerender(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail="another-invalid"
+        />
+      );
+      
+      // Wait for error to appear
+      await waitFor(() => {
+        expect(emailInput).toHaveValue('another-invalid');
+        const errorElement = document.getElementById('signup-email-error');
+        expect(errorElement).toBeInTheDocument();
+      });
+      
+      // Change to valid email
+      rerender(
+        <SignUpForm 
+          {...defaultProps} 
+          prefillEmail="valid@example.com"
+        />
+      );
+      
+      await waitFor(() => {
+        expect(emailInput).toHaveValue('valid@example.com');
+        // Error should be cleared
+        expect(document.getElementById('signup-email-error')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should not update if prefillEmail is not provided', () => {
+      render(<SignUpForm {...defaultProps} />);
+      
+      const emailInput = screen.getByLabelText(/email/i);
+      expect(emailInput).toHaveValue('');
+    });
+  });
+
   describe('Invitation-based Signup', () => {
     it('should show info banner when invitedOrgName is provided', () => {
       render(

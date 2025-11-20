@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTeam } from '@/hooks/useTeam';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAccessSnapshot } from './useAccessSnapshot';
 
 export interface TeamMember {
@@ -31,7 +31,7 @@ export interface Team {
 
 export const useTeams = () => {
   const { teamMemberships } = useTeam();
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { data: accessSnapshot, isLoading: isAccessLoading } = useAccessSnapshot();
 
   const { data: teams = [], isLoading, error } = useQuery({

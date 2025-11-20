@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamMembership } from '@/hooks/useTeamMembership';
 
 import { getTeamFleetData, TeamFleetData } from '@/services/teamFleetService';
@@ -9,7 +9,7 @@ import { getTeamFleetData, TeamFleetData } from '@/services/teamFleetService';
  * Only shows teams and equipment that the user has access to
  */
 export const useTeamFleetData = () => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
   
   const userTeamIds = getUserTeamIds();

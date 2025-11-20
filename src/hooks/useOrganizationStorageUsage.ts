@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { OptimizedOrganizationStorageService, type StorageUsage } from '@/services/optimizedOrganizationStorageService';
 
 export type { StorageUsage };
@@ -9,7 +9,7 @@ export type { StorageUsage };
  * Uses server-side aggregation and proper organization filtering
  */
 export const useOrganizationStorageUsage = (organizationId?: string) => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   
   // Use provided organizationId or fall back to current organization
   const targetOrgId = organizationId || currentOrganization?.id;
@@ -37,7 +37,7 @@ export const useOrganizationStorageUsage = (organizationId?: string) => {
  * Hook for getting detailed storage breakdown by type
  */
 export const useDetailedStorageBreakdown = (organizationId?: string) => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   
   // Use provided organizationId or fall back to current organization
   const targetOrgId = organizationId || currentOrganization?.id;
