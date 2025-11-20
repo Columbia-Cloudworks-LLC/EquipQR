@@ -1,50 +1,96 @@
-import { describe, it, expect } from 'vitest';
-import { formatDate, formatDateTime, getRelativeTime } from './basicDateFormatter';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { formatDateInUserSettings, formatTimeInUserSettings, formatRelativeDate } from './dateFormatter';
+import { UserSettings } from '@/types/settings';
+
+// Mock logger
+vi.mock('@/utils/logger', () => ({
+  logger: {
+    warn: vi.fn()
+  }
+}));
 
 describe('dateFormatter', () => {
-  describe('formatDate', () => {
-    it('formats date correctly', () => {
-      const date = '2023-12-25T10:30:00Z';
-      const formatted = formatDate(date);
-      expect(formatted).toMatch(/Dec 25, 2023/);
+  const mockSettings: UserSettings = {
+    timezone: 'America/New_York',
+    dateFormat: 'MM/dd/yyyy'
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('formatDateInUserSettings', () => {
+    it('formats date correctly without time', () => {
+      const date = new Date('2023-12-25T10:30:00Z');
+      const formatted = formatDateInUserSettings(date, mockSettings);
+      // Should format based on timezone and date format
+      expect(formatted).toMatch(/12\/25\/2023/);
     });
 
-    it('handles invalid date', () => {
-      const result = formatDate('invalid-date');
-      expect(result).toBe('Invalid date');
+    it('formats date correctly with time when includeTime is true', () => {
+      const date = new Date('2023-12-25T10:30:00Z');
+      const formatted = formatDateInUserSettings(date, mockSettings, true);
+      // Should include time pattern
+      expect(formatted).toMatch(/12\/25\/2023/);
+      expect(formatted).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/);
+    });
+
+    it('handles string date input', () => {
+      const dateString = '2023-12-25T10:30:00Z';
+      const formatted = formatDateInUserSettings(dateString, mockSettings);
+      expect(formatted).toMatch(/12\/25\/2023/);
+    });
+
+    it('handles different date formats', () => {
+      const date = new Date('2023-12-25T10:30:00Z');
+      const settingsDDMM: UserSettings = { ...mockSettings, dateFormat: 'dd/MM/yyyy' };
+      const formatted = formatDateInUserSettings(date, settingsDDMM);
+      expect(formatted).toMatch(/25\/12\/2023/);
     });
   });
 
-  describe('formatDateTime', () => {
-    it('formats date and time correctly', () => {
-      const date = '2023-12-25T10:30:00Z';
-      const formatted = formatDateTime(date);
-      expect(formatted).toMatch(/Dec 25, 2023/);
-      expect(formatted).toMatch(/\d{1,2}:\d{2}/);
+  describe('formatTimeInUserSettings', () => {
+    it('formats time correctly', () => {
+      const date = new Date('2023-12-25T14:30:00Z');
+      const formatted = formatTimeInUserSettings(date, mockSettings);
+      // Should format as 12-hour time with AM/PM
+      expect(formatted).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/);
     });
 
-    it('handles invalid date', () => {
-      const result = formatDateTime('invalid-date');
-      expect(result).toBe('Invalid date');
+    it('handles string date input', () => {
+      const dateString = '2023-12-25T14:30:00Z';
+      const formatted = formatTimeInUserSettings(dateString, mockSettings);
+      expect(formatted).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/);
     });
   });
 
-  describe('getRelativeTime', () => {
-    it('returns "just now" for very recent dates', () => {
-      const now = new Date();
-      const result = getRelativeTime(now.toISOString());
-      expect(result).toBe('just now');
+  describe('formatRelativeDate', () => {
+    it('formats time for dates less than 24 hours ago', () => {
+      const date = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours ago
+      const formatted = formatRelativeDate(date, mockSettings);
+      // Should return time format
+      expect(formatted).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/);
     });
 
-    it('returns relative time for past dates', () => {
-      const pastDate = new Date(Date.now() - 2 * 60 * 1000); // 2 minutes ago
-      const result = getRelativeTime(pastDate.toISOString());
-      expect(result).toMatch(/2 minutes ago/);
+    it('formats day and time for dates within a week', () => {
+      const date = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000); // 3 days ago
+      const formatted = formatRelativeDate(date, mockSettings);
+      // Should return day and time
+      expect(formatted).toMatch(/\w{3}\s+\d{1,2}:\d{2}\s+(AM|PM)/);
     });
 
-    it('handles invalid date', () => {
-      const result = getRelativeTime('invalid-date');
-      expect(result).toBe('Invalid date');
+    it('formats full date for dates more than a week ago', () => {
+      const date = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10 days ago
+      const formatted = formatRelativeDate(date, mockSettings);
+      // Should return full date format
+      expect(formatted).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/);
+    });
+
+    it('handles string date input', () => {
+      const dateString = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const formatted = formatRelativeDate(dateString, mockSettings);
+      expect(formatted).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/);
     });
   });
+});
 });
