@@ -52,6 +52,7 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
 
   return (data || []).map(note => ({
     ...note,
+    hours_worked: Number(note.hours_worked) || 0,
     author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
     images: (note.equipment_note_images || []).map((img: EquipmentNoteImage & { profiles?: { name?: string } }) => ({
       ...img,
@@ -100,8 +101,8 @@ export const createEquipmentNoteWithImages = async (
       equipment_id: equipmentId,
       author_id: userData.user.id,
       content,
-      hours_worked: hoursWorked,
-      is_private: isPrivate
+      hours_worked: Number(hoursWorked) || 0,
+      is_private: isPrivate || false
     })
     .select()
     .single();
