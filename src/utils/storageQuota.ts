@@ -60,15 +60,16 @@ export async function checkStorageQuota(
     }
 
     // Ensure all properties are defined with defaults
+    // result is guaranteed to be defined here (checked on line 49)
     const result = data as StorageQuotaCheck;
     return {
-      canUpload: result?.canUpload ?? true,
-      currentStorageGB: result?.currentStorageGB ?? 0,
-      maxStorageGB: result?.maxStorageGB ?? MAX_STORAGE_GB,
-      fileSizeMB: result?.fileSizeMB ?? (fileSizeBytes / (1024 * 1024)),
-      wouldExceed: result?.wouldExceed ?? false,
-      remainingGB: result?.remainingGB ?? MAX_STORAGE_GB,
-      usagePercent: result?.usagePercent ?? 0
+      canUpload: result.canUpload ?? true,
+      currentStorageGB: result.currentStorageGB ?? 0,
+      maxStorageGB: result.maxStorageGB ?? MAX_STORAGE_GB,
+      fileSizeMB: result.fileSizeMB ?? (fileSizeBytes / (1024 * 1024)),
+      wouldExceed: result.wouldExceed ?? false,
+      remainingGB: result.remainingGB ?? MAX_STORAGE_GB,
+      usagePercent: result.usagePercent ?? 0
     };
   } catch (error) {
     console.error('Failed to check storage quota:', error);

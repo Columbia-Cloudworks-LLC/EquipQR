@@ -89,10 +89,9 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
       const userName = user?.email?.split('@')[0] || 'User';
       let noteContent = '';
       if (files.length === 1) {
-        noteContent = `${userName} uploaded: ${files[0].name}`;
+        noteContent = `${userName} uploaded an image`;
       } else {
-        const fileNames = files.map(f => f.name).join(', ');
-        noteContent = `${userName} uploaded ${files.length} images: ${fileNames}`;
+        noteContent = `${userName} uploaded ${files.length} images`;
       }
       
       return createEquipmentNoteWithImages(
@@ -100,7 +99,8 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
         noteContent,
         0, // hoursWorked
         false, // isPrivate
-        files
+        files,
+        organizationId
       );
     },
     onSuccess: () => {
@@ -111,7 +111,7 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
         queryKey: ['equipment-notes-with-images', equipmentId]
       });
       setShowUploadForm(false);
-      toast.success('Images uploaded successfully');
+      // Removed duplicate success toast; ImageUploadWithNote already shows it
     },
     onError: (error) => {
       console.error('Error uploading images:', error);

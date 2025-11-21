@@ -113,10 +113,9 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
     if (!noteContent && files.length > 0) {
       const userName = user?.email?.split('@')[0] || 'User';
       if (files.length === 1) {
-        noteContent = `${userName} uploaded: ${files[0].name}`;
+        noteContent = `${userName} uploaded 1 image.`;
       } else {
-        const fileNames = files.map(f => f.name).join(', ');
-        noteContent = `${userName} uploaded ${files.length} images: ${fileNames}`;
+        noteContent = `${userName} uploaded ${files.length} images.`;
       }
     }
     
@@ -127,7 +126,7 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
     }
     
     await createNoteMutation.mutateAsync({
-      content: noteContent || 'Image upload',
+      content: noteContent,
       hoursWorked: Number(formData.hoursWorked) || 0,
       isPrivate: formData.isPrivate || false,
       images: files
