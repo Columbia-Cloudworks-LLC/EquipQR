@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentNotesPermissions } from './hooks/useEquipmentNotesPermissions';
 import ImageGallery from '@/components/common/ImageGallery';
+import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
 import { 
   getAllEquipmentImages, 
   deleteEquipmentImage, 
   updateEquipmentDisplayImage,
   EquipmentImageData 
 } from '@/services/equipmentImagesService';
+import { createEquipmentNoteWithImages } from '@/services/equipmentNotesService';
 import { toast } from 'sonner';
 
 interface EquipmentImagesTabProps {
@@ -29,6 +31,7 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const permissions = useEquipmentNotesPermissions(equipmentTeamId);
+  const [showUploadForm, setShowUploadForm] = useState(false);
 
   // Get user's role and team information
   const userRole = currentOrganization?.userRole || 'member';
@@ -80,6 +83,47 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
     }
   });
 
+  // Upload images mutation (creates a note with auto-generated content)
+  const uploadImagesMutation = useMutation({
+    mutationFn: async (files: File[]) => {
+      const userName = user?.email?.split('@')[0] || 'User';
+      let noteContent = '';
+      if (files.length === 1) {
+        noteContent = `${userName} uploaded: ${files[0].name}`;
+      } else {
+        const fileNames = files.map(f => f.name).join(', ');
+        noteContent = `${userName} uploaded ${files.length} images: ${fileNames}`;
+      }
+      
+      return createEquipmentNoteWithImages(
+        equipmentId,
+        noteContent,
+        0, // hoursWorked
+        false, // isPrivate
+        files
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['equipment-images', equipmentId]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['equipment-notes-with-images', equipmentId]
+      });
+      setShowUploadForm(false);
+      toast.success('Images uploaded successfully');
+    },
+    onError: (error) => {
+      console.error('Error uploading images:', error);
+      toast.error('Failed to upload images');
+    }
+  });
+
+  // Handle image upload
+  const handleUploadImages = async (files: File[]) => {
+    await uploadImagesMutation.mutateAsync(files);
+  };
+
   // Check if user can delete a specific image
   const canDeleteImage = (image: EquipmentImageData): boolean => {
     // Users can delete their own images
@@ -121,16 +165,39 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
   }
 
   return (
-    <ImageGallery
-      images={images}
-      onDelete={handleDeleteImage}
-      onSetDisplayImage={handleSetDisplayImage}
-      canDelete={canDeleteImage}
-      canSetDisplayImage={permissions.canSetDisplayImage}
-      currentDisplayImage={currentDisplayImage}
-      title="Equipment Images"
-      emptyMessage="No images found for this equipment. Images from equipment notes and work orders will appear here."
-    />
+    <div className="space-y-6">
+      {/* Upload Section */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Equipment Images</h2>
+        <button
+          onClick={() => setShowUploadForm(!showUploadForm)}
+          className="text-sm text-primary hover:underline"
+        >
+          {showUploadForm ? 'Cancel Upload' : 'Upload Images'}
+        </button>
+      </div>
+
+      {showUploadForm && (
+        <div className="border rounded-lg p-4">
+          <ImageUploadWithNote
+            onUpload={handleUploadImages}
+            disabled={uploadImagesMutation.isPending}
+          />
+        </div>
+      )}
+
+      {/* Image Gallery */}
+      <ImageGallery
+        images={images}
+        onDelete={handleDeleteImage}
+        onSetDisplayImage={handleSetDisplayImage}
+        canDelete={canDeleteImage}
+        canSetDisplayImage={permissions.canSetDisplayImage}
+        currentDisplayImage={currentDisplayImage}
+        title=""
+        emptyMessage="No images found for this equipment. Upload images using the button above, or add them through equipment notes and work orders."
+      />
+    </div>
   );
 };
 

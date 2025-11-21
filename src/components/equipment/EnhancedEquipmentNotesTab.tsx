@@ -108,15 +108,28 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
   });
 
   const handleCreateNoteWithImages = async (files: File[]) => {
-    if (!formData.content.trim()) {
-      toast.error('Please enter note content');
+    // Generate content if none provided but images are uploaded
+    let noteContent = formData.content.trim();
+    if (!noteContent && files.length > 0) {
+      const userName = user?.email?.split('@')[0] || 'User';
+      if (files.length === 1) {
+        noteContent = `${userName} uploaded: ${files[0].name}`;
+      } else {
+        const fileNames = files.map(f => f.name).join(', ');
+        noteContent = `${userName} uploaded ${files.length} images: ${fileNames}`;
+      }
+    }
+    
+    // Validate that either content or images are provided
+    if (!noteContent && files.length === 0) {
+      toast.error('Please enter note content or upload images');
       return;
     }
     
     await createNoteMutation.mutateAsync({
-      content: formData.content,
-      hoursWorked: formData.hoursWorked,
-      isPrivate: formData.isPrivate,
+      content: noteContent || 'Image upload',
+      hoursWorked: Number(formData.hoursWorked) || 0,
+      isPrivate: formData.isPrivate || false,
       images: files
     });
   };
@@ -143,8 +156,9 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
     return new Date(dateString).toLocaleDateString();
   };
 
-  const formatHours = (hours: number) => {
-    return hours > 0 ? `${hours}h` : '';
+  const formatHours = (hours: number | null | undefined) => {
+    const numHours = Number(hours) || 0;
+    return numHours > 0 ? `${numHours}h` : '';
   };
 
   if (notesLoading) {
