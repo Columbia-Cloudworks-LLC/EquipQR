@@ -29,10 +29,11 @@ interface MapViewProps {
   filteredLocations: EquipmentLocation[];
 }
 
-const mapContainerStyle = {
+// Map container style will be set dynamically based on container
+const getMapContainerStyle = (height: string) => ({
   width: '100%',
-  height: '600px'
-};
+  height
+});
 
 const defaultCenter = {
   lat: 39.8283,
@@ -107,7 +108,7 @@ export const MapView: React.FC<MapViewProps> = ({
   // Handle loading states
   if (!isMapsLoaded) {
     return (
-      <div className="h-[600px] w-full bg-muted animate-pulse rounded-lg flex items-center justify-center">
+      <div className="h-full w-full bg-muted animate-pulse rounded-lg flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">Loading Google Maps...</p>
         </div>
@@ -119,7 +120,7 @@ export const MapView: React.FC<MapViewProps> = ({
   if (mapsLoadError) {
     console.error('[MapView] Google Maps load error:', mapsLoadError);
     return (
-      <div className="h-[600px] w-full bg-destructive/10 border border-destructive/20 rounded-lg flex items-center justify-center">
+      <div className="h-full w-full bg-destructive/10 border border-destructive/20 rounded-lg flex items-center justify-center">
         <div className="text-center">
           <p className="text-destructive font-medium">Failed to load Google Maps</p>
           <p className="text-sm text-muted-foreground mt-1">{mapsLoadError.message}</p>
@@ -130,7 +131,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
   return (
     <GoogleMap
-      mapContainerStyle={mapContainerStyle}
+      mapContainerStyle={getMapContainerStyle('100%')}
       center={mapCenter}
       zoom={filteredLocations.length > 0 ? 6 : 4}
       options={MAP_OPTIONS}
