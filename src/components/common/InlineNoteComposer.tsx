@@ -114,15 +114,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    handleFilesAdd(files);
-    // Reset input so same file can be selected again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, []);
-
   const handleFilesAdd = useCallback((files: File[]) => {
     const validFiles: File[] = [];
     
@@ -152,6 +143,15 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
 
     onImagesAdd?.(validFiles);
   }, [attachedImages.length, maxImages, acceptedImageTypes, maxFileSize, onImagesAdd]);
+
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    handleFilesAdd(files);
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [handleFilesAdd]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();

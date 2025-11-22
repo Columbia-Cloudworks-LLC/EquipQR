@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Plus, MessageSquare, Images, Clock, User, EyeOff } from 'lucide-react';
+import { Plus, Images, Clock, User, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -73,7 +73,7 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
       // TODO: Handle machineHours when backend supports it
       // For now, we'll just log it if provided
       if (machineHours !== undefined && machineHours > 0) {
-        console.log('Machine hours provided:', machineHours, 'but not yet supported in backend');
+        console.error('Machine hours provided:', machineHours, 'but not yet supported in backend');
       }
       return createEquipmentNoteWithImages(equipmentId, content, hoursWorked, isPrivate, images);
     },

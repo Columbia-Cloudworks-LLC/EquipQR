@@ -21,10 +21,10 @@ const isUrl = (str: string): boolean => {
   const trimmed = str.trim();
   
   // Check for common URL patterns
-  const urlPattern = /^(https?:\/\/|www\.)[\w\-]+(\.[\w\-]+)+([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?$/i;
+  const urlPattern = /^(https?:\/\/|www\.)[\w-]+(\.[\w-]+)+([\w\-.,@?^=%&:/~+#]*[\w-@?^=%&/~+#])?$/i;
   
   // Also check for URLs without protocol (will add https://)
-  const urlWithoutProtocol = /^[\w\-]+(\.[\w\-]+)+([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?$/i;
+  const urlWithoutProtocol = /^[\w-]+(\.[\w-]+)+([\w\-.,@?^=%&:/~+#]*[\w-@?^=%&/~+#])?$/i;
   
   return urlPattern.test(trimmed) || (urlWithoutProtocol.test(trimmed) && trimmed.includes('.'));
 };
