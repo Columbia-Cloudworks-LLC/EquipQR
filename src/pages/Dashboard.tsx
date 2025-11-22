@@ -1,13 +1,15 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Users, ClipboardList, AlertTriangle } from 'lucide-react';
+import { Package, Users, ClipboardList, AlertTriangle, ChevronRight } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWorkOrders, useTeamBasedDashboardAccess } from '@/hooks/useTeamBasedDashboard';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import TeamQuickList from '@/components/dashboard/TeamQuickList';
+import Page from '@/components/layout/Page';
+import PageHeader from '@/components/layout/PageHeader';
 
 const Dashboard = () => {
   const { currentOrganization, isLoading: orgLoading } = useOrganization();
@@ -23,27 +25,23 @@ const Dashboard = () => {
 
   if (!currentOrganization) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Please select an organization to view your dashboard.
-          </p>
-        </div>
-      </div>
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Dashboard" 
+          description="Please select an organization to view your dashboard." 
+        />
+      </Page>
     );
   }
 
   // Show message for users without team access
   if (!isLoading && !hasTeamAccess) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome to {currentOrganization.name}
-          </p>
-        </div>
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Dashboard" 
+          description={`Welcome to ${currentOrganization.name}`} 
+        />
         <Card>
           <CardHeader>
             <CardTitle>Welcome to {currentOrganization.name}</CardTitle>
@@ -52,20 +50,18 @@ const Dashboard = () => {
             </CardDescription>
           </CardHeader>
         </Card>
-      </div>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back to {currentOrganization.name}
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Dashboard" 
+          description={`Welcome back to ${currentOrganization.name}`} 
+        />
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <StatsCard
             icon={<Package className="h-4 w-4" />}
             label="Total Equipment"
@@ -95,7 +91,7 @@ const Dashboard = () => {
             loading={true}
           />
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -103,17 +99,64 @@ const Dashboard = () => {
   const recentWorkOrders = workOrders?.slice(0, 5) || [];
   const highPriorityWorkOrders = workOrders?.filter(wo => wo.priority === 'high' && wo.status !== 'completed') || [];
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back to {currentOrganization.name}
-        </p>
-      </div>
+  // High Priority Work Orders section
+  const highPrioritySection = highPriorityWorkOrders.length > 0 && (
+    <section aria-labelledby="high-priority-heading">
+      <Card>
+        <CardHeader>
+          <CardTitle id="high-priority-heading" className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+            High Priority Work Orders
+          </CardTitle>
+          <CardDescription>
+            {highPriorityWorkOrders.length} work orders require immediate attention
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {highPriorityWorkOrders.map((order) => (
+              <Link 
+                key={order.id} 
+                to={`/dashboard/work-orders/${order.id}`}
+                className="flex items-center justify-between p-3 border border-destructive/20 rounded-lg hover:bg-destructive/5 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium line-clamp-2">{order.title}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Created: {new Date(order.createdDate).toLocaleDateString()}
+                    {order.dueDate && (
+                      <> • Due: {new Date(order.dueDate).toLocaleDateString()}</>
+                    )}
+                  </p>
+                </div>
+                <Badge variant="destructive" className="ml-2 flex-shrink-0">High Priority</Badge>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </section>
+  );
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+  return (
+    <Page maxWidth="7xl" padding="responsive">
+      <div className="flex flex-col space-y-6">
+        <PageHeader 
+          title="Dashboard" 
+          description={`Welcome back to ${currentOrganization.name}`} 
+        />
+
+        {/* High Priority section - positioned via CSS to prevent layout shift */}
+        {/* Mobile: order-1 (first), Desktop: order-5 (last) */}
+        {highPrioritySection && (
+          <div className="order-1 md:order-5">
+            {highPrioritySection}
+          </div>
+        )}
+
+        {/* Stats Cards */}
+        {/* Mobile: order-2 (second), Desktop: order-1 (first) */}
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 order-2 md:order-1">
         <StatsCard
           icon={<Package className="h-4 w-4" />}
           label="Total Equipment"
@@ -149,152 +192,145 @@ const Dashboard = () => {
           to="/dashboard/organization"
           ariaDescription="View organization members"
         />
-      </div>
+        </div>
 
-      {/* Team Quick List */}
-      <TeamQuickList />
+        {/* Team Quick List */}
+        {/* Mobile: order-3 (third), Desktop: order-2 (second) */}
+        <section aria-labelledby="teams-heading" className="order-3 md:order-2">
+          <TeamQuickList />
+        </section>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Recent Equipment */}
-        <Card>
-          <CardHeader>
-            <Link to="/dashboard/equipment" className="hover:opacity-80 transition-opacity">
-              <CardTitle className="flex items-center gap-2 cursor-pointer">
-                <Package className="h-5 w-5" />
-                Recent Equipment
-              </CardTitle>
-              <CardDescription>
-                Latest equipment in your fleet
-              </CardDescription>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {equipmentLoading ? (
-              <div className="space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 bg-muted animate-pulse rounded" />
-                ))}
-              </div>
-            ) : recentEquipment.length > 0 ? (
-              <div className="space-y-4">
-                {recentEquipment.map((item) => (
-                  <Link 
-                    key={item.id} 
-                    to={`/dashboard/equipment/${item.id}`}
-                    className="flex items-center justify-between p-2 -m-2 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.manufacturer} {item.model}
-                      </p>
-                    </div>
-                    <Badge 
-                      variant={
-                        item.status === 'active' ? 'default' : 
-                        item.status === 'maintenance' ? 'destructive' : 'secondary'
-                      }
-                    >
-                      {item.status}
-                    </Badge>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No equipment found</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Work Orders */}
-        <Card>
-          <CardHeader>
-            <Link to="/dashboard/work-orders" className="hover:opacity-80 transition-opacity">
-              <CardTitle className="flex items-center gap-2 cursor-pointer">
-                <ClipboardList className="h-5 w-5" />
-                Recent Work Orders
-              </CardTitle>
-              <CardDescription>
-                Latest work order activity
-              </CardDescription>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {workOrdersLoading ? (
-              <div className="space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 bg-muted animate-pulse rounded" />
-                ))}
-              </div>
-            ) : recentWorkOrders.length > 0 ? (
-              <div className="space-y-4">
-                {recentWorkOrders.map((order) => (
-                  <Link 
-                    key={order.id} 
-                    to={`/dashboard/work-orders/${order.id}`}
-                    className="flex items-center justify-between p-2 -m-2 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div>
-                      <p className="font-medium">{order.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {order.priority} priority • {order.assigneeName || 'Unassigned'}
-                      </p>
-                    </div>
-                    <Badge 
-                      variant={
-                        order.status === 'completed' ? 'default' : 
-                        order.status === 'in_progress' ? 'secondary' : 'outline'
-                      }
-                    >
-                      {order.status.replace('_', ' ')}
-                    </Badge>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No work orders found</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* High Priority Alerts */}
-      {highPriorityWorkOrders.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              High Priority Work Orders
-            </CardTitle>
-            <CardDescription>
-              {highPriorityWorkOrders.length} work orders require immediate attention
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {highPriorityWorkOrders.map((order) => (
-                <Link 
-                  key={order.id} 
-                  to={`/dashboard/work-orders/${order.id}`}
-                  className="flex items-center justify-between p-3 border border-destructive/20 rounded-lg hover:bg-destructive/5 transition-colors"
-                >
+        {/* Recent Equipment and Work Orders */}
+        {/* Mobile: order-4 (fourth), Desktop: order-3 (third) */}
+        <div className="grid gap-6 md:grid-cols-2 order-4 md:order-3">
+          {/* Recent Equipment */}
+          <section aria-labelledby="recent-equipment-heading">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">{order.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Created: {new Date(order.createdDate).toLocaleDateString()}
-                      {order.dueDate && (
-                        <> • Due: {new Date(order.dueDate).toLocaleDateString()}</>
-                      )}
-                    </p>
+                    <CardTitle id="recent-equipment-heading" className="flex items-center gap-2">
+                      <Package className="h-5 w-5" />
+                      Recent Equipment
+                    </CardTitle>
+                    <CardDescription>
+                      Latest equipment in your fleet
+                    </CardDescription>
                   </div>
-                  <Badge variant="destructive">High Priority</Badge>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+                  <Link 
+                    to="/dashboard/equipment" 
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none rounded"
+                  >
+                    View all
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {equipmentLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+                    ))}
+                  </div>
+                ) : recentEquipment.length > 0 ? (
+                  <div className="space-y-4 md:max-h-64 md:overflow-y-auto">
+                    {recentEquipment.map((item) => (
+                      <Link 
+                        key={item.id} 
+                        to={`/dashboard/equipment/${item.id}`}
+                        className="flex items-center justify-between p-2 -m-2 rounded-lg hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium line-clamp-2">{item.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {item.manufacturer} {item.model}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant={
+                            item.status === 'active' ? 'default' : 
+                            item.status === 'maintenance' ? 'destructive' : 'secondary'
+                          }
+                          className="ml-2 flex-shrink-0"
+                        >
+                          {item.status}
+                        </Badge>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No equipment found</p>
+                )}
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Recent Work Orders */}
+          <section aria-labelledby="recent-work-orders-heading">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle id="recent-work-orders-heading" className="flex items-center gap-2">
+                      <ClipboardList className="h-5 w-5" />
+                      Recent Work Orders
+                    </CardTitle>
+                    <CardDescription>
+                      Latest work order activity
+                    </CardDescription>
+                  </div>
+                  <Link 
+                    to="/dashboard/work-orders" 
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none rounded"
+                  >
+                    View all
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {workOrdersLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+                    ))}
+                  </div>
+                ) : recentWorkOrders.length > 0 ? (
+                  <div className="space-y-4 md:max-h-64 md:overflow-y-auto">
+                    {recentWorkOrders.map((order) => (
+                      <Link 
+                        key={order.id} 
+                        to={`/dashboard/work-orders/${order.id}`}
+                        className="flex items-center justify-between p-2 -m-2 rounded-lg hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium line-clamp-2">{order.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {order.priority} priority • {order.assigneeName || 'Unassigned'}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant={
+                            order.status === 'completed' ? 'default' : 
+                            order.status === 'in_progress' ? 'secondary' : 'outline'
+                          }
+                          className="ml-2 flex-shrink-0"
+                        >
+                          {order.status.replace('_', ' ')}
+                        </Badge>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No work orders found</p>
+                )}
+              </CardContent>
+            </Card>
+          </section>
+        </div>
+      </div>
+    </Page>
   );
 };
 

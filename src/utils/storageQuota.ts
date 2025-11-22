@@ -47,7 +47,7 @@ export async function checkStorageQuota(
 
     // If data is null or undefined, return default values
     if (!data) {
-      console.warn('Storage quota check returned null/undefined, allowing upload');
+      console.error('Storage quota check returned null/undefined, allowing upload');
       return {
         canUpload: true,
         currentStorageGB: 0,
