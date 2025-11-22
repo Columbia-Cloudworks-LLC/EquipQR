@@ -49,6 +49,12 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
     );
   }
 
+  // Don't show the images section if there are no images
+  // Images can be added through notes now
+  if (visibleImages.length === 0) {
+    return null;
+  }
+
   return (
     <ImageGallery
       images={visibleImages}
