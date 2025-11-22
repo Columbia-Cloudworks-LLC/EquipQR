@@ -101,7 +101,9 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     }
     
     if (!finalContent && data.images.length === 0) {
-      logger.error('No content or images provided for note creation');
+      if (import.meta.env.DEV) {
+        logger.debug('No content or images provided for note creation');
+      }
       toast.error('Please enter note content or attach images');
       return;
     }

@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 export interface StorageQuotaCheck {
   canUpload: boolean;
@@ -47,7 +48,7 @@ export async function checkStorageQuota(
 
     // If data is null or undefined, return default values
     if (!data) {
-      console.error('Storage quota check returned null/undefined, allowing upload');
+      logger.warn('Storage quota check returned null/undefined, allowing upload');
       return {
         canUpload: true,
         currentStorageGB: 0,

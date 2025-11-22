@@ -34,6 +34,12 @@ const isUrl = (str: string): boolean => {
  */
 const normalizeUrl = (url: string): string => {
   const trimmed = url.trim();
+  
+  // Reject dangerous protocols
+  if (trimmed.match(/^(javascript|data|vbscript):/i)) {
+    return trimmed; // Return as plain text, not a URL
+  }
+  
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     return trimmed;
   }
