@@ -12,6 +12,11 @@ interface InlineEditCustomAttributesProps {
 }
 
 /**
+ * Regular expression to detect dangerous URL protocols that could be used for XSS attacks
+ */
+const DANGEROUS_PROTOCOLS_REGEX = /^(javascript|data|vbscript):/i;
+
+/**
  * Checks if a string is a valid URL
  */
 const isUrl = (str: string): boolean => {
@@ -21,7 +26,7 @@ const isUrl = (str: string): boolean => {
   const trimmed = str.trim();
   
   // Reject dangerous protocols - not valid URLs for our purposes
-  if (trimmed.match(/^(javascript|data|vbscript):/i)) {
+  if (DANGEROUS_PROTOCOLS_REGEX.test(trimmed)) {
     return false;
   }
   
@@ -40,8 +45,8 @@ const isUrl = (str: string): boolean => {
 const normalizeUrl = (url: string): string => {
   const trimmed = url.trim();
   
-  // Reject dangerous protocols
-  if (trimmed.match(/^(javascript|data|vbscript):/i)) {
+  // Reject dangerous protocols (defense in depth)
+  if (DANGEROUS_PROTOCOLS_REGEX.test(trimmed)) {
     return trimmed; // Return as plain text, not a URL
   }
   
@@ -64,6 +69,13 @@ const normalizeUrl = (url: string): string => {
 const renderAttributeValue = (value: string): React.ReactNode => {
   if (isUrl(value)) {
     const url = normalizeUrl(value);
+    
+    // Final safety check: ensure the normalized URL doesn't contain dangerous protocols
+    // This should never happen due to isUrl() check, but defense in depth
+    if (DANGEROUS_PROTOCOLS_REGEX.test(url)) {
+      return <div className="text-lg break-all">{value}</div>;
+    }
+    
     return (
       <a
         href={url}
