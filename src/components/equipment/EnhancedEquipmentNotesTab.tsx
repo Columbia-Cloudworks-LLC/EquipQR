@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Plus, MessageSquare, Images, Clock, User, EyeOff } from 'lucide-react';
+import { Plus, Images, Clock, User, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +17,7 @@ import {
 } from '@/services/equipmentNotesService';
 import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import ImageGallery from '@/components/common/ImageGallery';
+import { logger } from '@/utils/logger';
 
 interface EnhancedEquipmentNotesTabProps {
   equipmentId: string;
@@ -71,9 +71,8 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
       machineHours?: number;
     }) => {
       // TODO: Handle machineHours when backend supports it
-      // For now, we'll just log it if provided
       if (machineHours !== undefined && machineHours > 0) {
-        console.log('Machine hours provided:', machineHours, 'but not yet supported in backend');
+        logger.debug('Machine hours provided', { machineHours, note: 'not yet supported in backend' });
       }
       return createEquipmentNoteWithImages(equipmentId, content, hoursWorked, isPrivate, images);
     },
@@ -86,7 +85,7 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
       toast.success('Note created successfully');
     },
     onError: (error) => {
-      console.error('Failed to create note:', error);
+      logger.error('Failed to create note', error);
       toast.error('Failed to create note');
     }
   });

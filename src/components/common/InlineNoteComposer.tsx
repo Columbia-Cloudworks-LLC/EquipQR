@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Image, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils/logger';
 
 // Image Thumbnail Component with proper cleanup
 const ImageThumbnail: React.FC<{
@@ -121,7 +122,7 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, []);
+  }, [handleFilesAdd]);
 
   const handleFilesAdd = useCallback((files: File[]) => {
     const validFiles: File[] = [];
@@ -195,16 +196,14 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
       });
       
       // Reset form after successful submit
-      onChange('');
       setHoursWorked(0);
       setMachineHours(0);
       setIsPrivate(false);
-      // Clear images will be handled by parent component
     } catch (error) {
       // Error handling is done by parent component
-      console.error('Failed to submit note:', error);
+      logger.error('Failed to submit note', error);
     }
-  }, [value, attachedImages, hoursWorked, machineHours, isPrivate, showHoursWorked, showMachineHours, showPrivateToggle, onSubmit, onChange]);
+  }, [value, attachedImages, hoursWorked, machineHours, isPrivate, showHoursWorked, showMachineHours, showPrivateToggle, onSubmit]);
 
   const handleAttachClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -232,6 +231,7 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
           disabled={disabled || isSubmitting}
           rows={3}
           className="min-h-[80px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 pr-20"
+          aria-label="Note content"
         />
         
         {/* Attach Images Button */}
@@ -244,6 +244,7 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
             disabled={disabled || isSubmitting || attachedImages.length >= maxImages}
             className="h-8 w-8 p-0"
             title="Attach images"
+            aria-label="Attach images"
           >
             <Image className="h-4 w-4" />
           </Button>
@@ -265,7 +266,7 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
         <div className="flex gap-2 overflow-x-auto pb-1">
           {attachedImages.map((file, index) => (
             <ImageThumbnail
-              key={`${file.name}-${index}`}
+              key={`${file.name}-${file.size}-${file.lastModified}`}
               file={file}
               onRemove={() => handleRemoveImage(index)}
               disabled={disabled || isSubmitting}

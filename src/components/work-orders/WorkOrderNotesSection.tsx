@@ -49,9 +49,8 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       machineHours?: number;
     }) => {
       // TODO: Handle machineHours when backend supports it
-      // For now, we'll just log it if provided
       if (machineHours !== undefined && machineHours > 0) {
-        logger.debug('Machine hours provided:', { machineHours, note: 'not yet supported in backend' });
+        logger.debug('Machine hours provided', { machineHours, note: 'not yet supported in backend' });
       }
       return createWorkOrderNoteWithImages(workOrderId, content, hoursWorked, isPrivate, images);
     },
@@ -215,6 +214,18 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
             Add Note
           </Button>
         </div>
+      )}
+
+      {/* Empty State - Show when no notes and no form */}
+      {visibleNotes.length === 0 && !showForm && !canAddNotes && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-muted-foreground">
+              <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">No notes have been added yet.</p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Notes List - Only show when there are notes */}
