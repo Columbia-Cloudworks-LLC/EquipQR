@@ -11,6 +11,62 @@ interface InlineEditCustomAttributesProps {
   canEdit: boolean;
 }
 
+/**
+ * Checks if a string is a valid URL
+ */
+const isUrl = (str: string): boolean => {
+  if (!str || typeof str !== 'string') return false;
+  
+  // Trim whitespace
+  const trimmed = str.trim();
+  
+  // Check for common URL patterns
+  const urlPattern = /^(https?:\/\/|www\.)[\w\-]+(\.[\w\-]+)+([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?$/i;
+  
+  // Also check for URLs without protocol (will add https://)
+  const urlWithoutProtocol = /^[\w\-]+(\.[\w\-]+)+([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?$/i;
+  
+  return urlPattern.test(trimmed) || (urlWithoutProtocol.test(trimmed) && trimmed.includes('.'));
+};
+
+/**
+ * Normalizes a URL string to include protocol if missing
+ */
+const normalizeUrl = (url: string): string => {
+  const trimmed = url.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('www.')) {
+    return `https://${trimmed}`;
+  }
+  // If it looks like a domain, add https://
+  if (trimmed.includes('.') && !trimmed.includes(' ')) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+};
+
+/**
+ * Renders a value as a link if it's a URL, otherwise as plain text
+ */
+const renderAttributeValue = (value: string): React.ReactNode => {
+  if (isUrl(value)) {
+    const url = normalizeUrl(value);
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-lg break-all text-primary hover:underline"
+      >
+        {value}
+      </a>
+    );
+  }
+  return <div className="text-lg break-all">{value}</div>;
+};
+
 const InlineEditCustomAttributes: React.FC<InlineEditCustomAttributesProps> = ({
   value,
   onSave,
@@ -61,11 +117,11 @@ const InlineEditCustomAttributes: React.FC<InlineEditCustomAttributesProps> = ({
 
   if (!canEdit) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="flex flex-wrap gap-4">
         {Object.entries(value).map(([key, val]) => (
-          <div key={key} className="p-3 border rounded-lg">
-            <div className="text-sm font-medium text-muted-foreground">{key}</div>
-            <div className="text-lg">{val}</div>
+          <div key={key} className="p-3 border rounded-lg min-w-[200px] flex-1 basis-[200px] max-w-full break-words">
+            <div className="text-sm font-medium text-muted-foreground mb-1">{key}</div>
+            {renderAttributeValue(val)}
           </div>
         ))}
       </div>
@@ -87,11 +143,11 @@ const InlineEditCustomAttributes: React.FC<InlineEditCustomAttributesProps> = ({
           </Button>
         </div>
         {Object.keys(value).length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex flex-wrap gap-4">
             {Object.entries(value).map(([key, val]) => (
-              <div key={key} className="p-3 border rounded-lg">
-                <div className="text-sm font-medium text-muted-foreground">{key}</div>
-                <div className="text-lg">{val}</div>
+              <div key={key} className="p-3 border rounded-lg min-w-[200px] flex-1 basis-[200px] max-w-full break-words">
+                <div className="text-sm font-medium text-muted-foreground mb-1">{key}</div>
+                {renderAttributeValue(val)}
               </div>
             ))}
           </div>
