@@ -12,6 +12,11 @@ interface InlineEditCustomAttributesProps {
 }
 
 /**
+ * Regular expression to detect dangerous URL protocols that could be used for XSS attacks
+ */
+const DANGEROUS_PROTOCOLS_REGEX = /^(javascript|data|vbscript):/i;
+
+/**
  * Checks if a string is a valid URL
  */
 const isUrl = (str: string): boolean => {
@@ -19,6 +24,11 @@ const isUrl = (str: string): boolean => {
   
   // Trim whitespace
   const trimmed = str.trim();
+  
+  // Reject dangerous protocols - not valid URLs for our purposes
+  if (DANGEROUS_PROTOCOLS_REGEX.test(trimmed)) {
+    return false;
+  }
   
   // Check for common URL patterns
   const urlPattern = /^(https?:\/\/|www\.)[\w-]+(\.[\w-]+)+([\w\-.,@?^=%&:/~+#]*[\w-@?^=%&/~+#])?$/i;
@@ -34,6 +44,12 @@ const isUrl = (str: string): boolean => {
  */
 const normalizeUrl = (url: string): string => {
   const trimmed = url.trim();
+  
+  // Reject dangerous protocols (defense in depth)
+  if (DANGEROUS_PROTOCOLS_REGEX.test(trimmed)) {
+    return trimmed; // Return as plain text, not a URL
+  }
+  
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     return trimmed;
   }
@@ -53,6 +69,13 @@ const normalizeUrl = (url: string): string => {
 const renderAttributeValue = (value: string): React.ReactNode => {
   if (isUrl(value)) {
     const url = normalizeUrl(value);
+    
+    // Final safety check: ensure the normalized URL doesn't contain dangerous protocols
+    // This should never happen due to isUrl() check, but defense in depth
+    if (DANGEROUS_PROTOCOLS_REGEX.test(url)) {
+      return <div className="text-lg break-all">{value}</div>;
+    }
+    
     return (
       <a
         href={url}

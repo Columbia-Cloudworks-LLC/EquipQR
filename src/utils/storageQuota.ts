@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 export interface StorageQuotaCheck {
   canUpload: boolean;
@@ -32,7 +33,7 @@ export async function checkStorageQuota(
     });
 
     if (error) {
-      console.error('Error checking storage quota:', error);
+      logger.error('Error checking storage quota', error);
       // If there's an error, allow upload but log it
       return {
         canUpload: true,
@@ -47,7 +48,7 @@ export async function checkStorageQuota(
 
     // If data is null or undefined, return default values
     if (!data) {
-      console.error('Storage quota check returned null/undefined, allowing upload');
+      logger.warn('Storage quota check returned null/undefined, allowing upload');
       return {
         canUpload: true,
         currentStorageGB: 0,
@@ -72,7 +73,7 @@ export async function checkStorageQuota(
       usagePercent: result.usagePercent ?? 0
     };
   } catch (error) {
-    console.error('Failed to check storage quota:', error);
+    logger.error('Failed to check storage quota', error);
     // Fail open - allow upload on error
     return {
       canUpload: true,
@@ -96,13 +97,13 @@ export async function getCurrentStorage(organizationId: string): Promise<number>
     });
 
     if (error) {
-      console.error('Error getting storage:', error);
+      logger.error('Error getting storage', error);
       return 0;
     }
 
     return data || 0;
   } catch (error) {
-    console.error('Failed to get storage:', error);
+    logger.error('Failed to get storage', error);
     return 0;
   }
 }
