@@ -120,7 +120,7 @@ const Dashboard = () => {
                 to={`/dashboard/work-orders/${order.id}`}
                 className="flex items-center justify-between p-3 border border-destructive/20 rounded-lg hover:bg-destructive/5 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
               >
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="font-medium line-clamp-2">{order.title}</p>
                   <p className="text-sm text-muted-foreground">
                     Created: {new Date(order.createdDate).toLocaleDateString()}
@@ -129,7 +129,7 @@ const Dashboard = () => {
                     )}
                   </p>
                 </div>
-                <Badge variant="destructive">High Priority</Badge>
+                <Badge variant="destructive" className="ml-2 flex-shrink-0">High Priority</Badge>
               </Link>
             ))}
           </div>
