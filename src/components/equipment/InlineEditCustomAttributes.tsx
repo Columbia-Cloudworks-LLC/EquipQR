@@ -20,6 +20,11 @@ const isUrl = (str: string): boolean => {
   // Trim whitespace
   const trimmed = str.trim();
   
+  // Reject dangerous protocols - not valid URLs for our purposes
+  if (trimmed.match(/^(javascript|data|vbscript):/i)) {
+    return false;
+  }
+  
   // Check for common URL patterns
   const urlPattern = /^(https?:\/\/|www\.)[\w-]+(\.[\w-]+)+([\w\-.,@?^=%&:/~+#]*[\w-@?^=%&/~+#])?$/i;
   
