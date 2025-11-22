@@ -76,7 +76,7 @@ const TeamQuickList = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2 md:max-h-60 md:overflow-y-auto">
+        <div className="space-y-2 max-h-96 overflow-y-auto md:max-h-60">
           {visibleTeams.map((team) => (
             <Link
               key={team.id}

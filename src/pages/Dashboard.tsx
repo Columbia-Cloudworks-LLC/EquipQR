@@ -10,7 +10,6 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 import TeamQuickList from '@/components/dashboard/TeamQuickList';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const Dashboard = () => {
   const { currentOrganization, isLoading: orgLoading } = useOrganization();
@@ -99,7 +98,6 @@ const Dashboard = () => {
   const recentEquipment = equipment?.slice(0, 5) || [];
   const recentWorkOrders = workOrders?.slice(0, 5) || [];
   const highPriorityWorkOrders = workOrders?.filter(wo => wo.priority === 'high' && wo.status !== 'completed') || [];
-  const isMobile = useIsMobile();
 
   // High Priority Work Orders section
   const highPrioritySection = highPriorityWorkOrders.length > 0 && (
@@ -142,17 +140,23 @@ const Dashboard = () => {
 
   return (
     <Page maxWidth="7xl" padding="responsive">
-      <div className="space-y-6">
+      <div className="flex flex-col space-y-6">
         <PageHeader 
           title="Dashboard" 
           description={`Welcome back to ${currentOrganization.name}`} 
         />
 
-        {/* Mobile: High Priority first */}
-        {isMobile && highPrioritySection}
+        {/* High Priority section - positioned via CSS to prevent layout shift */}
+        {/* Mobile: order-1 (first), Desktop: order-5 (last) */}
+        {highPrioritySection && (
+          <div className="order-1 md:order-5">
+            {highPrioritySection}
+          </div>
+        )}
 
         {/* Stats Cards */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        {/* Mobile: order-2 (second), Desktop: order-1 (first) */}
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 order-2 md:order-1">
         <StatsCard
           icon={<Package className="h-4 w-4" />}
           label="Total Equipment"
@@ -191,12 +195,14 @@ const Dashboard = () => {
         </div>
 
         {/* Team Quick List */}
-        <section aria-labelledby="teams-heading">
+        {/* Mobile: order-3 (third), Desktop: order-2 (second) */}
+        <section aria-labelledby="teams-heading" className="order-3 md:order-2">
           <TeamQuickList />
         </section>
 
         {/* Recent Equipment and Work Orders */}
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Mobile: order-4 (fourth), Desktop: order-3 (third) */}
+        <div className="grid gap-6 md:grid-cols-2 order-4 md:order-3">
           {/* Recent Equipment */}
           <section aria-labelledby="recent-equipment-heading">
             <Card>
@@ -323,9 +329,6 @@ const Dashboard = () => {
             </Card>
           </section>
         </div>
-
-        {/* Desktop: High Priority last */}
-        {!isMobile && highPrioritySection}
       </div>
     </Page>
   );
