@@ -15,7 +15,6 @@ import { useUpdateMemberRole, useRemoveMember } from '@/hooks/useOrganizationMem
 import { RealOrganizationMember } from '@/hooks/useOptimizedOrganizationMembers';
 import { getRoleBadgeVariant } from '@/utils/badgeVariants';
 import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
-import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import { toast } from 'sonner';
 import { type SlotAvailability } from '@/hooks/useOrganizationSlots';
 import { shouldBlockInvitation, getSlotStatus } from '@/utils/billing';
@@ -183,11 +182,6 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
               <Users className="h-5 w-5" />
               Organization Members ({unifiedMembers.length})
             </CardTitle>
-            <PurchaseLicensesButton 
-              variant="default" 
-              size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white focus-visible:ring-green-600" 
-            />
             {slotAvailability && (
               <Badge variant={slotStatus ? slotStatus.variant : 'secondary'} className="ml-1">
                 Seats: {slotAvailability.used_slots}/{slotAvailability.total_purchased} • Available {slotAvailability.available_slots}{slotAvailability.exempted_slots ? ` (+${slotAvailability.exempted_slots} exempt)` : ''}

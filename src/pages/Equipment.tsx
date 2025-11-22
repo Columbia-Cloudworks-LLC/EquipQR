@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Upload } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/components/equipment/hooks/useEquipmentFiltering';
@@ -10,10 +10,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { EquipmentRecord } from '@/types/equipment';
+import Page from '@/components/layout/Page';
+import PageHeader from '@/components/layout/PageHeader';
 
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
-import EquipmentHeader from '@/components/equipment/EquipmentHeader';
 import { EquipmentFilters } from '@/components/equipment/EquipmentFilters';
 import EquipmentSortHeader from '@/components/equipment/EquipmentSortHeader';
 import EquipmentGrid from '@/components/equipment/EquipmentGrid';
@@ -70,19 +71,21 @@ const Equipment = () => {
 
   if (!currentOrganization) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Equipment</h1>
-          <p className="text-muted-foreground">
-            Please select an organization to view equipment.
-          </p>
-        </div>
-      </div>
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Equipment" 
+          description="Please select an organization to view equipment." 
+        />
+      </Page>
     );
   }
 
   if (isLoading) {
-    return <EquipmentLoadingState />;
+    return (
+      <Page maxWidth="7xl" padding="responsive">
+        <EquipmentLoadingState />
+      </Page>
+    );
   }
 
   const handleAddEquipment = () => {
@@ -125,14 +128,35 @@ const Equipment = () => {
   // Equipment data comes from the filtering hook
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <EquipmentHeader
-        organizationName={currentOrganization.name}
-        canCreate={canCreate}
-        canImport={canExport}
-        onAddEquipment={handleAddEquipment}
-        onImportCsv={() => setShowImportCsv(true)}
-      />
+    <Page maxWidth="7xl" padding="responsive">
+      <div className="space-y-4 md:space-y-6">
+        <PageHeader 
+          title="Equipment" 
+          description={`Manage equipment for ${currentOrganization.name}`}
+          actions={
+            <div className="flex flex-col sm:flex-row gap-2">
+              {canExport && (
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowImportCsv(true)}
+                  className="w-full sm:w-auto"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import CSV
+                </Button>
+              )}
+              {canCreate && (
+                <Button 
+                  onClick={handleAddEquipment}
+                  className="w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Equipment
+                </Button>
+              )}
+            </div>
+          }
+        />
 
       <EquipmentFilters
         filters={filters}
@@ -256,7 +280,8 @@ const Equipment = () => {
         organizationId={currentOrganization.id}
         organizationName={currentOrganization.name}
       />
-    </div>
+      </div>
+    </Page>
   );
 };
 

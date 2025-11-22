@@ -1,13 +1,6 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest';
-
-// Mock the hook
-vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: vi.fn()
-}));
-
 import { render, screen } from '@testing-library/react';
 import EquipmentHeader from './EquipmentHeader';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const defaultProps = {
   organizationName: 'Test Organization',
@@ -20,7 +13,6 @@ const defaultProps = {
 describe('EquipmentHeader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(false);
   });
 
   describe('Basic Rendering', () => {
@@ -64,13 +56,16 @@ describe('EquipmentHeader', () => {
   });
 
   describe('Responsive Layout', () => {
-    it('applies mobile layout classes when on mobile', () => {
-      (useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(true);
-      
+    it('applies responsive layout classes', () => {
       render(<EquipmentHeader {...defaultProps} />);
       
       const container = screen.getByTestId('equipment-header');
-      expect(container).toHaveClass('space-y-4');
+      expect(container).toHaveClass('flex');
+      expect(container).toHaveClass('flex-col');
+      expect(container).toHaveClass('gap-4');
+      expect(container).toHaveClass('sm:flex-row');
+      expect(container).toHaveClass('sm:items-center');
+      expect(container).toHaveClass('sm:justify-between');
     });
   });
 
@@ -123,10 +118,6 @@ describe('EquipmentHeader', () => {
   });
 
   describe('Mobile Layout Adjustments', () => {
-    beforeEach(() => {
-      (useIsMobile as ReturnType<typeof vi.fn>).mockReturnValue(true);
-    });
-
     it('applies full width to buttons on mobile', () => {
       render(<EquipmentHeader {...defaultProps} canImport={true} />);
       

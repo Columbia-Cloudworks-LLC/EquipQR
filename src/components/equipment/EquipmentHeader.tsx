@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Upload } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface EquipmentHeaderProps {
   organizationName: string;
@@ -18,22 +17,20 @@ const EquipmentHeader: React.FC<EquipmentHeaderProps> = ({
   onAddEquipment,
   onImportCsv
 }) => {
-  const isMobile = useIsMobile();
-
   return (
-    <div className={isMobile ? "space-y-4" : "flex items-center justify-between"} data-testid="equipment-header">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" data-testid="equipment-header">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Equipment</h1>
         <p className="text-muted-foreground">
           Manage equipment for {organizationName}
         </p>
       </div>
-      <div className={`flex gap-2 ${isMobile ? 'flex-col w-full' : ''}`} data-testid="button-container">
+      <div className="flex flex-col sm:flex-row gap-2" data-testid="button-container">
         {canImport && (
           <Button 
             variant="outline"
             onClick={onImportCsv} 
-            className={`flex items-center gap-2 ${isMobile ? 'w-full' : ''}`}
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <Upload className="h-4 w-4" />
             Import CSV
@@ -42,7 +39,7 @@ const EquipmentHeader: React.FC<EquipmentHeaderProps> = ({
         {canCreate && (
           <Button 
             onClick={onAddEquipment} 
-            className={`flex items-center gap-2 ${isMobile ? 'w-full' : ''}`}
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Add Equipment

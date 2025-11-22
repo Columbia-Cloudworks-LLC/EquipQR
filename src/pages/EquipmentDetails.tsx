@@ -3,10 +3,13 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TabsContent } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, MapPin, Calendar, Package, QrCode, Trash2 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentById } from '@/components/equipment/hooks/useEquipment';
 import { useIsMobile } from '@/hooks/use-mobile';
+import Page from '@/components/layout/Page';
+import PageHeader from '@/components/layout/PageHeader';
 import EquipmentDetailsTab from '@/components/equipment/EquipmentDetailsTab';
 import EnhancedEquipmentNotesTab from '@/components/equipment/EnhancedEquipmentNotesTab';
 import EquipmentWorkOrdersTab from '@/components/equipment/EquipmentWorkOrdersTab';
@@ -163,15 +166,11 @@ const EquipmentDetails = () => {
 
   if (!currentOrganization) {
     return (
-      <div className="space-y-6">
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/dashboard/equipment')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Equipment
-        </Button>
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Equipment Details" 
+          description="Please select an organization to view equipment details." 
+        />
         <Card>
           <CardContent className="text-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -181,30 +180,37 @@ const EquipmentDetails = () => {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <div className={`space-y-6 ${isMobile ? 'px-4' : ''}`}>
-        <div className="h-8 bg-muted animate-pulse rounded" />
-        <div className={`bg-muted animate-pulse rounded ${isMobile ? 'h-48' : 'h-64'}`} />
-      </div>
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Equipment Details" 
+          description="Loading equipment information..." 
+        />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <Skeleton className="h-64 w-full rounded-lg" />
+          </div>
+          <div className="lg:col-span-2 space-y-4">
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+          </div>
+        </div>
+      </Page>
     );
   }
 
   if (!equipment) {
     return (
-      <div className={`space-y-6 ${isMobile ? 'px-4' : ''}`}>
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/dashboard/equipment')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Equipment
-        </Button>
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Equipment Details" 
+          description="Equipment not found" 
+        />
         <Card>
           <CardContent className="text-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -212,18 +218,26 @@ const EquipmentDetails = () => {
             <p className="text-muted-foreground">
               The equipment you're looking for doesn't exist or you don't have access to it.
             </p>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/dashboard/equipment')}
+              className="mt-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Equipment
+            </Button>
           </CardContent>
         </Card>
-      </div>
+      </Page>
     );
   }
 
 
   return (
-    <div className={`space-y-6 ${isMobile ? 'pb-4' : ''}`}>
-      {/* Mobile Header */}
-      {isMobile ? (
-        <div className="px-4">
+    <Page maxWidth="7xl" padding="responsive">
+      <div className="space-y-6">
+        {/* Mobile Header */}
+        {isMobile ? (
           <MobileEquipmentHeader 
             equipment={equipment}
             onShowQRCode={handleShowQRCode}
@@ -231,30 +245,18 @@ const EquipmentDetails = () => {
             onDelete={handleDeleteEquipment}
             onShowWorkingHours={handleShowWorkingHours}
           />
-        </div>
-      ) : (
+        ) : (
         <>
           {/* Desktop Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/dashboard/equipment')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">{equipment.name}</h1>
-                <p className="text-muted-foreground">
-                  {equipment.manufacturer} {equipment.model} • {equipment.serial_number}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex gap-2">
+          <PageHeader
+            title={equipment.name}
+            description={`${equipment.manufacturer} ${equipment.model} • ${equipment.serial_number}`}
+            breadcrumbs={[
+              { label: 'Equipment', href: '/dashboard/equipment' },
+              { label: equipment.name }
+            ]}
+            actions={
+              <div className="flex items-center gap-2">
                 <Button size="sm" onClick={handleShowQRCode}>
                   <QrCode className="h-4 w-4 mr-2" />
                   QR Code
@@ -266,8 +268,8 @@ const EquipmentDetails = () => {
                   </Button>
                 )}
               </div>
-            </div>
-          </div>
+            }
+          />
 
           {/* Desktop Equipment Image and Basic Info */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -411,7 +413,8 @@ const EquipmentDetails = () => {
         equipmentId={equipment.id}
         equipmentName={equipment.name}
       />
-    </div>
+      </div>
+    </Page>
   );
 };
 
