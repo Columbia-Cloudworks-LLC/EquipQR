@@ -67,7 +67,7 @@ const TeamQuickList = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle id="teams-heading" className="flex items-center gap-2">
           <Users className="h-5 w-5" />
           Teams
         </CardTitle>
@@ -76,12 +76,12 @@ const TeamQuickList = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="max-h-60 overflow-y-auto space-y-2">
+        <div className="space-y-2 md:max-h-60 md:overflow-y-auto">
           {visibleTeams.map((team) => (
             <Link
               key={team.id}
               to={`/dashboard/equipment?team=${team.id}`}
-              className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+              className="flex items-center justify-between px-4 py-3 rounded-lg border border-border/50 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none transition-colors"
             >
               <div>
                 <p className="font-medium">{team.name}</p>
@@ -89,7 +89,7 @@ const TeamQuickList = () => {
                   <p className="text-sm text-muted-foreground">{team.description}</p>
                 )}
               </div>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             </Link>
           ))}
         </div>
