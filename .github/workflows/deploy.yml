@@ -30,7 +30,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $pkg = Get-Content package.json | ConvertFrom-Json
           $version = $pkg.version
-          if (-not $version) { Write-Host "❌ Missing version field in package.json"; exit 1 }
+          if (-not $version) {
+            Write-Host "❌ Missing version field in package.json"
+            exit 1
+          }
           $tag = "v$version"
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
