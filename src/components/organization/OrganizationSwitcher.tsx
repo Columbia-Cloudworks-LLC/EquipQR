@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { cn } from '@/lib/utils';
 
 interface OrganizationSwitcherProps {
@@ -20,7 +20,7 @@ interface OrganizationSwitcherProps {
 }
 
 const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }) => {
-  const { currentOrganization, userOrganizations, switchOrganization, isLoading } = useSimpleOrganization();
+  const { currentOrganization, userOrganizations, switchOrganization, isLoading } = useOrganization();
   const navigate = useNavigate();
   const [logoError, setLogoError] = useState(false);
 

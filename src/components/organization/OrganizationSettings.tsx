@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { Save, Settings, Palette } from 'lucide-react';
 import { SessionOrganization } from '@/contexts/SessionContext';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { updateOrganization, OrganizationUpdatePayload } from '@/services/optimizedOrganizationService';
 import { organizationFormSchema, OrganizationFormData } from './organizationSettingsSchema';
 
@@ -25,7 +25,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const queryClient = useQueryClient();
-  const { refetch } = useSimpleOrganization();
+  const { refetch } = useOrganization();
 
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationFormSchema),

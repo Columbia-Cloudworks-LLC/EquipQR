@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { getTeamBasedDashboardStats } from '@/services/teamBasedDashboardService';
-import { getTeamAccessibleEquipment } from '@/services/teamBasedEquipmentService';
+import { getTeamAccessibleEquipment } from '@/services/EquipmentService';
 import { getTeamBasedWorkOrders } from '@/services/teamBasedWorkOrderService';
 import { useTeamMembership } from '@/hooks/useTeamMembership';
-import { useOrganization } from '@/contexts/OrganizationContext';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 
 export const useTeamBasedDashboardStats = (organizationId?: string) => {

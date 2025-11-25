@@ -1,21 +1,21 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedWorkOrders, useTeamBasedAccess } from '@/hooks/useTeamBasedWorkOrders';
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
 import { useBatchAssignUnassignedWorkOrders } from '@/hooks/useBatchAssignUnassignedWorkOrders';
 import { useWorkOrderFilters } from '@/hooks/useWorkOrderFilters';
-
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useTeams } from '@/hooks/useTeamManagement';
-import { useUser } from '@/contexts/UserContext';
+import { useUser } from '@/contexts/useUser';
 import { WorkOrderAcceptanceModalState, WorkOrderData } from '@/types/workOrder';
+import { Button } from '@/components/ui/button';
+import Page from '@/components/layout/Page';
+import PageHeader from '@/components/layout/PageHeader';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import WorkOrderAcceptanceModal from '@/components/work-orders/WorkOrderAcceptanceModal';
-import NotificationCenter from '@/components/notifications/NotificationCenter';
-import { WorkOrdersHeader } from '@/components/work-orders/WorkOrdersHeader';
 import { AutoAssignmentBanner } from '@/components/work-orders/AutoAssignmentBanner';
 import { WorkOrderFilters } from '@/components/work-orders/WorkOrderFilters';
 import { WorkOrdersList } from '@/components/work-orders/WorkOrdersList';
@@ -30,7 +30,6 @@ const WorkOrders = () => {
 
   const { currentOrganization } = useOrganization();
   const { currentUser } = useUser();
-  const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const initializedFromUrl = useRef(false);
 
@@ -117,17 +116,17 @@ const WorkOrders = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Work Orders</h1>
-          <p className="text-muted-foreground">Loading team-based work orders...</p>
-        </div>
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Work Orders" 
+          description="Loading team-based work orders..." 
+        />
         <div className="grid gap-6">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-32 bg-muted animate-pulse rounded" />
           ))}
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -146,23 +145,28 @@ const WorkOrders = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <WorkOrdersHeader 
-        onCreateClick={() => setShowForm(true)} 
-        subtitle={getSubtitle()}
-      />
-
-      {isSingleUserOrg && (
-        <AutoAssignmentBanner
-          unassignedCount={unassignedCount}
-          onAssignAll={() => currentOrganization && batchAssignMutation.mutate(currentOrganization.id)}
-          isAssigning={batchAssignMutation.isPending}
+    <Page maxWidth="7xl" padding="responsive">
+      <div className="space-y-4">
+        <PageHeader 
+          title="Work Orders" 
+          description={getSubtitle()}
+          actions={
+            <Button onClick={() => setShowForm(true)} className="w-full sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Work Order
+            </Button>
+          }
         />
-      )}
 
-      <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-4'}`}>
-        {/* Main Content */}
-        <div className={`space-y-4 ${isMobile ? '' : 'lg:col-span-3'}`}>
+        {isSingleUserOrg && (
+          <AutoAssignmentBanner
+            unassignedCount={unassignedCount}
+            onAssignAll={() => currentOrganization && batchAssignMutation.mutate(currentOrganization.id)}
+            isAssigning={batchAssignMutation.isPending}
+          />
+        )}
+
+        <div className="space-y-4">
           <WorkOrderFilters
             filters={filters}
             activeFilterCount={getActiveFilterCount()}
@@ -187,16 +191,6 @@ const WorkOrders = () => {
           />
         </div>
 
-        {/* Notifications Sidebar - Only show on desktop */}
-        {!isMobile && (
-          <div className="lg:col-span-1">
-            {currentOrganization && (
-              <NotificationCenter organizationId={currentOrganization.id} />
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Work Order Form Modal */}
       <WorkOrderForm 
         open={showForm} 
@@ -213,7 +207,8 @@ const WorkOrders = () => {
           onAccept={handleAcceptance}
         />
       )}
-    </div>
+      </div>
+    </Page>
   );
 };
 

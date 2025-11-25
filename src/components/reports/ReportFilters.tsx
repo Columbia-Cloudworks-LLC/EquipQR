@@ -34,7 +34,6 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
     ? [...new Set(equipment.map(e => e.status))]
     : [...new Set(workOrders.map(w => w.status))];
 
-  const uniqueLocations = [...new Set(equipment.map(e => e.location))];
   const uniquePriorities = [...new Set(workOrders.map(w => w.priority))];
 
   return (

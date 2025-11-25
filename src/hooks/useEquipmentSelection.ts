@@ -1,5 +1,5 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useSyncEquipmentByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
+import { useEquipment, useEquipmentById } from '@/hooks/useEquipment';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 
 interface UseEquipmentSelectionProps {
@@ -10,10 +10,10 @@ interface UseEquipmentSelectionProps {
 export const useEquipmentSelection = ({ equipmentId, workOrder }: UseEquipmentSelectionProps) => {
   const { currentOrganization } = useOrganization();
   
-  const { data: allEquipment = [] } = useSyncEquipmentByOrganization(currentOrganization?.id);
-  const { data: preSelectedEquipment } = useSyncEquipmentById(
-    currentOrganization?.id || '', 
-    equipmentId || workOrder?.equipment_id || ''
+  const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
+  const { data: preSelectedEquipment } = useEquipmentById(
+    currentOrganization?.id, 
+    equipmentId || workOrder?.equipment_id
   );
 
   const isEquipmentPreSelected = !!preSelectedEquipment || !!workOrder;

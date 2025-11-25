@@ -3,8 +3,11 @@ import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+vi.mock('@/hooks/useEquipment', () => ({
+  useEquipment: vi.fn(),
+}));
+
 vi.mock('@/services/syncDataService', () => ({
-  useSyncEquipmentByOrganization: vi.fn(),
   useSyncTeamsByOrganization: vi.fn(),
 }));
 
@@ -13,7 +16,8 @@ vi.mock('@/hooks/usePermissions', () => ({
 }));
 
 import { useEquipmentFiltering } from './useEquipmentFiltering';
-import { useSyncEquipmentByOrganization, useSyncTeamsByOrganization } from '@/services/syncDataService';
+import { useEquipment } from '@/hooks/useEquipment';
+import { useSyncTeamsByOrganization } from '@/services/syncDataService';
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const client = new QueryClient({
@@ -78,7 +82,7 @@ const teamFixtures = [
 ];
 
 beforeEach(() => {
-  (useSyncEquipmentByOrganization as Mock).mockReturnValue({
+  (useEquipment as Mock).mockReturnValue({
     data: equipmentFixtures,
     isLoading: false,
   });
@@ -144,8 +148,9 @@ describe('useEquipmentFiltering', () => {
 
     act(() => result.current.applyQuickFilter('recently-added'));
     expect(result.current.sortConfig).toEqual({ field: 'created_at', direction: 'desc' });
-    // ensure order by created_at desc -> eq1 is latest
-    expect(result.current.filteredAndSortedEquipment[0].id).toBe('eq1');
+    // ensure order by created_at desc -> eq1 is latest (created_at: '2025-08-01')
+    expect(result.current.filteredAndSortedEquipment.length).toBeGreaterThan(0);
+    expect(result.current.filteredAndSortedEquipment[0]?.id).toBe('eq1');
 
     act(() => result.current.applyQuickFilter('active-only'));
     expect(result.current.filters.status).toBe('active');

@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle, Clock, AlertTriangle, Play, Pause, XCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
@@ -27,9 +26,9 @@ const EnhancedWorkOrderStatusManager: React.FC<EnhancedWorkOrderStatusManagerPro
 
   // Check if this work order has a PM requirement
   const { data: pmRecord, isLoading: pmLoading } = useQuery({
-    queryKey: ['pmByWorkOrder', workOrder.id],
-    queryFn: () => getPMByWorkOrderId(workOrder.id),
-    enabled: workOrder.has_pm || workOrder.pm_required,
+    queryKey: ['pmByWorkOrder', workOrder.id, organizationId],
+    queryFn: () => getPMByWorkOrderId(workOrder.id, organizationId),
+    enabled: (workOrder.has_pm || workOrder.pm_required) && !!organizationId,
   });
 
   const getStatusIcon = (status: string) => {

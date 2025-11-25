@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 export interface OrganizationInvitation {
   id: string;
@@ -45,7 +46,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
         });
 
         if (error) {
-          console.error('Error fetching invitations:', error);
+          logger.error('Error fetching invitations', error);
           throw error;
         }
 
@@ -89,6 +90,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
       } catch (error) {
         const executionTime = performance.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('Failed to fetch invitations', error);
         
         // Log performance error
         try {
@@ -127,7 +129,10 @@ export const useCreateInvitation = (organizationId: string) => {
       try {
         // Use the atomic function that eliminates circular dependencies
         if (import.meta.env.DEV) {
-          console.log(`[INVITATION] Creating invitation for ${requestData.email} in org ${organizationId}`);
+          logger.debug('[INVITATION] Creating invitation', {
+            email: requestData.email,
+            organizationId
+          });
         }
         
         const { data: invitationId, error } = await supabase.rpc('create_invitation_atomic', {
@@ -140,14 +145,17 @@ export const useCreateInvitation = (organizationId: string) => {
 
         if (error) {
           if (import.meta.env.DEV) {
-            console.error(`[INVITATION] Creation error:`, error);
+            logger.error('[INVITATION] Creation error', error);
           }
           throw error;
         }
 
         const executionTime = performance.now() - startTime;
         if (import.meta.env.DEV) {
-          console.log(`[INVITATION] Creation took ${executionTime.toFixed(2)}ms`);
+          logger.debug('[INVITATION] Creation completed', {
+            durationMs: executionTime,
+            invitationId
+          });
         }
 
         // Log performance success
@@ -172,7 +180,7 @@ export const useCreateInvitation = (organizationId: string) => {
 
         if (fetchError) {
           if (import.meta.env.DEV) {
-            console.error(`[INVITATION] Fetch created invitation error:`, fetchError);
+            logger.error('[INVITATION] Fetch created invitation error', fetchError);
           }
           throw fetchError;
         }
@@ -187,11 +195,11 @@ export const useCreateInvitation = (organizationId: string) => {
               });
               
               if (reserveError && import.meta.env.DEV) {
-                console.warn('[INVITATION] Failed to reserve slot:', reserveError);
+                logger.warn('[INVITATION] Failed to reserve slot', reserveError);
               }
             } catch (reserveError) {
               if (import.meta.env.DEV) {
-                console.warn('[INVITATION] Slot reservation error:', reserveError);
+                logger.warn('[INVITATION] Slot reservation error', reserveError);
               }
             }
           })();
@@ -219,26 +227,30 @@ export const useCreateInvitation = (organizationId: string) => {
 
             if (emailError) {
               if (import.meta.env.DEV) {
-                console.error('[INVITATION] Failed to send invitation email:', emailError);
+                logger.error('[INVITATION] Failed to send invitation email', emailError);
               }
             } else if (import.meta.env.DEV) {
-              console.log(`[INVITATION] Email sent successfully for ${requestData.email}`);
+              logger.info('[INVITATION] Email sent successfully', { email: requestData.email });
             }
           } catch (emailError) {
             if (import.meta.env.DEV) {
-              console.error('[INVITATION] Error calling email function:', emailError);
+              logger.error('[INVITATION] Error calling email function', emailError);
             }
           }
         }, 0);
 
         if (import.meta.env.DEV) {
-          console.log(`[INVITATION] Successfully created invitation ${createdInvitation.id} for ${requestData.email}`);
+          logger.info('[INVITATION] Successfully created invitation', {
+            invitationId: createdInvitation.id,
+            email: requestData.email
+          });
         }
         return createdInvitation;
         
       } catch (error) {
         const executionTime = performance.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('Failed to create invitation', error);
         
         // Log performance error
         try {
@@ -261,7 +273,7 @@ export const useCreateInvitation = (organizationId: string) => {
       toast.success('Invitation sent successfully');
     },
     onError: (error: Error) => {
-      console.error('Error creating invitation:', error);
+      logger.error('Error creating invitation', error);
       
       // Handle specific error types from the optimized function
       if (error.message?.includes('PERMISSION_DENIED')) {
@@ -315,7 +327,7 @@ export const useResendInvitation = (organizationId: string) => {
       toast.success('Invitation resent successfully');
     },
     onError: (error) => {
-      console.error('Error resending invitation:', error);
+      logger.error('Error resending invitation', error);
       toast.error('Failed to resend invitation');
     }
   });
@@ -357,7 +369,7 @@ export const useCancelInvitation = (organizationId: string) => {
       toast.success('Invitation cancelled successfully');
     },
     onError: (error) => {
-      console.error('Error cancelling invitation:', error);
+      logger.error('Error cancelling invitation', error);
       toast.error('Failed to cancel invitation');
     }
   });

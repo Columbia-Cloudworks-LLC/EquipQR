@@ -3,7 +3,7 @@ import { Package, Crown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useWorkOrderEquipment } from '@/hooks/useWorkOrderEquipment';
+import { useWorkOrderEquipment } from '@/components/work-orders/hooks/useWorkOrderEquipment';
 
 interface WorkOrderEquipmentSelectorProps {
   workOrderId: string;

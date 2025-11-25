@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, AlertCircle, Calendar } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { calculateBilling, hasLicenses, getLicenseStatus } from '@/utils/billing';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { calculateBilling, hasLicenses } from '@/utils/billing';
 import PurchaseLicensesButton from '@/components/billing/PurchaseLicensesButton';
 import MemberTable from '@/components/billing/MemberTable';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const LicenseMemberBilling = () => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { data: members = [], isLoading: membersLoading } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability, isLoading: slotsLoading } = useSlotAvailability(currentOrganization?.id || '');
   const _isMobile = useIsMobile();
@@ -42,7 +42,7 @@ const LicenseMemberBilling = () => {
     );
   }
 
-  const billing = calculateBilling({ members, slotAvailability, storageGB: 0, fleetMapEnabled: false });
+  const billing = calculateBilling({ members, slotAvailability, storageGB: 0, fleetMapEnabled: true });
   const hasActiveLicenses = hasLicenses(slotAvailability);
 
   return (

@@ -1,18 +1,13 @@
-import React, { createContext, useEffect, ReactNode } from 'react';
+import React, { useEffect, ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cacheManager } from '@/services/cacheManager';
 import { backgroundSync } from '@/services/backgroundSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { CacheStats, SyncStatus } from '@/types/cache';
-
-interface CacheManagerContextType {
-  getCacheStats: () => CacheStats;
-  clearCache: (pattern?: string) => void;
-  getSyncStatus: () => SyncStatus;
-}
-
-export const CacheManagerContext = createContext<CacheManagerContextType | undefined>(undefined);
+import {
+  CacheManagerContext,
+  type CacheManagerContextType,
+} from './cache-manager-context';
 
 interface CacheManagerProviderProps {
   children: ReactNode;
@@ -63,7 +58,7 @@ export const CacheManagerProvider: React.FC<CacheManagerProviderProps> = ({ chil
     return backgroundSync.getSyncStatus();
   };
 
-  const value = {
+  const value: CacheManagerContextType = {
     getCacheStats,
     clearCache,
     getSyncStatus

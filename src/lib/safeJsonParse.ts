@@ -1,6 +1,8 @@
 /**
  * Safely parse JSON strings with optional logging control
  */
+import { logger } from '@/utils/logger';
+
 export function safeJsonParse<T>(
   jsonString: string, 
   fallback: T, 
@@ -13,7 +15,7 @@ export function safeJsonParse<T>(
   } catch (error) {
     if (!silent) {
       const contextMsg = context ? ` for ${context}` : '';
-      console.warn(`Failed to parse JSON${contextMsg}:`, error);
+      logger.warn(`Failed to parse JSON${contextMsg}`, error);
     }
     return fallback;
   }

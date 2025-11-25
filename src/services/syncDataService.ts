@@ -80,6 +80,7 @@ export interface DashboardStats {
 }
 
 // Synchronous data service functions
+// @deprecated Use useEquipment from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
 export const useSyncEquipmentByOrganization = (organizationId?: string) => {
   return useQuery({
     queryKey: ['equipment', organizationId],
@@ -89,6 +90,7 @@ export const useSyncEquipmentByOrganization = (organizationId?: string) => {
   });
 };
 
+// @deprecated Use useEquipmentById from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
 export const useSyncEquipmentById = (organizationId: string, equipmentId: string) => {
   return useQuery({
     queryKey: ['equipment', organizationId, equipmentId],

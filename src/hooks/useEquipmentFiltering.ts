@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useSyncEquipmentByOrganization, useSyncTeamsByOrganization } from '@/services/syncDataService';
+import { useEquipment } from '@/hooks/useEquipment';
+import { useSyncTeamsByOrganization } from '@/services/syncDataService';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export interface EquipmentFilters {
@@ -46,9 +47,9 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   const [pageSize, setPageSize] = useState(10); // Default to 10 items per page
 
   // Get equipment data using explicit organization ID
-  const { data: equipment = [], isLoading } = useSyncEquipmentByOrganization(organizationId);
+  const { data: equipment = [], isLoading } = useEquipment(organizationId);
   const { data: teams = [] } = useSyncTeamsByOrganization(organizationId);
-  const { canManageOrganization } = usePermissions();
+  usePermissions();
 
   // Extract unique values for filter options
   const filterOptions = useMemo(() => {

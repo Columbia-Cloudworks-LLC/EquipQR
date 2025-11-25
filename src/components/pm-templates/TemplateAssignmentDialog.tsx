@@ -9,9 +9,9 @@ import { Label } from '@/components/ui/label';
 
 import { Search, Package, Loader2, AlertCircle } from 'lucide-react';
 import { usePMTemplate } from '@/hooks/usePMTemplates';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useSyncEquipmentByOrganization } from '@/services/syncDataService';
-import { useBulkAssignTemplate } from '@/hooks/useEquipmentTemplateManagement';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useEquipment } from '@/components/equipment/hooks/useEquipment';
+import { useBulkAssignTemplate } from '@/components/equipment/hooks/useEquipmentTemplateManagement';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface TemplateAssignmentDialogProps {
@@ -25,9 +25,9 @@ export const TemplateAssignmentDialog: React.FC<TemplateAssignmentDialogProps> =
   open,
   onClose
 }) => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { data: template } = usePMTemplate(templateId);
-  const { data: equipment = [] } = useSyncEquipmentByOrganization(currentOrganization?.id);
+  const { data: equipment = [] } = useEquipment(currentOrganization?.id);
   const bulkAssignTemplate = useBulkAssignTemplate();
   
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);

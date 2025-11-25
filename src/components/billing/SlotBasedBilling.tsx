@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, AlertTriangle, TrendingUp } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { calculateBilling, getSlotStatus } from '@/utils/billing';
@@ -12,16 +12,14 @@ import PurchaseLicensesButton from './PurchaseLicensesButton';
 
 interface SlotBasedBillingProps {
   storageUsedGB: number;
-  fleetMapEnabled: boolean;
   onPurchaseSlots: (quantity: number) => void;
   onUpgradeToMultiUser: () => void;
 }
 
 const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
-  storageUsedGB,
-  fleetMapEnabled
+  storageUsedGB
 }) => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: slotAvailability, isLoading } = useSlotAvailability(currentOrganization?.id || '');
 
@@ -48,7 +46,7 @@ const SlotBasedBilling: React.FC<SlotBasedBillingProps> = ({
     );
   }
 
-  const billing = calculateBilling({ members, slotAvailability: safeSlotAvailability, storageGB: storageUsedGB, fleetMapEnabled });
+  const billing = calculateBilling({ members, slotAvailability: safeSlotAvailability, storageGB: storageUsedGB, fleetMapEnabled: true });
   const slotStatus = getSlotStatus(safeSlotAvailability, billing.currentUsage.totalSlotsNeeded);
   const isFreeOrg = members.filter(m => m.status === 'active').length === 1 && safeSlotAvailability.total_purchased === 0;
 

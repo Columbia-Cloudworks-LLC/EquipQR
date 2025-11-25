@@ -46,6 +46,7 @@ export const useOptimizedDashboard = (organizationId?: string) => {
 };
 
 // Equipment with smart caching
+// @deprecated Use useEquipment from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
 export const useOptimizedEquipment = (organizationId?: string) => {
   return useQuery({
     queryKey: ['equipment-optimized', organizationId],

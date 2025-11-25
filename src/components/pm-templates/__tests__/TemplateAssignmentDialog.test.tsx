@@ -6,24 +6,24 @@ import { TestProviders } from '@/test/utils/TestProviders';
 
 // Mock hooks with named imports
 import { usePMTemplate } from '@/hooks/usePMTemplates';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useBulkAssignTemplate } from '@/hooks/useEquipmentTemplateManagement';
-import { useSyncEquipmentByOrganization } from '@/services/syncDataService';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useBulkAssignTemplate } from '@/components/equipment/hooks/useEquipmentTemplateManagement';
+import { useEquipment } from '@/components/equipment/hooks/useEquipment';
 
 vi.mock('@/hooks/usePMTemplates', () => ({
   usePMTemplate: vi.fn(),
 }));
 
-vi.mock('@/hooks/useSimpleOrganization', () => ({
-  useSimpleOrganization: vi.fn(),
+vi.mock('@/contexts/OrganizationContext', () => ({
+  useOrganization: vi.fn(),
 }));
 
-vi.mock('@/hooks/useEquipmentTemplateManagement', () => ({
+vi.mock('@/components/equipment/hooks/useEquipmentTemplateManagement', () => ({
   useBulkAssignTemplate: vi.fn(),
 }));
 
-vi.mock('@/services/syncDataService', () => ({
-  useSyncEquipmentByOrganization: vi.fn(),
+vi.mock('@/components/equipment/hooks/useEquipment', () => ({
+  useEquipment: vi.fn(),
 }));
 
 const mockTemplate = {
@@ -100,7 +100,7 @@ const mockHooks = {
     isPlaceholderData: false,
     isStale: false
   },
-  useSimpleOrganization: {
+  useOrganization: {
     currentOrganization: { id: 'org-1', name: 'Test Org' },
     organizations: [],
     userOrganizations: [],
@@ -110,7 +110,7 @@ const mockHooks = {
     switchToOrganization: vi.fn(),
     refreshOrganizations: vi.fn()
   },
-  useEquipmentByOrganization: {
+  useEquipment: {
     data: mockEquipment,
     isLoading: false,
     error: null,
@@ -168,8 +168,8 @@ describe('TemplateAssignmentDialog', () => {
     
     // Setup mocks using vi.mocked with proper type casting
     vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate as unknown as ReturnType<typeof usePMTemplate>);
-    vi.mocked(useSimpleOrganization).mockReturnValue(mockHooks.useSimpleOrganization as unknown as ReturnType<typeof useSimpleOrganization>);
-    vi.mocked(useSyncEquipmentByOrganization).mockReturnValue(mockHooks.useEquipmentByOrganization as unknown as ReturnType<typeof useSyncEquipmentByOrganization>);
+    vi.mocked(useOrganization).mockReturnValue(mockHooks.useOrganization as unknown as ReturnType<typeof useOrganization>);
+    vi.mocked(useEquipment).mockReturnValue(mockHooks.useEquipment as unknown as ReturnType<typeof useEquipment>);
     vi.mocked(useBulkAssignTemplate).mockReturnValue(mockHooks.useBulkAssignTemplate as unknown as ReturnType<typeof useBulkAssignTemplate>);
   });
 
@@ -423,13 +423,13 @@ describe('TemplateAssignmentDialog', () => {
     });
 
     it('shows loading state when equipment is loading', () => {
-      vi.mocked(useSyncEquipmentByOrganization).mockReturnValue({
-        ...mockHooks.useEquipmentByOrganization,
+      vi.mocked(useEquipment).mockReturnValue({
+        ...mockHooks.useEquipment,
         data: [],
         isLoading: true,
         isSuccess: false,
         status: 'pending'
-      } as unknown as ReturnType<typeof useSyncEquipmentByOrganization>);
+      } as unknown as ReturnType<typeof useEquipment>);
 
       render(
         <TestProviders>
@@ -462,13 +462,13 @@ describe('TemplateAssignmentDialog', () => {
     });
 
     it('handles no equipment available', () => {
-      vi.mocked(useSyncEquipmentByOrganization).mockReturnValue({
-        ...mockHooks.useEquipmentByOrganization,
+      vi.mocked(useEquipment).mockReturnValue({
+        ...mockHooks.useEquipment,
         data: [],
         isLoading: false,
         isSuccess: true,
         status: 'success'
-      } as unknown as ReturnType<typeof useSyncEquipmentByOrganization>);
+      } as unknown as ReturnType<typeof useEquipment>);
 
       render(
         <TestProviders>

@@ -1,19 +1,20 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { ChevronLeft, ChevronRight, Plus, Upload } from 'lucide-react';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
+import { useEquipmentFiltering } from '@/components/equipment/hooks/useEquipmentFiltering';
 import { exportEquipmentCSV } from '@/services/equipmentCSVService';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { EquipmentRecord } from '@/types/equipment';
+import Page from '@/components/layout/Page';
+import PageHeader from '@/components/layout/PageHeader';
 
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
-import EquipmentHeader from '@/components/equipment/EquipmentHeader';
 import { EquipmentFilters } from '@/components/equipment/EquipmentFilters';
 import EquipmentSortHeader from '@/components/equipment/EquipmentSortHeader';
 import EquipmentGrid from '@/components/equipment/EquipmentGrid';
@@ -21,7 +22,7 @@ import EquipmentLoadingState from '@/components/equipment/EquipmentLoadingState'
 import ImportCsvWizard from '@/components/equipment/ImportCsvWizard';
 
 const Equipment = () => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const { canCreateEquipment, hasRole } = usePermissions();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -70,19 +71,21 @@ const Equipment = () => {
 
   if (!currentOrganization) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Equipment</h1>
-          <p className="text-muted-foreground">
-            Please select an organization to view equipment.
-          </p>
-        </div>
-      </div>
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Equipment" 
+          description="Please select an organization to view equipment." 
+        />
+      </Page>
     );
   }
 
   if (isLoading) {
-    return <EquipmentLoadingState />;
+    return (
+      <Page maxWidth="7xl" padding="responsive">
+        <EquipmentLoadingState />
+      </Page>
+    );
   }
 
   const handleAddEquipment = () => {
@@ -125,14 +128,35 @@ const Equipment = () => {
   // Equipment data comes from the filtering hook
 
   return (
-    <div className="space-y-6">
-      <EquipmentHeader
-        organizationName={currentOrganization.name}
-        canCreate={canCreate}
-        canImport={canExport}
-        onAddEquipment={handleAddEquipment}
-        onImportCsv={() => setShowImportCsv(true)}
-      />
+    <Page maxWidth="7xl" padding="responsive">
+      <div className="space-y-4 md:space-y-6">
+        <PageHeader 
+          title="Equipment" 
+          description={`Manage equipment for ${currentOrganization.name}`}
+          actions={
+            <div className="flex flex-col sm:flex-row gap-2">
+              {canExport && (
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowImportCsv(true)}
+                  className="w-full sm:w-auto"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import CSV
+                </Button>
+              )}
+              {canCreate && (
+                <Button 
+                  onClick={handleAddEquipment}
+                  className="w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Equipment
+                </Button>
+              )}
+            </div>
+          }
+        />
 
       <EquipmentFilters
         filters={filters}
@@ -166,7 +190,7 @@ const Equipment = () => {
       {/* Pagination and Page Size Selector */}
       {(totalPages > 1 || totalFilteredCount > 0) && (
         <div className="flex flex-col gap-4 border-t pt-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
               {totalFilteredCount > 0 ? (
                 <>
@@ -179,8 +203,8 @@ const Equipment = () => {
               )}
             </p>
             
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground">Items per page:</label>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <label className="text-sm text-muted-foreground whitespace-nowrap">Items per page:</label>
               <Select
                 value={pageSize.toString()}
                 onValueChange={(value) => {
@@ -188,7 +212,7 @@ const Equipment = () => {
                   setCurrentPage(1); // Reset to first page when page size changes
                 }}
               >
-                <SelectTrigger className="w-[100px]">
+                <SelectTrigger className="w-full sm:w-[100px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -203,28 +227,32 @@ const Equipment = () => {
           </div>
           
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={currentPage <= 1}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <span className="text-sm">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="flex-1 sm:flex-none h-10"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <span className="text-sm px-4 whitespace-nowrap">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="flex-1 sm:flex-none h-10"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -252,7 +280,8 @@ const Equipment = () => {
         organizationId={currentOrganization.id}
         organizationName={currentOrganization.name}
       />
-    </div>
+      </div>
+    </Page>
   );
 };
 

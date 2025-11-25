@@ -1,11 +1,10 @@
 
 import React from 'react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import NotificationBell from '@/components/notifications/NotificationBell';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface TopBarProps {
   title?: string;
@@ -13,7 +12,7 @@ interface TopBarProps {
 }
 
 const TopBar: React.FC<TopBarProps> = ({ title, breadcrumb }) => {
-  const { organizationId } = useSimpleOrganization();
+  const { organizationId } = useOrganization();
 
   return (
     <header 

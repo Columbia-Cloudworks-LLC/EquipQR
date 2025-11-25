@@ -3,7 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface GoogleMapsKeyResponse {
-  key: string;
+  key?: string;
+  error?: string;
+  details?: string;
 }
 
 interface UseGoogleMapsKeyResult {
@@ -25,7 +27,7 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
     try {
       // Add cache busting parameter to force fresh request
       const cacheKey = `cache_bust_${Date.now()}`;
-      console.log('[FleetMap] Fetching Google Maps key...', { cacheKey });
+      // Fetching Google Maps key
       
       const { data, error } = await supabase.functions.invoke<GoogleMapsKeyResponse>(
         'public-google-maps-key',
@@ -35,16 +37,30 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
       );
       
       if (error) {
-        console.error('[FleetMap] Edge function error:', error);
-        throw new Error(`Edge function failed: ${error.message}`);
+        console.error('[FleetMap] Edge function error object:', error);
+        // Extract error message from various possible locations
+        interface ErrorWithError {
+          message?: string;
+          error?: string;
+        }
+        const errorWithError = error as ErrorWithError;
+        const errorMsg = error.message || errorWithError.error || JSON.stringify(error);
+        throw new Error(`Edge function failed: ${errorMsg}`);
+      }
+      
+      // Check if the response contains an error (edge function returned error in data)
+      if (data?.error) {
+        const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+        console.error('[FleetMap] Edge function returned error in data:', errorMsg);
+        throw new Error(errorMsg);
       }
       
       if (!data?.key) {
-        console.error('[FleetMap] No API key in response:', data);
+        console.error('[FleetMap] No API key in response. Full response:', JSON.stringify(data, null, 2));
         throw new Error('Google Maps API key not found in response');
       }
       
-      console.log('[FleetMap] Successfully fetched Google Maps key');
+      // Successfully fetched Google Maps key
       setGoogleMapsKey(data.key);
       setError(null);
     } catch (error) {

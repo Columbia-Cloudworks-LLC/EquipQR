@@ -1,104 +1,143 @@
-
 import { BaseService, ApiResponse, PaginationParams, FilterParams } from './base/BaseService';
-import { Equipment } from './syncDataService';
+import { supabase } from '@/integrations/supabase/client';
+import { Tables } from '@/integrations/supabase/types';
+import { logger } from '@/utils/logger';
+
+// Use Supabase types for Equipment
+export type Equipment = Tables<'equipment'>;
 
 export interface EquipmentFilters extends FilterParams {
   status?: Equipment['status'];
   location?: string;
   manufacturer?: string;
   model?: string;
+  team_id?: string | null;
+  // Team-based access control
+  userTeamIds?: string[];
+  isOrgAdmin?: boolean;
 }
 
-export type EquipmentCreateData = Omit<Equipment, 'id'>;
+export type EquipmentCreateData = Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>;
 
-export type EquipmentUpdateData = Partial<Omit<Equipment, 'id'>>;
+export type EquipmentUpdateData = Partial<Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>>;
+
+export interface EquipmentNote extends Tables<'notes'> {
+  authorName?: string;
+}
+
+export interface EquipmentScan extends Tables<'scans'> {
+  scannedByName?: string;
+}
+
+export interface EquipmentWorkOrder extends Tables<'work_orders'> {
+  assigneeName?: string;
+  equipmentName?: string;
+}
 
 export class EquipmentService extends BaseService {
+  /**
+   * Get all equipment for an organization with optional filters and team-based access control
+   * Uses optimized single query approach
+   */
   async getAll(
     filters: EquipmentFilters = {},
     pagination: PaginationParams = {}
   ): Promise<ApiResponse<Equipment[]>> {
     try {
-      // Mock data for testing
-      let mockEquipment: Equipment[] = [
-        {
-          id: 'eq-1',
-          name: 'Forklift A',
-          manufacturer: 'Toyota',
-          model: 'FG25',
-          serial_number: 'TYT-001',
-          status: 'active',
-          location: 'Warehouse A',
-          installation_date: '2023-01-01',
-          warranty_expiration: '2025-01-01',
-          last_maintenance: '2024-01-01'
-        },
-        {
-          id: 'eq-2',
-          name: 'Conveyor Belt B',
-          manufacturer: 'Siemens',
-          model: 'CB500',
-          serial_number: 'SIE-002',
-          status: 'maintenance',
-          location: 'Warehouse B',
-          installation_date: '2023-02-01',
-          warranty_expiration: '2025-02-01',
-          last_maintenance: '2024-02-01'
+      let query = supabase
+        .from('equipment')
+        .select('*')
+        .eq('organization_id', this.organizationId);
+
+      // Apply team-based filtering if user is not org admin
+      if (filters.userTeamIds !== undefined && !filters.isOrgAdmin) {
+        if (filters.userTeamIds.length > 0) {
+          query = query.in('team_id', filters.userTeamIds);
+        } else {
+          // Users with no team memberships see no equipment
+          return this.handleSuccess([]);
         }
-      ];
+      }
 
       // Apply filters
       if (filters.status) {
-        mockEquipment = mockEquipment.filter(eq => eq.status === filters.status);
+        query = query.eq('status', filters.status);
       }
       if (filters.location) {
-        mockEquipment = mockEquipment.filter(eq => eq.location === filters.location);
+        query = query.ilike('location', `%${filters.location}%`);
       }
       if (filters.manufacturer) {
-        mockEquipment = mockEquipment.filter(eq => eq.manufacturer === filters.manufacturer);
+        query = query.ilike('manufacturer', `%${filters.manufacturer}%`);
       }
       if (filters.model) {
-        mockEquipment = mockEquipment.filter(eq => eq.model === filters.model);
+        query = query.ilike('model', `%${filters.model}%`);
+      }
+      if (filters.team_id !== undefined) {
+        if (filters.team_id === null) {
+          query = query.is('team_id', null);
+        } else {
+          query = query.eq('team_id', filters.team_id);
+        }
+      }
+
+      // Apply sorting
+      if (pagination.sortBy) {
+        query = query.order(pagination.sortBy, { 
+          ascending: pagination.sortOrder !== 'desc' 
+        });
+      } else {
+        query = query.order('name', { ascending: true });
       }
 
       // Apply pagination
       if (pagination.limit) {
         const startIndex = ((pagination.page || 1) - 1) * pagination.limit;
-        mockEquipment = mockEquipment.slice(startIndex, startIndex + pagination.limit);
+        query = query.range(startIndex, startIndex + pagination.limit - 1);
       }
 
-      return this.handleSuccess(mockEquipment);
+      const { data, error } = await query;
+
+      if (error) {
+        logger.error('Error fetching equipment:', error);
+        return this.handleError(error);
+      }
+
+      return this.handleSuccess(data || []);
     } catch (error) {
       return this.handleError(error);
     }
   }
 
+  /**
+   * Get equipment by ID with organization validation
+   */
   async getById(id: string): Promise<ApiResponse<Equipment>> {
     try {
-      // Handle non-existent equipment
-      if (id === 'non-existent') {
+      const { data, error } = await supabase
+        .from('equipment')
+        .select('*')
+        .eq('id', id)
+        .eq('organization_id', this.organizationId)
+        .single();
+
+      if (error) {
+        logger.error('Error fetching equipment by ID:', error);
+        return this.handleError(error);
+      }
+
+      if (!data) {
         return this.handleError(new Error('Equipment not found'));
       }
 
-      // Mock implementation - in real app this would call an API
-      const mockEquipment: Equipment = {
-        id,
-        name: 'Mock Equipment',
-        manufacturer: 'Mock Manufacturer',
-        model: 'Mock Model',
-        serial_number: 'MOCK-001',
-        status: 'active',
-        location: 'Mock Location',
-        installation_date: new Date().toISOString(),
-        warranty_expiration: new Date().toISOString(),
-        last_maintenance: new Date().toISOString(),
-      };
-      return this.handleSuccess(mockEquipment);
+      return this.handleSuccess(data);
     } catch (error) {
       return this.handleError(error);
     }
   }
 
+  /**
+   * Create new equipment
+   */
   async create(data: EquipmentCreateData): Promise<ApiResponse<Equipment>> {
     try {
       // Validate required fields
@@ -106,70 +145,325 @@ export class EquipmentService extends BaseService {
         return this.handleError(new Error('Missing required fields'));
       }
 
-      // For now, create a mock equipment entry
-      const newEquipment: Equipment = {
-        id: `eq-${Date.now()}`,
-        ...data
-      };
+      const { data: newEquipment, error } = await supabase
+        .from('equipment')
+        .insert({
+          organization_id: this.organizationId,
+          ...data
+        })
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('Error creating equipment:', error);
+        return this.handleError(error);
+      }
+
       return this.handleSuccess(newEquipment);
     } catch (error) {
       return this.handleError(error);
     }
   }
 
+  /**
+   * Update equipment
+   */
   async update(id: string, data: EquipmentUpdateData): Promise<ApiResponse<Equipment>> {
     try {
-      // Handle non-existent equipment
-      if (id === 'non-existent') {
+      const { data: updated, error } = await supabase
+        .from('equipment')
+        .update(data)
+        .eq('id', id)
+        .eq('organization_id', this.organizationId)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('Error updating equipment:', error);
+        return this.handleError(error);
+      }
+
+      if (!updated) {
         return this.handleError(new Error('Equipment not found'));
       }
 
-      // Mock implementation
-      const updated: Equipment = {
-        id,
-        name: data.name || 'Updated Equipment',
-        manufacturer: data.manufacturer || 'Updated Manufacturer',
-        model: data.model || 'Updated Model',
-        serial_number: data.serial_number || 'UPD-001',
-        status: data.status || 'active',
-        location: data.location || 'Updated Location',
-        installation_date: data.installation_date || new Date().toISOString(),
-        warranty_expiration: data.warranty_expiration || new Date().toISOString(),
-        last_maintenance: data.last_maintenance || new Date().toISOString(),
-        notes: data.notes
-      };
       return this.handleSuccess(updated);
     } catch (error) {
       return this.handleError(error);
     }
   }
 
+  /**
+   * Delete equipment
+   */
   async delete(id: string): Promise<ApiResponse<boolean>> {
     try {
-      // Handle non-existent equipment
-      if (id === 'non-existent') {
-        return this.handleError(new Error('Equipment not found'));
+      const { error } = await supabase
+        .from('equipment')
+        .delete()
+        .eq('id', id)
+        .eq('organization_id', this.organizationId);
+
+      if (error) {
+        logger.error('Error deleting equipment:', error);
+        return this.handleError(error);
       }
 
-      // Mock implementation
       return this.handleSuccess(true);
     } catch (error) {
       return this.handleError(error);
     }
   }
 
+  /**
+   * Get status counts for equipment
+   */
   async getStatusCounts(): Promise<ApiResponse<Record<Equipment['status'], number>>> {
     try {
-      // Mock implementation with actual counts
-      const counts: Record<Equipment['status'], number> = {
-        active: 15,
-        maintenance: 3,
-        inactive: 2
-      };
+      const { data, error } = await supabase
+        .from('equipment')
+        .select('status')
+        .eq('organization_id', this.organizationId);
+
+      if (error) {
+        logger.error('Error fetching equipment status counts:', error);
+        return this.handleError(error);
+      }
+
+      const counts = (data || []).reduce((acc, eq) => {
+        acc[eq.status] = (acc[eq.status] || 0) + 1;
+        return acc;
+      }, {} as Record<Equipment['status'], number>);
+
+      // Ensure all statuses are present
+      const allStatuses: Equipment['status'][] = ['active', 'maintenance', 'inactive'];
+      allStatuses.forEach(status => {
+        if (!(status in counts)) {
+          counts[status] = 0;
+        }
+      });
 
       return this.handleSuccess(counts);
     } catch (error) {
       return this.handleError(error);
     }
   }
+
+  /**
+   * Get notes for equipment with author names (optimized JOIN)
+   */
+  async getNotesByEquipmentId(equipmentId: string): Promise<ApiResponse<EquipmentNote[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('notes')
+        .select(`
+          *,
+          author:profiles!notes_author_id_fkey (
+            id,
+            name
+          ),
+          equipment!inner (
+            organization_id
+          )
+        `)
+        .eq('equipment_id', equipmentId)
+        .eq('equipment.organization_id', this.organizationId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        logger.error('Error fetching equipment notes:', error);
+        return this.handleError(error);
+      }
+
+      const notes: EquipmentNote[] = (data || []).map(note => ({
+        ...note,
+        authorName: (note.author as { name?: string } | null | undefined)?.name || 'Unknown'
+      }));
+
+      return this.handleSuccess(notes);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Get scans for equipment with scanner names (optimized JOIN)
+   */
+  async getScansByEquipmentId(equipmentId: string): Promise<ApiResponse<EquipmentScan[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('scans')
+        .select(`
+          *,
+          scanned_by_profile:profiles!scans_scanned_by_fkey (
+            id,
+            name
+          ),
+          equipment!inner (
+            organization_id
+          )
+        `)
+        .eq('equipment_id', equipmentId)
+        .eq('equipment.organization_id', this.organizationId)
+        .order('scanned_at', { ascending: false });
+
+      if (error) {
+        logger.error('Error fetching equipment scans:', error);
+        return this.handleError(error);
+      }
+
+      const scans: EquipmentScan[] = (data || []).map(scan => ({
+        ...scan,
+        scannedByName: (scan.scanned_by_profile as { name?: string } | null | undefined)?.name || 'Unknown'
+      }));
+
+      return this.handleSuccess(scans);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Get work orders for equipment with assignee names (optimized JOIN)
+   */
+  async getWorkOrdersByEquipmentId(equipmentId: string): Promise<ApiResponse<EquipmentWorkOrder[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('work_orders')
+        .select(`
+          *,
+          assignee:profiles!work_orders_assignee_id_fkey (
+            id,
+            name
+          ),
+          equipment:equipment!work_orders_equipment_id_fkey (
+            id,
+            name
+          )
+        `)
+        .eq('equipment_id', equipmentId)
+        .eq('organization_id', this.organizationId)
+        .order('created_date', { ascending: false });
+
+      if (error) {
+        logger.error('Error fetching equipment work orders:', error);
+        return this.handleError(error);
+      }
+
+      const workOrders: EquipmentWorkOrder[] = (data || []).map(wo => ({
+        ...wo,
+        assigneeName: (wo.assignee as { name?: string } | null | undefined)?.name,
+        equipmentName: (wo.equipment as { name?: string } | null | undefined)?.name
+      }));
+
+      return this.handleSuccess(workOrders);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Get team-accessible equipment (for RBAC)
+   */
+  async getTeamAccessibleEquipment(
+    userTeamIds: string[],
+    isOrgAdmin: boolean = false
+  ): Promise<ApiResponse<Equipment[]>> {
+    try {
+      let query = supabase
+        .from('equipment')
+        .select(`
+          *,
+          teams:team_id (
+            id,
+            name
+          )
+        `)
+        .eq('organization_id', this.organizationId);
+
+      // Organization admins can see all equipment
+      if (!isOrgAdmin) {
+        // Regular users can only see equipment assigned to their teams
+        if (userTeamIds.length > 0) {
+          query = query.in('team_id', userTeamIds);
+        } else {
+          // Users with no team memberships see no equipment
+          return this.handleSuccess([]);
+        }
+      }
+
+      const { data, error } = await query.order('name', { ascending: true });
+
+      if (error) {
+        logger.error('Error fetching team-accessible equipment:', error);
+        return this.handleError(error);
+      }
+
+      return this.handleSuccess(data || []);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Get accessible equipment IDs (helper for work order filtering)
+   */
+  async getAccessibleEquipmentIds(
+    userTeamIds: string[],
+    isOrgAdmin: boolean = false
+  ): Promise<string[]> {
+    const result = await this.getTeamAccessibleEquipment(userTeamIds, isOrgAdmin);
+    if (result.success && result.data) {
+      return result.data.map(eq => eq.id);
+    }
+    return [];
+  }
 }
+
+/**
+ * Static helper functions for backward compatibility
+ * @deprecated Use EquipmentService instance methods instead
+ */
+export const getTeamAccessibleEquipment = async (
+  organizationId: string,
+  userTeamIds: string[],
+  isOrgAdmin: boolean = false
+): Promise<Array<Equipment & { team_name?: string }>> => {
+  const service = new EquipmentService(organizationId);
+  const result = await service.getTeamAccessibleEquipment(userTeamIds, isOrgAdmin);
+  if (result.success && result.data) {
+    // Fetch team names for equipment that has team_id
+    const teamIds = [...new Set(result.data.filter(eq => eq.team_id).map(eq => eq.team_id!))];
+    let teamNames: Record<string, string> = {};
+    
+    if (teamIds.length > 0) {
+      const { data: teams } = await supabase
+        .from('teams')
+        .select('id, name')
+        .in('id', teamIds)
+        .eq('organization_id', organizationId);
+      
+      if (teams) {
+        teamNames = teams.reduce((acc, team) => {
+          acc[team.id] = team.name;
+          return acc;
+        }, {} as Record<string, string>);
+      }
+    }
+    
+    return result.data.map(eq => ({
+      ...eq,
+      team_name: eq.team_id ? teamNames[eq.team_id] : undefined
+    }));
+  }
+  return [];
+};
+
+export const getAccessibleEquipmentIds = async (
+  organizationId: string,
+  userTeamIds: string[],
+  isOrgAdmin: boolean = false
+): Promise<string[]> => {
+  const service = new EquipmentService(organizationId);
+  return service.getAccessibleEquipmentIds(userTeamIds, isOrgAdmin);
+};

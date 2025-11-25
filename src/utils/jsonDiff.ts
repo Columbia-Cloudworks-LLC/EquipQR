@@ -1,10 +1,10 @@
 export interface JsonDiff {
   path: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
 }
 
-export function deepDiff(obj1: any, obj2: any, path = ''): JsonDiff[] {
+export function deepDiff(obj1: unknown, obj2: unknown, path = ''): JsonDiff[] {
   const differences: JsonDiff[] = [];
 
   // Handle null/undefined cases
@@ -63,22 +63,25 @@ export function deepDiff(obj1: any, obj2: any, path = ''): JsonDiff[] {
   }
 
   // Handle objects
-  const keys1 = Object.keys(obj1);
-  const keys2 = Object.keys(obj2);
+  const object1 = obj1 as Record<string, unknown>;
+  const object2 = obj2 as Record<string, unknown>;
+
+  const keys1 = Object.keys(object1);
+  const keys2 = Object.keys(object2);
   const allKeys = new Set([...keys1, ...keys2]);
 
   for (const key of allKeys) {
     const currentPath = path ? `${path}.${key}` : key;
-    const value1 = obj1[key];
-    const value2 = obj2[key];
+    const value1 = object1[key];
+    const value2 = object2[key];
 
-    if (!(key in obj1)) {
+    if (!(key in object1)) {
       differences.push({
         path: currentPath,
         oldValue: undefined,
         newValue: value2
       });
-    } else if (!(key in obj2)) {
+    } else if (!(key in object2)) {
       differences.push({
         path: currentPath,
         oldValue: value1,
@@ -92,7 +95,7 @@ export function deepDiff(obj1: any, obj2: any, path = ''): JsonDiff[] {
   return differences;
 }
 
-export function formatDiffValue(value: any): string {
+export function formatDiffValue(value: unknown): string {
   if (value === null) return 'null';
   if (value === undefined) return 'undefined';
   if (typeof value === 'string') return `"${value}"`;

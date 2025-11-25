@@ -8,7 +8,8 @@ import { User, Users, UserCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
-import { useSyncTeamsByOrganization, useSyncEquipmentById } from '@/services/syncDataService';
+import { useSyncTeamsByOrganization } from '@/services/syncDataService';
+import { useEquipmentById } from '@/components/equipment/hooks/useEquipment';
 import { toast } from 'sonner';
 
 import { WorkOrderLike } from '@/utils/workOrderTypeConversion';
@@ -43,7 +44,7 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
   const { data: organizationMembers = [] } = useOrganizationMembers(organizationId);
   const { data: organizationAdmins = [] } = useOrganizationAdmins(organizationId);
   const { data: teams = [] } = useSyncTeamsByOrganization(organizationId);
-  const { data: equipment } = useSyncEquipmentById(organizationId, workOrder?.equipment_id || workOrder?.equipmentId);
+  const { data: equipment } = useEquipmentById(organizationId, workOrder?.equipment_id || workOrder?.equipmentId);
 
   // Get current user info
   const isSingleUserOrg = organizationMembers.length === 1;

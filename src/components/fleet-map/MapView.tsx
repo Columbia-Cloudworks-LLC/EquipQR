@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, ExternalLink, Clock, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDate, getRelativeTime } from '@/utils/basicDateFormatter';
+import { logger } from '@/utils/logger';
 
 interface EquipmentLocation {
   id: string;
@@ -28,14 +29,23 @@ interface MapViewProps {
   filteredLocations: EquipmentLocation[];
 }
 
-const mapContainerStyle = {
+// Map container style will be set dynamically based on container
+const getMapContainerStyle = (height: string) => ({
   width: '100%',
-  height: '600px'
-};
+  height
+});
 
 const defaultCenter = {
   lat: 39.8283,
   lng: -98.5795 // Center of USA
+};
+
+const MAP_OPTIONS = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: true,
+  fullscreenControl: true,
 };
 
 // Stabilize libraries prop to prevent re-initialization
@@ -56,28 +66,49 @@ export const MapView: React.FC<MapViewProps> = ({
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
-  console.log('[MapView] Component rendered:', {
-    hasGoogleMapsKey: !!googleMapsKey,
-    googleMapsKeyLength: googleMapsKey?.length || 0,
-    isMapsLoaded,
-    mapsLoadError: mapsLoadError?.message,
-    filteredLocationsCount: filteredLocations.length
-  });
+  // Handle map load
+  const onMapLoad = React.useCallback((mapInstance: google.maps.Map) => {
+    if (import.meta.env.DEV) {
+      logger.debug('[MapView] Map loaded successfully', {
+        center: mapInstance.getCenter()?.toJSON(),
+        zoom: mapInstance.getZoom()
+      });
+    }
+  }, []);
 
   // Calculate map center based on equipment locations
   const mapCenter = useMemo(() => {
-    if (filteredLocations.length === 0) return defaultCenter;
-    
-    const avgLat = filteredLocations.reduce((sum, loc) => sum + loc.lat, 0) / filteredLocations.length;
-    const avgLng = filteredLocations.reduce((sum, loc) => sum + loc.lng, 0) / filteredLocations.length;
-    
+    const locations = filteredLocations.length > 0 ? filteredLocations : equipmentLocations;
+    if (locations.length === 0) return defaultCenter;
+
+    const avgLat = locations.reduce((sum, loc) => sum + loc.lat, 0) / locations.length;
+    const avgLng = locations.reduce((sum, loc) => sum + loc.lng, 0) / locations.length;
+
     return { lat: avgLat, lng: avgLng };
-  }, [filteredLocations]);
+  }, [filteredLocations, equipmentLocations]);
+
+  if (import.meta.env.DEV) {
+    logger.debug('[MapView] Component rendered', {
+      hasGoogleMapsKey: !!googleMapsKey,
+      googleMapsKeyLength: googleMapsKey?.length || 0,
+      isMapsLoaded,
+      mapsLoadError: mapsLoadError?.message,
+      filteredLocationsCount: filteredLocations.length,
+      equipmentLocationsCount: equipmentLocations.length,
+      sampleLocation: filteredLocations.length > 0 ? {
+        id: filteredLocations[0].id,
+        name: filteredLocations[0].name,
+        lat: filteredLocations[0].lat,
+        lng: filteredLocations[0].lng
+      } : null,
+      mapCenter
+    });
+  }
 
   // Handle loading states
   if (!isMapsLoaded) {
     return (
-      <div className="h-[600px] w-full bg-muted animate-pulse rounded-lg flex items-center justify-center">
+      <div className="h-full w-full bg-muted animate-pulse rounded-lg flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">Loading Google Maps...</p>
         </div>
@@ -89,7 +120,7 @@ export const MapView: React.FC<MapViewProps> = ({
   if (mapsLoadError) {
     console.error('[MapView] Google Maps load error:', mapsLoadError);
     return (
-      <div className="h-[600px] w-full bg-destructive/10 border border-destructive/20 rounded-lg flex items-center justify-center">
+      <div className="h-full w-full bg-destructive/10 border border-destructive/20 rounded-lg flex items-center justify-center">
         <div className="text-center">
           <p className="text-destructive font-medium">Failed to load Google Maps</p>
           <p className="text-sm text-muted-foreground mt-1">{mapsLoadError.message}</p>
@@ -100,35 +131,35 @@ export const MapView: React.FC<MapViewProps> = ({
 
   return (
     <GoogleMap
-      mapContainerStyle={mapContainerStyle}
+      mapContainerStyle={getMapContainerStyle('100%')}
       center={mapCenter}
       zoom={filteredLocations.length > 0 ? 6 : 4}
-      options={{
-        disableDefaultUI: false,
-        zoomControl: true,
-        streetViewControl: false,
-        mapTypeControl: true,
-        fullscreenControl: true,
-      }}
+      options={MAP_OPTIONS}
+      onLoad={onMapLoad}
     >
       {/* Equipment Markers */}
-      {filteredLocations.map((location) => (
-        <MarkerF
-          key={location.id}
-          position={{ lat: location.lat, lng: location.lng }}
-          onClick={() => setSelectedMarker(location)}
-          icon={{
-            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="#3B82F6" stroke="#1E40AF" stroke-width="2"/>
-                <circle cx="12" cy="10" r="3" fill="white"/>
-              </svg>
-            `),
-            scaledSize: new window.google.maps.Size(32, 32),
-            anchor: new window.google.maps.Point(16, 32)
-          }}
-        />
-      ))}
+      {filteredLocations.map((location) => {
+        // Create icon only when Google Maps is fully loaded
+        const icon = isMapsLoaded && window.google?.maps ? {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="#3B82F6" stroke="#1E40AF" stroke-width="2"/>
+              <circle cx="12" cy="10" r="3" fill="white"/>
+            </svg>
+          `),
+          scaledSize: new window.google.maps.Size(32, 32),
+          anchor: new window.google.maps.Point(16, 32)
+        } : undefined;
+
+        return (
+          <MarkerF
+            key={location.id}
+            position={{ lat: location.lat, lng: location.lng }}
+            onClick={() => setSelectedMarker(location)}
+            icon={icon}
+          />
+        );
+      })}
 
       {/* Info Window */}
       {selectedMarker && (

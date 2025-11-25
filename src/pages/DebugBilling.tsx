@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { RefreshCw, Copy, Eye, EyeOff, ExternalLink } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useLocalBillingCalculation } from '@/hooks/useLocalBillingCalculation';
 import { useBillingSnapshot } from '@/hooks/useBillingSnapshot';
 import { deepDiff } from '@/utils/jsonDiff';
@@ -208,7 +208,7 @@ const DebugBillingContent: React.FC<{ currentOrganization: SimpleOrganization | 
 };
 
 const DebugBilling: React.FC = () => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
 
   if (!import.meta.env.DEV) {
     return (

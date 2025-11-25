@@ -1,14 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Plus, MessageSquare, Images, Clock, User, EyeOff } from 'lucide-react';
+import { Plus, Images, Clock, User, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,8 +15,9 @@ import {
   deleteEquipmentNoteImage,
   updateEquipmentDisplayImage
 } from '@/services/equipmentNotesService';
-import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
+import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import ImageGallery from '@/components/common/ImageGallery';
+import { logger } from '@/utils/logger';
 
 interface EnhancedEquipmentNotesTabProps {
   equipmentId: string;
@@ -33,11 +29,8 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    content: '',
-    hoursWorked: 0,
-    isPrivate: false
-  });
+  const [noteContent, setNoteContent] = useState('');
+  const [attachedImages, setAttachedImages] = useState<File[]>([]);
 
   // Fetch notes with images
   const { data: notes = [], isLoading: notesLoading } = useQuery({
@@ -70,21 +63,29 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
 
   // Create note mutation
   const createNoteMutation = useMutation({
-    mutationFn: ({ content, hoursWorked, isPrivate, images }: {
+    mutationFn: ({ content, hoursWorked, isPrivate, images, machineHours }: {
       content: string;
       hoursWorked: number;
       isPrivate: boolean;
       images: File[];
-    }) => createEquipmentNoteWithImages(equipmentId, content, hoursWorked, isPrivate, images),
+      machineHours?: number;
+    }) => {
+      // TODO: Handle machineHours when backend supports it
+      if (machineHours !== undefined && machineHours > 0) {
+        logger.debug('Machine hours provided', { machineHours, note: 'not yet supported in backend' });
+      }
+      return createEquipmentNoteWithImages(equipmentId, content, hoursWorked, isPrivate, images);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment-notes-with-images', equipmentId] });
       queryClient.invalidateQueries({ queryKey: ['equipment-images', equipmentId] });
       setShowForm(false);
-      setFormData({ content: '', hoursWorked: 0, isPrivate: false });
+      setNoteContent('');
+      setAttachedImages([]);
       toast.success('Note created successfully');
     },
     onError: (error) => {
-      console.error('Failed to create note:', error);
+      logger.error('Failed to create note', error);
       toast.error('Failed to create note');
     }
   });
@@ -107,32 +108,39 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
     }
   });
 
-  const handleCreateNoteWithImages = async (files: File[]) => {
-    if (!formData.content.trim()) {
-      toast.error('Please enter note content');
-      return;
+  const handleNoteSubmit = async (data: {
+    content: string;
+    images: File[];
+    hoursWorked?: number;
+    machineHours?: number;
+    isPrivate?: boolean;
+  }) => {
+    // Generate content if none provided but images are uploaded
+    let finalContent = data.content.trim();
+    if (!finalContent && data.images.length > 0) {
+      const userName = user?.email?.split('@')[0] || 'User';
+      if (data.images.length === 1) {
+        finalContent = `${userName} uploaded 1 image.`;
+      } else {
+        finalContent = `${userName} uploaded ${data.images.length} images.`;
+      }
     }
     
     await createNoteMutation.mutateAsync({
-      content: formData.content,
-      hoursWorked: formData.hoursWorked,
-      isPrivate: formData.isPrivate,
-      images: files
+      content: finalContent,
+      hoursWorked: data.hoursWorked || 0,
+      isPrivate: data.isPrivate || false,
+      images: data.images,
+      machineHours: data.machineHours
     });
   };
 
-  const handleCreateNoteOnly = () => {
-    if (!formData.content.trim()) {
-      toast.error('Please enter note content');
-      return;
-    }
-    
-    createNoteMutation.mutate({
-      content: formData.content,
-      hoursWorked: formData.hoursWorked,
-      isPrivate: formData.isPrivate,
-      images: []
-    });
+  const handleImagesAdd = (files: File[]) => {
+    setAttachedImages(prev => [...prev, ...files]);
+  };
+
+  const handleImageRemove = (index: number) => {
+    setAttachedImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const canDeleteImage = (image: { uploaded_by: string }) => {
@@ -143,8 +151,9 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
     return new Date(dateString).toLocaleDateString();
   };
 
-  const formatHours = (hours: number) => {
-    return hours > 0 ? `${hours}h` : '';
+  const formatHours = (hours: number | null | undefined) => {
+    const numHours = Number(hours) || 0;
+    return numHours > 0 ? `${numHours}h` : '';
   };
 
   if (notesLoading) {
@@ -173,73 +182,32 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowForm(false);
+                    setNoteContent('');
+                    setAttachedImages([]);
+                  }}
                 >
                   Cancel
                 </Button>
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Note Content */}
-            <div className="space-y-2">
-              <Label htmlFor="content">Note Content</Label>
-              <Textarea
-                id="content"
-                placeholder="Enter your note..."
-                value={formData.content}
-                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                rows={4}
-              />
-            </div>
-            
-            {/* Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="hours">Hours Worked</Label>
-                <Input
-                  id="hours"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={formData.hoursWorked}
-                  onChange={(e) => setFormData(prev => ({ ...prev, hoursWorked: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Switch
-                    checked={formData.isPrivate}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPrivate: checked }))}
-                  />
-                  Private Note
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Only you can see private notes
-                </p>
-              </div>
-            </div>
-            
-            {/* Image Upload Section */}
-            <div className="space-y-4">
-              <Label>Images (Optional)</Label>
-              <ImageUploadWithNote
-                onUpload={handleCreateNoteWithImages}
-                disabled={createNoteMutation.isPending}
-              />
-            </div>
-            
-            {/* Single Submit Button for Text-Only Notes */}
-            <Button 
-              onClick={handleCreateNoteOnly}
-              disabled={createNoteMutation.isPending || !formData.content.trim()}
-              className="w-full"
-              variant="outline"
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              {createNoteMutation.isPending ? 'Adding Note...' : 'Add Note Only'}
-            </Button>
+          <CardContent>
+            <InlineNoteComposer
+              value={noteContent}
+              onChange={setNoteContent}
+              onSubmit={handleNoteSubmit}
+              attachedImages={attachedImages}
+              onImagesAdd={handleImagesAdd}
+              onImageRemove={handleImageRemove}
+              showPrivateToggle={true}
+              showHoursWorked={true}
+              showMachineHours={true}
+              disabled={createNoteMutation.isPending}
+              isSubmitting={createNoteMutation.isPending}
+              placeholder="Enter your note..."
+            />
           </CardContent>
         </Card>
       )}

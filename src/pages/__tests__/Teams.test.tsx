@@ -2,8 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Teams from '../Teams';
-import type { UseQueryResult } from '@tanstack/react-query';
-import type { OptimizedTeam } from '@/hooks/useOptimizedTeams';
+import type { Team } from '@/hooks/useTeams';
 
 vi.mock('@/components/teams/CreateTeamDialog', () => ({
   default: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
@@ -20,8 +19,8 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock('@/hooks/useOptimizedTeams', () => ({
-  useOptimizedTeams: vi.fn()
+vi.mock('@/hooks/useTeams', () => ({
+  useTeams: vi.fn()
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
@@ -32,15 +31,15 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn()
 }));
 
-import { useOptimizedTeams } from '@/hooks/useOptimizedTeams';
+import { useTeams } from '@/hooks/useTeams';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 
-const mockUseOptimizedTeams = vi.mocked(useOptimizedTeams);
+const mockUseTeams = vi.mocked(useTeams);
 const mockUsePermissions = vi.mocked(usePermissions);
 const mockUseSimpleOrganization = vi.mocked(useSimpleOrganization);
 
-const mockTeam: OptimizedTeam = {
+const mockTeam: Team = {
   id: 'team-1',
   name: 'Engineering Team',
   description: 'Dev team',
@@ -103,12 +102,12 @@ beforeEach(() => {
     isTeamMember: () => true,
     isTeamManager: () => true
   });
-  mockUseOptimizedTeams.mockReturnValue({ data: [], isLoading: false } as unknown as UseQueryResult<OptimizedTeam[], Error>);
+  mockUseTeams.mockReturnValue({ teams: [], managedTeams: [], isLoading: false, error: null });
 });
 
 describe('Teams Page', () => {
   it('shows loading state with skeleton cards', () => {
-    mockUseOptimizedTeams.mockReturnValue({ data: undefined, isLoading: true } as unknown as UseQueryResult<OptimizedTeam[], Error>);
+    mockUseTeams.mockReturnValue({ teams: undefined, managedTeams: [], isLoading: true, error: null });
     renderTeamsPage();
     expect(screen.getByTestId('teams-loading')).toBeInTheDocument();
   });
@@ -119,7 +118,7 @@ describe('Teams Page', () => {
   });
 
   it('renders team information when teams exist', () => {
-    mockUseOptimizedTeams.mockReturnValue({ data: [mockTeam], isLoading: false } as unknown as UseQueryResult<OptimizedTeam[], Error>);
+    mockUseTeams.mockReturnValue({ teams: [mockTeam], managedTeams: [], isLoading: false, error: null });
     renderTeamsPage();
     expect(screen.getByText('Engineering Team')).toBeInTheDocument();
     expect(screen.getByText('Dev team')).toBeInTheDocument();
@@ -133,7 +132,7 @@ describe('Teams Page', () => {
   });
 
   it('navigates to team details when manage team button is clicked', () => {
-    mockUseOptimizedTeams.mockReturnValue({ data: [mockTeam], isLoading: false } as unknown as UseQueryResult<OptimizedTeam[], Error>);
+    mockUseTeams.mockReturnValue({ teams: [mockTeam], managedTeams: [], isLoading: false, error: null });
     renderTeamsPage();
     const manageButton = screen.getByRole('button', { name: /manage team/i });
     fireEvent.click(manageButton);

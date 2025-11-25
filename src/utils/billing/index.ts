@@ -261,7 +261,7 @@ export function getUpgradeMessage(slotAvailability?: SlotAvailability): string {
   return 'Purchase additional licenses to expand your team capacity.';
 }
 
-export function getLicenseStatus(slotAvailability: SlotAvailability, _activeMembers: number) {
+export function getLicenseStatus(slotAvailability: SlotAvailability) {
   const { total_purchased, available_slots, exempted_slots } = slotAvailability;
   
   if (total_purchased === 0 && exempted_slots === 0) {

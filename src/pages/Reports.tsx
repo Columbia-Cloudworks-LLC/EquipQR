@@ -1,17 +1,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Download, BarChart3, FileText } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useSyncEquipmentByOrganization, useSyncWorkOrdersByOrganization, useSyncDashboardStats } from '@/services/syncDataService';
+import { BarChart3, FileText } from 'lucide-react';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useEquipment } from '@/components/equipment/hooks/useEquipment';
+import { useSyncWorkOrdersByOrganization, useSyncDashboardStats } from '@/services/syncDataService';
 import ReportFilters from '@/components/reports/ReportFilters';
 import ReportCharts from '@/components/reports/ReportCharts';
 import ReportExport from '@/components/reports/ReportExport';
@@ -30,13 +23,13 @@ export interface ReportFilters {
 }
 
 const Reports = () => {
-  const { currentOrganization } = useSimpleOrganization();
+  const { currentOrganization } = useOrganization();
   const [filters, setFilters] = useState<ReportFilters>({
     type: 'equipment',
     dateRange: { from: undefined, to: undefined }
   });
 
-  const { data: equipment = [], isLoading: equipmentLoading } = useSyncEquipmentByOrganization(currentOrganization?.id);
+  const { data: equipment = [], isLoading: equipmentLoading } = useEquipment(currentOrganization?.id);
   const { data: workOrders = [], isLoading: workOrdersLoading } = useSyncWorkOrdersByOrganization(currentOrganization?.id);
   const { data: dashboardStats, isLoading: statsLoading } = useSyncDashboardStats(currentOrganization?.id);
 

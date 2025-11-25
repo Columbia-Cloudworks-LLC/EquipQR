@@ -1,7 +1,7 @@
 
 
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/hooks/useWorkOrderCreationEnhanced';
+import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/components/work-orders/hooks/useWorkOrderCreationEnhanced';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/hooks/useWorkOrderUpdate';
 import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from '@/hooks/useHistoricalWorkOrders';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
@@ -81,6 +81,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           equipmentId: data.equipmentId,
           priority: data.priority,
           dueDate: data.dueDate || undefined,
+          equipmentWorkingHours: data.equipmentWorkingHours || undefined,
           hasPM: data.hasPM || false,
           pmTemplateId: data.pmTemplateId || undefined,
           assignmentType: data.assignmentType === 'unassigned' ? undefined : data.assignmentType,

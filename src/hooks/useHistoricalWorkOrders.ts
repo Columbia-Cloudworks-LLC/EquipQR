@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 import { defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
+import type { Database } from '@/integrations/supabase/types';
 
 export interface HistoricalWorkOrderData {
   equipmentId: string;
@@ -20,10 +21,19 @@ export interface HistoricalWorkOrderData {
   pmStatus?: string;
   pmCompletionDate?: string;
   pmNotes?: string;
-  pmChecklistData?: any[];
+  pmChecklistData?: unknown[];
 }
 
-export const useCreateHistoricalWorkOrder = (options?: { onSuccess?: (workOrder: any) => void }) => {
+interface HistoricalWorkOrderMutationResult {
+  success: boolean;
+  error?: string | null;
+  has_pm?: boolean;
+  pm_id?: string | null;
+  work_order_id?: string;
+  [key: string]: unknown;
+}
+
+export const useCreateHistoricalWorkOrder = (options?: { onSuccess?: (workOrder: HistoricalWorkOrderMutationResult & { id: string }) => void }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
 
@@ -63,14 +73,14 @@ export const useCreateHistoricalWorkOrder = (options?: { onSuccess?: (workOrder:
         throw error;
       }
 
-      const resultData = result as any;
+      const resultData = result as HistoricalWorkOrderMutationResult | null;
       if (!resultData?.success) {
         throw new Error(resultData?.error || 'Failed to create historical work order');
       }
 
       return resultData;
     },
-    onSuccess: (result: any) => {
+    onSuccess: (result: HistoricalWorkOrderMutationResult) => {
       // Invalidate work orders queries
       queryClient.invalidateQueries({ queryKey: ['workOrders'] });
       queryClient.invalidateQueries({ queryKey: ['teamBasedWorkOrders'] });
@@ -88,9 +98,10 @@ export const useCreateHistoricalWorkOrder = (options?: { onSuccess?: (workOrder:
         options.onSuccess({ id: result.work_order_id, ...result });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error creating historical work order:', error);
-      toast.error(error.message || 'Failed to create historical work order');
+      const message = error instanceof Error ? error.message : 'Failed to create historical work order';
+      toast.error(message);
     }
   });
 };
@@ -106,7 +117,7 @@ export const useUpdateHistoricalWorkOrder = () => {
       workOrderId: string; 
       data: Partial<HistoricalWorkOrderData> 
     }) => {
-      const updateData: any = {};
+      const updateData: Database['public']['Tables']['work_orders']['Update'] = {};
       
       if (data.title) updateData.title = data.title;
       if (data.description) updateData.description = data.description;
@@ -141,7 +152,7 @@ export const useUpdateHistoricalWorkOrder = () => {
       queryClient.invalidateQueries({ queryKey: ['workOrder'] });
       toast.success('Historical work order updated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error updating historical work order:', error);
       toast.error('Failed to update historical work order');
     }

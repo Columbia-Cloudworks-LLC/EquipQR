@@ -1,27 +1,27 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
+import { logger } from '@/utils/logger';
+
+interface QuickAssignmentVariables {
+  workOrderId: string;
+  assigneeId?: string | null;
+  organizationId: string;
+}
 
 export const useQuickWorkOrderAssignment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      workOrderId, 
-      assigneeId, 
-      organizationId 
-    }: { 
-      workOrderId: string; 
-      assigneeId?: string | null; 
-      organizationId: string 
-    }) => {
+    mutationFn: async ({ workOrderId, assigneeId }: QuickAssignmentVariables) => {
       // Determine the new status based on assignment
-      let newStatus = 'submitted';
+      let newStatus: Database['public']['Enums']['work_order_status'] = 'submitted';
       if (assigneeId) {
         newStatus = 'assigned';
       }
 
-      const updateData: any = {
+      const updateData: Database['public']['Tables']['work_orders']['Update'] = {
         assignee_id: assigneeId || null,
         status: newStatus
       };
@@ -40,7 +40,7 @@ export const useQuickWorkOrderAssignment = () => {
 
       if (error) throw error;
     },
-    onSuccess: (_, { assigneeId, organizationId, workOrderId }) => {
+    onSuccess: (_, { assigneeId, organizationId, workOrderId }: QuickAssignmentVariables) => {
       const message = assigneeId ? 'Work order assigned successfully' : 'Work order unassigned successfully';
       toast.success(message);
       
@@ -66,7 +66,7 @@ export const useQuickWorkOrderAssignment = () => {
       });
     },
     onError: (error) => {
-      console.error('Error assigning work order:', error);
+      logger.error('Error assigning work order', error);
       toast.error('Failed to assign work order');
     },
   });

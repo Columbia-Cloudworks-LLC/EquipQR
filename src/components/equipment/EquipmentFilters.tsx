@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileEquipmentFilters } from './MobileEquipmentFilters';
 import { DesktopEquipmentFilters } from './DesktopEquipmentFilters';
-import { EquipmentFilters as EquipmentFiltersType } from '@/hooks/useEquipmentFiltering';
+import { EquipmentFilters as EquipmentFiltersType } from './hooks/useEquipmentFiltering';
 
 interface Team {
   id: string;
@@ -47,11 +47,15 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
     return count;
   };
 
+  const activeFilterCount = getActiveFilterCount();
+
+  const hasFiltersEnabled = hasActiveFilters || activeFilterCount > 0;
+
   if (isMobile) {
     return (
       <MobileEquipmentFilters
         filters={filters}
-        activeFilterCount={getActiveFilterCount()}
+        activeFilterCount={activeFilterCount}
         showMobileFilters={showMobileFilters}
         onShowMobileFiltersChange={setShowMobileFilters}
         onFilterChange={onFilterChange}
@@ -68,6 +72,7 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
       onFilterChange={onFilterChange}
       onClearFilters={onClearFilters}
       filterOptions={filterOptions}
+      hasActiveFilters={hasFiltersEnabled}
     />
   );
 };

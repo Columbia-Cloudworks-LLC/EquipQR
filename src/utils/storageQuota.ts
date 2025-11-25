@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 export interface StorageQuotaCheck {
   canUpload: boolean;
@@ -32,7 +33,7 @@ export async function checkStorageQuota(
     });
 
     if (error) {
-      console.error('Error checking storage quota:', error);
+      logger.error('Error checking storage quota', error);
       // If there's an error, allow upload but log it
       return {
         canUpload: true,
@@ -45,9 +46,34 @@ export async function checkStorageQuota(
       };
     }
 
-    return data as StorageQuotaCheck;
+    // If data is null or undefined, return default values
+    if (!data) {
+      logger.warn('Storage quota check returned null/undefined, allowing upload');
+      return {
+        canUpload: true,
+        currentStorageGB: 0,
+        maxStorageGB: MAX_STORAGE_GB,
+        fileSizeMB: fileSizeBytes / (1024 * 1024),
+        wouldExceed: false,
+        remainingGB: MAX_STORAGE_GB,
+        usagePercent: 0
+      };
+    }
+
+    // Ensure all properties are defined with defaults
+    // result is guaranteed to be defined here (checked on line 49)
+    const result = data as StorageQuotaCheck;
+    return {
+      canUpload: result.canUpload ?? true,
+      currentStorageGB: result.currentStorageGB ?? 0,
+      maxStorageGB: result.maxStorageGB ?? MAX_STORAGE_GB,
+      fileSizeMB: result.fileSizeMB ?? (fileSizeBytes / (1024 * 1024)),
+      wouldExceed: result.wouldExceed ?? false,
+      remainingGB: result.remainingGB ?? MAX_STORAGE_GB,
+      usagePercent: result.usagePercent ?? 0
+    };
   } catch (error) {
-    console.error('Failed to check storage quota:', error);
+    logger.error('Failed to check storage quota', error);
     // Fail open - allow upload on error
     return {
       canUpload: true,
@@ -71,13 +97,13 @@ export async function getCurrentStorage(organizationId: string): Promise<number>
     });
 
     if (error) {
-      console.error('Error getting storage:', error);
+      logger.error('Error getting storage', error);
       return 0;
     }
 
     return data || 0;
   } catch (error) {
-    console.error('Failed to get storage:', error);
+    logger.error('Failed to get storage', error);
     return 0;
   }
 }
@@ -93,14 +119,14 @@ export async function validateStorageQuota(
   const quotaCheck = await checkStorageQuota(organizationId, fileSizeBytes);
 
   if (!quotaCheck.canUpload) {
-    const usedGB = quotaCheck.currentStorageGB.toFixed(2);
-    const maxGB = quotaCheck.maxStorageGB;
-    const fileMB = quotaCheck.fileSizeMB.toFixed(2);
-    const remainingGB = quotaCheck.remainingGB.toFixed(2);
+    const usedGB = (quotaCheck.currentStorageGB || 0).toFixed(2);
+    const maxGB = quotaCheck.maxStorageGB || MAX_STORAGE_GB;
+    const fileMB = (quotaCheck.fileSizeMB || fileSizeBytes / (1024 * 1024)).toFixed(2);
+    const remainingGB = (quotaCheck.remainingGB || 0).toFixed(2);
 
     throw new Error(
       `Storage limit reached. ` +
-      `Your organization is using ${usedGB} GB of ${maxGB} GB (${quotaCheck.usagePercent}%). ` +
+      `Your organization is using ${usedGB} GB of ${maxGB} GB (${quotaCheck.usagePercent || 0}%). ` +
       `Cannot upload ${fileMB} MB - only ${remainingGB} GB remaining. ` +
       `Please delete some images to free up space.`
     );
@@ -111,7 +137,9 @@ export async function validateStorageQuota(
  * Format storage quota error message for UI
  */
 export function getStorageQuotaErrorMessage(quota: StorageQuotaCheck): string {
-  return `Storage limit reached. You have ${quota.remainingGB.toFixed(2)} GB remaining of ${quota.maxStorageGB} GB. Please delete some images to free up space.`;
+  const remainingGB = (quota.remainingGB || 0).toFixed(2);
+  const maxGB = quota.maxStorageGB || MAX_STORAGE_GB;
+  return `Storage limit reached. You have ${remainingGB} GB remaining of ${maxGB} GB. Please delete some images to free up space.`;
 }
 
 export { MAX_STORAGE_GB };

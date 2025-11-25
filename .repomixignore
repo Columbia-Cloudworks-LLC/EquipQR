@@ -1,0 +1,42 @@
+# Add patterns to ignore here, one per line
+# Example:
+# *.log
+# tmp/
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+.local*
+
+# Editor directories and files
+.vscode/*
+.vs/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vs/VSWorkspaceState.json
+.env
+
+# Backup Files used for Testing
+supabase/*.backup
+supabase/.temp/*
+
+# Coverage Files
+coverage/*
+
+# Repomix Files
+repomix*.xml

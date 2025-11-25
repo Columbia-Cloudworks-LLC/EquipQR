@@ -1,20 +1,18 @@
 
 import React from 'react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOptimizedOrganizationMembers } from '@/hooks/useOptimizedOrganizationMembers';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 
-import { useFleetMapSubscription } from '@/hooks/useFleetMapSubscription';
 import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
 import RestrictedOrganizationAccess from '@/components/organization/RestrictedOrganizationAccess';
 
 const Organization = () => {
-  const { currentOrganization, isLoading } = useSimpleOrganization();
+  const { currentOrganization, isLoading } = useOrganization();
 
   // Custom hooks for data and business logic
   const { data: members = [], isLoading: membersLoading } = useOptimizedOrganizationMembers(currentOrganization?.id || '');
-  const { data: fleetMapSubscription } = useFleetMapSubscription(currentOrganization?.id || '');
   const permissions = usePagePermissions(currentOrganization);
   
 
@@ -54,7 +52,6 @@ const Organization = () => {
         currentUserRole={currentUserRole}
         permissions={permissions}
         membersLoading={membersLoading}
-        fleetMapSubscription={fleetMapSubscription}
         organization={currentOrganization}
       />
     </div>

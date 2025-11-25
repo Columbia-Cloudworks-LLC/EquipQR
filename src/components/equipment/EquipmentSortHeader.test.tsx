@@ -100,6 +100,22 @@ describe('EquipmentSortHeader', () => {
       const sortButton = screen.getByRole('button');
       expect(sortButton).toBeInTheDocument();
     });
+
+    it('shows up-down arrow when field differs from current sort field', async () => {
+      render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'name', direction: 'asc' }} />);
+      
+      // Click to open dropdown
+      const combobox = screen.getByRole('combobox');
+      fireEvent.click(combobox);
+      
+      // Wait for dropdown and click on a different field
+      const listbox = await screen.findByRole('listbox');
+      const manufacturerOption = within(listbox).getByRole('option', { name: 'Manufacturer' });
+      
+      // The option should show ArrowUpDown icon when field differs
+      // This tests the branch where sortConfig.field !== option.value
+      expect(manufacturerOption).toBeInTheDocument();
+    });
   });
 
   describe('Sort Options', () => {

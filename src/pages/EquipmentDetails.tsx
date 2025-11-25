@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { TabsContent } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, MapPin, Calendar, Package, QrCode, Trash2 } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useEquipmentById } from '@/hooks/useSupabaseData';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useEquipmentById } from '@/components/equipment/hooks/useEquipment';
 import { useIsMobile } from '@/hooks/use-mobile';
+import Page from '@/components/layout/Page';
+import PageHeader from '@/components/layout/PageHeader';
 import EquipmentDetailsTab from '@/components/equipment/EquipmentDetailsTab';
 import EnhancedEquipmentNotesTab from '@/components/equipment/EnhancedEquipmentNotesTab';
 import EquipmentWorkOrdersTab from '@/components/equipment/EquipmentWorkOrdersTab';
@@ -19,6 +21,7 @@ import ResponsiveEquipmentTabs from '@/components/equipment/ResponsiveEquipmentT
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 import { DeleteEquipmentDialog } from '@/components/equipment/DeleteEquipmentDialog';
+import { WorkingHoursTimelineModal } from '@/components/equipment/WorkingHoursTimelineModal';
 import { useCreateScan } from '@/hooks/useSupabaseData';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,7 +31,7 @@ const EquipmentDetails = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { currentOrganization, isLoading: orgLoading } = useSimpleOrganization();
+  const { currentOrganization, isLoading: orgLoading } = useOrganization();
   const { data: equipment, isLoading: equipmentLoading } = useEquipmentById(currentOrganization?.id || '', equipmentId);
   const createScanMutation = useCreateScan(currentOrganization?.id || '');
   const isMobile = useIsMobile();
@@ -37,6 +40,7 @@ const EquipmentDetails = () => {
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
   const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isWorkingHoursModalOpen, setIsWorkingHoursModalOpen] = useState(false);
   const [scanLogged, setScanLogged] = useState(false);
 
   const { user } = useAuth();
@@ -148,21 +152,25 @@ const EquipmentDetails = () => {
     navigate('/dashboard/equipment');
   };
 
+  const handleShowWorkingHours = () => {
+    setIsWorkingHoursModalOpen(true);
+  };
+
+  const handleCloseWorkingHours = () => {
+    setIsWorkingHoursModalOpen(false);
+  };
+
   // Check if current user is admin/owner
   const currentUserMember = organizationMembers?.find(member => member.id === user?.id);
   const isAdmin = currentUserMember?.role === 'owner' || currentUserMember?.role === 'admin';
 
   if (!currentOrganization) {
     return (
-      <div className="space-y-6">
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/dashboard/equipment')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Equipment
-        </Button>
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Equipment Details" 
+          description="Please select an organization to view equipment details." 
+        />
         <Card>
           <CardContent className="text-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -172,30 +180,37 @@ const EquipmentDetails = () => {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <div className={`space-y-6 ${isMobile ? 'px-4' : ''}`}>
-        <div className="h-8 bg-muted animate-pulse rounded" />
-        <div className={`bg-muted animate-pulse rounded ${isMobile ? 'h-48' : 'h-64'}`} />
-      </div>
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Equipment Details" 
+          description="Loading equipment information..." 
+        />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <Skeleton className="h-64 w-full rounded-lg" />
+          </div>
+          <div className="lg:col-span-2 space-y-4">
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+          </div>
+        </div>
+      </Page>
     );
   }
 
   if (!equipment) {
     return (
-      <div className={`space-y-6 ${isMobile ? 'px-4' : ''}`}>
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/dashboard/equipment')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Equipment
-        </Button>
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader 
+          title="Equipment Details" 
+          description="Equipment not found" 
+        />
         <Card>
           <CardContent className="text-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -203,63 +218,45 @@ const EquipmentDetails = () => {
             <p className="text-muted-foreground">
               The equipment you're looking for doesn't exist or you don't have access to it.
             </p>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/dashboard/equipment')}
+              className="mt-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Equipment
+            </Button>
           </CardContent>
         </Card>
-      </div>
+      </Page>
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
 
   return (
-    <div className={`space-y-6 ${isMobile ? 'pb-4' : ''}`}>
-      {/* Mobile Header */}
-      {isMobile ? (
-        <div className="px-4">
+    <Page maxWidth="7xl" padding="responsive">
+      <div className="space-y-6">
+        {/* Mobile Header */}
+        {isMobile ? (
           <MobileEquipmentHeader 
             equipment={equipment}
             onShowQRCode={handleShowQRCode}
             canDelete={isAdmin}
             onDelete={handleDeleteEquipment}
+            onShowWorkingHours={handleShowWorkingHours}
           />
-        </div>
-      ) : (
+        ) : (
         <>
           {/* Desktop Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/dashboard/equipment')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">{equipment.name}</h1>
-                <p className="text-muted-foreground">
-                  {equipment.manufacturer} {equipment.model} • {equipment.serial_number}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge className={getStatusColor(equipment.status)}>
-                {equipment.status}
-              </Badge>
-              <div className="flex gap-2">
+          <PageHeader
+            title={equipment.name}
+            description={`${equipment.manufacturer} ${equipment.model} • ${equipment.serial_number}`}
+            breadcrumbs={[
+              { label: 'Equipment', href: '/dashboard/equipment' },
+              { label: equipment.name }
+            ]}
+            actions={
+              <div className="flex items-center gap-2">
                 <Button size="sm" onClick={handleShowQRCode}>
                   <QrCode className="h-4 w-4 mr-2" />
                   QR Code
@@ -271,8 +268,8 @@ const EquipmentDetails = () => {
                   </Button>
                 )}
               </div>
-            </div>
-          </div>
+            }
+          />
 
           {/* Desktop Equipment Image and Basic Info */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -408,7 +405,16 @@ const EquipmentDetails = () => {
           onSuccess={handleDeleteSuccess}
         />
       )}
-    </div>
+
+      {/* Working Hours Timeline Modal */}
+      <WorkingHoursTimelineModal
+        open={isWorkingHoursModalOpen}
+        onClose={handleCloseWorkingHours}
+        equipmentId={equipment.id}
+        equipmentName={equipment.name}
+      />
+      </div>
+    </Page>
   );
 };
 

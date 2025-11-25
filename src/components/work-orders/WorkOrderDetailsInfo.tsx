@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
-import { Wrench, FileText, ChevronDown } from 'lucide-react';
+import { Wrench, FileText, ChevronDown, Clock } from 'lucide-react';
 import { Equipment } from '@/services/supabaseDataService';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useEquipmentCurrentWorkingHours } from '@/components/equipment/hooks/useEquipmentWorkingHours';
 
 interface WorkOrderDetailsInfoProps {
   workOrder: EnhancedWorkOrder;
@@ -20,8 +21,16 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
   equipment,
 }) => {
   const isMobile = useIsMobile();
-  const [isEquipmentExpanded, setIsEquipmentExpanded] = React.useState(!isMobile);
+  const [isEquipmentExpanded, setIsEquipmentExpanded] = React.useState(true);
   const [isCompletionExpanded, setIsCompletionExpanded] = React.useState(!isMobile);
+  
+  // Get equipment working hours (current for reference)
+  const { data: currentWorkingHours, isLoading: workingHoursLoading } = useEquipmentCurrentWorkingHours(
+    equipment?.id || ''
+  );
+  
+  // Use historical working hours from work order if available, otherwise show current
+  const workingHours = workOrder.equipment_working_hours_at_creation ?? currentWorkingHours;
 
   return (
     <Card>
@@ -87,6 +96,32 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                   <div className="sm:col-span-2">
                     <span className="font-medium">Location:</span>
                     <span className="ml-2 text-muted-foreground break-words">{equipment.location}</span>
+                  </div>
+                  
+                  {/* Working Hours KPI */}
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-blue-900 dark:text-blue-100">
+                            {workOrder.equipment_working_hours_at_creation ? 'Working Hours (at creation):' : 'Working Hours:'}
+                          </span>
+                          <span className="text-blue-700 dark:text-blue-300 font-semibold">
+                            {workingHoursLoading ? (
+                              <span className="animate-pulse">Loading...</span>
+                            ) : (
+                              `${workingHours?.toLocaleString() || 0} hrs`
+                            )}
+                          </span>
+                        </div>
+                        {workOrder.equipment_working_hours_at_creation && (
+                          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            Historical snapshot from work order creation
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

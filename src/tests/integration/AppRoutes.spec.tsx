@@ -9,7 +9,7 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 
 // Mock user context hook used by layout components
-vi.mock('@/contexts/UserContext', () => ({
+vi.mock('@/contexts/useUser', () => ({
   useUser: () => ({
     currentUser: { id: '1', email: 'test@example.com', name: 'Test User' },
     isLoading: false,

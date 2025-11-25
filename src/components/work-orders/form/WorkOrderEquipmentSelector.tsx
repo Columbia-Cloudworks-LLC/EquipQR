@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
-import { useEquipmentCurrentWorkingHours, useUpdateEquipmentWorkingHours } from '@/hooks/useEquipmentWorkingHours';
+import { useEquipmentCurrentWorkingHours, useUpdateEquipmentWorkingHours } from '@/components/equipment/hooks/useEquipmentWorkingHours';
 
 interface WorkOrderEquipmentSelectorProps {
   values: WorkOrderFormData;

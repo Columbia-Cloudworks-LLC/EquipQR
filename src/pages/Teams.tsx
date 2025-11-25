@@ -5,16 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Users, Plus, Search, Settings, UserCheck, Eye, Wrench } from 'lucide-react';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
-import { useOptimizedTeams } from '@/hooks/useOptimizedTeams';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useTeams } from '@/hooks/useTeams';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useNavigate } from 'react-router-dom';
 import CreateTeamDialog from '@/components/teams/CreateTeamDialog';
 
 const Teams = () => {
   const navigate = useNavigate();
-  const { currentOrganization } = useSimpleOrganization();
-  const { data: teams = [], isLoading } = useOptimizedTeams();
+  const { currentOrganization } = useOrganization();
+  const { teams = [], isLoading } = useTeams();
   const { canCreateTeam } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
