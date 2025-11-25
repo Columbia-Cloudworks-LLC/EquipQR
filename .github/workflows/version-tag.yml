@@ -73,7 +73,7 @@ jobs:
         id: check-tag-win
         shell: pwsh
         run: |
-          $tag = "${{ steps.version_win.outputs.tag || steps.version.outputs.tag }}"
+          $tag = "${{ steps.version_win.outputs.tag }}"
           git fetch --tags --force
           if (git rev-parse "$tag" 2>$null) {
             "exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -88,7 +88,7 @@ jobs:
         id: check-tag
         shell: bash
         run: |
-          TAG="${{ steps.version.outputs.tag || steps.version_win.outputs.tag }}"
+          TAG="${{ steps.version.outputs.tag }}"
           git fetch --tags --force
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "exists=true" >> $GITHUB_OUTPUT
@@ -102,8 +102,8 @@ jobs:
         if: runner.os == 'Windows' && steps.check-tag-win.outputs.exists == 'false'
         shell: pwsh
         run: |
-          $tag = "${{ steps.version_win.outputs.tag || steps.version.outputs.tag }}"
-          $version = "${{ steps.version_win.outputs.version || steps.version.outputs.version }}"
+          $tag = "${{ steps.version_win.outputs.tag }}"
+          $version = "${{ steps.version_win.outputs.version }}"
           
           Write-Host "🏷️  Creating tag: $tag"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -118,8 +118,8 @@ jobs:
         if: runner.os != 'Windows' && steps.check-tag.outputs.exists == 'false'
         shell: bash
         run: |
-          TAG="${{ steps.version.outputs.tag || steps.version_win.outputs.tag }}"
-          VERSION="${{ steps.version.outputs.version || steps.version_win.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          VERSION="${{ steps.version.outputs.version }}"
           
           echo "🏷️  Creating tag: $TAG"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
