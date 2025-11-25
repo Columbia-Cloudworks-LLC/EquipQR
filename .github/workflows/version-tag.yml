@@ -1,0 +1,133 @@
+name: Auto Version Tag
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+
+permissions:
+  contents: write
+
+jobs:
+  tag-version:
+    name: Tag Version
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Read version from package.json (Windows)
+        if: runner.os == 'Windows'
+        id: version_win
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pkg = Get-Content package.json | ConvertFrom-Json
+          $version = $pkg.version
+          $tag = "v$version"
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "📦 Version from package.json: $version"
+          Write-Host "🏷️  Tag to create: $tag"
+
+      - name: Read version from package.json (Unix)
+        if: runner.os != 'Windows'
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "📦 Version from package.json: $VERSION"
+          echo "🏷️  Tag to create: $TAG"
+
+      - name: Check if tag exists (Windows)
+        if: runner.os == 'Windows'
+        id: check-tag-win
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.version_win.outputs.tag || steps.version.outputs.tag }}"
+          git fetch --tags --force
+          if (git rev-parse "$tag" 2>$null) {
+            "exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "✅ Tag $tag already exists, skipping tag creation"
+          } else {
+            "exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "🆕 Tag $tag does not exist, will create it"
+          }
+
+      - name: Check if tag exists (Unix)
+        if: runner.os != 'Windows'
+        id: check-tag
+        shell: bash
+        run: |
+          TAG="${{ steps.version.outputs.tag || steps.version_win.outputs.tag }}"
+          git fetch --tags --force
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Tag $TAG already exists, skipping tag creation"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "🆕 Tag $TAG does not exist, will create it"
+          fi
+
+      - name: Create and push tag (Windows)
+        if: runner.os == 'Windows' && (steps.check-tag-win.outputs.exists == 'false' || steps.check-tag.outputs.exists == 'false')
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.version_win.outputs.tag || steps.version.outputs.tag }}"
+          $version = "${{ steps.version_win.outputs.version || steps.version.outputs.version }}"
+          
+          Write-Host "🏷️  Creating tag: $tag"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git tag -a "$tag" -m "Release v$version"
+          
+          Write-Host "📤 Pushing tag to origin..."
+          git push origin "$tag"
+          Write-Host "✅ Successfully created and pushed tag: $tag"
+
+      - name: Create and push tag (Unix)
+        if: runner.os != 'Windows' && (steps.check-tag.outputs.exists == 'false' || steps.check-tag-win.outputs.exists == 'false')
+        shell: bash
+        run: |
+          TAG="${{ steps.version.outputs.tag || steps.version_win.outputs.tag }}"
+          VERSION="${{ steps.version.outputs.version || steps.version_win.outputs.version }}"
+          
+          echo "🏷️  Creating tag: $TAG"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git tag -a "$TAG" -m "Release v$VERSION"
+          
+          echo "📤 Pushing tag to origin..."
+          git push origin "$TAG"
+          echo "✅ Successfully created and pushed tag: $TAG"
+
+      - name: Summary
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version || steps.version_win.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag || steps.version_win.outputs.tag }}"
+          EXISTS="${{ steps.check-tag.outputs.exists || steps.check-tag-win.outputs.exists }}"
+          
+          echo "## Version Tagging Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** \`$TAG\`" >> $GITHUB_STEP_SUMMARY
+          if [ "$EXISTS" = "true" ]; then
+            echo "**Status:** Tag already exists, no action taken" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** Tag created and pushed successfully" >> $GITHUB_STEP_SUMMARY
+          fi
+
