@@ -7,7 +7,7 @@ EquipQR uses an automated semantic versioning system where `package.json` is the
 ### Version Format
 - **Format**: `MAJOR.MINOR.PATCH` (e.g., `1.12.3`)
 - **Tag Format**: `vMAJOR.MINOR.PATCH` (e.g., `v1.12.3`)
-- **Source of Truth**: `package.json` `version` field
+- **Source of Truth**: the `version` field in `package.json`
 
 ### Automatic Version Tagging
 

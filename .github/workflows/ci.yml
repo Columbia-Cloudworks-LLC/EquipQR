@@ -308,6 +308,10 @@ jobs:
         $ErrorActionPreference = 'Stop'
         $pkg = Get-Content package.json | ConvertFrom-Json
         $appVersion = $pkg.version
+        if (-not $appVersion) {
+          Write-Host "❌ Missing version field in package.json"
+          exit 1
+        }
         "APP_VERSION=$appVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         "APP_VERSION=$appVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
         Write-Host "📊 Version Information:"
@@ -319,6 +323,10 @@ jobs:
       shell: bash
       run: |
         APP_VERSION=$(node -p "require('./package.json').version")
+        if [ -z "$APP_VERSION" ] || [ "$APP_VERSION" = "undefined" ]; then
+          echo "❌ Missing version field in package.json"
+          exit 1
+        fi
         echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
         echo "APP_VERSION=$APP_VERSION" >> $GITHUB_OUTPUT
         echo "📊 Version Information:"
