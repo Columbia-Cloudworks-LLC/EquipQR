@@ -11,7 +11,7 @@ SET
   "updated_at" = now()
 WHERE "organization_id" IS NULL 
   AND "name" = 'Compressor'
-  AND ("template_data" IS NULL OR "template_data" = '[]'::jsonb);
+  AND "template_data" IS NULL;
 
 COMMIT;
 
