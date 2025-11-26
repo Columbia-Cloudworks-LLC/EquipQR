@@ -308,7 +308,7 @@ jobs:
         $ErrorActionPreference = 'Stop'
         $pkg = Get-Content package.json | ConvertFrom-Json
         $appVersion = $pkg.version
-        if (-not $appVersion) {
+        if ([string]::IsNullOrWhiteSpace($appVersion)) {
           Write-Host "❌ Missing version field in package.json"
           exit 1
         }
