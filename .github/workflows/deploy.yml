@@ -118,7 +118,7 @@ jobs:
             ENVIRONMENT="production"
           else
             HOOK_URL="$PREVIEW_HOOK"
-            ENVIRONMENT="staging"
+            ENVIRONMENT="preview"
           fi
 
           if [ -z "$HOOK_URL" ]; then
