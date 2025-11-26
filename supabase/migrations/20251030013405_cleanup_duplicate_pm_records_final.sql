@@ -4,7 +4,7 @@
 BEGIN;
 
 ALTER TABLE "public"."preventative_maintenance"
-ADD CONSTRAINT preventative_maintenance_work_order_equipment_unique
+ADD CONSTRAINT "preventative_maintenance_work_order_equipment_unique"
 UNIQUE ("work_order_id", "equipment_id");
 
 COMMIT;
