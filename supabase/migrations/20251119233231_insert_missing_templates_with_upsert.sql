@@ -27,8 +27,7 @@ SELECT
 WHERE NOT EXISTS (
   SELECT 1 FROM "public"."pm_checklist_templates" 
   WHERE "organization_id" IS NULL AND "name" = 'Default PM Template'
-)
-ON CONFLICT DO NOTHING;
+);
 
 COMMIT;
 
