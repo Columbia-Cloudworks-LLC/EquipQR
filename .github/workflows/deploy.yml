@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          if [ -z "$VERSION" ] || [ "$VERSION" = "undefined" ]; then
+          if [ -z "$VERSION" ] || [ "$VERSION" = "undefined" ] || [ "$VERSION" = "null" ]; then
             echo "❌ Missing version field in package.json"
             exit 1
           fi
