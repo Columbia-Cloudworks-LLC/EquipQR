@@ -30,6 +30,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $pkg = Get-Content package.json | ConvertFrom-Json
           $version = $pkg.version
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            Write-Host "❌ Missing version field in package.json"
+            exit 1
+          }
           $tag = "v$version"
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -40,6 +44,10 @@ jobs:
         shell: bash
         run: |
           VERSION=$(node -p "require('./package.json').version")
+          if [ -z "$VERSION" ] || [ "$VERSION" = "undefined" ] || [ "$VERSION" = "null" ]; then
+            echo "❌ Missing version field in package.json"
+            exit 1
+          fi
           TAG="v$VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT

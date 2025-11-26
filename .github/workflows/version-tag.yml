@@ -35,6 +35,12 @@ jobs:
           $pkg = Get-Content package.json | ConvertFrom-Json
           $version = $pkg.version
           
+          # Check for missing version field
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            Write-Host "❌ Missing version field in package.json"
+            exit 1
+          }
+          
           # Validate version format (semver: x.y.z)
           if (-not ($version -match '^\d+\.\d+\.\d+$')) {
             Write-Host "❌ Invalid version format: $version"
@@ -54,6 +60,12 @@ jobs:
         shell: bash
         run: |
           VERSION=$(node -p "require('./package.json').version")
+          
+          # Check for missing version field
+          if [ -z "$VERSION" ] || [ "$VERSION" = "undefined" ] || [ "$VERSION" = "null" ]; then
+            echo "❌ Missing version field in package.json"
+            exit 1
+          fi
           
           # Validate version format (semver: x.y.z)
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
