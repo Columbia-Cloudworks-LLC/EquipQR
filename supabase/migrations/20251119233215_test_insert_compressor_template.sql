@@ -1,6 +1,8 @@
--- Test insert compressor template
+-- Canonical migration for Compressor PM template
 -- This migration was applied directly to production
 -- Idempotent: Safe to run multiple times
+-- Note: This is the authoritative source for the Compressor template.
+-- Later duplicate (20251119233511_insert_compressor_pm_template.sql) has been converted to no-op.
 
 BEGIN;
 
