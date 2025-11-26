@@ -1,15 +1,6 @@
 -- Cleanup duplicate PM records (final version)
--- This migration was applied directly to production
--- Idempotent: Safe to run multiple times
+-- SUPERSEDED: This migration's functionality is now consolidated in 20251030013237_cleanup_duplicate_pm_records.sql
+-- Kept as no-op to preserve migration history since it was already applied to production
 
-BEGIN;
-
--- Remove duplicates, keeping the oldest record
-DELETE FROM "public"."preventative_maintenance" pm1
-USING "public"."preventative_maintenance" pm2
-WHERE pm1.id > pm2.id
-  AND pm1.work_order_id = pm2.work_order_id
-  AND pm1.equipment_id = pm2.equipment_id;
-
-COMMIT;
+-- No operation needed - cleanup already performed by earlier migration
 

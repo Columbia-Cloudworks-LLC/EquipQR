@@ -9,7 +9,8 @@ DROP POLICY IF EXISTS "Users can view PM for their organization" ON "public"."pr
 DROP POLICY IF EXISTS "preventative_maintenance_select" ON "public"."preventative_maintenance";
 
 -- Create consolidated SELECT policy matching INSERT/UPDATE pattern
-CREATE POLICY IF NOT EXISTS "preventative_maintenance_select" ON "public"."preventative_maintenance" 
+-- Note: Using DROP IF EXISTS + CREATE instead of CREATE IF NOT EXISTS (not supported in PostgreSQL)
+CREATE POLICY "preventative_maintenance_select" ON "public"."preventative_maintenance" 
   FOR SELECT USING (
     "public"."is_org_member"((select "auth"."uid"()), "organization_id")
   );
