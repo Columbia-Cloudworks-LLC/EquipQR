@@ -2,53 +2,70 @@
 
 ## Overview
 
-This guide explains how to set up and use the automated versioning system for EquipQR. The system automatically creates git tags and increments versions based on branch merge patterns.
+This guide explains how to set up and use the automated versioning system for EquipQR. The system uses `package.json` as the single source of truth and automatically creates git tags when the version changes.
 
-## Current Status
+## How It Works
 
-- **Current Version**: v0.0.0 (bootstrap)
-- **Target Version**: v1.0.0 (initial release)
-- **System Status**: Ready for bootstrap
+### Source of Truth
 
-## Step-by-Step Setup
+The version number is stored in `package.json`:
 
-### Step 1: Bootstrap the Version System
-
-#### Option A: Using the Bootstrap Script (Recommended)
-
-```bash
-# Make the script executable
-chmod +x scripts/bootstrap-version.sh
-
-# Run the bootstrap script
-./scripts/bootstrap-version.sh
+```json
+{
+  "name": "equipqr",
+  "version": "1.0.0"
+}
 ```
 
-#### Option B: Manual Tag Creation
+### Automatic Tagging
+
+When you update the version in `package.json` and push to `main`:
+
+1. The `version-tag.yml` workflow automatically triggers
+2. Reads the version from `package.json`
+3. Checks if tag `v{version}` already exists
+4. Creates and pushes the tag if it doesn't exist
+5. Skips if tag already exists (no-op)
+
+### Build Integration
+
+- CI workflows read version directly from `package.json`
+- Version is exposed as `VITE_APP_VERSION` during build
+- App displays version in footer
+
+## Initial Setup
+
+### Step 1: Set Initial Version
+
+1. Update `package.json`:
+   ```json
+   {
+     "version": "1.0.0"
+   }
+   ```
+
+2. Commit and push:
+   ```bash
+   git add package.json
+   git commit -m "chore: set initial version to 1.0.0"
+   git push origin main
+   ```
+
+### Step 2: Create Initial Tag
+
+The auto-tagging workflow will create the tag automatically when you push. However, if you want to create it manually first:
 
 ```bash
-# Create the initial v1.0.0 tag
-git tag -a v1.0.0 -m "Initial release v1.0.0"
-
-# Push the tag to GitHub
+git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 ```
 
-#### Option C: Using GitHub Actions (Manual Workflow)
-
-1. Go to **Actions** tab in GitHub
-2. Find **"Manual Version Bump"** workflow
-3. Click **"Run workflow"**
-4. Enter `v1.0.0` as the version
-5. Add message: `"Bootstrap initial release"`
-6. Click **"Run workflow"**
-
-### Step 2: Verify GitHub Repository Permissions
+### Step 3: Verify GitHub Repository Permissions
 
 1. **Go to Repository Settings**:
    - Navigate to **Settings** → **Actions** → **General**
    - Under **"Workflow permissions"**, select **"Read and write permissions"**
-   - Check **"Allow GitHub Actions to create and approve pull requests"**
+   - This allows the workflow to create and push tags
 
 2. **Check Branch Protection Rules**:
    - Go to **Settings** → **Branches**
@@ -56,44 +73,42 @@ git push origin v1.0.0
    - Ensure **"Allow force pushes"** is disabled
    - Ensure **"Allow deletions"** is disabled
 
-### Step 3: Test the Versioning System
+## Using the Versioning System
 
-1. **Create a test feature branch**:
-   ```bash
-   git checkout -b test/versioning
-   echo "# Test" >> README.md
-   git add README.md
-   git commit -m "Test versioning system"
-   git push origin test/versioning
+### To Release a New Version
+
+1. **Update `package.json`**:
+   ```json
+   {
+     "version": "1.2.3"
+   }
    ```
 
-2. **Create PR to preview branch**:
-   - Create PR: `test/versioning` → `preview`
-   - Merge the PR
-   - Check if versioning workflow runs and creates `v1.1.0`
+2. **Commit and push to `main`**:
+   ```bash
+   git add package.json
+   git commit -m "chore: bump version to 1.2.3"
+   git push origin main
+   ```
 
-3. **Create PR from preview to main**:
-   - Create PR: `preview` → `main`
-   - Merge the PR
-   - Check if versioning workflow runs and creates `v2.0.0`
+3. **Auto-tagging happens automatically**:
+   - Workflow triggers on push to `main` when `package.json` changes
+   - Tag `v1.2.3` is created and pushed automatically
+   - Check Actions tab to verify workflow ran successfully
 
-## How the Versioning System Works
+### Semantic Versioning Guidelines
 
-### Version Bump Rules
+- **Major** (X.0.0): Breaking changes, major new features
+- **Minor** (X.Y.0): New features, backward-compatible changes
+- **Patch** (X.Y.Z): Bug fixes, minor improvements
 
-| Merge Pattern | Version Bump | Example |
-|---------------|--------------|---------|
-| `feature` → `preview` | **Minor** | v1.0.0 → v1.1.0 |
-| `preview` → `main` | **Major** | v1.1.0 → v2.0.0 |
-| `hotfix` → `main` | **Patch** | v1.0.0 → v1.0.1 |
+## Workflow Files
 
-### Workflow Files
+- **`.github/workflows/version-tag.yml`**: Auto-tagging workflow (creates tags when `package.json` version changes)
+- **`.github/workflows/ci.yml`**: Reads version from `package.json` during build
+- **`.github/workflows/deploy.yml`**: Reads version from `package.json` for deployment notifications
 
-- **`.github/workflows/versioning.yml`**: Automatically creates tags on PR merge
-- **`.github/workflows/manual-version-bump.yml`**: Manual tag creation workflow
-- **`.github/workflows/ci.yml`**: Reads tags and sets version in builds
-
-### Version Display
+## Version Display
 
 The version is automatically displayed in the app footer:
 ```
@@ -102,52 +117,74 @@ The version is automatically displayed in the app footer:
 
 ## Troubleshooting
 
-### Issue: Versioning workflow doesn't run
+### Issue: Tag not created after version change
 
-**Symptoms**: No new tags created after PR merge
-
-**Solutions**:
-1. Check if PR was actually merged (not just closed)
-2. Verify `contents: write` permission in versioning workflow
-3. Check GitHub repository workflow permissions
-4. Look at Actions tab for failed versioning workflow runs
-
-### Issue: Version shows as 0.0.0
-
-**Symptoms**: App shows version 0.0.0 instead of current tag
+**Symptoms**: Updated `package.json` version but no tag was created
 
 **Solutions**:
-1. Ensure tags are pushed to GitHub repository
-2. Check CI workflow is fetching tags correctly
-3. Verify `VITE_APP_VERSION` environment variable is set
+1. Check if workflow ran: Go to Actions tab and look for "Auto Version Tag" workflow
+2. Verify `package.json` was actually changed in the commit
+3. Ensure you pushed to `main` branch (workflow only runs on `main`)
+4. Check workflow logs for errors
+5. Verify workflow has `contents: write` permission
+
+### Issue: Version shows as "dev" in production
+
+**Symptoms**: App footer shows "dev" instead of version number
+
+**Solutions**:
+1. Verify `package.json` has the correct version
+2. Check CI logs: Ensure version was read from `package.json` during build
+3. Verify `VITE_APP_VERSION` was set during build
+
+### Issue: Duplicate tag error
+
+**Symptoms**: Workflow fails with tag already exists error
+
+**Solutions**:
+1. The workflow should skip tag creation if tag exists (no-op)
+2. If you see an error, check if tag was created manually
+3. Either use a different version number or delete the existing tag first
 
 ### Issue: Manual tag creation needed
 
 **Solutions**:
-1. Use the manual version bump workflow in GitHub Actions
-2. Run the bootstrap script locally
-3. Create tags manually via command line
+1. Create tag manually:
+   ```bash
+   git tag -a vX.Y.Z -m "Release vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+2. Ensure `package.json` version matches the tag version
 
-## Expected Flow After Bootstrap
+## Clean Slate: Removing All Tags
 
-1. **Current**: v0.0.0 → **Bootstrap**: v1.0.0
-2. **Feature to preview**: v1.0.0 → v1.1.0
-3. **Preview to main**: v1.1.0 → v2.0.0
-4. **Hotfix to main**: v2.0.0 → v2.0.1
+If you need to start fresh and remove all existing tags:
 
-## Files Modified
+```bash
+# Delete all local tags
+git tag -l | xargs git tag -d
 
-- ✅ `.github/workflows/versioning.yml` - Enhanced with better logging and git config
-- ✅ `.github/workflows/manual-version-bump.yml` - Manual tag creation workflow
-- ✅ `.github/workflows/ci.yml` - Enhanced version display in CI logs
-- ✅ `scripts/bootstrap-version.sh` - Bootstrap script for initial setup
-- ✅ `docs/deployment/versioning-setup-guide.md` - This setup guide
+# Delete all remote tags
+git tag -l | xargs git push origin --delete
+```
+
+Then set `package.json` to `"1.0.0"` and push. The auto-tagging workflow will create `v1.0.0` automatically.
+
+## Files Involved
+
+- `package.json` - **Source of truth** for version number
+- `.github/workflows/version-tag.yml` - Auto-tagging workflow
+- `.github/workflows/ci.yml` - Build workflow (reads from `package.json`)
+- `.github/workflows/deploy.yml` - Deployment workflow (reads from `package.json`)
+- `src/lib/version.ts` - Version constant with fallback chain
+- `vite.config.ts` - Reads from `package.json` as fallback
 
 ## Next Steps
 
-1. **Bootstrap the system** with v1.0.0 tag
-2. **Test with a sample PR** to verify automation works
-3. **Monitor version increments** in subsequent merges
-4. **Verify version display** in the deployed application
+1. **Set initial version** in `package.json` to `"1.0.0"`
+2. **Push to `main`** - auto-tagging will create `v1.0.0` tag
+3. **Update version** in `package.json` when ready to release
+4. **Push to `main`** - new tag will be created automatically
+5. **Verify version display** in the deployed application
 
-The versioning system is now ready for use! 🎉
+The versioning system is now ready for use!
