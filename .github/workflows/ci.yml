@@ -323,7 +323,7 @@ jobs:
       shell: bash
       run: |
         APP_VERSION=$(node -p "require('./package.json').version")
-        if [ -z "$APP_VERSION" ] || [ "$APP_VERSION" = "undefined" ]; then
+        if [ -z "$APP_VERSION" ] || [ "$APP_VERSION" = "undefined" ] || [ "$APP_VERSION" = "null" ]; then
           echo "❌ Missing version field in package.json"
           exit 1
         fi
