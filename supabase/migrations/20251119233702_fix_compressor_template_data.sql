@@ -7,7 +7,7 @@ BEGIN;
 -- Update compressor template data if it exists
 UPDATE "public"."pm_checklist_templates"
 SET 
-  "template_data" = '[]'::jsonb,
+  "template_data" = COALESCE("template_data", '[]'::jsonb),
   "updated_at" = now()
 WHERE "organization_id" IS NULL 
   AND "name" = 'Compressor'
