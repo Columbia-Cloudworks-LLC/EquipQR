@@ -1,10 +1,6 @@
--- Add unique constraint to prevent future duplicate PM records
--- This migration replaces the previous duplicate cleanup operation
+-- Cleanup duplicate PM records (final version)
+-- SUPERSEDED: This migration's functionality is now consolidated in 20251030013237_cleanup_duplicate_pm_records.sql
+-- Kept as no-op to preserve migration history since it was already applied to production
 
-BEGIN;
+-- No operation needed - cleanup already performed by earlier migration
 
-ALTER TABLE "public"."preventative_maintenance"
-ADD CONSTRAINT "preventative_maintenance_work_order_equipment_unique"
-UNIQUE ("work_order_id", "equipment_id");
-
-COMMIT;
