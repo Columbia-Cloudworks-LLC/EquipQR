@@ -6,9 +6,9 @@ import {
   Users, 
   Map, 
   BarChart3, 
-  Shield, 
-  Smartphone, 
-  FileText 
+  Smartphone,
+  UserCircle,
+  FileCheck
 } from 'lucide-react';
 
 const features = [
@@ -44,23 +44,22 @@ const features = [
     developmentNotice: 'Currently under active development'
   },
   {
-    icon: Shield,
-    title: 'Enterprise Security',
-    description: 'Advanced role-based access control, audit trails, and secure data protection. Built for enterprise compliance.',
-    benefits: ['Role-based access', 'Audit trails', 'Secure permissions']
+    icon: UserCircle,
+    title: 'Customer CRM',
+    description: 'Link equipment to specific customers. Maintain a permanent service history for every client asset.',
+    benefits: ['Customer profiles', 'Service history tracking', 'Equipment ownership']
+  },
+  {
+    icon: FileCheck,
+    title: 'PM Templates',
+    description: 'Use built-in checklists for Excavators, Forklifts, and Trailers, or build your own custom templates.',
+    benefits: ['Pre-built templates', 'Custom checklists', 'Standardized maintenance']
   },
   {
     icon: Smartphone,
     title: 'Mobile-First Design',
     description: 'Native mobile experience for field technicians. Work offline and sync when connected. Optimized for all devices.',
     benefits: ['Offline capability', 'Touch-optimized UI', 'Cross-platform']
-  },
-  {
-    icon: FileText,
-    title: 'Documentation Hub',
-    description: 'Centralized storage for manuals, warranties, certifications, and maintenance records. Always accessible in the field.',
-    benefits: ['Document management', 'Version control', 'Field accessibility'],
-    developmentNotice: 'Currently under active development'
   }
 ];
 

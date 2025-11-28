@@ -11,6 +11,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';
 import DebugAuth from '@/pages/DebugAuth';
+const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
 
 // Dashboard components can be lazy-loaded since they're only needed after auth
 const AppSidebar = lazy(() => import('@/components/layout/AppSidebar'));
@@ -70,6 +71,7 @@ function App() {
         <Route path="/part-picker" element={<Navigate to="/dashboard/part-picker" replace />} />
         
         {/* Other public routes with suspense for lazy loading */}
+        <Route path="/solutions/repair-shops" element={<Suspense fallback={<div>Loading...</div>}><RepairShops /></Suspense>} />
         <Route path="/support" element={<Suspense fallback={<div>Loading...</div>}><Support /></Suspense>} />
         <Route path="/invitation/:token" element={<Suspense fallback={<div>Loading...</div>}><InvitationAccept /></Suspense>} />
         <Route path="/qr/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><QRRedirect /></Suspense>} />

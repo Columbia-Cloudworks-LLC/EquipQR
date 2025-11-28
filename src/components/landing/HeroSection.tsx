@@ -24,7 +24,7 @@ const HeroSection = () => {
           
           {/* Subheadline */}
           <p className="text-xl sm:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Perfect for repair shops and rental operations. Track equipment with QR codes, manage work orders, and coordinate your team. Start free - pay only $10/month per additional user.
+            The completely free, enterprise-grade platform for repair shops and rental operations. Track equipment with QR codes, manage work orders, and organize your team without spending a dime.
           </p>
           
           {/* Key Features */}
@@ -47,8 +47,13 @@ const HeroSection = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button asChild size="lg" className="text-lg px-8 py-6">
               <Link to="/auth">
-                Get Started Free
+                Start Managing Now
                 <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="text-lg px-8 py-6">
+              <Link to="/solutions/repair-shops">
+                For Repair Shops
               </Link>
             </Button>
           </div>
