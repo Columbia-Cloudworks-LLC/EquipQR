@@ -30,6 +30,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
               <Router
                 future={{
                   v7_startTransition: true,
+                  v7_relativeSplatPath: true,
                 }}
               >
                 {children}

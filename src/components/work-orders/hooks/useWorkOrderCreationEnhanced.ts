@@ -148,7 +148,7 @@ const workOrderData = {
       if (options?.onSuccess) {
         options.onSuccess(workOrder);
       } else {
-        navigate(`/work-orders/${workOrder.id}`);
+        navigate(`/dashboard/work-orders/${workOrder.id}`);
       }
     },
     onError: (error) => {
