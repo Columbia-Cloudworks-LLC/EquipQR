@@ -28,10 +28,10 @@ SELECT
   COALESCE(
     (SELECT user_id FROM organization_members 
      WHERE role IN ('owner', 'admin') AND status = 'active' 
-     ORDER BY created_at ASC LIMIT 1),
+     ORDER BY joined_date ASC LIMIT 1),
     (SELECT user_id FROM organization_members 
      WHERE status = 'active' 
-     ORDER BY created_at ASC LIMIT 1),
+     ORDER BY joined_date ASC LIMIT 1),
     (SELECT id FROM profiles ORDER BY created_at ASC LIMIT 1)
   ),
   now(),
