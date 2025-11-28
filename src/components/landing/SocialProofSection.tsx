@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, CheckCircle, Building } from 'lucide-react';
 import { ExternalLink } from '@/components/ui/external-link';
 
 const SocialProofSection = () => {
@@ -17,13 +16,17 @@ const SocialProofSection = () => {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-          {/* Primary Client Highlight */}
-          <Card className="lg:col-span-2 border-primary/20 bg-primary/5">
+        <div className="flex justify-center mb-16">
+          {/* Primary Client Highlight - Centered */}
+          <Card className="max-w-3xl border-primary/20 bg-primary/5">
             <CardContent className="p-8">
               <div className="flex items-start gap-4 mb-6">
                 <div className="flex-shrink-0">
-                  <Building className="h-12 w-12 text-primary" />
+                  <img 
+                    src="/branded-logos/3A-Equipment-Logo-Medium.png" 
+                    alt="3-A Equipment Logo" 
+                    className="h-20 w-20 object-contain"
+                  />
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold text-foreground mb-2">
@@ -53,61 +56,29 @@ const SocialProofSection = () => {
               </div>
             </CardContent>
           </Card>
-          
-          {/* Stats Card */}
-          <Card>
-            <CardContent className="p-8">
-              <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-primary text-primary" />
-                    ))}
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-foreground mb-2">
-                  Simple Pricing
-                </h3>
-                <p className="text-muted-foreground text-sm mb-6">
-                  Transparent pricing built for repair shops and rental operations. Pay only for what you use.
-                </p>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span className="text-sm">First user completely free</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span className="text-sm">$10/month per additional user</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span className="text-sm">5GB photo storage included</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
         
-        {/* Pricing Highlights */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center max-w-4xl mx-auto">
           <div>
-            <div className="text-3xl font-bold text-foreground mb-2">Free</div>
-            <div className="text-sm text-muted-foreground">First User Always</div>
+            <div className="text-3xl font-bold text-foreground mb-2">Zero</div>
+            <div className="text-sm text-muted-foreground">Licensing Fees</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-foreground mb-2">$10</div>
-            <div className="text-sm text-muted-foreground">Per Additional User/Month</div>
+            <div className="text-3xl font-bold text-foreground mb-2">Unlimited</div>
+            <div className="text-sm text-muted-foreground">User Seats</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-foreground mb-2">5GB</div>
-            <div className="text-sm text-muted-foreground">Photo Storage Included</div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold text-foreground mb-2">$0.10</div>
-            <div className="text-sm text-muted-foreground">Per Additional GB</div>
+            <div className="text-3xl font-bold text-foreground mb-2">5 GB</div>
+            <div className="text-sm text-muted-foreground">Image Storage Included</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              <a 
+                href="mailto:nicholas.king@columbiacloudworks.com" 
+                className="text-primary hover:text-primary/80 transition-colors"
+              >
+                Contact us for more
+              </a>
+            </div>
           </div>
         </div>
       </div>
