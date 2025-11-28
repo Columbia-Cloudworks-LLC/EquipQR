@@ -1,8 +1,27 @@
--- Insert missing templates with upsert
 -- This migration was applied directly to production
 -- Idempotent: Safe to run multiple times
 
 BEGIN;
+
+-- Ensure a system profile exists for global templates
+-- This satisfies the pm_checklist_templates.created_by_fkey constraint to public.profiles(id)
+INSERT INTO "public"."profiles" (
+  "id",
+  "email",
+  "name",
+  "created_at",
+  "updated_at",
+  "email_private"
+)
+VALUES (
+  '00000000-0000-0000-0000-000000000000'::uuid,
+  'system@equipqr.local',
+  'System User',
+  now(),
+  now(),
+  true
+)
+ON CONFLICT ("id") DO NOTHING;
 
 -- Insert missing global PM templates using upsert pattern
 INSERT INTO "public"."pm_checklist_templates" (
