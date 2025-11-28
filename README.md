@@ -1,4 +1,4 @@
-# EquipQR
+# EquipQR™
 
 <div align="center">
   <img src="public/eqr-icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR Logo" width="200" />
