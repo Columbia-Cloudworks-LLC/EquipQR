@@ -1,29 +1,11 @@
+-- Insert missing templates with upsert
 -- This migration was applied directly to production
 -- Idempotent: Safe to run multiple times
 
 BEGIN;
 
--- Ensure a system profile exists for global templates
--- This satisfies the pm_checklist_templates.created_by_fkey constraint to public.profiles(id)
-INSERT INTO "public"."profiles" (
-  "id",
-  "email",
-  "name",
-  "created_at",
-  "updated_at",
-  "email_private"
-)
-VALUES (
-  '00000000-0000-0000-0000-000000000000'::uuid,
-  'system@equipqr.local',
-  'System User',
-  now(),
-  now(),
-  true
-)
-ON CONFLICT ("id") DO NOTHING;
-
 -- Insert missing global PM templates using upsert pattern
+-- Use an existing user for created_by (avoids FK constraint issues with auth.users)
 INSERT INTO "public"."pm_checklist_templates" (
   "id",
   "organization_id",
@@ -42,7 +24,16 @@ SELECT
   'Default preventative maintenance template',
   '[]'::jsonb,
   true,
-  '00000000-0000-0000-0000-000000000000'::uuid, -- System user for global templates
+  -- Use first available org owner/admin, or fallback to first active user
+  COALESCE(
+    (SELECT user_id FROM organization_members 
+     WHERE role IN ('owner', 'admin') AND status = 'active' 
+     ORDER BY created_at ASC LIMIT 1),
+    (SELECT user_id FROM organization_members 
+     WHERE status = 'active' 
+     ORDER BY created_at ASC LIMIT 1),
+    (SELECT id FROM profiles ORDER BY created_at ASC LIMIT 1)
+  ),
   now(),
   now()
 WHERE NOT EXISTS (
