@@ -1,9 +1,9 @@
 
-# EquipQR Roles and Permissions Documentation
+# EquipQR™ Roles and Permissions Documentation
 
 ## Overview
 
-This document defines the comprehensive role-based access control (RBAC) system for EquipQR, including organization-level and team-level roles, their scopes, and specific permissions. This documentation serves as the foundation for implementing database Row Level Security (RLS) policies and application-level permission validation.
+This document defines the comprehensive role-based access control (RBAC) system for EquipQR™, including organization-level and team-level roles, their scopes, and specific permissions. This documentation serves as the foundation for implementing database Row Level Security (RLS) policies and application-level permission validation.
 
 ## Role Hierarchy
 
@@ -374,4 +374,4 @@ FOR INSERT, UPDATE, DELETE USING (
 - Add custom role definitions
 - Implement advanced audit logging
 
-This documentation serves as the foundation for implementing a robust, secure, and scalable permission system in EquipQR.
+This documentation serves as the foundation for implementing a robust, secure, and scalable permission system in EquipQR™.

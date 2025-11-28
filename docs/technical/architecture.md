@@ -1,12 +1,12 @@
-# EquipQR Architecture Documentation
+# EquipQR™ Architecture Documentation
 
-This document provides a comprehensive overview of EquipQR's system architecture and database schema, covering technology choices, design patterns, and data structures.
+This document provides a comprehensive overview of EquipQR™'s system architecture and database schema, covering technology choices, design patterns, and data structures.
 
 ## System Architecture
 
 ### Overview
 
-EquipQR is a modern, cloud-native fleet equipment management platform built with a focus on scalability, security, and maintainability. This document outlines the system architecture, technology choices, and design patterns used throughout the application.
+EquipQR™ is a modern, cloud-native fleet equipment management platform built with a focus on scalability, security, and maintainability. This document outlines the system architecture, technology choices, and design patterns used throughout the application.
 
 ### High-Level Architecture
 
@@ -456,7 +456,7 @@ FOR SELECT USING (
 
 ### Overview
 
-EquipQR uses a PostgreSQL database with Row Level Security (RLS) for multi-tenant data isolation. This section provides a comprehensive overview of the database schema, relationships, and security policies.
+EquipQR™ uses a PostgreSQL database with Row Level Security (RLS) for multi-tenant data isolation. This section provides a comprehensive overview of the database schema, relationships, and security policies.
 
 ### Schema Architecture
 
@@ -754,5 +754,5 @@ YYYYMMDDHHMMSS_description.sql
 4. **Audit Trails**: Track important changes with created_by/updated_by
 5. **Principle of Least Privilege**: Users only access their organization's data
 
-This architecture and schema provide a robust foundation for EquipQR's multi-tenant architecture while maintaining performance, security, and scalability.
+This architecture and schema provide a robust foundation for EquipQR™'s multi-tenant architecture while maintaining performance, security, and scalability.
 

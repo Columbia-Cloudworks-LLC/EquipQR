@@ -52,7 +52,7 @@ describe('PrivacyPolicy', () => {
       render(<PrivacyPolicy />);
       
       expect(screen.getByText('Introduction')).toBeInTheDocument();
-      expect(screen.getByText(/EquipQR.*is committed to protecting your privacy/)).toBeInTheDocument();
+      expect(screen.getByText(/EquipQR™.*is committed to protecting your privacy/)).toBeInTheDocument();
     });
 
     it('displays information we collect section', () => {

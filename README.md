@@ -1,7 +1,7 @@
 # EquipQR™
 
 <div align="center">
-  <img src="public/eqr-icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR Logo" width="200" />
+  <img src="public/eqr-icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR™ Logo" width="200" />
 </div>
 
 ## 🚜 Fleet Equipment Management Platform 🚧
@@ -89,9 +89,9 @@ npm run dev
 
 ## 🔌 External API Requirements
 
-EquipQR integrates with several external services to provide full functionality. While Supabase is required, other services are optional depending on which features you want to enable.
+EquipQR™ integrates with several external services to provide full functionality. While Supabase is required, other services are optional depending on which features you want to enable.
 
-> **Note**: EquipQR is completely free to use. There are no billing or subscription features.
+> **Note**: EquipQR™ is completely free to use. There are no billing or subscription features.
 
 
 ### Google Maps (Optional - Required for Fleet Map)
@@ -140,7 +140,7 @@ hCaptcha provides optional bot protection for forms.
 
 ## 🗄️ Supabase Project Setup
 
-Complete Supabase configuration is required for EquipQR to function. Follow these steps to set up your Supabase project.
+Complete Supabase configuration is required for EquipQR™ to function. Follow these steps to set up your Supabase project.
 
 ### 1. Create Supabase Project
 
@@ -301,7 +301,7 @@ USING (
 
 ## 🎨 App Branding
 
-EquipQR includes branding assets for use in the application and communications.
+EquipQR™ includes branding assets for use in the application and communications.
 
 **Logo Locations:**
 - **App Icons**: `public/icons/`

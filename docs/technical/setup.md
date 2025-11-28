@@ -1,6 +1,6 @@
 # Developer Setup Guide
 
-This guide combines quick start instructions, environment configuration, and troubleshooting to help you get up and running with EquipQR development quickly.
+This guide combines quick start instructions, environment configuration, and troubleshooting to help you get up and running with EquipQR™ development quickly.
 
 ## Quick Start (5-Minute Setup)
 
@@ -55,7 +55,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ```env
 # Optional Development Settings
-VITE_APP_TITLE=EquipQR Development
+VITE_APP_TITLE=EquipQR™ Development
 VITE_ENABLE_DEVTOOLS=true
 VITE_LOG_LEVEL=debug
 
@@ -71,7 +71,7 @@ VITE_GOOGLE_MAPS_API_KEY=your_maps_key
 // src/lib/config.ts
 export const config = {
   app: {
-    title: import.meta.env.VITE_APP_TITLE || 'EquipQR',
+    title: import.meta.env.VITE_APP_TITLE || 'EquipQR™',
     version: import.meta.env.VITE_APP_VERSION || '1.0.0',
   },
   supabase: {
@@ -624,5 +624,5 @@ npm run size-check    # Check bundle size
 4. **Make a Small Change**: Try updating a component or adding a new feature
 5. **Join the Team**: Participate in code reviews and team discussions
 
-Welcome to the EquipQR development team! 🎉
+Welcome to the EquipQR™ development team! 🎉
 

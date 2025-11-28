@@ -1,6 +1,6 @@
-# EquipQR Documentation
+# EquipQR™ Documentation
 
-Welcome to the comprehensive documentation for EquipQR, a modern fleet equipment management platform. This documentation is organized into three main sections: Technical, Guides, and Operations.
+Welcome to the comprehensive documentation for EquipQR™, a modern fleet equipment management platform. This documentation is organized into three main sections: Technical, Guides, and Operations.
 
 ## 📚 Documentation Structure
 
@@ -128,5 +128,5 @@ Operational documentation for deployment and maintenance:
 ---
 
 **Last Updated**: November 2024  
-**Maintained by**: EquipQR Development Team  
+**Maintained by**: EquipQR™ Development Team  
 **Feedback**: Create GitHub issues for documentation improvements

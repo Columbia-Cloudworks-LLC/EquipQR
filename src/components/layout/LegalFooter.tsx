@@ -12,7 +12,7 @@ export default function LegalFooter() {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            © {currentYear} EquipQR v{appVersion} by{' '}
+            © {currentYear} EquipQR™ v{appVersion} by{' '}
             <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
               <img 
                 src="/icons/Columbia-Cloudworks-Icon-Small.png" 
@@ -29,7 +29,7 @@ export default function LegalFooter() {
               href="https://equipqr.app" 
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              EquipQR.app
+              EquipQR™.app
             </ExternalLink>
             
             <div className="flex items-center gap-4">

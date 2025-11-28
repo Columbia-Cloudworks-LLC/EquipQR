@@ -46,7 +46,7 @@ const LandingHeader = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2">
               <Logo size="sm" />
-              <span className="font-bold text-xl text-foreground">EquipQR</span>
+              <span className="font-bold text-xl text-foreground">EquipQR™</span>
             </Link>
           </div>
 

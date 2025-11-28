@@ -1,10 +1,10 @@
 # Deployment Guide
 
-This guide covers all aspects of deploying EquipQR, including build processes, hosting platforms, runner management, and versioning.
+This guide covers all aspects of deploying EquipQR™, including build processes, hosting platforms, runner management, and versioning.
 
 ## Deployment Overview
 
-EquipQR is designed as a modern single-page application (SPA) that can be deployed to various hosting platforms with minimal configuration.
+EquipQR™ is designed as a modern single-page application (SPA) that can be deployed to various hosting platforms with minimal configuration.
 
 ## Build Process
 
@@ -47,7 +47,7 @@ VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # Optional Development Settings
-VITE_APP_TITLE=EquipQR Development
+VITE_APP_TITLE=EquipQR™ Development
 VITE_ENABLE_DEVTOOLS=true
 VITE_LOG_LEVEL=debug
 ```
@@ -74,7 +74,7 @@ VITE_GOOGLE_MAPS_API_KEY=your_maps_key
 // src/lib/config.ts
 export const config = {
   app: {
-    title: import.meta.env.VITE_APP_TITLE || 'EquipQR',
+    title: import.meta.env.VITE_APP_TITLE || 'EquipQR™',
     version: import.meta.env.VITE_APP_VERSION || '1.0.0',
   },
   supabase: {
@@ -99,7 +99,7 @@ export const config = {
 ## Hosting Platforms
 
 ### Lovable Hosting (Recommended)
-EquipQR is optimized for Lovable's hosting platform:
+EquipQR™ is optimized for Lovable's hosting platform:
 
 1. **Click Publish**: Use the publish button in Lovable interface
 2. **Custom Domain**: Configure custom domain in project settings
@@ -460,7 +460,7 @@ If you need to revert to GitHub-hosted runners:
 
 ## Versioning System
 
-EquipQR uses an automated semantic versioning system where `package.json` is the single source of truth for the application version.
+EquipQR™ uses an automated semantic versioning system where `package.json` is the single source of truth for the application version.
 
 ### How It Works
 
@@ -577,7 +577,7 @@ git push origin vX.Y.Z
 
 ### Version Display
 
-The version is displayed in the footer of all pages in the format: `© 2024 EquipQR v1.2.3 by COLUMBIA CLOUDWORKS LLC`
+The version is displayed in the footer of all pages in the format: `© 2024 EquipQR™ v1.2.3 by COLUMBIA CLOUDWORKS LLC`
 
 ### Files Involved
 
@@ -663,7 +663,7 @@ Ensure all deployments use HTTPS:
 ## Database Integration
 
 ### Supabase Integration (Recommended)
-EquipQR is designed to work with Supabase for backend functionality:
+EquipQR™ is designed to work with Supabase for backend functionality:
 
 1. **Connect Supabase**: Use Lovable's native Supabase integration
 2. **Database Setup**: Create tables for equipment, work orders, teams
@@ -671,7 +671,7 @@ EquipQR is designed to work with Supabase for backend functionality:
 4. **Real-time Updates**: Enable real-time subscriptions for live data
 
 ### Supabase Configuration
-EquipQR uses Supabase for all backend functionality. Ensure proper configuration:
+EquipQR™ uses Supabase for all backend functionality. Ensure proper configuration:
 
 ```typescript
 // src/integrations/supabase/client.ts
@@ -808,5 +808,5 @@ export const performHealthCheck = async () => {
 };
 ```
 
-This deployment guide provides comprehensive instructions for deploying EquipQR to various platforms while maintaining optimal performance, security, and reliability.
+This deployment guide provides comprehensive instructions for deploying EquipQR™ to various platforms while maintaining optimal performance, security, and reliability.
 

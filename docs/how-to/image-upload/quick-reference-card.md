@@ -1,4 +1,4 @@
-# EquipQR Image Upload - Quick Reference Card
+# EquipQR™ Image Upload - Quick Reference Card
 
 ## 🚀 Quick Start
 
@@ -103,4 +103,4 @@
 
 ---
 
-*Keep this card handy for quick reference while working with EquipQR!*
+*Keep this card handy for quick reference while working with EquipQR™!*

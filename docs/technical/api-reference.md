@@ -1,8 +1,8 @@
-# EquipQR API Reference
+# EquipQR™ API Reference
 
 ## Overview
 
-EquipQR uses Supabase for its backend API, providing RESTful endpoints for all data operations. This document outlines the key API patterns, authentication, and data models used throughout the application.
+EquipQR™ uses Supabase for its backend API, providing RESTful endpoints for all data operations. This document outlines the key API patterns, authentication, and data models used throughout the application.
 
 ## Authentication
 
@@ -413,4 +413,4 @@ const useCreateEquipment = () => {
 };
 ```
 
-This API reference provides the foundation for understanding and integrating with the EquipQR backend services.
+This API reference provides the foundation for understanding and integrating with the EquipQR™ backend services.

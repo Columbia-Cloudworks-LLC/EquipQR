@@ -137,7 +137,7 @@ const AppSidebar = () => {
         <SidebarHeader className="p-3 sm:p-4">
           <div className={cn("flex items-center gap-2 px-1 sm:px-2 py-1 sm:py-2", textColorClass)}>
             <Logo size="sm" />
-            <span className="font-semibold text-base sm:text-lg">EquipQR</span>
+            <span className="font-semibold text-base sm:text-lg">EquipQR™</span>
           </div>
           <OrganizationSwitcher />
         </SidebarHeader>

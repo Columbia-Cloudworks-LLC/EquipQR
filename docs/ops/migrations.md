@@ -10,11 +10,11 @@
 > - **Always check production migrations before renaming** using Supabase MCP tools (`mcp_supabase_list_migrations`)
 > - Production is the source of truth - local files must match production timestamps exactly
 > 
-> This is now formalized in EquipQR Constitution v1.2.0 under "Database Migration Integrity" section.
+> This is now formalized in EquipQR™ Constitution v1.2.0 under "Database Migration Integrity" section.
 
 ## Overview
 
-EquipQR uses Supabase for database management with a structured migration system. This guide covers migration best practices, naming conventions, and troubleshooting.
+EquipQR™ uses Supabase for database management with a structured migration system. This guide covers migration best practices, naming conventions, and troubleshooting.
 
 ## Migration File Structure
 

@@ -29,7 +29,7 @@ export default function PrivacyPolicy() {
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              EquipQR ("we," "our," or "us"), developed by{' '}
+              EquipQR™ ("we," "our," or "us"), developed by{' '}
               <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
                 COLUMBIA CLOUDWORKS LLC
               </ExternalLink>
