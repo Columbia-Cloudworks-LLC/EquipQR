@@ -1,6 +1,6 @@
 # Equipment Image Upload Documentation
 
-This directory contains comprehensive documentation for technicians on how to upload images to equipment records in EquipQR.
+This directory contains comprehensive documentation for technicians on how to upload images to equipment records in EquipQR™.
 
 ## 📚 Documentation Files
 
@@ -22,7 +22,7 @@ This documentation is designed for:
 
 ## 🚀 Quick Start
 
-1. **New to EquipQR?** Start with the [Technician Image Upload Guide](technician-image-upload-guide.md)
+1. **New to EquipQR™?** Start with the [Technician Image Upload Guide](technician-image-upload-guide.md)
 2. **Need comprehensive info?** Read the [Complete Workflow Guide](complete-workflow-guide.md)
 3. **Experienced user?** Use the [Quick Reference Card](quick-reference-card.md)
 
@@ -88,7 +88,7 @@ The documentation covers both mobile and desktop interfaces:
 1. Check the troubleshooting sections in the guides
 2. Contact your team lead or administrator
 3. Submit a support ticket through the app
-4. Review the main EquipQR documentation
+4. Review the main EquipQR™ documentation
 
 ### Providing Feedback
 - Report issues with the documentation
@@ -106,7 +106,7 @@ This documentation is updated regularly to reflect:
 
 ## 🔗 Related Documentation
 
-- [Main EquipQR Documentation](../../README.md)
+- [Main EquipQR™ Documentation](../../README.md)
 - [Equipment Management Guide](../equipment-management/)
 - [Work Order Management Guide](../work-orders/)
 - [PM Checklist Guide](../pm-checklists/)

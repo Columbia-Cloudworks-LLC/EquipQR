@@ -15,7 +15,7 @@ export const DashboardSupport = () => {
       <div>
         <h1 className="text-3xl font-bold">Support & Documentation</h1>
         <p className="text-muted-foreground">
-          Find answers to common questions and learn how to use EquipQR effectively
+          Find answers to common questions and learn how to use EquipQR™ effectively
         </p>
       </div>
 
@@ -27,7 +27,7 @@ export const DashboardSupport = () => {
             Get Help
           </CardTitle>
           <CardDescription>
-            Need assistance? We're here to help you get the most out of EquipQR.
+            Need assistance? We're here to help you get the most out of EquipQR™.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -58,10 +58,10 @@ export const DashboardSupport = () => {
         <CardContent>
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="getting-started">
-              <AccordionTrigger>How do I get started with EquipQR?</AccordionTrigger>
+              <AccordionTrigger>How do I get started with EquipQR™?</AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-3">
-                  <p>Getting started with EquipQR is easy:</p>
+                  <p>Getting started with EquipQR™ is easy:</p>
                   <ol className="list-decimal list-inside space-y-2 ml-4">
                     <li>Set up your organization and invite team members</li>
                     <li>Add your equipment to the system</li>
@@ -74,7 +74,7 @@ export const DashboardSupport = () => {
             </AccordionItem>
 
             <AccordionItem value="qr-codes">
-              <AccordionTrigger>How do QR codes work in EquipQR?</AccordionTrigger>
+              <AccordionTrigger>How do QR codes work in EquipQR™?</AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-3">
                   <p>QR codes provide instant access to equipment information:</p>
@@ -93,7 +93,7 @@ export const DashboardSupport = () => {
               <AccordionTrigger>How do I manage work orders effectively?</AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-3">
-                  <p>Work order management is streamlined in EquipQR:</p>
+                  <p>Work order management is streamlined in EquipQR™:</p>
                   <ul className="list-disc list-inside space-y-2 ml-4">
                     <li>Create work orders from equipment pages or QR scans</li>
                     <li>Assign orders to specific teams or individuals</li>
@@ -246,7 +246,7 @@ const Support = () => {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Support & Documentation</h1>
           <p className="text-muted-foreground">
-            Find answers to common questions and learn how to use EquipQR effectively
+            Find answers to common questions and learn how to use EquipQR™ effectively
           </p>
         </div>
 
@@ -258,7 +258,7 @@ const Support = () => {
               Get Help
             </CardTitle>
             <CardDescription>
-              Need assistance? We're here to help you get the most out of EquipQR.
+              Need assistance? We're here to help you get the most out of EquipQR™.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -289,10 +289,10 @@ const Support = () => {
           <CardContent>
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="getting-started">
-                <AccordionTrigger>How do I get started with EquipQR?</AccordionTrigger>
+                <AccordionTrigger>How do I get started with EquipQR™?</AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-3">
-                    <p>Getting started with EquipQR is easy:</p>
+                    <p>Getting started with EquipQR™ is easy:</p>
                     <ol className="list-decimal list-inside space-y-2 ml-4">
                       <li>Set up your organization and invite team members</li>
                       <li>Add your equipment to the system</li>
@@ -305,7 +305,7 @@ const Support = () => {
               </AccordionItem>
 
               <AccordionItem value="qr-codes">
-                <AccordionTrigger>How do QR codes work in EquipQR?</AccordionTrigger>
+                <AccordionTrigger>How do QR codes work in EquipQR™?</AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-3">
                     <p>QR codes provide instant access to equipment information:</p>
@@ -324,7 +324,7 @@ const Support = () => {
                 <AccordionTrigger>How do I manage work orders effectively?</AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-3">
-                    <p>Work order management is streamlined in EquipQR:</p>
+                    <p>Work order management is streamlined in EquipQR™:</p>
                     <ul className="list-disc list-inside space-y-2 ml-4">
                       <li>Create work orders from equipment pages or QR scans</li>
                       <li>Assign orders to specific teams or individuals</li>
@@ -430,7 +430,7 @@ const Support = () => {
           <CardHeader>
             <CardTitle>Best Practices</CardTitle>
             <CardDescription>
-              Tips for getting the most out of EquipQR
+              Tips for getting the most out of EquipQR™
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -468,7 +468,7 @@ const Support = () => {
           <CardContent className="p-6 text-center">
             <h3 className="text-xl font-semibold mb-2">Ready to Get Started?</h3>
             <p className="text-muted-foreground mb-4">
-              Join thousands of teams using EquipQR to streamline their equipment management
+              Join thousands of teams using EquipQR™ to streamline their equipment management
             </p>
             <Button asChild>
               <a href="/auth" className="inline-flex items-center gap-2">

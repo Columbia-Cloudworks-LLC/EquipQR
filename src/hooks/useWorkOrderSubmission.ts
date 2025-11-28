@@ -25,7 +25,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
   const updateWorkOrderMutation = useUpdateWorkOrder();
   const createHistoricalWorkOrderMutation = useCreateHistoricalWorkOrder({
     onSuccess: (createdWorkOrder) => {
-      navigate(`/work-orders/${createdWorkOrder.id}`);
+      navigate(`/dashboard/work-orders/${createdWorkOrder.id}`);
       onSuccess();
     }
   });

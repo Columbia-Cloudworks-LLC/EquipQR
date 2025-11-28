@@ -1,6 +1,6 @@
 # Coding Standards and UI System Guide
 
-This guide documents the comprehensive coding standards and UI system for EquipQR, providing consistent design tokens, components, patterns, and development practices.
+This guide documents the comprehensive coding standards and UI system for EquipQR™, providing consistent design tokens, components, patterns, and development practices.
 
 ## Coding Standards
 
@@ -96,7 +96,7 @@ JSDoc for hooks/components. Reference docs for complex logic (e.g., "// See data
 
 ## UI System Guide
 
-This guide documents the comprehensive UI system implemented for EquipQR, providing consistent design tokens, components, and patterns.
+This guide documents the comprehensive UI system implemented for EquipQR™, providing consistent design tokens, components, and patterns.
 
 ### Design Tokens
 

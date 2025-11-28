@@ -16,7 +16,7 @@ const PersonalizationSettings = () => {
       <CardHeader>
         <CardTitle>Personalization</CardTitle>
         <CardDescription>
-          Customize your EquipQR experience with your preferred language, theme, and regional settings.
+          Customize your EquipQR™ experience with your preferred language, theme, and regional settings.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

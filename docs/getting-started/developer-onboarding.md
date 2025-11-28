@@ -1,8 +1,8 @@
 # Developer Onboarding Guide
 
-## Welcome to EquipQR Development!
+## Welcome to EquipQR™ Development!
 
-This guide will help you get up and running with the EquipQR codebase quickly and efficiently.
+This guide will help you get up and running with the EquipQR™ codebase quickly and efficiently.
 
 ## Prerequisites
 
@@ -467,4 +467,4 @@ npm run size-check    # Check bundle size
 4. **Make a Small Change**: Try updating a component or adding a new feature
 5. **Join the Team**: Participate in code reviews and team discussions
 
-Welcome to the EquipQR development team! 🎉
+Welcome to the EquipQR™ development team! 🎉

@@ -13,7 +13,7 @@ const SocialProofSection = () => {
             Field-Tested Solution
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Currently deployed at heavy equipment repair shops who rely on EquipQR for their daily operations.
+            Currently deployed at heavy equipment repair shops who rely on EquipQR™ for their daily operations.
           </p>
         </div>
         
@@ -36,7 +36,7 @@ const SocialProofSection = () => {
                   </h3>
                   <Badge variant="secondary" className="mb-4">Heavy Equipment Repair Shop</Badge>
                   <p className="text-muted-foreground leading-relaxed">
-                    "EquipQR has streamlined how we manage our heavy equipment. The QR code system makes it easy for our technicians to access equipment records and update maintenance status right from their phones in the field."
+                    "EquipQR™ has streamlined how we manage our heavy equipment. The QR code system makes it easy for our technicians to access equipment records and update maintenance status right from their phones in the field."
                   </p>
                 </div>
               </div>

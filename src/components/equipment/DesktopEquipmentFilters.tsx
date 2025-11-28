@@ -33,7 +33,7 @@ export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = (
   hasActiveFilters
 }) => {
   return (
-    <Card>
+    <Card className="bg-muted/50">
       <CardContent className="pt-6">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row gap-4">

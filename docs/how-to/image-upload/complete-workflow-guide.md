@@ -2,7 +2,7 @@
 
 ## Overview
 
-This comprehensive guide covers the complete workflow for technicians to upload images to equipment records, manage work orders, and complete PM checklists in EquipQR.
+This comprehensive guide covers the complete workflow for technicians to upload images to equipment records, manage work orders, and complete PM checklists in EquipQR™.
 
 ## Table of Contents
 
@@ -19,13 +19,13 @@ This comprehensive guide covers the complete workflow for technicians to upload 
 ## Equipment Access and Navigation
 
 ### Method 1: QR Code Scan
-1. Open EquipQR mobile app
+1. Open EquipQR™ mobile app
 2. Point camera at equipment QR code
 3. Tap the notification to open equipment page
 4. Equipment details will load automatically
 
 ### Method 2: Direct Navigation
-1. Open EquipQR web interface
+1. Open EquipQR™ web interface
 2. Navigate to Equipment section
 3. Find equipment in the list
 4. Click on equipment name to open details
@@ -295,4 +295,4 @@ This comprehensive guide covers the complete workflow for technicians to upload 
 
 ---
 
-*This guide provides comprehensive instructions for all equipment image upload and work order management tasks in EquipQR. For additional support, contact your team lead or system administrator.*
+*This guide provides comprehensive instructions for all equipment image upload and work order management tasks in EquipQR™. For additional support, contact your team lead or system administrator.*

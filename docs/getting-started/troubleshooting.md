@@ -1,8 +1,8 @@
-# EquipQR Troubleshooting Guide
+# EquipQR™ Troubleshooting Guide
 
 ## Overview
 
-This guide provides solutions to common issues you may encounter while developing, deploying, or using EquipQR. Issues are organized by category with step-by-step resolution instructions.
+This guide provides solutions to common issues you may encounter while developing, deploying, or using EquipQR™. Issues are organized by category with step-by-step resolution instructions.
 
 ## Quick Diagnostics
 

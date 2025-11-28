@@ -27,7 +27,12 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
         <AuthProvider>
           <UserProvider>
             <SessionProvider>
-              <Router>
+              <Router
+                future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true,
+                }}
+              >
                 {children}
               </Router>
             </SessionProvider>

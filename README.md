@@ -1,7 +1,7 @@
 # EquipQR™
 
 <div align="center">
-  <img src="public/eqr-icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR Logo" width="200" />
+  <img src="public/eqr-icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR™ Logo" width="200" />
 </div>
 
 ## 🚜 Fleet Equipment Management Platform 🚧
@@ -89,9 +89,9 @@ npm run dev
 
 ## 🔌 External API Requirements
 
-EquipQR integrates with several external services to provide full functionality. While Supabase is required, other services are optional depending on which features you want to enable.
+EquipQR™ integrates with several external services to provide full functionality. While Supabase is required, other services are optional depending on which features you want to enable.
 
-> **Note**: EquipQR is completely free to use. There are no billing or subscription features.
+> **Note**: EquipQR™ is completely free to use. There are no billing or subscription features.
 
 
 ### Google Maps (Optional - Required for Fleet Map)
@@ -140,7 +140,7 @@ hCaptcha provides optional bot protection for forms.
 
 ## 🗄️ Supabase Project Setup
 
-Complete Supabase configuration is required for EquipQR to function. Follow these steps to set up your Supabase project.
+Complete Supabase configuration is required for EquipQR™ to function. Follow these steps to set up your Supabase project.
 
 ### 1. Create Supabase Project
 
@@ -301,16 +301,22 @@ USING (
 
 ## 🎨 App Branding
 
-EquipQR includes branding assets for use in the application and communications.
+EquipQR™ includes branding assets for use in the application and communications.
 
 **Logo Locations:**
-- **App Icons**: `public/eqr-icons/`
-  - `inverse.png` - Used in auth pages and emails (white logo on dark)
-  - `black.png` - Black logo variant
-  - `white.png` - White logo variant
-  - `grayscale.png` - Grayscale variant
-  - `columbia-cloudworks-logo.png` - Columbia Cloudworks branding
+- **App Icons**: `public/icons/`
+  - `EquipQR-Icon-Purple-{Size}.png` - Purple logo variant (preferred branding, works on any background)
+    - Available sizes: Small, Medium, Large
+  - `EquipQR-White-{Size}.png` - White logo variant (transparent background)
+    - Available sizes: Small, Medium, Large
+  - `EquipQR-Black-{Size}.png` - Black logo variant (transparent background)
+    - Available sizes: Small, Medium, Large
+  - `EquipQR-Grey-{Size}.png` - Grey/grayscale logo variant (transparent background)
+    - Available sizes: Small, Medium, Large
+  - `Columbia-Cloudworks-Icon-{Size}.png` - Columbia Cloudworks branding
+    - Available sizes: Small, Medium, Large
 
+- **Legacy Icons**: `public/eqr-icons/` (deprecated, use `public/icons/` instead)
 - **Full Logos**: `public/eqr-logo/`
   - `black.png` - Full black logo with text
   - `transparent.png` - Logo with transparent background
@@ -318,13 +324,26 @@ EquipQR includes branding assets for use in the application and communications.
   - `inverse.png` - Inverse full logo
 
 **Usage:**
-- Authentication pages use `eqr-icons/inverse.png`
-- Email invitations reference `eqr-icons/inverse.png`
+- The `Logo` component automatically selects the appropriate icon based on `variant` and `size` props
+- Default variant uses purple logo (preferred branding)
+- Email invitations use purple medium logo
 - Organization branding can be customized per tenant
 - Logos are served from the `/public` directory
+- All logos have transparent backgrounds
+
+**Icon Variants:**
+- **Purple** (default): Preferred branding that works on any background color
+- **White**: Best for dark backgrounds
+- **Black**: Best for light backgrounds
+- **Grey/Grayscale**: Neutral option
+
+**Icon Sizes:**
+- **Small**: Used for compact spaces (e.g., headers, sidebars)
+- **Medium**: Standard size for most use cases
+- **Large**: Used for prominent displays (e.g., hero sections, auth pages)
 
 **Customization:**
-To use custom branding, replace the images in these directories while maintaining the same filenames and dimensions.
+To use custom branding, replace the images in the `public/icons/` directory while maintaining the same filenames and dimensions.
 
 ## 🧪 Testing
 

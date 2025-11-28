@@ -59,7 +59,7 @@ export const useCreateWorkOrder = () => {
       toast.success('Work order created successfully');
       
       // Navigate to the new work order's details page
-      navigate(`/work-orders/${workOrder.id}`);
+      navigate(`/dashboard/work-orders/${workOrder.id}`);
     },
     onError: (error) => {
       console.error('Error creating work order:', error);

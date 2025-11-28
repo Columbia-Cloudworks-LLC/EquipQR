@@ -1,6 +1,6 @@
 # Workflows Guide
 
-This guide covers work order workflows and image upload processes in EquipQR, providing comprehensive instructions for technicians and managers.
+This guide covers work order workflows and image upload processes in EquipQR™, providing comprehensive instructions for technicians and managers.
 
 ## Work Order Workflow
 
@@ -179,11 +179,11 @@ Any → Cancelled: Manager+
 
 ### Overview
 
-This section provides step-by-step instructions for technicians on how to upload images to equipment records in EquipQR. Images are uploaded through work orders, which allows for proper documentation of maintenance work, damage assessment, and repair progress.
+This section provides step-by-step instructions for technicians on how to upload images to equipment records in EquipQR™. Images are uploaded through work orders, which allows for proper documentation of maintenance work, damage assessment, and repair progress.
 
 ### Prerequisites
 
-- Access to EquipQR mobile app or web interface
+- Access to EquipQR™ mobile app or web interface
 - Equipment QR code scanned or equipment ID available
 - Camera or image files ready for upload
 - Valid technician account with appropriate permissions
@@ -192,7 +192,7 @@ This section provides step-by-step instructions for technicians on how to upload
 
 #### Step 1: Access the Equipment Record
 
-1. **Scan the QR Code** on the equipment using the EquipQR mobile app
+1. **Scan the QR Code** on the equipment using the EquipQR™ mobile app
 2. **Or navigate directly** to the equipment page if you have the equipment ID
 3. The equipment page will display basic information about the machine
 
@@ -437,7 +437,7 @@ If you encounter issues:
 1. Check your internet connection
 2. Try uploading a smaller image file
 3. Contact your supervisor or IT support
-4. Check the EquipQR help documentation
+4. Check the EquipQR™ help documentation
 
 ## Security and Privacy
 

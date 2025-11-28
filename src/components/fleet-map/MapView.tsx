@@ -252,7 +252,7 @@ export const MapView: React.FC<MapViewProps> = ({
             
             <Button 
               size="sm" 
-              onClick={() => navigate(`/equipment/${selectedMarker.id}`)}
+              onClick={() => navigate(`/dashboard/equipment/${selectedMarker.id}`)}
               className="w-full"
             >
               <ExternalLink className="h-3 w-3 mr-1" />

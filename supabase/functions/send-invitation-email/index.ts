@@ -93,18 +93,19 @@ serve(async (req) => {
     const invitationUrl = `${baseUrl}/invitation/${invitation.invitation_token}`;
     
     // Construct absolute URLs for logos
-    const equipQRLogoUrl = `${baseUrl}/eqr-icons/inverse.png`;
+    // Use purple medium logo (preferred branding that works on any background)
+    const equipQRLogoUrl = `${baseUrl}/icons/EquipQR-Icon-Purple-Medium.png`;
 
     // Create email HTML content
     const emailHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <!-- EquipQR Logo Section -->
         <div style="text-align: center; margin-bottom: 16px; padding: 12px 0;">
-          <img src="${equipQRLogoUrl}" alt="EquipQR Logo" style="width: 100px; height: auto; display: block; margin: 0 auto;" />
+          <img src="${equipQRLogoUrl}" alt="EquipQR™ Logo" style="width: 100px; height: auto; display: block; margin: 0 auto;" />
         </div>
         
         <div style="text-align: center; margin-bottom: 32px;">
-          <h1 style="color: #1a1a1a; font-size: 28px; font-weight: bold; margin: 0;">EquipQR</h1>
+          <h1 style="color: #1a1a1a; font-size: 28px; font-weight: bold; margin: 0;">EquipQR™</h1>
           <p style="color: #666; font-size: 16px; margin: 8px 0 0 0;">Fleet Equipment Management</p>
         </div>
         
@@ -117,7 +118,7 @@ serve(async (req) => {
           ` : ''}
           <h2 style="color: #1a1a1a; font-size: 24px; margin: 0 0 16px 0;">You're invited to join ${safeOrganizationName}</h2>
           <p style="color: #666; font-size: 16px; margin: 0 0 16px 0;">
-            ${safeInviterName} has invited you to join their organization as a <strong>${safeRole}</strong> on EquipQR.
+            ${safeInviterName} has invited you to join their organization as a <strong>${safeRole}</strong> on EquipQR™.
           </p>
           ${safeMessage ? `
             <div style="background: white; border-left: 4px solid #2563eb; padding: 16px; margin: 16px 0; border-radius: 4px;">
@@ -166,9 +167,9 @@ serve(async (req) => {
     logStep("Sending email", { to: email, from: "invite@equipqr.app" });
 
     const emailResponse = await resend.emails.send({
-      from: "EquipQR <invite@equipqr.app>",
+      from: "EquipQR™ <invite@equipqr.app>",
       to: [email],
-      subject: `You're invited to join ${safeOrganizationName} on EquipQR`,
+      subject: `You're invited to join ${safeOrganizationName} on EquipQR™`,
       html: emailHtml,
     });
 

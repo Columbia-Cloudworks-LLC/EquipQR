@@ -97,7 +97,7 @@ const Auth = () => {
               <Logo size="xl" />
             </div>
             <CardTitle className="text-2xl">
-              {pendingQRScan ? 'Sign in to continue' : 'Welcome to EquipQR'}
+              {pendingQRScan ? 'Sign in to continue' : 'Welcome to EquipQR™'}
             </CardTitle>
             <CardDescription>
               {pendingQRScan ? (
