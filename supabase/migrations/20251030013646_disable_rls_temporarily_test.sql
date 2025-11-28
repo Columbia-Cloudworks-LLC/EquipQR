@@ -1,4 +1,4 @@
--- Migration: disable_rls_temporarily_test
+-- Migration: disable_rls_temporarily_test_verification
 -- This migration was already applied to production
 -- This is a placeholder file to sync local migrations with remote database
 -- DO NOT modify this file - it exists only to match production state
