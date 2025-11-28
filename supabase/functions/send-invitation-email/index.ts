@@ -93,7 +93,8 @@ serve(async (req) => {
     const invitationUrl = `${baseUrl}/invitation/${invitation.invitation_token}`;
     
     // Construct absolute URLs for logos
-    const equipQRLogoUrl = `${baseUrl}/eqr-icons/inverse.png`;
+    // Use purple medium logo (preferred branding that works on any background)
+    const equipQRLogoUrl = `${baseUrl}/icons/EquipQR-Icon-Purple-Medium.png`;
 
     // Create email HTML content
     const emailHtml = `

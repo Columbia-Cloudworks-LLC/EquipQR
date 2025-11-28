@@ -15,7 +15,7 @@ export default function LegalFooter() {
             © {currentYear} EquipQR v{appVersion} by{' '}
             <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
               <img 
-                src="/eqr-icons/columbia-cloudworks-logo.png" 
+                src="/icons/Columbia-Cloudworks-Icon-Small.png" 
                 alt="Columbia Cloudworks" 
                 className="w-4 h-4 sm:w-5 sm:h-5"
               />
