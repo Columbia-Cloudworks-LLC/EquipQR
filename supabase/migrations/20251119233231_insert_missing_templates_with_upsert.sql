@@ -12,6 +12,7 @@ INSERT INTO "public"."pm_checklist_templates" (
   "description",
   "template_data",
   "is_protected",
+  "created_by",
   "created_at",
   "updated_at"
 )
@@ -22,6 +23,7 @@ SELECT
   'Default preventative maintenance template',
   '[]'::jsonb,
   true,
+  '00000000-0000-0000-0000-000000000000'::uuid, -- System user for global templates
   now(),
   now()
 WHERE NOT EXISTS (
