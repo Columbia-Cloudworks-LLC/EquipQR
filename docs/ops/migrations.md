@@ -1,5 +1,17 @@
 # Database Migrations Guide
 
+> **⚠️ CRITICAL: Never Rename Migrations**
+> 
+> **Once a migration has been applied to production, NEVER rename or change its timestamp.**
+> 
+> - Production migration timestamps are permanent and immutable
+> - Renaming creates a mismatch between local and remote databases
+> - Supabase will report "Remote migration versions not found in local migrations directory"
+> - **Always check production migrations before renaming** using Supabase MCP tools (`mcp_supabase_list_migrations`)
+> - Production is the source of truth - local files must match production timestamps exactly
+> 
+> This is now formalized in EquipQR Constitution v1.2.0 under "Database Migration Integrity" section.
+
 ## Overview
 
 EquipQR uses Supabase for database management with a structured migration system. This guide covers migration best practices, naming conventions, and troubleshooting.

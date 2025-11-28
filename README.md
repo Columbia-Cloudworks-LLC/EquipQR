@@ -416,29 +416,24 @@ src/
 
 ## 📖 Documentation
 
-### Getting Started
-- [Developer Onboarding Guide](./docs/getting-started/developer-onboarding.md) - Complete setup guide
-- [API Reference](./docs/getting-started/api-reference.md) - Complete API documentation
-- [Troubleshooting Guide](./docs/getting-started/troubleshooting.md) - Common issues and solutions
+See the [Documentation Index](./docs/README.md) for the complete documentation structure.
 
-### Architecture & Design
-- [System Architecture](./docs/architecture/system-architecture.md) - High-level system design
-- [Database Schema](./docs/architecture/database-schema.md) - Complete database design
-- [Technical Guide](./docs/architecture/technical-guide.md) - Development patterns and best practices
+### Quick Links
 
-### Features & Business Logic
-- [Features Overview](./docs/features/features-overview.md) - Complete feature documentation
-- [Work Order Workflow](./docs/features/work-order-workflow.md) - Complete workflow documentation
-- [Roles and Permissions](./docs/features/roles-and-permissions.md) - RBAC system
+**Technical Documentation:**
+- [Setup Guide](./docs/technical/setup.md) - Developer setup, environment configuration, and troubleshooting
+- [Architecture](./docs/technical/architecture.md) - System architecture and database schema
+- [Standards](./docs/technical/standards.md) - Coding standards and UI system guide
+- [API Reference](./docs/technical/api-reference.md) - Complete API documentation
 
-### Deployment & Operations
-- [Deployment Guide](./docs/deployment/deployment-guide.md) - Multi-platform deployment
-- [Database Migrations](./docs/deployment/database-migrations.md) - Schema management
-- [CI Testing Guide](./docs/deployment/ci-testing-reference.md) - Testing and quality gates
+**User Guides:**
+- [Workflows](./docs/guides/workflows.md) - Work order workflows and image upload processes
+- [Permissions](./docs/guides/permissions.md) - Roles and permissions system
 
-### Maintenance & Operations
-- [Performance Optimization](./docs/maintenance/performance-optimization.md) - Performance tuning and monitoring
-- [Security Fixes](./docs/maintenance/security-fixes.md) - Security vulnerability tracking
+**Operations:**
+- [Deployment](./docs/ops/deployment.md) - Complete deployment guide
+- [Migrations](./docs/ops/migrations.md) - ⚠️ **CRITICAL** Database migration guide
+- [Migration Rules Quick Reference](./docs/ops/migration-rules-quick-reference.md) - Quick reference
 
 ### Development Workflow
 - [Agents Guide](./.cursor/agents.md) - Multi-agent development workflow
