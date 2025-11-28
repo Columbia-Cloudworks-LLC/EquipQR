@@ -1,4 +1,5 @@
 -- Migration: fix_pm_select_policy
+-- Originally created consolidated SELECT policy for preventative_maintenance table to fix 406 errors
 -- This migration was already applied to production
 -- This is a placeholder file to sync local migrations with remote database
 -- DO NOT modify this file - it exists only to match production state
