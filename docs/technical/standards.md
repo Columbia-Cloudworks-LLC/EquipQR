@@ -1,10 +1,106 @@
-# UI System Guide
+# Coding Standards and UI System Guide
+
+This guide documents the comprehensive coding standards and UI system for EquipQR, providing consistent design tokens, components, patterns, and development practices.
+
+## Coding Standards
+
+### TypeScript
+
+From `tsconfig.json` – baseUrl `@/*`, allowJs true, but prefer explicit types. Avoid `any` (warn via ESLint); use interfaces for props/data (e.g., `interface Equipment { id: string; ... }`). Define types in `src/types/` (e.g., `equipment.ts`).
+
+#### TypeScript Usage
+```typescript
+// ✅ Good: Proper typing
+interface EquipmentProps {
+  equipment: Equipment;
+  onEdit: (id: string) => void;
+}
+
+const EquipmentCard: React.FC<EquipmentProps> = ({ equipment, onEdit }) => {
+  // Implementation
+};
+
+// ❌ Bad: Using any
+const EquipmentCard = ({ equipment }: any) => {
+  // Implementation
+};
+```
+
+### ESLint
+
+Follow `eslint.config.js` – no unused vars/explicit any (warn), React hooks rules. Run `npm run lint` before commits. Use `typescript-eslint` for TS-specific rules.
+
+### Naming Conventions
+
+- **Variables/Functions**: camelCase (e.g., `fetchEquipment`)
+- **Components/Types**: PascalCase (e.g., `EquipmentCard`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `DEFAULT_STALE_TIME`)
+- **Queries**: Descriptive TanStack keys (e.g., `['work-orders', orgId, status]`)
+
+### Error Handling
+
+Use try/catch in services; propagate via TanStack Query errors. Components: Show user-friendly messages (e.g., via `useAppToast`). Log with context (user/org ID).
+
+```typescript
+// ✅ Good: Proper error handling
+const useEquipment = (orgId: string) => {
+  return useQuery({
+    queryKey: ['equipment', orgId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('equipment')
+        .select('*')
+        .eq('organization_id', orgId);
+      
+      if (error) {
+        console.error('Failed to fetch equipment:', error);
+        throw new Error(`Failed to load equipment: ${error.message}`);
+      }
+      
+      return data;
+    },
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
+  });
+};
+```
+
+### Performance
+
+Memoize with `useMemo`/`useCallback`. Lazy-load routes/components. Limit re-renders with `React.memo`. In Supabase queries, use `select()` for specific fields to reduce payload.
+
+```typescript
+// Expensive calculations
+const expensiveValue = useMemo(() => 
+  calculateComplexMetrics(equipment), 
+  [equipment]
+);
+
+// Stable callback references
+const handleEquipmentUpdate = useCallback((id: string, data: EquipmentData) => {
+  updateEquipment.mutate({ id, data });
+}, [updateEquipment]);
+
+// Lazy load heavy components
+const FleetMap = lazy(() => import('./pages/FleetMap'));
+
+// Wrap in Suspense
+<Suspense fallback={<LoadingSpinner />}>
+  <FleetMap />
+</Suspense>
+```
+
+### Comments
+
+JSDoc for hooks/components. Reference docs for complex logic (e.g., "// See database-schema.md for RLS details").
+
+## UI System Guide
 
 This guide documents the comprehensive UI system implemented for EquipQR, providing consistent design tokens, components, and patterns.
 
-## Design Tokens
+### Design Tokens
 
-### Colors
+#### Colors
 All colors are defined as CSS variables in `src/index.css` and exposed through Tailwind utilities:
 
 ```css
@@ -25,7 +121,7 @@ All colors are defined as CSS variables in `src/index.css` and exposed through T
 }
 ```
 
-### Spacing
+#### Spacing
 Consistent spacing tokens for content padding:
 
 ```css
@@ -37,7 +133,7 @@ Consistent spacing tokens for content padding:
 }
 ```
 
-### Typography
+#### Typography
 Standardized font sizes and line heights:
 
 ```css
@@ -52,7 +148,7 @@ Standardized font sizes and line heights:
 }
 ```
 
-### Shadows
+#### Shadows
 Consistent shadow system:
 
 ```css
@@ -65,7 +161,7 @@ Consistent shadow system:
 }
 ```
 
-### Z-Index Scale
+#### Z-Index Scale
 Organized z-index system:
 
 ```css
@@ -323,6 +419,10 @@ All design tokens support dark mode with appropriate color adjustments. Dark mod
 - ✅ Use EmptyState for empty list states
 - ✅ Use Skeleton for loading states
 - ✅ Use useAppToast for notifications
+- ✅ Use proper TypeScript types
+- ✅ Follow naming conventions
+- ✅ Handle errors gracefully
+- ✅ Memoize expensive operations
 
 ### Don'ts
 - ❌ Don't use hard-coded hex colors
@@ -330,6 +430,9 @@ All design tokens support dark mode with appropriate color adjustments. Dark mod
 - ❌ Don't create custom form fields without using the base components
 - ❌ Don't use raw text-gray-* classes (use design tokens)
 - ❌ Don't create custom loading states (use Skeleton)
+- ❌ Don't use `any` type
+- ❌ Don't skip error handling
+- ❌ Don't forget to memoize callbacks
 
 ## Migration Guide
 
@@ -368,4 +471,5 @@ All design tokens support dark mode with appropriate color adjustments. Dark mod
 />
 ```
 
-This UI system ensures consistency, accessibility, and maintainability across the entire application.
+This UI system and coding standards ensure consistency, accessibility, and maintainability across the entire application.
+

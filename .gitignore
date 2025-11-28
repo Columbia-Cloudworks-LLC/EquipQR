@@ -36,3 +36,6 @@ coverage/*
 
 # Repomix Files
 repomix*.xml
+
+# Github Rulesets (for debugging)
+github.ruleset*.json
