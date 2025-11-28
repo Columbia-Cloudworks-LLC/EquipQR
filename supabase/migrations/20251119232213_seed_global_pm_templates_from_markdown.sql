@@ -1,12 +1,8 @@
--- Seed global PM templates from markdown
--- This migration was applied directly to production
--- Idempotent: Safe to run multiple times
+-- Migration: seed_global_pm_templates_from_markdown
+-- This migration was already applied to production
+-- This is a placeholder file to sync local migrations with remote database
+-- DO NOT modify this file - it exists only to match production state
 
 BEGIN;
-
--- This migration likely seeded templates from markdown files
--- Since we don't have the exact markdown content, we'll use a minimal idempotent version
--- The actual seeding was done via direct SQL in production
-
+-- Migration already applied - no-op
 COMMIT;
-

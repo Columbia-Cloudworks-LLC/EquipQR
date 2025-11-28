@@ -1,17 +1,8 @@
--- Fix compressor template description
--- This migration was applied directly to production
--- Idempotent: Safe to run multiple times
+-- Migration: fix_compressor_template_description
+-- This migration was already applied to production
+-- This is a placeholder file to sync local migrations with remote database
+-- DO NOT modify this file - it exists only to match production state
 
 BEGIN;
-
--- Update compressor template description if it exists
-UPDATE "public"."pm_checklist_templates"
-SET 
-  "description" = COALESCE("description", 'Preventative maintenance checklist for compressors'),
-  "updated_at" = now()
-WHERE "organization_id" IS NULL 
-  AND "name" = 'Compressor'
-  AND ("description" IS NULL OR trim("description") = '');
-
+-- Migration already applied - no-op
 COMMIT;
-

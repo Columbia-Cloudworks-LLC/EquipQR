@@ -1,8 +1,9 @@
--- Force RLS disable
--- This migration was applied directly to production
--- Idempotent: Safe to run multiple times
+-- Migration: force_rls_disable
+-- This migration was already applied to production
+-- This is a placeholder file to sync local migrations with remote database
+-- DO NOT modify this file - it exists only to match production state
 
--- Note: This was likely a temporary debugging migration
--- RLS should remain enabled in production
--- No-op: We don't want to disable RLS in migrations
+BEGIN;
+-- Migration already applied - no-op
+COMMIT;
 

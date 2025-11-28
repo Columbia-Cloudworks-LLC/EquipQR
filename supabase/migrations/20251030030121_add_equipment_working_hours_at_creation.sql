@@ -1,15 +1,8 @@
--- Add equipment working hours at creation
--- This migration was applied directly to production
--- Idempotent: Safe to run multiple times
+-- Migration: add_equipment_working_hours_at_creation
+-- This migration was already applied to production
+-- This is a placeholder file to sync local migrations with remote database
+-- DO NOT modify this file - it exists only to match production state
 
 BEGIN;
-
--- Add working_hours column if it doesn't exist
-ALTER TABLE "public"."equipment" 
-ADD COLUMN IF NOT EXISTS "working_hours" numeric DEFAULT 0;
-
--- Add comment
-COMMENT ON COLUMN "public"."equipment"."working_hours" IS 'Total working hours for the equipment, set at creation and updated during maintenance';
-
+-- Migration already applied - no-op
 COMMIT;
-

@@ -1,34 +1,8 @@
--- Seed global PM templates
--- This migration was applied directly to production
--- Idempotent: Safe to run multiple times
+-- Migration: seed_global_pm_templates
+-- This migration was already applied to production
+-- This is a placeholder file to sync local migrations with remote database
+-- DO NOT modify this file - it exists only to match production state
 
 BEGIN;
-
--- Insert global PM templates if they don't exist
--- Using INSERT ... ON CONFLICT to make it idempotent
-INSERT INTO "public"."pm_checklist_templates" (
-  "id",
-  "organization_id",
-  "name",
-  "description",
-  "template_data",
-  "is_protected",
-  "created_at",
-  "updated_at"
-)
-SELECT 
-  gen_random_uuid(),
-  NULL, -- Global template
-  'Default PM Template',
-  'Default preventative maintenance template',
-  '[]'::jsonb,
-  true,
-  now(),
-  now()
-WHERE NOT EXISTS (
-  SELECT 1 FROM "public"."pm_checklist_templates" 
-  WHERE "organization_id" IS NULL AND "name" = 'Default PM Template'
-);
-
+-- Migration already applied - no-op
 COMMIT;
-

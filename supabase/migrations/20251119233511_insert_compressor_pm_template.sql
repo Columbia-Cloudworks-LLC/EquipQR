@@ -1,7 +1,8 @@
--- NO-OP: This migration is superseded by 20251119233215_test_insert_compressor_template.sql
--- The Compressor PM template is already inserted by the earlier migration.
--- This file is kept for migration history consistency (already applied to production).
+-- Migration: insert_compressor_pm_template
+-- This migration was already applied to production
+-- This is a placeholder file to sync local migrations with remote database
+-- DO NOT modify this file - it exists only to match production state
 
--- Original purpose: Insert compressor PM template
--- Reason for no-op: Duplicate of 20251119233215_test_insert_compressor_template.sql
-
+BEGIN;
+-- Migration already applied - no-op
+COMMIT;

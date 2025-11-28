@@ -1,33 +1,8 @@
--- Insert scissor lift PM template (fixed)
--- This migration was applied directly to production
--- Idempotent: Safe to run multiple times
+-- Migration: insert_scissor_lift_pm_template_fixed
+-- This migration was already applied to production
+-- This is a placeholder file to sync local migrations with remote database
+-- DO NOT modify this file - it exists only to match production state
 
 BEGIN;
-
--- Insert scissor lift PM template if it doesn't exist
-INSERT INTO "public"."pm_checklist_templates" (
-  "id",
-  "organization_id",
-  "name",
-  "description",
-  "template_data",
-  "is_protected",
-  "created_at",
-  "updated_at"
-)
-SELECT 
-  gen_random_uuid(),
-  NULL, -- Global template
-  'Scissor Lift',
-  'Preventative maintenance checklist for scissor lifts',
-  '[]'::jsonb,
-  true,
-  now(),
-  now()
-WHERE NOT EXISTS (
-  SELECT 1 FROM "public"."pm_checklist_templates" 
-  WHERE "organization_id" IS NULL AND "name" = 'Scissor Lift'
-);
-
+-- Migration already applied - no-op
 COMMIT;
-

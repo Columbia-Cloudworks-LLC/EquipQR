@@ -1,33 +1,8 @@
--- Insert skid steer PM template
--- This migration was applied directly to production
--- Idempotent: Safe to run multiple times
+-- Migration: insert_skid_steer_pm_template
+-- This migration was already applied to production
+-- This is a placeholder file to sync local migrations with remote database
+-- DO NOT modify this file - it exists only to match production state
 
 BEGIN;
-
--- Insert skid steer PM template if it doesn't exist
-INSERT INTO "public"."pm_checklist_templates" (
-  "id",
-  "organization_id",
-  "name",
-  "description",
-  "template_data",
-  "is_protected",
-  "created_at",
-  "updated_at"
-)
-SELECT 
-  gen_random_uuid(),
-  NULL, -- Global template
-  'Skid Steer',
-  'Preventative maintenance checklist for skid steers',
-  '[]'::jsonb,
-  true,
-  now(),
-  now()
-WHERE NOT EXISTS (
-  SELECT 1 FROM "public"."pm_checklist_templates" 
-  WHERE "organization_id" IS NULL AND "name" = 'Skid Steer'
-);
-
+-- Migration already applied - no-op
 COMMIT;
-

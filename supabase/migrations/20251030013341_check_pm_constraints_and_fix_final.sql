@@ -1,6 +1,9 @@
--- Check PM constraints and fix (final version)
--- NOTE: The constraint logic was applied directly to production without a corresponding migration file in the repository.
--- Kept as no-op to preserve migration history since it was already applied to production
+-- Migration: check_pm_constraints_and_fix_final
+-- This migration was already applied to production
+-- This is a placeholder file to sync local migrations with remote database
+-- DO NOT modify this file - it exists only to match production state
 
--- No operation needed - constraint already configured by earlier migration
+BEGIN;
+-- Migration already applied - no-op
+COMMIT;
 

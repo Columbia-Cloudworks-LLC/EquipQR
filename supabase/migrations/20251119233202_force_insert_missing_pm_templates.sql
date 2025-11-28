@@ -1,6 +1,8 @@
--- NO-OP: This migration has been superseded
--- The 'Default PM Template' insert is now handled by 20251119232102_seed_global_pm_templates.sql
--- This file is kept for migration history compatibility
+-- Migration: force_insert_missing_pm_templates
+-- This migration was already applied to production
+-- This is a placeholder file to sync local migrations with remote database
+-- DO NOT modify this file - it exists only to match production state
 
-SELECT 1;
-
+BEGIN;
+-- Migration already applied - no-op
+COMMIT;
