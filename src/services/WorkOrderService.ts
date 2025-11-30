@@ -124,11 +124,16 @@ export class WorkOrderService extends BaseService {
       if (filters.userTeamIds !== undefined && !filters.isOrgAdmin) {
         if (filters.userTeamIds.length > 0) {
           // Get equipment IDs for user's teams
-          const { data: equipmentIds } = await supabase
+          const { data: equipmentIds, error: equipmentError } = await supabase
             .from('equipment')
             .select('id')
             .eq('organization_id', this.organizationId)
             .in('team_id', filters.userTeamIds);
+
+          if (equipmentError) {
+            logger.error('Error fetching equipment for team access control:', equipmentError);
+            return this.handleError(equipmentError);
+          }
 
           const ids = equipmentIds?.map(e => e.id) || [];
           if (ids.length > 0) {
@@ -164,11 +169,16 @@ export class WorkOrderService extends BaseService {
 
       // Apply team filter - requires getting equipment IDs first
       if (filters.teamId && filters.teamId !== 'all') {
-        const { data: equipmentIds } = await supabase
+        const { data: equipmentIds, error: teamEquipmentError } = await supabase
           .from('equipment')
           .select('id')
           .eq('organization_id', this.organizationId)
           .eq('team_id', filters.teamId);
+
+        if (teamEquipmentError) {
+          logger.error('Error fetching equipment for team filter:', teamEquipmentError);
+          return this.handleError(teamEquipmentError);
+        }
 
         const ids = equipmentIds?.map(e => e.id) || [];
         if (ids.length > 0) {
