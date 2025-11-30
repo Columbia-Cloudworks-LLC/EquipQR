@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Link } from 'react-router-dom';
 import { Wrench, FileText, ChevronDown, Clock } from 'lucide-react';
 import { Equipment } from '@/services/supabaseDataService';
-import { EnhancedWorkOrder } from '@/services/workOrderDataService';
+import type { WorkOrder as EnhancedWorkOrder } from '@/types/workOrder';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useEquipmentCurrentWorkingHours } from '@/components/equipment/hooks/useEquipmentWorkingHours';
 

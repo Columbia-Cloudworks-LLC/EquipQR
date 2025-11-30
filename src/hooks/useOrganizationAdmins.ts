@@ -1,19 +1,22 @@
+/**
+ * Organization Admins Hook
+ * 
+ * This hook fetches organization admins (owners and admins).
+ */
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
+import type { OrganizationAdmin } from '@/types/organization';
 
-export interface OrganizationAdmin {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
+// Re-export the type for backward compatibility
+export type { OrganizationAdmin };
 
+/**
+ * Hook for fetching organization admins (owners and admins)
+ */
 export const useOrganizationAdmins = (organizationId: string) => {
-  // Note: For real-time updates, use useEnhancedOrganizationAdmins instead
-  
   return useQuery({
     queryKey: ['organization-admins', organizationId],
     queryFn: async (): Promise<OrganizationAdmin[]> => {

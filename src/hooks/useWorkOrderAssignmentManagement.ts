@@ -1,9 +1,14 @@
+/**
+ * Work Order Assignment Management Hook
+ * 
+ * This hook provides mutation capabilities for work order assignments.
+ */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
-import { useOptimizedWorkOrderAssignment } from './useOptimizedWorkOrderAssignment';
+import { useWorkOrderAssignmentOptions } from './useWorkOrderAssignment';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 
 export interface AssignmentUpdateData {
@@ -14,7 +19,7 @@ export interface AssignmentUpdateData {
 export const useWorkOrderAssignmentManagement = (organizationId: string, workOrderId: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { assignmentOptions, isLoading: optionsLoading } = useOptimizedWorkOrderAssignment(organizationId);
+  const { assignmentOptions, isLoading: optionsLoading } = useWorkOrderAssignmentOptions(organizationId);
 
   const updateAssignmentMutation = useMutation({
     mutationFn: async (data: AssignmentUpdateData) => {

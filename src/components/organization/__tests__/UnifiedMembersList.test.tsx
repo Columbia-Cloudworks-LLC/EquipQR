@@ -1,7 +1,10 @@
 import React from 'react';
 import { screen, fireEvent } from '@testing-library/react';
 import { customRender } from '@/test/utils/renderUtils';
-import type { RealOrganizationMember } from '@/hooks/useOptimizedOrganizationMembers';
+import type { OrganizationMember } from '@/types/organization';
+
+// Re-export type for backward compatibility in tests
+type RealOrganizationMember = OrganizationMember;
 
 // Mock Supabase client directly in factory to avoid import hoisting issues
 vi.mock('@/integrations/supabase/client', () => {

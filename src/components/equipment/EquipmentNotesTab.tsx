@@ -19,11 +19,11 @@ import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import ImageGallery from '@/components/common/ImageGallery';
 import { logger } from '@/utils/logger';
 
-interface EnhancedEquipmentNotesTabProps {
+interface EquipmentNotesTabProps {
   equipmentId: string;
 }
 
-const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
+const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   equipmentId
 }) => {
   const { user } = useAuth();
@@ -318,4 +318,5 @@ const EnhancedEquipmentNotesTab: React.FC<EnhancedEquipmentNotesTabProps> = ({
   );
 };
 
-export default EnhancedEquipmentNotesTab;
+export default EquipmentNotesTab;
+

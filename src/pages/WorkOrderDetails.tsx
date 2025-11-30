@@ -11,7 +11,7 @@ import WorkOrderDetailsInfo from '@/components/work-orders/WorkOrderDetailsInfo'
 import WorkOrderTimeline from '@/components/work-orders/WorkOrderTimeline';
 import WorkOrderNotesSection from '@/components/work-orders/WorkOrderNotesSection';
 import WorkOrderImagesSection from '@/components/work-orders/WorkOrderImagesSection';
-import WorkOrderFormEnhanced from '@/components/work-orders/WorkOrderFormEnhanced';
+import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import PMChecklistComponent from '@/components/work-orders/PMChecklistComponent';
 import WorkOrderCostsSection from '@/components/work-orders/WorkOrderCostsSection';
 import { WorkOrderEquipmentSelector } from '@/components/work-orders/WorkOrderEquipmentSelector';
@@ -466,7 +466,7 @@ const WorkOrderDetails = () => {
       </div>
 
       {/* Edit Work Order Form - Pass workOrder for edit mode */}
-      <WorkOrderFormEnhanced
+      <WorkOrderForm
         open={isEditFormOpen}
         onClose={handleCloseEditForm}
         workOrder={workOrder}

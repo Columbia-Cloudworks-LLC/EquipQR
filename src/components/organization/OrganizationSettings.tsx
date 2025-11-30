@@ -11,7 +11,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Save, Settings, Palette } from 'lucide-react';
 import { SessionOrganization } from '@/contexts/SessionContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { updateOrganization, OrganizationUpdatePayload } from '@/services/optimizedOrganizationService';
+import { updateOrganization } from '@/services/organizationService';
+import type { OrganizationUpdatePayload } from '@/types/organization';
 import { organizationFormSchema, OrganizationFormData } from './organizationSettingsSchema';
 
 interface OrganizationSettingsProps {

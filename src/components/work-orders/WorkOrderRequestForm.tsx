@@ -21,7 +21,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useEquipment, useEquipmentById } from '@/components/equipment/hooks/useEquipment';
-import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/components/work-orders/hooks/useWorkOrderCreationEnhanced';
+import { useCreateWorkOrder, CreateWorkOrderData } from '@/components/work-orders/hooks/useWorkOrderCreation';
 import { useWorkOrderAssignment } from '@/hooks/useWorkOrderAssignment';
 
 const requestFormSchema = z.object({
@@ -47,7 +47,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
   onSubmit 
 }) => {
   const { currentOrganization } = useOrganization();
-  const createWorkOrderMutation = useCreateWorkOrderEnhanced();
+  const createWorkOrderMutation = useCreateWorkOrder();
   
   const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
   const { data: preSelectedEquipment } = useEquipmentById(
@@ -75,8 +75,8 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
       if (onSubmit) {
         await onSubmit(data);
       } else {
-        // Use the enhanced createWorkOrder hook with automatic team assignment
-        const workOrderData: EnhancedCreateWorkOrderData = {
+        // Use the createWorkOrder hook with automatic team assignment
+        const workOrderData: CreateWorkOrderData = {
           title: data.title,
           description: data.description,
           equipmentId: data.equipmentId,

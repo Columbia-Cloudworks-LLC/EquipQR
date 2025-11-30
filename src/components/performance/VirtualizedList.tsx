@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { FixedSizeList as List } from 'react-window';
 
-interface OptimizedVirtualizedListProps<T> {
+interface VirtualizedListProps<T> {
   items: T[];
   itemHeight: number;
   height: number;
@@ -10,15 +10,15 @@ interface OptimizedVirtualizedListProps<T> {
   className?: string;
 }
 
-// PHASE 2: Virtualized list for large datasets
-function OptimizedVirtualizedList<T>({
+// Virtualized list for large datasets
+function VirtualizedList<T>({
   items,
   itemHeight,
   height,
   width = 800,
   renderItem,
   className = ''
-}: OptimizedVirtualizedListProps<T>) {
+}: VirtualizedListProps<T>) {
   
   const ItemRenderer = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => (
     <div style={style}>
@@ -42,4 +42,5 @@ function OptimizedVirtualizedList<T>({
   return virtualizedList;
 }
 
-export default React.memo(OptimizedVirtualizedList);
+export default React.memo(VirtualizedList);
+

@@ -1,10 +1,15 @@
+/**
+ * Member Management Component
+ * 
+ * This component provides member management functionality for organizations.
+ */
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RealOrganizationMember } from '@/hooks/useOptimizedOrganizationMembers';
+import type { OrganizationMember } from '@/types/organization';
 
 interface MemberManagementProps {
-  members: RealOrganizationMember[];
+  members: OrganizationMember[];
   organizationId: string;
   currentUserRole: 'owner' | 'admin' | 'member';
   isLoading?: boolean;

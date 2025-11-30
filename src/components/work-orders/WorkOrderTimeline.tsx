@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, Play, Pause, XCircle, FileText, User } from 'lucide-react';
-import { EnhancedWorkOrder } from '@/services/workOrderDataService';
+import type { WorkOrder as EnhancedWorkOrder } from '@/types/workOrder';
 import { workOrderRevertService } from '@/services/workOrderRevertService';
 
 interface WorkOrderTimelineProps {

@@ -52,6 +52,7 @@ export const useDashboardStats = (organizationId?: string) => {
 };
 
 // Work orders hooks
+// @deprecated Use WorkOrderService.getEquipmentWorkOrders() instead. Will be removed in Phase 2.
 export const useWorkOrdersByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
     queryKey: ['work-orders', 'equipment', organizationId, equipmentId],
@@ -63,6 +64,7 @@ export const useWorkOrdersByEquipment = (organizationId: string, equipmentId?: s
   });
 };
 
+// @deprecated Use WorkOrderService.getAll() instead. Will be removed in Phase 2.
 export const useAllWorkOrders = (organizationId?: string) => {
   return useQuery({
     queryKey: ['work-orders', organizationId],
@@ -72,6 +74,7 @@ export const useAllWorkOrders = (organizationId?: string) => {
   });
 };
 
+// @deprecated Use WorkOrderService.getById() instead. Will be removed in Phase 2.
 export const useWorkOrderById = (organizationId: string, workOrderId?: string) => {
   return useQuery({
     queryKey: ['work-orders', organizationId, workOrderId],
@@ -139,6 +142,7 @@ export const useCreateScan = (organizationId: string) => {
 };
 
 // Mutation hooks
+// @deprecated Use useUpdateWorkOrderStatus from '@/hooks/useWorkOrderData' instead. Will be removed in Phase 2.
 export const useUpdateWorkOrderStatus = (organizationId: string) => {
   const queryClient = useQueryClient();
 
@@ -217,6 +221,7 @@ export const useCreateEquipment = (organizationId: string) => {
   });
 };
 
+// @deprecated Use useCreateWorkOrder from '@/hooks/useWorkOrderCreation' instead. Will be removed in Phase 2.
 export const useCreateWorkOrder = (organizationId: string) => {
   const queryClient = useQueryClient();
 

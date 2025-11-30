@@ -1,28 +1,23 @@
+/**
+ * Organization Storage Service - Canonical service for storage operations
+ * 
+ * This file consolidates storage-related operations from optimizedOrganizationStorageService.
+ * Import from here instead of using optimizedOrganizationStorageService.
+ */
+
 import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { monitorQuery } from '@/utils/queryMonitoring';
+import type { StorageUsage, StorageUsageData } from '@/types/organization';
 
-export interface StorageUsageData {
-  totalSizeBytes: number;
-  totalSizeMB: number;
-  totalSizeGB: number;
-  itemCount: number;
-  equipmentImageCount: number;
-  workOrderImageCount: number;
-  equipmentImageSizeBytes: number;
-  workOrderImageSizeBytes: number;
-}
+// Re-export types for backward compatibility
+export type { StorageUsage, StorageUsageData };
 
-export interface StorageUsage extends StorageUsageData {
-  freeQuotaMB: number;
-  freeQuotaGB: number;
-  overageMB: number;
-  overageGB: number;
-  costPerGB: number;
-  overageCost: number;
-}
-
-export class OptimizedOrganizationStorageService {
+/**
+ * Organization Storage Service class
+ * Provides methods for calculating and managing organization storage usage
+ */
+export class OrganizationStorageService {
   /**
    * Fetches storage usage for an organization using optimized JOIN queries
    */
@@ -181,3 +176,9 @@ export class OptimizedOrganizationStorageService {
     };
   }
 }
+
+/**
+ * @deprecated Use OrganizationStorageService instead
+ */
+export const OptimizedOrganizationStorageService = OrganizationStorageService;
+
