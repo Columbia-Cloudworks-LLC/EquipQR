@@ -1,8 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
-import MobileWorkOrderCard from '@/components/work-orders/MobileWorkOrderCard';
-import DesktopWorkOrderCard from '@/components/work-orders/DesktopWorkOrderCard';
+import WorkOrderCard from './WorkOrderCard';
 import { WorkOrdersEmptyState } from './WorkOrdersEmptyState';
 import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
 
@@ -44,26 +43,18 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
   return (
     <div className="space-y-4">
       {workOrders.map((order) => (
-        isMobile ? (
-          <MobileWorkOrderCard
-            key={order.id}
-            order={order}
-            onAcceptClick={onAcceptClick}
-            onStatusUpdate={onStatusUpdate}
-            isUpdating={isUpdating}
-            isAccepting={isAccepting}
-            onAssignClick={onAssignClick}
-            onReopenClick={onReopenClick}
-          />
-        ) : (
-          <DesktopWorkOrderCard
-            key={order.id}
-            workOrder={order}
-            onNavigate={(id) => navigate(`/dashboard/work-orders/${id}`)}
-            onAssignClick={onAssignClick}
-            onReopenClick={onReopenClick}
-          />
-        )
+        <WorkOrderCard
+          key={order.id}
+          workOrder={order}
+          variant={isMobile ? 'mobile' : 'desktop'}
+          onNavigate={(id) => navigate(`/dashboard/work-orders/${id}`)}
+          onAcceptClick={onAcceptClick}
+          onStatusUpdate={onStatusUpdate}
+          isUpdating={isUpdating}
+          isAccepting={isAccepting}
+          onAssignClick={onAssignClick}
+          onReopenClick={onReopenClick}
+        />
       ))}
     </div>
   );

@@ -1,41 +1,15 @@
 
 import { useEffect, useRef, useMemo } from 'react';
-import { z } from 'zod';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { EnhancedWorkOrder } from '@/services/workOrderDataService';
+import { 
+  workOrderFormSchema, 
+  getDefaultWorkOrderFormValues,
+  type WorkOrderFormData 
+} from '@/schemas/workOrderSchema';
 
-const workOrderFormSchema = z.object({
-  title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
-  description: z.string().min(1, "Description is required").max(1000, "Description must be less than 1000 characters"),
-  equipmentId: z.string().min(1, "Equipment is required"),
-  priority: z.enum(['low', 'medium', 'high']),
-  dueDate: z.string().optional().nullable(),
-  equipmentWorkingHours: z.number().optional().nullable(),
-  hasPM: z.boolean().default(false),
-  pmTemplateId: z.string().optional().nullable(),
-  assignmentType: z.enum(['unassigned', 'user', 'team']).optional(),
-  assignmentId: z.string().optional().nullable().transform(val => val === '' ? null : val),
-  isHistorical: z.boolean().default(false),
-  // Historical fields - conditionally required based on isHistorical
-  status: z.enum(['submitted', 'accepted', 'assigned', 'in_progress', 'on_hold', 'completed', 'cancelled']).optional(),
-  historicalStartDate: z.date().optional(),
-  historicalNotes: z.string().optional(),
-  completedDate: z.date().optional().nullable(),
-}).refine(
-  (data) => {
-    // If it's historical, require status field
-    if (data.isHistorical) {
-      return data.status !== undefined;
-    }
-    return true;
-  },
-  {
-    message: "Status is required for historical work orders",
-    path: ["status"]
-  }
-);
-
-export type WorkOrderFormData = z.infer<typeof workOrderFormSchema>;
+// Re-export for backward compatibility
+export type { WorkOrderFormData };
 
 interface UseWorkOrderFormProps {
   workOrder?: EnhancedWorkOrder;
@@ -52,23 +26,24 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     hasInitialized: boolean;
   }>({ hasInitialized: false });
 
-  const initialValues: Partial<WorkOrderFormData> = useMemo(() => ({
-    title: workOrder?.title || '',
-    description: workOrder?.description || '',
-    equipmentId: workOrder?.equipment_id || equipmentId || '',
-    priority: workOrder?.priority || 'medium',
-    dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : undefined,
-    hasPM: workOrder?.has_pm || false,
-    pmTemplateId: null,
-    assignmentType: 'unassigned',
-    assignmentId: null,
-    isHistorical: initialIsHistorical,
-    // Historical fields (only relevant when isHistorical is true)
-    status: 'accepted',
-    historicalStartDate: undefined,
-    historicalNotes: '',
-    completedDate: undefined,
-  }), [workOrder, equipmentId, initialIsHistorical]);
+  const initialValues: Partial<WorkOrderFormData> = useMemo(() => {
+    // Get defaults from schema helper
+    const defaults = getDefaultWorkOrderFormValues({ 
+      equipmentId, 
+      isHistorical: initialIsHistorical 
+    });
+    
+    // Override with work order values if editing
+    return {
+      ...defaults,
+      title: workOrder?.title || defaults.title,
+      description: workOrder?.description || defaults.description,
+      equipmentId: workOrder?.equipment_id || equipmentId || defaults.equipmentId,
+      priority: workOrder?.priority || defaults.priority,
+      dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : defaults.dueDate,
+      hasPM: workOrder?.has_pm ?? defaults.hasPM,
+    };
+  }, [workOrder, equipmentId, initialIsHistorical]);
 
   const form = useFormValidation(workOrderFormSchema, initialValues);
 
