@@ -95,7 +95,7 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
           throw teamError;
         }
 
-        let options = teamMembers.map(member => ({
+        const options = teamMembers.map(member => ({
           id: member.user_id,
           name: member.profiles.name,
           email: member.profiles.email,
@@ -138,7 +138,7 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
             throw teamError;
           }
 
-          let options = teamMembers.map(member => ({
+          const options = teamMembers.map(member => ({
             id: member.user_id,
             name: member.profiles.name,
             email: member.profiles.email,

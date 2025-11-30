@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { useTheme } from 'next-themes';
 
 interface LogoProps {
   variant?: 'default' | 'white' | 'black' | 'grayscale' | 'purple';
@@ -13,11 +12,6 @@ const Logo: React.FC<LogoProps> = ({
   size = 'md', 
   className = '' 
 }) => {
-  const { theme, systemTheme } = useTheme();
-  
-  // Determine the current theme
-  const currentTheme = theme === 'system' ? systemTheme : theme;
-  
   // Select logo variant based on theme if variant is 'default'
   // Default uses purple (preferred branding that works on any background)
   const getLogoVariant = () => {
