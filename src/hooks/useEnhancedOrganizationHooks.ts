@@ -1,21 +1,35 @@
-// Central export for all enhanced organization hooks with real-time subscriptions
+/**
+ * Organization Hooks - Central export for organization-related hooks
+ * 
+ * This file re-exports organization hooks for convenience.
+ * The "Enhanced" naming is kept for backward compatibility but
+ * these hooks are now wrappers around the canonical implementations.
+ */
 
-// Enhanced organization member hooks
+// Organization member hooks (canonical and enhanced)
+export {
+  useOrganizationMembersQuery,
+  useOrganizationMemberStats,
+  useUpdateMemberRole,
+  useRemoveMember,
+  type RealOrganizationMember
+} from './useOptimizedOrganizationMembers';
+
+// Enhanced variants with background sync
 export {
   useEnhancedOrganizationMembers,
   useEnhancedOrganizationMemberStats,
   useEnhancedUpdateMemberRole,
-  useEnhancedRemoveMember,
-  type RealOrganizationMember
+  useEnhancedRemoveMember
 } from './useEnhancedOrganizationMembers';
 
-// Enhanced organization admin hooks
+// Organization admin hooks
 export {
   useEnhancedOrganizationAdmins,
   type OrganizationAdmin
 } from './useEnhancedOrganizationAdmins';
 
-// Enhanced organization slot hooks
+// Organization slot hooks
 export {
   useEnhancedOrganizationSlots,
   useEnhancedSlotAvailability,
@@ -27,7 +41,7 @@ export {
   type SlotPurchase
 } from './useEnhancedOrganizationSlots';
 
-// Enhanced organization invitation hooks
+// Organization invitation hooks
 export {
   useEnhancedOrganizationInvitations
 } from './useEnhancedOrganizationInvitations';
@@ -36,3 +50,6 @@ export {
 export {
   useEnhancedOrganizationData
 } from './useEnhancedOptimizedQueries';
+
+// Re-export types from canonical locations
+export type { OrganizationMember } from '@/types/organization';

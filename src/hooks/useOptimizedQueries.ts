@@ -1,10 +1,16 @@
+/**
+ * Optimized Query Hooks - Canonical hooks for data fetching
+ * 
+ * These hooks use consolidated services with optimized caching strategies.
+ */
+
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { 
   getOptimizedTeamsByOrganization,
   getOptimizedDashboardStats,
   type Team,
   type DashboardStats
-} from '@/services/optimizedSupabaseDataService';
+} from '@/services/supabaseDataService';
 import { WorkOrderService } from '@/services/WorkOrderService';
 import { EquipmentService, Equipment } from '@/services/EquipmentService';
 import { useMemo } from 'react';
@@ -175,4 +181,4 @@ export const useWorkOrderStats = (organizationId?: string) => {
 // Re-export types for convenience
 export type { WorkOrder } from '@/types/workOrder';
 export type { Equipment } from '@/services/EquipmentService';
-export type { Team, DashboardStats } from '@/services/optimizedSupabaseDataService';
+export type { Team, DashboardStats } from '@/services/supabaseDataService';

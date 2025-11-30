@@ -1,11 +1,25 @@
+/**
+ * Enhanced Organization Members Hooks
+ * 
+ * These hooks wrap the canonical organization members hooks with background sync.
+ * They are provided for backward compatibility - prefer using the canonical hooks directly.
+ */
+
 import { useEffect } from 'react';
-import { useOptimizedOrganizationMembers, useOrganizationMemberStats, useUpdateMemberRole, useRemoveMember } from './useOptimizedOrganizationMembers';
+import { 
+  useOrganizationMembersQuery, 
+  useOrganizationMemberStats, 
+  useUpdateMemberRole, 
+  useRemoveMember 
+} from './useOptimizedOrganizationMembers';
 import { useBackgroundSync } from './useCacheInvalidation';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
 
-// Enhanced hook with background sync for organization members
+/**
+ * Hook for fetching organization members with background sync
+ */
 export const useEnhancedOrganizationMembers = (organizationId?: string) => {
-  const query = useOptimizedOrganizationMembers(organizationId || '');
+  const query = useOrganizationMembersQuery(organizationId || '');
   const { subscribeToOrganization } = useBackgroundSync();
   
   useEffect(() => {
@@ -18,7 +32,9 @@ export const useEnhancedOrganizationMembers = (organizationId?: string) => {
   return query;
 };
 
-// Enhanced hook with background sync for organization member stats
+/**
+ * Hook for organization member stats with background sync
+ */
 export const useEnhancedOrganizationMemberStats = (organizationId?: string) => {
   const query = useOrganizationMemberStats(organizationId || '');
   const { subscribeToOrganization } = useBackgroundSync();
@@ -33,11 +49,16 @@ export const useEnhancedOrganizationMemberStats = (organizationId?: string) => {
   return query;
 };
 
-// Re-export enhanced mutations
+/**
+ * @deprecated Use useUpdateMemberRole from useOptimizedOrganizationMembers instead
+ */
 export const useEnhancedUpdateMemberRole = (organizationId: string) => {
   return useUpdateMemberRole(organizationId);
 };
 
+/**
+ * @deprecated Use useRemoveMember from useOptimizedOrganizationMembers instead
+ */
 export const useEnhancedRemoveMember = (organizationId: string) => {
   return useRemoveMember(organizationId);
 };

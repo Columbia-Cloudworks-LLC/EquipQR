@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { QrCode, Settings, Calendar } from 'lucide-react';
-import { Equipment } from '@/services/optimizedSupabaseDataService';
+import { Equipment } from '@/services/supabaseDataService';
 
 interface OptimizedEquipmentCardProps {
   equipment: Equipment;

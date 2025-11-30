@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, User, AlertTriangle } from 'lucide-react';
-import { WorkOrder } from '@/services/optimizedSupabaseDataService';
+import { WorkOrder } from '@/services/supabaseDataService';
 
 interface OptimizedWorkOrderCardProps {
   workOrder: WorkOrder;

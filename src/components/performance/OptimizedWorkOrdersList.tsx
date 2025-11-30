@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Calendar } from 'lucide-react';
 import OptimizedWorkOrderCard from './OptimizedWorkOrderCard';
 import { useDebouncedSearch } from '@/hooks/useDebounced';
-import { WorkOrder } from '@/services/optimizedSupabaseDataService';
+import { WorkOrder } from '@/services/supabaseDataService';
 import { useWorkOrderStats } from '@/hooks/useOptimizedQueries';
 
 interface OptimizedWorkOrdersListProps {

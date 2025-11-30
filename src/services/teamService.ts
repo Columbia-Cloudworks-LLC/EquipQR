@@ -1,21 +1,28 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
+import { logger } from '@/utils/logger';
+import type { 
+  TeamRow, 
+  TeamInsert, 
+  TeamUpdate, 
+  TeamMemberInsert,
+  TeamMemberRole,
+  Team,
+  TeamMember,
+  TeamWithMembers
+} from '@/types/team';
 
-type Team = Database['public']['Tables']['teams']['Row'];
-type TeamInsert = Database['public']['Tables']['teams']['Insert'];
-type TeamUpdate = Database['public']['Tables']['teams']['Update'];
-type TeamMember = Database['public']['Tables']['team_members']['Row'];
-type TeamMemberInsert = Database['public']['Tables']['team_members']['Insert'];
+// Re-export types for backward compatibility
+export type { Team, TeamMember, TeamWithMembers, TeamMemberRole };
 
-export interface TeamWithMembers extends Team {
-  members: Array<TeamMember & {
-    profiles: {
-      name: string;
-      email: string;
-    } | null;
-  }>;
-  member_count: number;
-}
+/**
+ * @deprecated Use Team from @/types/team instead
+ */
+export type OptimizedTeam = Team;
+
+/**
+ * @deprecated Use TeamMember from @/types/team instead
+ */
+export type OptimizedTeamMember = TeamMember;
 
 // Create a new team
 export const createTeam = async (teamData: TeamInsert): Promise<Team> => {
@@ -281,7 +288,7 @@ export const isTeamManager = async (userId: string, teamId: string): Promise<boo
 };
 
 // Get teams user manages
-export const getTeamsUserManages = async (userId: string): Promise<Team[]> => {
+export const getTeamsUserManages = async (userId: string): Promise<TeamRow[]> => {
   // First get team IDs where user is manager
   const { data: teamMemberships, error: memberError } = await supabase
     .from('team_members')
@@ -304,4 +311,130 @@ export const getTeamsUserManages = async (userId: string): Promise<Team[]> => {
 
   if (error) throw error;
   return data || [];
+};
+
+// ============================================
+// Optimized Query Functions (merged from optimizedTeamService)
+// ============================================
+
+/**
+ * Get team members with profile information using optimized query
+ * Uses idx_team_members_team_id index
+ */
+export const getTeamMembersOptimized = async (teamId: string): Promise<TeamMember[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('team_members')
+      .select(`
+        *,
+        profiles!team_members_user_id_fkey (
+          name,
+          email
+        )
+      `)
+      .eq('team_id', teamId)
+      .order('joined_date', { ascending: true });
+
+    if (error) throw error;
+
+    return (data || []).map(member => ({
+      id: member.id,
+      user_id: member.user_id,
+      team_id: member.team_id,
+      role: member.role,
+      joined_date: member.joined_date,
+      user_name: member.profiles?.name,
+      user_email: member.profiles?.email
+    }));
+  } catch (error) {
+    logger.error('Error fetching team members:', error);
+    return [];
+  }
+};
+
+/**
+ * Get teams by organization with member counts using optimized query
+ */
+export const getOrganizationTeamsOptimized = async (organizationId: string): Promise<Team[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('teams')
+      .select(`
+        *,
+        team_members(count)
+      `)
+      .eq('organization_id', organizationId)
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+
+    return (data || []).map(team => ({
+      id: team.id,
+      name: team.name,
+      description: team.description,
+      organization_id: team.organization_id,
+      member_count: team.team_members?.[0]?.count || 0,
+      created_at: team.created_at,
+      updated_at: team.updated_at
+    }));
+  } catch (error) {
+    logger.error('Error fetching organization teams:', error);
+    return [];
+  }
+};
+
+/**
+ * Get a single team by ID with member count using optimized query
+ */
+export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('teams')
+      .select(`
+        *,
+        team_members(count)
+      `)
+      .eq('id', teamId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // No rows returned
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      organization_id: data.organization_id,
+      member_count: data.team_members?.[0]?.count || 0,
+      created_at: data.created_at,
+      updated_at: data.updated_at
+    };
+  } catch (error) {
+    logger.error('Error fetching team by ID:', error);
+    return null;
+  }
+};
+
+/**
+ * Check if user is team manager using optimized query
+ * Uses idx_team_members_user_team index
+ */
+export const isTeamManagerOptimized = async (userId: string, teamId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('team_members')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('team_id', teamId)
+      .eq('role', 'manager')
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return !!data;
+  } catch (error) {
+    logger.error('Error checking team manager status:', error);
+    return false;
+  }
 };

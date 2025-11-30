@@ -1,3 +1,9 @@
+/**
+ * Work Order Assignment Hook - Canonical hook for work order assignment
+ * 
+ * This is the primary hook for fetching assignable members for work orders.
+ * It provides a list of organization members who can be assigned work orders.
+ */
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,10 +16,14 @@ export interface AssignmentOption {
   role?: string;
 }
 
-export const useOptimizedWorkOrderAssignment = (organizationId?: string) => {
-  // Direct query for organization members - only technicians and managers
+/**
+ * Hook for fetching work order assignment options
+ * Returns a list of organization members who can be assigned work orders
+ */
+export const useWorkOrderAssignmentOptions = (organizationId?: string) => {
+  // Direct query for organization members - all active members can be assigned
   const membersQuery = useQuery({
-    queryKey: ['optimized-assignment-members', organizationId],
+    queryKey: ['work-order-assignment-members', organizationId],
     queryFn: async () => {
       if (!organizationId) return [];
       
@@ -57,3 +67,8 @@ export const useOptimizedWorkOrderAssignment = (organizationId?: string) => {
     error: membersQuery.error
   };
 };
+
+/**
+ * @deprecated Use useWorkOrderAssignmentOptions instead
+ */
+export const useOptimizedWorkOrderAssignment = useWorkOrderAssignmentOptions;

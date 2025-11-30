@@ -1,3 +1,9 @@
+/**
+ * Unified Members List Component
+ * 
+ * This component displays organization members and invitations in a unified view.
+ */
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,13 +17,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/hooks/useOrganizationInvitations';
 import { useTeamMembership } from '@/hooks/useTeamMembership';
-import { useUpdateMemberRole, useRemoveMember } from '@/hooks/useOrganizationMembers';
-import { RealOrganizationMember } from '@/hooks/useOptimizedOrganizationMembers';
+import { useUpdateMemberRole, useRemoveMember } from '@/hooks/useOptimizedOrganizationMembers';
+import type { OrganizationMember } from '@/types/organization';
 import { getRoleBadgeVariant } from '@/utils/badgeVariants';
 import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
 import { toast } from 'sonner';
 import { type SlotAvailability } from '@/hooks/useOrganizationSlots';
 import { shouldBlockInvitation, getSlotStatus } from '@/utils/billing';
+
+// Re-export type for backward compatibility
+export type RealOrganizationMember = OrganizationMember;
 
 interface UnifiedMember {
   id: string;

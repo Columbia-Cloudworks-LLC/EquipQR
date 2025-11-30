@@ -2,23 +2,24 @@ import {
   getOrganizationTeamsOptimized, 
   getTeamMembersOptimized, 
   getTeamByIdOptimized,
-  isTeamManager as isTeamManagerOptimized,
-  OptimizedTeamMember 
-} from '@/services/optimizedTeamService';
-import { TeamWithMembers } from '@/services/teamService';
-import { 
+  isTeamManagerOptimized,
   addTeamMember, 
   updateTeamMemberRole, 
   createTeamWithCreator as createTeamWithCreatorService,
   deleteTeam as deleteTeamService,
   updateTeam as updateTeamService
 } from '@/services/teamService';
-import { Database } from '@/integrations/supabase/types';
+import type { 
+  TeamWithMembers,
+  TeamMember,
+  TeamMemberInsert,
+  TeamMemberRole,
+  TeamInsert,
+  TeamUpdate
+} from '@/types/team';
 
-type TeamMemberInsert = Database['public']['Tables']['team_members']['Insert'];
-type TeamMemberRole = Database['public']['Enums']['team_member_role'];
-type TeamInsert = Database['public']['Tables']['teams']['Insert'];
-type TeamUpdate = Database['public']['Tables']['teams']['Update'];
+// Re-export for backward compatibility
+export type { TeamMember as OptimizedTeamMember };
 
 /**
  * Unified Team Repository using optimized queries for better performance
@@ -90,7 +91,7 @@ export class TeamRepository {
   /**
    * Get team members with profile information using optimized query
    */
-  static async getTeamMembers(teamId: string): Promise<OptimizedTeamMember[]> {
+  static async getTeamMembers(teamId: string): Promise<TeamMember[]> {
     return getTeamMembersOptimized(teamId);
   }
 

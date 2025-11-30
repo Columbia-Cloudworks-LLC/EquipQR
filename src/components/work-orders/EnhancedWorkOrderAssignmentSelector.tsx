@@ -1,15 +1,26 @@
+/**
+ * Work Order Assignment Selector Component
+ * 
+ * This component provides a dropdown selector for assigning work orders to users.
+ */
 
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { User, Shield, Info, UserCheck } from 'lucide-react';
-import { EnhancedAssignmentOption } from '@/hooks/useWorkOrderAssignmentEnhanced';
+import type { AssignmentOption } from '@/hooks/useOptimizedWorkOrderAssignment';
+
+// Support both old and new type names for backward compatibility
+export type EnhancedAssignmentOption = AssignmentOption & {
+  type?: 'admin' | 'user';
+  canSelfAssign?: boolean;
+};
 
 interface EnhancedWorkOrderAssignmentSelectorProps {
   options: EnhancedAssignmentOption[];
   value?: string;
-  onChange: (value: string, type: 'admin') => void;
+  onChange: (value: string, type: 'admin' | 'user') => void;
   placeholder?: string;
   disabled?: boolean;
 }

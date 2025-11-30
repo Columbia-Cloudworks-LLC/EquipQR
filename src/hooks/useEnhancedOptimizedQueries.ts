@@ -1,10 +1,19 @@
+/**
+ * Enhanced Query Hooks - Hooks with background sync and smart invalidation
+ * 
+ * These hooks wrap the canonical query hooks with background sync capabilities.
+ * They are provided for backward compatibility - prefer using canonical hooks directly.
+ */
+
 import { useEffect } from 'react';
 import { useOptimizedTeams, useOptimizedEquipment, useOptimizedDashboard } from './useOptimizedQueries';
 import { useWorkOrders } from './useWorkOrders';
 import { useBackgroundSync, useCacheInvalidation } from './useCacheInvalidation';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
 
-// PHASE 3: Enhanced queries with background sync and smart invalidation
+/**
+ * Hook for teams with background sync
+ */
 export const useEnhancedOptimizedTeams = (organizationId?: string) => {
   const query = useOptimizedTeams(organizationId);
   const { subscribeToOrganization } = useBackgroundSync();

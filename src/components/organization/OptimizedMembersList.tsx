@@ -1,3 +1,10 @@
+/**
+ * Members List Component
+ * 
+ * This component displays a list of organization members with search, filter,
+ * and management capabilities.
+ */
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,10 +20,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Search, MoreVertical, UserMinus, Users } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDebouncedSearch } from "@/hooks/useDebounced";
-import { useUpdateMemberRole, useRemoveMember, type RealOrganizationMember } from "@/hooks/useOptimizedOrganizationMembers";
+import { useUpdateMemberRole, useRemoveMember } from "@/hooks/useOptimizedOrganizationMembers";
+import type { OrganizationMember } from "@/types/organization";
 import OptimizedVirtualizedList from "@/components/performance/OptimizedVirtualizedList";
 import { toast } from "sonner";
 import { type UseMutationResult } from "@tanstack/react-query";
+
+// Re-export type for backward compatibility
+export type RealOrganizationMember = OrganizationMember;
 
 // Type for organization member record returned from Supabase
 type OrganizationMemberRecord = {

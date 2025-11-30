@@ -5,7 +5,7 @@ import { Search, Filter } from 'lucide-react';
 import OptimizedEquipmentCard from './OptimizedEquipmentCard';
 import OptimizedVirtualizedList from './OptimizedVirtualizedList';
 import { useDebouncedSearch } from '@/hooks/useDebounced';
-import { Equipment } from '@/services/optimizedSupabaseDataService';
+import { Equipment } from '@/services/supabaseDataService';
 
 interface OptimizedEquipmentGridProps {
   equipment: Equipment[];
