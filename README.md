@@ -36,13 +36,13 @@ A comprehensive fleet equipment management platform built with React, TypeScript
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/Columbia-Cloudworks-LLC/EquipQR
 cd equipqr
 ```
 
 2. Install dependencies:
 ```bash
-npm install
+npm i
 ```
 
 3. Set up environment variables:
