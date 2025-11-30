@@ -4,28 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, User, Users, UserX } from 'lucide-react';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
-import type { WorkOrder } from '@/types/workOrder';
-
-// Unified type - no longer need separate summary and detail types
-type EnhancedWorkOrderSummary = WorkOrder;
-type EnhancedWorkOrderDetail = WorkOrder;
-import type { WorkOrderData } from '@/types/workOrder';
+import type { WorkOrder, WorkOrderData } from '@/types/workOrder';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import PMProgressIndicator from './PMProgressIndicator';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
 import type { AssignmentWorkOrderContext } from '@/hooks/useWorkOrderContextualAssignment';
 
-type DesktopWorkOrder = EnhancedWorkOrderSummary & Partial<EnhancedWorkOrderDetail>;
-
 interface DesktopWorkOrderCardProps {
-  workOrder: DesktopWorkOrder;
+  workOrder: WorkOrder;
   onNavigate: (id: string) => void;
   onAssignClick?: () => void;
   onReopenClick?: () => void;
 }
 
-const mapToWorkOrderData = (workOrder: DesktopWorkOrder): WorkOrderData => ({
+const mapToWorkOrderData = (workOrder: WorkOrder): WorkOrderData => ({
   id: workOrder.id,
   title: workOrder.title,
   description: workOrder.description,

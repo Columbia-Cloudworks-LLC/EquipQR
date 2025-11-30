@@ -54,6 +54,8 @@ export interface WorkOrder extends WorkOrderRow {
   equipmentTeamId?: string;
   equipmentTeamName?: string;
   createdByName?: string;
+  // Assignment object for component compatibility
+  assignedTo?: { id: string; name: string } | null;
 }
 
 /**

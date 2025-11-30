@@ -38,9 +38,7 @@ import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import PMProgressIndicator from './PMProgressIndicator';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
-import type { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
-// Note: EnhancedWorkOrder is now an alias for WorkOrder from @/types/workOrder
-import type { WorkOrderData } from '@/types/workOrder';
+import type { WorkOrder, WorkOrderData } from '@/types/workOrder';
 import type { Database } from '@/integrations/supabase/types';
 import type { AssignmentWorkOrderContext } from '@/hooks/useWorkOrderContextualAssignment';
 import { logger } from '@/utils/logger';
@@ -53,13 +51,13 @@ export type WorkOrderCardVariant = 'desktop' | 'mobile' | 'compact';
 
 export interface WorkOrderCardProps {
   /** The work order data to display */
-  workOrder: EnhancedWorkOrder;
+  workOrder: WorkOrder;
   /** Layout variant */
   variant?: WorkOrderCardVariant;
   /** Navigation handler */
   onNavigate?: (id: string) => void;
   /** Accept button click handler (mobile) */
-  onAcceptClick?: (workOrder: EnhancedWorkOrder) => void;
+  onAcceptClick?: (workOrder: WorkOrder) => void;
   /** Status update handler */
   onStatusUpdate?: (workOrderId: string, newStatus: string) => void;
   /** Assign button click handler */
@@ -76,7 +74,7 @@ export interface WorkOrderCardProps {
 // Helper Functions
 // ============================================
 
-const mapToWorkOrderData = (workOrder: EnhancedWorkOrder): WorkOrderData => ({
+const mapToWorkOrderData = (workOrder: WorkOrder): WorkOrderData => ({
   id: workOrder.id,
   title: workOrder.title,
   description: workOrder.description,
@@ -97,7 +95,7 @@ const mapToWorkOrderData = (workOrder: EnhancedWorkOrder): WorkOrderData => ({
   createdByName: workOrder.createdByName,
 });
 
-const getAssignmentContext = (workOrder: EnhancedWorkOrder): AssignmentWorkOrderContext => ({
+const getAssignmentContext = (workOrder: WorkOrder): AssignmentWorkOrderContext => ({
   ...workOrder,
   organization_id: workOrder.organization_id ?? workOrder.organizationId ?? '',
   equipment_id: workOrder.equipment_id ?? workOrder.equipmentId ?? '',

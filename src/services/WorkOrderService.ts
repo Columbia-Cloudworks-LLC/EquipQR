@@ -100,6 +100,8 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
     equipmentTeamId: equipment?.team_id || undefined,
     equipmentTeamName: equipment?.teams?.name || undefined,
     createdByName: creator?.name || undefined,
+    // Assignment object for component compatibility
+    assignedTo: assignee?.id && assignee?.name ? { id: assignee.id, name: assignee.name } : null,
   };
 }
 

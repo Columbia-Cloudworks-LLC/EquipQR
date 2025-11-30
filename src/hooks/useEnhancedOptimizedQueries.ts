@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { useOptimizedTeams, useOptimizedWorkOrders, useOptimizedEquipment, useOptimizedDashboard } from './useOptimizedQueries';
+import { useOptimizedTeams, useOptimizedEquipment, useOptimizedDashboard } from './useOptimizedQueries';
+import { useWorkOrders } from './useWorkOrders';
 import { useBackgroundSync, useCacheInvalidation } from './useCacheInvalidation';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
 
@@ -19,7 +20,10 @@ export const useEnhancedOptimizedTeams = (organizationId?: string) => {
 };
 
 export const useEnhancedOptimizedWorkOrders = (organizationId?: string) => {
-  const query = useOptimizedWorkOrders(organizationId);
+  const query = useWorkOrders(organizationId, {
+    staleTime: 2 * 60 * 1000, // 2 minutes - consistent with previous optimized behavior
+    refetchOnWindowFocus: false, // Avoid excessive refetching
+  });
   const { subscribeToOrganization } = useBackgroundSync();
   
   useEffect(() => {

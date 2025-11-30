@@ -2,9 +2,13 @@ import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 import type { WorkOrder } from '@/types/workOrder';
+import { getAccessibleEquipmentIds } from './EquipmentService';
 
-// Use WorkOrder type - the return type includes camelCase aliases for backward compatibility
-type EnhancedWorkOrder = WorkOrder & {
+/**
+ * TeamBasedWorkOrder extends WorkOrder with camelCase aliases for backward compatibility.
+ * These aliases map to the snake_case database fields.
+ */
+type TeamBasedWorkOrder = WorkOrder & {
   equipmentId?: string;
   organizationId?: string;
   assigneeId?: string | null;
@@ -14,7 +18,6 @@ type EnhancedWorkOrder = WorkOrder & {
   estimatedHours?: number | null;
   completedDate?: string | null;
 };
-import { getAccessibleEquipmentIds } from './EquipmentService';
 
 export interface TeamBasedWorkOrderFilters {
   status?: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled' | 'all';
@@ -31,7 +34,7 @@ export const getTeamBasedWorkOrders = async (
   userTeamIds: string[],
   isOrgAdmin: boolean = false,
   filters: TeamBasedWorkOrderFilters = {}
-): Promise<EnhancedWorkOrder[]> => {
+): Promise<TeamBasedWorkOrder[]> => {
   try {
     // First, get the equipment IDs that this user can access
     const accessibleEquipmentIds = await getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);

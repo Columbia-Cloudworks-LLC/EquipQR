@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import WorkOrderCard from './WorkOrderCard';
 import { WorkOrdersEmptyState } from './WorkOrdersEmptyState';
-import type { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
+import type { WorkOrder } from '@/types/workOrder';
 
 interface WorkOrdersListProps {
-  workOrders: EnhancedWorkOrder[];
-  onAcceptClick: (workOrder: EnhancedWorkOrder) => void;
+  workOrders: WorkOrder[];
+  onAcceptClick: (workOrder: WorkOrder) => void;
   onStatusUpdate: (workOrderId: string, newStatus: string) => void;
   isUpdating: boolean;
   isAccepting: boolean;
