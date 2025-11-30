@@ -1,33 +1,14 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { 
+  WorkOrderService, 
+  WorkOrderNote, 
+  WorkOrderImage 
+} from '@/services/WorkOrderService';
 
-type WorkOrderStatus = 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
-
-export interface WorkOrderNote {
-  work_order_id: string;
-  author_id: string;
-  content: string;
-  hours_worked: number;
-  is_private: boolean;
-  created_at: string;
-  updated_at: string;
-  author_name?: string;
-}
-
-export interface WorkOrderImage {
-  id: string;
-  work_order_id: string;
-  uploaded_by: string;
-  file_name: string;
-  file_url: string;
-  file_size: number | null;
-  mime_type: string | null;
-  description: string | null;
-  created_at: string;
-  uploaded_by_name?: string;
-}
+// Re-export types from WorkOrderService for backward compatibility
+export type { WorkOrderNote, WorkOrderImage };
 
 export type NotificationData = {
   work_order_id?: string;
@@ -47,28 +28,30 @@ export interface Notification {
   updated_at: string;
 }
 
-// Work Order Notes hooks
-export const useWorkOrderNotes = (workOrderId: string) => {
+// Work Order Notes hooks - using WorkOrderService
+export const useWorkOrderNotes = (workOrderId: string, organizationId?: string) => {
   return useQuery({
     queryKey: ['work-order-notes', workOrderId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('work_order_notes')
-        .select(`
-          *,
-          profiles:author_id (
-            name
-          )
-        `)
-        .eq('work_order_id', workOrderId)
-        .order('created_at', { ascending: false });
+      if (!organizationId) {
+        // Fallback: fetch organization_id from work order if not provided
+        const { data: workOrder } = await supabase
+          .from('work_orders')
+          .select('organization_id')
+          .eq('id', workOrderId)
+          .single();
+        if (!workOrder) throw new Error('Work order not found');
+        organizationId = workOrder.organization_id;
+      }
 
-      if (error) throw error;
-
-      return (data || []).map(note => ({
-        ...note,
-        author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown'
-      })) as WorkOrderNote[];
+      const service = new WorkOrderService(organizationId);
+      const response = await service.getNotes(workOrderId);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch notes');
+      }
+      
+      return response.data || [];
     },
     enabled: !!workOrderId
   });
@@ -82,30 +65,38 @@ export const useCreateWorkOrderNote = () => {
       workOrderId,
       content,
       hoursWorked = 0,
-      isPrivate = false
+      isPrivate = false,
+      organizationId
     }: {
       workOrderId: string;
       content: string;
       hoursWorked?: number;
       isPrivate?: boolean;
+      organizationId?: string;
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
+      let orgId = organizationId;
+      if (!orgId) {
+        const { data: workOrder } = await supabase
+          .from('work_orders')
+          .select('organization_id')
+          .eq('id', workOrderId)
+          .single();
+        if (!workOrder) throw new Error('Work order not found');
+        orgId = workOrder.organization_id;
+      }
 
-      const { data, error } = await supabase
-        .from('work_order_notes')
-        .insert({
-          work_order_id: workOrderId,
-          author_id: userData.user.id,
-          content,
-          hours_worked: hoursWorked,
-          is_private: isPrivate
-        })
-        .select()
-        .single();
+      const service = new WorkOrderService(orgId);
+      const response = await service.createNote(workOrderId, {
+        content,
+        hours_worked: hoursWorked,
+        is_private: isPrivate
+      });
 
-      if (error) throw error;
-      return data;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create note');
+      }
+
+      return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
       queryClient.invalidateQueries({ queryKey: ['work-order-notes', workOrderId] });
@@ -118,28 +109,29 @@ export const useCreateWorkOrderNote = () => {
   });
 };
 
-// Work Order Images hooks
-export const useWorkOrderImages = (workOrderId: string) => {
+// Work Order Images hooks - using WorkOrderService
+export const useWorkOrderImages = (workOrderId: string, organizationId?: string) => {
   return useQuery({
     queryKey: ['work-order-images', workOrderId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('work_order_images')
-        .select(`
-          *,
-          profiles:uploaded_by (
-            name
-          )
-        `)
-        .eq('work_order_id', workOrderId)
-        .order('created_at', { ascending: false });
+      if (!organizationId) {
+        const { data: workOrder } = await supabase
+          .from('work_orders')
+          .select('organization_id')
+          .eq('id', workOrderId)
+          .single();
+        if (!workOrder) throw new Error('Work order not found');
+        organizationId = workOrder.organization_id;
+      }
 
-      if (error) throw error;
+      const service = new WorkOrderService(organizationId);
+      const response = await service.getImages(workOrderId);
 
-      return (data || []).map(image => ({
-        ...image,
-        uploaded_by_name: (image.profiles as { name?: string } | null | undefined)?.name || 'Unknown'
-      })) as WorkOrderImage[];
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch images');
+      }
+
+      return response.data || [];
     },
     enabled: !!workOrderId
   });
@@ -160,10 +152,6 @@ export const useUploadWorkOrderImage = () => {
       description?: string;
       organizationId?: string;
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
-
-      // Get organization_id if not provided
       let orgId = organizationId;
       if (!orgId) {
         const { data: workOrder } = await supabase
@@ -175,42 +163,14 @@ export const useUploadWorkOrderImage = () => {
         orgId = workOrder.organization_id;
       }
 
-      // Check storage quota before uploading
-      const { validateStorageQuota } = await import('@/utils/storageQuota');
-      await validateStorageQuota(orgId, file.size);
+      const service = new WorkOrderService(orgId);
+      const response = await service.uploadImage(workOrderId, file, description);
 
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userData.user.id}/${workOrderId}/${Date.now()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('work-order-images')
-        .upload(fileName, file);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to upload image');
+      }
 
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('work-order-images')
-        .getPublicUrl(uploadData.path);
-
-      // Save image record to database
-      const { data, error } = await supabase
-        .from('work_order_images')
-        .insert({
-          work_order_id: workOrderId,
-          uploaded_by: userData.user.id,
-          file_name: file.name,
-          file_url: publicUrl,
-          file_size: file.size,
-          mime_type: file.type,
-          description: description || null
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
       queryClient.invalidateQueries({ queryKey: ['work-order-images', workOrderId] });
@@ -264,7 +224,7 @@ export const useMarkNotificationAsRead = () => {
   });
 };
 
-// Enhanced work order status update with improved query invalidation
+// Enhanced work order status update - using WorkOrderService
 export const useUpdateWorkOrderStatus = () => {
   const queryClient = useQueryClient();
 
@@ -278,31 +238,18 @@ export const useUpdateWorkOrderStatus = () => {
       status: string;
       organizationId: string;
     }) => {
-      const nextStatus = status as WorkOrderStatus;
-      const updateData: Partial<{ status: WorkOrderStatus; acceptance_date?: string; completed_date?: string }> = { status: nextStatus };
-      
-      // Set acceptance date when accepting
-      if (status === 'accepted') {
-        updateData.acceptance_date = new Date().toISOString();
-      }
-      
-      // Set completion date when completing
-      if (status === 'completed') {
-        updateData.completed_date = new Date().toISOString();
-      }
+      const service = new WorkOrderService(organizationId);
+      const response = await service.updateStatus(
+        workOrderId, 
+        status as 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
+      );
 
-      const { data, error } = await supabase
-        .from('work_orders')
-        .update(updateData)
-        .eq('id', workOrderId)
-        .eq('organization_id', organizationId)
-        .select()
-        .single();
-
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update status');
+      }
 
       // Notifications are now handled by the database trigger
-      return data;
+      return response.data;
     },
     onSuccess: (data, variables) => {
       // Invalidate all relevant queries for immediate updates with standardized keys

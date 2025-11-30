@@ -1,7 +1,7 @@
 import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
-import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
+import type { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
 import { getAccessibleEquipmentIds } from './EquipmentService';
 
 export interface TeamBasedWorkOrderFilters {

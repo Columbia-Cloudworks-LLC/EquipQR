@@ -262,6 +262,7 @@ export const getNotesByEquipmentId = async (organizationId: string, equipmentId:
 };
 
 // Work orders functions
+// @deprecated Use WorkOrderService.getEquipmentWorkOrders() instead. Will be removed in Phase 2.
 export const getWorkOrdersByEquipmentId = async (organizationId: string, equipmentId: string): Promise<WorkOrder[]> => {
   try {
     const { data, error } = await supabase
@@ -303,6 +304,7 @@ export const getWorkOrdersByEquipmentId = async (organizationId: string, equipme
   }
 };
 
+// @deprecated Use WorkOrderService.getAll() instead. Will be removed in Phase 2.
 export const getAllWorkOrdersByOrganization = async (organizationId: string): Promise<WorkOrder[]> => {
   try {
     // First get all work orders for the organization
@@ -345,6 +347,7 @@ export const getAllWorkOrdersByOrganization = async (organizationId: string): Pr
   }
 };
 
+// @deprecated Use WorkOrderService.getById() instead. Will be removed in Phase 2.
 export const getWorkOrderById = async (organizationId: string, workOrderId: string): Promise<WorkOrder | undefined> => {
   try {
     const { data, error } = await supabase
@@ -464,6 +467,7 @@ export const createScan = async (
 };
 
 // Mutation functions
+// @deprecated Use WorkOrderService.updateStatus() instead. Will be removed in Phase 2.
 export const updateWorkOrderStatus = async (
   organizationId: string,
   workOrderId: string,
@@ -524,6 +528,7 @@ export const createEquipment = async (
 };
 
 // Create work order
+// @deprecated Use WorkOrderService.create() instead. Will be removed in Phase 2.
 export const createWorkOrder = async (
   organizationId: string,
   workOrderData: Omit<WorkOrder, 'id' | 'created_date' | 'updated_at' | 'organization_id' | 'assigneeName' | 'teamName' | 'completed_date' | 'created_by'>

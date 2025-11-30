@@ -1,8 +1,7 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { createWorkOrder } from '@/services/supabaseDataService';
+import { WorkOrderService } from '@/services/WorkOrderService';
 import { createPM } from '@/services/preventativeMaintenanceService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -32,6 +31,11 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
         throw new Error('No organization selected');
       }
 
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+
       // Auto-assign logic for single-user organizations
       let assigneeId = data.assignmentType === 'user' ? data.assignmentId : undefined;
       const teamId = data.assignmentType === 'team' ? data.assignmentId : undefined;
@@ -39,41 +43,30 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
 
       // If no explicit assignment and it's a single-user org, auto-assign to creator
       if (!assigneeId && !teamId && currentOrganization.memberCount === 1) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          assigneeId = user.id;
-          status = 'assigned';
-        }
+        assigneeId = userData.user.id;
+        status = 'assigned';
       }
 
-      // Create the work order
-const workOrderData = {
+      // Create the work order using WorkOrderService
+      const service = new WorkOrderService(currentOrganization.id);
+      const response = await service.create({
         title: data.title,
         description: data.description,
         equipment_id: data.equipmentId,
         priority: data.priority,
         due_date: data.dueDate,
-        estimated_hours: null, // No longer capturing this in work orders
-        has_pm: data.hasPM || false,
-        pm_required: data.hasPM || false,
+        estimated_hours: undefined,
         assignee_id: assigneeId,
         team_id: teamId,
         status,
-        acceptance_date: status === 'assigned' ? new Date().toISOString() : null,
-        assignee_name: null, // Will be populated by triggers if needed
-        created_by_name: null, // Will be populated by triggers if needed
-        is_historical: false,
-        historical_start_date: null,
-        historical_notes: null,
-        created_by_admin: null,
-        equipment_working_hours_at_creation: data.equipmentWorkingHours || null
-      };
-
-      const workOrder = await createWorkOrder(currentOrganization.id, workOrderData);
+        created_by: userData.user.id
+      });
       
-      if (!workOrder) {
-        throw new Error('Failed to create work order');
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to create work order');
       }
+
+      const workOrder = response.data;
 
       // Multi-equipment linking removed: work orders now support a single equipment only
 
