@@ -31,7 +31,7 @@ const SocialProofSection = () => {
                 <div>
                   <h3 className="text-2xl font-bold text-foreground mb-2">
                     <ExternalLink 
-                      href="https://3aequip.com/"
+                      href="https://3aequip.com"
                       className="text-primary hover:text-primary/80 transition-colors"
                     >
                       3-A Equipment
