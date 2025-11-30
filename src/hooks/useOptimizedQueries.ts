@@ -5,9 +5,11 @@ import {
   type Team,
   type DashboardStats
 } from '@/services/optimizedSupabaseDataService';
-import { WorkOrderService, WorkOrder } from '@/services/WorkOrderService';
+import { WorkOrderService } from '@/services/WorkOrderService';
 import { EquipmentService, Equipment } from '@/services/EquipmentService';
 import { useMemo } from 'react';
+import { useWorkOrders, workOrderKeys } from './useWorkOrders';
+import type { WorkOrder } from '@/types/workOrder';
 
 // Optimized hook with better caching and stale times
 export const useOptimizedTeams = (organizationId?: string) => {
@@ -20,23 +22,13 @@ export const useOptimizedTeams = (organizationId?: string) => {
   });
 };
 
-// Optimized work orders with better caching strategy
-// Now uses WorkOrderService.getAll() with optimized joins
+/**
+ * Optimized work orders with better caching strategy
+ * Now uses the unified useWorkOrders hook internally
+ */
 export const useOptimizedWorkOrders = (organizationId?: string) => {
-  return useQuery({
-    queryKey: ['work-orders', organizationId],
-    queryFn: async () => {
-      if (!organizationId) return [];
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getAll();
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch work orders');
-    },
-    enabled: !!organizationId,
+  return useWorkOrders(organizationId, {
     staleTime: 2 * 60 * 1000, // 2 minutes - work orders change more frequently
-    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false, // Avoid excessive refetching
   });
 };
@@ -83,7 +75,7 @@ export const useOptimizedMultiQuery = (organizationId?: string) => {
         staleTime: 10 * 60 * 1000,
       },
       {
-        queryKey: ['work-orders', organizationId],
+        queryKey: workOrderKeys.list(organizationId || '', undefined),
         queryFn: async () => {
           if (!organizationId) return [];
           const service = new WorkOrderService(organizationId);
@@ -181,6 +173,6 @@ export const useWorkOrderStats = (organizationId?: string) => {
 };
 
 // Re-export types for convenience
-export type { WorkOrder } from '@/services/WorkOrderService';
+export type { WorkOrder } from '@/types/workOrder';
 export type { Equipment } from '@/services/EquipmentService';
 export type { Team, DashboardStats } from '@/services/optimizedSupabaseDataService';

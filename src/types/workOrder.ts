@@ -5,6 +5,8 @@
  * Import from here instead of defining types locally in components/hooks.
  */
 
+import { Tables } from '@/integrations/supabase/types';
+
 // ============================================
 // Core Status and Priority Types
 // ============================================
@@ -13,9 +15,86 @@ export type WorkOrderStatus = 'submitted' | 'accepted' | 'assigned' | 'in_progre
 export type WorkOrderPriority = 'low' | 'medium' | 'high';
 
 // ============================================
+// Base Database Type
+// ============================================
+
+/**
+ * Work order row as stored in the database (snake_case)
+ * This is the raw Supabase table type.
+ */
+export type WorkOrderRow = Tables<'work_orders'>;
+
+// ============================================
+// Primary Work Order Type (Unified)
+// ============================================
+
+/**
+ * WorkOrder - The primary unified type for work orders.
+ * 
+ * Extends the database row type with computed fields from joins.
+ * Use this type throughout the application for work order data.
+ * 
+ * Base fields (snake_case from database):
+ * - id, title, description, equipment_id, organization_id
+ * - priority, status, assignee_id, assignee_name, team_id
+ * - created_by, created_by_admin, created_by_name, created_date
+ * - due_date, estimated_hours, completed_date, acceptance_date
+ * - updated_at, is_historical, historical_start_date, historical_notes
+ * - has_pm, pm_required
+ * 
+ * Computed fields (camelCase from joins):
+ * - assigneeName, teamName, equipmentName
+ * - equipmentTeamId, equipmentTeamName, createdByName
+ */
+export interface WorkOrder extends WorkOrderRow {
+  // Computed fields from joins (camelCase for React conventions)
+  assigneeName?: string;
+  teamName?: string;
+  equipmentName?: string;
+  equipmentTeamId?: string;
+  equipmentTeamName?: string;
+  createdByName?: string;
+}
+
+/**
+ * @deprecated Use WorkOrder instead
+ * Alias for backward compatibility with components using EnhancedWorkOrder
+ */
+export type EnhancedWorkOrder = WorkOrder;
+
+/**
+ * @deprecated Use WorkOrder instead
+ * Alias for backward compatibility
+ */
+export type EnhancedWorkOrderData = WorkOrder;
+
+// ============================================
+// Filter Types (Service Layer)
+// ============================================
+
+/**
+ * Filters for querying work orders via WorkOrderService
+ */
+export interface WorkOrderServiceFilters {
+  status?: WorkOrder['status'] | 'all';
+  priority?: WorkOrder['priority'] | 'all';
+  assigneeId?: string | 'unassigned' | 'all';
+  teamId?: string | 'all';
+  equipmentId?: string;
+  dueDateFilter?: 'overdue' | 'today' | 'this_week';
+  search?: string;
+  // Team-based access control
+  userTeamIds?: string[];
+  isOrgAdmin?: boolean;
+}
+
+// ============================================
 // Filter Types (UI Layer)
 // ============================================
 
+/**
+ * UI filter state for work order list components
+ */
 export interface WorkOrderFilters {
   searchQuery: string;
   statusFilter: string;
@@ -26,12 +105,15 @@ export interface WorkOrderFilters {
 }
 
 // ============================================
-// Work Order Data Types
+// Work Order Data Types (UI-Normalized)
 // ============================================
 
 /**
  * Normalized work order data for UI components
  * Uses camelCase for consistency with React conventions
+ * 
+ * Use this when you need a camelCase-only representation,
+ * otherwise prefer using WorkOrder directly.
  */
 export interface WorkOrderData {
   id: string;
@@ -60,49 +142,37 @@ export interface WorkOrderData {
   isHistorical?: boolean;
 }
 
-/**
- * Work order data as returned from Supabase (snake_case)
- * Use this when working directly with database responses
- */
-export interface WorkOrderRow {
-  id: string;
+// ============================================
+// Create/Update Data Types
+// ============================================
+
+export interface WorkOrderCreateData {
   title: string;
   description: string;
   equipment_id: string;
-  organization_id: string;
-  priority: WorkOrderPriority;
-  status: WorkOrderStatus;
-  assignee_id: string | null;
-  assignee_name: string | null;
-  team_id: string | null;
+  priority: WorkOrder['priority'];
+  status?: WorkOrder['status'];
+  assignee_id?: string;
+  team_id?: string;
+  due_date?: string;
+  estimated_hours?: number;
   created_by: string;
-  created_by_admin: string | null;
-  created_by_name: string | null;
-  created_date: string;
-  due_date: string | null;
-  estimated_hours: number | null;
-  completed_date: string | null;
-  acceptance_date: string | null;
-  updated_at: string;
-  is_historical: boolean;
-  historical_start_date: string | null;
-  historical_notes: string | null;
-  has_pm: boolean;
-  pm_required: boolean;
+  is_historical?: boolean;
+  historical_start_date?: string;
+  historical_notes?: string;
 }
 
-/**
- * Enhanced work order with computed fields from joins
- * Used in list views and detail pages
- */
-export interface EnhancedWorkOrderData extends WorkOrderRow {
-  // Computed fields from joins
-  assigneeName?: string;
-  teamName?: string;
-  equipmentName?: string;
-  equipmentTeamId?: string;
-  equipmentTeamName?: string;
-  createdByName?: string;
+export interface WorkOrderUpdateData {
+  title?: string;
+  description?: string;
+  equipment_id?: string;
+  priority?: WorkOrder['priority'];
+  status?: WorkOrder['status'];
+  assignee_id?: string | null;
+  team_id?: string | null;
+  due_date?: string | null;
+  estimated_hours?: number | null;
+  completed_date?: string | null;
 }
 
 // ============================================
@@ -131,6 +201,12 @@ export interface WorkOrderNote {
   images?: WorkOrderImage[];
 }
 
+export interface WorkOrderNoteCreateData {
+  content: string;
+  hours_worked?: number;
+  is_private?: boolean;
+}
+
 // ============================================
 // Image Types
 // ============================================
@@ -154,9 +230,9 @@ export interface WorkOrderImage {
 // ============================================
 
 /**
- * Converts database row format to UI data format
+ * Converts WorkOrder (database format) to WorkOrderData (UI format)
  */
-export function toWorkOrderData(row: EnhancedWorkOrderData): WorkOrderData {
+export function toWorkOrderData(row: WorkOrder): WorkOrderData {
   return {
     id: row.id,
     title: row.title,
@@ -182,4 +258,25 @@ export function toWorkOrderData(row: EnhancedWorkOrderData): WorkOrderData {
     pmRequired: row.pm_required,
     isHistorical: row.is_historical
   };
+}
+
+/**
+ * Converts WorkOrderData (UI format) back to partial WorkOrder format
+ * Useful for update operations
+ */
+export function fromWorkOrderData(data: Partial<WorkOrderData>): Partial<WorkOrderUpdateData> {
+  const result: Partial<WorkOrderUpdateData> = {};
+  
+  if (data.title !== undefined) result.title = data.title;
+  if (data.description !== undefined) result.description = data.description;
+  if (data.equipmentId !== undefined) result.equipment_id = data.equipmentId;
+  if (data.priority !== undefined) result.priority = data.priority;
+  if (data.status !== undefined) result.status = data.status;
+  if (data.assigneeId !== undefined) result.assignee_id = data.assigneeId || null;
+  if (data.teamId !== undefined) result.team_id = data.teamId || null;
+  if (data.dueDate !== undefined) result.due_date = data.dueDate || null;
+  if (data.estimatedHours !== undefined) result.estimated_hours = data.estimatedHours || null;
+  if (data.completedDate !== undefined) result.completed_date = data.completedDate || null;
+  
+  return result;
 }

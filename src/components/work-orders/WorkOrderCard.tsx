@@ -39,6 +39,7 @@ import PMProgressIndicator from './PMProgressIndicator';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
 import type { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
+// Note: EnhancedWorkOrder is now an alias for WorkOrder from @/types/workOrder
 import type { WorkOrderData } from '@/types/workOrder';
 import type { Database } from '@/integrations/supabase/types';
 import type { AssignmentWorkOrderContext } from '@/hooks/useWorkOrderContextualAssignment';

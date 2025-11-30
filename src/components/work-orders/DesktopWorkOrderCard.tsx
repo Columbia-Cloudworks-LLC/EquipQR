@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, User, Users, UserX } from 'lucide-react';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
-import type { EnhancedWorkOrder as EnhancedWorkOrderSummary } from '@/services/workOrdersEnhancedService';
-import type { EnhancedWorkOrder as EnhancedWorkOrderDetail } from '@/services/workOrderDataService';
+import type { WorkOrder } from '@/types/workOrder';
+
+// Unified type - no longer need separate summary and detail types
+type EnhancedWorkOrderSummary = WorkOrder;
+type EnhancedWorkOrderDetail = WorkOrder;
 import type { WorkOrderData } from '@/types/workOrder';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import PMProgressIndicator from './PMProgressIndicator';

@@ -1,104 +1,36 @@
 import { BaseService, ApiResponse, PaginationParams, FilterParams } from './base/BaseService';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import { validateStorageQuota } from '@/utils/storageQuota';
 
-// Use Supabase types for WorkOrder with computed fields
-export type WorkOrderRow = Tables<'work_orders'>;
+// Import and re-export unified types from the single source of truth
+import {
+  WorkOrder,
+  WorkOrderRow,
+  WorkOrderCreateData,
+  WorkOrderUpdateData,
+  WorkOrderNote,
+  WorkOrderNoteCreateData,
+  WorkOrderImage,
+  WorkOrderServiceFilters,
+} from '@/types/workOrder';
 
-export interface WorkOrder extends WorkOrderRow {
-  // Computed fields from joins
-  assigneeName?: string;
-  teamName?: string;
-  equipmentName?: string;
-  equipmentTeamId?: string;
-  equipmentTeamName?: string;
-  createdByName?: string;
-}
+// Re-export types for backward compatibility
+export type {
+  WorkOrder,
+  WorkOrderRow,
+  WorkOrderCreateData,
+  WorkOrderUpdateData,
+  WorkOrderNote,
+  WorkOrderNoteCreateData,
+  WorkOrderImage,
+};
 
-export interface WorkOrderFilters extends FilterParams {
-  status?: WorkOrder['status'] | 'all';
-  priority?: WorkOrder['priority'] | 'all';
-  assigneeId?: string | 'unassigned' | 'all';
-  teamId?: string | 'all';
-  equipmentId?: string;
-  dueDateFilter?: 'overdue' | 'today' | 'this_week';
-  search?: string;
-  // Team-based access control
-  userTeamIds?: string[];
-  isOrgAdmin?: boolean;
-}
-
-export interface WorkOrderCreateData {
-  title: string;
-  description: string;
-  equipment_id: string;
-  priority: WorkOrder['priority'];
-  status?: WorkOrder['status'];
-  assignee_id?: string;
-  team_id?: string;
-  due_date?: string;
-  estimated_hours?: number;
-  created_by: string;
-  is_historical?: boolean;
-  historical_start_date?: string;
-  historical_notes?: string;
-}
-
-export interface WorkOrderUpdateData {
-  title?: string;
-  description?: string;
-  equipment_id?: string;
-  priority?: WorkOrder['priority'];
-  status?: WorkOrder['status'];
-  assignee_id?: string | null;
-  team_id?: string | null;
-  due_date?: string | null;
-  estimated_hours?: number | null;
-  completed_date?: string | null;
-}
-
-// ============================================
-// Work Order Notes Types
-// ============================================
-
-export interface WorkOrderNote {
-  id: string;
-  work_order_id: string;
-  author_id: string;
-  content: string;
-  hours_worked: number;
-  is_private: boolean;
-  created_at: string;
-  updated_at: string;
-  author_name?: string;
-  images?: WorkOrderImage[];
-}
-
-export interface WorkOrderNoteCreateData {
-  content: string;
-  hours_worked?: number;
-  is_private?: boolean;
-}
-
-// ============================================
-// Work Order Images Types
-// ============================================
-
-export interface WorkOrderImage {
-  id: string;
-  work_order_id: string;
-  note_id?: string | null;
-  file_name: string;
-  file_url: string;
-  file_size?: number | null;
-  mime_type?: string | null;
-  description?: string | null;
-  uploaded_by: string;
-  created_at: string;
-  uploaded_by_name?: string;
-}
+/**
+ * Filters for WorkOrderService.getAll()
+ * Extends base FilterParams with work order specific filters
+ */
+export interface WorkOrderFilters extends FilterParams, WorkOrderServiceFilters {}
 
 // Optimized select query string with all joins
 const WORK_ORDER_SELECT = `
@@ -592,7 +524,7 @@ export class WorkOrderService extends BaseService {
   }
 
   // ============================================
-  // Convenience methods (previously in optimizedWorkOrderService.ts)
+  // Convenience methods
   // ============================================
 
   /**

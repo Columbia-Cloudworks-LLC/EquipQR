@@ -1,108 +1,83 @@
-import { useQuery } from '@tanstack/react-query';
-import { WorkOrderService, WorkOrderFilters, WorkOrder } from '@/services/WorkOrderService';
+/**
+ * @deprecated This file is deprecated. Use hooks from '@/hooks/useWorkOrders' instead.
+ * 
+ * Migration guide:
+ * - Replace `useOptimizedFilteredWorkOrders` with `useWorkOrders` or `useFilteredWorkOrders`
+ * - Replace `useOptimizedMyWorkOrders` with `useMyWorkOrders`
+ * - Replace `useOptimizedTeamWorkOrders` with `useTeamWorkOrders`
+ * - Replace `useOptimizedEquipmentWorkOrders` with `useEquipmentWorkOrders`
+ * - Replace `useOptimizedOverdueWorkOrders` with `useOverdueWorkOrders`
+ * - Replace `useOptimizedWorkOrdersDueToday` with `useWorkOrdersDueToday`
+ * 
+ * This file is maintained for backward compatibility only.
+ */
 
+import {
+  useFilteredWorkOrders,
+  useMyWorkOrders,
+  useTeamWorkOrders,
+  useEquipmentWorkOrders,
+  useOverdueWorkOrders,
+  useWorkOrdersDueToday,
+} from './useWorkOrders';
+import type { WorkOrder } from '@/types/workOrder';
+import type { WorkOrderFilters } from '@/services/WorkOrderService';
+
+// Re-export types for backward compatibility
 export type { WorkOrderFilters, WorkOrder } from '@/services/WorkOrderService';
 
-export const useOptimizedFilteredWorkOrders = (organizationId: string, filters?: WorkOrderFilters) => {
-  return useQuery({
-    queryKey: ['work-orders', organizationId, filters],
-    queryFn: async (): Promise<WorkOrder[]> => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getAll(filters);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch work orders');
-    },
-    enabled: !!organizationId,
-    staleTime: 30 * 1000, // 30 seconds
-  });
+/**
+ * @deprecated Use useFilteredWorkOrders or useWorkOrders from '@/hooks/useWorkOrders' instead.
+ */
+export const useOptimizedFilteredWorkOrders = (
+  organizationId: string, 
+  filters?: WorkOrderFilters
+) => {
+  return useFilteredWorkOrders(organizationId, filters);
 };
 
-export const useOptimizedMyWorkOrders = (organizationId: string, userId: string) => {
-  return useQuery({
-    queryKey: ['work-orders', organizationId, { assigneeId: userId }],
-    queryFn: async (): Promise<WorkOrder[]> => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getMyWorkOrders(userId);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch my work orders');
-    },
-    enabled: !!organizationId && !!userId,
-    staleTime: 30 * 1000,
-  });
+/**
+ * @deprecated Use useMyWorkOrders from '@/hooks/useWorkOrders' instead.
+ */
+export const useOptimizedMyWorkOrders = (
+  organizationId: string, 
+  userId: string
+) => {
+  return useMyWorkOrders(organizationId, userId);
 };
 
+/**
+ * @deprecated Use useTeamWorkOrders from '@/hooks/useWorkOrders' instead.
+ */
 export const useOptimizedTeamWorkOrders = (
   organizationId: string, 
   teamId: string, 
   status?: WorkOrder['status'] | 'all'
 ) => {
-  return useQuery({
-    queryKey: ['work-orders', organizationId, { teamId, status }],
-    queryFn: async (): Promise<WorkOrder[]> => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getTeamWorkOrders(teamId, status);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch team work orders');
-    },
-    enabled: !!organizationId && !!teamId,
-    staleTime: 30 * 1000,
-  });
+  return useTeamWorkOrders(organizationId, teamId, status);
 };
 
+/**
+ * @deprecated Use useEquipmentWorkOrders from '@/hooks/useWorkOrders' instead.
+ */
 export const useOptimizedEquipmentWorkOrders = (
   organizationId: string, 
   equipmentId: string, 
   status?: WorkOrder['status'] | 'all'
 ) => {
-  return useQuery({
-    queryKey: ['work-orders', organizationId, { equipmentId, status }],
-    queryFn: async (): Promise<WorkOrder[]> => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getEquipmentWorkOrders(equipmentId, status);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch equipment work orders');
-    },
-    enabled: !!organizationId && !!equipmentId,
-    staleTime: 30 * 1000,
-  });
+  return useEquipmentWorkOrders(organizationId, equipmentId, status);
 };
 
+/**
+ * @deprecated Use useOverdueWorkOrders from '@/hooks/useWorkOrders' instead.
+ */
 export const useOptimizedOverdueWorkOrders = (organizationId: string) => {
-  return useQuery({
-    queryKey: ['work-orders', organizationId, { dueDateFilter: 'overdue' }],
-    queryFn: async (): Promise<WorkOrder[]> => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getOverdueWorkOrders();
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch overdue work orders');
-    },
-    enabled: !!organizationId,
-    staleTime: 60 * 1000, // 1 minute
-  });
+  return useOverdueWorkOrders(organizationId);
 };
 
+/**
+ * @deprecated Use useWorkOrdersDueToday from '@/hooks/useWorkOrders' instead.
+ */
 export const useOptimizedWorkOrdersDueToday = (organizationId: string) => {
-  return useQuery({
-    queryKey: ['work-orders', organizationId, { dueDateFilter: 'today' }],
-    queryFn: async (): Promise<WorkOrder[]> => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getWorkOrdersDueToday();
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch work orders due today');
-    },
-    enabled: !!organizationId,
-    staleTime: 60 * 1000, // 1 minute
-  });
+  return useWorkOrdersDueToday(organizationId);
 };

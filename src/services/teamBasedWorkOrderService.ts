@@ -1,7 +1,19 @@
 import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
-import type { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
+import type { WorkOrder } from '@/types/workOrder';
+
+// Use WorkOrder type - the return type includes camelCase aliases for backward compatibility
+type EnhancedWorkOrder = WorkOrder & {
+  equipmentId?: string;
+  organizationId?: string;
+  assigneeId?: string | null;
+  teamId?: string | null;
+  createdDate?: string;
+  dueDate?: string | null;
+  estimatedHours?: number | null;
+  completedDate?: string | null;
+};
 import { getAccessibleEquipmentIds } from './EquipmentService';
 
 export interface TeamBasedWorkOrderFilters {

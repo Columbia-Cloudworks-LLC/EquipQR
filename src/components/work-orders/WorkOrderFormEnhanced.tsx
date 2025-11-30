@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Info, Clock } from "lucide-react";
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useWorkOrderAssignment } from '@/hooks/useWorkOrderAssignment';
-import { EnhancedWorkOrder } from '@/services/workOrderDataService';
+import type { WorkOrder as EnhancedWorkOrder } from '@/types/workOrder';
 import { useWorkOrderForm, WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 import { useEquipmentSelection } from '@/components/equipment/hooks/useEquipmentSelection';
 import { useWorkOrderSubmission } from '@/hooks/useWorkOrderSubmission';

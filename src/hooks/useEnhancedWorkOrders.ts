@@ -1,32 +1,35 @@
-import { useQuery } from '@tanstack/react-query';
-import { WorkOrderService, WorkOrder } from '@/services/WorkOrderService';
+/**
+ * @deprecated This hook is deprecated. Use useWorkOrders from '@/hooks/useWorkOrders' instead.
+ * 
+ * Migration guide:
+ * - Replace `useEnhancedWorkOrders(orgId)` with `useWorkOrders(orgId)`
+ * - Replace `EnhancedWorkOrder` type with `WorkOrder` from '@/types/workOrder'
+ * 
+ * This file is maintained for backward compatibility only.
+ */
+
+import { useWorkOrders } from './useWorkOrders';
+import type { WorkOrder } from '@/types/workOrder';
 
 /**
- * Hook to fetch enhanced work orders using WorkOrderService
+ * @deprecated Use useWorkOrders from '@/hooks/useWorkOrders' instead.
+ * 
+ * Hook to fetch work orders using WorkOrderService
  * @param organizationId - The organization ID to fetch work orders for
  * @returns TanStack Query result with work orders
  */
 export const useEnhancedWorkOrders = (organizationId?: string) => {
-  return useQuery({
-    queryKey: ['enhanced-work-orders', organizationId],
-    queryFn: async (): Promise<WorkOrder[]> => {
-      if (!organizationId) return [];
-      
-      const service = new WorkOrderService(organizationId);
-      const response = await service.getAll();
-      
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch work orders');
-      }
-      
-      return response.data || [];
-    },
-    enabled: !!organizationId,
-    staleTime: 30 * 1000, // 30 seconds - reduced for more frequent updates
-    refetchOnWindowFocus: true, // Refetch when user returns to the tab
-    refetchOnMount: true, // Always refetch when component mounts
+  return useWorkOrders(organizationId, {
+    // Maintain original behavior
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
   });
 };
 
 // Re-export WorkOrder type for backward compatibility
-export type { WorkOrder } from '@/services/WorkOrderService';
+export type { WorkOrder } from '@/types/workOrder';
+
+/**
+ * @deprecated Use WorkOrder from '@/types/workOrder' instead.
+ */
+export type EnhancedWorkOrder = WorkOrder;

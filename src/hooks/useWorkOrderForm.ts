@@ -1,7 +1,7 @@
 
 import { useEffect, useRef, useMemo } from 'react';
 import { useFormValidation } from '@/hooks/useFormValidation';
-import { EnhancedWorkOrder } from '@/services/workOrderDataService';
+import type { WorkOrder as EnhancedWorkOrder } from '@/types/workOrder';
 import { 
   workOrderFormSchema, 
   getDefaultWorkOrderFormValues,

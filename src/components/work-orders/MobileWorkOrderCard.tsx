@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, User, Clock, Users, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
-import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
+import type { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useWorkOrderStatusUpdate } from '@/hooks/useWorkOrderStatusUpdate';

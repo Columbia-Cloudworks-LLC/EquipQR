@@ -4,7 +4,7 @@ import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/components/work-orders/hooks/useWorkOrderCreationEnhanced';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/hooks/useWorkOrderUpdate';
 import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from '@/hooks/useHistoricalWorkOrders';
-import { EnhancedWorkOrder } from '@/services/workOrderDataService';
+import type { WorkOrder as EnhancedWorkOrder } from '@/types/workOrder';
 import { WorkOrderFormData } from './useWorkOrderForm';
 import { dateToISOString } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
