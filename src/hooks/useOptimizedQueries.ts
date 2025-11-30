@@ -1,14 +1,12 @@
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { 
   getOptimizedTeamsByOrganization,
-  getOptimizedWorkOrdersByOrganization,
   getOptimizedDashboardStats,
-  getOptimizedEquipmentByOrganization,
   type Team,
-  type WorkOrder,
-  type DashboardStats,
-  type Equipment
+  type DashboardStats
 } from '@/services/optimizedSupabaseDataService';
+import { WorkOrderService, WorkOrder } from '@/services/WorkOrderService';
+import { EquipmentService, Equipment } from '@/services/EquipmentService';
 import { useMemo } from 'react';
 
 // Optimized hook with better caching and stale times
@@ -23,10 +21,19 @@ export const useOptimizedTeams = (organizationId?: string) => {
 };
 
 // Optimized work orders with better caching strategy
+// Now uses WorkOrderService.getAll() with optimized joins
 export const useOptimizedWorkOrders = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['work-orders-optimized', organizationId],
-    queryFn: () => organizationId ? getOptimizedWorkOrdersByOrganization(organizationId) : [],
+    queryKey: ['work-orders', organizationId],
+    queryFn: async () => {
+      if (!organizationId) return [];
+      const service = new WorkOrderService(organizationId);
+      const result = await service.getAll();
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to fetch work orders');
+    },
     enabled: !!organizationId,
     staleTime: 2 * 60 * 1000, // 2 minutes - work orders change more frequently
     gcTime: 5 * 60 * 1000,
@@ -46,11 +53,19 @@ export const useOptimizedDashboard = (organizationId?: string) => {
 };
 
 // Equipment with smart caching
-// @deprecated Use useEquipment from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
+// Now uses EquipmentService.getAll() - unified with useEquipment hook
 export const useOptimizedEquipment = (organizationId?: string) => {
   return useQuery({
-    queryKey: ['equipment-optimized', organizationId],
-    queryFn: () => organizationId ? getOptimizedEquipmentByOrganization(organizationId) : [],
+    queryKey: ['equipment', organizationId, {}, {}],
+    queryFn: async () => {
+      if (!organizationId) return [];
+      const service = new EquipmentService(organizationId);
+      const result = await service.getAll();
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to fetch equipment');
+    },
     enabled: !!organizationId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000,
@@ -68,14 +83,30 @@ export const useOptimizedMultiQuery = (organizationId?: string) => {
         staleTime: 10 * 60 * 1000,
       },
       {
-        queryKey: ['work-orders-optimized', organizationId],
-        queryFn: () => organizationId ? getOptimizedWorkOrdersByOrganization(organizationId) : [],
+        queryKey: ['work-orders', organizationId],
+        queryFn: async () => {
+          if (!organizationId) return [];
+          const service = new WorkOrderService(organizationId);
+          const result = await service.getAll();
+          if (result.success && result.data) {
+            return result.data;
+          }
+          throw new Error(result.error || 'Failed to fetch work orders');
+        },
         enabled: !!organizationId,
         staleTime: 2 * 60 * 1000,
       },
       {
-        queryKey: ['equipment-optimized', organizationId],
-        queryFn: () => organizationId ? getOptimizedEquipmentByOrganization(organizationId) : [],
+        queryKey: ['equipment', organizationId, {}, {}],
+        queryFn: async () => {
+          if (!organizationId) return [];
+          const service = new EquipmentService(organizationId);
+          const result = await service.getAll();
+          if (result.success && result.data) {
+            return result.data;
+          }
+          throw new Error(result.error || 'Failed to fetch equipment');
+        },
         enabled: !!organizationId,
         staleTime: 5 * 60 * 1000,
       },
@@ -148,3 +179,8 @@ export const useWorkOrderStats = (organizationId?: string) => {
     };
   }, [workOrders]);
 };
+
+// Re-export types for convenience
+export type { WorkOrder } from '@/services/WorkOrderService';
+export type { Equipment } from '@/services/EquipmentService';
+export type { Team, DashboardStats } from '@/services/optimizedSupabaseDataService';

@@ -2,7 +2,9 @@ import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 
-// Optimized types with computed fields
+// Types with computed fields
+// Note: These types are kept for backward compatibility with components that import them.
+// Prefer using types from the respective service files (EquipmentService, WorkOrderService).
 export type Equipment = Tables<'equipment'>;
 export type Note = Tables<'notes'> & {
   authorName?: string;
@@ -33,7 +35,14 @@ export interface DashboardStats {
   pendingWorkOrders: number;
 }
 
-// OPTIMIZED: Single query with joins instead of multiple calls
+// ============================================
+// Teams - Will be consolidated into TeamService in Phase 2
+// ============================================
+
+/**
+ * OPTIMIZED: Single query with joins instead of multiple calls
+ * Fetches all teams for an organization with member info and work order counts
+ */
 export const getOptimizedTeamsByOrganization = async (organizationId: string): Promise<Team[]> => {
   try {
     // Single query to get teams with members using joins
@@ -92,48 +101,14 @@ export const getOptimizedTeamsByOrganization = async (organizationId: string): P
   }
 };
 
-// OPTIMIZED: Single query with all joins for work orders
-export const getOptimizedWorkOrdersByOrganization = async (organizationId: string): Promise<WorkOrder[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('work_orders')
-      .select(`
-        *,
-        assignee:profiles!work_orders_assignee_id_fkey (
-          id,
-          name
-        ),
-        equipment:equipment!work_orders_equipment_id_fkey (
-          id,
-          name,
-          team_id,
-          teams:team_id (
-            id,
-            name
-          )
-        )
-      `)
-      .eq('organization_id', organizationId)
-      .order('created_date', { ascending: false });
+// ============================================
+// Dashboard Stats - Will be consolidated into DashboardService in Phase 2
+// ============================================
 
-    if (error) {
-      logger.error('Error fetching optimized work orders:', error);
-      return [];
-    }
-
-    return (data || []).map(wo => ({
-      ...wo,
-      assigneeName: (wo.assignee as { name?: string } | null | undefined)?.name,
-      teamName: (wo.equipment as { teams?: { name?: string } } | null | undefined)?.teams?.name,
-      equipmentName: (wo.equipment as { name?: string } | null | undefined)?.name
-    }));
-  } catch (error) {
-    logger.error('Error in getOptimizedWorkOrdersByOrganization:', error);
-    return [];
-  }
-};
-
-// OPTIMIZED: Batch queries for dashboard stats
+/**
+ * OPTIMIZED: Batch queries for dashboard stats
+ * Fetches equipment and work order stats in parallel
+ */
 export const getOptimizedDashboardStats = async (organizationId: string): Promise<DashboardStats> => {
   try {
     // Batch both queries at once
@@ -169,103 +144,5 @@ export const getOptimizedDashboardStats = async (organizationId: string): Promis
       completedWorkOrders: 0,
       pendingWorkOrders: 0
     };
-  }
-};
-
-// OPTIMIZED: Single query with join for notes
-export const getOptimizedNotesByEquipmentId = async (organizationId: string, equipmentId: string): Promise<Note[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('notes')
-      .select(`
-        *,
-        author:profiles!notes_author_id_fkey (
-          id,
-          name
-        ),
-        equipment!inner (
-          organization_id
-        )
-      `)
-      .eq('equipment_id', equipmentId)
-      .eq('equipment.organization_id', organizationId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      logger.error('Error fetching optimized notes:', error);
-      return [];
-    }
-
-    return (data || []).map(note => ({
-      ...note,
-      authorName: (note.author as { name?: string } | null | undefined)?.name || 'Unknown'
-    }));
-  } catch (error) {
-    logger.error('Error in getOptimizedNotesByEquipmentId:', error);
-    return [];
-  }
-};
-
-// OPTIMIZED: Batch equipment queries
-// @deprecated Use EquipmentService.getAll() instead. Will be removed in Phase 2.
-export const getOptimizedEquipmentByOrganization = async (organizationId: string): Promise<Equipment[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('equipment')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .order('name');
-
-    if (error) {
-      logger.error('Error fetching equipment:', error);
-      return [];
-    }
-
-    return data || [];
-  } catch (error) {
-    logger.error('Error in getOptimizedEquipmentByOrganization:', error);
-    return [];
-  }
-};
-
-// OPTIMIZED: Single work order query with all related data
-export const getOptimizedWorkOrderById = async (organizationId: string, workOrderId: string): Promise<WorkOrder | undefined> => {
-  try {
-    const { data, error } = await supabase
-      .from('work_orders')
-      .select(`
-        *,
-        assignee:profiles!work_orders_assignee_id_fkey (
-          id,
-          name
-        ),
-        equipment:equipment!work_orders_equipment_id_fkey (
-          id,
-          name,
-          team_id,
-          teams:team_id (
-            id,
-            name
-          )
-        )
-      `)
-      .eq('id', workOrderId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (error || !data) {
-      logger.error('Error fetching optimized work order by ID:', error);
-      return undefined;
-    }
-
-    return {
-      ...data,
-      assigneeName: (data.assignee as { name?: string } | null | undefined)?.name,
-      teamName: (data.equipment as { teams?: { name?: string } } | null | undefined)?.teams?.name,
-      equipmentName: (data.equipment as { name?: string } | null | undefined)?.name
-    };
-  } catch (error) {
-    logger.error('Error in getOptimizedWorkOrderById:', error);
-    return undefined;
   }
 };

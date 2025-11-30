@@ -1,18 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { 
-  getFilteredWorkOrdersByOrganization, 
-  getMyWorkOrders, 
-  getTeamWorkOrders,
-  getEquipmentWorkOrders,
-  getOverdueWorkOrders,
-  getWorkOrdersDueToday,
-  type WorkOrderFilters 
-} from '@/services/optimizedWorkOrderService';
+import { WorkOrderService, WorkOrderFilters, WorkOrder } from '@/services/WorkOrderService';
+
+export type { WorkOrderFilters, WorkOrder } from '@/services/WorkOrderService';
 
 export const useOptimizedFilteredWorkOrders = (organizationId: string, filters?: WorkOrderFilters) => {
   return useQuery({
-    queryKey: ['work-orders-filtered-optimized', organizationId, filters],
-    queryFn: () => getFilteredWorkOrdersByOrganization(organizationId, filters),
+    queryKey: ['work-orders', organizationId, filters],
+    queryFn: async (): Promise<WorkOrder[]> => {
+      const service = new WorkOrderService(organizationId);
+      const result = await service.getAll(filters);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to fetch work orders');
+    },
     enabled: !!organizationId,
     staleTime: 30 * 1000, // 30 seconds
   });
@@ -20,8 +21,15 @@ export const useOptimizedFilteredWorkOrders = (organizationId: string, filters?:
 
 export const useOptimizedMyWorkOrders = (organizationId: string, userId: string) => {
   return useQuery({
-    queryKey: ['my-work-orders-optimized', organizationId, userId],
-    queryFn: () => getMyWorkOrders(organizationId, userId),
+    queryKey: ['work-orders', organizationId, { assigneeId: userId }],
+    queryFn: async (): Promise<WorkOrder[]> => {
+      const service = new WorkOrderService(organizationId);
+      const result = await service.getMyWorkOrders(userId);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to fetch my work orders');
+    },
     enabled: !!organizationId && !!userId,
     staleTime: 30 * 1000,
   });
@@ -30,11 +38,18 @@ export const useOptimizedMyWorkOrders = (organizationId: string, userId: string)
 export const useOptimizedTeamWorkOrders = (
   organizationId: string, 
   teamId: string, 
-  status?: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled' | 'all'
+  status?: WorkOrder['status'] | 'all'
 ) => {
   return useQuery({
-    queryKey: ['team-work-orders-optimized', organizationId, teamId, status],
-    queryFn: () => getTeamWorkOrders(organizationId, teamId, status),
+    queryKey: ['work-orders', organizationId, { teamId, status }],
+    queryFn: async (): Promise<WorkOrder[]> => {
+      const service = new WorkOrderService(organizationId);
+      const result = await service.getTeamWorkOrders(teamId, status);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to fetch team work orders');
+    },
     enabled: !!organizationId && !!teamId,
     staleTime: 30 * 1000,
   });
@@ -43,11 +58,18 @@ export const useOptimizedTeamWorkOrders = (
 export const useOptimizedEquipmentWorkOrders = (
   organizationId: string, 
   equipmentId: string, 
-  status?: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled' | 'all'
+  status?: WorkOrder['status'] | 'all'
 ) => {
   return useQuery({
-    queryKey: ['equipment-work-orders-optimized', organizationId, equipmentId, status],
-    queryFn: () => getEquipmentWorkOrders(organizationId, equipmentId, status),
+    queryKey: ['work-orders', organizationId, { equipmentId, status }],
+    queryFn: async (): Promise<WorkOrder[]> => {
+      const service = new WorkOrderService(organizationId);
+      const result = await service.getEquipmentWorkOrders(equipmentId, status);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to fetch equipment work orders');
+    },
     enabled: !!organizationId && !!equipmentId,
     staleTime: 30 * 1000,
   });
@@ -55,8 +77,15 @@ export const useOptimizedEquipmentWorkOrders = (
 
 export const useOptimizedOverdueWorkOrders = (organizationId: string) => {
   return useQuery({
-    queryKey: ['overdue-work-orders-optimized', organizationId],
-    queryFn: () => getOverdueWorkOrders(organizationId),
+    queryKey: ['work-orders', organizationId, { dueDateFilter: 'overdue' }],
+    queryFn: async (): Promise<WorkOrder[]> => {
+      const service = new WorkOrderService(organizationId);
+      const result = await service.getOverdueWorkOrders();
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to fetch overdue work orders');
+    },
     enabled: !!organizationId,
     staleTime: 60 * 1000, // 1 minute
   });
@@ -64,8 +93,15 @@ export const useOptimizedOverdueWorkOrders = (organizationId: string) => {
 
 export const useOptimizedWorkOrdersDueToday = (organizationId: string) => {
   return useQuery({
-    queryKey: ['work-orders-due-today-optimized', organizationId],
-    queryFn: () => getWorkOrdersDueToday(organizationId),
+    queryKey: ['work-orders', organizationId, { dueDateFilter: 'today' }],
+    queryFn: async (): Promise<WorkOrder[]> => {
+      const service = new WorkOrderService(organizationId);
+      const result = await service.getWorkOrdersDueToday();
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to fetch work orders due today');
+    },
     enabled: !!organizationId,
     staleTime: 60 * 1000, // 1 minute
   });
