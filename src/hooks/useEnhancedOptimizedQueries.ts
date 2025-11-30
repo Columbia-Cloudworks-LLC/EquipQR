@@ -6,7 +6,7 @@
  */
 
 import { useEffect } from 'react';
-import { useOptimizedTeams, useOptimizedEquipment, useOptimizedDashboard } from './useOptimizedQueries';
+import { useTeams, useCachedEquipment, useDashboard } from './useQueries';
 import { useWorkOrders } from './useWorkOrders';
 import { useBackgroundSync, useCacheInvalidation } from './useCacheInvalidation';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
@@ -15,7 +15,7 @@ import { performanceMonitor } from '@/utils/performanceMonitoring';
  * Hook for teams with background sync
  */
 export const useEnhancedOptimizedTeams = (organizationId?: string) => {
-  const query = useOptimizedTeams(organizationId);
+  const query = useTeams(organizationId);
   const { subscribeToOrganization } = useBackgroundSync();
   
   useEffect(() => {
@@ -47,7 +47,7 @@ export const useEnhancedOptimizedWorkOrders = (organizationId?: string) => {
 
 // @deprecated Use useEquipment from '@/components/equipment/hooks/useEquipment' with enableBackgroundSync option instead. Will be removed in Phase 2.
 export const useEnhancedOptimizedEquipment = (organizationId?: string) => {
-  const query = useOptimizedEquipment(organizationId);
+  const query = useCachedEquipment(organizationId);
   const { subscribeToOrganization } = useBackgroundSync();
   
   useEffect(() => {
@@ -61,7 +61,7 @@ export const useEnhancedOptimizedEquipment = (organizationId?: string) => {
 };
 
 export const useEnhancedOptimizedDashboard = (organizationId?: string) => {
-  const query = useOptimizedDashboard(organizationId);
+  const query = useDashboard(organizationId);
   const { subscribeToOrganization, startPeriodicSync } = useBackgroundSync();
   
   useEffect(() => {

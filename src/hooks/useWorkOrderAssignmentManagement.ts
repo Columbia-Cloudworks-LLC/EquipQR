@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
-import { useWorkOrderAssignmentOptions } from './useOptimizedWorkOrderAssignment';
+import { useWorkOrderAssignmentOptions } from './useWorkOrderAssignment';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 
 export interface AssignmentUpdateData {

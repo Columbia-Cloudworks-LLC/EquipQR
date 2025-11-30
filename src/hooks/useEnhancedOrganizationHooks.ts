@@ -13,7 +13,7 @@ export {
   useUpdateMemberRole,
   useRemoveMember,
   type RealOrganizationMember
-} from './useOptimizedOrganizationMembers';
+} from './useOrganizationMembers';
 
 // Enhanced variants with background sync
 export {

@@ -1,5 +1,5 @@
 /**
- * Optimized Query Hooks - Canonical hooks for data fetching
+ * Query Hooks - Canonical hooks for data fetching
  * 
  * These hooks use consolidated services with optimized caching strategies.
  */
@@ -17,8 +17,8 @@ import { useMemo } from 'react';
 import { useWorkOrders, workOrderKeys } from './useWorkOrders';
 import type { WorkOrder } from '@/types/workOrder';
 
-// Optimized hook with better caching and stale times
-export const useOptimizedTeams = (organizationId?: string) => {
+// Hook with better caching and stale times for teams
+export const useTeams = (organizationId?: string) => {
   return useQuery({
     queryKey: ['teams-optimized', organizationId],
     queryFn: () => organizationId ? getOptimizedTeamsByOrganization(organizationId) : [],
@@ -29,18 +29,28 @@ export const useOptimizedTeams = (organizationId?: string) => {
 };
 
 /**
- * Optimized work orders with better caching strategy
+ * @deprecated Use useTeams instead
+ */
+export const useOptimizedTeams = useTeams;
+
+/**
+ * Work orders with better caching strategy
  * Now uses the unified useWorkOrders hook internally
  */
-export const useOptimizedWorkOrders = (organizationId?: string) => {
+export const useCachedWorkOrders = (organizationId?: string) => {
   return useWorkOrders(organizationId, {
     staleTime: 2 * 60 * 1000, // 2 minutes - work orders change more frequently
     refetchOnWindowFocus: false, // Avoid excessive refetching
   });
 };
 
+/**
+ * @deprecated Use useCachedWorkOrders instead
+ */
+export const useOptimizedWorkOrders = useCachedWorkOrders;
+
 // Dashboard with optimized parallel queries
-export const useOptimizedDashboard = (organizationId?: string) => {
+export const useDashboard = (organizationId?: string) => {
   return useQuery({
     queryKey: ['dashboard-optimized', organizationId],
     queryFn: () => organizationId ? getOptimizedDashboardStats(organizationId) : null,
@@ -50,9 +60,14 @@ export const useOptimizedDashboard = (organizationId?: string) => {
   });
 };
 
+/**
+ * @deprecated Use useDashboard instead
+ */
+export const useOptimizedDashboard = useDashboard;
+
 // Equipment with smart caching
 // Now uses EquipmentService.getAll() - unified with useEquipment hook
-export const useOptimizedEquipment = (organizationId?: string) => {
+export const useCachedEquipment = (organizationId?: string) => {
   return useQuery({
     queryKey: ['equipment', organizationId, {}, {}],
     queryFn: async () => {
@@ -70,8 +85,13 @@ export const useOptimizedEquipment = (organizationId?: string) => {
   });
 };
 
+/**
+ * @deprecated Use useCachedEquipment instead
+ */
+export const useOptimizedEquipment = useCachedEquipment;
+
 // Batch multiple queries efficiently when component needs multiple data sets
-export const useOptimizedMultiQuery = (organizationId?: string) => {
+export const useMultiQuery = (organizationId?: string) => {
   const queries = useQueries({
     queries: [
       {
@@ -147,9 +167,14 @@ export const useOptimizedMultiQuery = (organizationId?: string) => {
   }, [queries]);
 };
 
+/**
+ * @deprecated Use useMultiQuery instead
+ */
+export const useOptimizedMultiQuery = useMultiQuery;
+
 // Hook for computed/derived state with memoization
 export const useWorkOrderStats = (organizationId?: string) => {
-  const { data: workOrders = [] } = useOptimizedWorkOrders(organizationId);
+  const { data: workOrders = [] } = useCachedWorkOrders(organizationId);
   
   return useMemo(() => {
     const byStatus = workOrders.reduce((acc, wo) => {
@@ -182,3 +207,4 @@ export const useWorkOrderStats = (organizationId?: string) => {
 export type { WorkOrder } from '@/types/workOrder';
 export type { Equipment } from '@/services/EquipmentService';
 export type { Team, DashboardStats } from '@/services/supabaseDataService';
+

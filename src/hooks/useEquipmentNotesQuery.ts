@@ -1,8 +1,11 @@
 /**
- * Equipment Notes Hooks - Canonical hooks for equipment notes
+ * Equipment Notes Query Hooks - Canonical hooks for equipment notes queries
  * 
  * These hooks use the consolidated equipmentNotesService.
- * Import from here instead of using separate optimized hooks.
+ * Import from here for basic equipment notes queries.
+ * 
+ * Note: For full CRUD operations with images, use:
+ * @/components/equipment/hooks/useEquipmentNotes
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,7 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 /**
  * Hook for fetching equipment notes
  */
-export const useEquipmentNotes = (equipmentId: string) => {
+export const useEquipmentNotesQuery = (equipmentId: string) => {
   return useQuery({
     queryKey: ['equipment-notes', equipmentId],
     queryFn: () => getEquipmentNotesOptimized(equipmentId),
@@ -24,11 +27,6 @@ export const useEquipmentNotes = (equipmentId: string) => {
     staleTime: 30 * 1000, // 30 seconds
   });
 };
-
-/**
- * @deprecated Use useEquipmentNotes instead
- */
-export const useOptimizedEquipmentNotes = useEquipmentNotes;
 
 /**
  * Hook for fetching user's equipment notes
@@ -43,11 +41,6 @@ export const useUserEquipmentNotes = (equipmentId: string, userId: string) => {
 };
 
 /**
- * @deprecated Use useUserEquipmentNotes instead
- */
-export const useOptimizedUserEquipmentNotes = useUserEquipmentNotes;
-
-/**
  * Hook for fetching recent organization notes
  */
 export const useRecentOrganizationNotes = (organizationId: string, limit?: number) => {
@@ -60,14 +53,9 @@ export const useRecentOrganizationNotes = (organizationId: string, limit?: numbe
 };
 
 /**
- * @deprecated Use useRecentOrganizationNotes instead
+ * Hook for creating equipment notes (basic, without images)
  */
-export const useOptimizedRecentOrganizationNotes = useRecentOrganizationNotes;
-
-/**
- * Hook for creating equipment notes
- */
-export const useCreateEquipmentNote = () => {
+export const useCreateEquipmentNoteBasic = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -99,3 +87,4 @@ export const useCreateEquipmentNote = () => {
     },
   });
 };
+

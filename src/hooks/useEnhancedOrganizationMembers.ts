@@ -11,7 +11,7 @@ import {
   useOrganizationMemberStats, 
   useUpdateMemberRole, 
   useRemoveMember 
-} from './useOptimizedOrganizationMembers';
+} from './useOrganizationMembers';
 import { useBackgroundSync } from './useCacheInvalidation';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
 
@@ -50,18 +50,18 @@ export const useEnhancedOrganizationMemberStats = (organizationId?: string) => {
 };
 
 /**
- * @deprecated Use useUpdateMemberRole from useOptimizedOrganizationMembers instead
+ * @deprecated Use useUpdateMemberRole from useOrganizationMembers instead
  */
 export const useEnhancedUpdateMemberRole = (organizationId: string) => {
   return useUpdateMemberRole(organizationId);
 };
 
 /**
- * @deprecated Use useRemoveMember from useOptimizedOrganizationMembers instead
+ * @deprecated Use useRemoveMember from useOrganizationMembers instead
  */
 export const useEnhancedRemoveMember = (organizationId: string) => {
   return useRemoveMember(organizationId);
 };
 
 // Re-export types for convenience
-export type { RealOrganizationMember } from './useOptimizedOrganizationMembers';
+export type { RealOrganizationMember } from './useOrganizationMembers';

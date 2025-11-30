@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/hooks/useOrganizationInvitations';
 import { useTeamMembership } from '@/hooks/useTeamMembership';
-import { useUpdateMemberRole, useRemoveMember } from '@/hooks/useOptimizedOrganizationMembers';
+import { useUpdateMemberRole, useRemoveMember } from '@/hooks/useOrganizationMembers';
 import type { OrganizationMember } from '@/types/organization';
 import { getRoleBadgeVariant } from '@/utils/badgeVariants';
 import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';

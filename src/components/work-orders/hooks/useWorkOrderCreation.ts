@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
-export interface EnhancedCreateWorkOrderData {
+export interface CreateWorkOrderData {
   title: string;
   description: string;
   equipmentId: string;
@@ -20,13 +20,13 @@ export interface EnhancedCreateWorkOrderData {
   assignmentId?: string;
 }
 
-export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: { id: string; [key: string]: unknown }) => void }) => {
+export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: string; [key: string]: unknown }) => void }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: async (data: EnhancedCreateWorkOrderData) => {
+    mutationFn: async (data: CreateWorkOrderData) => {
       if (!currentOrganization) {
         throw new Error('No organization selected');
       }
@@ -132,10 +132,10 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
       toast.success('Work order created successfully');
       
       // Invalidate relevant queries with standardized keys
-      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization.id] });
-      queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization.id] });
-      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization.id] });
+      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization?.id] });
       
       // Call custom onSuccess if provided, otherwise navigate to work order details
       if (options?.onSuccess) {
@@ -150,4 +150,8 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
     },
   });
 };
+
+// Backward compatibility exports
+export type EnhancedCreateWorkOrderData = CreateWorkOrderData;
+export const useCreateWorkOrderEnhanced = useCreateWorkOrder;
 

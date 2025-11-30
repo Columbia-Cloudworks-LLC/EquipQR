@@ -74,7 +74,7 @@ vi.mock('@/hooks/useTeamMembership', () => ({
   useTeamMembership: vi.fn().mockReturnValue({ teamMemberships: [] }),
 }));
 
-vi.mock('@/hooks/useOptimizedOrganizationMembers', () => ({
+vi.mock('@/hooks/useOrganizationMembers', () => ({
   useUpdateMemberRole: vi.fn().mockReturnValue({ mutateAsync: mockUpdateRole, isPending: false }),
   useRemoveMember: vi.fn().mockReturnValue({ mutateAsync: mockRemoveMember, isPending: false }),
 }));

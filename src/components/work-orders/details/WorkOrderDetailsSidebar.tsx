@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
-import EnhancedWorkOrderStatusManagerWithPM from '@/components/work-orders/EnhancedWorkOrderStatusManagerWithPM';
+import WorkOrderStatusManager from '@/components/work-orders/WorkOrderStatusManager';
 import { WorkOrderDetailsQuickInfo } from './WorkOrderDetailsQuickInfo';
 import { WorkOrderDetailsRequestorStatus } from './WorkOrderDetailsRequestorStatus';
 import { WorkOrderData, EquipmentData, PMData, PermissionLevels, OrganizationData } from '@/types/workOrderDetails';
@@ -52,9 +52,9 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
       )}
 
       <div className="space-y-4 lg:space-y-6">
-        {/* Enhanced Status Management with Assignment - Only managers can change status */}
+        {/* Status Management with Assignment - Only managers can change status */}
         {permissionLevels.isManager && (
-          <EnhancedWorkOrderStatusManagerWithPM 
+          <WorkOrderStatusManager 
             workOrder={workOrder} 
             organizationId={currentOrganization.id}
           />
