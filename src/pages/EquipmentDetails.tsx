@@ -11,7 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import EquipmentDetailsTab from '@/components/equipment/EquipmentDetailsTab';
-import EnhancedEquipmentNotesTab from '@/components/equipment/EnhancedEquipmentNotesTab';
+import EquipmentNotesTab from '@/components/equipment/EquipmentNotesTab';
 import EquipmentWorkOrdersTab from '@/components/equipment/EquipmentWorkOrdersTab';
 import EquipmentImagesTab from '@/components/equipment/EquipmentImagesTab';
 import EquipmentScansTab from '@/components/equipment/EquipmentScansTab';
@@ -348,7 +348,7 @@ const EquipmentDetails = () => {
         </TabsContent>
 
         <TabsContent value="notes">
-          <EnhancedEquipmentNotesTab 
+          <EquipmentNotesTab 
             equipmentId={equipment.id}
           />
         </TabsContent>

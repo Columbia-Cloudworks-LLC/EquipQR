@@ -10,6 +10,7 @@ export type Note = Tables<'notes'> & {
 export type WorkOrder = Tables<'work_orders'> & {
   assigneeName?: string;
   teamName?: string;
+  equipmentName?: string;
 };
 export type Scan = Tables<'scans'> & {
   scannedByName?: string;
@@ -34,6 +35,8 @@ export interface DashboardStats {
   activeEquipment: number;
   maintenanceEquipment: number;
   totalWorkOrders: number;
+  completedWorkOrders?: number;
+  pendingWorkOrders?: number;
 }
 
 // Equipment functions
@@ -262,6 +265,7 @@ export const getNotesByEquipmentId = async (organizationId: string, equipmentId:
 };
 
 // Work orders functions
+// @deprecated Use WorkOrderService.getEquipmentWorkOrders() instead. Will be removed in Phase 2.
 export const getWorkOrdersByEquipmentId = async (organizationId: string, equipmentId: string): Promise<WorkOrder[]> => {
   try {
     const { data, error } = await supabase
@@ -303,6 +307,7 @@ export const getWorkOrdersByEquipmentId = async (organizationId: string, equipme
   }
 };
 
+// @deprecated Use WorkOrderService.getAll() instead. Will be removed in Phase 2.
 export const getAllWorkOrdersByOrganization = async (organizationId: string): Promise<WorkOrder[]> => {
   try {
     // First get all work orders for the organization
@@ -345,6 +350,7 @@ export const getAllWorkOrdersByOrganization = async (organizationId: string): Pr
   }
 };
 
+// @deprecated Use WorkOrderService.getById() instead. Will be removed in Phase 2.
 export const getWorkOrderById = async (organizationId: string, workOrderId: string): Promise<WorkOrder | undefined> => {
   try {
     const { data, error } = await supabase
@@ -464,6 +470,7 @@ export const createScan = async (
 };
 
 // Mutation functions
+// @deprecated Use WorkOrderService.updateStatus() instead. Will be removed in Phase 2.
 export const updateWorkOrderStatus = async (
   organizationId: string,
   workOrderId: string,
@@ -524,6 +531,7 @@ export const createEquipment = async (
 };
 
 // Create work order
+// @deprecated Use WorkOrderService.create() instead. Will be removed in Phase 2.
 export const createWorkOrder = async (
   organizationId: string,
   workOrderData: Omit<WorkOrder, 'id' | 'created_date' | 'updated_at' | 'organization_id' | 'assigneeName' | 'teamName' | 'completed_date' | 'created_by'>
@@ -638,5 +646,113 @@ export const updateEquipment = async (
   } catch (error) {
     logger.error('Error in updateEquipment:', error);
     return null;
+  }
+};
+
+// ============================================
+// Optimized Query Functions (merged from optimizedSupabaseDataService)
+// ============================================
+
+/**
+ * OPTIMIZED: Single query with joins instead of multiple calls
+ * Fetches all teams for an organization with member info and work order counts
+ */
+export const getOptimizedTeamsByOrganization = async (organizationId: string): Promise<Team[]> => {
+  try {
+    // Single query to get teams with members using joins
+    const { data: teamsWithMembers, error } = await supabase
+      .from('teams')
+      .select(`
+        *,
+        team_members:team_members (
+          user_id,
+          role,
+          profiles:user_id!inner (
+            id,
+            name,
+            email
+          )
+        )
+      `)
+      .eq('organization_id', organizationId)
+      .order('name');
+
+    if (error) {
+      logger.error('Error fetching teams with members:', error);
+      return [];
+    }
+
+    if (!teamsWithMembers || teamsWithMembers.length === 0) {
+      return [];
+    }
+
+    // Get work order counts by joining through equipment
+    const { data: workOrderCounts } = await supabase
+      .from('work_orders')
+      .select('equipment_id, equipment:equipment_id(team_id)')
+      .not('status', 'eq', 'completed');
+
+    return teamsWithMembers.map(team => {
+      const teamMembers = (team.team_members || []).map((member: { user_id: string; profiles?: { name?: string; email?: string }; role: TeamMember['role'] }) => ({
+        id: member.user_id,
+        name: member.profiles?.name || 'Unknown',
+        email: member.profiles?.email || '',
+        role: member.role,
+      }));
+
+      const workOrderCount = (workOrderCounts || []).filter(wo => wo.equipment?.team_id === team.id).length;
+
+      return {
+        ...team,
+        memberCount: teamMembers.length,
+        workOrderCount,
+        members: teamMembers
+      };
+    });
+  } catch (error) {
+    logger.error('Error in getOptimizedTeamsByOrganization:', error);
+    return [];
+  }
+};
+
+/**
+ * OPTIMIZED: Batch queries for dashboard stats
+ * Fetches equipment and work order stats in parallel
+ */
+export const getOptimizedDashboardStats = async (organizationId: string): Promise<DashboardStats> => {
+  try {
+    // Batch both queries at once
+    const [equipmentResult, workOrderResult] = await Promise.all([
+      supabase
+        .from('equipment')
+        .select('status')
+        .eq('organization_id', organizationId),
+      supabase
+        .from('work_orders')
+        .select('status')
+        .eq('organization_id', organizationId)
+    ]);
+
+    const equipment = equipmentResult.data || [];
+    const workOrders = workOrderResult.data || [];
+
+    return {
+      totalEquipment: equipment.length,
+      activeEquipment: equipment.filter(e => e.status === 'active').length,
+      maintenanceEquipment: equipment.filter(e => e.status === 'maintenance').length,
+      totalWorkOrders: workOrders.length,
+      completedWorkOrders: workOrders.filter(wo => wo.status === 'completed').length,
+      pendingWorkOrders: workOrders.filter(wo => !['completed', 'cancelled'].includes(wo.status)).length
+    };
+  } catch (error) {
+    logger.error('Error in getOptimizedDashboardStats:', error);
+    return {
+      totalEquipment: 0,
+      activeEquipment: 0,
+      maintenanceEquipment: 0,
+      totalWorkOrders: 0,
+      completedWorkOrders: 0,
+      pendingWorkOrders: 0
+    };
   }
 };

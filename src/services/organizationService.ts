@@ -1,35 +1,52 @@
+/**
+ * Organization Service - Canonical service for organization operations
+ * 
+ * This file consolidates organization-related operations from various sources.
+ * Import from here instead of using optimizedOrganizationService.
+ */
+
 import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import type { 
+  OrganizationMemberRecord,
+  OrganizationWithMembership,
+  OrganizationUpdatePayload
+} from '@/types/organization';
 
-export interface OptimizedOrganizationMember {
-  id: string;
-  user_id: string;
-  organization_id: string;
-  role: string;
-  status: string;
-  joined_date: string;
-  user_name?: string;
-  user_email?: string;
-  slot_purchase_id?: string;
-  activated_slot_at?: string;
-}
+// Re-export types for backward compatibility
+export type { 
+  OrganizationMemberRecord as OptimizedOrganizationMember,
+  OrganizationWithMembership as OptimizedOrganization,
+  OrganizationUpdatePayload
+};
 
-// Get user's organizations using idx_organization_members_user_status
-export interface OptimizedOrganization {
-  id: string;
-  name: string;
-  plan: string;
-  member_count: number;
-  max_members: number;
-  features: unknown;
-  created_at: string;
-  updated_at: string;
-  user_role: string;
-  joined_date: string;
-}
+// ============================================
+// Organization Query Functions
+// ============================================
 
-// Get user's organizations using idx_organization_members_user_status
-export const getUserOrganizationsOptimized = async (userId: string): Promise<OptimizedOrganization[]> => {
+/**
+ * Get organization by ID
+ */
+export const getOrganizationById = async (organizationId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', organizationId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    logger.error('Error fetching organization:', error);
+    return null;
+  }
+};
+
+/**
+ * Get user's organizations using idx_organization_members_user_status
+ */
+export const getUserOrganizations = async (userId: string): Promise<OrganizationWithMembership[]> => {
   try {
     const { data, error } = await supabase
       .from('organization_members')
@@ -70,8 +87,19 @@ export const getUserOrganizationsOptimized = async (userId: string): Promise<Opt
   }
 };
 
-// Get organization members using organization_id index
-export const getOrganizationMembersOptimized = async (organizationId: string): Promise<OptimizedOrganizationMember[]> => {
+/**
+ * @deprecated Use getUserOrganizations instead
+ */
+export const getUserOrganizationsOptimized = getUserOrganizations;
+
+// ============================================
+// Organization Member Functions
+// ============================================
+
+/**
+ * Get organization members using organization_id index
+ */
+export const getOrganizationMembers = async (organizationId: string): Promise<OrganizationMemberRecord[]> => {
   try {
     const { data, error } = await supabase
       .from('organization_members')
@@ -106,8 +134,15 @@ export const getOrganizationMembersOptimized = async (organizationId: string): P
   }
 };
 
-// Get organization admins efficiently
-export const getOrganizationAdminsOptimized = async (organizationId: string): Promise<OptimizedOrganizationMember[]> => {
+/**
+ * @deprecated Use getOrganizationMembers instead
+ */
+export const getOrganizationMembersOptimized = getOrganizationMembers;
+
+/**
+ * Get organization admins efficiently
+ */
+export const getOrganizationAdmins = async (organizationId: string): Promise<OrganizationMemberRecord[]> => {
   try {
     const { data, error } = await supabase
       .from('organization_members')
@@ -143,7 +178,18 @@ export const getOrganizationAdminsOptimized = async (organizationId: string): Pr
   }
 };
 
-// Check user permissions efficiently using idx_organization_members_user_status
+/**
+ * @deprecated Use getOrganizationAdmins instead
+ */
+export const getOrganizationAdminsOptimized = getOrganizationAdmins;
+
+// ============================================
+// Organization Permission Functions
+// ============================================
+
+/**
+ * Check user permissions efficiently using idx_organization_members_user_status
+ */
 export const checkUserOrgAccess = async (userId: string, organizationId: string): Promise<{ hasAccess: boolean; role?: string }> => {
   try {
     const { data, error } = await supabase
@@ -166,14 +212,13 @@ export const checkUserOrgAccess = async (userId: string, organizationId: string)
   }
 };
 
-// Organization update payload type
-export interface OrganizationUpdatePayload {
-  name?: string;
-  logo?: string | null;
-  background_color?: string | null;
-}
+// ============================================
+// Organization Update Functions
+// ============================================
 
-// Update organization information
+/**
+ * Update organization information
+ */
 export const updateOrganization = async (organizationId: string, updates: OrganizationUpdatePayload): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -192,19 +237,3 @@ export const updateOrganization = async (organizationId: string, updates: Organi
   }
 };
 
-// Get organization by ID
-export const getOrganizationById = async (organizationId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('id', organizationId)
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    logger.error('Error fetching organization:', error);
-    return null;
-  }
-};

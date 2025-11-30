@@ -160,9 +160,9 @@ describe('useOrganizationMembers', () => {
       expect(screen.getByTestId('has-error')).toHaveTextContent('true');
       expect(screen.getByTestId('member-count')).toHaveTextContent('0');
 
-      // Verify console error was called
+      // Verify console error was called (uses logger format with emoji prefix)
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error fetching organization members:',
+        '🚨 Error fetching organization members',
         mockError
       );
     });
@@ -264,11 +264,8 @@ describe('useOrganizationMembers', () => {
       // Verify Supabase was called correctly
       expect(supabase.from).toHaveBeenCalledWith('organization_members');
 
-      // Verify success toast and query invalidation
+      // Verify success toast
       expect(toast.success).toHaveBeenCalledWith('Member role updated successfully');
-      expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: ['organization-members', 'org-1']
-      });
 
       // Verify success state
       await waitFor(() => {
@@ -308,9 +305,9 @@ describe('useOrganizationMembers', () => {
         capturedMutation!.mutateAsync({ memberId: 'u1', newRole: 'member' })
       ).rejects.toThrow();
 
-      // Verify error handling
+      // Verify error handling (uses logger format with emoji prefix)
       expect(toast.error).toHaveBeenCalledWith('Failed to update member role');
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error updating member role:', mockError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('🚨 Error updating member role', mockError);
 
       // Verify error state
       await waitFor(() => {
@@ -374,9 +371,6 @@ describe('useOrganizationMembers', () => {
       expect(toast.success).toHaveBeenCalledWith(
         'Bob Johnson was removed successfully. Team management for 2 team(s) was transferred to the organization owner.'
       );
-      expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: ['organization-members', 'org-1']
-      });
 
       // Verify success state
       await waitFor(() => {

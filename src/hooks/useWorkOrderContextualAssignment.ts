@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AssignmentOption {
   id: string;
@@ -18,6 +19,8 @@ export interface AssignmentWorkOrderContext {
 }
 
 export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrderContext) {
+  const { user } = useAuth();
+  
   const { data: assignmentOptions = [], isLoading, error } = useQuery({
     queryKey: ['workOrderContextualAssignment', workOrder?.id, workOrder?.equipment_id || workOrder?.equipmentId],
     queryFn: async (): Promise<AssignmentOption[]> => {
@@ -29,6 +32,47 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
       if (!equipmentId || !organizationId) {
         return [];
       }
+
+      // Helper function to ensure current user is included
+      const ensureCurrentUserIncluded = async (options: AssignmentOption[]): Promise<AssignmentOption[]> => {
+        if (!user?.id) return options;
+        
+        // Check if current user is already in the list
+        if (options.find(opt => opt.id === user.id)) {
+          return options;
+        }
+
+        // Fetch current user's org membership
+        const { data: currentUserMember } = await supabase
+          .from('organization_members')
+          .select(`
+            user_id,
+            role,
+            profiles!inner(
+              id,
+              name,
+              email
+            )
+          `)
+          .eq('organization_id', organizationId)
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .single();
+
+        if (currentUserMember) {
+          return [
+            ...options,
+            {
+              id: currentUserMember.user_id,
+              name: currentUserMember.profiles.name,
+              email: currentUserMember.profiles.email,
+              role: currentUserMember.role
+            }
+          ];
+        }
+
+        return options;
+      };
 
       // If we already have team information from the enhanced work order, use it
       if (equipmentTeamId) {
@@ -51,12 +95,15 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
           throw teamError;
         }
 
-        return teamMembers.map(member => ({
+        const options = teamMembers.map(member => ({
           id: member.user_id,
           name: member.profiles.name,
           email: member.profiles.email,
           role: member.role
         }));
+
+        // Always include current user if they're an active org member, even if not in team
+        return ensureCurrentUserIncluded(options);
       } else {
         // First, get the equipment details to check if it has a team (fallback for older work orders)
         const { data: equipment, error: equipmentError } = await supabase
@@ -91,14 +138,18 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
             throw teamError;
           }
 
-          return teamMembers.map(member => ({
+          const options = teamMembers.map(member => ({
             id: member.user_id,
             name: member.profiles.name,
             email: member.profiles.email,
             role: member.role
           }));
+
+          // Always include current user if they're an active org member, even if not in team
+          return ensureCurrentUserIncluded(options);
         } else {
-          // If equipment is not assigned to a team, get only org admins and owners
+          // If equipment is not assigned to a team, get ALL active organization members
+          // (not just owners/admins, so regular members can also be assigned)
           const { data: orgMembers, error: orgError } = await supabase
             .from('organization_members')
             .select(`
@@ -112,7 +163,7 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
             `)
             .eq('organization_id', organizationId)
             .eq('status', 'active')
-            .in('role', ['owner', 'admin']);
+            .in('role', ['owner', 'admin', 'member']); // Include 'member' role
 
           if (orgError) {
             console.error('Error fetching organization members:', orgError);

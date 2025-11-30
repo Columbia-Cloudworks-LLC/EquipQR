@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { OptimizedOrganizationStorageService, type StorageUsage } from '@/services/optimizedOrganizationStorageService';
+import { OrganizationStorageService, type StorageUsage } from '@/services/organizationStorageService';
 
 export type { StorageUsage };
 
 /**
- * Optimized hook for fetching organization storage usage
+ * Hook for fetching organization storage usage
  * Uses server-side aggregation and proper organization filtering
  */
 export const useOrganizationStorageUsage = (organizationId?: string) => {
@@ -15,13 +15,13 @@ export const useOrganizationStorageUsage = (organizationId?: string) => {
   const targetOrgId = organizationId || currentOrganization?.id;
 
   return useQuery({
-    queryKey: ['organization-storage-usage-optimized', targetOrgId],
+    queryKey: ['organization-storage-usage', targetOrgId],
     queryFn: async (): Promise<StorageUsage> => {
       if (!targetOrgId) {
         throw new Error('No organization selected');
       }
 
-      return OptimizedOrganizationStorageService.getOrganizationStorageUsage(
+      return OrganizationStorageService.getOrganizationStorageUsage(
         targetOrgId
       );
     },
@@ -49,7 +49,7 @@ export const useDetailedStorageBreakdown = (organizationId?: string) => {
         throw new Error('No organization selected');
       }
 
-      return OptimizedOrganizationStorageService.getDetailedStorageBreakdown(
+      return OrganizationStorageService.getDetailedStorageBreakdown(
         targetOrgId
       );
     },

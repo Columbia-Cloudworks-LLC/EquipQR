@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, User, Clock, Users, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
-import { EnhancedWorkOrder } from '@/services/workOrdersEnhancedService';
+import type { WorkOrder } from '@/types/workOrder';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useWorkOrderStatusUpdate } from '@/hooks/useWorkOrderStatusUpdate';
@@ -18,8 +18,8 @@ import { logger } from '@/utils/logger';
 import { Loader2 } from 'lucide-react';
 
 interface MobileWorkOrderCardProps {
-  order: EnhancedWorkOrder;
-  onAcceptClick: (order: EnhancedWorkOrder) => void;
+  order: WorkOrder;
+  onAcceptClick: (order: WorkOrder) => void;
   onStatusUpdate: (workOrderId: string, newStatus: string) => void;
   isUpdating: boolean;
   isAccepting: boolean;

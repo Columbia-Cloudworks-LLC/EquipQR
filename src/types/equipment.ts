@@ -1,4 +1,38 @@
+/**
+ * Equipment Types - Consolidated type definitions
+ * 
+ * This file serves as the single source of truth for equipment types.
+ * Import from here instead of defining types locally in components/hooks.
+ */
+
 import { z } from 'zod';
+
+// ============================================
+// Core Status Type
+// ============================================
+
+export type EquipmentStatus = 'active' | 'maintenance' | 'inactive';
+
+// ============================================
+// Location Types
+// ============================================
+
+export interface EquipmentLocation {
+  latitude: number;
+  longitude: number;
+  address?: string;
+  timestamp?: string;
+}
+
+// ============================================
+// Custom Attributes Type
+// ============================================
+
+export type CustomAttributes = Record<string, string | number | boolean | null>;
+
+// ============================================
+// Zod Schemas for Validation
+// ============================================
 
 // Custom attributes schema for better type safety
 const customAttributesSchema = z.record(z.string(), z.union([
@@ -72,27 +106,29 @@ export const createEquipmentValidationSchema = (context?: EquipmentValidationCon
 
 export type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
 
-// Strongly-typed Equipment record used across forms and pages (DB shape)
+// ============================================
+// Equipment Record Types
+// ============================================
+
+/**
+ * Strongly-typed Equipment record used across forms and pages (DB shape)
+ * This is the primary type for equipment data
+ */
 export interface EquipmentRecord {
   id: string;
   name: string;
   manufacturer: string;
   model: string;
   serial_number: string;
-  status: 'active' | 'maintenance' | 'inactive';
+  status: EquipmentStatus;
   location: string;
   installation_date: string;
   warranty_expiration: string | null;
   last_maintenance: string | null;
   notes?: string | null;
-  custom_attributes?: Record<string, string | number | boolean | null>;
+  custom_attributes?: CustomAttributes;
   image_url?: string | null;
-  last_known_location?: {
-    latitude: number;
-    longitude: number;
-    address?: string;
-    timestamp?: string;
-  } | null;
+  last_known_location?: EquipmentLocation | null;
   team_id?: string | null;
   organization_id?: string;
   created_at?: string;
@@ -100,4 +136,56 @@ export interface EquipmentRecord {
   // Optional app-specific fields
   working_hours?: number;
   default_pm_template_id?: string | null;
+}
+
+/**
+ * Equipment with team information (from joins)
+ */
+export interface EquipmentWithTeam extends EquipmentRecord {
+  team_name?: string;
+}
+
+// ============================================
+// Equipment Filter Types
+// ============================================
+
+export interface EquipmentFilters {
+  status?: EquipmentStatus;
+  location?: string;
+  manufacturer?: string;
+  model?: string;
+  team_id?: string | null;
+  search?: string;
+  // Team-based access control
+  userTeamIds?: string[];
+  isOrgAdmin?: boolean;
+}
+
+// ============================================
+// Equipment Note Types
+// ============================================
+
+export interface EquipmentNote {
+  id: string;
+  equipment_id: string;
+  author_id: string;
+  content: string;
+  is_private: boolean;
+  created_at: string;
+  updated_at: string;
+  authorName?: string;
+}
+
+// ============================================
+// Equipment Scan Types
+// ============================================
+
+export interface EquipmentScan {
+  id: string;
+  equipment_id: string;
+  scanned_by: string;
+  scanned_at: string;
+  location?: string | null;
+  notes?: string | null;
+  scannedByName?: string;
 }

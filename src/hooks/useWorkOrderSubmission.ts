@@ -1,10 +1,10 @@
 
 
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { useCreateWorkOrderEnhanced, EnhancedCreateWorkOrderData } from '@/components/work-orders/hooks/useWorkOrderCreationEnhanced';
+import { useCreateWorkOrder, CreateWorkOrderData } from '@/components/work-orders/hooks/useWorkOrderCreation';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/hooks/useWorkOrderUpdate';
 import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from '@/hooks/useHistoricalWorkOrders';
-import { EnhancedWorkOrder } from '@/services/workOrderDataService';
+import type { WorkOrder as EnhancedWorkOrder } from '@/types/workOrder';
 import { WorkOrderFormData } from './useWorkOrderForm';
 import { dateToISOString } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -21,7 +21,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
   const isEditMode = !!workOrder;
 
   // Always call hooks in the same order to avoid hook order violations
-  const createWorkOrderMutation = useCreateWorkOrderEnhanced();
+  const createWorkOrderMutation = useCreateWorkOrder();
   const updateWorkOrderMutation = useUpdateWorkOrder();
   const createHistoricalWorkOrderMutation = useCreateHistoricalWorkOrder({
     onSuccess: (createdWorkOrder) => {
@@ -75,7 +75,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
         // Navigation and success handled by the hook's onSuccess callback
       } else {
         // Create new regular work order - handle UUID fields properly
-        const workOrderData: EnhancedCreateWorkOrderData = {
+        const workOrderData: CreateWorkOrderData = {
           title: data.title,
           description: data.description,
           equipmentId: data.equipmentId,

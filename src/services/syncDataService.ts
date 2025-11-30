@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getEquipmentByOrganization, getEquipmentById, getAllWorkOrdersByOrganization, getWorkOrdersByEquipmentId, getTeamsByOrganization, getScansByEquipmentId, getNotesByEquipmentId, getDashboardStatsByOrganization } from './supabaseDataService';
-import { getWorkOrderByIdWithAssignee } from './workOrderDataService';
+import { WorkOrderService } from './WorkOrderService';
 
 export interface Equipment {
   id: string;
@@ -112,7 +112,14 @@ export const useSyncWorkOrdersByOrganization = (organizationId?: string) => {
 export const useSyncWorkOrderById = (organizationId: string, workOrderId: string) => {
   return useQuery({
     queryKey: ['workOrder', organizationId, workOrderId],
-    queryFn: () => getWorkOrderByIdWithAssignee(organizationId, workOrderId),
+    queryFn: async () => {
+      const service = new WorkOrderService(organizationId);
+      const result = await service.getById(workOrderId);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      return null;
+    },
     enabled: !!organizationId && !!workOrderId,
     staleTime: 2 * 60 * 1000,
   });
@@ -192,7 +199,14 @@ export const useSyncDashboardStats = (organizationId?: string) => {
 export const useSyncWorkOrderByIdEnhanced = (organizationId: string, workOrderId: string) => {
   return useQuery({
     queryKey: ['workOrder', 'enhanced', organizationId, workOrderId],
-    queryFn: () => getWorkOrderByIdWithAssignee(organizationId, workOrderId),
+    queryFn: async () => {
+      const service = new WorkOrderService(organizationId);
+      const result = await service.getById(workOrderId);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      return null;
+    },
     enabled: !!organizationId && !!workOrderId,
     staleTime: 1 * 60 * 1000, // 1 minute for enhanced queries
     refetchInterval: 30 * 1000, // Refetch every 30 seconds for real-time updates

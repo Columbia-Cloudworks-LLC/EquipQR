@@ -1,14 +1,13 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { createWorkOrder } from '@/services/supabaseDataService';
+import { WorkOrderService } from '@/services/WorkOrderService';
 import { createPM } from '@/services/preventativeMaintenanceService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
-export interface EnhancedCreateWorkOrderData {
+export interface CreateWorkOrderData {
   title: string;
   description: string;
   equipmentId: string;
@@ -21,15 +20,20 @@ export interface EnhancedCreateWorkOrderData {
   assignmentId?: string;
 }
 
-export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: { id: string; [key: string]: unknown }) => void }) => {
+export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: string; [key: string]: unknown }) => void }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: async (data: EnhancedCreateWorkOrderData) => {
+    mutationFn: async (data: CreateWorkOrderData) => {
       if (!currentOrganization) {
         throw new Error('No organization selected');
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('User not authenticated');
       }
 
       // Auto-assign logic for single-user organizations
@@ -39,41 +43,30 @@ export const useCreateWorkOrderEnhanced = (options?: { onSuccess?: (workOrder: {
 
       // If no explicit assignment and it's a single-user org, auto-assign to creator
       if (!assigneeId && !teamId && currentOrganization.memberCount === 1) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          assigneeId = user.id;
-          status = 'assigned';
-        }
+        assigneeId = userData.user.id;
+        status = 'assigned';
       }
 
-      // Create the work order
-const workOrderData = {
+      // Create the work order using WorkOrderService
+      const service = new WorkOrderService(currentOrganization.id);
+      const response = await service.create({
         title: data.title,
         description: data.description,
         equipment_id: data.equipmentId,
         priority: data.priority,
         due_date: data.dueDate,
-        estimated_hours: null, // No longer capturing this in work orders
-        has_pm: data.hasPM || false,
-        pm_required: data.hasPM || false,
+        estimated_hours: undefined,
         assignee_id: assigneeId,
         team_id: teamId,
         status,
-        acceptance_date: status === 'assigned' ? new Date().toISOString() : null,
-        assignee_name: null, // Will be populated by triggers if needed
-        created_by_name: null, // Will be populated by triggers if needed
-        is_historical: false,
-        historical_start_date: null,
-        historical_notes: null,
-        created_by_admin: null,
-        equipment_working_hours_at_creation: data.equipmentWorkingHours || null
-      };
-
-      const workOrder = await createWorkOrder(currentOrganization.id, workOrderData);
+        created_by: userData.user.id
+      });
       
-      if (!workOrder) {
-        throw new Error('Failed to create work order');
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to create work order');
       }
+
+      const workOrder = response.data;
 
       // Multi-equipment linking removed: work orders now support a single equipment only
 
@@ -139,10 +132,10 @@ const workOrderData = {
       toast.success('Work order created successfully');
       
       // Invalidate relevant queries with standardized keys
-      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization.id] });
-      queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization.id] });
-      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization.id] });
+      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization?.id] });
       
       // Call custom onSuccess if provided, otherwise navigate to work order details
       if (options?.onSuccess) {
@@ -157,4 +150,8 @@ const workOrderData = {
     },
   });
 };
+
+// Backward compatibility exports
+export type EnhancedCreateWorkOrderData = CreateWorkOrderData;
+export const useCreateWorkOrderEnhanced = useCreateWorkOrder;
 

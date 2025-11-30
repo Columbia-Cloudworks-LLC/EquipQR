@@ -1,62 +1,36 @@
 import { BaseService, ApiResponse, PaginationParams, FilterParams } from './base/BaseService';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
+import { validateStorageQuota } from '@/utils/storageQuota';
 
-// Use Supabase types for WorkOrder with computed fields
-export type WorkOrderRow = Tables<'work_orders'>;
+// Import and re-export unified types from the single source of truth
+import {
+  WorkOrder,
+  WorkOrderRow,
+  WorkOrderCreateData,
+  WorkOrderUpdateData,
+  WorkOrderNote,
+  WorkOrderNoteCreateData,
+  WorkOrderImage,
+  WorkOrderServiceFilters,
+} from '@/types/workOrder';
 
-export interface WorkOrder extends WorkOrderRow {
-  // Computed fields from joins
-  assigneeName?: string;
-  teamName?: string;
-  equipmentName?: string;
-  equipmentTeamId?: string;
-  equipmentTeamName?: string;
-  createdByName?: string;
-}
+// Re-export types for backward compatibility
+export type {
+  WorkOrder,
+  WorkOrderRow,
+  WorkOrderCreateData,
+  WorkOrderUpdateData,
+  WorkOrderNote,
+  WorkOrderNoteCreateData,
+  WorkOrderImage,
+};
 
-export interface WorkOrderFilters extends FilterParams {
-  status?: WorkOrder['status'] | 'all';
-  priority?: WorkOrder['priority'] | 'all';
-  assigneeId?: string | 'unassigned' | 'all';
-  teamId?: string | 'all';
-  equipmentId?: string;
-  dueDateFilter?: 'overdue' | 'today' | 'this_week';
-  search?: string;
-  // Team-based access control
-  userTeamIds?: string[];
-  isOrgAdmin?: boolean;
-}
-
-export interface WorkOrderCreateData {
-  title: string;
-  description: string;
-  equipment_id: string;
-  priority: WorkOrder['priority'];
-  status?: WorkOrder['status'];
-  assignee_id?: string;
-  team_id?: string;
-  due_date?: string;
-  estimated_hours?: number;
-  created_by: string;
-  is_historical?: boolean;
-  historical_start_date?: string;
-  historical_notes?: string;
-}
-
-export interface WorkOrderUpdateData {
-  title?: string;
-  description?: string;
-  equipment_id?: string;
-  priority?: WorkOrder['priority'];
-  status?: WorkOrder['status'];
-  assignee_id?: string | null;
-  team_id?: string | null;
-  due_date?: string | null;
-  estimated_hours?: number | null;
-  completed_date?: string | null;
-}
+/**
+ * Filters for WorkOrderService.getAll()
+ * Extends base FilterParams with work order specific filters
+ */
+export interface WorkOrderFilters extends FilterParams, WorkOrderServiceFilters {}
 
 // Optimized select query string with all joins
 const WORK_ORDER_SELECT = `
@@ -126,6 +100,8 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
     equipmentTeamId: equipment?.team_id || undefined,
     equipmentTeamName: equipment?.teams?.name || undefined,
     createdByName: creator?.name || undefined,
+    // Assignment object for component compatibility
+    assignedTo: assignee?.id && assignee?.name ? { id: assignee.id, name: assignee.name } : null,
   };
 }
 
@@ -550,7 +526,7 @@ export class WorkOrderService extends BaseService {
   }
 
   // ============================================
-  // Convenience methods (previously in optimizedWorkOrderService.ts)
+  // Convenience methods
   // ============================================
 
   /**
@@ -592,5 +568,442 @@ export class WorkOrderService extends BaseService {
    */
   async getWorkOrdersDueToday(): Promise<ApiResponse<WorkOrder[]>> {
     return this.getAll({ dueDateFilter: 'today' });
+  }
+
+  // ============================================
+  // Work Order Notes Methods
+  // ============================================
+
+  /**
+   * Get notes for a work order with author names and associated images
+   */
+  async getNotes(workOrderId: string): Promise<ApiResponse<WorkOrderNote[]>> {
+    try {
+      // Verify work order belongs to organization
+      const { data: workOrder, error: woError } = await supabase
+        .from('work_orders')
+        .select('id')
+        .eq('id', workOrderId)
+        .eq('organization_id', this.organizationId)
+        .single();
+
+      if (woError || !workOrder) {
+        return this.handleError(new Error('Work order not found'));
+      }
+
+      // Get notes
+      const { data: notes, error: notesError } = await supabase
+        .from('work_order_notes')
+        .select('*')
+        .eq('work_order_id', workOrderId)
+        .order('created_at', { ascending: false });
+
+      if (notesError) {
+        logger.error('Error fetching work order notes:', notesError);
+        return this.handleError(notesError);
+      }
+
+      if (!notes || notes.length === 0) {
+        return this.handleSuccess([]);
+      }
+
+      // Get author names
+      const authorIds = [...new Set(notes.map(note => note.author_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', authorIds);
+
+      // Get all images for this work order
+      const { data: allImages } = await supabase
+        .from('work_order_images')
+        .select('*')
+        .eq('work_order_id', workOrderId)
+        .order('created_at', { ascending: false });
+
+      // Get uploader names for images
+      const uploaderIds = [...new Set((allImages || []).map(img => img.uploaded_by))];
+      let uploaderProfiles: Array<{ id: string; name?: string }> = [];
+      
+      if (uploaderIds.length > 0) {
+        const { data: uploaderData } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', uploaderIds);
+        uploaderProfiles = uploaderData || [];
+      }
+
+      // Map notes with authors and images
+      const enrichedNotes: WorkOrderNote[] = notes.map(note => {
+        const author = (profiles || []).find(p => p.id === note.author_id);
+        const noteImages = (allImages || [])
+          .filter(img => img.note_id === note.id)
+          .map(img => {
+            const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
+            return {
+              ...img,
+              uploaded_by_name: uploader?.name || 'Unknown'
+            };
+          });
+
+        return {
+          ...note,
+          author_name: author?.name || 'Unknown',
+          images: noteImages
+        };
+      });
+
+      return this.handleSuccess(enrichedNotes);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Create a note for a work order
+   */
+  async createNote(
+    workOrderId: string,
+    noteData: WorkOrderNoteCreateData
+  ): Promise<ApiResponse<WorkOrderNote>> {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        return this.handleError(new Error('User not authenticated'));
+      }
+
+      // Verify work order belongs to organization
+      const { data: workOrder, error: woError } = await supabase
+        .from('work_orders')
+        .select('id')
+        .eq('id', workOrderId)
+        .eq('organization_id', this.organizationId)
+        .single();
+
+      if (woError || !workOrder) {
+        return this.handleError(new Error('Work order not found'));
+      }
+
+      const { data: note, error } = await supabase
+        .from('work_order_notes')
+        .insert({
+          work_order_id: workOrderId,
+          author_id: userData.user.id,
+          content: noteData.content,
+          hours_worked: noteData.hours_worked || 0,
+          is_private: noteData.is_private || false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('Error creating work order note:', error);
+        return this.handleError(error);
+      }
+
+      // Get author profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('id', userData.user.id)
+        .single();
+
+      return this.handleSuccess({
+        ...note,
+        author_name: profile?.name || 'Unknown',
+        images: []
+      });
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Create a note with images
+   */
+  async createNoteWithImages(
+    workOrderId: string,
+    noteData: WorkOrderNoteCreateData,
+    images: File[]
+  ): Promise<ApiResponse<WorkOrderNote>> {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        return this.handleError(new Error('User not authenticated'));
+      }
+
+      // Validate storage quota for all files
+      const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);
+      await validateStorageQuota(this.organizationId, totalFileSize);
+
+      // Create the note first
+      const noteResult = await this.createNote(workOrderId, noteData);
+      if (!noteResult.success || !noteResult.data) {
+        return noteResult;
+      }
+
+      const note = noteResult.data;
+      const uploadedImages: WorkOrderImage[] = [];
+
+      // Upload images
+      for (const file of images) {
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${userData.user.id}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('work-order-images')
+            .upload(fileName, file);
+
+          if (uploadError) {
+            logger.error('Failed to upload image:', uploadError);
+            continue;
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('work-order-images')
+            .getPublicUrl(uploadData.path);
+
+          const { data: imageRecord, error: imageError } = await supabase
+            .from('work_order_images')
+            .insert({
+              work_order_id: workOrderId,
+              note_id: note.id,
+              file_name: file.name,
+              file_url: publicUrl,
+              file_size: file.size,
+              mime_type: file.type,
+              uploaded_by: userData.user.id,
+              description: `Attached to note: ${note.id}`
+            })
+            .select()
+            .single();
+
+          if (imageError) {
+            logger.error('Failed to save image record:', imageError);
+            continue;
+          }
+
+          uploadedImages.push({
+            ...imageRecord,
+            uploaded_by_name: note.author_name
+          });
+        } catch (error) {
+          logger.error('Error processing image:', error);
+        }
+      }
+
+      return this.handleSuccess({
+        ...note,
+        images: uploadedImages
+      });
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  // ============================================
+  // Work Order Images Methods
+  // ============================================
+
+  /**
+   * Get all images for a work order
+   */
+  async getImages(workOrderId: string): Promise<ApiResponse<WorkOrderImage[]>> {
+    try {
+      // Verify work order belongs to organization
+      const { data: workOrder, error: woError } = await supabase
+        .from('work_orders')
+        .select('id')
+        .eq('id', workOrderId)
+        .eq('organization_id', this.organizationId)
+        .single();
+
+      if (woError || !workOrder) {
+        return this.handleError(new Error('Work order not found'));
+      }
+
+      const { data: images, error } = await supabase
+        .from('work_order_images')
+        .select('*')
+        .eq('work_order_id', workOrderId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        logger.error('Error fetching work order images:', error);
+        return this.handleError(error);
+      }
+
+      if (!images || images.length === 0) {
+        return this.handleSuccess([]);
+      }
+
+      // Get uploader names
+      const uploaderIds = [...new Set(images.map(img => img.uploaded_by))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', uploaderIds);
+
+      const enrichedImages: WorkOrderImage[] = images.map(image => {
+        const uploader = (profiles || []).find(p => p.id === image.uploaded_by);
+        return {
+          ...image,
+          uploaded_by_name: uploader?.name || 'Unknown'
+        };
+      });
+
+      return this.handleSuccess(enrichedImages);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Upload an image for a work order
+   */
+  async uploadImage(
+    workOrderId: string,
+    file: File,
+    description?: string
+  ): Promise<ApiResponse<WorkOrderImage>> {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        return this.handleError(new Error('User not authenticated'));
+      }
+
+      // Verify work order belongs to organization
+      const { data: workOrder, error: woError } = await supabase
+        .from('work_orders')
+        .select('id')
+        .eq('id', workOrderId)
+        .eq('organization_id', this.organizationId)
+        .single();
+
+      if (woError || !workOrder) {
+        return this.handleError(new Error('Work order not found'));
+      }
+
+      // Validate storage quota
+      await validateStorageQuota(this.organizationId, file.size);
+
+      // Upload file to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userData.user.id}/${workOrderId}/${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('work-order-images')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        logger.error('Error uploading image:', uploadError);
+        return this.handleError(uploadError);
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('work-order-images')
+        .getPublicUrl(uploadData.path);
+
+      // Save image record
+      const { data: imageRecord, error: imageError } = await supabase
+        .from('work_order_images')
+        .insert({
+          work_order_id: workOrderId,
+          uploaded_by: userData.user.id,
+          file_name: file.name,
+          file_url: publicUrl,
+          file_size: file.size,
+          mime_type: file.type,
+          description: description || null
+        })
+        .select()
+        .single();
+
+      if (imageError) {
+        logger.error('Error saving image record:', imageError);
+        return this.handleError(imageError);
+      }
+
+      // Get uploader profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('id', userData.user.id)
+        .single();
+
+      return this.handleSuccess({
+        ...imageRecord,
+        uploaded_by_name: profile?.name || 'Unknown'
+      });
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Delete an image from a work order
+   */
+  async deleteImage(imageId: string): Promise<ApiResponse<boolean>> {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        return this.handleError(new Error('User not authenticated'));
+      }
+
+      // Get image details and verify ownership
+      const { data: image, error: fetchError } = await supabase
+        .from('work_order_images')
+        .select(`
+          *,
+          work_orders!inner (
+            organization_id
+          )
+        `)
+        .eq('id', imageId)
+        .single();
+
+      if (fetchError || !image) {
+        return this.handleError(new Error('Image not found'));
+      }
+
+      // Verify organization
+      const workOrder = image.work_orders as { organization_id: string };
+      if (workOrder.organization_id !== this.organizationId) {
+        return this.handleError(new Error('Not authorized'));
+      }
+
+      // Check if user can delete (must be uploader or have admin permissions)
+      if (image.uploaded_by !== userData.user.id) {
+        return this.handleError(new Error('Not authorized to delete this image'));
+      }
+
+      // Delete from database
+      const { error: deleteError } = await supabase
+        .from('work_order_images')
+        .delete()
+        .eq('id', imageId);
+
+      if (deleteError) {
+        logger.error('Error deleting image:', deleteError);
+        return this.handleError(deleteError);
+      }
+
+      // Delete from storage
+      try {
+        const filePath = image.file_url.split('/').slice(-4).join('/');
+        await supabase.storage
+          .from('work-order-images')
+          .remove([filePath]);
+      } catch (storageError) {
+        logger.warn('Failed to delete image from storage:', storageError);
+        // Don't fail the operation if storage deletion fails
+      }
+
+      return this.handleSuccess(true);
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 }

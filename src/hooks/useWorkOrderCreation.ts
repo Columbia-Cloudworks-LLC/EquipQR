@@ -1,10 +1,10 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/hooks/useSession';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
+import { WorkOrderService } from '@/services/WorkOrderService';
 
 export interface CreateWorkOrderData {
   title: string;
@@ -30,36 +30,38 @@ export const useCreateWorkOrder = () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
-        .from('work_orders')
-        .insert({
-          organization_id: currentOrg.id,
-          created_by: userData.user.id,
-          title: workOrderData.title,
-          description: workOrderData.description,
-          equipment_id: workOrderData.equipmentId,
-          priority: workOrderData.priority,
-          due_date: workOrderData.dueDate ? new Date(workOrderData.dueDate).toISOString() : null,
-          estimated_hours: workOrderData.estimatedHours || null,
-          assignee_id: workOrderData.assigneeId || null,
-          team_id: workOrderData.teamId || null,
-          status: 'submitted'
-        })
-        .select()
-        .single();
+      const service = new WorkOrderService(currentOrg.id);
+      const response = await service.create({
+        title: workOrderData.title,
+        description: workOrderData.description,
+        equipment_id: workOrderData.equipmentId,
+        priority: workOrderData.priority,
+        due_date: workOrderData.dueDate ? new Date(workOrderData.dueDate).toISOString() : undefined,
+        estimated_hours: workOrderData.estimatedHours,
+        assignee_id: workOrderData.assigneeId,
+        team_id: workOrderData.teamId,
+        created_by: userData.user.id
+      });
 
-      if (error) throw error;
-      return data;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create work order');
+      }
+
+      return response.data;
     },
     onSuccess: (workOrder) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['work-orders'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrg?.id] });
+      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrg?.id] });
       
       toast.success('Work order created successfully');
       
       // Navigate to the new work order's details page
-      navigate(`/dashboard/work-orders/${workOrder.id}`);
+      if (workOrder) {
+        navigate(`/dashboard/work-orders/${workOrder.id}`);
+      }
     },
     onError: (error) => {
       console.error('Error creating work order:', error);

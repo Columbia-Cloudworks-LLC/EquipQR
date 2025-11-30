@@ -1,242 +1,348 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
-import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { useWorkOrderAcceptance } from '@/hooks/useWorkOrderAcceptance';
-import { Play, Pause, CheckCircle, XCircle, Settings, AlertTriangle, UserCheck } from 'lucide-react';
-import { WorkOrder } from '@/services/supabaseDataService';
-import { WorkOrderService } from '@/services/WorkOrderService';
-import { ensureWorkOrderData } from '@/utils/workOrderTypeConversion';
-import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
+import { 
+  CheckCircle, 
+  Play, 
+  Pause, 
+  X, 
+  User, 
+  Users, 
+  AlertTriangle,
+  Clipboard
+} from 'lucide-react';
+import { useUpdateWorkOrderStatus } from '@/hooks/useWorkOrderData';
+import { usePMByWorkOrderId } from '@/hooks/usePMData';
+import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
+import { useAuth } from '@/hooks/useAuth';
 
-interface WorkOrderStatusManagerProps {
-  workOrder: WorkOrder;
-  onStatusUpdate?: (newStatus: WorkOrder['status']) => void;
+import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
+import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
+type WorkOrderStatus = 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+
+type StatusWorkOrder = {
+  id: string;
+  status: WorkOrderStatus;
+  has_pm?: boolean;
+  assignee_id?: string | null;
+  created_by?: string | null;
+  assigneeName?: string | null;
+  teamName?: string | null;
+  acceptance_date?: string | null;
+  completed_date?: string | null;
+};
+
+interface StatusAction {
+  label: string;
+  action: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  variant: 'default' | 'destructive' | 'outline';
+  description: string;
+  disabled?: boolean;
 }
 
-const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({ 
-  workOrder, 
-  onStatusUpdate 
+interface WorkOrderStatusManagerProps {
+  workOrder: StatusWorkOrder;
+  organizationId: string;
+}
+
+const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
+  workOrder,
+  organizationId
 }) => {
-  const { toast } = useToast();
-  const { currentOrganization } = useOrganization();
-  const permissions = useUnifiedPermissions();
-  const acceptanceMutation = useWorkOrderAcceptance();
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
+  const updateStatusMutation = useUpdateWorkOrderStatus();
+  const { data: pmData } = usePMByWorkOrderId(workOrder.id);
+  const { isManager, isTechnician } = useWorkOrderPermissionLevels();
+  const { user } = useAuth();
 
-  const workOrderService = currentOrganization 
-    ? new WorkOrderService(currentOrganization.id) 
-    : null;
-
-  const { execute: updateStatus, isLoading } = useAsyncOperation(
-    async (newStatus: WorkOrder['status']) => {
-      if (!workOrderService) throw new Error('Service not available');
-      const result = await workOrderService.updateStatus(workOrder.id, newStatus);
-      return { result, newStatus };
-    },
-    {
-      onSuccess: (data) => {
-        if (data?.result?.success) {
-          toast({
-            title: "Status Updated",
-            description: `Work order status changed successfully`,
-          });
-          if (onStatusUpdate) {
-            onStatusUpdate(data.newStatus);
-          }
-        }
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error || "Failed to update work order status",
-          variant: "destructive",
-        });
+  const handleStatusChange = async (newStatus: WorkOrderStatus) => {
+    // Check if trying to complete work order with incomplete PM
+    if (newStatus === 'completed' && workOrder.has_pm && pmData) {
+      if (pmData.status !== 'completed') {
+        // Don't allow completion if PM is not completed
+        return;
       }
     }
-  );
 
-  const workOrderPermissions = permissions.workOrders.getPermissions(ensureWorkOrderData(workOrder));
+    if (newStatus === 'accepted') {
+      setShowAcceptanceModal(true);
+      return;
+    }
 
-  const getNextStatusOptions = (currentStatus: WorkOrder['status']) => {
-    switch (currentStatus) {
-      case 'submitted':
+    try {
+      await updateStatusMutation.mutateAsync({
+        workOrderId: workOrder.id,
+        status: newStatus,
+        organizationId
+      });
+    } catch (error) {
+      console.error('Error updating work order status:', error);
+    }
+  };
+
+  const handleAcceptanceComplete = async () => {
+    try {
+      await updateStatusMutation.mutateAsync({
+        workOrderId: workOrder.id,
+        status: 'accepted',
+        organizationId
+      });
+      setShowAcceptanceModal(false);
+    } catch (error) {
+      console.error('Error accepting work order:', error);
+    }
+  };
+
+  // Check if user can perform status actions
+  const canPerformStatusActions = () => {
+    if (isManager) return true;
+    if (isTechnician && (workOrder.assignee_id === user?.id)) return true;
+    if (workOrder.created_by === user?.id && workOrder.status === 'submitted') return true;
+    return false;
+  };
+
+const getStatusActions = (): StatusAction[] => {
+    if (!canPerformStatusActions()) return [];
+
+    const canComplete = !workOrder.has_pm || (pmData && pmData.status === 'completed');
+    
+    switch (workOrder.status) {
+      case 'submitted': {
+        const actions: StatusAction[] = [];
+        if (isManager || isTechnician) {
+          actions.push({ 
+            label: 'Accept', 
+            action: () => handleStatusChange('accepted'), 
+            icon: CheckCircle,
+            variant: 'default' as const,
+            description: 'Accept this work order and proceed with planning'
+          });
+        }
+        actions.push({ 
+          label: 'Cancel', 
+          action: () => handleStatusChange('cancelled'), 
+          icon: X,
+          variant: 'destructive' as const,
+          description: 'Cancel this work order'
+        });
+        return actions;
+      }
+
+      case 'accepted':
+        if (!isManager && !isTechnician) return [];
         return [
           { 
-            value: 'accept', 
-            label: 'Accept Work Order', 
-            icon: UserCheck,
-            isCustomAction: true,
-            description: 'Accept and optionally assign this work order'
+            label: 'Assign & Start', 
+            action: () => handleStatusChange('in_progress'), 
+            icon: Play,
+            variant: 'default' as const,
+            description: 'Assign to team member and start work'
           },
-          { value: 'cancelled', label: 'Cancel', icon: XCircle }
+          { 
+            label: 'Cancel', 
+            action: () => handleStatusChange('cancelled'), 
+            icon: X,
+            variant: 'destructive' as const,
+            description: 'Cancel this work order'
+          }
         ];
-      case 'accepted':
-        return [
-          { value: 'assigned', label: 'Assign', icon: Settings },
-          { value: 'cancelled', label: 'Cancel', icon: XCircle }
-        ];
+
       case 'assigned':
+        if (!isManager && !isTechnician) return [];
         return [
-          { value: 'in_progress', label: 'Start Work', icon: Play },
-          { value: 'on_hold', label: 'Put on Hold', icon: Pause },
-          { value: 'cancelled', label: 'Cancel', icon: XCircle }
+          { 
+            label: 'Start Work', 
+            action: () => handleStatusChange('in_progress'), 
+            icon: Play,
+            variant: 'default' as const,
+            description: 'Begin working on this order'
+          },
+          { 
+            label: 'Put on Hold', 
+            action: () => handleStatusChange('on_hold'), 
+            icon: Pause,
+            variant: 'outline' as const,
+            description: 'Temporarily pause this work order'
+          }
         ];
+
       case 'in_progress':
+        if (!isManager && !isTechnician) return [];
         return [
-          { value: 'completed', label: 'Complete', icon: CheckCircle },
-          { value: 'on_hold', label: 'Put on Hold', icon: Pause },
-          { value: 'cancelled', label: 'Cancel', icon: XCircle }
+          { 
+            label: 'Complete', 
+            action: () => handleStatusChange('completed'), 
+            icon: CheckCircle,
+            variant: 'default' as const,
+            description: canComplete ? 'Mark this work order as completed' : 'Complete PM checklist first',
+            disabled: !canComplete
+          },
+          { 
+            label: 'Put on Hold', 
+            action: () => handleStatusChange('on_hold'), 
+            icon: Pause,
+            variant: 'outline' as const,
+            description: 'Temporarily pause this work order'
+          }
         ];
+
       case 'on_hold':
+        if (!isManager && !isTechnician) return [];
         return [
-          { value: 'in_progress', label: 'Resume Work', icon: Play },
-          { value: 'cancelled', label: 'Cancel', icon: XCircle }
+          { 
+            label: 'Resume', 
+            action: () => handleStatusChange('in_progress'), 
+            icon: Play,
+            variant: 'default' as const,
+            description: 'Resume work on this order'
+          },
+          { 
+            label: 'Cancel', 
+            action: () => handleStatusChange('cancelled'), 
+            icon: X,
+            variant: 'destructive' as const,
+            description: 'Cancel this work order'
+          }
         ];
+
       default:
         return [];
     }
   };
 
-  const handleStatusUpdate = async (newStatus: WorkOrder['status']) => {
-    await updateStatus(newStatus);
-  };
-
-  const handleAcceptance = async (assigneeId?: string) => {
-    if (!currentOrganization) return;
-    
-    await acceptanceMutation.mutateAsync({
-      workOrderId: workOrder.id,
-      organizationId: currentOrganization.id,
-      assigneeId
-    });
-
-    if (onStatusUpdate) {
-      // Determine the new status based on assignment
-      const newStatus = assigneeId ? 'assigned' : 'accepted';
-      onStatusUpdate(newStatus);
-    }
-  };
-
-  const handleActionClick = (action: { value: string; isCustomAction?: boolean }) => {
-    if (action.isCustomAction && action.value === 'accept') {
-      setShowAcceptanceModal(true);
-    } else {
-      handleStatusUpdate(action.value as WorkOrder['status']);
-    }
-  };
-
-  const nextStatusOptions = getNextStatusOptions(workOrder.status);
-
   const getStatusColor = (status: string) => {
-    const statusColors = {
-      'submitted': 'bg-blue-100 text-blue-800 border-blue-200',
-      'accepted': 'bg-purple-100 text-purple-800 border-purple-200',
-      'assigned': 'bg-orange-100 text-orange-800 border-orange-200',
-      'in_progress': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'on_hold': 'bg-gray-100 text-gray-800 border-gray-200',
-      'completed': 'bg-green-100 text-green-800 border-green-200',
-      'cancelled': 'bg-red-100 text-red-800 border-red-200'
-    };
-    return statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800 border-gray-200';
+    switch (status) {
+      case 'submitted': return 'bg-blue-100 text-blue-800';
+      case 'accepted': return 'bg-purple-100 text-purple-800';
+      case 'assigned': return 'bg-orange-100 text-orange-800';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+      case 'on_hold': return 'bg-gray-100 text-gray-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   const formatStatus = (status: string) => {
     return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  if (!permissions.context) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Unable to load permissions. Please refresh the page.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
+  const statusActions = getStatusActions();
 
   return (
-    <>
+    <div className="space-y-4">
+      {/* Assignment Display */}
+      <WorkOrderAssigneeDisplay
+        workOrder={workOrder}
+        organizationId={organizationId}
+        canManageAssignment={isManager}
+        showEditControls={workOrder.status !== 'completed' && workOrder.status !== 'cancelled'}
+      />
+
+      {/* Status Management */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Status Management</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">Current Status</label>
-            <div className="mt-1">
-              <Badge className={getStatusColor(workOrder.status)}>
-                {formatStatus(workOrder.status)}
-              </Badge>
-            </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Current Status:</span>
+            <Badge className={getStatusColor(workOrder.status)}>
+              {formatStatus(workOrder.status)}
+            </Badge>
           </div>
 
-          {workOrderPermissions.canChangeStatus && nextStatusOptions.length > 0 && (
+          {/* PM Status Check Warning */}
+          {workOrder.has_pm && workOrder.status === 'in_progress' && pmData && pmData.status !== 'completed' && (
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-amber-800">
+                <div className="flex items-center gap-2">
+                  <Clipboard className="h-4 w-4" />
+                  <span>Complete the PM checklist before marking this work order as completed.</span>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Assignment Info */}
+          {workOrder.assigneeName && (
+            <div className="flex items-center gap-2 text-sm">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span>Assigned to: {workOrder.assigneeName}</span>
+            </div>
+          )}
+
+          {workOrder.teamName && (
+            <div className="flex items-center gap-2 text-sm">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span>Team: {workOrder.teamName}</span>
+            </div>
+          )}
+
+          {/* Permission Info */}
+          {!canPerformStatusActions() && (
+            <Alert>
+              <AlertDescription>
+                You don't have permission to change the status of this work order.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Status Actions */}
+          {statusActions.length > 0 && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">
-                Available Actions
-              </label>
+              <span className="text-sm font-medium">Available Actions:</span>
               <div className="space-y-2">
-                {nextStatusOptions.map((option) => {
-                  const Icon = option.icon;
+                {statusActions.map((action, index) => {
+                  const IconComponent = action.icon;
                   return (
-                    <Button
-                      key={option.value}
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => handleActionClick(option)}
-                      disabled={isLoading || acceptanceMutation.isPending}
-                    >
-                      <Icon className="h-4 w-4 mr-2" />
-                      {option.label}
-                    </Button>
+                    <div key={index}>
+                      <Button
+                        variant={action.variant}
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={action.action}
+                        disabled={updateStatusMutation.isPending || action.disabled}
+                      >
+                        <IconComponent className="h-4 w-4 mr-2" />
+                        {action.label}
+                      </Button>
+                      <p className="text-xs text-muted-foreground ml-6 mt-1">
+                        {action.description}
+                      </p>
+                    </div>
                   );
                 })}
               </div>
             </div>
           )}
 
-          {!workOrderPermissions.canChangeStatus && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                You don't have permission to change the status of this work order. 
-                Only organization admins and team members can update work order status.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {nextStatusOptions.length === 0 && workOrderPermissions.canChangeStatus && (
-            <p className="text-sm text-muted-foreground">
-              No status changes available for {formatStatus(workOrder.status)} work orders.
-            </p>
+          {workOrder.status === 'completed' && (
+            <div className="text-sm text-green-600">
+              <CheckCircle className="h-4 w-4 inline mr-2" />
+              Work order completed successfully
+              {workOrder.completed_date && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Completed on {new Date(workOrder.completed_date).toLocaleDateString()}
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Acceptance Modal */}
-      {currentOrganization && (
-        <WorkOrderAcceptanceModal
-          open={showAcceptanceModal}
-          onClose={() => setShowAcceptanceModal(false)}
-          workOrder={ensureWorkOrderData(workOrder)}
-          organizationId={currentOrganization.id}
-          onAccept={handleAcceptance}
-        />
-      )}
-    </>
+      <WorkOrderAcceptanceModal
+        open={showAcceptanceModal}
+        onClose={() => setShowAcceptanceModal(false)}
+        workOrder={workOrder}
+        organizationId={organizationId}
+        onAccept={handleAcceptanceComplete}
+      />
+    </div>
   );
 };
 
