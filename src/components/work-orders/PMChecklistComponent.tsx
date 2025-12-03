@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -847,26 +847,31 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                       {!readOnly && pm.status !== 'completed' && (
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Maintenance Assessment:</Label>
-                          <RadioGroup
+                          <Select
                             value={item.condition?.toString() || ''}
                             onValueChange={(value) => handleChecklistItemChange(item.id, parseInt(value) as 1 | 2 | 3 | 4 | 5)}
-                            className="flex flex-col gap-2"
                           >
-                            {[
-                              { value: 1, label: 'OK', color: 'text-green-600' },
-                              { value: 2, label: 'Adjusted', color: 'text-yellow-600' },
-                              { value: 3, label: 'Recommend Repairs', color: 'text-orange-600' },
-                              { value: 4, label: 'Requires Immediate Repairs', color: 'text-red-600' },
-                              { value: 5, label: 'Unsafe Condition Present', color: 'text-red-800' }
-                            ].map((rating) => (
-                              <div key={rating.value} className="flex items-center space-x-2">
-                                <RadioGroupItem value={rating.value.toString()} id={`${item.id}-${rating.value}`} />
-                                <Label htmlFor={`${item.id}-${rating.value}`} className={`text-sm ${rating.color}`}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select assessment..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[
+                                { value: 1, label: 'OK', color: 'text-green-600' },
+                                { value: 2, label: 'Adjusted', color: 'text-yellow-600' },
+                                { value: 3, label: 'Recommend Repairs', color: 'text-orange-600' },
+                                { value: 4, label: 'Requires Immediate Repairs', color: 'text-red-600' },
+                                { value: 5, label: 'Unsafe Condition Present', color: 'text-red-800' }
+                              ].map((rating) => (
+                                <SelectItem 
+                                  key={rating.value} 
+                                  value={rating.value.toString()}
+                                  className={rating.color}
+                                >
                                   {rating.label}
-                                </Label>
-                              </div>
-                            ))}
-                          </RadioGroup>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       )}
 
