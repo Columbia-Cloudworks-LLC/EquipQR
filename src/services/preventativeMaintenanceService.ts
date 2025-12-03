@@ -29,6 +29,8 @@ export interface UpdatePMData {
   notes?: string;
   status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   templateId?: string;
+  completedAt?: string | null;
+  completedBy?: string | null;
 }
 
 // Comprehensive forklift PM checklist with undefined conditions (unrated)
