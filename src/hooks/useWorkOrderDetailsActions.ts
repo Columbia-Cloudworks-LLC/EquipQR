@@ -100,15 +100,18 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     }
     // 2. If PM is being enabled (hasPM: true) and PM doesn't exist, create it
     // Prioritize form's equipmentId over parameter to handle equipment changes during update
-    else if (pmBeingEnabled && data.pmTemplateId && (data.equipmentId || equipmentId)) {
-      const checklistData = await getTemplateChecklistData(data.pmTemplateId);
-      await createPM({
-        workOrderId,
-        equipmentId: data.equipmentId || equipmentId!,
-        organizationId,
-        checklistData,
-        templateId: data.pmTemplateId
-      });
+    else if (pmBeingEnabled && data.pmTemplateId) {
+      const effectiveEquipmentId = data.equipmentId || equipmentId;
+      if (effectiveEquipmentId) {
+        const checklistData = await getTemplateChecklistData(data.pmTemplateId);
+        await createPM({
+          workOrderId,
+          equipmentId: effectiveEquipmentId,
+          organizationId,
+          checklistData,
+          templateId: data.pmTemplateId
+        });
+      }
     }
     // 3. If PM template is being changed and PM exists, update the template
     else if (pmExists && pmTemplateChanged && data.hasPM && data.pmTemplateId) {
