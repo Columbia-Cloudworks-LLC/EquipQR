@@ -99,11 +99,12 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       await deletePM(pmData.id);
     }
     // 2. If PM is being enabled (hasPM: true) and PM doesn't exist, create it
-    else if (pmBeingEnabled && data.pmTemplateId && equipmentId) {
+    // Prioritize form's equipmentId over parameter to handle equipment changes during update
+    else if (pmBeingEnabled && data.pmTemplateId && (data.equipmentId || equipmentId)) {
       const checklistData = await getTemplateChecklistData(data.pmTemplateId);
       await createPM({
         workOrderId,
-        equipmentId,
+        equipmentId: data.equipmentId || equipmentId!,
         organizationId,
         checklistData,
         templateId: data.pmTemplateId
