@@ -29,6 +29,8 @@ export interface UpdatePMData {
   notes?: string;
   status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   templateId?: string;
+  completedAt?: string | null;
+  completedBy?: string | null;
 }
 
 // Comprehensive forklift PM checklist with undefined conditions (unrated)
@@ -3890,6 +3892,14 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
         updateData.completed_at = new Date().toISOString();
         updateData.completed_by = userData.user.id;
       }
+    }
+
+    // Handle explicit completedAt and completedBy values (e.g., for resetting when template changes)
+    if (data.completedAt !== undefined) {
+      updateData.completed_at = data.completedAt;
+    }
+    if (data.completedBy !== undefined) {
+      updateData.completed_by = data.completedBy;
     }
 
     logger.debug('Updating PM', { 
