@@ -38,7 +38,8 @@ const mockChecklistData: PMChecklistItem[] = [
   {
     id: 'item-1',
     section: 'Engine',
-    item: 'Check oil level',
+    title: 'Check oil level',
+    required: true,
     condition: null,
     notes: '',
   },
