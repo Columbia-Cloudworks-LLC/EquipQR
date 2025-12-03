@@ -25,7 +25,8 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
   const [showPMWarning, setShowPMWarning] = useState(false);
   const [pmChangeType, setPmChangeType] = useState<'disable' | 'change_template'>('disable');
   // Use a ref for pending form data to avoid stale closure issues
-  const pendingFormDataRef = useRef<WorkOrderFormData | null>(null);
+  // Store both form data and equipmentId to ensure the equipmentId passed to handleUpdateWorkOrder is preserved
+  const pendingFormDataRef = useRef<{ data: WorkOrderFormData; equipmentId?: string } | null>(null);
   const queryClient = useQueryClient();
   const updateWorkOrderMutation = useUpdateWorkOrder();
 
@@ -163,7 +164,7 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     
     if (pmBeingDisabled && pmData && hasMeaningfulPMData()) {
       // Show warning dialog for disabling PM
-      pendingFormDataRef.current = data;
+      pendingFormDataRef.current = { data, equipmentId };
       setPmChangeType('disable');
       setShowPMWarning(true);
       return;
@@ -171,7 +172,7 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     
     if (pmTemplateChanged && hasMeaningfulPMData()) {
       // Show warning dialog for changing PM template
-      pendingFormDataRef.current = data;
+      pendingFormDataRef.current = { data, equipmentId };
       setPmChangeType('change_template');
       setShowPMWarning(true);
       return;
@@ -184,13 +185,14 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
   // Confirm PM change and proceed with update
   const handleConfirmPMChange = useCallback(async () => {
     // Read the ref value BEFORE closing the dialog, as the onOpenChange handler resets it
-    const pendingData = pendingFormDataRef.current;
+    const pending = pendingFormDataRef.current;
     
-    if (pendingData) {
+    if (pending) {
       // Clear the ref first to prevent it from being reset by onOpenChange
       pendingFormDataRef.current = null;
       setShowPMWarning(false);
-      await performUpdate(pendingData, pmData?.equipment_id);
+      // Use stored equipmentId if available, fallback to pmData?.equipment_id for backward compatibility
+      await performUpdate(pending.data, pending.equipmentId ?? pmData?.equipment_id);
     } else {
       setShowPMWarning(false);
     }
