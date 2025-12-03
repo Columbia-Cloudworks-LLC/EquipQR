@@ -44,7 +44,8 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
   const getPMDataContentDetails = (pmData?: PMData | null) => {
     if (!pmData) return { hasNotes: false, hasCompletedItems: false };
     const hasNotes = !!(pmData.notes && pmData.notes.trim().length > 0);
-    const checklistData = pmData.checklist_data as Array<{ condition?: string; notes?: string }> | undefined;
+    // condition is typed as number (1-5) | null | undefined per PMChecklistItem interface
+    const checklistData = pmData.checklist_data as Array<{ condition?: number | null; notes?: string }> | undefined;
     const hasCompletedItems = Array.isArray(checklistData) && checklistData.some(
       item => item.condition != null || (item.notes && item.notes.trim().length > 0)
     );
