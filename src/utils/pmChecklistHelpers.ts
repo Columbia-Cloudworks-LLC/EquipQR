@@ -19,6 +19,27 @@ export const getItemStatus = (item: PMChecklistItem): 'not_rated' | 'ok' | 'adju
   }
 }
 
+/**
+ * Converts a status enum to human-readable text
+ */
+export const getStatusText = (status: 'not_rated' | 'ok' | 'adjusted' | 'recommend_repairs' | 'requires_immediate_repairs' | 'unsafe_condition'): string => {
+  switch (status) {
+    case 'ok':
+      return 'OK'
+    case 'adjusted':
+      return 'Adjusted'
+    case 'recommend_repairs':
+      return 'Recommend Repairs'
+    case 'requires_immediate_repairs':
+      return 'Requires Immediate Repairs'
+    case 'unsafe_condition':
+      return 'Unsafe Condition'
+    case 'not_rated':
+    default:
+      return 'Not Rated'
+  }
+}
+
 export const createSegmentsForSection = (items: PMChecklistItem[]) => {
   return items.map(item => ({
     id: item.id,

@@ -21,24 +21,24 @@ const mockPMData = {
       section: 'Engine',
       title: 'Check oil level',
       description: 'Verify oil is at proper level',
-      completed: true,
-      checked: false
+      condition: 1, // OK
+      required: true
     },
     {
       id: 'item-2',
       section: 'Engine',
       title: 'Check coolant',
       description: 'Verify coolant level',
-      completed: true,
-      checked: false
+      condition: 2, // Adjusted
+      required: true
     },
     {
       id: 'item-3',
       section: 'Safety',
       title: 'Test brakes',
       description: 'Ensure brakes function',
-      completed: false,
-      checked: false
+      condition: null, // Not rated
+      required: true
     }
   ],
   created_by: 'user-1',
@@ -84,46 +84,44 @@ describe('PMProgressIndicator', () => {
   });
 
   describe('PM Required Badge', () => {
-    it('shows PM Required badge with progress bar', () => {
+    it('shows PM Required badge with segmented progress', () => {
       (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(mockPMData));
       
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
       expect(screen.getByText('PM Required')).toBeInTheDocument();
-      expect(screen.getByText('67%')).toBeInTheDocument();
+      // SegmentedProgress should be rendered (check for container with segments)
+      const container = screen.getByText('PM Required').closest('div')?.parentElement;
+      expect(container).toBeInTheDocument();
     });
 
-    it('calculates completion percentage correctly', () => {
+    it('renders segmented progress for all checklist items', () => {
       (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(mockPMData));
       
-      render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
+      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
       expect(screen.getByText('PM Required')).toBeInTheDocument();
-      expect(screen.getByText('67%')).toBeInTheDocument();
-      
-      // Progress component uses style transform, not aria-valuenow
-      const progressBar = screen.getByText('67%').previousElementSibling;
-      expect(progressBar).toBeInTheDocument();
+      // Check for SegmentedProgress component (it renders divs with segments)
+      const segmentedProgress = container.querySelector('[class*="rounded-md"]');
+      expect(segmentedProgress).toBeInTheDocument();
     });
 
-    it('shows 0% when no items completed', () => {
-      const noCompletedData = {
+    it('shows segmented progress when no items are rated', () => {
+      const noRatedData = {
         ...mockPMData,
         checklist_data: [
-          { id: '1', title: 'Check oil', section: 'Engine', completed: false, checked: false },
-          { id: '2', title: 'Check filter', section: 'Engine', completed: false, checked: false }
+          { id: '1', title: 'Check oil', section: 'Engine', condition: null, required: true },
+          { id: '2', title: 'Check filter', section: 'Engine', condition: null, required: true }
         ]
       };
-      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(noCompletedData));
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(noRatedData));
       
-      render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
+      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
       expect(screen.getByText('PM Required')).toBeInTheDocument();
-      expect(screen.getByText('0%')).toBeInTheDocument();
-      
-      // Progress component uses style transform, not aria-valuenow
-      const progressBar = screen.getByText('0%').previousElementSibling;
-      expect(progressBar).toBeInTheDocument();
+      // SegmentedProgress should still render with not_rated segments
+      const segmentedProgress = container.querySelector('[class*="rounded-md"]');
+      expect(segmentedProgress).toBeInTheDocument();
     });
 
     it('handles empty checklist', () => {
@@ -136,11 +134,8 @@ describe('PMProgressIndicator', () => {
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
       expect(screen.getByText('PM Required')).toBeInTheDocument();
-      expect(screen.getByText('0%')).toBeInTheDocument();
-      
-      // Progress component uses style transform, not aria-valuenow
-      const progressBar = screen.getByText('0%').previousElementSibling;
-      expect(progressBar).toBeInTheDocument();
+      // No progress bar shown for empty checklist
+      expect(screen.queryByText('%')).not.toBeInTheDocument();
     });
   });
 
@@ -183,8 +178,8 @@ describe('PMProgressIndicator', () => {
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
       expect(screen.getByText('PM Required')).toBeInTheDocument();
-      // No progress bar or percentage shown for null data
-      expect(screen.queryByText('0%')).not.toBeInTheDocument();
+      // No progress bar shown for null data
+      expect(screen.queryByText('%')).not.toBeInTheDocument();
     });
 
     it('handles undefined checklist data', () => {
@@ -197,26 +192,28 @@ describe('PMProgressIndicator', () => {
       render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
       expect(screen.getByText('PM Required')).toBeInTheDocument();
-      // No progress bar or percentage shown for undefined data
-      expect(screen.queryByText('0%')).not.toBeInTheDocument();
+      // No progress bar shown for undefined data
+      expect(screen.queryByText('%')).not.toBeInTheDocument();
     });
 
-    it('considers completed and checked items as finished', () => {
+    it('renders segments with different condition statuses', () => {
       const mixedData = {
         ...mockPMData,
         checklist_data: [
-          { id: '1', section: 'Test', title: 'Item 1', description: '', completed: true, checked: false },
-          { id: '2', section: 'Test', title: 'Item 2', description: '', completed: false, checked: true },
-          { id: '3', section: 'Test', title: 'Item 3', description: '', completed: true, checked: true },
-          { id: '4', section: 'Test', title: 'Item 4', description: '', completed: false, checked: false }
+          { id: '1', section: 'Test', title: 'Item 1', condition: 1, required: true }, // OK
+          { id: '2', section: 'Test', title: 'Item 2', condition: 2, required: true }, // Adjusted
+          { id: '3', section: 'Test', title: 'Item 3', condition: 3, required: true }, // Recommend Repairs
+          { id: '4', section: 'Test', title: 'Item 4', condition: null, required: true } // Not rated
         ]
       };
       (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(mixedData));
       
-      render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
+      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      // Should count completed OR checked as finished (3/4 = 75%)
-      expect(screen.getByText('75%')).toBeInTheDocument();
+      expect(screen.getByText('PM Required')).toBeInTheDocument();
+      // SegmentedProgress should render with 4 segments
+      const segmentedProgress = container.querySelector('[class*="rounded-md"]');
+      expect(segmentedProgress).toBeInTheDocument();
     });
   });
 });

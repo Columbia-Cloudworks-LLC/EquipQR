@@ -325,6 +325,16 @@ const MobileCard: React.FC<WorkOrderCardProps> = memo(({
 
       <CardContent className="pt-0">
         <div className="space-y-4">
+          {/* PM Progress Indicator */}
+          {workOrder.has_pm && (
+            <div className="pb-2 border-b">
+              <PMProgressIndicator 
+                workOrderId={workOrder.id} 
+                hasPM={workOrder.has_pm} 
+              />
+            </div>
+          )}
+
           <div className="space-y-2 text-sm">
             {/* Status - Editable Field */}
             <div className="flex items-center gap-2">
@@ -517,6 +527,16 @@ const CompactCard: React.FC<WorkOrderCardProps> = memo(({
         <p className="text-sm text-muted-foreground line-clamp-2">
           {workOrder.description}
         </p>
+
+        {/* PM Progress Indicator */}
+        {workOrder.has_pm && (
+          <div className="py-2 border-y">
+            <PMProgressIndicator 
+              workOrderId={workOrder.id} 
+              hasPM={workOrder.has_pm} 
+            />
+          </div>
+        )}
 
         <div className="space-y-2 text-sm">
           {workOrder.equipmentName && (

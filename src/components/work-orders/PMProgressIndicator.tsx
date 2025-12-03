@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { SegmentedProgress } from '@/components/ui/segmented-progress';
 import { Wrench, CheckCircle2 } from 'lucide-react';
 import { usePMByWorkOrderId } from '@/hooks/usePMData';
+import { getItemStatus } from '@/utils/pmChecklistHelpers';
+import type { PMChecklistItem } from '@/services/preventativeMaintenanceService';
 
 interface PMProgressIndicatorProps {
   workOrderId: string;
@@ -12,25 +14,30 @@ interface PMProgressIndicatorProps {
 const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, hasPM }) => {
   const { data: pmData } = usePMByWorkOrderId(workOrderId);
 
+  // Parse checklist data and create segments for all items
+  // Must be called before early return to follow Rules of Hooks
+  const segments = useMemo(() => {
+    if (!pmData?.checklist_data || !Array.isArray(pmData.checklist_data)) {
+      return [];
+    }
+
+    try {
+      const checklistItems = pmData.checklist_data as PMChecklistItem[];
+      return checklistItems.map(item => ({
+        id: item.id,
+        status: getItemStatus(item),
+        section: item.section,
+        title: item.title,
+        notes: item.notes
+      }));
+    } catch {
+      return [];
+    }
+  }, [pmData?.checklist_data]);
+
   if (!hasPM || !pmData) {
     return null;
   }
-
-interface ChecklistItem {
-  completed?: boolean;
-  checked?: boolean;
-}
-
-const calculateCompletionPercentage = (checklistData: unknown): number => {
-    if (!Array.isArray(checklistData) || checklistData.length === 0) return 0;
-    
-    const completedItems = checklistData.filter((item: ChecklistItem) => item?.completed || item?.checked).length;
-    return Math.round((completedItems / checklistData.length) * 100);
-  };
-
-  const completionPercentage = pmData?.checklist_data && Array.isArray(pmData.checklist_data)
-    ? calculateCompletionPercentage(pmData.checklist_data)
-    : 0;
 
   const isCompleted = pmData?.status === 'completed';
 
@@ -47,12 +54,9 @@ const calculateCompletionPercentage = (checklistData: unknown): number => {
         </Badge>
       </div>
       
-      {!isCompleted && pmData?.checklist_data && (
+      {segments.length > 0 && (
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Progress value={completionPercentage} className="h-2 flex-1" />
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {completionPercentage}%
-          </span>
+          <SegmentedProgress segments={segments} className="h-2 flex-1" />
         </div>
       )}
     </div>

@@ -59,6 +59,7 @@ export const getTeamBasedWorkOrders = async (
         estimated_hours,
         completed_date,
         created_by,
+        has_pm,
         equipment:equipment_id (
           name,
           team_id,
@@ -148,7 +149,8 @@ export const getTeamBasedWorkOrders = async (
       estimatedHours: wo.estimated_hours,
       completedDate: wo.completed_date,
       equipmentName: wo.equipment?.name,
-      createdByName: wo.creator?.name
+      createdByName: wo.creator?.name,
+      has_pm: wo.has_pm
     }));
   } catch (error) {
     logger.error('Error in getTeamBasedWorkOrders:', error);
