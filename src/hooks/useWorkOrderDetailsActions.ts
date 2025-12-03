@@ -47,7 +47,7 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     const hasNotes = !!(pmData.notes && pmData.notes.trim().length > 0);
     
     // Check if there are completed/modified checklist items
-    const checklistData = pmData.checklist_data as Array<{ condition?: string; notes?: string }> | undefined;
+    const checklistData = pmData.checklist_data as PMChecklistItem[] | undefined;
     const hasCompletedItems = Array.isArray(checklistData) && checklistData.some(
       item => item.condition != null || (item.notes && item.notes.trim().length > 0)
     );
@@ -60,7 +60,7 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     if (!pmData) return { hasNotes: false, hasCompletedItems: false };
     
     const hasNotes = !!(pmData.notes && pmData.notes.trim().length > 0);
-    const checklistData = pmData.checklist_data as Array<{ condition?: string; notes?: string }> | undefined;
+    const checklistData = pmData.checklist_data as PMChecklistItem[] | undefined;
     const hasCompletedItems = Array.isArray(checklistData) && checklistData.some(
       item => item.condition != null || (item.notes && item.notes.trim().length > 0)
     );
