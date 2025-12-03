@@ -116,7 +116,9 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       await updatePM(pmData!.id, {
         templateId: data.pmTemplateId,
         checklistData, // Reset checklist to new template
-        status: 'pending' // Reset status since checklist is new
+        status: 'pending', // Reset status since checklist is new
+        completedAt: null,
+        completedBy: null
       });
     }
     
