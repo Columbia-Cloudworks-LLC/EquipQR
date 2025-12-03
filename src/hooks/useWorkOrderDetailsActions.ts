@@ -164,7 +164,7 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     
     // Check if PM template is being changed when PM has meaningful data
     // This includes: changing from one template to another, OR setting a template on a PM that didn't have one
-    const pmTemplateChanged = pmData?.id && data.pmTemplateId && pmData.template_id !== data.pmTemplateId;
+    const pmTemplateChanged = pmData?.id && (pmData.template_id ?? null) !== (data.pmTemplateId ?? null);
     
     if (pmBeingDisabled && pmData && hasMeaningfulPMData()) {
       // Show warning dialog for disabling PM
