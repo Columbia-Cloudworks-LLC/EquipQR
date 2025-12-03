@@ -39,33 +39,26 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     // The ref will be cleared after successful update or when canceling PM change
   };
 
-  // Check if PM data has meaningful content that would be lost
-  const hasMeaningfulPMData = useCallback(() => {
-    if (!pmData) return false;
-    
-    // Check if there are notes
+  // Helper to get PM data content details (notes and completed items)
+  const getPMDataContentDetails = (pmData?: PMData | null) => {
+    if (!pmData) return { hasNotes: false, hasCompletedItems: false };
     const hasNotes = !!(pmData.notes && pmData.notes.trim().length > 0);
-    
-    // Check if there are completed/modified checklist items
     const checklistData = pmData.checklist_data as Array<{ condition?: string; notes?: string }> | undefined;
     const hasCompletedItems = Array.isArray(checklistData) && checklistData.some(
       item => (item.condition !== null && item.condition !== undefined) || (item.notes && item.notes.trim().length > 0)
     );
-    
+    return { hasNotes, hasCompletedItems };
+  };
+
+  // Check if PM data has meaningful content that would be lost
+  const hasMeaningfulPMData = useCallback(() => {
+    const { hasNotes, hasCompletedItems } = getPMDataContentDetails(pmData);
     return hasNotes || hasCompletedItems;
   }, [pmData]);
 
   // Get PM data details for warning dialog
   const getPMDataDetails = useCallback(() => {
-    if (!pmData) return { hasNotes: false, hasCompletedItems: false };
-    
-    const hasNotes = !!(pmData.notes && pmData.notes.trim().length > 0);
-    const checklistData = pmData.checklist_data as Array<{ condition?: string; notes?: string }> | undefined;
-    const hasCompletedItems = Array.isArray(checklistData) && checklistData.some(
-      item => (item.condition !== null && item.condition !== undefined) || (item.notes && item.notes.trim().length > 0)
-    );
-    
-    return { hasNotes, hasCompletedItems };
+    return getPMDataContentDetails(pmData);
   }, [pmData]);
 
   // Helper to get template checklist data
