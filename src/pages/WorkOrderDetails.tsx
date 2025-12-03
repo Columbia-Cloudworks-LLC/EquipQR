@@ -19,6 +19,7 @@ import { WorkOrderDetailsMobileHeader } from '@/components/work-orders/details/W
 import { WorkOrderDetailsDesktopHeader } from '@/components/work-orders/details/WorkOrderDetailsDesktopHeader';
 import { WorkOrderDetailsStatusLockWarning } from '@/components/work-orders/details/WorkOrderDetailsStatusLockWarning';
 import { WorkOrderDetailsPMInfo } from '@/components/work-orders/details/WorkOrderDetailsPMInfo';
+import { PMChangeWarningDialog } from '@/components/work-orders/form/PMChangeWarningDialog';
 import { WorkOrderDetailsSidebar } from '@/components/work-orders/details/WorkOrderDetailsSidebar';
 import { WorkOrderDetailsMobile } from '@/components/work-orders/details/WorkOrderDetailsMobile';
 import { WorkOrderNotesMobile } from '@/components/work-orders/details/WorkOrderNotesMobile';
@@ -156,8 +157,16 @@ const WorkOrderDetails = () => {
     handleCloseEditForm,
     handleUpdateWorkOrder,
     handleStatusUpdate,
-    handlePMUpdate
-  } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '');
+    handlePMUpdate,
+    // PM warning dialog state
+    showPMWarning,
+    setShowPMWarning,
+    pmChangeType,
+    handleConfirmPMChange,
+    handleCancelPMChange,
+    getPMDataDetails,
+    isUpdating,
+  } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '', pmData);
 
   // Only redirect if we definitely don't have the required data and aren't loading
   if (!workOrderId) {
@@ -470,7 +479,20 @@ const WorkOrderDetails = () => {
         open={isEditFormOpen}
         onClose={handleCloseEditForm}
         workOrder={workOrder}
-        onSubmit={handleUpdateWorkOrder}
+        onSubmit={(data) => handleUpdateWorkOrder(data, workOrder.has_pm, workOrder.equipment_id)}
+        isUpdating={isUpdating}
+        pmData={pmData}
+      />
+
+      {/* PM Change Warning Dialog */}
+      <PMChangeWarningDialog
+        open={showPMWarning}
+        onOpenChange={setShowPMWarning}
+        onConfirm={handleConfirmPMChange}
+        onCancel={handleCancelPMChange}
+        changeType={pmChangeType}
+        hasExistingNotes={getPMDataDetails().hasNotes}
+        hasCompletedItems={getPMDataDetails().hasCompletedItems}
       />
     </div>
   );

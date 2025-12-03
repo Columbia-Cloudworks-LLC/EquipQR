@@ -38,6 +38,7 @@ export interface PMData {
   checklist_data?: unknown;
   notes?: string;
   created_at: string;
+  template_id?: string | null;
 }
 
 export interface PermissionLevels {

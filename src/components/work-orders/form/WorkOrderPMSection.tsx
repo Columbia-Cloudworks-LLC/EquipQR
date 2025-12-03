@@ -39,15 +39,25 @@ export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({
     : null;
   
   // Filter templates based on user restrictions (only if no assigned template)
-  const templates = !hasAssignedTemplate 
+  // BUT: Always include the template from values.pmTemplateId if it exists (for edit mode)
+  let templates = !hasAssignedTemplate 
     ? (restrictions.canCreateCustomPMTemplates 
         ? allTemplates 
         : allTemplates.filter(t => !t.organization_id)) // Only global templates for free users
     : [];
   
-  // Find the selected template
+  // If we're in edit mode and have a pmTemplateId, ensure that template is in the list
+  if (values.pmTemplateId && !hasAssignedTemplate) {
+    const currentTemplate = allTemplates.find(t => t.id === values.pmTemplateId);
+    if (currentTemplate && !templates.find(t => t.id === currentTemplate.id)) {
+      // Add the current template to the list even if it would normally be filtered out
+      templates = [...templates, currentTemplate];
+    }
+  }
+  
+  // Find the selected template - prioritize the one from form values
   const selectedTemplate = assignedTemplate || 
-                          templates.find(t => t.id === values.pmTemplateId) || 
+                          (values.pmTemplateId && templates.find(t => t.id === values.pmTemplateId)) ||
                           templates.find(t => t.name === 'Forklift PM (Default)') || 
                           templates[0];
   
@@ -103,7 +113,7 @@ export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({
               </div>
             ) : (
               <Select
-                value={values.pmTemplateId || selectedTemplate?.id || ''}
+                value={values.pmTemplateId || ''}
                 onValueChange={handleTemplateChange}
                 disabled={isLoading}
               >

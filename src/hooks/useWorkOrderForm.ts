@@ -16,9 +16,10 @@ interface UseWorkOrderFormProps {
   equipmentId?: string;
   isOpen: boolean;
   initialIsHistorical?: boolean;
+  pmData?: { template_id?: string | null } | null;
 }
 
-export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHistorical = false }: UseWorkOrderFormProps) => {
+export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHistorical = false, pmData }: UseWorkOrderFormProps) => {
   const isEditMode = !!workOrder;
   const initializationRef = useRef<{ 
     lastWorkOrderId?: string; 
@@ -42,8 +43,10 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
       priority: workOrder?.priority || defaults.priority,
       dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : defaults.dueDate,
       hasPM: workOrder?.has_pm ?? defaults.hasPM,
+      // Set PM template ID from PM data if editing
+      pmTemplateId: pmData?.template_id || defaults.pmTemplateId,
     };
-  }, [workOrder, equipmentId, initialIsHistorical]);
+  }, [workOrder, equipmentId, initialIsHistorical, pmData]);
 
   const form = useFormValidation(workOrderFormSchema, initialValues);
 

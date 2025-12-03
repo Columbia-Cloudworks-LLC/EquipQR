@@ -25,9 +25,12 @@ export interface CreatePMData {
 }
 
 export interface UpdatePMData {
-  checklistData: PMChecklistItem[];
+  checklistData?: PMChecklistItem[];
   notes?: string;
   status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  templateId?: string;
+  completedAt?: string | null;
+  completedBy?: string | null;
 }
 
 // Comprehensive forklift PM checklist with undefined conditions (unrated)
@@ -3869,10 +3872,18 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
       return null;
     }
 
-    const updateData: Database['public']['Tables']['preventative_maintenance']['Update'] = {
-      checklist_data: data.checklistData as unknown as Json,
-      notes: data.notes,
-    };
+    const updateData: Database['public']['Tables']['preventative_maintenance']['Update'] = {};
+    
+    // Only include fields that are provided
+    if (data.checklistData !== undefined) {
+      updateData.checklist_data = data.checklistData as unknown as Json;
+    }
+    if (data.notes !== undefined) {
+      updateData.notes = data.notes;
+    }
+    if (data.templateId !== undefined) {
+      updateData.template_id = data.templateId;
+    }
 
     if (data.status) {
       updateData.status = data.status;
@@ -3881,6 +3892,14 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
         updateData.completed_at = new Date().toISOString();
         updateData.completed_by = userData.user.id;
       }
+    }
+
+    // Handle explicit completedAt and completedBy values (e.g., for resetting when template changes)
+    if (data.completedAt !== undefined) {
+      updateData.completed_at = data.completedAt;
+    }
+    if (data.completedBy !== undefined) {
+      updateData.completed_by = data.completedBy;
     }
 
     logger.debug('Updating PM', { 

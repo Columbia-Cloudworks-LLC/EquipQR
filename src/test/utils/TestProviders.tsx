@@ -1,6 +1,7 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { 
   MockAuthProvider, 
   MockSessionProvider, 
@@ -22,17 +23,19 @@ export const TestProviders = ({ children, initialEntries }: { children: React.Re
   return (
     <MemoryRouter initialEntries={initialEntries || ['/']}>
       <QueryClientProvider client={queryClient}>
-        <MockAuthProvider>
-          <MockSessionProvider>
-            <MockSessionProvider2>
-              <MockUserProvider>
-                <MockSimpleOrganizationProvider>
-                  {children}
-                </MockSimpleOrganizationProvider>
-              </MockUserProvider>
-            </MockSessionProvider2>
-          </MockSessionProvider>
-        </MockAuthProvider>
+        <TooltipProvider>
+          <MockAuthProvider>
+            <MockSessionProvider>
+              <MockSessionProvider2>
+                <MockUserProvider>
+                  <MockSimpleOrganizationProvider>
+                    {children}
+                  </MockSimpleOrganizationProvider>
+                </MockUserProvider>
+              </MockSessionProvider2>
+            </MockSessionProvider>
+          </MockAuthProvider>
+        </TooltipProvider>
       </QueryClientProvider>
     </MemoryRouter>
   );
