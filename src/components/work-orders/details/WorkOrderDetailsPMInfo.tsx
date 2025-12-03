@@ -1,8 +1,9 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clipboard } from 'lucide-react';
+import { Clipboard, Wrench } from 'lucide-react';
 import { WorkOrderData, PMData, PermissionLevels } from '@/types/workOrderDetails';
+import { usePMTemplates } from '@/hooks/usePMTemplates';
 
 interface WorkOrderDetailsPMInfoProps {
   workOrder: WorkOrderData;
@@ -15,6 +16,13 @@ export const WorkOrderDetailsPMInfo: React.FC<WorkOrderDetailsPMInfoProps> = ({
   pmData,
   permissionLevels
 }) => {
+  const { data: allTemplates = [] } = usePMTemplates();
+  
+  // Find the template name if template_id exists
+  const templateName = pmData?.template_id 
+    ? allTemplates.find(t => t.id === pmData.template_id)?.name 
+    : null;
+
   if (!workOrder.has_pm || !permissionLevels.isRequestor || permissionLevels.isManager || !pmData) {
     return null;
   }
@@ -29,6 +37,17 @@ export const WorkOrderDetailsPMInfo: React.FC<WorkOrderDetailsPMInfoProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
+          {/* PM Template Name */}
+          {templateName && (
+            <div className="flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <span className="text-sm font-medium">Template: </span>
+                <span className="text-sm text-muted-foreground">{templateName}</span>
+              </div>
+            </div>
+          )}
+          
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">PM Status:</span>
             <Badge className={

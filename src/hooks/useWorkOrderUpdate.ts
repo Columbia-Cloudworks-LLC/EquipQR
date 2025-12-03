@@ -46,7 +46,9 @@ export const useUpdateWorkOrder = () => {
 
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
+      const { workOrderId } = variables;
+      
       // Invalidate and refetch work order queries with standardized keys
       queryClient.invalidateQueries({ 
         queryKey: ['enhanced-work-orders', currentOrganization?.id] 
@@ -59,6 +61,17 @@ export const useUpdateWorkOrder = () => {
       });
       queryClient.invalidateQueries({ 
         queryKey: ['dashboardStats', currentOrganization?.id] 
+      });
+      // Also invalidate individual work order queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['workOrder', currentOrganization?.id, workOrderId] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['workOrder', 'enhanced', currentOrganization?.id, workOrderId] 
+      });
+      // Invalidate PM queries to refresh PM data
+      queryClient.invalidateQueries({ 
+        queryKey: ['preventativeMaintenance', workOrderId] 
       });
       
       toast({

@@ -25,6 +25,7 @@ import { PMChecklistPDFGenerator } from '@/utils/pdfGenerator';
 import { workOrderRevertService } from '@/services/workOrderRevertService';
 import { WorkOrderData, EquipmentData, TeamMemberData, OrganizationData } from '@/types/workOrderDetails';
 import { logger } from '@/utils/logger';
+import { usePMTemplates } from '@/hooks/usePMTemplates';
 
 interface PMChecklistComponentProps {
   pm: PreventativeMaintenance;
@@ -52,6 +53,12 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const updatePMMutation = useUpdatePM();
+  const { data: allTemplates = [] } = usePMTemplates();
+  
+  // Find the template name if template_id exists
+  const templateName = pm.template_id 
+    ? allTemplates.find(t => t.id === pm.template_id)?.name 
+    : null;
   const [checklist, setChecklist] = useState<PMChecklistItem[]>([]);
   const [notes, setNotes] = useState(pm.notes || '');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -64,6 +71,10 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const [showSetAllOKDialog, setShowSetAllOKDialog] = useState(false);
   const [isSettingAllOK, setIsSettingAllOK] = useState(false);
   const [isManuallyUpdated, setIsManuallyUpdated] = useState(false);
+  
+  // Track the current template ID to detect template changes
+  const lastTemplateIdRef = useRef<string | null | undefined>(pm.template_id);
+  const lastPmIdRef = useRef<string>(pm.id);
 
   // Use ref to always have access to latest checklist state in callbacks
   const checklistRef = useRef(checklist);
@@ -127,6 +138,20 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     selectionDelay: 3000,
     enabled: !readOnly
   });
+
+  // Reset initialization when PM record changes (different PM ID or template changed)
+  useEffect(() => {
+    const templateChanged = lastTemplateIdRef.current !== pm.template_id;
+    const pmIdChanged = lastPmIdRef.current !== pm.id;
+    
+    if (templateChanged || pmIdChanged) {
+      // Template or PM changed - reset initialization to reload checklist
+      setIsInitialized(false);
+      setIsManuallyUpdated(false);
+      lastTemplateIdRef.current = pm.template_id;
+      lastPmIdRef.current = pm.id;
+    }
+  }, [pm.template_id, pm.id]);
 
   useEffect(() => {
     // Only initialize once to prevent unnecessary resets
@@ -583,7 +608,14 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             <div className="flex items-center gap-3">
               {getStatusIcon()}
               <div>
-                <CardTitle>{pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}</CardTitle>
+                <CardTitle>
+                  {templateName 
+                    ? `${templateName} - Preventative Maintenance Checklist`
+                    : pm.template_id 
+                      ? 'Preventative Maintenance Checklist' 
+                      : 'Forklift Preventative Maintenance Checklist'
+                  }
+                </CardTitle>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge className={getStatusColor()}>
                     {pm.status.replace('_', ' ').toUpperCase()}
@@ -609,7 +641,14 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             <div className="flex items-center gap-3">
               {getStatusIcon()}
               <div>
-                <CardTitle>{pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}</CardTitle>
+                <CardTitle>
+                  {templateName 
+                    ? `${templateName} - Preventative Maintenance Checklist`
+                    : pm.template_id 
+                      ? 'Preventative Maintenance Checklist' 
+                      : 'Forklift Preventative Maintenance Checklist'
+                  }
+                </CardTitle>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge className={getStatusColor()}>
                     {pm.status.replace('_', ' ').toUpperCase()}
@@ -652,7 +691,12 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 {getStatusIcon()}
                 <CardTitle className="text-lg leading-tight">
-                  {pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}
+                  {templateName 
+                    ? `${templateName} - Preventative Maintenance Checklist`
+                    : pm.template_id 
+                      ? 'Preventative Maintenance Checklist' 
+                      : 'Forklift Preventative Maintenance Checklist'
+                  }
                 </CardTitle>
               </div>
               <PrintExportDropdown
@@ -688,7 +732,14 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             <div className="flex items-center gap-3">
               {getStatusIcon()}
               <div>
-                <CardTitle>{pm.template_id ? 'Preventative Maintenance Checklist' : 'Forklift Preventative Maintenance Checklist'}</CardTitle>
+                <CardTitle>
+                  {templateName 
+                    ? `${templateName} - Preventative Maintenance Checklist`
+                    : pm.template_id 
+                      ? 'Preventative Maintenance Checklist' 
+                      : 'Forklift Preventative Maintenance Checklist'
+                  }
+                </CardTitle>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge className={getStatusColor()}>
                     {pm.status.replace('_', ' ').toUpperCase()}

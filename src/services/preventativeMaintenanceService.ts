@@ -25,9 +25,10 @@ export interface CreatePMData {
 }
 
 export interface UpdatePMData {
-  checklistData: PMChecklistItem[];
+  checklistData?: PMChecklistItem[];
   notes?: string;
   status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  templateId?: string;
 }
 
 // Comprehensive forklift PM checklist with undefined conditions (unrated)
@@ -3869,10 +3870,18 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
       return null;
     }
 
-    const updateData: Database['public']['Tables']['preventative_maintenance']['Update'] = {
-      checklist_data: data.checklistData as unknown as Json,
-      notes: data.notes,
-    };
+    const updateData: Database['public']['Tables']['preventative_maintenance']['Update'] = {};
+    
+    // Only include fields that are provided
+    if (data.checklistData !== undefined) {
+      updateData.checklist_data = data.checklistData as unknown as Json;
+    }
+    if (data.notes !== undefined) {
+      updateData.notes = data.notes;
+    }
+    if (data.templateId !== undefined) {
+      updateData.template_id = data.templateId;
+    }
 
     if (data.status) {
       updateData.status = data.status;

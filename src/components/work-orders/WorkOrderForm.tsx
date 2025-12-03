@@ -29,6 +29,10 @@ interface WorkOrderFormProps {
   workOrder?: WorkOrder;
   onSubmit?: (data: WorkOrderFormData) => void;
   initialIsHistorical?: boolean;
+  /** External loading state (e.g., from parent component's mutation) */
+  isUpdating?: boolean;
+  /** PM data for edit mode to default template selection */
+  pmData?: { template_id?: string | null } | null;
 }
 
 const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ 
@@ -37,7 +41,9 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   equipmentId,
   workOrder,
   onSubmit,
-  initialIsHistorical = false
+  initialIsHistorical = false,
+  isUpdating = false,
+  pmData
 }) => {
   const { currentOrganization } = useOrganization();
   const [showWorkingHoursWarning, setShowWorkingHoursWarning] = useState(false);
@@ -47,7 +53,8 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     workOrder,
     equipmentId,
     isOpen: open,
-    initialIsHistorical
+    initialIsHistorical,
+    pmData
   });
 
   const { allEquipment, preSelectedEquipment, isEquipmentPreSelected } = useEquipmentSelection({
@@ -194,7 +201,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
           <WorkOrderFormActions
             onCancel={handleClose}
             onSubmit={handleSubmit}
-            isLoading={isLoading}
+            isLoading={isLoading || isUpdating}
             isValid={form.isValid}
             isEditMode={isEditMode}
           />
