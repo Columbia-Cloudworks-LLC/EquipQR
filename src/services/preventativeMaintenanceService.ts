@@ -3894,6 +3894,14 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
       }
     }
 
+    // Handle explicit completedAt and completedBy values (e.g., for resetting when template changes)
+    if (data.completedAt !== undefined) {
+      updateData.completed_at = data.completedAt;
+    }
+    if (data.completedBy !== undefined) {
+      updateData.completed_by = data.completedBy;
+    }
+
     logger.debug('Updating PM', { 
       pmId, 
       checklistDataCount: data.checklistData?.length,
