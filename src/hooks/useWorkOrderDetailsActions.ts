@@ -188,11 +188,11 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
 
   // Confirm PM change and proceed with update
   const handleConfirmPMChange = useCallback(async () => {
-    // Read the ref value BEFORE closing the dialog, as the onOpenChange handler resets it
+    // Read the ref value BEFORE clearing it, as the ref is explicitly reset in this handler and in handleCancelPMChange
     const pending = pendingFormDataRef.current;
     
     if (pending) {
-      // Clear the ref first to prevent it from being reset by onOpenChange
+      // Clear the ref first to prevent stale data
       pendingFormDataRef.current = null;
       setShowPMWarning(false);
       // Use stored equipmentId if available, fallback to pmData?.equipment_id for backward compatibility
