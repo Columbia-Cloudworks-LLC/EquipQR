@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import Page from '@/components/layout/Page';
 
 
 const SettingsContent = () => {
@@ -94,7 +95,9 @@ const SettingsContent = () => {
 const Settings = () => {
   return (
     <SettingsProvider>
-      <SettingsContent />
+      <Page maxWidth="7xl" padding="responsive">
+        <SettingsContent />
+      </Page>
     </SettingsProvider>
   );
 };

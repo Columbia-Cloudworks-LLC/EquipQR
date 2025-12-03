@@ -10,6 +10,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentById } from '@/components/equipment/hooks/useEquipment';
 import { useToast } from '@/hooks/use-toast';
 import QRScannerComponent from '@/components/scanner/QRScannerComponent';
+import Page from '@/components/layout/Page';
 
 const QRScanner = () => {
   const navigate = useNavigate();
@@ -96,33 +97,36 @@ const QRScanner = () => {
 
   if (!currentOrganization) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <h1 className="text-3xl font-bold tracking-tight">QR Scanner</h1>
+      <Page maxWidth="7xl" padding="responsive">
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            <h1 className="text-3xl font-bold tracking-tight">QR Scanner</h1>
+          </div>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please select an organization to use the QR scanner.
+            </AlertDescription>
+          </Alert>
         </div>
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Please select an organization to use the QR scanner.
-          </AlertDescription>
-        </Alert>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
+    <Page maxWidth="7xl" padding="responsive">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
         <Button 
           variant="outline" 
           size="sm"
@@ -277,7 +281,8 @@ const QRScanner = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </Page>
   );
 };
 

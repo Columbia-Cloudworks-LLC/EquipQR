@@ -8,6 +8,7 @@ import { useSyncWorkOrdersByOrganization, useSyncDashboardStats } from '@/servic
 import ReportFilters from '@/components/reports/ReportFilters';
 import ReportCharts from '@/components/reports/ReportCharts';
 import ReportExport from '@/components/reports/ReportExport';
+import Page from '@/components/layout/Page';
 
 export type ReportType = 'equipment' | 'maintenance' | 'workorders' | 'kpis';
 
@@ -64,48 +65,53 @@ const Reports = () => {
 
   if (!currentOrganization) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
-          <p className="text-muted-foreground">
-            Please select an organization to view reports.
-          </p>
+      <Page maxWidth="7xl" padding="responsive">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+            <p className="text-muted-foreground">
+              Please select an organization to view reports.
+            </p>
+          </div>
         </div>
-      </div>
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
-          <p className="text-muted-foreground">Loading reports...</p>
-        </div>
-        <div className="grid gap-6 lg:grid-cols-4">
-          <div className="lg:col-span-1">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="h-64 bg-muted animate-pulse rounded" />
-              </CardContent>
-            </Card>
+      <Page maxWidth="7xl" padding="responsive">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+            <p className="text-muted-foreground">Loading reports...</p>
           </div>
-          <div className="lg:col-span-3">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="h-96 bg-muted animate-pulse rounded" />
-              </CardContent>
-            </Card>
+          <div className="grid gap-6 lg:grid-cols-4">
+            <div className="lg:col-span-1">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="h-64 bg-muted animate-pulse rounded" />
+                </CardContent>
+              </Card>
+            </div>
+            <div className="lg:col-span-3">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="h-96 bg-muted animate-pulse rounded" />
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+    <Page maxWidth="7xl" padding="responsive">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
         <p className="text-muted-foreground">
           Generate and export detailed reports for your fleet management data.
         </p>
@@ -170,7 +176,8 @@ const Reports = () => {
           </Card>
         </div>
       </div>
-    </div>
+      </div>
+    </Page>
   );
 };
 

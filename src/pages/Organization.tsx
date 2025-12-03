@@ -6,6 +6,7 @@ import { usePagePermissions } from '@/hooks/usePagePermissions';
 import OrganizationHeader from '@/components/organization/OrganizationHeader';
 import OrganizationTabs from '@/components/organization/OrganizationTabs';
 import RestrictedOrganizationAccess from '@/components/organization/RestrictedOrganizationAccess';
+import Page from '@/components/layout/Page';
 
 const Organization = () => {
   const { currentOrganization, isLoading } = useOrganization();
@@ -20,12 +21,14 @@ const Organization = () => {
   // Loading state
   if (isLoading || !currentOrganization) {
     return (
-      <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Organization</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Loading...</p>
+      <Page maxWidth="7xl" padding="responsive">
+        <div className="space-y-4 sm:space-y-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Organization</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Loading...</p>
+          </div>
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -39,21 +42,23 @@ const Organization = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
-      <OrganizationHeader 
-        organizationName={currentOrganization.name}
-        currentUserRole={currentUserRole}
-      />
+    <Page maxWidth="7xl" padding="responsive">
+      <div className="space-y-4 sm:space-y-6">
+        <OrganizationHeader 
+          organizationName={currentOrganization.name}
+          currentUserRole={currentUserRole}
+        />
 
-      <OrganizationTabs
-        members={members}
-        organizationId={currentOrganization.id}
-        currentUserRole={currentUserRole}
-        permissions={permissions}
-        membersLoading={membersLoading}
-        organization={currentOrganization}
-      />
-    </div>
+        <OrganizationTabs
+          members={members}
+          organizationId={currentOrganization.id}
+          currentUserRole={currentUserRole}
+          permissions={permissions}
+          membersLoading={membersLoading}
+          organization={currentOrganization}
+        />
+      </div>
+    </Page>
   );
 };
 
