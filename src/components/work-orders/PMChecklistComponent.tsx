@@ -141,7 +141,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
   // Reset initialization when PM record changes (different PM ID or template changed)
   useEffect(() => {
-    const templateChanged = lastTemplateIdRef.current !== pm.template_id;
+    const templateChanged = String(lastTemplateIdRef.current) !== String(pm.template_id);
     const pmIdChanged = lastPmIdRef.current !== pm.id;
     
     if (templateChanged || pmIdChanged) {
