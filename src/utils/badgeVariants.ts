@@ -1,3 +1,11 @@
+/**
+ * Badge variant utilities for consistent styling across the app.
+ * 
+ * Usage guidelines:
+ * - Use badges sparingly - only for actionable or non-default states
+ * - Avoid badges for default states (e.g., "active", "free")
+ * - Limit to 1-2 badges per component
+ */
 
 export const getRoleBadgeVariant = (role: string): 'default' | 'secondary' | 'outline' => {
   switch (role) {
@@ -19,8 +27,4 @@ export const getStatusBadgeVariant = (status: string): 'default' | 'secondary' |
     default:
       return 'destructive';
   }
-};
-
-export const getPlanBadgeVariant = (plan: string): 'default' | 'secondary' => {
-  return plan === 'premium' ? 'default' : 'secondary';
 };

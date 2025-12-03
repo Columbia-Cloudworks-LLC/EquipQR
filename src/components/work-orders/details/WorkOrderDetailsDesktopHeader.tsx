@@ -2,9 +2,15 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Shield, Clipboard } from 'lucide-react';
-import { getPriorityColor, getStatusColor, formatStatus } from '@/utils/workOrderHelpers';
+import { ArrowLeft, Edit, Info } from 'lucide-react';
+import { getStatusColor, formatStatus } from '@/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels } from '@/types/workOrderDetails';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface WorkOrderDetailsDesktopHeaderProps {
   workOrder: WorkOrderData;
@@ -13,6 +19,11 @@ interface WorkOrderDetailsDesktopHeaderProps {
   canEdit: boolean;
   onEditClick: () => void;
 }
+
+/** Format priority for display */
+const formatPriority = (priority: string) => {
+  return priority.charAt(0).toUpperCase() + priority.slice(1);
+};
 
 export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHeaderProps> = ({
   workOrder,
@@ -32,30 +43,27 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
             </Link>
           </Button>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">{workOrder.title}</h1>
-              {workOrder.has_pm && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                  <Clipboard className="h-3 w-3 mr-1" />
-                  PM Required
-                </Badge>
-              )}
-            </div>
+            <h1 className="text-3xl font-bold tracking-tight">{workOrder.title}</h1>
             <div className="flex items-center gap-2 text-muted-foreground">
               <p>Work Order #{workOrder.id}</p>
+              <span className="text-muted-foreground">•</span>
+              <span className="capitalize">{formatPriority(workOrder.priority)} priority</span>
               {formMode === 'requestor' && !permissionLevels.isManager && (
-                <Badge variant="outline" className="text-xs">
-                  <Shield className="h-3 w-3 mr-1" />
-                  Limited Access
-                </Badge>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>You have limited access to this work order</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className={getPriorityColor(workOrder.priority)}>
-            {workOrder.priority} priority
-          </Badge>
           <Badge className={getStatusColor(workOrder.status)}>
             {formatStatus(workOrder.status)}
           </Badge>

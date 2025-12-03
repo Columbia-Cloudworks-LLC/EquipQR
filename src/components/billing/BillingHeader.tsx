@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -39,9 +38,9 @@ const BillingHeader: React.FC<BillingHeaderProps> = ({
         </div>
         
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Badge variant={isFree ? 'secondary' : 'default'} className="w-fit">
-            {isFree ? 'No Active Licenses' : 'License Subscription'}
-          </Badge>
+          <span className="text-sm text-muted-foreground">
+            {isFree ? 'No Active Licenses' : 'License Subscription Active'}
+          </span>
           {isSubscribed && canManageBilling && (
             <Button 
               variant="outline" 

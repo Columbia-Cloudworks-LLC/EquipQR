@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRoleBadgeVariant, getStatusBadgeVariant, getPlanBadgeVariant } from './badgeVariants';
+import { getRoleBadgeVariant, getStatusBadgeVariant } from './badgeVariants';
 
 describe('badgeVariants', () => {
   describe('getRoleBadgeVariant', () => {
@@ -34,20 +34,6 @@ describe('badgeVariants', () => {
       expect(getStatusBadgeVariant('suspended')).toBe('destructive');
       expect(getStatusBadgeVariant('')).toBe('destructive');
       expect(getStatusBadgeVariant('unknown')).toBe('destructive');
-    });
-  });
-
-  describe('getPlanBadgeVariant', () => {
-    it('should return default for premium plan', () => {
-      expect(getPlanBadgeVariant('premium')).toBe('default');
-    });
-
-    it('should return secondary for non-premium plans', () => {
-      expect(getPlanBadgeVariant('free')).toBe('secondary');
-      expect(getPlanBadgeVariant('basic')).toBe('secondary');
-      expect(getPlanBadgeVariant('standard')).toBe('secondary');
-      expect(getPlanBadgeVariant('')).toBe('secondary');
-      expect(getPlanBadgeVariant('unknown')).toBe('secondary');
     });
   });
 });

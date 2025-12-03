@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { MapPin, Users, DollarSign } from 'lucide-react';
 import { SessionOrganization } from '@/contexts/SessionContext';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
@@ -34,9 +33,9 @@ const SimplifiedPremiumFeatures: React.FC<SimplifiedPremiumFeaturesProps> = ({
           <div className="p-4 rounded-lg border bg-card">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Current Monthly Cost</span>
-              <Badge variant={isFree ? 'secondary' : 'default'}>
-                {isFree ? 'Free' : 'Active'}
-              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {isFree ? 'Single-user plan' : 'Active subscription'}
+              </span>
             </div>
             <div className="text-2xl font-bold">${billing.totals.monthlyTotal.toFixed(2)}</div>
             <div className="text-xs text-muted-foreground mt-1">

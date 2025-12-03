@@ -15,6 +15,11 @@ import { Badge } from '@/components/ui/badge';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { cn } from '@/lib/utils';
 
+/** Helper to format role for display */
+const formatRole = (role: string) => {
+  return role.charAt(0).toUpperCase() + role.slice(1);
+};
+
 interface OrganizationSwitcherProps {
   className?: string;
 }
@@ -69,17 +74,9 @@ const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }
               <span className="text-xs sm:text-sm font-medium truncate w-full text-left">
                 {currentOrganization.name}
               </span>
-              <div className="flex items-center gap-1 mt-1">
-                <Badge 
-                  variant={currentOrganization.plan === 'premium' ? 'default' : 'secondary'} 
-                  className="text-[10px] sm:text-xs px-1 py-0"
-                >
-                  {currentOrganization.plan}
-                </Badge>
-                <span className="text-[10px] sm:text-xs text-muted-foreground">
-                  {currentOrganization.userRole}
-                </span>
-              </div>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">
+                {formatRole(currentOrganization.userRole)}
+              </span>
             </div>
           </div>
           <ChevronsUpDown className="h-3 w-3 sm:h-4 sm:w-4 opacity-50 flex-shrink-0" />
@@ -108,14 +105,8 @@ const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }
                 )}
               </div>
               <div className="flex items-center gap-1 mt-1">
-                <Badge 
-                  variant={organization.plan === 'premium' ? 'default' : 'secondary'} 
-                  className="text-[10px] sm:text-xs px-1 py-0"
-                >
-                  {organization.plan}
-                </Badge>
                 <span className="text-[10px] sm:text-xs text-muted-foreground">
-                  {organization.userRole}
+                  {formatRole(organization.userRole)}
                 </span>
                 {organization.userStatus !== 'active' && (
                   <Badge variant="outline" className="text-[10px] sm:text-xs px-1 py-0">
