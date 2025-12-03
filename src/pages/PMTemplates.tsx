@@ -15,6 +15,7 @@ import { TemplateAssignmentDialog } from '@/components/pm-templates/TemplateAssi
 import { ChecklistTemplateEditor } from '@/components/organization/ChecklistTemplateEditor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import Page from '@/components/layout/Page';
 
 // Enhanced Template Card Component
 interface TemplateCardProps {
@@ -214,27 +215,31 @@ const PMTemplates = () => {
 
   if (!currentOrganization) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">PM Templates</h1>
-          <p className="text-muted-foreground">
-            Please select an organization to manage PM templates.
-          </p>
+      <Page maxWidth="7xl" padding="responsive">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">PM Templates</h1>
+            <p className="text-muted-foreground">
+              Please select an organization to manage PM templates.
+            </p>
+          </div>
         </div>
-      </div>
+      </Page>
     );
   }
 
   if (!isAdmin) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">PM Templates</h1>
-          <p className="text-muted-foreground">
-            You need administrator permissions to access this page.
-          </p>
+      <Page maxWidth="7xl" padding="responsive">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">PM Templates</h1>
+            <p className="text-muted-foreground">
+              You need administrator permissions to access this page.
+            </p>
+          </div>
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -294,8 +299,9 @@ const PMTemplates = () => {
   const showUpgradeMessage = !canCreateCustomTemplates && isAdmin;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <Page maxWidth="7xl" padding="responsive">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">PM Templates</h1>
           <p className="text-muted-foreground mt-2">
@@ -474,7 +480,8 @@ const PMTemplates = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </Page>
   );
 };
 

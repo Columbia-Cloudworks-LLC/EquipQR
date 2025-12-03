@@ -68,7 +68,6 @@ const RealMemberBilling = () => {
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5" />
             User Licenses ({totalUsers} total members)
-            {isFree && <Badge variant="secondary">Free Plan</Badge>}
           </div>
           <div className="text-right">
             <div className="text-sm text-muted-foreground">Monthly Subtotal</div>

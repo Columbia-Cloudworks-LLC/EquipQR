@@ -54,11 +54,14 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
             <CardDescription>
               {equipment.manufacturer} {equipment.model}
             </CardDescription>
-            <div className="mt-1.5">
-              <Badge className={`${getStatusColor(equipment.status)} text-xs`} variant="outline">
-                {equipment.status}
-              </Badge>
-            </div>
+            {/* Only show badge for non-active statuses */}
+            {equipment.status !== 'active' && (
+              <div className="mt-1.5">
+                <Badge className={`${getStatusColor(equipment.status)} text-xs`} variant="outline">
+                  {equipment.status}
+                </Badge>
+              </div>
+            )}
           </div>
           <Button
             variant="ghost"

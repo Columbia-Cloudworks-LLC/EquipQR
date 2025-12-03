@@ -28,7 +28,6 @@ import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment
 import { useWorkOrderContextualAssignment } from '@/hooks/useWorkOrderContextualAssignment';
 import { ensureWorkOrderData } from '@/utils/workOrderTypeConversion';
 import { 
-  getPriorityColor, 
   getStatusColor, 
   formatStatus, 
   formatDate,
@@ -133,10 +132,10 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
               {workOrder.description}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Badge className={getPriorityColor(workOrder.priority)}>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground capitalize">
               {workOrder.priority} priority
-            </Badge>
+            </span>
             <Badge className={getStatusColor(workOrder.status)}>
               {formatStatus(workOrder.status)}
             </Badge>
@@ -316,12 +315,6 @@ const MobileCard: React.FC<WorkOrderCardProps> = memo(({
                 Equipment: {workOrder.equipmentName}
               </p>
             )}
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            <Badge className={getPriorityColor(workOrder.priority)} variant="outline">
-              {workOrder.priority}
-            </Badge>
           </div>
 
           <CardDescription className="text-sm line-clamp-2">
@@ -506,17 +499,17 @@ const CompactCard: React.FC<WorkOrderCardProps> = memo(({
     <Card className="h-full hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg leading-tight line-clamp-2">
-            {workOrder.title}
-          </CardTitle>
-          <div className="flex flex-col gap-1">
-            <Badge className={getStatusColor(workOrder.status)}>
-              {formatStatus(workOrder.status)}
-            </Badge>
-            <Badge className={getPriorityColor(workOrder.priority)}>
-              {workOrder.priority}
-            </Badge>
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-lg leading-tight line-clamp-2">
+              {workOrder.title}
+            </CardTitle>
+            <span className="text-xs text-muted-foreground capitalize">
+              {workOrder.priority} priority
+            </span>
           </div>
+          <Badge className={getStatusColor(workOrder.status)}>
+            {formatStatus(workOrder.status)}
+          </Badge>
         </div>
       </CardHeader>
       

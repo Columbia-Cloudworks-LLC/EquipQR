@@ -52,9 +52,9 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
             Monthly Billing Overview
-            <Badge variant={isFree ? 'secondary' : 'default'}>
-              {isFree ? 'Free Plan' : 'Pay-as-you-go'}
-            </Badge>
+            <span className="text-sm font-normal text-muted-foreground">
+              ({isFree ? 'Single-user plan' : 'Pay-as-you-go'})
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -100,7 +100,6 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
             User Licenses
-            {isFree && <Badge variant="outline">Free</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -155,7 +154,7 @@ const UpdatedOrganizationBilling: React.FC<UpdatedOrganizationBillingProps> = ({
           <CardTitle className="flex items-center gap-2">
             <HardDrive className="h-5 w-5" />
             Storage Usage
-            {isFree && <Badge variant="secondary">Not Available</Badge>}
+            {isFree && <span className="text-sm font-normal text-muted-foreground">(Not available on single-user plan)</span>}
           </CardTitle>
         </CardHeader>
         <CardContent>

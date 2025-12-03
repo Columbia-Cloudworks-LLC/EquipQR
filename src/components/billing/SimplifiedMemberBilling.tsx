@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Users, AlertCircle } from 'lucide-react';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -38,7 +37,6 @@ const SimplifiedMemberBilling = () => {
             <span className="text-lg sm:text-xl">
               User Licenses ({billing.userSlots.totalUsers} total)
             </span>
-            {isFree && <Badge variant="secondary">Free Plan</Badge>}
           </div>
           <div className="text-left sm:text-right">
             <div className="text-sm text-muted-foreground">Monthly Cost</div>
