@@ -177,11 +177,11 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
         expect(capturedActions).toBeDefined();
       });
 
-      // Prepare form data without equipmentId (undefined, null, or empty string)
-      const formData: WorkOrderFormData = {
+      // Prepare form data without equipmentId (simulating unavailable value)
+      const formData: Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string } = {
         title: 'Test Work Order',
         description: 'Test Description',
-        equipmentId: '', // Empty string - should fall back to parameter
+        // equipmentId is intentionally omitted - should fall back to parameter
         priority: 'medium',
         hasPM: true,
         pmTemplateId: 'template-1',
@@ -227,10 +227,10 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
       });
 
       // Prepare form data without equipmentId
-      const formData: WorkOrderFormData = {
+      const formData: Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string } = {
         title: 'Test Work Order',
         description: 'Test Description',
-        equipmentId: '', // Empty string
+        // equipmentId is intentionally omitted
         priority: 'medium',
         hasPM: true,
         pmTemplateId: 'template-1',
@@ -272,11 +272,11 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
       });
 
       // Create form data with null equipmentId (simulating form state)
-      const formData = {
+      const formData: Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string | null } = {
         title: 'Test Work Order',
         description: 'Test Description',
-        equipmentId: null as unknown as string, // Explicitly null
-        priority: 'medium' as const,
+        equipmentId: null, // Explicitly null
+        priority: 'medium',
         hasPM: true,
         pmTemplateId: 'template-1',
       };
@@ -311,11 +311,11 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
         expect(capturedActions).toBeDefined();
       });
 
-      const formData = {
+      const formData: Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string } = {
         title: 'Test Work Order',
         description: 'Test Description',
-        equipmentId: undefined as unknown as string,
-        priority: 'medium' as const,
+        // equipmentId is intentionally omitted to simulate undefined
+        priority: 'medium',
         hasPM: true,
         pmTemplateId: 'template-1',
       };
@@ -352,10 +352,10 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
         expect(capturedActions).toBeDefined();
       });
 
-      const formData: WorkOrderFormData = {
+      const formData: Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string } = {
         title: 'Test Work Order',
         description: 'Test Description',
-        equipmentId: '', // Empty in form
+        // equipmentId is intentionally omitted - should use parameter
         priority: 'medium',
         hasPM: true,
         pmTemplateId: 'template-1',
@@ -364,7 +364,7 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
       await capturedActions!.handleUpdateWorkOrder(
         formData,
         false,
-        'eq-fallback' // Should use this
+        'eq-fallback' // Should use this since form equipmentId is omitted
       );
 
       await waitFor(() => {
