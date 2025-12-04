@@ -21,7 +21,7 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
       setValue('estimatedHours', null);
     } else {
       const numValue = parseFloat(value);
-      if (!isNaN(numValue) && numValue >= 0) {
+      if (!isNaN(numValue) && numValue >= 0 && numValue <= 10000) {
         setValue('estimatedHours', numValue);
       }
     }
@@ -51,6 +51,7 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
           <Input
             type="number"
             min="0"
+            max="10000"
             step="0.5"
             placeholder="e.g., 2.5"
             value={values.estimatedHours != null ? values.estimatedHours.toString() : ''}

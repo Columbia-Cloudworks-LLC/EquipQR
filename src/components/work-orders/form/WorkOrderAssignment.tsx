@@ -12,15 +12,13 @@ interface WorkOrderAssignmentProps {
   errors: Partial<Record<'assignmentType' | 'assignmentId', string>>;
   setValue: <K extends keyof WorkOrderFormData>(field: K, value: WorkOrderFormData[K]) => void;
   organizationId: string;
-  equipmentId?: string;
 }
 
 export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
   values,
   errors,
   setValue,
-  organizationId,
-  equipmentId
+  organizationId
 }) => {
   const { assignmentOptions, isLoading: isLoadingMembers } = useWorkOrderAssignmentOptions(organizationId);
   const { data: teams = [], isLoading: isLoadingTeams } = useTeams(organizationId);

@@ -74,7 +74,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
       return {
         id: equipmentFromList.id,
         name: equipmentFromList.name || '',
-        default_pm_template_id: (equipmentFromList as any).default_pm_template_id || null
+        default_pm_template_id: equipmentFromList.default_pm_template_id || null
       };
     }
     
@@ -83,7 +83,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
       return {
         id: preSelectedEquipment.id || '',
         name: preSelectedEquipment.name || '',
-        default_pm_template_id: (preSelectedEquipment as any).default_pm_template_id || null
+        default_pm_template_id: preSelectedEquipment.default_pm_template_id || null
       };
     }
     
@@ -228,7 +228,6 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             }}
             setValue={form.setValue}
             organizationId={currentOrganization?.id || ''}
-            equipmentId={form.values.equipmentId}
           />
 
           <WorkOrderPMChecklist
