@@ -13,7 +13,7 @@ const CTASection = () => {
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Join repair shops and rental operations using EquipQR™ to track equipment and manage maintenance. 
-            Start free today - your first user costs nothing.
+            Completely free to use with unlimited team members.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
@@ -26,9 +26,18 @@ const CTASection = () => {
           </div>
           
           <div className="text-sm text-muted-foreground space-y-2">
-            <p>✓ First user completely free</p>
-            <p>✓ $10/month per additional user</p>
-            <p>✓ 5GB image storage included with first paid user</p>
+            <p>✓ Completely free to use</p>
+            <p>✓ Unlimited team members</p>
+            <p>
+              ✓ 5GB image storage included (
+              <a 
+                href="mailto:nicholas.king@columbiacloudworks.com" 
+                className="text-primary hover:text-primary/80 transition-colors"
+              >
+                contact us for more
+              </a>
+              )
+            </p>
           </div>
         </div>
       </div>
