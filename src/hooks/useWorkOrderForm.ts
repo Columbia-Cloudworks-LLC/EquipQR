@@ -42,6 +42,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
       equipmentId: workOrder?.equipment_id || equipmentId || defaults.equipmentId,
       priority: workOrder?.priority || defaults.priority,
       dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : defaults.dueDate,
+      estimatedHours: workOrder?.estimated_hours ?? defaults.estimatedHours,
       hasPM: workOrder?.has_pm ?? defaults.hasPM,
       // Set PM template ID from PM data if editing
       pmTemplateId: pmData?.template_id || defaults.pmTemplateId,
@@ -68,6 +69,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
           equipmentId: initialValues.equipmentId || '',
           priority: initialValues.priority || 'medium',
           dueDate: initialValues.dueDate || undefined,
+          estimatedHours: initialValues.estimatedHours || undefined,
           hasPM: initialValues.hasPM || false,
           pmTemplateId: initialValues.pmTemplateId || null,
           assignmentType: initialValues.assignmentType || 'unassigned',

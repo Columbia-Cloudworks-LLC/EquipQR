@@ -42,6 +42,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           description: data.description,
           priority: data.priority,
           dueDate: data.dueDate || undefined,
+          estimatedHours: data.estimatedHours || undefined,
           hasPM: data.hasPM,
         };
         
@@ -63,6 +64,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           assigneeId: data.assignmentType === 'user' && data.assignmentId ? data.assignmentId : undefined,
           teamId: data.assignmentType === 'team' && data.assignmentId ? data.assignmentId : undefined,
           dueDate: data.dueDate || undefined,
+          estimatedHours: data.estimatedHours || undefined,
           completedDate: dateToISOString(data.completedDate) || undefined,
           hasPM: data.hasPM || false,
           pmStatus: 'pending',
@@ -81,6 +83,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           equipmentId: data.equipmentId,
           priority: data.priority,
           dueDate: data.dueDate || undefined,
+          estimatedHours: data.estimatedHours || undefined,
           equipmentWorkingHours: data.equipmentWorkingHours || undefined,
           hasPM: data.hasPM || false,
           pmTemplateId: data.pmTemplateId || undefined,
