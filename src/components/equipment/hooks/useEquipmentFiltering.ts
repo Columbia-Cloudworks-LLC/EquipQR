@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useEquipment } from './useEquipment';
-import { useSyncTeamsByOrganization } from '@/services/syncDataService';
+import { useTeams } from '@/hooks/useTeamManagement';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export interface EquipmentFilters {
@@ -48,7 +48,7 @@ export const useEquipmentFiltering = (organizationId?: string) => {
 
   // Get equipment data using explicit organization ID
   const { data: equipment = [], isLoading } = useEquipment(organizationId);
-  const { data: teams = [] } = useSyncTeamsByOrganization(organizationId);
+  const { data: teams = [] } = useTeams(organizationId);
   usePermissions();
 
   // Extract unique values for filter options

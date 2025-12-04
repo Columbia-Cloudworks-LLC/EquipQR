@@ -1,7 +1,45 @@
+/**
+ * @deprecated This entire file is deprecated. Migration guide:
+ * 
+ * Equipment hooks:
+ * - useSyncEquipmentByOrganization → useEquipment from '@/hooks/useEquipment'
+ * - useSyncEquipmentById → useEquipmentById from '@/hooks/useEquipment'
+ * 
+ * Work Order hooks:
+ * - useSyncWorkOrdersByOrganization → useWorkOrders from '@/hooks/useWorkOrders'
+ * - useSyncWorkOrderById → useWorkOrderById from '@/hooks/useWorkOrders'
+ * - useSyncWorkOrderByIdEnhanced → useWorkOrderById from '@/hooks/useWorkOrders'
+ * - useSyncWorkOrdersByEquipment → useEquipmentWorkOrders from '@/hooks/useEquipment'
+ * 
+ * Teams hooks:
+ * - useSyncTeamsByOrganization → useTeams from '@/hooks/useTeamManagement'
+ * - useSyncTeamById → useTeams from '@/hooks/useTeamManagement'
+ * - useSyncTeamMembersByTeam → useTeams from '@/hooks/useTeamManagement'
+ * 
+ * Scans/Notes hooks:
+ * - useSyncScansByEquipment → useEquipmentScans from '@/hooks/useEquipment'
+ * - useSyncNotesByEquipment → useEquipmentNotes from '@/hooks/useEquipment'
+ * 
+ * Dashboard hooks:
+ * - useSyncDashboardStats → useDashboard from '@/hooks/useQueries'
+ * 
+ * Types:
+ * - Equipment → use Tables<'equipment'> from '@/integrations/supabase/types'
+ * - WorkOrder → use Tables<'work_orders'> from '@/integrations/supabase/types'
+ * - Team → use Tables<'teams'> from '@/integrations/supabase/types'
+ * 
+ * @module syncDataService
+ * @see {@link @/hooks/useEquipment} for equipment-related hooks
+ * @see {@link @/hooks/useWorkOrders} for work order hooks
+ * @see {@link @/hooks/useTeamManagement} for team hooks
+ */
 import { useQuery } from '@tanstack/react-query';
 import { getEquipmentByOrganization, getEquipmentById, getAllWorkOrdersByOrganization, getWorkOrdersByEquipmentId, getTeamsByOrganization, getScansByEquipmentId, getNotesByEquipmentId, getDashboardStatsByOrganization } from './supabaseDataService';
 import { WorkOrderService } from './WorkOrderService';
 
+/**
+ * @deprecated Use Tables<'equipment'> from '@/integrations/supabase/types' instead.
+ */
 export interface Equipment {
   id: string;
   name: string;
@@ -17,6 +55,9 @@ export interface Equipment {
   image_url?: string;
 }
 
+/**
+ * @deprecated Use Tables<'work_orders'> from '@/integrations/supabase/types' instead.
+ */
 export interface WorkOrder {
   id: string;
   title: string;
@@ -34,6 +75,9 @@ export interface WorkOrder {
   completedDate?: string;
 }
 
+/**
+ * @deprecated Use Tables<'teams'> from '@/integrations/supabase/types' instead.
+ */
 export interface Team {
   id: string;
   name: string;
@@ -43,6 +87,9 @@ export interface Team {
   activeWorkOrders: number;
 }
 
+/**
+ * @deprecated Use Tables<'team_members'> from '@/integrations/supabase/types' instead.
+ */
 export interface TeamMember {
   id: string;
   name: string;
@@ -51,6 +98,9 @@ export interface TeamMember {
   skills: string[];
 }
 
+/**
+ * @deprecated Use Tables<'scans'> from '@/integrations/supabase/types' instead.
+ */
 export interface Scan {
   id: string;
   equipmentId: string;
@@ -60,6 +110,9 @@ export interface Scan {
   notes?: string;
 }
 
+/**
+ * @deprecated Use Tables<'notes'> from '@/integrations/supabase/types' instead.
+ */
 export interface Note {
   id: string;
   equipmentId: string;
@@ -70,6 +123,9 @@ export interface Note {
   isPrivate?: boolean;
 }
 
+/**
+ * @deprecated Use DashboardStats from '@/services/supabaseDataService' or '@/hooks/useQueries' instead.
+ */
 export interface DashboardStats {
   totalEquipment: number;
   activeEquipment: number;
@@ -79,8 +135,9 @@ export interface DashboardStats {
   completedWorkOrders: number;
 }
 
-// Synchronous data service functions
-// @deprecated Use useEquipment from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use useEquipment from '@/hooks/useEquipment' instead.
+ */
 export const useSyncEquipmentByOrganization = (organizationId?: string) => {
   return useQuery({
     queryKey: ['equipment', organizationId],
@@ -90,7 +147,9 @@ export const useSyncEquipmentByOrganization = (organizationId?: string) => {
   });
 };
 
-// @deprecated Use useEquipmentById from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use useEquipmentById from '@/hooks/useEquipment' instead.
+ */
 export const useSyncEquipmentById = (organizationId: string, equipmentId: string) => {
   return useQuery({
     queryKey: ['equipment', organizationId, equipmentId],
@@ -100,6 +159,9 @@ export const useSyncEquipmentById = (organizationId: string, equipmentId: string
   });
 };
 
+/**
+ * @deprecated Use useWorkOrders from '@/hooks/useWorkOrders' instead.
+ */
 export const useSyncWorkOrdersByOrganization = (organizationId?: string) => {
   return useQuery({
     queryKey: ['workOrders', organizationId],
@@ -109,6 +171,9 @@ export const useSyncWorkOrdersByOrganization = (organizationId?: string) => {
   });
 };
 
+/**
+ * @deprecated Use useWorkOrderById from '@/hooks/useWorkOrders' instead.
+ */
 export const useSyncWorkOrderById = (organizationId: string, workOrderId: string) => {
   return useQuery({
     queryKey: ['workOrder', organizationId, workOrderId],
@@ -125,6 +190,9 @@ export const useSyncWorkOrderById = (organizationId: string, workOrderId: string
   });
 };
 
+/**
+ * @deprecated Use useEquipmentWorkOrders from '@/hooks/useEquipment' instead.
+ */
 export const useSyncWorkOrdersByEquipment = (organizationId: string, equipmentId: string) => {
   return useQuery({
     queryKey: ['workOrders', 'equipment', organizationId, equipmentId],
@@ -134,6 +202,9 @@ export const useSyncWorkOrdersByEquipment = (organizationId: string, equipmentId
   });
 };
 
+/**
+ * @deprecated Use useTeams from '@/hooks/useTeamManagement' instead.
+ */
 export const useSyncTeamsByOrganization = (organizationId?: string) => {
   return useQuery({
     queryKey: ['teams', organizationId],
@@ -143,6 +214,9 @@ export const useSyncTeamsByOrganization = (organizationId?: string) => {
   });
 };
 
+/**
+ * @deprecated Use useTeams from '@/hooks/useTeamManagement' instead.
+ */
 export const useSyncTeamById = (organizationId: string, teamId: string) => {
   return useQuery({
     queryKey: ['team', organizationId, teamId],
@@ -155,6 +229,9 @@ export const useSyncTeamById = (organizationId: string, teamId: string) => {
   });
 };
 
+/**
+ * @deprecated Use useTeams from '@/hooks/useTeamManagement' instead.
+ */
 export const useSyncTeamMembersByTeam = (organizationId: string, teamId: string) => {
   return useQuery({
     queryKey: ['teamMembers', organizationId, teamId],
@@ -168,6 +245,9 @@ export const useSyncTeamMembersByTeam = (organizationId: string, teamId: string)
   });
 };
 
+/**
+ * @deprecated Use useEquipmentScans from '@/hooks/useEquipment' instead.
+ */
 export const useSyncScansByEquipment = (organizationId: string, equipmentId: string) => {
   return useQuery({
     queryKey: ['scans', organizationId, equipmentId],
@@ -177,6 +257,9 @@ export const useSyncScansByEquipment = (organizationId: string, equipmentId: str
   });
 };
 
+/**
+ * @deprecated Use useEquipmentNotes from '@/hooks/useEquipment' instead.
+ */
 export const useSyncNotesByEquipment = (organizationId: string, equipmentId: string) => {
   return useQuery({
     queryKey: ['notes', organizationId, equipmentId],
@@ -186,6 +269,9 @@ export const useSyncNotesByEquipment = (organizationId: string, equipmentId: str
   });
 };
 
+/**
+ * @deprecated Use useDashboard from '@/hooks/useQueries' instead.
+ */
 export const useSyncDashboardStats = (organizationId?: string) => {
   return useQuery({
     queryKey: ['dashboardStats', organizationId],
@@ -195,7 +281,9 @@ export const useSyncDashboardStats = (organizationId?: string) => {
   });
 };
 
-// Enhanced work order query with real-time updates
+/**
+ * @deprecated Use useWorkOrderById from '@/hooks/useWorkOrders' instead.
+ */
 export const useSyncWorkOrderByIdEnhanced = (organizationId: string, workOrderId: string) => {
   return useQuery({
     queryKey: ['workOrder', 'enhanced', organizationId, workOrderId],

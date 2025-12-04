@@ -288,6 +288,101 @@ export const useDeleteEquipment = (organizationId: string | undefined) => {
 };
 
 /**
+ * Create scan mutation
+ * Records a scan event for equipment (e.g., QR code scan)
+ */
+export const useCreateScan = (organizationId: string | undefined) => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({ equipmentId, location, notes }: { 
+      equipmentId: string; 
+      location?: string; 
+      notes?: string 
+    }) => {
+      if (!organizationId) throw new Error('Organization ID required');
+      const service = new EquipmentService(organizationId);
+      const result = await service.createScan(equipmentId, location, notes);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to log scan');
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate scans queries for this equipment
+      queryClient.invalidateQueries({ 
+        queryKey: ['equipment-scans', organizationId, variables.equipmentId] 
+      });
+      // Also invalidate legacy query keys for backward compatibility
+      queryClient.invalidateQueries({ 
+        queryKey: ['scans', 'equipment', organizationId, variables.equipmentId] 
+      });
+      toast({
+        title: 'Scan Logged',
+        description: 'Equipment scan has been recorded successfully',
+        variant: 'success',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Scan Failed',
+        description: error instanceof Error ? error.message : 'Failed to log scan',
+        variant: 'error',
+      });
+    },
+  });
+};
+
+/**
+ * Create note mutation
+ * Creates a basic note for equipment (without images)
+ * For notes with images, use the equipmentNotesService directly
+ */
+export const useCreateNote = (organizationId: string | undefined) => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({ equipmentId, content, isPrivate = false }: { 
+      equipmentId: string; 
+      content: string; 
+      isPrivate?: boolean 
+    }) => {
+      if (!organizationId) throw new Error('Organization ID required');
+      const service = new EquipmentService(organizationId);
+      const result = await service.createNote(equipmentId, content, isPrivate);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to create note');
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate notes queries for this equipment
+      queryClient.invalidateQueries({ 
+        queryKey: ['equipment-notes', organizationId, variables.equipmentId] 
+      });
+      // Also invalidate legacy query keys for backward compatibility
+      queryClient.invalidateQueries({ 
+        queryKey: ['notes', 'equipment', organizationId, variables.equipmentId] 
+      });
+      toast({
+        title: 'Note Added',
+        description: 'Your note has been saved successfully',
+        variant: 'success',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Note Failed',
+        description: error instanceof Error ? error.message : 'Failed to save note',
+        variant: 'error',
+      });
+    },
+  });
+};
+
+/**
  * Get equipment status counts
  */
 export const useEquipmentStatusCounts = (

@@ -39,8 +39,9 @@ export interface DashboardStats {
   pendingWorkOrders?: number;
 }
 
-// Equipment functions
-// @deprecated Use EquipmentService.getAll() instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use EquipmentService.getAll() from '@/services/EquipmentService' instead.
+ */
 export const getEquipmentByOrganization = async (organizationId: string): Promise<Equipment[]> => {
   try {
     const { data, error } = await supabase
@@ -61,7 +62,9 @@ export const getEquipmentByOrganization = async (organizationId: string): Promis
   }
 };
 
-// @deprecated Use EquipmentService.getById() instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use EquipmentService.getById() from '@/services/EquipmentService' instead.
+ */
 export const getEquipmentById = async (organizationId: string, equipmentId: string): Promise<Equipment | undefined> => {
   try {
     const { data, error } = await supabase
