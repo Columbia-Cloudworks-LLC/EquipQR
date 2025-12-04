@@ -95,7 +95,7 @@ export function calculateBilling(state: BillingState): BillingCalculation {
   };
   
   // Calculate current usage (informational only)
-  const activeUsers = Math.max(0, activeMembers.length - 1); // Exclude owner for informational display
+  const activeUsers = activeMembers.length;
   const pendingInvitations = pendingMembers.length;
   const totalSlotsNeeded = activeUsers + pendingInvitations;
   
@@ -108,7 +108,7 @@ export function calculateBilling(state: BillingState): BillingCalculation {
   // Storage is free/unlimited
   const storage = {
     usedGB: storageGB,
-    freeGB: Number.MAX_SAFE_INTEGER, // Unlimited
+    freeGB: Infinity, // Unlimited
     overageGB: 0,
     cost: 0
   };
