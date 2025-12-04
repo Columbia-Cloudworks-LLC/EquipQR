@@ -16,7 +16,7 @@ export const useDeleteEquipment = () => {
         // Invalidate all equipment related queries
         queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization.id] });
         queryClient.invalidateQueries({ queryKey: ['dashboard-stats', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['work-orders', currentOrganization.id] });
         queryClient.invalidateQueries({ queryKey: ['equipment-status-counts', currentOrganization.id] });
       }
 
