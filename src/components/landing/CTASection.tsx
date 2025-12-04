@@ -33,6 +33,8 @@ const CTASection = () => {
               <a 
                 href="mailto:nicholas.king@columbiacloudworks.com" 
                 className="text-primary hover:text-primary/80 transition-colors"
+                rel="noopener noreferrer"
+                aria-label="Contact support for additional storage"
               >
                 Contact us for more
               </a>
