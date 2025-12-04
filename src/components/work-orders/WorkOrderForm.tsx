@@ -13,10 +13,11 @@ import { useWorkOrderForm, WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 import { useEquipmentSelection } from '@/components/equipment/hooks/useEquipmentSelection';
 import { useWorkOrderSubmission } from '@/hooks/useWorkOrderSubmission';
 import { WorkOrderFormHeader } from './form/WorkOrderFormHeader';
-import { WorkOrderBasicFields } from './form/WorkOrderBasicFields';
+import { WorkOrderGeneralInfo } from './form/WorkOrderGeneralInfo';
+import { WorkOrderScheduling } from './form/WorkOrderScheduling';
+import { WorkOrderAssignment } from './form/WorkOrderAssignment';
 import { WorkOrderEquipmentSelector } from './form/WorkOrderEquipmentSelector';
-import { WorkOrderPMSection } from './form/WorkOrderPMSection';
-import { WorkOrderDescriptionField } from './form/WorkOrderDescriptionField';
+import { WorkOrderPMChecklist } from './form/WorkOrderPMChecklist';
 import { WorkOrderFormActions } from './form/WorkOrderFormActions';
 import { WorkOrderHistoricalToggle } from './form/WorkOrderHistoricalToggle';
 import { WorkOrderHistoricalFields } from './form/WorkOrderHistoricalFields';
@@ -61,6 +62,33 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     equipmentId,
     workOrder
   });
+
+  // Get the currently selected equipment from form values to pass to PM checklist
+  const selectedEquipmentForPM = React.useMemo(() => {
+    const equipmentIdFromForm = form.values.equipmentId;
+    if (!equipmentIdFromForm) return undefined;
+    
+    // Try to find in allEquipment first
+    const equipmentFromList = allEquipment.find(eq => eq.id === equipmentIdFromForm);
+    if (equipmentFromList) {
+      return {
+        id: equipmentFromList.id,
+        name: equipmentFromList.name || '',
+        default_pm_template_id: equipmentFromList.default_pm_template_id || null
+      };
+    }
+    
+    // Fall back to preSelectedEquipment if it matches
+    if (preSelectedEquipment && preSelectedEquipment.id === equipmentIdFromForm) {
+      return {
+        id: preSelectedEquipment.id || '',
+        name: preSelectedEquipment.name || '',
+        default_pm_template_id: preSelectedEquipment.default_pm_template_id || null
+      };
+    }
+    
+    return undefined;
+  }, [form.values.equipmentId, allEquipment, preSelectedEquipment]);
 
   const { submitForm, isLoading } = useWorkOrderSubmission({
     workOrder,
@@ -142,9 +170,17 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             />
           )}
 
-          <WorkOrderBasicFields
-            values={form.values}
-            errors={form.errors}
+          <WorkOrderGeneralInfo
+            values={{
+              title: form.values.title || '',
+              priority: form.values.priority || 'medium',
+              description: form.values.description || ''
+            }}
+            errors={{
+              title: form.errors.title,
+              priority: form.errors.priority,
+              description: form.errors.description
+            }}
             setValue={form.setValue}
             preSelectedEquipment={preSelectedEquipment}
           />
@@ -169,16 +205,38 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             />
           )}
 
-          <WorkOrderPMSection
-            values={form.values}
+          <WorkOrderScheduling
+            values={{
+              dueDate: form.values.dueDate,
+              estimatedHours: form.values.estimatedHours
+            }}
+            errors={{
+              dueDate: form.errors.dueDate,
+              estimatedHours: form.errors.estimatedHours
+            }}
             setValue={form.setValue}
           />
 
-          <WorkOrderDescriptionField
-            values={form.values}
-            errors={form.errors}
+          <WorkOrderAssignment
+            values={{
+              assignmentType: form.values.assignmentType || 'unassigned',
+              assignmentId: form.values.assignmentId
+            }}
+            errors={{
+              assignmentType: form.errors.assignmentType,
+              assignmentId: form.errors.assignmentId
+            }}
             setValue={form.setValue}
-            preSelectedEquipment={preSelectedEquipment}
+            organizationId={currentOrganization?.id || ''}
+          />
+
+          <WorkOrderPMChecklist
+            values={{
+              hasPM: form.values.hasPM || false,
+              pmTemplateId: form.values.pmTemplateId
+            }}
+            setValue={form.setValue}
+            selectedEquipment={selectedEquipmentForPM}
           />
 
           {!isEditMode && assignmentData.members.length > 0 && (
