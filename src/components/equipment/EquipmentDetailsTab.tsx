@@ -9,7 +9,7 @@ import QRCodeDisplay from "./QRCodeDisplay";
 import InlineEditField from "./InlineEditField";
 import InlineEditCustomAttributes from "./InlineEditCustomAttributes";
 import { WorkingHoursTimelineModal } from "./WorkingHoursTimelineModal";
-import { useUpdateEquipment } from "@/hooks/useSupabaseData";
+import { useUpdateEquipment } from "@/hooks/useEquipment";
 import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
 import { useTeams } from "@/hooks/useTeamManagement";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -52,8 +52,8 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
         logger.debug(`Updating equipment field`, { field: String(field), value });
       }
       await updateEquipmentMutation.mutateAsync({
-        equipmentId: equipment.id,
-        equipmentData: { [field]: value }
+        id: equipment.id,
+        data: { [field]: value }
       });
       toast.success(`${String(field)} updated successfully`);
     } catch (error) {
@@ -69,8 +69,8 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
         logger.debug('Updating custom attributes', { newAttributes });
       }
       await updateEquipmentMutation.mutateAsync({
-        equipmentId: equipment.id,
-        equipmentData: { custom_attributes: newAttributes }
+        id: equipment.id,
+        data: { custom_attributes: newAttributes }
       });
       toast.success('Custom attributes updated successfully');
     } catch (error) {
@@ -88,8 +88,8 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
         logger.debug('Updating team assignment', { teamValue });
       }
       await updateEquipmentMutation.mutateAsync({
-        equipmentId: equipment.id,
-        equipmentData: { team_id: teamValue }
+        id: equipment.id,
+        data: { team_id: teamValue }
       });
       toast.success('Team assignment updated successfully');
     } catch (error) {

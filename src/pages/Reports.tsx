@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { BarChart3, FileText } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipment } from '@/components/equipment/hooks/useEquipment';
-import { useSyncWorkOrdersByOrganization, useSyncDashboardStats } from '@/services/syncDataService';
+import { useWorkOrders } from '@/hooks/useWorkOrders';
+import { useDashboard } from '@/hooks/useQueries';
 import ReportFilters from '@/components/reports/ReportFilters';
 import ReportCharts from '@/components/reports/ReportCharts';
 import ReportExport from '@/components/reports/ReportExport';
@@ -31,8 +32,8 @@ const Reports = () => {
   });
 
   const { data: equipment = [], isLoading: equipmentLoading } = useEquipment(currentOrganization?.id);
-  const { data: workOrders = [], isLoading: workOrdersLoading } = useSyncWorkOrdersByOrganization(currentOrganization?.id);
-  const { data: dashboardStats, isLoading: statsLoading } = useSyncDashboardStats(currentOrganization?.id);
+  const { data: workOrders = [], isLoading: workOrdersLoading } = useWorkOrders(currentOrganization?.id);
+  const { data: dashboardStats, isLoading: statsLoading } = useDashboard(currentOrganization?.id);
 
   const isLoading = equipmentLoading || workOrdersLoading || statsLoading;
 

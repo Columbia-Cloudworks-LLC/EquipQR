@@ -1,6 +1,6 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useSyncWorkOrderById } from '@/services/syncDataService';
+import { useWorkOrderById } from '@/hooks/useWorkOrders';
 import { useEquipmentById } from '@/components/equipment/hooks/useEquipment';
 import { usePMByWorkOrderAndEquipment } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
@@ -10,8 +10,8 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
 
-  // Use sync hooks for data
-  const { data: workOrder, isLoading: workOrderLoading } = useSyncWorkOrderById(
+  // Use work order hook for data
+  const { data: workOrder, isLoading: workOrderLoading } = useWorkOrderById(
     currentOrganization?.id || '', 
     workOrderId || ''
   );

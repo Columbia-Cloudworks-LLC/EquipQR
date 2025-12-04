@@ -22,7 +22,7 @@ import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import QRCodeDisplay from '@/components/equipment/QRCodeDisplay';
 import { DeleteEquipmentDialog } from '@/components/equipment/DeleteEquipmentDialog';
 import { WorkingHoursTimelineModal } from '@/components/equipment/WorkingHoursTimelineModal';
-import { useCreateScan } from '@/hooks/useSupabaseData';
+import { useCreateScan } from '@/hooks/useEquipment';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';

@@ -418,6 +418,125 @@ export class EquipmentService extends BaseService {
     }
     return [];
   }
+
+  /**
+   * Create a scan record for equipment
+   * Validates equipment belongs to the organization
+   */
+  async createScan(
+    equipmentId: string,
+    location?: string,
+    notes?: string
+  ): Promise<ApiResponse<EquipmentScan>> {
+    try {
+      // Get authenticated user
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        return this.handleError(new Error('User not authenticated'));
+      }
+
+      // Verify equipment belongs to this organization
+      const equipmentResult = await this.getById(equipmentId);
+      if (!equipmentResult.success || !equipmentResult.data) {
+        return this.handleError(new Error('Equipment not found or access denied'));
+      }
+
+      // Create the scan
+      const { data, error } = await supabase
+        .from('scans')
+        .insert({
+          equipment_id: equipmentId,
+          scanned_by: userData.user.id,
+          location: location || null,
+          notes: notes || null
+        })
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('Error creating scan:', error);
+        return this.handleError(error);
+      }
+
+      // Get scanner profile name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('id', userData.user.id)
+        .single();
+
+      const scan: EquipmentScan = {
+        ...data,
+        scannedByName: profile?.name || 'Unknown'
+      };
+
+      return this.handleSuccess(scan);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Create a note for equipment
+   * Validates equipment belongs to the organization
+   */
+  async createNote(
+    equipmentId: string,
+    content: string,
+    isPrivate: boolean = false
+  ): Promise<ApiResponse<EquipmentNote>> {
+    try {
+      // Get authenticated user
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        return this.handleError(new Error('User not authenticated'));
+      }
+
+      // Validate content
+      if (!content || content.trim().length === 0) {
+        return this.handleError(new Error('Note content is required'));
+      }
+
+      // Verify equipment belongs to this organization
+      const equipmentResult = await this.getById(equipmentId);
+      if (!equipmentResult.success || !equipmentResult.data) {
+        return this.handleError(new Error('Equipment not found or access denied'));
+      }
+
+      // Create the note
+      const { data, error } = await supabase
+        .from('notes')
+        .insert({
+          equipment_id: equipmentId,
+          content: content.trim(),
+          author_id: userData.user.id,
+          is_private: isPrivate
+        })
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('Error creating note:', error);
+        return this.handleError(error);
+      }
+
+      // Get author profile name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('id', userData.user.id)
+        .single();
+
+      const note: EquipmentNote = {
+        ...data,
+        authorName: profile?.name || 'Unknown'
+      };
+
+      return this.handleSuccess(note);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
 }
 
 /**

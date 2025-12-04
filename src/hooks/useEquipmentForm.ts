@@ -90,7 +90,10 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      // Invalidate with organization-specific key pattern
+      queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-status-counts', currentOrganization?.id] });
       toast.success('Equipment created successfully');
       form.reset();
       setIsOpen(false);
@@ -137,7 +140,9 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      // Invalidate with organization-specific key pattern
+      queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id, initialData?.id] });
       toast.success('Equipment updated successfully');
       setIsOpen(false);
       onSuccess?.();
