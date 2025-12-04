@@ -211,6 +211,8 @@ export function getUpgradeMessage(slotAvailability?: SlotAvailability): string {
 
 /**
  * Get license status (always returns unlimited)
+ *
+ * @param slotAvailability Unused. Retained for backward compatibility.
  * @param slotAvailability - Unused, kept for backward compatibility with existing API
  * @param slotAvailability - Unused, kept for backward compatibility with existing API
  */
