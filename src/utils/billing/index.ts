@@ -163,7 +163,7 @@ export function hasLicenses(slotAvailability?: SlotAvailability): boolean {
  * @param slotAvailability - Unused, kept for backward compatibility with existing API
  * @param totalNeeded - Unused, kept for backward compatibility with existing API
  */
-export function getSlotStatus(slotAvailability: SlotAvailability, totalNeeded: number): SlotStatus {
+export function getSlotStatus(totalNeeded: number): SlotStatus {
   // Billing is disabled - always unlimited
   return {
     status: 'unlimited',
