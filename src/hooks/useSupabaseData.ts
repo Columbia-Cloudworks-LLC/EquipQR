@@ -31,7 +31,7 @@
  * @see {@link @/hooks/useWorkOrders} for work order hooks
  * @see {@link @/hooks/useTeamManagement} for team hooks
  */
-import { useQuery,useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as supabaseService from '@/services/supabaseDataService';
 import { toast } from '@/hooks/use-toast';
 
