@@ -95,7 +95,7 @@ export function calculateBilling(state: BillingState): BillingCalculation {
   };
   
   // Calculate current usage (informational only)
-  const activeUsers = activeMembers.length;
+  const activeUsers = Math.max(0, activeMembers.length - 1); // Exclude owner for informational display
   const pendingInvitations = pendingMembers.length;
   const totalSlotsNeeded = activeUsers + pendingInvitations;
   
