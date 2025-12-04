@@ -2,33 +2,14 @@ import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { SlotAvailability } from '@/hooks/useOrganizationSlots';
 import { isBillingDisabled } from '@/lib/flags';
 
-// Utility function to handle floating-point precision for monetary calculations
-function roundToTwoDecimals(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
-// Input state interface (discriminated union)
-export interface BillingState {
-  members: RealOrganizationMember[];
-  slotAvailability?: SlotAvailability;
-  storageGB: number;
-  fleetMapEnabled: boolean;
-}
-
-// Output interface 
+// Output interface - simplified for free/unlimited model
 export interface BillingCalculation {
   userSlots: {
-    model: 'pay-as-you-go' | 'license-based';
+    model: 'free' | 'unlimited';
     totalUsers: number;
     billableUsers: number;
     costPerUser: number;
     totalCost: number;
-    // License-specific fields (when model === 'license-based')
-    totalPurchased?: number;
-    slotsUsed?: number;
-    availableSlots?: number;
-    exemptedSlots?: number;
-    nextBillingDate?: string;
   };
   currentUsage: {
     activeUsers: number;
@@ -55,11 +36,11 @@ export interface BillingCalculation {
   };
 }
 
-// Slot status for license-based billing
+// Slot status for free/unlimited model
 export interface SlotStatus {
-  status: 'no-slots' | 'sufficient' | 'low' | 'exhausted';
+  status: 'unlimited' | 'free';
   message: string;
-  variant: 'default' | 'secondary' | 'destructive';
+  variant: 'default' | 'secondary';
 }
 
 // Legacy interface compatibility
@@ -82,58 +63,36 @@ export interface LegacyBillingCalculation {
   total: number;
 }
 
-// Main function with discriminated union logic
-export function calculateBilling(state: BillingState): BillingCalculation {
-  const { members, slotAvailability, storageGB, fleetMapEnabled } = state;
+/**
+ * Calculate billing - returns free/unlimited values since billing is disabled
+ */
+export function calculateBilling(state: {
+  members: RealOrganizationMember[];
+  slotAvailability?: SlotAvailability;
+  storageGB: number;
+  fleetMapEnabled: boolean;
+}): BillingCalculation {
+  const { members, storageGB, fleetMapEnabled } = state;
   
   const activeMembers = members.filter(member => member.status === 'active');
   const pendingMembers = members.filter(member => member.status === 'pending');
   
-  // Determine billing model
-  const hasLicenses = slotAvailability && slotAvailability.total_purchased > 0;
-  const model: 'pay-as-you-go' | 'license-based' = hasLicenses ? 'license-based' : 'pay-as-you-go';
-  
-  // Calculate user costs based on model
+  // Free/unlimited model - no costs
   const totalUsers = activeMembers.length;
-  const costPerUser = 10;
+  const billableUsers = totalUsers; // All users are free
+  const costPerUser = 0;
+  const totalCost = 0;
   
-  let billableUsers: number;
-  let totalCost: number;
-  let userSlots: BillingCalculation['userSlots'];
+  const userSlots = {
+    model: 'free' as const,
+    totalUsers,
+    billableUsers,
+    costPerUser,
+    totalCost
+  };
   
-  if (model === 'license-based' && slotAvailability) {
-    // License-based: pay for purchased slots regardless of usage
-    billableUsers = Math.max(0, totalUsers - 1); // Exclude owner from counting
-    totalCost = slotAvailability.total_purchased * costPerUser;
-    
-    userSlots = {
-      model,
-      totalUsers,
-      billableUsers,
-      costPerUser,
-      totalCost,
-      totalPurchased: slotAvailability.total_purchased,
-      slotsUsed: slotAvailability.used_slots,
-      availableSlots: slotAvailability.available_slots,
-      exemptedSlots: slotAvailability.exempted_slots,
-      nextBillingDate: slotAvailability.current_period_end
-    };
-  } else {
-    // Pay-as-you-go: pay for active users (first user free)
-    billableUsers = Math.max(0, totalUsers - 1);
-    totalCost = billableUsers * costPerUser;
-    
-    userSlots = {
-      model,
-      totalUsers,
-      billableUsers,
-      costPerUser,
-      totalCost
-    };
-  }
-  
-  // Calculate current usage
-  const activeUsers = Math.max(0, activeMembers.length - 1); // Exclude owner
+  // Calculate current usage (informational only)
+  const activeUsers = activeMembers.length;
   const pendingInvitations = pendingMembers.length;
   const totalSlotsNeeded = activeUsers + pendingInvitations;
   
@@ -143,34 +102,28 @@ export function calculateBilling(state: BillingState): BillingCalculation {
     totalSlotsNeeded
   };
   
-  // Calculate storage costs (consistent across all models)
-  const freeGB = 5;
-  const overageGB = Math.max(0, storageGB - freeGB);
-  const storageCost = roundToTwoDecimals(overageGB * 0.10);
-  
+  // Storage is free/unlimited
   const storage = {
     usedGB: storageGB,
-    freeGB,
-    overageGB,
-    cost: storageCost
+    freeGB: Infinity, // Unlimited
+    overageGB: 0,
+    cost: 0
   };
   
-  // Calculate fleet map cost (consistent across all models)
-  const fleetMapCost = fleetMapEnabled ? 10 : 0;
-  
+  // Fleet map is free
   const features = {
     fleetMap: {
       enabled: fleetMapEnabled,
-      cost: fleetMapCost
+      cost: 0
     }
   };
   
-  // Calculate totals
+  // All totals are zero
   const totals = {
-    userLicenses: totalCost,
-    storage: storageCost,
-    features: fleetMapCost,
-    monthlyTotal: roundToTwoDecimals(totalCost + storageCost + fleetMapCost)
+    userLicenses: 0,
+    storage: 0,
+    features: 0,
+    monthlyTotal: 0
   };
   
   return {
@@ -182,115 +135,77 @@ export function calculateBilling(state: BillingState): BillingCalculation {
   };
 }
 
-// Helper functions for common operations
+/**
+ * Check if organization is free (always true when billing is disabled)
+ */
 export function isFreeOrganization(members: RealOrganizationMember[]): boolean {
-  // Billing is disabled - no organization is considered "free"
-  if (isBillingDisabled()) {
-    return false;
-  }
-  const activeMembers = members.filter(member => member.status === 'active');
-  return activeMembers.length === 1;
+  // Billing is disabled - all organizations are free
+  return true;
 }
 
+/**
+ * Check if organization has licenses (always true when billing is disabled)
+ */
 export function hasLicenses(slotAvailability?: SlotAvailability): boolean {
-  // Billing is disabled - always report as having licenses
-  if (isBillingDisabled()) {
-    return true;
-  }
-  return !!(slotAvailability && slotAvailability.total_purchased > 0);
+  // Billing is disabled - always report as having unlimited licenses
+  return true;
 }
 
+/**
+ * Get slot status - always returns unlimited
+ */
 export function getSlotStatus(slotAvailability: SlotAvailability, totalNeeded: number): SlotStatus {
-  const { available_slots, total_purchased, exempted_slots } = slotAvailability;
-  
-  if (total_purchased === 0 && exempted_slots === 0) {
-    return {
-      status: 'no-slots',
-      message: 'No slots purchased yet',
-      variant: 'secondary'
-    };
-  }
-  
-  if (available_slots >= totalNeeded) {
-    const message = exempted_slots > 0 
-      ? `${available_slots} slots available (${exempted_slots} exempted)`
-      : `${available_slots} slots available`;
-    return {
-      status: 'sufficient',
-      message,
-      variant: 'default'
-    };
-  }
-  
-  if (available_slots > 0) {
-    return {
-      status: 'low',
-      message: `Only ${available_slots} slots remaining`,
-      variant: 'destructive'
-    };
-  }
-  
+  // Billing is disabled - always unlimited
   return {
-    status: 'exhausted',
-    message: 'All slots used',
-    variant: 'destructive'
+    status: 'unlimited',
+    message: 'Unlimited slots available',
+    variant: 'default'
   };
 }
 
+/**
+ * Check if invitation should be blocked (always false when billing is disabled)
+ */
 export function shouldBlockInvitation(slotAvailability?: SlotAvailability): boolean {
   // Billing is disabled - never block invitations
-  if (isBillingDisabled()) {
-    return false;
-  }
-  if (!slotAvailability) return false;
-  return slotAvailability.available_slots <= 0;
+  return false;
 }
 
+/**
+ * Check if can upgrade from free (always false when billing is disabled)
+ */
 export function canUpgradeFromFree(members: RealOrganizationMember[]): boolean {
-  return isFreeOrganization(members);
+  // Billing is disabled - no upgrades needed
+  return false;
 }
 
+/**
+ * Check if can upgrade slots (always false when billing is disabled)
+ */
 export function canUpgradeSlots(members: RealOrganizationMember[]): boolean {
-  return members.length > 1 || members.some(m => m.status === 'pending');
+  // Billing is disabled - no upgrades needed
+  return false;
 }
 
+/**
+ * Get upgrade message (returns free message)
+ */
 export function getUpgradeMessage(slotAvailability?: SlotAvailability): string {
-  if (!slotAvailability || slotAvailability.total_purchased === 0) {
-    return 'Purchase user licenses to enable team collaboration at $10/month per license.';
-  }
-  return 'Purchase additional licenses to expand your team capacity.';
+  return 'All features are free and unlimited.';
 }
 
+/**
+ * Get license status (always returns unlimited)
+ */
 export function getLicenseStatus(slotAvailability: SlotAvailability) {
-  const { total_purchased, available_slots, exempted_slots } = slotAvailability;
-  
-  if (total_purchased === 0 && exempted_slots === 0) {
-    return {
-      status: 'no-licenses' as const,
-      message: 'No licenses purchased',
-      variant: 'secondary' as const
-    };
-  }
-  
-  if (available_slots > 0) {
-    const message = exempted_slots > 0 
-      ? `${available_slots} licenses available (${exempted_slots} exempted)`
-      : `${available_slots} licenses available`;
-    return {
-      status: 'available' as const,
-      message,
-      variant: 'default' as const
-    };
-  }
-  
   return {
-    status: 'full' as const,
-    message: 'All licenses in use',
-    variant: 'destructive' as const
+    status: 'unlimited' as const,
+    message: 'Unlimited licenses available',
+    variant: 'default' as const
   };
 }
 
-// Legacy compatibility functions
+// Legacy compatibility functions - return free values
 export function calculateUserLicenseCost(members: RealOrganizationMember[]): { totalUsers: number; billableUsers: number; cost: number } {
   const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
   return {
@@ -356,13 +271,13 @@ export function calculateLicenseBilling(
   const billing = calculateBilling({ members, slotAvailability, storageGB, fleetMapEnabled });
   return {
     userLicenses: {
-      totalPurchased: billing.userSlots.totalPurchased || 0,
-      slotsUsed: billing.userSlots.slotsUsed || 0,
-      availableSlots: billing.userSlots.availableSlots || 0,
-      exemptedSlots: billing.userSlots.exemptedSlots || 0,
-      costPerLicense: billing.userSlots.costPerUser,
-      monthlyLicenseCost: billing.userSlots.totalCost,
-      nextBillingDate: billing.userSlots.nextBillingDate
+      totalPurchased: 0, // Unlimited
+      slotsUsed: billing.currentUsage.activeUsers,
+      availableSlots: Infinity, // Unlimited
+      exemptedSlots: 0,
+      costPerLicense: 0,
+      monthlyLicenseCost: 0,
+      nextBillingDate: undefined
     },
     storage: billing.storage,
     fleetMap: billing.features.fleetMap,
@@ -380,17 +295,17 @@ export function calculateEnhancedBilling(
   
   return {
     userSlots: {
-      totalPurchased: billing.userSlots.totalPurchased || 0,
-      slotsUsed: billing.userSlots.slotsUsed || 0,
-      availableSlots: billing.userSlots.availableSlots || 0,
-      costPerSlot: billing.userSlots.costPerUser,
-      totalSlotValue: billing.userSlots.totalCost
+      totalPurchased: 0, // Unlimited
+      slotsUsed: billing.currentUsage.activeUsers,
+      availableSlots: Infinity, // Unlimited
+      costPerSlot: 0,
+      totalSlotValue: 0
     },
     currentUsage: billing.currentUsage,
     storage: billing.storage,
     fleetMap: billing.features.fleetMap,
-    monthlyRecurring: billing.storage.cost + billing.features.fleetMap.cost,
-    prepaidSlotValue: billing.userSlots.totalCost,
-    estimatedNextBilling: billing.totals.monthlyTotal
+    monthlyRecurring: 0,
+    prepaidSlotValue: 0,
+    estimatedNextBilling: 0
   };
 }

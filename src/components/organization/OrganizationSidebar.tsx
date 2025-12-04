@@ -3,8 +3,6 @@ import React from 'react';
 import { SessionOrganization } from '@/contexts/SessionContext';
 import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
-import { useOrganizationStorageUsage } from '@/hooks/useOrganizationStorageUsage';
-import SlotBasedBilling from '@/components/billing/SlotBasedBilling';
 
 interface OrganizationSidebarProps {
   organization: SessionOrganization;
@@ -15,13 +13,6 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
   organization,
   onUpgrade
 }) => {
-  const { data: storageUsage, isLoading: storageLoading } = useOrganizationStorageUsage(organization.id);
-
-  const handlePurchaseSlots = () => {
-    // Purchase slots functionality
-    onUpgrade();
-  };
-
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="lg:sticky lg:top-6">
@@ -36,13 +27,7 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
       <div className="lg:sticky lg:top-6">
         <SecurityStatus />
       </div>
-      <div className="lg:sticky lg:top-6">
-        <SlotBasedBilling
-          storageUsedGB={storageLoading ? 0 : (storageUsage?.totalSizeGB || 0)}
-          onPurchaseSlots={handlePurchaseSlots}
-          onUpgradeToMultiUser={onUpgrade}
-        />
-      </div>
+      {/* Billing component removed - app is now free/unlimited */}
     </div>
   );
 };
