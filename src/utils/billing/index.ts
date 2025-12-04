@@ -171,6 +171,7 @@ export function getSlotStatus(slotAvailability: SlotAvailability, totalNeeded: n
 
 /**
  * Check if invitation should be blocked (always false when billing is disabled)
+ * @param slotAvailability Unused. Kept for backward compatibility with the existing API.
  * @param slotAvailability - Unused, kept for backward compatibility with existing API
  */
 export function shouldBlockInvitation(slotAvailability?: SlotAvailability): boolean {
