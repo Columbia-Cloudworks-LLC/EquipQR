@@ -108,7 +108,7 @@ export function calculateBilling(state: BillingState): BillingCalculation {
   // Storage is free/unlimited
   const storage = {
     usedGB: storageGB,
-    freeGB: Infinity, // Unlimited
+    freeGB: Number.MAX_SAFE_INTEGER, // Unlimited
     overageGB: 0,
     cost: 0
   };
