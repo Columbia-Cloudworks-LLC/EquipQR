@@ -64,7 +64,6 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           assigneeId: data.assignmentType === 'user' && data.assignmentId ? data.assignmentId : undefined,
           teamId: data.assignmentType === 'team' && data.assignmentId ? data.assignmentId : undefined,
           dueDate: data.dueDate || undefined,
-          estimatedHours: data.estimatedHours || undefined,
           completedDate: dateToISOString(data.completedDate) || undefined,
           hasPM: data.hasPM || false,
           pmStatus: 'pending',
