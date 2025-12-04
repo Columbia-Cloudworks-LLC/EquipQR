@@ -11,6 +11,7 @@ import type {
 
 /**
  * @deprecated Billing is disabled. Returns empty array.
+ * @param organizationId - Unused, kept for backward compatibility with deprecated API
  */
 export async function listExemptions(
   organizationId?: string
@@ -21,6 +22,7 @@ export async function listExemptions(
 
 /**
  * @deprecated Billing is disabled. Throws error.
+ * @param data - Unused, kept for backward compatibility with deprecated API
  */
 export async function createExemption(
   data: ExemptionFormData
@@ -30,6 +32,8 @@ export async function createExemption(
 
 /**
  * @deprecated Billing is disabled. Throws error.
+ * @param id - Unused, kept for backward compatibility with deprecated API
+ * @param data - Unused, kept for backward compatibility with deprecated API
  */
 export async function updateExemption(
   id: string,
@@ -40,6 +44,7 @@ export async function updateExemption(
 
 /**
  * @deprecated Billing is disabled. Throws error.
+ * @param id - Unused, kept for backward compatibility with deprecated API
  */
 export async function deleteExemption(id: string): Promise<void> {
   throw new Error('Billing system has been removed. Exemptions are no longer supported.');

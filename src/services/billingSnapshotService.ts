@@ -58,6 +58,7 @@ export interface BillingSnapshot {
 
 /**
  * @deprecated Billing is disabled. Returns empty snapshot.
+ * @param organizationId - Unused except for backward compatibility with deprecated API. Kept for compatibility.
  */
 export const getBillingSnapshot = async (organizationId: string): Promise<BillingSnapshot> => {
   // Billing is disabled - return empty snapshot

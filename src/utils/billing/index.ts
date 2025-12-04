@@ -63,15 +63,18 @@ export interface LegacyBillingCalculation {
   total: number;
 }
 
-/**
- * Calculate billing - returns free/unlimited values since billing is disabled
- */
-export function calculateBilling(state: {
+// Input state interface (exported for backward compatibility with tests)
+export interface BillingState {
   members: RealOrganizationMember[];
   slotAvailability?: SlotAvailability;
   storageGB: number;
   fleetMapEnabled: boolean;
-}): BillingCalculation {
+}
+
+/**
+ * Calculate billing - returns free/unlimited values since billing is disabled
+ */
+export function calculateBilling(state: BillingState): BillingCalculation {
   const { members, storageGB, fleetMapEnabled } = state;
   
   const activeMembers = members.filter(member => member.status === 'active');
@@ -189,6 +192,8 @@ export function canUpgradeSlots(members: RealOrganizationMember[]): boolean {
 
 /**
  * Get upgrade message (returns free message)
+ * @param slotAvailability - Unused, kept for backward compatibility with existing API
+ * @returns Message indicating all features are free
  */
 export function getUpgradeMessage(slotAvailability?: SlotAvailability): string {
   return 'All features are free and unlimited.';

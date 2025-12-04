@@ -34,7 +34,7 @@ const createSlotAvailability = (
 });
 
 describe('calculateBilling', () => {
-  describe('Pay-as-you-go model (no slots purchased)', () => {
+  describe('Free/Unlimited model (billing disabled)', () => {
     it('should calculate free organization correctly', () => {
       const members = [createMember('active', 'owner')];
       const state: BillingState = {
@@ -45,14 +45,15 @@ describe('calculateBilling', () => {
 
       const result = calculateBilling(state);
 
-      expect(result.userSlots.model).toBe('pay-as-you-go');
+      expect(result.userSlots.model).toBe('free');
       expect(result.userSlots.totalUsers).toBe(1);
-      expect(result.userSlots.billableUsers).toBe(0);
+      expect(result.userSlots.billableUsers).toBe(1); // All users are free
+      expect(result.userSlots.costPerUser).toBe(0);
       expect(result.userSlots.totalCost).toBe(0);
       expect(result.totals.monthlyTotal).toBe(0);
     });
 
-    it('should calculate pay-as-you-go with multiple users', () => {
+    it('should calculate free/unlimited with multiple users', () => {
       const members = [
         createMember('active', 'owner'),
         createMember('active', 'member'),
@@ -66,103 +67,96 @@ describe('calculateBilling', () => {
 
       const result = calculateBilling(state);
 
-      expect(result.userSlots.model).toBe('pay-as-you-go');
+      expect(result.userSlots.model).toBe('free');
       expect(result.userSlots.totalUsers).toBe(3);
-      expect(result.userSlots.billableUsers).toBe(2);
-      expect(result.userSlots.totalCost).toBe(20); // 2 * $10
-      expect(result.totals.monthlyTotal).toBe(20);
-    });
-  });
-
-  describe('License-based model (slots purchased)', () => {
-    describe('Under slot count scenario', () => {
-      it('should handle organization with more slots than needed', () => {
-        const members = [
-          createMember('active', 'owner'),
-          createMember('active', 'member'),
-          createMember('active', 'member')
-        ];
-        const slotAvailability = createSlotAvailability(5, 2); // 5 purchased, 2 used
-        const state: BillingState = {
-          members,
-          slotAvailability,
-          storageGB: 0,
-          fleetMapEnabled: false
-        };
-
-        const result = calculateBilling(state);
-
-        expect(result.userSlots.model).toBe('license-based');
-        expect(result.userSlots.totalPurchased).toBe(5);
-        expect(result.userSlots.slotsUsed).toBe(2);
-        expect(result.userSlots.availableSlots).toBe(3);
-        expect(result.userSlots.totalCost).toBe(50); // 5 * $10
-        expect(result.currentUsage.activeUsers).toBe(2); // Excluding owner
-        expect(result.currentUsage.totalSlotsNeeded).toBe(2);
-        expect(result.totals.monthlyTotal).toBe(50);
-      });
+      expect(result.userSlots.billableUsers).toBe(3); // All users are free
+      expect(result.userSlots.costPerUser).toBe(0);
+      expect(result.userSlots.totalCost).toBe(0); // Free
+      expect(result.totals.monthlyTotal).toBe(0);
     });
 
-    describe('Exactly at slot count scenario', () => {
-      it('should handle organization using exactly purchased slots', () => {
-        const members = [
-          createMember('active', 'owner'),
-          createMember('active', 'member'),
-          createMember('active', 'member'),
-          createMember('active', 'member')
-        ];
-        const slotAvailability = createSlotAvailability(3, 3); // 3 purchased, 3 used
-        const state: BillingState = {
-          members,
-          slotAvailability,
-          storageGB: 0,
-          fleetMapEnabled: false
-        };
+    it('should handle organization with slot availability (still free)', () => {
+      const members = [
+        createMember('active', 'owner'),
+        createMember('active', 'member'),
+        createMember('active', 'member')
+      ];
+      const slotAvailability = createSlotAvailability(5, 2); // 5 purchased, 2 used
+      const state: BillingState = {
+        members,
+        slotAvailability,
+        storageGB: 0,
+        fleetMapEnabled: false
+      };
 
-        const result = calculateBilling(state);
+      const result = calculateBilling(state);
 
-        expect(result.userSlots.model).toBe('license-based');
-        expect(result.userSlots.totalPurchased).toBe(3);
-        expect(result.userSlots.slotsUsed).toBe(3);
-        expect(result.userSlots.availableSlots).toBe(0);
-        expect(result.userSlots.totalCost).toBe(30); // 3 * $10
-        expect(result.currentUsage.activeUsers).toBe(3); // Excluding owner
-        expect(result.currentUsage.totalSlotsNeeded).toBe(3);
-        expect(result.totals.monthlyTotal).toBe(30);
-      });
+      expect(result.userSlots.model).toBe('free');
+      expect(result.userSlots.totalUsers).toBe(3);
+      expect(result.userSlots.billableUsers).toBe(3); // All users are free
+      expect(result.userSlots.costPerUser).toBe(0);
+      expect(result.userSlots.totalCost).toBe(0); // Free
+      expect(result.currentUsage.activeUsers).toBe(3); // All active users
+      expect(result.currentUsage.totalSlotsNeeded).toBe(3);
+      expect(result.totals.monthlyTotal).toBe(0);
     });
 
-    describe('Over slot count scenario', () => {
-      it('should handle organization needing more slots than purchased', () => {
-        const members = [
-          createMember('active', 'owner'),
-          createMember('active', 'member'),
-          createMember('active', 'member'),
-          createMember('pending', 'member')
-        ];
-        const slotAvailability = createSlotAvailability(2, 2); // 2 purchased, 2 used
-        const state: BillingState = {
-          members,
-          slotAvailability,
-          storageGB: 0,
-          fleetMapEnabled: false
-        };
+    it('should handle organization using exactly purchased slots (still free)', () => {
+      const members = [
+        createMember('active', 'owner'),
+        createMember('active', 'member'),
+        createMember('active', 'member'),
+        createMember('active', 'member')
+      ];
+      const slotAvailability = createSlotAvailability(3, 3); // 3 purchased, 3 used
+      const state: BillingState = {
+        members,
+        slotAvailability,
+        storageGB: 0,
+        fleetMapEnabled: false
+      };
 
-        const result = calculateBilling(state);
+      const result = calculateBilling(state);
 
-        expect(result.userSlots.model).toBe('license-based');
-        expect(result.userSlots.totalPurchased).toBe(2);
-        expect(result.userSlots.slotsUsed).toBe(2);
-        expect(result.userSlots.availableSlots).toBe(0);
-        expect(result.userSlots.totalCost).toBe(20); // 2 * $10
-        expect(result.currentUsage.activeUsers).toBe(2); // Excluding owner
-        expect(result.currentUsage.pendingInvitations).toBe(1);
-        expect(result.currentUsage.totalSlotsNeeded).toBe(3);
-        expect(result.totals.monthlyTotal).toBe(20);
-      });
+      expect(result.userSlots.model).toBe('free');
+      expect(result.userSlots.totalUsers).toBe(4);
+      expect(result.userSlots.billableUsers).toBe(4); // All users are free
+      expect(result.userSlots.costPerUser).toBe(0);
+      expect(result.userSlots.totalCost).toBe(0); // Free
+      expect(result.currentUsage.activeUsers).toBe(4);
+      expect(result.currentUsage.totalSlotsNeeded).toBe(4);
+      expect(result.totals.monthlyTotal).toBe(0);
     });
 
-    it('should handle exempted slots correctly', () => {
+    it('should handle organization needing more slots than purchased (still free)', () => {
+      const members = [
+        createMember('active', 'owner'),
+        createMember('active', 'member'),
+        createMember('active', 'member'),
+        createMember('pending', 'member')
+      ];
+      const slotAvailability = createSlotAvailability(2, 2); // 2 purchased, 2 used
+      const state: BillingState = {
+        members,
+        slotAvailability,
+        storageGB: 0,
+        fleetMapEnabled: false
+      };
+
+      const result = calculateBilling(state);
+
+      expect(result.userSlots.model).toBe('free');
+      expect(result.userSlots.totalUsers).toBe(3); // Only active
+      expect(result.userSlots.billableUsers).toBe(3); // All users are free
+      expect(result.userSlots.costPerUser).toBe(0);
+      expect(result.userSlots.totalCost).toBe(0); // Free
+      expect(result.currentUsage.activeUsers).toBe(3);
+      expect(result.currentUsage.pendingInvitations).toBe(1);
+      expect(result.currentUsage.totalSlotsNeeded).toBe(4);
+      expect(result.totals.monthlyTotal).toBe(0);
+    });
+
+    it('should handle exempted slots correctly (still free)', () => {
       const members = [
         createMember('active', 'owner'),
         createMember('active', 'member')
@@ -177,66 +171,30 @@ describe('calculateBilling', () => {
 
       const result = calculateBilling(state);
 
-      expect(result.userSlots.exemptedSlots).toBe(1);
-      expect(result.userSlots.availableSlots).toBe(2); // total_purchased + exempted - used
-    });
-
-    it('should not affect billing cost despite exemptions', () => {
-      const members = [
-        createMember('active', 'owner'),
-        createMember('active', 'member'),
-        createMember('active', 'member')
-      ];
-      
-      // With exemptions
-      const slotAvailabilityWithExemptions = createSlotAvailability(3, 2, 5); // 3 purchased, 2 used, 5 exempted
-      const stateWithExemptions: BillingState = {
-        members,
-        slotAvailability: slotAvailabilityWithExemptions,
-        storageGB: 0,
-        fleetMapEnabled: false
-      };
-
-      // Without exemptions
-      const slotAvailabilityWithoutExemptions = createSlotAvailability(3, 2, 0); // 3 purchased, 2 used, 0 exempted
-      const stateWithoutExemptions: BillingState = {
-        members,
-        slotAvailability: slotAvailabilityWithoutExemptions,
-        storageGB: 0,
-        fleetMapEnabled: false
-      };
-
-      const resultWithExemptions = calculateBilling(stateWithExemptions);
-      const resultWithoutExemptions = calculateBilling(stateWithoutExemptions);
-
-      // Costs should be identical - exemptions only affect capacity, not billing
-      expect(resultWithExemptions.userSlots.totalCost).toBe(resultWithoutExemptions.userSlots.totalCost);
-      expect(resultWithExemptions.totals.monthlyTotal).toBe(resultWithoutExemptions.totals.monthlyTotal);
-      
-      // But available slots should be different
-      expect(resultWithExemptions.userSlots.availableSlots).toBe(6); // 3 + 5 - 2
-      expect(resultWithoutExemptions.userSlots.availableSlots).toBe(1); // 3 + 0 - 2
+      expect(result.userSlots.model).toBe('free');
+      expect(result.userSlots.totalCost).toBe(0); // Free regardless of exemptions
+      expect(result.totals.monthlyTotal).toBe(0);
     });
   });
 
-  describe('Storage calculations', () => {
-    it('should calculate storage costs correctly', () => {
+  describe('Storage calculations (free/unlimited)', () => {
+    it('should calculate storage as free regardless of usage', () => {
       const members = [createMember()];
       const state: BillingState = {
         members,
-        storageGB: 8, // 3GB overage
+        storageGB: 8, // Would be 3GB overage in old model
         fleetMapEnabled: false
       };
 
       const result = calculateBilling(state);
 
       expect(result.storage.usedGB).toBe(8);
-      expect(result.storage.freeGB).toBe(5);
-      expect(result.storage.overageGB).toBe(3);
-      expect(result.storage.cost).toBe(0.30); // 3 * $0.10
+      expect(result.storage.freeGB).toBe(Infinity); // Unlimited
+      expect(result.storage.overageGB).toBe(0); // No overage since unlimited
+      expect(result.storage.cost).toBe(0); // Free
     });
 
-    it('should handle no storage overage', () => {
+    it('should handle no storage overage (free)', () => {
       const members = [createMember()];
       const state: BillingState = {
         members,
@@ -248,11 +206,12 @@ describe('calculateBilling', () => {
 
       expect(result.storage.overageGB).toBe(0);
       expect(result.storage.cost).toBe(0);
+      expect(result.storage.freeGB).toBe(Infinity); // Unlimited
     });
   });
 
-  describe('Fleet map calculations', () => {
-    it('should calculate fleet map cost when enabled', () => {
+  describe('Fleet map calculations (free)', () => {
+    it('should calculate fleet map cost as free when enabled', () => {
       const members = [createMember()];
       const state: BillingState = {
         members,
@@ -263,10 +222,10 @@ describe('calculateBilling', () => {
       const result = calculateBilling(state);
 
       expect(result.features.fleetMap.enabled).toBe(true);
-      expect(result.features.fleetMap.cost).toBe(10);
+      expect(result.features.fleetMap.cost).toBe(0); // Free
     });
 
-    it('should calculate fleet map cost when disabled', () => {
+    it('should calculate fleet map cost as free when disabled', () => {
       const members = [createMember()];
       const state: BillingState = {
         members,
@@ -281,8 +240,8 @@ describe('calculateBilling', () => {
     });
   });
 
-  describe('Total calculations', () => {
-    it('should calculate totals correctly with all features', () => {
+  describe('Total calculations (all free)', () => {
+    it('should calculate totals correctly with all features (all free)', () => {
       const members = [
         createMember('active', 'owner'),
         createMember('active', 'member'),
@@ -290,49 +249,50 @@ describe('calculateBilling', () => {
       ];
       const state: BillingState = {
         members,
-        storageGB: 8, // $0.30 overage
-        fleetMapEnabled: true // $10
+        storageGB: 8, // Would be $0.30 overage in old model
+        fleetMapEnabled: true // Would be $10 in old model
       };
 
       const result = calculateBilling(state);
 
-      expect(result.totals.userLicenses).toBe(20); // 2 * $10
-      expect(result.totals.storage).toBe(0.30);
-      expect(result.totals.features).toBe(10);
-      expect(result.totals.monthlyTotal).toBe(30.30);
+      expect(result.totals.userLicenses).toBe(0); // Free
+      expect(result.totals.storage).toBe(0); // Free
+      expect(result.totals.features).toBe(0); // Free
+      expect(result.totals.monthlyTotal).toBe(0); // All free
     });
   });
 });
 
 describe('Helper functions', () => {
   describe('isFreeOrganization', () => {
-    it('should return false when billing is disabled (always returns false)', () => {
+    it('should return true when billing is disabled (all organizations are free)', () => {
       const members = [createMember('active', 'owner')];
-      // Billing is disabled by default, so this returns false
-      expect(isFreeOrganization(members)).toBe(false);
+      // Billing is disabled, so all organizations are free
+      expect(isFreeOrganization(members)).toBe(true);
     });
 
-    it('should return false for multiple active users', () => {
+    it('should return true for multiple active users (all free)', () => {
       const members = [
         createMember('active', 'owner'),
         createMember('active', 'member')
       ];
-      expect(isFreeOrganization(members)).toBe(false);
+      expect(isFreeOrganization(members)).toBe(true);
     });
 
-    it('should return false when billing is disabled (ignores pending users)', () => {
+    it('should return true when billing is disabled (ignores pending users)', () => {
       const members = [
         createMember('active', 'owner'),
         createMember('pending', 'member')
       ];
-      // Billing is disabled by default, so this returns false
-      expect(isFreeOrganization(members)).toBe(false);
+      // Billing is disabled, so all organizations are free
+      expect(isFreeOrganization(members)).toBe(true);
     });
   });
 
   describe('hasLicenses', () => {
-    it('should return true when licenses are purchased', () => {
+    it('should return true when licenses are purchased (billing disabled)', () => {
       const slotAvailability = createSlotAvailability(5, 2);
+      // Billing is disabled, so always returns true (unlimited)
       expect(hasLicenses(slotAvailability)).toBe(true);
     });
 
@@ -349,36 +309,34 @@ describe('Helper functions', () => {
   });
 
   describe('getSlotStatus', () => {
-    it('should return no-slots status when no slots purchased', () => {
+    it('should return unlimited status when billing is disabled', () => {
       const slotAvailability = createSlotAvailability(0, 0);
       const status = getSlotStatus(slotAvailability, 1);
       
-      expect(status.status).toBe('no-slots');
-      expect(status.variant).toBe('secondary');
+      // Billing is disabled, so always returns unlimited
+      expect(status.status).toBe('unlimited');
+      expect(status.variant).toBe('default');
+      expect(status.message).toBe('Unlimited slots available');
     });
 
-    it('should return sufficient status when enough slots available', () => {
+    it('should return unlimited status regardless of slot availability', () => {
       const slotAvailability = createSlotAvailability(5, 2);
       const status = getSlotStatus(slotAvailability, 2);
       
-      expect(status.status).toBe('sufficient');
+      // Billing is disabled, so always returns unlimited
+      expect(status.status).toBe('unlimited');
       expect(status.variant).toBe('default');
+      expect(status.message).toBe('Unlimited slots available');
     });
 
-    it('should return low status when few slots remaining', () => {
-      const slotAvailability = createSlotAvailability(3, 2);
-      const status = getSlotStatus(slotAvailability, 2);
-      
-      expect(status.status).toBe('low');
-      expect(status.variant).toBe('destructive');
-    });
-
-    it('should return exhausted status when no slots available', () => {
+    it('should return unlimited status even when slots are exhausted', () => {
       const slotAvailability = createSlotAvailability(3, 3);
       const status = getSlotStatus(slotAvailability, 1);
       
-      expect(status.status).toBe('exhausted');
-      expect(status.variant).toBe('destructive');
+      // Billing is disabled, so always returns unlimited
+      expect(status.status).toBe('unlimited');
+      expect(status.variant).toBe('default');
+      expect(status.message).toBe('Unlimited slots available');
     });
   });
 
