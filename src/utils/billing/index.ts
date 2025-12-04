@@ -157,6 +157,9 @@ export function hasLicenses(slotAvailability?: SlotAvailability): boolean {
 
 /**
  * Get slot status - always returns unlimited
+ *
+ * @param slotAvailability Unused. Kept for backward compatibility with the existing API.
+ * @param totalNeeded Unused. Kept for backward compatibility with the existing API.
  * @param slotAvailability - Unused, kept for backward compatibility with existing API
  * @param totalNeeded - Unused, kept for backward compatibility with existing API
  */
