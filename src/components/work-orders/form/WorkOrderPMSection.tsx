@@ -58,7 +58,7 @@ export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({
   // Find the selected template - prioritize the one from form values
   const selectedTemplate = assignedTemplate || 
                           (values.pmTemplateId && templates.find(t => t.id === values.pmTemplateId)) ||
-                          templates.find(t => t.name === 'Forklift PM (Default)') || 
+                          templates.find(t => t.name === 'Forklift PM') || 
                           templates[0];
   
   // Auto-set assigned template when equipment is selected

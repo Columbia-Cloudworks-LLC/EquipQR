@@ -30,7 +30,7 @@ vi.mock('../useSimplifiedOrganizationRestrictions');
 const mockTemplates = [
   {
     id: 'template-1',
-    name: 'Forklift PM (Default)',
+    name: 'Forklift PM',
     description: 'Default forklift template',
     organization_id: null,
     is_protected: true,
@@ -432,7 +432,7 @@ describe('useWorkOrderPMChecklist', () => {
   });
 
   describe('default template selection', () => {
-    it('selects Forklift PM (Default) template when no template is specified', () => {
+    it('selects Forklift PM template when no template is specified', () => {
       const setValue = vi.fn();
       const { result } = renderHook(
         () => useWorkOrderPMChecklist({
@@ -443,13 +443,13 @@ describe('useWorkOrderPMChecklist', () => {
         { wrapper }
       );
 
-      expect(result.current.selectedTemplate?.name).toBe('Forklift PM (Default)');
+      expect(result.current.selectedTemplate?.name).toBe('Forklift PM');
     });
 
-    it('falls back to first template if Forklift PM (Default) is not available', async () => {
+    it('falls back to first template if Forklift PM is not available', async () => {
       const { usePMTemplates } = await import('../usePMTemplates');
       
-      const templatesWithoutDefault = mockTemplates.filter(t => t.name !== 'Forklift PM (Default)');
+      const templatesWithoutDefault = mockTemplates.filter(t => t.name !== 'Forklift PM');
       vi.mocked(usePMTemplates).mockReturnValue({
         data: templatesWithoutDefault,
         isLoading: false,

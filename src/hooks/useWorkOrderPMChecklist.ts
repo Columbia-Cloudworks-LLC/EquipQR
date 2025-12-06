@@ -66,7 +66,7 @@ export const useWorkOrderPMChecklist = ({
   const selectedTemplate = useMemo(() => {
     return assignedTemplate || 
            (values.pmTemplateId && templates.find(t => t.id === values.pmTemplateId)) ||
-           templates.find(t => t.name === 'Forklift PM (Default)') || 
+           templates.find(t => t.name === 'Forklift PM') || 
            templates[0];
   }, [assignedTemplate, values.pmTemplateId, templates]);
   
