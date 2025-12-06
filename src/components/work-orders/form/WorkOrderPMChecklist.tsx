@@ -42,6 +42,34 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
     selectedEquipment
   });
 
+  // Debug logging to identify the issue
+  React.useEffect(() => {
+    if (values.hasPM) {
+      console.group('🔍 [PM Checklist Debug]');
+      console.log('hasPM:', values.hasPM);
+      console.log('selectedEquipment:', selectedEquipment ? {
+        id: selectedEquipment.id,
+        name: selectedEquipment.name,
+        default_pm_template_id: selectedEquipment.default_pm_template_id
+      } : 'null/undefined');
+      console.log('hasAssignedTemplate:', hasAssignedTemplate);
+      console.log('assignedTemplate:', assignedTemplate ? {
+        id: assignedTemplate.id,
+        name: assignedTemplate.name
+      } : 'null');
+      console.log('templatesCount:', templates.length);
+      console.log('templates:', templates.length > 0 ? templates.map(t => ({
+        id: t.id,
+        name: t.name,
+        org_id: t.organization_id
+      })) : '[] (EMPTY)');
+      console.log('isLoading:', isLoading);
+      console.log('canCreateCustomPMTemplates:', restrictions.canCreateCustomPMTemplates);
+      console.log('pmTemplateId:', values.pmTemplateId || 'not set');
+      console.groupEnd();
+    }
+  }, [values.hasPM, selectedEquipment, hasAssignedTemplate, assignedTemplate, templates, isLoading, restrictions.canCreateCustomPMTemplates, values.pmTemplateId]);
+
   return (
     <>
       <div className="flex items-center space-x-2 p-3 border rounded-lg bg-muted/50">
@@ -78,39 +106,53 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
                   <span className="text-xs text-muted-foreground">(Assigned to {selectedEquipment?.name})</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  This equipment uses the assigned PM template. Template selection is not available.
+                  This equipment uses the assigned PM template. To change it, edit the equipment record.
                 </p>
               </div>
             ) : (
-              <Select
-                value={values.pmTemplateId || ''}
-                onValueChange={handleTemplateChange}
-                disabled={isLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a checklist template..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{template.name}</span>
-                        {template.organization_id === null && (
-                          <div className="flex items-center gap-1">
-                            <Globe className="w-3 h-3" />
-                            <span className="text-xs text-muted-foreground">(Global)</span>
+              <>
+                {isLoading ? (
+                  <div className="p-3 border rounded-lg bg-muted/30">
+                    <p className="text-sm text-muted-foreground">Loading templates...</p>
+                  </div>
+                ) : templates.length === 0 ? (
+                  <div className="p-3 border rounded-lg bg-muted/30">
+                    <p className="text-sm text-muted-foreground">
+                      No PM templates available. Please create a template first.
+                    </p>
+                  </div>
+                ) : (
+                  <Select
+                    value={values.pmTemplateId || ''}
+                    onValueChange={handleTemplateChange}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a checklist template..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{template.name}</span>
+                            {template.organization_id === null && (
+                              <div className="flex items-center gap-1">
+                                <Globe className="w-3 h-3" />
+                                <span className="text-xs text-muted-foreground">(Global)</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                  {!restrictions.canCreateCustomPMTemplates && templates.some(t => t.organization_id) && (
-                    <div className="px-2 py-1 text-xs text-muted-foreground border-t">
-                      Custom templates require user licenses
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
+                        </SelectItem>
+                      ))}
+                      {!restrictions.canCreateCustomPMTemplates && templates.some(t => t.organization_id) && (
+                        <div className="px-2 py-1 text-xs text-muted-foreground border-t">
+                          Custom templates require user licenses
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              </>
             )}
           </div>
           

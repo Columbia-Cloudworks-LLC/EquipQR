@@ -25,14 +25,19 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string) => {
   const membersQuery = useQuery({
     queryKey: ['work-order-assignment-members', organizationId],
     queryFn: async () => {
-      if (!organizationId) return [];
+      if (!organizationId) {
+        console.log('[useWorkOrderAssignmentOptions] No organizationId provided');
+        return [];
+      }
+      
+      console.log('[useWorkOrderAssignmentOptions] Fetching members for org:', organizationId);
       
       const { data, error } = await supabase
         .from('organization_members')
         .select(`
           user_id,
           role,
-          profiles!inner (
+          profiles:user_id (
             id,
             name,
             email
@@ -40,18 +45,39 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string) => {
         `)
         .eq('organization_id', organizationId)
         .eq('status', 'active')
-        .in('role', ['owner', 'admin', 'member']) // All active members can be assigned work orders
-        .order('profiles.name');
+        .in('role', ['owner', 'admin', 'member']); // All active members can be assigned work orders
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useWorkOrderAssignmentOptions] Query error:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          error
+        });
+        throw error;
+      }
       
-      return (data || []).map(member => ({
-        id: member.profiles.id,
-        name: member.profiles.name,
-        email: member.profiles.email,
+      console.log('[useWorkOrderAssignmentOptions] Query result:', { 
+        dataCount: data?.length || 0, 
+        data: data?.slice(0, 2) // Log first 2 for debugging
+      });
+      
+      const mapped = (data || []).map(member => ({
+        id: member.user_id,
+        name: member.profiles?.name ?? 'Unknown',
+        email: member.profiles?.email ?? '',
         role: member.role,
         type: 'user' as const
       }));
+      
+      console.log('[useWorkOrderAssignmentOptions] Mapped result:', {
+        mappedCount: mapped.length,
+        mapped: mapped.slice(0, 2)
+      });
+      
+      // Sort by name after mapping
+      return mapped.sort((a, b) => a.name.localeCompare(b.name));
     },
     enabled: !!organizationId,
     staleTime: 5 * 60 * 1000, // 5 minutes

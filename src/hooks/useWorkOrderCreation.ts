@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { WorkOrderService } from '@/services/WorkOrderService';
-import { createPM } from '@/services/preventativeMaintenanceService';
+import { createPM, PMChecklistItem } from '@/services/preventativeMaintenanceService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -38,11 +38,10 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
 
       // Auto-assign logic for single-user organizations
       let assigneeId = data.assignmentType === 'user' ? data.assignmentId : undefined;
-      const teamId = data.assignmentType === 'team' ? data.assignmentId : undefined;
       let status: 'submitted' | 'assigned' = 'submitted';
 
       // If no explicit assignment and it's a single-user org, auto-assign to creator
-      if (!assigneeId && !teamId && currentOrganization.memberCount === 1) {
+      if (!assigneeId && currentOrganization.memberCount === 1) {
         assigneeId = userData.user.id;
         status = 'assigned';
       }
@@ -57,9 +56,10 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
         due_date: data.dueDate,
         estimated_hours: undefined,
         assignee_id: assigneeId,
-        team_id: teamId,
+        team_id: undefined, // Work orders are not assigned to teams
         status,
-        created_by: userData.user.id
+        created_by: userData.user.id,
+        has_pm: data.hasPM || false
       });
       
       if (!response.success || !response.data) {
@@ -100,14 +100,14 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
           
           if (data.pmTemplateId) {
             const { data: template } = await supabase
-              .from('pm_templates')
-              .select('checklist_data, notes')
+              .from('pm_checklist_templates')
+              .select('template_data, description')
               .eq('id', data.pmTemplateId)
               .single();
             
             if (template) {
-              checklistData = template.checklist_data;
-              notes = template.notes || '';
+              checklistData = template.template_data as PMChecklistItem[];
+              notes = template.description || '';
             }
           }
 

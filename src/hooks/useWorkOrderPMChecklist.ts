@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { usePMTemplates } from '@/hooks/usePMTemplates';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import type { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
@@ -18,8 +18,20 @@ export const useWorkOrderPMChecklist = ({
   setValue,
   selectedEquipment
 }: UseWorkOrderPMChecklistProps) => {
-  const { data: allTemplates = [], isLoading } = usePMTemplates();
+  const { data: allTemplates = [], isLoading, error: templatesError } = usePMTemplates();
   const { restrictions } = useSimplifiedOrganizationRestrictions();
+  
+  // Debug: Log template loading state
+  React.useEffect(() => {
+    if (values.hasPM) {
+      console.log('[useWorkOrderPMChecklist] Template query state:', {
+        isLoading,
+        allTemplatesCount: allTemplates.length,
+        error: templatesError,
+        orgId: selectedEquipment?.id ? 'equipment selected' : 'no equipment'
+      });
+    }
+  }, [values.hasPM, isLoading, allTemplates.length, templatesError, selectedEquipment]);
   
   // Check if equipment has an assigned template
   const hasAssignedTemplate = selectedEquipment?.default_pm_template_id;
@@ -62,8 +74,14 @@ export const useWorkOrderPMChecklist = ({
   useEffect(() => {
     if (hasAssignedTemplate && assignedTemplate && values.hasPM) {
       setValue('pmTemplateId', assignedTemplate.id);
+    } else if (!hasAssignedTemplate && values.hasPM && !values.pmTemplateId && templates.length > 0) {
+      // Auto-select first available template when PM is enabled and no template is selected
+      const templateToSelect = selectedTemplate || templates[0];
+      if (templateToSelect) {
+        setValue('pmTemplateId', templateToSelect.id);
+      }
     }
-  }, [hasAssignedTemplate, assignedTemplate, values.hasPM, setValue]);
+  }, [hasAssignedTemplate, assignedTemplate, values.hasPM, values.pmTemplateId, templates, selectedTemplate, setValue]);
 
   const handleTemplateChange = (templateId: string) => {
     setValue('pmTemplateId', templateId);

@@ -13,6 +13,7 @@ import { useUpdateEquipment } from "@/hooks/useEquipment";
 import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
 import { useTeams } from "@/hooks/useTeamManagement";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { usePMTemplates } from "@/hooks/usePMTemplates";
 import { toast } from "sonner";
 import { logger } from '@/utils/logger';
 
@@ -28,6 +29,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   const permissions = useUnifiedPermissions();
   const { currentOrganization } = useOrganization();
   const { data: teams = [] } = useTeams(currentOrganization?.id);
+  const { data: pmTemplates = [] } = usePMTemplates();
   const updateEquipmentMutation = useUpdateEquipment(currentOrganization?.id || '');
 
   // Check if user can edit equipment
@@ -110,6 +112,38 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
     { value: 'unassigned', label: 'Unassigned' },
     ...teams.map(team => ({ value: team.id, label: team.name }))
   ];
+
+  // Prepare PM template options for the select
+  const pmTemplateOptions = [
+    { value: 'none', label: 'None' },
+    ...pmTemplates.map(template => ({ value: template.id, label: template.name }))
+  ];
+
+  // Handle PM template assignment
+  const handlePMTemplateAssignment = async (templateId: string) => {
+    try {
+      const templateValue = templateId === 'none' ? null : templateId;
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('Updating PM template assignment', { templateValue });
+      }
+      await updateEquipmentMutation.mutateAsync({
+        id: equipment.id,
+        data: { default_pm_template_id: templateValue }
+      });
+      toast.success('PM template assignment updated successfully');
+    } catch (error) {
+      logger.error('Error updating PM template assignment', error);
+      toast.error('Failed to update PM template assignment');
+      throw error;
+    }
+  };
+
+  // Get current PM template name for display
+  const getCurrentPMTemplateDisplay = () => {
+    if (!equipment.default_pm_template_id) return 'None';
+    const template = pmTemplates.find(t => t.id === equipment.default_pm_template_id);
+    return template?.name || 'Unknown Template';
+  };
 
   // Get current team name for display
   const getCurrentTeamDisplay = () => {
@@ -275,6 +309,28 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                 ) : (
                   <span className="text-base text-gray-900">
                     {getCurrentTeamDisplay()}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">PM Template</label>
+              <div className="mt-1 flex items-center gap-2">
+                <Wrench className="h-4 w-4 text-gray-400" />
+                {canEdit ? (
+                  <InlineEditField
+                    value={equipment.default_pm_template_id || 'none'}
+                    onSave={handlePMTemplateAssignment}
+                    canEdit={canEdit}
+                    type="select"
+                    selectOptions={pmTemplateOptions}
+                    placeholder="Select PM template"
+                    className="text-base"
+                  />
+                ) : (
+                  <span className="text-base text-gray-900">
+                    {getCurrentPMTemplateDisplay()}
                   </span>
                 )}
               </div>

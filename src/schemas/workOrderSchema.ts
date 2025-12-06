@@ -57,7 +57,7 @@ export const workOrderFormSchema = z.object({
   equipmentWorkingHours: z.number().optional().nullable(),
   hasPM: z.boolean().default(false),
   pmTemplateId: z.string().optional().nullable(),
-  assignmentType: z.enum(['unassigned', 'user', 'team']).optional(),
+  assignmentType: z.enum(['unassigned', 'user']).optional(),
   assignmentId: z.string().optional().nullable().transform(val => val === '' ? null : val),
   isHistorical: z.boolean().default(false),
   // Historical fields - conditionally required based on isHistorical

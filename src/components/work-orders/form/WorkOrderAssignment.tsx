@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/label";
 import { User, Users } from "lucide-react";
 import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 import { useWorkOrderAssignmentOptions } from '@/hooks/useWorkOrderAssignment';
-import { useTeams } from '@/hooks/useTeamManagement';
 
 interface WorkOrderAssignmentProps {
   values: Pick<WorkOrderFormData, 'assignmentType' | 'assignmentId'>;
@@ -20,12 +19,22 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
   setValue,
   organizationId
 }) => {
-  const { assignmentOptions, isLoading: isLoadingMembers } = useWorkOrderAssignmentOptions(organizationId);
-  const { data: teams = [], isLoading: isLoadingTeams } = useTeams(organizationId);
+  const { assignmentOptions, isLoading: isLoadingMembers, error: assignmentError } = useWorkOrderAssignmentOptions(organizationId);
+  
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[WorkOrderAssignment] Component state:', {
+      organizationId,
+      assignmentOptionsCount: assignmentOptions.length,
+      isLoading: isLoadingMembers,
+      error: assignmentError,
+      assignmentOptions: assignmentOptions.slice(0, 3) // First 3 for debugging
+    });
+  }, [organizationId, assignmentOptions, isLoadingMembers, assignmentError]);
 
   const assignmentType = values.assignmentType || 'unassigned';
 
-  const handleAssignmentTypeChange = (type: 'unassigned' | 'user' | 'team') => {
+  const handleAssignmentTypeChange = (type: 'unassigned' | 'user') => {
     setValue('assignmentType', type);
     // Clear assignment ID when switching types
     setValue('assignmentId', null);
@@ -33,10 +42,6 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
 
   const handleAssigneeChange = (userId: string) => {
     setValue('assignmentId', userId);
-  };
-
-  const handleTeamChange = (teamId: string) => {
-    setValue('assignmentId', teamId);
   };
 
   return (
@@ -68,12 +73,6 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
                   Assign to User
                 </div>
               </SelectItem>
-              <SelectItem value="team">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Assign to Team
-                </div>
-              </SelectItem>
             </SelectContent>
           </Select>
           {errors.assignmentType && (
@@ -84,65 +83,39 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
         {assignmentType === 'user' && (
           <div className="space-y-2">
             <Label>Assignee</Label>
+            {assignmentError && (
+              <p className="text-sm text-destructive">Error loading assignees: {assignmentError.message}</p>
+            )}
             <Select
               value={values.assignmentId || ''}
               onValueChange={handleAssigneeChange}
               disabled={isLoadingMembers}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select assignee..." />
+                <SelectValue placeholder={isLoadingMembers ? "Loading..." : assignmentOptions.length === 0 ? "No assignees available" : "Select assignee..."} />
               </SelectTrigger>
               <SelectContent>
-                {assignmentOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      <div>
-                        <span>{option.name}</span>
-                        {option.role && (
-                          <span className="text-xs text-muted-foreground ml-1">
-                            ({option.role})
-                          </span>
-                        )}
+                {assignmentOptions.length === 0 && !isLoadingMembers ? (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    No assignees available
+                  </div>
+                ) : (
+                  assignmentOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <div>
+                          <span>{option.name}</span>
+                          {option.role && (
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({option.role})
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.assignmentId && (
-              <p className="text-sm text-destructive">{errors.assignmentId}</p>
-            )}
-          </div>
-        )}
-
-        {assignmentType === 'team' && (
-          <div className="space-y-2">
-            <Label>Team</Label>
-            <Select
-              value={values.assignmentId || ''}
-              onValueChange={handleTeamChange}
-              disabled={isLoadingTeams}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select team..." />
-              </SelectTrigger>
-              <SelectContent>
-                {teams.map((team) => (
-                  <SelectItem key={team.id} value={team.id}>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      <div>
-                        <span>{team.name}</span>
-                        {team.member_count !== undefined && (
-                          <span className="text-xs text-muted-foreground ml-1">
-                            ({team.member_count} members)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </SelectItem>
-                ))}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             {errors.assignmentId && (
