@@ -11,26 +11,29 @@ interface WorkOrderAssignmentProps {
   errors: Partial<Record<'assignmentType' | 'assignmentId', string>>;
   setValue: <K extends keyof WorkOrderFormData>(field: K, value: WorkOrderFormData[K]) => void;
   organizationId: string;
+  equipmentId?: string;
 }
 
 export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
   values,
   errors,
   setValue,
-  organizationId
+  organizationId,
+  equipmentId
 }) => {
-  const { assignmentOptions, isLoading: isLoadingMembers, error: assignmentError } = useWorkOrderAssignmentOptions(organizationId);
+  const { assignmentOptions, isLoading: isLoadingMembers, error: assignmentError } = useWorkOrderAssignmentOptions(organizationId, equipmentId);
   
   // Debug logging
   React.useEffect(() => {
     console.log('[WorkOrderAssignment] Component state:', {
       organizationId,
+      equipmentId,
       assignmentOptionsCount: assignmentOptions.length,
       isLoading: isLoadingMembers,
       error: assignmentError,
       assignmentOptions: assignmentOptions.slice(0, 3) // First 3 for debugging
     });
-  }, [organizationId, assignmentOptions, isLoadingMembers, assignmentError]);
+  }, [organizationId, equipmentId, assignmentOptions, isLoadingMembers, assignmentError]);
 
   const assignmentType = values.assignmentType || 'unassigned';
 
