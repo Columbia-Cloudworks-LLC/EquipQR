@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Settings } from 'lucide-react';
 import { OrganizationSettings } from './OrganizationSettings';
 import UnifiedMembersList from './UnifiedMembersList';
-import { useSlotAvailability } from '@/hooks/useOrganizationSlots';
 import { SessionOrganization } from '@/contexts/SessionContext';
 
 interface MemberItem {
@@ -38,8 +37,6 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   membersLoading,
   organization
 }) => {
-  const { data: slotAvailability } = useSlotAvailability(organizationId);
-
   return (
     <Tabs defaultValue="members" className="space-y-4">
       <TabsList>
@@ -60,7 +57,6 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
           currentUserRole={currentUserRole}
           isLoading={membersLoading}
           canInviteMembers={!!permissions?.canInviteMembers}
-          slotAvailability={slotAvailability}
         />
       </TabsContent>
 

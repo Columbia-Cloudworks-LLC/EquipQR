@@ -1,6 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+/**
+ * @deprecated Billing system has been removed. These hooks are kept for backward compatibility
+ * but return unlimited/free values since billing is permanently disabled.
+ */
+
+import { useQuery } from '@tanstack/react-query';
 
 export interface OrganizationSlot {
   id: string;
@@ -42,144 +45,52 @@ export interface SlotAvailability {
   current_period_end: string;
 }
 
+/**
+ * @deprecated Billing is disabled. Returns empty array.
+ */
 export const useOrganizationSlots = (organizationId: string) => {
   return useQuery({
     queryKey: ['organization-slots', organizationId],
     queryFn: async (): Promise<OrganizationSlot[]> => {
-      if (!organizationId) return [];
-
-      const { data, error } = await supabase
-        .from('organization_slots')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching organization slots:', error);
-        throw error;
-      }
-
-      return data || [];
+      return [];
     },
     enabled: !!organizationId,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: Infinity, // Never refetch since billing is disabled
   });
 };
 
+/**
+ * @deprecated Billing is disabled. Returns unlimited slots.
+ */
 export const useSlotAvailability = (organizationId: string) => {
-  // Note: For real-time updates, use useEnhancedSlotAvailability instead
-  
   return useQuery({
     queryKey: ['slot-availability', organizationId],
     queryFn: async (): Promise<SlotAvailability> => {
-      if (!organizationId) {
-        return {
-          total_purchased: 0,
-          used_slots: 0,
-          available_slots: 0,
-          exempted_slots: 0,
-          current_period_start: new Date().toISOString(),
-          current_period_end: new Date().toISOString()
-        };
-      }
-
-      const { data, error } = await supabase.rpc('get_organization_slot_availability_with_exemptions', {
-        org_id: organizationId
-      });
-
-      if (error) {
-        console.error('Error fetching slot availability:', error);
-        throw error;
-      }
-
-      return data?.[0] || {
-        total_purchased: 0,
+      // Billing is disabled - return unlimited slots
+      return {
+        total_purchased: Infinity,
         used_slots: 0,
-        available_slots: 0,
+        available_slots: Infinity,
         exempted_slots: 0,
         current_period_start: new Date().toISOString(),
         current_period_end: new Date().toISOString()
       };
     },
     enabled: !!organizationId,
-    staleTime: 10 * 1000, // 10 seconds
+    staleTime: Infinity, // Never refetch since billing is disabled
   });
 };
 
+/**
+ * @deprecated Billing is disabled. Returns empty array.
+ */
 export const useSlotPurchases = (organizationId: string) => {
   return useQuery({
     queryKey: ['slot-purchases', organizationId],
     queryFn: async (): Promise<SlotPurchase[]> => {
-      if (!organizationId) return [];
-
-      const { data, error } = await supabase
-        .from('slot_purchases')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching slot purchases:', error);
-        throw error;
-      }
-
-      // Cast the status to the proper type
-      return (data || []).map(purchase => ({
-        ...purchase,
-        status: purchase.status as 'pending' | 'completed' | 'failed' | 'cancelled'
-      }));
+      return [];
     },
     enabled: !!organizationId,
-    staleTime: 60 * 1000, // 1 minute
-  });
-};
-
-export const useReserveSlot = (organizationId: string) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (invitationId: string) => {
-      const { data, error } = await supabase.rpc('reserve_slot_for_invitation', {
-        org_id: organizationId,
-        invitation_id: invitationId
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['organization-slots', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });
-    },
-    onError: (error) => {
-      console.error('Error reserving slot:', error);
-      toast.error('Failed to reserve slot for invitation');
-    }
-  });
-};
-
-export const useReleaseSlot = (organizationId: string) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (invitationId: string) => {
-      const { data, error } = await supabase.rpc('release_reserved_slot', {
-        org_id: organizationId,
-        invitation_id: invitationId
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['organization-slots', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });
-    },
-    onError: (error) => {
-      console.error('Error releasing slot:', error);
-      toast.error('Failed to release slot');
-    }
+    staleTime: Infinity, // Never refetch since billing is disabled
   });
 };

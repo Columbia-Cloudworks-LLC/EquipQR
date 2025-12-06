@@ -22,8 +22,6 @@ import type { OrganizationMember } from '@/types/organization';
 import { getRoleBadgeVariant } from '@/utils/badgeVariants';
 import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
 import { toast } from 'sonner';
-import { type SlotAvailability } from '@/hooks/useOrganizationSlots';
-import { shouldBlockInvitation, getSlotStatus } from '@/utils/billing';
 
 // Re-export type for backward compatibility
 export type RealOrganizationMember = OrganizationMember;
@@ -46,7 +44,6 @@ interface UnifiedMembersListProps {
   currentUserRole: 'owner' | 'admin' | 'member';
   isLoading: boolean;
   canInviteMembers: boolean;
-  slotAvailability?: SlotAvailability;
 }
 
 const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
@@ -54,8 +51,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   organizationId,
   currentUserRole,
   isLoading,
-  canInviteMembers,
-  slotAvailability
+  canInviteMembers
 }) => {
   
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -68,8 +64,6 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   const removeMember = useRemoveMember(organizationId);
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin';
-  const blockedBySlots = slotAvailability ? shouldBlockInvitation(slotAvailability) : false;
-  const slotStatus = slotAvailability ? getSlotStatus(slotAvailability, 1) : undefined;
 
   // Combine members and pending invitations into unified list
   const unifiedMembers: UnifiedMember[] = useMemo(() => {
@@ -191,30 +185,12 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
               <Users className="h-5 w-5" />
               Organization Members ({unifiedMembers.length})
             </CardTitle>
-            {slotAvailability && (
-              <Badge variant={slotStatus ? slotStatus.variant : 'secondary'} className="ml-1">
-                Seats: {slotAvailability.used_slots}/{slotAvailability.total_purchased} • Available {slotAvailability.available_slots}{slotAvailability.exempted_slots ? ` (+${slotAvailability.exempted_slots} exempt)` : ''}
-              </Badge>
-            )}
           </div>
           {canInviteMembers && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <Button onClick={() => setInviteDialogOpen(true)} size="sm" disabled={blockedBySlots}>
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Invite Member
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {blockedBySlots && (
-                  <TooltipContent>
-                    No seats available. Purchase more seats to invite.
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
+            <Button onClick={() => setInviteDialogOpen(true)} size="sm">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Invite Member
+            </Button>
           )}
         </div>
       </CardHeader>

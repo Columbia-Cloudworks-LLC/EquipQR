@@ -1,10 +1,13 @@
+/**
+ * @deprecated Billing system has been removed. These hooks are kept for backward compatibility
+ * but return unlimited/free values since billing is permanently disabled.
+ */
+
 import { useEffect } from 'react';
 import { 
   useOrganizationSlots, 
   useSlotAvailability, 
   useSlotPurchases, 
-  useReserveSlot, 
-  useReleaseSlot,
   type OrganizationSlot,
   type SlotAvailability,
   type SlotPurchase 
@@ -12,7 +15,9 @@ import {
 import { useBackgroundSync } from './useCacheInvalidation';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
 
-// Enhanced hook with background sync for organization slots
+/**
+ * @deprecated Billing is disabled. Returns empty array.
+ */
 export const useEnhancedOrganizationSlots = (organizationId?: string) => {
   const query = useOrganizationSlots(organizationId || '');
   const { subscribeToOrganization } = useBackgroundSync();
@@ -27,7 +32,9 @@ export const useEnhancedOrganizationSlots = (organizationId?: string) => {
   return query;
 };
 
-// Enhanced hook with background sync for slot availability
+/**
+ * @deprecated Billing is disabled. Returns unlimited slots.
+ */
 export const useEnhancedSlotAvailability = (organizationId?: string) => {
   const query = useSlotAvailability(organizationId || '');
   const { subscribeToOrganization } = useBackgroundSync();
@@ -42,7 +49,9 @@ export const useEnhancedSlotAvailability = (organizationId?: string) => {
   return query;
 };
 
-// Enhanced hook with background sync for slot purchases
+/**
+ * @deprecated Billing is disabled. Returns empty array.
+ */
 export const useEnhancedSlotPurchases = (organizationId?: string) => {
   const query = useSlotPurchases(organizationId || '');
   const { subscribeToOrganization } = useBackgroundSync();
@@ -55,15 +64,6 @@ export const useEnhancedSlotPurchases = (organizationId?: string) => {
   }, [organizationId, subscribeToOrganization]);
 
   return query;
-};
-
-// Re-export enhanced mutations
-export const useEnhancedReserveSlot = (organizationId: string) => {
-  return useReserveSlot(organizationId);
-};
-
-export const useEnhancedReleaseSlot = (organizationId: string) => {
-  return useReleaseSlot(organizationId);
 };
 
 // Re-export types for convenience
