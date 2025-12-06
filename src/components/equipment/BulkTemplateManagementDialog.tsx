@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Package, Loader2, AlertCircle, Trash2, RefreshCw } from 'lucide-react';
 import { usePMTemplates } from '@/hooks/usePMTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useBulkAssignTemplate, useBulkRemoveTemplates, useBulkChangeTemplate } from './hooks/useEquipmentTemplateManagement';
+import { useBulkAssignTemplate, useBulkRemoveTemplates, useBulkChangeTemplate } from '@/hooks/useEquipmentTemplateManagement';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EquipmentRecord } from '@/types/equipment';
 

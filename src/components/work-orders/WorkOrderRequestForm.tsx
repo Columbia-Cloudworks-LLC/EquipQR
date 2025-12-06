@@ -20,8 +20,8 @@ import { Package, Info } from "lucide-react";
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { useEquipment, useEquipmentById } from '@/components/equipment/hooks/useEquipment';
-import { useCreateWorkOrder, CreateWorkOrderData } from '@/components/work-orders/hooks/useWorkOrderCreation';
+import { useEquipment, useEquipmentById } from '@/hooks/useEquipment';
+import { useCreateWorkOrder, CreateWorkOrderData } from '@/hooks/useWorkOrderCreation';
 import { useWorkOrderAssignment } from '@/hooks/useWorkOrderAssignment';
 
 const requestFormSchema = z.object({

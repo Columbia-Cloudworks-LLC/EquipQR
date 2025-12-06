@@ -83,7 +83,7 @@ vi.mock('@/components/equipment/QRCodeDisplay', () => ({
   ),
 }));
 
-import { useEquipmentFiltering } from '@/components/equipment/hooks/useEquipmentFiltering';
+import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
 vi.mock('@/contexts/OrganizationContext', () => ({

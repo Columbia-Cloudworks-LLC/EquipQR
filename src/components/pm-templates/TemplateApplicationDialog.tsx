@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Search, Package, Loader2 } from 'lucide-react';
 import { usePMTemplate } from '@/hooks/usePMTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEquipment } from '@/components/equipment/hooks/useEquipment';
+import { useEquipment } from '@/hooks/useEquipment';
 import { useCreateWorkOrder } from '@/hooks/useWorkOrderCreation';
 import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
 import { toast } from 'sonner';

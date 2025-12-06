@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
 import { useTeams } from '@/hooks/useTeamManagement';
-import { useEquipmentById } from '@/components/equipment/hooks/useEquipment';
+import { useEquipmentById } from '@/hooks/useEquipment';
 import { toast } from 'sonner';
 
 import { WorkOrderLike } from '@/utils/workOrderTypeConversion';

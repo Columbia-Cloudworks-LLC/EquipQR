@@ -1,6 +1,5 @@
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
 import { SlotAvailability } from '@/hooks/useOrganizationSlots';
-import { isBillingDisabled } from '@/lib/flags';
 
 // Output interface - simplified for free/unlimited model
 export interface BillingCalculation {
@@ -139,19 +138,17 @@ export function calculateBilling(state: BillingState): BillingCalculation {
 }
 
 /**
- * Check if organization is free (always true when billing is disabled)
+ * Check if organization is free (always true - billing is permanently disabled)
  */
-export function isFreeOrganization(members: RealOrganizationMember[]): boolean {
-  // Billing is disabled - all organizations are free
+export function isFreeOrganization(_members: RealOrganizationMember[]): boolean {
   return true;
 }
 
 /**
- * Check if organization has licenses (always true when billing is disabled)
- * @param slotAvailability - Unused, kept for backward compatibility with existing API
+ * Check if organization has licenses (always true - billing is permanently disabled)
+ * @param _slotAvailability - Unused, kept for backward compatibility with existing API
  */
-export function hasLicenses(slotAvailability?: SlotAvailability): boolean {
-  // Billing is disabled - always report as having unlimited licenses
+export function hasLicenses(_slotAvailability?: SlotAvailability): boolean {
   return true;
 }
 

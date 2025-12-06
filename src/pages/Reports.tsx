@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, FileText } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEquipment } from '@/components/equipment/hooks/useEquipment';
+import { useEquipment } from '@/hooks/useEquipment';
 import { useWorkOrders } from '@/hooks/useWorkOrders';
 import { useDashboard } from '@/hooks/useQueries';
 import ReportFilters from '@/components/reports/ReportFilters';

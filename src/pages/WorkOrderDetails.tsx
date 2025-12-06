@@ -5,7 +5,7 @@ import { Clipboard } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useWorkOrderDetailsData } from '@/components/work-orders/hooks/useWorkOrderDetailsData';
 import { useWorkOrderDetailsActions } from '@/hooks/useWorkOrderDetailsActions';
-import { useWorkOrderEquipment } from '@/components/work-orders/hooks/useWorkOrderEquipment';
+import { useWorkOrderEquipment } from '@/hooks/useWorkOrderEquipment';
 import { logNavigationEvent } from '@/utils/navigationDebug';
 import WorkOrderDetailsInfo from '@/components/work-orders/WorkOrderDetailsInfo';
 import WorkOrderTimeline from '@/components/work-orders/WorkOrderTimeline';

@@ -1,7 +1,7 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkOrderById } from '@/hooks/useWorkOrders';
-import { useEquipmentById } from '@/components/equipment/hooks/useEquipment';
+import { useEquipmentById } from '@/hooks/useEquipment';
 import { usePMByWorkOrderAndEquipment } from '@/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
 import type { Tables } from '@/integrations/supabase/types';

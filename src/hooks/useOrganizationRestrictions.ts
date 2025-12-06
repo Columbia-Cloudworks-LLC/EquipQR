@@ -3,14 +3,14 @@ import { useOrganizationMembers } from './useOrganizationMembers';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { getOrganizationRestrictions, getRestrictionMessage } from '@/utils/organizationRestrictions';
 
-export const useOrganizationRestrictions = (fleetMapEnabled: boolean = false) => {
+export const useOrganizationRestrictions = (_fleetMapEnabled: boolean = false) => {
   const { currentOrganization } = useOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
 
-  const restrictions = getOrganizationRestrictions(members, fleetMapEnabled);
+  const restrictions = getOrganizationRestrictions(members);
 
   const getUpgradeMessage = () => {
-    return 'Invite team members to unlock team management, equipment assignment, image uploads, storage, and premium add-ons.';
+    return '';
   };
 
   const checkRestriction = (restriction: keyof typeof restrictions) => {
@@ -26,7 +26,7 @@ export const useOrganizationRestrictions = (fleetMapEnabled: boolean = false) =>
     checkRestriction,
     getRestrictionMessage,
     getUpgradeMessage,
-    isFreeOrganization: !restrictions.canInviteMembers,
-    canUpgrade: !restrictions.canInviteMembers
+    isFreeOrganization: false, // All organizations have full access
+    canUpgrade: false // No upgrades needed
   };
 };

@@ -2,7 +2,7 @@ import { logger } from '../utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 import type { WorkOrder } from '@/types/workOrder';
-import { getAccessibleEquipmentIds } from './EquipmentService';
+import { EquipmentService } from './EquipmentService';
 
 /**
  * TeamBasedWorkOrder extends WorkOrder with camelCase aliases for backward compatibility.
@@ -37,7 +37,8 @@ export const getTeamBasedWorkOrders = async (
 ): Promise<TeamBasedWorkOrder[]> => {
   try {
     // First, get the equipment IDs that this user can access
-    const accessibleEquipmentIds = await getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);
+    const result = await EquipmentService.getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);
+    const accessibleEquipmentIds = result.success && result.data ? result.data : [];
     
     if (accessibleEquipmentIds.length === 0) {
       return [];

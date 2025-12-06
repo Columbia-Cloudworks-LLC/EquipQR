@@ -27,8 +27,7 @@ export const useEquipment = (
     queryKey: ['equipment', organizationId, filters, pagination],
     queryFn: async () => {
       if (!organizationId) return [];
-      const service = new EquipmentService(organizationId);
-      const result = await service.getAll(filters, pagination);
+      const result = await EquipmentService.getAll(organizationId, filters, pagination);
       if (result.success && result.data) {
         return result.data;
       }
@@ -69,8 +68,7 @@ export const useEquipmentById = (
     queryKey: ['equipment', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return undefined;
-      const service = new EquipmentService(organizationId);
-      const result = await service.getById(equipmentId);
+      const result = await EquipmentService.getById(organizationId, equipmentId);
       if (result.success && result.data) {
         return result.data;
       }
@@ -105,8 +103,7 @@ export const useEquipmentNotes = (
     queryKey: ['equipment-notes', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return [];
-      const service = new EquipmentService(organizationId);
-      const result = await service.getNotesByEquipmentId(equipmentId);
+      const result = await EquipmentService.getNotesByEquipmentId(organizationId, equipmentId);
       if (result.success && result.data) {
         return result.data;
       }
@@ -133,8 +130,7 @@ export const useEquipmentScans = (
     queryKey: ['equipment-scans', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return [];
-      const service = new EquipmentService(organizationId);
-      const result = await service.getScansByEquipmentId(equipmentId);
+      const result = await EquipmentService.getScansByEquipmentId(organizationId, equipmentId);
       if (result.success && result.data) {
         return result.data;
       }
@@ -161,8 +157,7 @@ export const useEquipmentWorkOrders = (
     queryKey: ['equipment-work-orders', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return [];
-      const service = new EquipmentService(organizationId);
-      const result = await service.getWorkOrdersByEquipmentId(equipmentId);
+      const result = await EquipmentService.getWorkOrdersByEquipmentId(organizationId, equipmentId);
       if (result.success && result.data) {
         return result.data;
       }
@@ -183,8 +178,7 @@ export const useCreateEquipment = (organizationId: string | undefined) => {
   return useMutation({
     mutationFn: async (data: EquipmentCreateData) => {
       if (!organizationId) throw new Error('Organization ID required');
-      const service = new EquipmentService(organizationId);
-      const result = await service.create(data);
+      const result = await EquipmentService.create(organizationId, data);
       if (result.success && result.data) {
         return result.data;
       }
@@ -220,8 +214,7 @@ export const useUpdateEquipment = (organizationId: string | undefined) => {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: EquipmentUpdateData }) => {
       if (!organizationId) throw new Error('Organization ID required');
-      const service = new EquipmentService(organizationId);
-      const result = await service.update(id, data);
+      const result = await EquipmentService.update(organizationId, id, data);
       if (result.success && result.data) {
         return result.data;
       }
@@ -260,8 +253,7 @@ export const useDeleteEquipment = (organizationId: string | undefined) => {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!organizationId) throw new Error('Organization ID required');
-      const service = new EquipmentService(organizationId);
-      const result = await service.delete(id);
+      const result = await EquipmentService.delete(organizationId, id);
       if (result.success && result.data) {
         return result.data;
       }
@@ -302,8 +294,7 @@ export const useCreateScan = (organizationId: string | undefined) => {
       notes?: string 
     }) => {
       if (!organizationId) throw new Error('Organization ID required');
-      const service = new EquipmentService(organizationId);
-      const result = await service.createScan(equipmentId, location, notes);
+      const result = await EquipmentService.createScan(organizationId, equipmentId, location, notes);
       if (result.success && result.data) {
         return result.data;
       }
@@ -350,8 +341,7 @@ export const useCreateNote = (organizationId: string | undefined) => {
       isPrivate?: boolean 
     }) => {
       if (!organizationId) throw new Error('Organization ID required');
-      const service = new EquipmentService(organizationId);
-      const result = await service.createNote(equipmentId, content, isPrivate);
+      const result = await EquipmentService.createNote(organizationId, equipmentId, content, isPrivate);
       if (result.success && result.data) {
         return result.data;
       }
@@ -397,8 +387,7 @@ export const useEquipmentStatusCounts = (
     queryKey: ['equipment-status-counts', organizationId],
     queryFn: async () => {
       if (!organizationId) return { active: 0, maintenance: 0, inactive: 0 };
-      const service = new EquipmentService(organizationId);
-      const result = await service.getStatusCounts();
+      const result = await EquipmentService.getStatusCounts(organizationId);
       if (result.success && result.data) {
         return result.data;
       }

@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { Tables } from '@/integrations/supabase/types';
 
 // ============================================
 // Core Status Type
@@ -111,35 +112,32 @@ export type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
 // ============================================
 
 /**
- * Strongly-typed Equipment record used across forms and pages (DB shape)
- * This is the primary type for equipment data
+ * Base equipment row type from Supabase database
+ * This is the raw database type with Json fields
  */
-export interface EquipmentRecord {
-  id: string;
-  name: string;
-  manufacturer: string;
-  model: string;
-  serial_number: string;
-  status: EquipmentStatus;
-  location: string;
-  installation_date: string;
-  warranty_expiration: string | null;
-  last_maintenance: string | null;
-  notes?: string | null;
-  custom_attributes?: CustomAttributes;
-  image_url?: string | null;
+type EquipmentRow = Tables<'equipment'>;
+
+/**
+ * Strongly-typed Equipment record used across forms and pages
+ * 
+ * Extends the Supabase database row type with:
+ * - Type-safe transformations for Json fields (custom_attributes, last_known_location)
+ * - Frontend-specific computed fields from joins (team_name)
+ * 
+ * This is the primary type for equipment data throughout the application.
+ */
+export interface EquipmentRecord extends Omit<EquipmentRow, 'custom_attributes' | 'last_known_location'> {
+  // Transform Json fields to type-safe interfaces
+  custom_attributes?: CustomAttributes | null;
   last_known_location?: EquipmentLocation | null;
-  team_id?: string | null;
-  organization_id?: string;
-  created_at?: string;
-  updated_at?: string;
-  // Optional app-specific fields
-  working_hours?: number;
-  default_pm_template_id?: string | null;
+  
+  // Frontend-specific computed fields from joins
+  team_name?: string;
 }
 
 /**
  * Equipment with team information (from joins)
+ * @deprecated Use EquipmentRecord directly - it now includes team_name
  */
 export interface EquipmentWithTeam extends EquipmentRecord {
   team_name?: string;

@@ -7,8 +7,8 @@ import { TestProviders } from '@/test/utils/TestProviders';
 // Mock hooks with named imports
 import { usePMTemplate } from '@/hooks/usePMTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useBulkAssignTemplate } from '@/components/equipment/hooks/useEquipmentTemplateManagement';
-import { useEquipment } from '@/components/equipment/hooks/useEquipment';
+import { useBulkAssignTemplate } from '@/hooks/useEquipmentTemplateManagement';
+import { useEquipment } from '@/hooks/useEquipment';
 
 vi.mock('@/hooks/usePMTemplates', () => ({
   usePMTemplate: vi.fn(),

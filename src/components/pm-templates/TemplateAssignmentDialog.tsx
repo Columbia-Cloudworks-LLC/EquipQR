@@ -10,8 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Search, Package, Loader2, AlertCircle } from 'lucide-react';
 import { usePMTemplate } from '@/hooks/usePMTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEquipment } from '@/components/equipment/hooks/useEquipment';
-import { useBulkAssignTemplate } from '@/components/equipment/hooks/useEquipmentTemplateManagement';
+import { useEquipment } from '@/hooks/useEquipment';
+import { useBulkAssignTemplate } from '@/hooks/useEquipmentTemplateManagement';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface TemplateAssignmentDialogProps {
