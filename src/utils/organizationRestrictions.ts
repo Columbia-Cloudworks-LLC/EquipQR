@@ -1,7 +1,5 @@
 
 import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
-import { isFreeOrganization } from './billing';
-import { isBillingDisabled } from '@/lib/flags';
 
 export interface OrganizationRestrictions {
   canManageTeams: boolean;
@@ -13,45 +11,21 @@ export interface OrganizationRestrictions {
   maxStorage: number; // in GB
 }
 
+/**
+ * Get organization restrictions - billing is permanently disabled, so all features are enabled
+ */
 export const getOrganizationRestrictions = (
-  members: RealOrganizationMember[]
+  _members: RealOrganizationMember[]
 ): OrganizationRestrictions => {
-  // Billing is disabled - grant all features to all organizations
-  if (isBillingDisabled()) {
-    return {
-      canManageTeams: true,
-      canAssignEquipmentToTeams: true,
-      canUploadImages: true,
-      canAccessFleetMap: true, // Always allow fleet map access
-      canInviteMembers: true,
-      maxMembers: 1000, // Unlimited for free users
-      maxStorage: 1000 // Large storage limit
-    };
-  }
-  
-  const isFree = isFreeOrganization(members);
-  
-  if (isFree) {
-    return {
-      canManageTeams: false,
-      canAssignEquipmentToTeams: false,
-      canUploadImages: false,
-      canAccessFleetMap: false,
-      canInviteMembers: false,
-      maxMembers: 1,
-      maxStorage: 0 // No storage for free single-user organizations
-    };
-  }
-  
-  // Paid organization (2+ users)
+  // Billing is permanently disabled - grant all features to all organizations
   return {
     canManageTeams: true,
     canAssignEquipmentToTeams: true,
     canUploadImages: true,
-    canAccessFleetMap: true, // Always allow fleet map access
+    canAccessFleetMap: true,
     canInviteMembers: true,
-    maxMembers: 1000, // Large number for paid plans
-    maxStorage: 5 + (members.length * 5) // 5GB base + 5GB per user
+    maxMembers: 1000, // Unlimited for all users
+    maxStorage: 1000 // Large storage limit
   };
 };
 

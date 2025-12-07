@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Clock } from 'lucide-react';
-import { useSyncWorkOrdersByEquipment } from '@/services/syncDataService';
+import { useEquipmentWorkOrders } from '@/hooks/useEquipment';
 import { useIsMobile } from '@/hooks/use-mobile';
 import WorkOrderForm from '@/components/work-orders/WorkOrderForm';
 import MobileWorkOrderCard from './MobileWorkOrderCard';
@@ -24,7 +24,7 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
 }) => {
   const navigate = useNavigate();
   const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
-  const { data: workOrders = [], isLoading } = useSyncWorkOrdersByEquipment(organizationId, equipmentId);
+  const { data: workOrders = [], isLoading } = useEquipmentWorkOrders(organizationId, equipmentId);
   const isMobile = useIsMobile();
 
   const handleCreateWorkOrder = () => {

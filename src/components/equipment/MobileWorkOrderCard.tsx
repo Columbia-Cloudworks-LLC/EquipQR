@@ -8,7 +8,7 @@ import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import WorkOrderCostSubtotal from '@/components/work-orders/WorkOrderCostSubtotal';
 import PMProgressIndicator from '@/components/work-orders/PMProgressIndicator';
 
-import { WorkOrder } from '@/services/syncDataService';
+import { WorkOrder } from '@/services/supabaseDataService';
 
 interface ExtendedWorkOrder extends WorkOrder {
   created_date: string;

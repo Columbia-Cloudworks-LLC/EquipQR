@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getTeamBasedDashboardStats } from '@/services/teamBasedDashboardService';
-import { getTeamAccessibleEquipment } from '@/services/EquipmentService';
+import { EquipmentService } from '@/services/EquipmentService';
 import { getTeamBasedWorkOrders } from '@/services/teamBasedWorkOrderService';
 import { useTeamMembership } from '@/hooks/useTeamMembership';
 import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
@@ -42,11 +42,12 @@ export const useTeamBasedEquipment = (organizationId?: string) => {
 
   return useQuery({
     queryKey: ['team-based-equipment', organizationId, userTeamIds, isManager],
-    queryFn: () => {
+    queryFn: async () => {
       if (!organizationId) {
         return [];
       }
-      return getTeamAccessibleEquipment(organizationId, userTeamIds, isManager);
+      const result = await EquipmentService.getTeamAccessibleEquipment(organizationId, userTeamIds, isManager);
+      return result.success && result.data ? result.data : [];
     },
     enabled: !!organizationId && !teamsLoading,
     staleTime: 30 * 1000, // 30 seconds

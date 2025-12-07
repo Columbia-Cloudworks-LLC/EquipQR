@@ -313,6 +313,7 @@ export class WorkOrderService extends BaseService {
           is_historical: data.is_historical || false,
           historical_start_date: data.historical_start_date || null,
           historical_notes: data.historical_notes || null,
+          has_pm: data.has_pm || false,
         })
         .select()
         .single();

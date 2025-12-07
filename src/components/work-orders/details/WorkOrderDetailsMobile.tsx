@@ -14,7 +14,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
-import { useEquipmentCurrentWorkingHours } from '@/components/equipment/hooks/useEquipmentWorkingHours';
+import { useEquipmentCurrentWorkingHours } from '@/hooks/useEquipmentWorkingHours';
 
 interface WorkOrderDetailsMobileProps {
   workOrder: {

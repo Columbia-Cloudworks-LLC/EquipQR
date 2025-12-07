@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus, Upload } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useEquipmentFiltering } from '@/components/equipment/hooks/useEquipmentFiltering';
+import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
 import { exportEquipmentCSV } from '@/services/equipmentCSVService';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';

@@ -72,8 +72,7 @@ export const useCachedEquipment = (organizationId?: string) => {
     queryKey: ['equipment', organizationId, {}, {}],
     queryFn: async () => {
       if (!organizationId) return [];
-      const service = new EquipmentService(organizationId);
-      const result = await service.getAll();
+      const result = await EquipmentService.getAll(organizationId);
       if (result.success && result.data) {
         return result.data;
       }
@@ -118,8 +117,7 @@ export const useMultiQuery = (organizationId?: string) => {
         queryKey: ['equipment', organizationId, {}, {}],
         queryFn: async () => {
           if (!organizationId) return [];
-          const service = new EquipmentService(organizationId);
-          const result = await service.getAll();
+          const result = await EquipmentService.getAll(organizationId);
           if (result.success && result.data) {
             return result.data;
           }

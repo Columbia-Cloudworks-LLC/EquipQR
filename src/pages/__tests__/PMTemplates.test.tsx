@@ -64,7 +64,7 @@ vi.mock('@/components/pm-templates/TemplateAssignmentDialog', () => ({
 const mockTemplates = [
   {
     id: 'template-1',
-    name: 'Forklift PM (Default)',
+    name: 'Forklift PM',
     description: 'Standard forklift maintenance checklist',
     is_protected: true,
     organization_id: null,
@@ -372,7 +372,7 @@ describe('PMTemplates Page', () => {
       </TestProviders>
     );
 
-    const title = screen.getByText('Forklift PM (Default)');
+    const title = screen.getByText('Forklift PM');
     expect(title).toBeInTheDocument();
     // We can't assert router change easily here; presence is enough for now.
   });
@@ -386,7 +386,7 @@ describe('PMTemplates Page', () => {
       );
 
       expect(screen.getByText('Global Templates')).toBeInTheDocument();
-      expect(screen.getByText('Forklift PM (Default)')).toBeInTheDocument();
+      expect(screen.getByText('Forklift PM')).toBeInTheDocument();
       expect(screen.getByText('Standard forklift maintenance checklist')).toBeInTheDocument();
     });
 
@@ -437,7 +437,7 @@ describe('PMTemplates Page', () => {
       );
 
       // Check template name and description
-      expect(screen.getByText('Forklift PM (Default)')).toBeInTheDocument();
+      expect(screen.getByText('Forklift PM')).toBeInTheDocument();
       expect(screen.getByText('Standard forklift maintenance checklist')).toBeInTheDocument();
       
       // Check sections and item count

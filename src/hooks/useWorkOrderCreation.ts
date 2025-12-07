@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from '@/hooks/useSession';
+import { useNavigate } from 'react-router-dom';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { WorkOrderService } from '@/services/WorkOrderService';
+import { createPM, PMChecklistItem } from '@/services/preventativeMaintenanceService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
-import { WorkOrderService } from '@/services/WorkOrderService';
+import { logger } from '@/utils/logger';
 
 export interface CreateWorkOrderData {
   title: string;
@@ -12,70 +13,147 @@ export interface CreateWorkOrderData {
   equipmentId: string;
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
-  estimatedHours?: number;
-  assigneeId?: string;
-  teamId?: string;
+  equipmentWorkingHours?: number;
+  hasPM?: boolean;
+  pmTemplateId?: string;
+  assignmentType?: 'user' | 'team';
+  assignmentId?: string;
 }
 
-export const useCreateWorkOrder = () => {
-  const { getCurrentOrganization } = useSession();
+export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: string; [key: string]: unknown }) => void }) => {
+  const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const currentOrg = getCurrentOrganization();
 
   return useMutation({
-    mutationFn: async (workOrderData: CreateWorkOrderData) => {
-      if (!currentOrg) throw new Error('No current organization');
+    mutationFn: async (data: CreateWorkOrderData) => {
+      if (!currentOrganization) {
+        throw new Error('No organization selected');
+      }
 
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
 
-      const service = new WorkOrderService(currentOrg.id);
+      // Auto-assign logic for single-user organizations
+      let assigneeId = data.assignmentType === 'user' ? data.assignmentId : undefined;
+      let status: 'submitted' | 'assigned' = 'submitted';
+
+      // If assignee is explicitly chosen, mark as assigned
+      if (assigneeId) {
+        status = 'assigned';
+      } else if (currentOrganization.memberCount === 1) {
+        // If no explicit assignment and it's a single-user org, auto-assign to creator
+        assigneeId = userData.user.id;
+        status = 'assigned';
+      }
+
+      // Create the work order using WorkOrderService
+      const service = new WorkOrderService(currentOrganization.id);
       const response = await service.create({
-        title: workOrderData.title,
-        description: workOrderData.description,
-        equipment_id: workOrderData.equipmentId,
-        priority: workOrderData.priority,
-        due_date: workOrderData.dueDate ? new Date(workOrderData.dueDate).toISOString() : undefined,
-        estimated_hours: workOrderData.estimatedHours,
-        assignee_id: workOrderData.assigneeId,
-        team_id: workOrderData.teamId,
-        created_by: userData.user.id
+        title: data.title,
+        description: data.description,
+        equipment_id: data.equipmentId,
+        priority: data.priority,
+        due_date: data.dueDate,
+        estimated_hours: undefined,
+        assignee_id: assigneeId,
+        team_id: undefined, // Work orders are not assigned to teams
+        status,
+        created_by: userData.user.id,
+        has_pm: data.hasPM || false
       });
-
-      if (!response.success) {
+      
+      if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to create work order');
       }
 
-      return response.data;
+      const workOrder = response.data;
+
+      // Multi-equipment linking removed: work orders now support a single equipment only
+
+      // If equipment working hours are provided, update equipment
+      if (data.equipmentWorkingHours && data.equipmentWorkingHours > 0) {
+        try {
+          const { error } = await supabase.rpc('update_equipment_working_hours', {
+            p_equipment_id: data.equipmentId,
+            p_new_hours: data.equipmentWorkingHours,
+            p_update_source: 'work_order',
+            p_work_order_id: workOrder.id,
+            p_notes: `Updated from work order: ${data.title}`
+          });
+
+          if (error) {
+            logger.error('Failed to update equipment working hours', error);
+            toast.error('Work order created but failed to update equipment hours');
+          }
+        } catch (error) {
+          logger.error('Error updating equipment working hours', error);
+          toast.error('Work order created but failed to update equipment hours');
+        }
+      }
+
+      // If PM is required, create PM for the single equipment
+      if (data.hasPM && data.equipmentId) {
+        try {
+          // Get checklist data from template (existing logic)
+          let checklistData = null;
+          let notes = '';
+          
+          if (data.pmTemplateId) {
+            const { data: template } = await supabase
+              .from('pm_checklist_templates')
+              .select('template_data, description')
+              .eq('id', data.pmTemplateId)
+              .single();
+            
+            if (template) {
+              checklistData = template.template_data as PMChecklistItem[];
+              notes = template.description || '';
+            }
+          }
+
+          // Create PM for the single equipment
+          await createPM({
+            workOrderId: workOrder.id,
+            equipmentId: data.equipmentId,
+            organizationId: currentOrganization.id,
+            checklistData,
+            notes,
+            templateId: data.pmTemplateId
+          });
+        } catch (error) {
+          logger.error('Failed to create PM for equipment', error);
+          toast.error('Work order created but PM initialization failed');
+        }
+      }
+
+      return workOrder;
     },
     onSuccess: (workOrder) => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrg?.id] });
-      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrg?.id] });
-      
       toast.success('Work order created successfully');
       
-      // Navigate to the new work order's details page
-      if (workOrder) {
+      // Invalidate relevant queries with standardized keys
+      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization?.id] });
+      
+      // Call custom onSuccess if provided, otherwise navigate to work order details
+      if (options?.onSuccess) {
+        options.onSuccess(workOrder);
+      } else {
         navigate(`/dashboard/work-orders/${workOrder.id}`);
       }
     },
     onError: (error) => {
-      console.error('Error creating work order:', error);
-      const errorMessage = getErrorMessage(error);
-      const specificMessage = errorMessage.includes('permission')
-        ? "You don't have permission to create work orders. Contact your administrator."
-        : errorMessage.includes('equipment')
-        ? "The selected equipment is not available. Please choose different equipment."
-        : errorMessage.includes('validation') || errorMessage.includes('required')
-        ? "Please check all required fields and try again."
-        : "Failed to create work order. Please check your connection and try again.";
-      
-      toast.error('Work Order Creation Failed', { description: specificMessage });
-      showErrorToast(error, 'Work Order Creation');
-    }
+      logger.error('Error creating work order', error);
+      toast.error('Failed to create work order');
+    },
   });
 };
+
+// Backward compatibility exports
+export type EnhancedCreateWorkOrderData = CreateWorkOrderData;
+export const useCreateWorkOrderEnhanced = useCreateWorkOrder;

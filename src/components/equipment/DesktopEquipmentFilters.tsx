@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter, Building, MapPin, Users } from 'lucide-react';
-import { EquipmentFilters } from './hooks/useEquipmentFiltering';
+import { EquipmentFilters } from '@/hooks/useEquipmentFiltering';
 
 interface Team {
   id: string;

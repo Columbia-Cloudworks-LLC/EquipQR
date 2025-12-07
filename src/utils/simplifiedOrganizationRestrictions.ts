@@ -1,7 +1,3 @@
-import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
-import { SlotAvailability } from '@/hooks/useOrganizationSlots';
-import { isBillingDisabled } from '@/lib/flags';
-
 export interface SimplifiedOrganizationRestrictions {
   canManageTeams: boolean;
   canAssignEquipmentToTeams: boolean;
@@ -13,54 +9,20 @@ export interface SimplifiedOrganizationRestrictions {
   upgradeMessage: string;
 }
 
-export const getSimplifiedOrganizationRestrictions = (
-  members: RealOrganizationMember[],
-  slotAvailability: SlotAvailability
-): SimplifiedOrganizationRestrictions => {
-  // Billing is disabled - grant all features to all organizations
-  if (isBillingDisabled()) {
-    return {
-      canManageTeams: true,
-      canAssignEquipmentToTeams: true,
-      canUploadImages: true,
-      canAccessFleetMap: true, // Always allow fleet map access
-      canInviteMembers: true,
-      canCreateCustomPMTemplates: true,
-      hasAvailableSlots: true,
-      upgradeMessage: ''
-    };
-  }
-  
-  const activeMemberCount = members.filter(member => member.status === 'active').length;
-  // Organization is free only if it has a single user AND no available slots (neither purchased nor exempted)
-  const isFree = activeMemberCount === 1 && slotAvailability.available_slots === 0;
-  
-  // For free organizations (single user, no purchased slots)
-  if (isFree) {
-    return {
-      canManageTeams: false,
-      canAssignEquipmentToTeams: false,
-      canUploadImages: false,
-      canAccessFleetMap: false,
-      canInviteMembers: false, // Can't invite until they purchase slots
-      canCreateCustomPMTemplates: false, // Can't create custom PM templates
-      hasAvailableSlots: false, // No slots purchased yet
-      upgradeMessage: 'Purchase user licenses to invite team members and unlock collaboration features. Only $10/month per additional user.'
-    };
-  }
-  
-  // Multi-user organization (paid) - has purchased slots or multiple active users
-  const hasAvailableSlots = slotAvailability.available_slots > 0;
-  
+/**
+ * Get simplified organization restrictions - billing is permanently disabled, so all features are enabled
+ */
+export const getSimplifiedOrganizationRestrictions = (): SimplifiedOrganizationRestrictions => {
+  // Billing is permanently disabled - grant all features to all organizations
   return {
     canManageTeams: true,
     canAssignEquipmentToTeams: true,
     canUploadImages: true,
-    canAccessFleetMap: true, // Always allow fleet map access
-    canInviteMembers: hasAvailableSlots,
-    canCreateCustomPMTemplates: true, // Paying customers can create custom PM templates
-    hasAvailableSlots,
-    upgradeMessage: hasAvailableSlots ? '' : 'Purchase more user licenses to invite additional team members.'
+    canAccessFleetMap: true,
+    canInviteMembers: true,
+    canCreateCustomPMTemplates: true,
+    hasAvailableSlots: true,
+    upgradeMessage: ''
   };
 };
 

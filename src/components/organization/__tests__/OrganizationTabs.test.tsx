@@ -62,10 +62,7 @@ vi.mock('@/hooks/useOrganizationSlots', () => ({
   }),
 }));
 
-// Stub PurchaseLicensesButton to avoid provider dependency in tests
-vi.mock('@/components/billing/PurchaseLicensesButton', () => ({
-  default: () => null,
-}));
+// Billing components removed - no longer needed
 
 // Stub SimplifiedInvitationDialog to avoid provider dependency in tests
 vi.mock('@/components/organization/SimplifiedInvitationDialog', () => ({

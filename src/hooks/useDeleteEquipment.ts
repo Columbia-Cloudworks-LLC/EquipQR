@@ -15,9 +15,9 @@ export const useDeleteEquipment = () => {
       if (currentOrganization?.id) {
         // Invalidate all equipment related queries
         queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['equipment-by-id'] });
-        queryClient.invalidateQueries({ queryKey: ['work-orders'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats', currentOrganization.id] });
+        queryClient.invalidateQueries({ queryKey: ['work-orders', currentOrganization.id] });
+        queryClient.invalidateQueries({ queryKey: ['equipment-status-counts', currentOrganization.id] });
       }
 
       toast({

@@ -49,10 +49,15 @@ export const workOrderFormSchema = z.object({
     .min(1, "Equipment is required"),
   priority: workOrderPrioritySchema,
   dueDate: z.string().optional().nullable(),
+  estimatedHours: z.number()
+    .min(0, "Estimated hours cannot be negative")
+    .max(10000, "Estimated hours seems too high")
+    .optional()
+    .nullable(),
   equipmentWorkingHours: z.number().optional().nullable(),
   hasPM: z.boolean().default(false),
   pmTemplateId: z.string().optional().nullable(),
-  assignmentType: z.enum(['unassigned', 'user', 'team']).optional(),
+  assignmentType: z.enum(['unassigned', 'user']).optional(),
   assignmentId: z.string().optional().nullable().transform(val => val === '' ? null : val),
   isHistorical: z.boolean().default(false),
   // Historical fields - conditionally required based on isHistorical
@@ -183,6 +188,7 @@ export const getDefaultWorkOrderFormValues = (
   equipmentId: options.equipmentId || '',
   priority: 'medium',
   dueDate: undefined,
+  estimatedHours: undefined,
   hasPM: false,
   pmTemplateId: null,
   assignmentType: 'unassigned',

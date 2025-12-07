@@ -21,27 +21,27 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 const templates = [
   {
-    name: 'Pull Trailer PM (Default)',
+    name: 'Pull Trailer PM',
     description: 'Protected, global starter checklist for pull trailers. This template provides comprehensive preventive maintenance items covering all major systems.',
     checklist: defaultPullTrailerChecklist
   },
   {
-    name: 'Compressor PM (Default)',
+    name: 'Compressor PM',
     description: 'Protected, global starter checklist for compressors. This template provides comprehensive preventive maintenance items covering all major systems.',
     checklist: defaultCompressorChecklist
   },
   {
-    name: 'Scissor Lift PM (Default)',
+    name: 'Scissor Lift PM',
     description: 'Protected, global starter checklist for scissor lifts. This template provides comprehensive preventive maintenance items covering all major systems.',
     checklist: defaultScissorLiftChecklist
   },
   {
-    name: 'Excavator PM (Default)',
+    name: 'Excavator PM',
     description: 'Protected, global starter checklist for excavators. This template provides comprehensive preventive maintenance items covering all major systems.',
     checklist: defaultExcavatorChecklist
   },
   {
-    name: 'Skid Steer PM (Default)',
+    name: 'Skid Steer PM',
     description: 'Protected, global starter checklist for skid steers. This template provides comprehensive preventive maintenance items covering all major systems.',
     checklist: defaultSkidSteerChecklist
   }

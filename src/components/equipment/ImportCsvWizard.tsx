@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useTeamsByOrganization } from '@/hooks/useSupabaseData';
+import { useTeams } from '@/hooks/useTeamManagement';
 import { Upload, CheckCircle } from 'lucide-react';
 
 import { CSVUploadStep } from './csv-import/CSVUploadStep';
@@ -30,7 +30,7 @@ const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: teams = [] } = useTeamsByOrganization(organizationId);
+  const { data: teams = [] } = useTeams(organizationId);
   
   const [state, setState] = useState<CSVImportState>({
     step: 1,

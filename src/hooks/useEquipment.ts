@@ -27,8 +27,7 @@ export const useEquipment = (
     queryKey: ['equipment', organizationId, filters, pagination],
     queryFn: async () => {
       if (!organizationId) return [];
-      const service = new EquipmentService(organizationId);
-      const result = await service.getAll(filters, pagination);
+      const result = await EquipmentService.getAll(organizationId, filters, pagination);
       if (result.success && result.data) {
         return result.data;
       }
@@ -69,8 +68,7 @@ export const useEquipmentById = (
     queryKey: ['equipment', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return undefined;
-      const service = new EquipmentService(organizationId);
-      const result = await service.getById(equipmentId);
+      const result = await EquipmentService.getById(organizationId, equipmentId);
       if (result.success && result.data) {
         return result.data;
       }
@@ -105,8 +103,7 @@ export const useEquipmentNotes = (
     queryKey: ['equipment-notes', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return [];
-      const service = new EquipmentService(organizationId);
-      const result = await service.getNotesByEquipmentId(equipmentId);
+      const result = await EquipmentService.getNotesByEquipmentId(organizationId, equipmentId);
       if (result.success && result.data) {
         return result.data;
       }
@@ -133,8 +130,7 @@ export const useEquipmentScans = (
     queryKey: ['equipment-scans', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return [];
-      const service = new EquipmentService(organizationId);
-      const result = await service.getScansByEquipmentId(equipmentId);
+      const result = await EquipmentService.getScansByEquipmentId(organizationId, equipmentId);
       if (result.success && result.data) {
         return result.data;
       }
@@ -161,8 +157,7 @@ export const useEquipmentWorkOrders = (
     queryKey: ['equipment-work-orders', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return [];
-      const service = new EquipmentService(organizationId);
-      const result = await service.getWorkOrdersByEquipmentId(equipmentId);
+      const result = await EquipmentService.getWorkOrdersByEquipmentId(organizationId, equipmentId);
       if (result.success && result.data) {
         return result.data;
       }
@@ -183,8 +178,7 @@ export const useCreateEquipment = (organizationId: string | undefined) => {
   return useMutation({
     mutationFn: async (data: EquipmentCreateData) => {
       if (!organizationId) throw new Error('Organization ID required');
-      const service = new EquipmentService(organizationId);
-      const result = await service.create(data);
+      const result = await EquipmentService.create(organizationId, data);
       if (result.success && result.data) {
         return result.data;
       }
@@ -220,8 +214,7 @@ export const useUpdateEquipment = (organizationId: string | undefined) => {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: EquipmentUpdateData }) => {
       if (!organizationId) throw new Error('Organization ID required');
-      const service = new EquipmentService(organizationId);
-      const result = await service.update(id, data);
+      const result = await EquipmentService.update(organizationId, id, data);
       if (result.success && result.data) {
         return result.data;
       }
@@ -260,8 +253,7 @@ export const useDeleteEquipment = (organizationId: string | undefined) => {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!organizationId) throw new Error('Organization ID required');
-      const service = new EquipmentService(organizationId);
-      const result = await service.delete(id);
+      const result = await EquipmentService.delete(organizationId, id);
       if (result.success && result.data) {
         return result.data;
       }
@@ -288,6 +280,99 @@ export const useDeleteEquipment = (organizationId: string | undefined) => {
 };
 
 /**
+ * Create scan mutation
+ * Records a scan event for equipment (e.g., QR code scan)
+ */
+export const useCreateScan = (organizationId: string | undefined) => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({ equipmentId, location, notes }: { 
+      equipmentId: string; 
+      location?: string; 
+      notes?: string 
+    }) => {
+      if (!organizationId) throw new Error('Organization ID required');
+      const result = await EquipmentService.createScan(organizationId, equipmentId, location, notes);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to log scan');
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate scans queries for this equipment
+      queryClient.invalidateQueries({ 
+        queryKey: ['equipment-scans', organizationId, variables.equipmentId] 
+      });
+      // Also invalidate legacy query keys for backward compatibility
+      queryClient.invalidateQueries({ 
+        queryKey: ['scans', 'equipment', organizationId, variables.equipmentId] 
+      });
+      toast({
+        title: 'Scan Logged',
+        description: 'Equipment scan has been recorded successfully',
+        variant: 'success',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Scan Failed',
+        description: error instanceof Error ? error.message : 'Failed to log scan',
+        variant: 'error',
+      });
+    },
+  });
+};
+
+/**
+ * Create note mutation
+ * Creates a basic note for equipment (without images)
+ * For notes with images, use the equipmentNotesService directly
+ */
+export const useCreateNote = (organizationId: string | undefined) => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({ equipmentId, content, isPrivate = false }: { 
+      equipmentId: string; 
+      content: string; 
+      isPrivate?: boolean 
+    }) => {
+      if (!organizationId) throw new Error('Organization ID required');
+      const result = await EquipmentService.createNote(organizationId, equipmentId, content, isPrivate);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to create note');
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate notes queries for this equipment
+      queryClient.invalidateQueries({ 
+        queryKey: ['equipment-notes', organizationId, variables.equipmentId] 
+      });
+      // Also invalidate legacy query keys for backward compatibility
+      queryClient.invalidateQueries({ 
+        queryKey: ['notes', 'equipment', organizationId, variables.equipmentId] 
+      });
+      toast({
+        title: 'Note Added',
+        description: 'Your note has been saved successfully',
+        variant: 'success',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Note Failed',
+        description: error instanceof Error ? error.message : 'Failed to save note',
+        variant: 'error',
+      });
+    },
+  });
+};
+
+/**
  * Get equipment status counts
  */
 export const useEquipmentStatusCounts = (
@@ -302,8 +387,7 @@ export const useEquipmentStatusCounts = (
     queryKey: ['equipment-status-counts', organizationId],
     queryFn: async () => {
       if (!organizationId) return { active: 0, maintenance: 0, inactive: 0 };
-      const service = new EquipmentService(organizationId);
-      const result = await service.getStatusCounts();
+      const result = await EquipmentService.getStatusCounts(organizationId);
       if (result.success && result.data) {
         return result.data;
       }

@@ -1,10 +1,44 @@
-
-import { useQuery,useMutation, useQueryClient } from '@tanstack/react-query';
+/**
+ * @deprecated This entire file is deprecated. Migration guide:
+ * 
+ * Equipment hooks:
+ * - useEquipmentByOrganization → useEquipment from '@/hooks/useEquipment'
+ * - useEquipmentById → useEquipmentById from '@/hooks/useEquipment'
+ * - useCreateEquipment → useCreateEquipment from '@/hooks/useEquipment'
+ * - useUpdateEquipment → useUpdateEquipment from '@/hooks/useEquipment'
+ * 
+ * Teams hooks:
+ * - useTeamsByOrganization → useTeams from '@/hooks/useTeamManagement'
+ * 
+ * Dashboard hooks:
+ * - useDashboardStats → useDashboard from '@/hooks/useQueries'
+ * 
+ * Work Order hooks:
+ * - useWorkOrdersByEquipment → useEquipmentWorkOrders from '@/hooks/useEquipment'
+ * - useAllWorkOrders → useWorkOrders from '@/hooks/useWorkOrders'
+ * - useWorkOrderById → useWorkOrderById from '@/hooks/useWorkOrders'
+ * 
+ * Notes hooks:
+ * - useNotesByEquipment → useEquipmentNotes from '@/hooks/useEquipment'
+ * - useCreateNote → useCreateNote from '@/hooks/useEquipment'
+ * 
+ * Scans hooks:
+ * - useScansByEquipment → useEquipmentScans from '@/hooks/useEquipment'
+ * - useCreateScan → useCreateScan from '@/hooks/useEquipment'
+ * 
+ * @module useSupabaseData
+ * @see {@link @/hooks/useEquipment} for equipment-related hooks
+ * @see {@link @/hooks/useWorkOrders} for work order hooks
+ * @see {@link @/hooks/useTeamManagement} for team hooks
+ */
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as supabaseService from '@/services/supabaseDataService';
 import { toast } from '@/hooks/use-toast';
 
 // Equipment hooks
-// @deprecated Use useEquipment from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use useEquipment from '@/hooks/useEquipment' instead.
+ */
 export const useEquipmentByOrganization = (organizationId?: string) => {
   return useQuery({
     queryKey: ['equipment', organizationId],
@@ -14,7 +48,9 @@ export const useEquipmentByOrganization = (organizationId?: string) => {
   });
 };
 
-// @deprecated Use useEquipmentById from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use useEquipmentById from '@/hooks/useEquipment' instead.
+ */
 export const useEquipmentById = (organizationId: string, equipmentId?: string) => {
   return useQuery({
     queryKey: ['equipment', organizationId, equipmentId],
@@ -26,7 +62,9 @@ export const useEquipmentById = (organizationId: string, equipmentId?: string) =
   });
 };
 
-// Teams hooks
+/**
+ * @deprecated Use useTeams from '@/hooks/useTeamManagement' instead.
+ */
 export const useTeamsByOrganization = (organizationId?: string) => {
   return useQuery({
     queryKey: ['teams', organizationId],
@@ -36,7 +74,9 @@ export const useTeamsByOrganization = (organizationId?: string) => {
   });
 };
 
-// Dashboard stats hook
+/**
+ * @deprecated Use useDashboard from '@/hooks/useQueries' instead.
+ */
 export const useDashboardStats = (organizationId?: string) => {
   return useQuery({
     queryKey: ['dashboard-stats', organizationId],
@@ -51,8 +91,9 @@ export const useDashboardStats = (organizationId?: string) => {
   });
 };
 
-// Work orders hooks
-// @deprecated Use WorkOrderService.getEquipmentWorkOrders() instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use useEquipmentWorkOrders from '@/hooks/useEquipment' instead.
+ */
 export const useWorkOrdersByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
     queryKey: ['work-orders', 'equipment', organizationId, equipmentId],
@@ -64,7 +105,9 @@ export const useWorkOrdersByEquipment = (organizationId: string, equipmentId?: s
   });
 };
 
-// @deprecated Use WorkOrderService.getAll() instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use useWorkOrders from '@/hooks/useWorkOrders' instead.
+ */
 export const useAllWorkOrders = (organizationId?: string) => {
   return useQuery({
     queryKey: ['work-orders', organizationId],
@@ -74,7 +117,9 @@ export const useAllWorkOrders = (organizationId?: string) => {
   });
 };
 
-// @deprecated Use WorkOrderService.getById() instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use useWorkOrderById from '@/hooks/useWorkOrders' instead.
+ */
 export const useWorkOrderById = (organizationId: string, workOrderId?: string) => {
   return useQuery({
     queryKey: ['work-orders', organizationId, workOrderId],
@@ -86,7 +131,9 @@ export const useWorkOrderById = (organizationId: string, workOrderId?: string) =
   });
 };
 
-// Notes hooks
+/**
+ * @deprecated Use useEquipmentNotes from '@/hooks/useEquipment' instead.
+ */
 export const useNotesByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
     queryKey: ['notes', 'equipment', organizationId, equipmentId],
@@ -98,7 +145,9 @@ export const useNotesByEquipment = (organizationId: string, equipmentId?: string
   });
 };
 
-// Scans hooks
+/**
+ * @deprecated Use useEquipmentScans from '@/hooks/useEquipment' instead.
+ */
 export const useScansByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
     queryKey: ['scans', 'equipment', organizationId, equipmentId],
@@ -110,7 +159,9 @@ export const useScansByEquipment = (organizationId: string, equipmentId?: string
   });
 };
 
-// Create scan mutation
+/**
+ * @deprecated Use useCreateScan from '@/hooks/useEquipment' instead.
+ */
 export const useCreateScan = (organizationId: string) => {
   const queryClient = useQueryClient();
 
@@ -141,8 +192,9 @@ export const useCreateScan = (organizationId: string) => {
   });
 };
 
-// Mutation hooks
-// @deprecated Use useUpdateWorkOrderStatus from '@/hooks/useWorkOrderData' instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use useWorkOrderStatusUpdate from '@/hooks/useWorkOrderStatusUpdate' instead.
+ */
 export const useUpdateWorkOrderStatus = (organizationId: string) => {
   const queryClient = useQueryClient();
 
@@ -183,7 +235,9 @@ export const useUpdateWorkOrderStatus = (organizationId: string) => {
   });
 };
 
-// @deprecated Use useCreateEquipment from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use useCreateEquipment from '@/hooks/useEquipment' instead.
+ */
 export const useCreateEquipment = (organizationId: string) => {
   const queryClient = useQueryClient();
 
@@ -221,7 +275,9 @@ export const useCreateEquipment = (organizationId: string) => {
   });
 };
 
-// @deprecated Use useCreateWorkOrder from '@/hooks/useWorkOrderCreation' instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use useWorkOrderCreation from '@/hooks/useWorkOrderCreation' instead.
+ */
 export const useCreateWorkOrder = (organizationId: string) => {
   const queryClient = useQueryClient();
 
@@ -259,6 +315,9 @@ export const useCreateWorkOrder = (organizationId: string) => {
   });
 };
 
+/**
+ * @deprecated Use useCreateNote from '@/hooks/useEquipment' instead.
+ */
 export const useCreateNote = (organizationId: string) => {
   const queryClient = useQueryClient();
 
@@ -301,7 +360,9 @@ export const useCreateNote = (organizationId: string) => {
   });
 };
 
-// @deprecated Use useUpdateEquipment from '@/components/equipment/hooks/useEquipment' instead. Will be removed in Phase 2.
+/**
+ * @deprecated Use useUpdateEquipment from '@/hooks/useEquipment' instead.
+ */
 export const useUpdateEquipment = (organizationId: string) => {
   const queryClient = useQueryClient();
 

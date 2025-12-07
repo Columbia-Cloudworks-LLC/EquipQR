@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { getAccessibleEquipmentIds } from './EquipmentService';
+import { EquipmentService } from './EquipmentService';
 
 export interface TeamBasedDashboardStats {
   totalEquipment: number;
@@ -36,7 +36,8 @@ export const getTeamBasedDashboardStats = async (
     }
 
     // Get accessible equipment IDs
-    const accessibleEquipmentIds = await getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);
+    const result = await EquipmentService.getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);
+    const accessibleEquipmentIds = result.success && result.data ? result.data : [];
 
     // Equipment stats
     let equipmentQuery = supabase

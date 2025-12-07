@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { QrCode, Calendar, MapPin, User, Clock, MessageSquare } from 'lucide-react';
-import { useSyncScansByEquipment } from '@/services/syncDataService';
+import { useEquipmentScans } from '@/hooks/useEquipment';
 
 interface EquipmentScansTabProps {
   equipmentId: string;
@@ -15,7 +15,7 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
   equipmentId,
   organizationId,
 }) => {
-  const { data: scans = [], isLoading } = useSyncScansByEquipment(organizationId, equipmentId);
+  const { data: scans = [], isLoading } = useEquipmentScans(organizationId, equipmentId);
   const [timelineView, setTimelineView] = useState(false);
 
   if (isLoading) {
