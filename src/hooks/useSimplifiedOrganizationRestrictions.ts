@@ -7,7 +7,7 @@ export const useSimplifiedOrganizationRestrictions = (fleetMapEnabled: boolean =
   const { data: members = [], isLoading } = useOrganizationMembers(currentOrganization?.id || '');
 
   // Billing is disabled - all features are enabled
-  const restrictions = getSimplifiedOrganizationRestrictions(members, fleetMapEnabled);
+  const restrictions = getSimplifiedOrganizationRestrictions();
 
   const checkRestriction = (restriction: keyof typeof restrictions) => {
     return {
