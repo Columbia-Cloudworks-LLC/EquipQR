@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Settings, User, FileEdit, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEquipmentWorkingHoursHistory, useEquipmentCurrentWorkingHours, useUpdateEquipmentWorkingHours } from './hooks/useEquipmentWorkingHours';
+import { useEquipmentWorkingHoursHistory, useEquipmentCurrentWorkingHours, useUpdateEquipmentWorkingHours } from '@/hooks/useEquipmentWorkingHours';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/ui/data-table';

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { EquipmentService } from '../EquipmentService';
+import { EquipmentService, type EquipmentCreateData } from '../EquipmentService';
 
 // Mock the supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -11,10 +11,9 @@ vi.mock('@/integrations/supabase/client', () => ({
 const { supabase } = await import('@/integrations/supabase/client');
 
 describe('EquipmentService', () => {
-  let service: EquipmentService;
+  const organizationId = 'test-org';
 
   beforeEach(() => {
-    service = new EquipmentService('test-org');
     vi.clearAllMocks();
   });
 
@@ -33,7 +32,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.getAll();
+      const result = await EquipmentService.getAll(organizationId);
       
       expect(result.success).toBe(true);
       expect(result.data).toBeInstanceOf(Array);
@@ -53,7 +52,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.getAll({ status: 'active' });
+      const result = await EquipmentService.getAll(organizationId, { status: 'active' });
       
       expect(result.success).toBe(true);
       expect(result.data.every(eq => eq.status === 'active')).toBe(true);
@@ -74,7 +73,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.getAll({ location });
+      const result = await EquipmentService.getAll(organizationId, { location });
       
       expect(result.success).toBe(true);
       expect(result.data.every(eq => eq.location === location)).toBe(true);
@@ -94,7 +93,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.getAll({}, { page: 1, limit: 2 });
+      const result = await EquipmentService.getAll(organizationId, {}, { page: 1, limit: 2 });
       
       expect(result.success).toBe(true);
       expect(result.data.length).toBeLessThanOrEqual(2);
@@ -113,7 +112,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.getById('eq-1');
+      const result = await EquipmentService.getById(organizationId, 'eq-1');
       
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
@@ -129,7 +128,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.getById('non-existent');
+      const result = await EquipmentService.getById(organizationId, 'non-existent');
       
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -160,7 +159,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.create(equipmentData);
+      const result = await EquipmentService.create(organizationId, equipmentData);
       
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
@@ -187,7 +186,7 @@ describe('EquipmentService', () => {
         last_maintenance: '2024-01-01'
       };
 
-      const result = await service.create(incompleteData as Parameters<typeof service.create>[0]);
+      const result = await EquipmentService.create(organizationId, incompleteData as EquipmentCreateData);
       
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -212,7 +211,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.update('eq-1', updateData);
+      const result = await EquipmentService.update(organizationId, 'eq-1', updateData);
       
       expect(result.success).toBe(true);
       expect(result.data.name).toBe(updateData.name);
@@ -229,7 +228,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.update('non-existent', { name: 'Updated' });
+      const result = await EquipmentService.update(organizationId, 'non-existent', { name: 'Updated' });
       
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -249,7 +248,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.delete('eq-1');
+      const result = await EquipmentService.delete(organizationId, 'eq-1');
       
       expect(result.success).toBe(true);
       expect(result.data).toBe(true);
@@ -263,7 +262,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.delete('non-existent');
+      const result = await EquipmentService.delete(organizationId, 'non-existent');
       
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -286,7 +285,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await service.getStatusCounts();
+      const result = await EquipmentService.getStatusCounts(organizationId);
       
       expect(result.success).toBe(true);
       expect(result.data).toHaveProperty('active');

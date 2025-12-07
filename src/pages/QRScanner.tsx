@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { QrCode, AlertCircle, CheckCircle, ArrowLeft, Camera } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEquipmentById } from '@/components/equipment/hooks/useEquipment';
+import { useEquipmentById } from '@/hooks/useEquipment';
 import { useToast } from '@/hooks/use-toast';
 import QRScannerComponent from '@/components/scanner/QRScannerComponent';
 import Page from '@/components/layout/Page';

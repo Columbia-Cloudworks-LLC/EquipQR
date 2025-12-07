@@ -1,7 +1,7 @@
 
 
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { useCreateWorkOrder, CreateWorkOrderData } from '@/components/work-orders/hooks/useWorkOrderCreation';
+import { useCreateWorkOrder, CreateWorkOrderData } from '@/hooks/useWorkOrderCreation';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/hooks/useWorkOrderUpdate';
 import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from '@/hooks/useHistoricalWorkOrders';
 import type { WorkOrder as EnhancedWorkOrder } from '@/types/workOrder';
@@ -62,7 +62,7 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           historicalStartDate: dateToISOString(data.historicalStartDate) || '',
           historicalNotes: data.historicalNotes || '',
           assigneeId: data.assignmentType === 'user' && data.assignmentId ? data.assignmentId : undefined,
-          teamId: data.assignmentType === 'team' && data.assignmentId ? data.assignmentId : undefined,
+          teamId: undefined, // Work orders are not assigned to teams
           dueDate: data.dueDate || undefined,
           completedDate: dateToISOString(data.completedDate) || undefined,
           hasPM: data.hasPM || false,

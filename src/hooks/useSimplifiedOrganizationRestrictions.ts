@@ -1,28 +1,13 @@
 import { useOrganizationMembers } from './useOrganizationMembers';
-import { useSlotAvailability } from './useOrganizationSlots';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { getSimplifiedOrganizationRestrictions, getRestrictionMessage } from '@/utils/simplifiedOrganizationRestrictions';
 
-export const useSimplifiedOrganizationRestrictions = (fleetMapEnabled: boolean = false) => {
+export const useSimplifiedOrganizationRestrictions = () => {
   const { currentOrganization } = useOrganization();
-  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
-  const { data: slotAvailability, isLoading } = useSlotAvailability(currentOrganization?.id || '');
+  const { data: members = [], isLoading } = useOrganizationMembers(currentOrganization?.id || '');
 
-  // Provide safe defaults while loading
-  const safeSlotAvailability = slotAvailability || {
-    total_purchased: 0,
-    used_slots: 0,
-    available_slots: 0,
-    exempted_slots: 0,
-    current_period_start: new Date().toISOString(),
-    current_period_end: new Date().toISOString()
-  };
-
-  const restrictions = getSimplifiedOrganizationRestrictions(
-    members, 
-    safeSlotAvailability, 
-    fleetMapEnabled
-  );
+  // Billing is disabled - all features are enabled
+  const restrictions = getSimplifiedOrganizationRestrictions();
 
   const checkRestriction = (restriction: keyof typeof restrictions) => {
     return {
@@ -40,7 +25,7 @@ export const useSimplifiedOrganizationRestrictions = (fleetMapEnabled: boolean =
     checkRestriction,
     getRestrictionMessage,
     isSingleUser,
-    canUpgrade: true, // Always can upgrade in pay-as-you-go model
+    canUpgrade: true, // Billing is disabled - all features are free
     isLoading
   };
 };

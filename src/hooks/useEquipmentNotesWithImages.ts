@@ -11,7 +11,7 @@ import {
 } from '@/services/equipmentNotesService';
 import { toast } from 'sonner';
 
-export const useEquipmentNotes = (equipmentId: string, organizationId: string) => {
+export const useEquipmentNotesWithImages = (equipmentId: string, organizationId: string) => {
   return useQuery({
     queryKey: ['equipment-notes', equipmentId, organizationId],
     queryFn: () => getEquipmentNotesWithImages(equipmentId),
@@ -20,7 +20,7 @@ export const useEquipmentNotes = (equipmentId: string, organizationId: string) =
   });
 };
 
-export const useCreateEquipmentNote = () => {
+export const useCreateEquipmentNoteWithImages = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -148,3 +148,4 @@ export const useSetEquipmentDisplayImage = () => {
     }
   });
 };
+

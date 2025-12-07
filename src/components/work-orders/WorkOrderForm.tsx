@@ -228,6 +228,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             }}
             setValue={form.setValue}
             organizationId={currentOrganization?.id || ''}
+            equipmentId={form.values.equipmentId || undefined}
           />
 
           <WorkOrderPMChecklist

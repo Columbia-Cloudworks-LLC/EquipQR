@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEquipmentNotesPermissions } from './hooks/useEquipmentNotesPermissions';
+import { useEquipmentNotesPermissions } from '@/hooks/useEquipmentNotesPermissions';
 import ImageGallery from '@/components/common/ImageGallery';
 import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
 import { 

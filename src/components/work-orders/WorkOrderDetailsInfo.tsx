@@ -9,7 +9,7 @@ import { Wrench, FileText, ChevronDown, Clock } from 'lucide-react';
 import { Equipment } from '@/services/supabaseDataService';
 import type { WorkOrder as EnhancedWorkOrder } from '@/types/workOrder';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useEquipmentCurrentWorkingHours } from '@/components/equipment/hooks/useEquipmentWorkingHours';
+import { useEquipmentCurrentWorkingHours } from '@/hooks/useEquipmentWorkingHours';
 
 interface WorkOrderDetailsInfoProps {
   workOrder: EnhancedWorkOrder;

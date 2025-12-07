@@ -162,6 +162,7 @@ export interface WorkOrderCreateData {
   is_historical?: boolean;
   historical_start_date?: string;
   historical_notes?: string;
+  has_pm?: boolean;
 }
 
 export interface WorkOrderUpdateData {

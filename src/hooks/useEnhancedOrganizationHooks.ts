@@ -34,8 +34,6 @@ export {
   useEnhancedOrganizationSlots,
   useEnhancedSlotAvailability,
   useEnhancedSlotPurchases,
-  useEnhancedReserveSlot,
-  useEnhancedReleaseSlot,
   type OrganizationSlot,
   type SlotAvailability,
   type SlotPurchase

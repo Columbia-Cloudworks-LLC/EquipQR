@@ -6,7 +6,7 @@ import { TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, MapPin, Calendar, Package, QrCode, Trash2 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEquipmentById } from '@/components/equipment/hooks/useEquipment';
+import { useEquipmentById } from '@/hooks/useEquipment';
 import { useIsMobile } from '@/hooks/use-mobile';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';

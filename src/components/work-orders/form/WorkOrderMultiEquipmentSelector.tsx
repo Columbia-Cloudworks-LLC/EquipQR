@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useTeamEquipmentForWorkOrder } from '@/components/work-orders/hooks/useWorkOrderEquipment';
+import { useTeamEquipmentForWorkOrder } from '@/hooks/useWorkOrderEquipment';
 
 interface WorkOrderMultiEquipmentSelectorProps {
   primaryEquipmentId: string;

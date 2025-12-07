@@ -218,24 +218,13 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
         </div>
       )}
 
-      {/* Empty State - Show when no notes and no form */}
-      {visibleNotes.length === 0 && !showForm && (
+      {/* Empty State - Show when no notes, no form, and user cannot add notes */}
+      {visibleNotes.length === 0 && !showForm && !canAddNotes && (
         <Card>
           <CardContent className="p-6">
             <div className="text-center text-muted-foreground">
               <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p className="text-sm">No notes have been added yet.</p>
-              {canAddNotes && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4"
-                  onClick={() => setShowForm(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add First Note
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>
