@@ -1,5 +1,3 @@
-import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
-
 export interface SimplifiedOrganizationRestrictions {
   canManageTeams: boolean;
   canAssignEquipmentToTeams: boolean;
@@ -14,10 +12,7 @@ export interface SimplifiedOrganizationRestrictions {
 /**
  * Get simplified organization restrictions - billing is permanently disabled, so all features are enabled
  */
-export const getSimplifiedOrganizationRestrictions = (
-  _members: RealOrganizationMember[],
-  _fleetMapEnabled?: boolean
-): SimplifiedOrganizationRestrictions => {
+export const getSimplifiedOrganizationRestrictions = (): SimplifiedOrganizationRestrictions => {
   // Billing is permanently disabled - grant all features to all organizations
   return {
     canManageTeams: true,

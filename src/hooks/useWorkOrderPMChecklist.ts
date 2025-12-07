@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { usePMTemplates } from '@/hooks/usePMTemplates';
 import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
 import type { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
+import { logger } from '@/utils/logger';
 
 interface UseWorkOrderPMChecklistProps {
   values: Pick<WorkOrderFormData, 'hasPM' | 'pmTemplateId'>;
@@ -24,7 +25,7 @@ export const useWorkOrderPMChecklist = ({
   // Debug: Log template loading state
   React.useEffect(() => {
     if (values.hasPM) {
-      console.log('[useWorkOrderPMChecklist] Template query state:', {
+      logger.debug('[useWorkOrderPMChecklist] Template query state:', {
         isLoading,
         allTemplatesCount: allTemplates.length,
         error: templatesError,

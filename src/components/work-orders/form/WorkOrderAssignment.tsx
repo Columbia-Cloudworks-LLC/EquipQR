@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { User, Users } from "lucide-react";
 import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 import { useWorkOrderAssignmentOptions } from '@/hooks/useWorkOrderAssignment';
+import { logger } from '@/utils/logger';
 
 interface WorkOrderAssignmentProps {
   values: Pick<WorkOrderFormData, 'assignmentType' | 'assignmentId'>;
@@ -25,7 +26,7 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
   
   // Debug logging
   React.useEffect(() => {
-    console.log('[WorkOrderAssignment] Component state:', {
+    logger.debug('[WorkOrderAssignment] Component state:', {
       organizationId,
       equipmentId,
       assignmentOptionsCount: assignmentOptions.length,

@@ -12,6 +12,7 @@ import {
 import { Wrench, Info, CheckCircle2, Globe } from "lucide-react";
 import { WorkOrderFormData } from '@/hooks/useWorkOrderForm';
 import { useWorkOrderPMChecklist } from '@/hooks/useWorkOrderPMChecklist';
+import { logger } from '@/utils/logger';
 
 interface WorkOrderPMChecklistProps {
   values: Pick<WorkOrderFormData, 'hasPM' | 'pmTemplateId'>;
@@ -45,28 +46,28 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
   // Debug logging to identify the issue
   React.useEffect(() => {
     if (values.hasPM) {
-      console.group('🔍 [PM Checklist Debug]');
-      console.log('hasPM:', values.hasPM);
-      console.log('selectedEquipment:', selectedEquipment ? {
-        id: selectedEquipment.id,
-        name: selectedEquipment.name,
-        default_pm_template_id: selectedEquipment.default_pm_template_id
-      } : 'null/undefined');
-      console.log('hasAssignedTemplate:', hasAssignedTemplate);
-      console.log('assignedTemplate:', assignedTemplate ? {
-        id: assignedTemplate.id,
-        name: assignedTemplate.name
-      } : 'null');
-      console.log('templatesCount:', templates.length);
-      console.log('templates:', templates.length > 0 ? templates.map(t => ({
-        id: t.id,
-        name: t.name,
-        org_id: t.organization_id
-      })) : '[] (EMPTY)');
-      console.log('isLoading:', isLoading);
-      console.log('canCreateCustomPMTemplates:', restrictions.canCreateCustomPMTemplates);
-      console.log('pmTemplateId:', values.pmTemplateId || 'not set');
-      console.groupEnd();
+      logger.debug('[PM Checklist Debug]', {
+        hasPM: values.hasPM,
+        selectedEquipment: selectedEquipment ? {
+          id: selectedEquipment.id,
+          name: selectedEquipment.name,
+          default_pm_template_id: selectedEquipment.default_pm_template_id
+        } : 'null/undefined',
+        hasAssignedTemplate,
+        assignedTemplate: assignedTemplate ? {
+          id: assignedTemplate.id,
+          name: assignedTemplate.name
+        } : 'null',
+        templatesCount: templates.length,
+        templates: templates.length > 0 ? templates.map(t => ({
+          id: t.id,
+          name: t.name,
+          org_id: t.organization_id
+        })) : '[] (EMPTY)',
+        isLoading,
+        canCreateCustomPMTemplates: restrictions.canCreateCustomPMTemplates,
+        pmTemplateId: values.pmTemplateId || 'not set'
+      });
     }
   }, [values.hasPM, selectedEquipment, hasAssignedTemplate, assignedTemplate, templates, isLoading, restrictions.canCreateCustomPMTemplates, values.pmTemplateId]);
 
