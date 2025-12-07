@@ -36,3 +36,12 @@ verify_jwt = false
 
 [functions.part-detail]
 verify_jwt = false
+
+# QuickBooks OAuth Integration
+[functions.quickbooks-oauth-callback]
+verify_jwt = true
+# Handles OAuth callback from Intuit. Requires authenticated user to link QuickBooks to their org.
+
+[functions.quickbooks-refresh-tokens]
+verify_jwt = false
+# Called by cron job to refresh expiring tokens. Uses service role key internally.
