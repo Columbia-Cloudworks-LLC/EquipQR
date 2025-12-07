@@ -1,5 +1,6 @@
 import React from 'react';
 import { screen, fireEvent } from '@testing-library/react';
+import { vi } from 'vitest';
 import { customRender } from '@/test/utils/renderUtils';
 import type { OrganizationMember } from '@/types/organization';
 
@@ -112,15 +113,6 @@ describe('UnifiedMembersList', () => {
     },
   ];
 
-  const seatAvailability = {
-    total_purchased: 2,
-    used_slots: 2,
-    available_slots: 0,
-    exempted_slots: 0,
-    current_period_start: '2024-01-01T00:00:00Z',
-    current_period_end: '2024-02-01T00:00:00Z',
-  };
-
   it('renders active members and pending invitations in a unified list', async () => {
     customRender(
       <UnifiedMembersList
@@ -129,7 +121,6 @@ describe('UnifiedMembersList', () => {
         currentUserRole="admin"
         isLoading={false}
         canInviteMembers={true}
-        slotAvailability={seatAvailability}
       />
     );
 
@@ -148,17 +139,12 @@ describe('UnifiedMembersList', () => {
         currentUserRole="admin"
         isLoading={false}
         canInviteMembers={true}
-        slotAvailability={seatAvailability}
       />
     );
 
     const inviteBtn = await screen.findByRole('button', { name: /invite member/i });
     // With billing disabled by default, invitations are never blocked
     expect(inviteBtn).not.toBeDisabled();
-
-    // Seat status badge text
-    expect(screen.getByText(/Seats: 2\/2/i)).toBeInTheDocument();
-    expect(screen.getByText(/Available 0/i)).toBeInTheDocument();
   });
 
   it('shows role select for editable members and triggers role change', async () => {
@@ -169,7 +155,6 @@ describe('UnifiedMembersList', () => {
         currentUserRole="admin"
         isLoading={false}
         canInviteMembers={true}
-        slotAvailability={{ ...seatAvailability, available_slots: 1, used_slots: 1, total_purchased: 2 }}
       />
     );
 

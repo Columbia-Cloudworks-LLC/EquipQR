@@ -31,7 +31,7 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
     queryKey: ['work-order-assignment-members', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId) {
-        console.log('[useWorkOrderAssignmentOptions] No organizationId provided');
+        // No organizationId provided
         return [];
       }
       
@@ -127,7 +127,7 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
 
       // If no equipmentId, return all organization members (backward compatibility)
       // This should not be used for new work orders, but kept for existing code
-      console.log('[useWorkOrderAssignmentOptions] Fetching all members for org:', organizationId);
+      // Fetching all members for org (backward compatibility)
       
       const { data, error } = await supabase
         .from('organization_members')

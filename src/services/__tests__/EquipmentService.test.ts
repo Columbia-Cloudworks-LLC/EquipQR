@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { EquipmentService } from '../EquipmentService';
+import { EquipmentService, type EquipmentCreateData } from '../EquipmentService';
 
 // Mock the supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -186,7 +186,7 @@ describe('EquipmentService', () => {
         last_maintenance: '2024-01-01'
       };
 
-      const result = await EquipmentService.create(organizationId, incompleteData as any);
+      const result = await EquipmentService.create(organizationId, incompleteData as EquipmentCreateData);
       
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();

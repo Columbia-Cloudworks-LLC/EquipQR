@@ -18,11 +18,11 @@ vi.mock('@/contexts/OrganizationContext', () => ({
   useOrganization: vi.fn(),
 }));
 
-vi.mock('@/components/equipment/hooks/useEquipmentTemplateManagement', () => ({
+vi.mock('@/hooks/useEquipmentTemplateManagement', () => ({
   useBulkAssignTemplate: vi.fn(),
 }));
 
-vi.mock('@/components/equipment/hooks/useEquipment', () => ({
+vi.mock('@/hooks/useEquipment', () => ({
   useEquipment: vi.fn(),
 }));
 
@@ -166,11 +166,11 @@ describe('TemplateAssignmentDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Setup mocks using vi.mocked with proper type casting
-    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate as unknown as ReturnType<typeof usePMTemplate>);
-    vi.mocked(useOrganization).mockReturnValue(mockHooks.useOrganization as unknown as ReturnType<typeof useOrganization>);
-    vi.mocked(useEquipment).mockReturnValue(mockHooks.useEquipment as unknown as ReturnType<typeof useEquipment>);
-    vi.mocked(useBulkAssignTemplate).mockReturnValue(mockHooks.useBulkAssignTemplate as unknown as ReturnType<typeof useBulkAssignTemplate>);
+    // Setup mocks - ensure they are properly typed as mock functions
+    (usePMTemplate as ReturnType<typeof vi.fn>).mockReturnValue(mockHooks.usePMTemplate as unknown as ReturnType<typeof usePMTemplate>);
+    (useOrganization as ReturnType<typeof vi.fn>).mockReturnValue(mockHooks.useOrganization as unknown as ReturnType<typeof useOrganization>);
+    (useEquipment as ReturnType<typeof vi.fn>).mockReturnValue(mockHooks.useEquipment as unknown as ReturnType<typeof useEquipment>);
+    (useBulkAssignTemplate as ReturnType<typeof vi.fn>).mockReturnValue(mockHooks.useBulkAssignTemplate as unknown as ReturnType<typeof useBulkAssignTemplate>);
   });
 
   describe('Dialog Rendering', () => {
@@ -364,7 +364,7 @@ describe('TemplateAssignmentDialog', () => {
     });
 
     it('shows loading state during assignment', async () => {
-      vi.mocked(useBulkAssignTemplate).mockReturnValue({
+      (useBulkAssignTemplate as ReturnType<typeof vi.fn>).mockReturnValue({
         ...mockHooks.useBulkAssignTemplate,
         isPending: true,
         status: 'pending'
@@ -404,7 +404,7 @@ describe('TemplateAssignmentDialog', () => {
 
   describe('Loading States', () => {
     it('shows loading state when template is loading', () => {
-      vi.mocked(usePMTemplate).mockReturnValue({
+      (usePMTemplate as ReturnType<typeof vi.fn>).mockReturnValue({
         ...mockHooks.usePMTemplate,
         data: null,
         isLoading: true,
@@ -423,7 +423,7 @@ describe('TemplateAssignmentDialog', () => {
     });
 
     it('shows loading state when equipment is loading', () => {
-      vi.mocked(useEquipment).mockReturnValue({
+      (useEquipment as ReturnType<typeof vi.fn>).mockReturnValue({
         ...mockHooks.useEquipment,
         data: [],
         isLoading: true,
@@ -443,7 +443,7 @@ describe('TemplateAssignmentDialog', () => {
 
   describe('Error Handling', () => {
     it('handles template not found', () => {
-      vi.mocked(usePMTemplate).mockReturnValue({
+      (usePMTemplate as ReturnType<typeof vi.fn>).mockReturnValue({
         ...mockHooks.usePMTemplate,
         data: undefined,
         isLoading: false,
@@ -462,7 +462,7 @@ describe('TemplateAssignmentDialog', () => {
     });
 
     it('handles no equipment available', () => {
-      vi.mocked(useEquipment).mockReturnValue({
+      (useEquipment as ReturnType<typeof vi.fn>).mockReturnValue({
         ...mockHooks.useEquipment,
         data: [],
         isLoading: false,

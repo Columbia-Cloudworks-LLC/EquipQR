@@ -13,7 +13,7 @@ vi.mock('@/hooks/usePermissions', () => ({
 }));
 
 // Mock filtering hook to control states
-vi.mock('@/components/equipment/hooks/useEquipmentFiltering', () => ({
+vi.mock('@/hooks/useEquipmentFiltering', () => ({
   useEquipmentFiltering: vi.fn(() => ({
     filters: { search: '', status: 'all' },
     sortConfig: { field: 'name', direction: 'asc' },

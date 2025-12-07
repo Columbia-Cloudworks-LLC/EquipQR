@@ -141,7 +141,7 @@ export function hasLicenses(_slotAvailability?: SlotAvailability): boolean {
  * @param slotAvailability - Unused, kept for backward compatibility with existing API
  * @param totalNeeded - Unused, kept for backward compatibility with existing API
  */
-export function getSlotStatus(totalNeeded: number): SlotStatus {
+export function getSlotStatus(_totalNeeded: number): SlotStatus {
   // Billing is disabled - always unlimited
   return {
     status: 'unlimited',
@@ -173,7 +173,7 @@ export function canUpgradeFromFree(members: RealOrganizationMember[]): boolean {
  * Check if can upgrade slots (always false when billing is disabled)
  * @param members - Unused, kept for backward compatibility with existing API
  */
-export function canUpgradeSlots(members: RealOrganizationMember[]): boolean {
+export function canUpgradeSlots(_members: RealOrganizationMember[]): boolean {
   // Billing is disabled - no upgrades needed
   return false;
 }

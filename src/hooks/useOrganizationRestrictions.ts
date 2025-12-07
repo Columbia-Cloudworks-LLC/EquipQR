@@ -3,7 +3,7 @@ import { useOrganizationMembers } from './useOrganizationMembers';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { getOrganizationRestrictions, getRestrictionMessage } from '@/utils/organizationRestrictions';
 
-export const useOrganizationRestrictions = (_fleetMapEnabled: boolean = false) => {
+export const useOrganizationRestrictions = () => {
   const { currentOrganization } = useOrganization();
   const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
 
