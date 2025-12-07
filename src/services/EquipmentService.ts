@@ -56,7 +56,14 @@ function handleSuccess<T>(data: T): ApiResponse<T> {
 
 /**
  * Equipment Service using static methods pattern
- * All methods require organizationId as first parameter for security
+ * 
+ * This service uses static methods rather than instance methods to avoid the need
+ * for service instantiation. All methods require organizationId as the first parameter
+ * for security and multi-tenancy support.
+ * 
+ * Note: This differs from other services (e.g., WorkOrderService) which extend BaseService
+ * and use instance methods. The static pattern was chosen to simplify the API and make
+ * organizationId explicitly required for all operations.
  */
 export class EquipmentService {
   /**
