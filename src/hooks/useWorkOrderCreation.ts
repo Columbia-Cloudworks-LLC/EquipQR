@@ -40,8 +40,11 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
       let assigneeId = data.assignmentType === 'user' ? data.assignmentId : undefined;
       let status: 'submitted' | 'assigned' = 'submitted';
 
-      // If no explicit assignment and it's a single-user org, auto-assign to creator
-      if (!assigneeId && currentOrganization.memberCount === 1) {
+      // If assignee is explicitly chosen, mark as assigned
+      if (assigneeId) {
+        status = 'assigned';
+      } else if (currentOrganization.memberCount === 1) {
+        // If no explicit assignment and it's a single-user org, auto-assign to creator
         assigneeId = userData.user.id;
         status = 'assigned';
       }
