@@ -59,9 +59,10 @@ CREATE INDEX IF NOT EXISTS idx_quickbooks_credentials_token_expiry
     ON public.quickbooks_credentials(access_token_expires_at);
 
 -- Composite index for finding credentials that need refresh
+-- Note: Cannot use NOW() in WHERE clause (must be IMMUTABLE), so we index all rows
+-- The query will filter by expiration time at runtime
 CREATE INDEX IF NOT EXISTS idx_quickbooks_credentials_refresh_needed
-    ON public.quickbooks_credentials(access_token_expires_at, organization_id)
-    WHERE access_token_expires_at > NOW();
+    ON public.quickbooks_credentials(access_token_expires_at, organization_id);
 
 -- ============================================================================
 -- PART 3: Enable Row Level Security (RLS)
