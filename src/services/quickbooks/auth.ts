@@ -7,6 +7,8 @@
  * @module services/quickbooks/auth
  */
 
+import { supabase } from '@/integrations/supabase/client';
+
 // QuickBooks OAuth endpoints
 const INTUIT_AUTHORIZATION_URL = "https://appcenter.intuit.com/connect/oauth2";
 
@@ -23,37 +25,20 @@ export interface QuickBooksAuthConfig {
   redirectUrl?: string;
   /** Optional custom scopes (defaults to accounting scope) */
   scopes?: string;
-  /** 
-   * User ID for authorization validation in callback.
-   * REQUIRED for authenticated contexts - the callback will validate that this user
-   * is an admin/owner of the organization before storing credentials.
-   * Without userId, the callback cannot verify authorization, creating a security risk.
-   */
-  userId: string;
 }
 
 /**
  * State object encoded in the OAuth state parameter
  * Used to maintain context through the OAuth flow
+ * 
+ * SECURITY: Only contains session_token - actual org/user data is stored server-side
+ * This prevents state tampering attacks.
  */
 export interface OAuthState {
-  organizationId: string;
-  redirectUrl?: string;
-  /** Random nonce for CSRF protection */
-  nonce: string;
+  /** Server-side session token (validated in callback) */
+  sessionToken: string;
   /** Timestamp when state was created */
   timestamp: number;
-  /** User ID for authorization validation (required) */
-  userId: string;
-}
-
-/**
- * Generates a random nonce for CSRF protection
- */
-function generateNonce(): string {
-  const array = new Uint8Array(16);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -66,39 +51,26 @@ function encodeState(state: OAuthState): string {
 /**
  * Generates the QuickBooks OAuth authorization URL
  * 
- * This URL should be used to redirect the user to QuickBooks for authorization.
- * After authorization, the user will be redirected back to the OAuth callback
- * edge function with an authorization code.
+ * This function creates a server-side OAuth session to prevent state tampering.
+ * The session is validated in the callback to ensure the user is authorized.
  * 
- * SECURITY: The userId parameter is REQUIRED. The callback validates that the user
- * is an admin/owner of the organization before storing credentials. Without userId,
- * unauthorized users could potentially connect QuickBooks to organizations they don't belong to.
+ * SECURITY: Uses server-side session storage to prevent state parameter tampering.
+ * The session token in the state is validated against the database in the callback.
  * 
- * @param config - Configuration for the OAuth flow (userId is required)
- * @returns The full authorization URL to redirect the user to
- * @throws Error if userId is not provided or if required environment variables are missing
+ * @param config - Configuration for the OAuth flow
+ * @returns Promise that resolves to the full authorization URL to redirect the user to
+ * @throws Error if user is not authenticated, not authorized, or if required environment variables are missing
  * 
  * @example
  * ```typescript
- * const { user } = useAuth(); // Get current user from auth context
- * const authUrl = generateQuickBooksAuthUrl({
+ * const authUrl = await generateQuickBooksAuthUrl({
  *   organizationId: 'org-uuid',
- *   userId: user.id, // REQUIRED for security
  *   redirectUrl: '/settings/integrations'
  * });
  * window.location.href = authUrl;
  * ```
  */
-export function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): string {
-  // Validate userId is provided for security
-  if (!config.userId) {
-    throw new Error(
-      "userId is required for QuickBooks OAuth. The callback validates that the user " +
-      "is an admin/owner of the organization before storing credentials. " +
-      "Get the current user ID from your auth context (e.g., useAuth hook)."
-    );
-  }
-
+export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): Promise<string> {
   // Get environment variables
   const clientId = import.meta.env.VITE_INTUIT_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -115,16 +87,33 @@ export function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): string 
     );
   }
 
+  // Create server-side OAuth session (validates user is admin/owner of org)
+  const { data: sessionData, error: sessionError } = await supabase
+    .rpc('create_quickbooks_oauth_session', {
+      p_organization_id: config.organizationId,
+      p_redirect_url: config.redirectUrl || null,
+    });
+
+  if (sessionError) {
+    throw new Error(
+      `Failed to create OAuth session: ${sessionError.message}. ` +
+      "Make sure you are authenticated and have admin/owner permissions for this organization."
+    );
+  }
+
+  if (!sessionData || sessionData.length === 0 || !sessionData[0]?.session_token) {
+    throw new Error("Failed to create OAuth session: No session token returned");
+  }
+
+  const sessionToken = sessionData[0].session_token;
+
   // Construct the redirect URI (edge function URL)
   const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
 
-  // Create state object for CSRF protection and context preservation
+  // Create minimal state object - only session token (org/user validated server-side)
   const state: OAuthState = {
-    organizationId: config.organizationId,
-    redirectUrl: config.redirectUrl,
-    nonce: generateNonce(),
+    sessionToken: sessionToken,
     timestamp: Date.now(),
-    userId: config.userId, // Required for authorization validation
   };
 
   // Build the authorization URL
@@ -152,7 +141,7 @@ export function decodeOAuthState(stateParam: string): OAuthState | null {
     const decoded = JSON.parse(atob(stateParam));
     
     // Validate required fields
-    if (!decoded.organizationId || !decoded.nonce || !decoded.timestamp || !decoded.userId) {
+    if (!decoded.sessionToken || !decoded.timestamp) {
       return null;
     }
 

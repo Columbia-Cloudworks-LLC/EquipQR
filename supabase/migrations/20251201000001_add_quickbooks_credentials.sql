@@ -174,3 +174,91 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.quickbooks_credentials TO authent
 
 -- Grant full access to service role (bypasses RLS)
 GRANT ALL ON public.quickbooks_credentials TO service_role;
+
+-- ============================================================================
+-- PART 7: Create OAuth session table for secure state validation
+-- ============================================================================
+
+-- This table stores OAuth sessions server-side to prevent state tampering
+-- When generating OAuth URL, a session is created. The callback validates
+-- the session exists and matches the user/organization before storing credentials.
+CREATE TABLE IF NOT EXISTS public.quickbooks_oauth_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_token TEXT NOT NULL UNIQUE,
+    organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    nonce TEXT NOT NULL,
+    redirect_url TEXT,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    
+    -- Index for fast lookups by session token
+    CONSTRAINT quickbooks_oauth_sessions_token_unique UNIQUE(session_token)
+);
+
+COMMENT ON TABLE public.quickbooks_oauth_sessions IS 
+    'Stores OAuth sessions server-side to prevent state parameter tampering. Sessions expire after 1 hour and are single-use.';
+
+COMMENT ON COLUMN public.quickbooks_oauth_sessions.session_token IS 
+    'Random token included in OAuth state parameter. Used to look up session server-side.';
+
+COMMENT ON COLUMN public.quickbooks_oauth_sessions.used_at IS 
+    'Timestamp when session was consumed. Prevents replay attacks.';
+
+-- Index for session token lookups
+CREATE INDEX IF NOT EXISTS idx_quickbooks_oauth_sessions_token 
+    ON public.quickbooks_oauth_sessions(session_token) 
+    WHERE used_at IS NULL AND expires_at > NOW();
+
+-- Index for cleanup of expired sessions
+CREATE INDEX IF NOT EXISTS idx_quickbooks_oauth_sessions_expires 
+    ON public.quickbooks_oauth_sessions(expires_at);
+
+-- Enable RLS
+ALTER TABLE public.quickbooks_oauth_sessions ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policy: Only the user who created the session can view it
+CREATE POLICY "quickbooks_oauth_sessions_select_policy"
+ON public.quickbooks_oauth_sessions
+FOR SELECT
+USING (user_id = (SELECT auth.uid()));
+
+-- RLS Policy: Users can create sessions for their own user_id
+CREATE POLICY "quickbooks_oauth_sessions_insert_policy"
+ON public.quickbooks_oauth_sessions
+FOR INSERT
+WITH CHECK (
+    user_id = (SELECT auth.uid())
+    AND organization_id IN (
+        SELECT om.organization_id 
+        FROM public.organization_members om
+        WHERE om.user_id = (SELECT auth.uid())
+        AND om.status = 'active'
+    )
+);
+
+-- Service role can access all sessions (for callback validation)
+GRANT ALL ON public.quickbooks_oauth_sessions TO service_role;
+GRANT SELECT, INSERT ON public.quickbooks_oauth_sessions TO authenticated;
+
+-- Function to clean up expired sessions (can be called by cron)
+CREATE OR REPLACE FUNCTION public.cleanup_expired_quickbooks_oauth_sessions()
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  deleted_count INTEGER;
+BEGIN
+  DELETE FROM public.quickbooks_oauth_sessions
+  WHERE expires_at < NOW() - INTERVAL '24 hours';
+  
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RETURN deleted_count;
+END;
+$$;
+
+COMMENT ON FUNCTION public.cleanup_expired_quickbooks_oauth_sessions() IS 
+    'Cleans up expired OAuth sessions older than 24 hours. Can be called periodically.';

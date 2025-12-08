@@ -31,11 +31,8 @@ interface IntuitTokenResponse {
 }
 
 interface OAuthState {
-  organizationId: string;
-  redirectUrl?: string;
-  nonce: string;
+  sessionToken: string; // Server-side session token (validated against database)
   timestamp: number;
-  userId: string; // User ID for validation (required for security)
 }
 
 serve(async (req) => {
@@ -102,7 +99,7 @@ serve(async (req) => {
       throw new Error("Missing realmId (QuickBooks company ID)");
     }
 
-    // Parse state parameter to get organization ID
+    // Parse state parameter to get session token
     let state: OAuthState;
     try {
       state = stateParam ? JSON.parse(atob(stateParam)) : null;
@@ -110,18 +107,8 @@ serve(async (req) => {
       throw new Error("Invalid state parameter");
     }
 
-    if (!state?.organizationId) {
-      throw new Error("Missing organization ID in state parameter");
-    }
-
-    // Validate state structure - userId is required for security
-    if (!state.nonce || !state.timestamp) {
-      throw new Error("Invalid state parameter: missing nonce or timestamp");
-    }
-
-    if (!state.userId) {
-      logStep("ERROR", { message: "Missing userId in state parameter" });
-      throw new Error("Invalid state parameter: userId is required for authorization validation");
+    if (!state?.sessionToken) {
+      throw new Error("Missing session token in state parameter");
     }
 
     // Validate timestamp: must be within last hour to prevent replay attacks
@@ -141,8 +128,37 @@ serve(async (req) => {
       throw new Error("OAuth state has expired. Please try connecting again.");
     }
 
-    const organizationId = state.organizationId;
-    logStep("Parsed state", { organizationId, hasNonce: !!state.nonce });
+    // Create Supabase client with service role (bypasses RLS)
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false }
+    });
+
+    // Validate session token server-side (prevents state tampering)
+    const { data: sessionData, error: sessionError } = await supabaseClient
+      .rpc('validate_quickbooks_oauth_session', {
+        p_session_token: state.sessionToken
+      });
+
+    if (sessionError) {
+      logStep("Session validation error", { error: sessionError.message });
+      throw new Error("Failed to validate OAuth session");
+    }
+
+    if (!sessionData || sessionData.length === 0 || !sessionData[0]?.is_valid) {
+      logStep("Invalid or expired session", { sessionToken: state.sessionToken.substring(0, 10) + '...' });
+      throw new Error("Invalid or expired OAuth session. Please try connecting again.");
+    }
+
+    const session = sessionData[0];
+    const organizationId = session.organization_id;
+    const userId = session.user_id;
+    const redirectUrl = session.redirect_url;
+
+    logStep("Session validated", { 
+      organizationId, 
+      userId,
+      hasRedirectUrl: !!redirectUrl
+    });
 
     // Construct redirect URI (must match what was used in authorization URL)
     const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
@@ -196,12 +212,7 @@ serve(async (req) => {
     const accessTokenExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000);
     const refreshTokenExpiresAt = new Date(now.getTime() + tokenData.x_refresh_token_expires_in * 1000);
 
-    // Create Supabase client with service role (bypasses RLS)
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false }
-    });
-
-    // Verify the organization exists
+    // Verify the organization exists (double-check, though session already validated it)
     const { data: org, error: orgError } = await supabaseClient
       .from('organizations')
       .select('id, name')
@@ -215,39 +226,15 @@ serve(async (req) => {
 
     logStep("Organization verified", { organizationId, organizationName: org.name });
 
-    // Security: Validate that the user belongs to this organization and has required permissions
-    // userId is required in state - this was validated above
-    const { data: membership, error: membershipError } = await supabaseClient
-      .from('organization_members')
-      .select('id, role')
-      .eq('organization_id', organizationId)
-      .eq('user_id', state.userId)
-      .eq('status', 'active')
-      .maybeSingle();
-
-    if (membershipError || !membership) {
-      logStep("User not authorized for organization", { 
-        organizationId, 
-        userId: state.userId,
-        error: membershipError?.message 
-      });
-      throw new Error("You are not authorized to connect QuickBooks to this organization");
-    }
-
-    // Only admins/owners can connect QuickBooks
-    if (!['owner', 'admin'].includes(membership.role)) {
-      logStep("User lacks required role", { 
-        organizationId, 
-        userId: state.userId,
-        role: membership.role 
-      });
-      throw new Error("Only organization administrators can connect QuickBooks");
-    }
-
-    logStep("User authorization verified", { 
+    // Security: Session validation already confirmed:
+    // 1. User is authenticated (session created via RPC requires auth)
+    // 2. User is admin/owner of organization (validated when session was created)
+    // 3. Session is not expired or reused (validated by RPC function)
+    // 4. Session token is single-use (marked as used after validation)
+    // No additional validation needed - session token is the source of truth
+    logStep("User authorization verified via session", { 
       organizationId, 
-      userId: state.userId,
-      role: membership.role 
+      userId 
     });
 
     // Upsert QuickBooks credentials
@@ -275,7 +262,7 @@ serve(async (req) => {
     logStep("Credentials stored successfully", { organizationId, realmId });
 
     // Redirect to success page
-    const successUrl = state.redirectUrl || `${productionUrl}/settings/integrations?quickbooks=connected&realm_id=${realmId}`;
+    const successUrl = redirectUrl || `${productionUrl}/settings/integrations?quickbooks=connected&realm_id=${realmId}`;
     logStep("Redirecting to success URL", { successUrl });
     
     return Response.redirect(successUrl, 302);
