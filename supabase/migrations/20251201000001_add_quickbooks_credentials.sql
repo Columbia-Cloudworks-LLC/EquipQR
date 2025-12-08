@@ -76,9 +76,12 @@ ALTER TABLE public.quickbooks_credentials ENABLE ROW LEVEL SECURITY;
 -- PART 4: Create RLS Policies
 -- ============================================================================
 
--- Policy: SELECT - Only org admins/owners can view QuickBooks credentials
--- Security: Tokens are sensitive and should only be accessible to privileged users
--- Regular members can check connection status via a separate view/function if needed
+-- SECURITY NOTE: The authenticated role has NO grants on this table (see PART 6).
+-- All credential operations must go through Edge Functions using service_role.
+-- These policies provide defense-in-depth in case grants are accidentally added.
+
+-- Policy: SELECT - Service-role only (authenticated users have no SELECT grant)
+-- Defense-in-depth: Even if SELECT is granted, only admins/owners could see credentials
 CREATE POLICY "quickbooks_credentials_select_policy" 
 ON public.quickbooks_credentials
 FOR SELECT
@@ -92,7 +95,8 @@ USING (
     )
 );
 
--- Policy: INSERT - Only org admins/owners can add QuickBooks credentials
+-- Policy: INSERT - Service-role only (authenticated users have no INSERT grant)
+-- Defense-in-depth: Even if INSERT is granted, only admins/owners could add credentials
 CREATE POLICY "quickbooks_credentials_insert_policy"
 ON public.quickbooks_credentials
 FOR INSERT
@@ -106,7 +110,8 @@ WITH CHECK (
     )
 );
 
--- Policy: UPDATE - Only org admins/owners can update QuickBooks credentials
+-- Policy: UPDATE - Service-role only (authenticated users have no UPDATE grant)
+-- Defense-in-depth: Even if UPDATE is granted, only admins/owners could update credentials
 CREATE POLICY "quickbooks_credentials_update_policy"
 ON public.quickbooks_credentials
 FOR UPDATE
@@ -129,7 +134,8 @@ WITH CHECK (
     )
 );
 
--- Policy: DELETE - Only org admins/owners can delete QuickBooks credentials
+-- Policy: DELETE - Service-role only (authenticated users have no DELETE grant)
+-- Defense-in-depth: Even if DELETE is granted, only admins/owners could delete credentials
 CREATE POLICY "quickbooks_credentials_delete_policy"
 ON public.quickbooks_credentials
 FOR DELETE
@@ -171,8 +177,10 @@ CREATE TRIGGER trigger_quickbooks_credentials_updated_at
 -- PART 6: Grant permissions
 -- ============================================================================
 
--- Grant usage to authenticated users (RLS will restrict access)
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.quickbooks_credentials TO authenticated;
+-- SECURITY: Do NOT grant SELECT to authenticated role - tokens are highly sensitive
+-- All credential access must go through Edge Functions using service_role
+-- This prevents any possibility of token exposure via client-side queries
+-- Authenticated users can only INSERT credentials (after OAuth callback redirects them)
 
 -- Grant full access to service role (bypasses RLS)
 GRANT ALL ON public.quickbooks_credentials TO service_role;
