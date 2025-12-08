@@ -136,13 +136,25 @@ serve(async (req) => {
       });
     }
 
+    // Validate Authorization header format
+    if (!authHeader.startsWith("Bearer ")) {
+      logStep("ERROR", { message: "Invalid authorization header format" });
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: "Unauthorized: Invalid authorization header format"
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Create Supabase client with service role (bypasses RLS)
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false }
     });
 
     // Verify the JWT token and get user information
-    const token = authHeader.replace("Bearer ", "");
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError) {
@@ -156,13 +168,9 @@ serve(async (req) => {
       });
     }
 
-    // Check if this is a service role token or an authenticated user
-    // Service role tokens will have specific claims, or we can check the user
-    const user = userData.user;
-    
-    // Log successful authentication (but not for service role to avoid noise)
-    if (user) {
-      logStep("Authenticated", { userId: user.id });
+    // Token is valid - log for debugging
+    if (userData.user) {
+      logStep("Authenticated", { userId: userData.user.id });
     } else {
       logStep("Authenticated with service role");
     }
