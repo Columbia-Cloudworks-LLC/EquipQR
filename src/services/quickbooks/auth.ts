@@ -31,12 +31,14 @@ export interface QuickBooksAuthConfig {
  * State object encoded in the OAuth state parameter
  * Used to maintain context through the OAuth flow
  * 
- * SECURITY: Only contains session_token - actual org/user data is stored server-side
- * This prevents state tampering attacks.
+ * SECURITY: Only contains session_token and nonce - actual org/user data is stored server-side
+ * This prevents state tampering attacks. The nonce provides additional CSRF protection.
  */
 export interface OAuthState {
   /** Server-side session token (validated in callback) */
   sessionToken: string;
+  /** Random nonce for CSRF protection (validated against session) */
+  nonce: string;
   /** Timestamp when state was created */
   timestamp: number;
 }
@@ -106,13 +108,19 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   }
 
   const sessionToken = sessionData[0].session_token;
+  const nonce = sessionData[0].nonce;
+
+  if (!nonce) {
+    throw new Error("Failed to create OAuth session: No nonce returned");
+  }
 
   // Construct the redirect URI (edge function URL)
   const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
 
-  // Create minimal state object - only session token (org/user validated server-side)
+  // Create minimal state object - session token and nonce (org/user validated server-side)
   const state: OAuthState = {
     sessionToken: sessionToken,
+    nonce: nonce,
     timestamp: Date.now(),
   };
 
@@ -141,7 +149,7 @@ export function decodeOAuthState(stateParam: string): OAuthState | null {
     const decoded = JSON.parse(atob(stateParam));
     
     // Validate required fields
-    if (!decoded.sessionToken || !decoded.timestamp) {
+    if (!decoded.sessionToken || !decoded.nonce || !decoded.timestamp) {
       return null;
     }
 

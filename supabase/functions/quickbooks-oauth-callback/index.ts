@@ -8,11 +8,12 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
-  // Avoid logging sensitive data like tokens
+  // Avoid logging sensitive data like tokens and nonces
   const safeDetails = details ? { ...details } : undefined;
   if (safeDetails) {
     delete safeDetails.access_token;
     delete safeDetails.refresh_token;
+    delete safeDetails.nonce;
   }
   const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : '';
   console.log(`[QUICKBOOKS-OAUTH-CALLBACK] ${step}${detailsStr}`);
@@ -32,6 +33,7 @@ interface IntuitTokenResponse {
 
 interface OAuthState {
   sessionToken: string; // Server-side session token (validated against database)
+  nonce: string; // Random nonce for CSRF protection
   timestamp: number;
 }
 
@@ -111,6 +113,10 @@ serve(async (req) => {
       throw new Error("Missing session token in state parameter");
     }
 
+    if (!state?.nonce) {
+      throw new Error("Missing nonce in state parameter");
+    }
+
     // Validate timestamp: must be within last hour to prevent replay attacks
     const nowMs = Date.now();
     const stateTimestamp = Number(state.timestamp);
@@ -153,6 +159,18 @@ serve(async (req) => {
     const organizationId = session.organization_id;
     const userId = session.user_id;
     const redirectUrl = session.redirect_url;
+    const sessionNonce = session.nonce;
+
+    // Validate nonce matches the one stored in the session (CSRF protection)
+    if (!sessionNonce) {
+      logStep("Session validation error", { error: "Session nonce not found" });
+      throw new Error("Invalid OAuth session: missing nonce");
+    }
+
+    if (state.nonce !== sessionNonce) {
+      logStep("Nonce validation failed", { error: "Nonce mismatch" });
+      throw new Error("OAuth nonce mismatch. Possible CSRF attack.");
+    }
 
     logStep("Session validated", { 
       organizationId, 

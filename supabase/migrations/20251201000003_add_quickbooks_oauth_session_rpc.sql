@@ -16,6 +16,7 @@ CREATE OR REPLACE FUNCTION public.create_quickbooks_oauth_session(
 )
 RETURNS TABLE(
   session_token TEXT,
+  nonce TEXT,
   expires_at TIMESTAMPTZ
 )
 LANGUAGE plpgsql
@@ -82,7 +83,7 @@ BEGIN
     v_expires_at
   );
 
-  RETURN QUERY SELECT v_session_token, v_expires_at;
+  RETURN QUERY SELECT v_session_token, v_nonce, v_expires_at;
 END;
 $$;
 
