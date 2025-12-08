@@ -59,17 +59,19 @@ export const QuickBooksIntegration: React.FC<QuickBooksIntegrationProps> = ({
 
     if (error) {
       toast.error(errorDescription || 'Failed to connect QuickBooks');
-      // Clear the error params
-      searchParams.delete('error');
-      searchParams.delete('error_description');
-      setSearchParams(searchParams);
+      // Clear the error params - create new URLSearchParams to ensure React Router detects change
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('error');
+      newParams.delete('error_description');
+      setSearchParams(newParams, { replace: true });
     } else if (success) {
       toast.success('QuickBooks connected successfully!');
       // Refresh connection status
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'connection'] });
-      // Clear the success param
-      searchParams.delete('qb_connected');
-      setSearchParams(searchParams);
+      // Clear the success param - create new URLSearchParams to ensure React Router detects change
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('qb_connected');
+      setSearchParams(newParams, { replace: true });
     }
   }, [searchParams, setSearchParams, queryClient]);
 
