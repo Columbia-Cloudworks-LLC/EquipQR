@@ -249,11 +249,13 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logStep("ERROR", { message: errorMessage, stack: errorStack });
 
+    // Return generic error message to prevent information exposure
     return new Response(JSON.stringify({ 
       success: false,
-      error: errorMessage 
+      error: "An unexpected error occurred while refreshing tokens"
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

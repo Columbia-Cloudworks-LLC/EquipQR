@@ -79,7 +79,14 @@ serve(async (req) => {
     // Handle OAuth errors from Intuit
     if (error) {
       logStep("OAuth error from Intuit", { error, errorDescription });
-      const errorUrl = `${productionUrl}/settings/integrations?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(errorDescription || '')}`;
+      // Sanitize error description - only pass through standard OAuth error codes
+      // Map to user-friendly messages to prevent information exposure
+      const userFriendlyError = error === 'access_denied' 
+        ? 'QuickBooks connection was cancelled'
+        : error === 'invalid_request'
+        ? 'Invalid OAuth request'
+        : 'QuickBooks connection failed';
+      const errorUrl = `${productionUrl}/settings/integrations?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(userFriendlyError)}`;
       return Response.redirect(errorUrl, 302);
     }
 
@@ -205,11 +212,13 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logStep("ERROR", { message: errorMessage, stack: errorStack });
 
     // Get production URL for error redirect
+    // Use generic error message to prevent information exposure
     const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
-    const errorUrl = `${productionUrl}/settings/integrations?error=oauth_failed&error_description=${encodeURIComponent(errorMessage)}`;
+    const errorUrl = `${productionUrl}/settings/integrations?error=oauth_failed&error_description=${encodeURIComponent("Failed to connect QuickBooks. Please try again.")}`;
     
     return Response.redirect(errorUrl, 302);
   }
