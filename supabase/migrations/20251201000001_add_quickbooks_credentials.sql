@@ -177,10 +177,10 @@ CREATE TRIGGER trigger_quickbooks_credentials_updated_at
 -- PART 6: Grant permissions
 -- ============================================================================
 
--- SECURITY: Do NOT grant SELECT to authenticated role - tokens are highly sensitive
--- All credential access must go through Edge Functions using service_role
--- This prevents any possibility of token exposure via client-side queries
--- Authenticated users can only INSERT credentials (after OAuth callback redirects them)
+-- SECURITY: Do NOT grant ANY permissions to authenticated role - tokens are highly sensitive
+-- All credential operations (SELECT, INSERT, UPDATE, DELETE) must go through Edge Functions using service_role
+-- This prevents any possibility of token exposure or manipulation via client-side queries
+-- The OAuth callback Edge Function uses service_role to store credentials after successful OAuth flow
 
 -- Grant full access to service role (bypasses RLS)
 GRANT ALL ON public.quickbooks_credentials TO service_role;
