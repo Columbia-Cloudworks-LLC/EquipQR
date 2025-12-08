@@ -14,6 +14,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { updateOrganization } from '@/services/organizationService';
 import type { OrganizationUpdatePayload } from '@/types/organization';
 import { organizationFormSchema, OrganizationFormData } from './organizationSettingsSchema';
+import { QuickBooksIntegration } from './QuickBooksIntegration';
 
 interface OrganizationSettingsProps {
   organization: SessionOrganization;
@@ -186,7 +187,8 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
           </form>
         </Form>
         
-        {/* Future settings: billing integration, API keys, etc. */}
+        {/* QuickBooks Integration Section */}
+        <QuickBooksIntegration currentUserRole={currentUserRole} />
       </CardContent>
     </Card>
   );
