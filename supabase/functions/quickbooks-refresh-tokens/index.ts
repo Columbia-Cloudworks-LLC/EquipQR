@@ -76,9 +76,6 @@ async function refreshToken(
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       // Sanitize error text - truncate and log full details server-side only
-      const sanitizedError = errorText.length > 100 
-        ? errorText.substring(0, 100) + '...' 
-        : errorText;
       // Log full error server-side for debugging
       console.error(`[QUICKBOOKS-REFRESH] Token refresh failed: ${tokenResponse.status}`, {
         statusText: tokenResponse.statusText,
