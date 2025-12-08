@@ -142,7 +142,8 @@ serve(async (req) => {
     }
 
     // Validate Authorization header format
-    // Note: RFC 7235 specifies 'Bearer' with capital B, but we check case-insensitively for robustness
+    // Note: Bearer tokens are defined in RFC 6750. While the standard uses 'Bearer' with 
+    // capital B, we check case-insensitively for robustness.
     if (!authHeader.toLowerCase().startsWith("bearer ")) {
       logStep("ERROR", { message: "Invalid authorization header format" });
       return createUnauthorizedResponse("Unauthorized: Invalid authorization header format");
@@ -156,9 +157,8 @@ serve(async (req) => {
     // Extract and verify the JWT token
     // Note: Using service role client is intentional here - it's needed to verify
     // service role tokens sent by the cron job, while still validating user tokens
-    // Find the space after 'bearer' and extract everything after it
-    const spaceIndex = authHeader.indexOf(' ');
-    const token = spaceIndex !== -1 ? authHeader.substring(spaceIndex + 1).trim() : '';
+    // Extract token after 'bearer ' prefix (7 characters)
+    const token = authHeader.substring(7).trim();
     if (!token) {
       logStep("ERROR", { message: "Empty token in authorization header" });
       return createUnauthorizedResponse("Unauthorized: Empty token");
