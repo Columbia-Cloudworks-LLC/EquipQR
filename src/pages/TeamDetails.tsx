@@ -12,6 +12,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import TeamMembersList from '@/components/teams/TeamMembersList';
 import TeamMetadataEditor from '@/components/teams/TeamMetadataEditor';
 import AddTeamMemberDialog from '@/components/teams/AddTeamMemberDialog';
+import { QuickBooksCustomerMapping } from '@/components/teams/QuickBooksCustomerMapping';
 
 const TeamDetails = () => {
   const { teamId } = useParams<{ teamId: string }>();
@@ -166,6 +167,9 @@ const TeamDetails = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* QuickBooks Customer Mapping */}
+      <QuickBooksCustomerMapping teamId={team.id} teamName={team.name} />
 
       {/* Team Members */}
       <Card>

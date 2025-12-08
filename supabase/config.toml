@@ -46,3 +46,11 @@ verify_jwt = false
 [functions.quickbooks-refresh-tokens]
 verify_jwt = true
 # Called by cron job to refresh expiring tokens. Requires authentication with service role key.
+
+[functions.quickbooks-search-customers]
+verify_jwt = true
+# Searches QuickBooks customers for team-customer mapping. Requires authenticated admin/owner.
+
+[functions.quickbooks-export-invoice]
+verify_jwt = true
+# Exports work order to QuickBooks as a draft invoice. Requires authenticated admin/owner.

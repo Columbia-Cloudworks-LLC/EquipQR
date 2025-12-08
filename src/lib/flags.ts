@@ -15,12 +15,25 @@
 export const BILLING_DISABLED = import.meta.env.BILLING_DISABLED === 'true' || import.meta.env.BILLING_DISABLED !== 'false';
 
 /**
+ * Controls whether QuickBooks Online integration is enabled.
+ * When disabled, all QuickBooks-related UI and functionality is hidden.
+ * 
+ * Set via environment variable: VITE_ENABLE_QUICKBOOKS
+ * Defaults to false (disabled) unless explicitly set to 'true'.
+ */
+export const QUICKBOOKS_ENABLED = import.meta.env.VITE_ENABLE_QUICKBOOKS === 'true';
+
+/**
  * Feature flag accessor utility
  */
 export const FeatureFlags = {
   billing: {
     disabled: BILLING_DISABLED,
     enabled: !BILLING_DISABLED
+  },
+  quickbooks: {
+    enabled: QUICKBOOKS_ENABLED,
+    disabled: !QUICKBOOKS_ENABLED
   }
 } as const;
 
@@ -38,5 +51,21 @@ export function isBillingEnabled(): boolean {
  */
 export function isBillingDisabled(): boolean {
   return BILLING_DISABLED;
+}
+
+/**
+ * Check if QuickBooks integration is enabled
+ * @returns true if QuickBooks features should be active
+ */
+export function isQuickBooksEnabled(): boolean {
+  return QUICKBOOKS_ENABLED;
+}
+
+/**
+ * Check if QuickBooks integration is disabled
+ * @returns true if QuickBooks is disabled
+ */
+export function isQuickBooksDisabled(): boolean {
+  return !QUICKBOOKS_ENABLED;
 }
 
