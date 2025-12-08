@@ -209,7 +209,7 @@ COMMENT ON COLUMN public.quickbooks_oauth_sessions.used_at IS
 -- Index for session token lookups
 CREATE INDEX IF NOT EXISTS idx_quickbooks_oauth_sessions_token 
     ON public.quickbooks_oauth_sessions(session_token) 
-    WHERE used_at IS NULL AND expires_at > NOW();
+    WHERE used_at IS NULL;
 
 -- Index for cleanup of expired sessions
 CREATE INDEX IF NOT EXISTS idx_quickbooks_oauth_sessions_expires 
