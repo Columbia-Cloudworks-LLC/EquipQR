@@ -39,8 +39,9 @@ verify_jwt = false
 
 # QuickBooks OAuth Integration
 [functions.quickbooks-oauth-callback]
-verify_jwt = true
-# Handles OAuth callback from Intuit. Requires authenticated user to link QuickBooks to their org.
+verify_jwt = false
+# Handles OAuth callback from Intuit. OAuth callbacks don't include JWT tokens.
+# Security is handled via state parameter validation and organization membership checks.
 
 [functions.quickbooks-refresh-tokens]
 verify_jwt = false

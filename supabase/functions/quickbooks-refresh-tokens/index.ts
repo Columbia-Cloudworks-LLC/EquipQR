@@ -161,10 +161,8 @@ serve(async (req) => {
 
     logStep(`Found ${credentials.length} credentials needing refresh`);
 
-    const results: RefreshResult[] = [];
-
-    // Process each credential
-    for (const credential of credentials) {
+    // Process credentials in parallel for better performance
+    const refreshPromises = credentials.map(async (credential): Promise<RefreshResult> => {
       logStep("Refreshing token", { 
         organizationId: credential.organization_id, 
         realmId: credential.realm_id 
@@ -197,23 +195,23 @@ serve(async (req) => {
             realmId: credential.realm_id,
             error: updateError.message 
           });
-          results.push({
+          return {
             organizationId: credential.organization_id,
             realmId: credential.realm_id,
             success: false,
             error: `Database update failed: ${updateError.message}`
-          });
+          };
         } else {
           logStep("Token refreshed successfully", { 
             organizationId: credential.organization_id,
             realmId: credential.realm_id,
             newAccessExpiresAt: newAccessExpiresAt.toISOString()
           });
-          results.push({
+          return {
             organizationId: credential.organization_id,
             realmId: credential.realm_id,
             success: true
-          });
+          };
         }
       } else {
         logStep("Token refresh failed", { 
@@ -221,18 +219,42 @@ serve(async (req) => {
           realmId: credential.realm_id,
           error: refreshResult.error 
         });
-        results.push({
+        return {
           organizationId: credential.organization_id,
           realmId: credential.realm_id,
           success: false,
           error: refreshResult.error
-        });
+        };
       }
-    }
+    });
+
+    // Wait for all refresh operations to complete
+    const results = await Promise.allSettled(refreshPromises);
+    
+    // Extract results, handling both fulfilled and rejected promises
+    const processedResults: RefreshResult[] = results.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      } else {
+        // If the promise itself was rejected (shouldn't happen, but handle gracefully)
+        const credential = credentials[index];
+        logStep("Unexpected error processing credential", {
+          organizationId: credential.organization_id,
+          realmId: credential.realm_id,
+          error: result.reason
+        });
+        return {
+          organizationId: credential.organization_id,
+          realmId: credential.realm_id,
+          success: false,
+          error: result.reason instanceof Error ? result.reason.message : String(result.reason)
+        };
+      }
+    });
 
     // Summarize results
-    const refreshed = results.filter(r => r.success).length;
-    const failed = results.filter(r => !r.success).length;
+    const refreshed = processedResults.filter(r => r.success).length;
+    const failed = processedResults.filter(r => !r.success).length;
 
     logStep("Refresh complete", { refreshed, failed, total: credentials.length });
 
@@ -241,7 +263,7 @@ serve(async (req) => {
       message: `Processed ${credentials.length} credentials`,
       refreshed,
       failed,
-      results
+      results: processedResults
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

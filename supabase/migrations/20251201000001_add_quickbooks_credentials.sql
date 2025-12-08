@@ -74,16 +74,18 @@ ALTER TABLE public.quickbooks_credentials ENABLE ROW LEVEL SECURITY;
 -- PART 4: Create RLS Policies
 -- ============================================================================
 
--- Policy: SELECT - Organization members can view their org's QuickBooks credentials
--- Uses the optimized is_org_member pattern from existing codebase
+-- Policy: SELECT - Only org admins/owners can view QuickBooks credentials
+-- Security: Tokens are sensitive and should only be accessible to privileged users
+-- Regular members can check connection status via a separate view/function if needed
 CREATE POLICY "quickbooks_credentials_select_policy" 
 ON public.quickbooks_credentials
 FOR SELECT
 USING (
-    organization_id IN (
-        SELECT om.organization_id 
-        FROM public.organization_members om
+    EXISTS (
+        SELECT 1 FROM public.organization_members om
         WHERE om.user_id = (SELECT auth.uid())
+        AND om.organization_id = quickbooks_credentials.organization_id
+        AND om.role IN ('owner', 'admin')
         AND om.status = 'active'
     )
 );

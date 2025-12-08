@@ -126,10 +126,10 @@ If pg_cron is not available or you prefer external cron, use one of these option
 1. VERCEL CRON (if using Vercel)
    Add to vercel.json:
    {
-     "crons": [{
-       "path": "/api/cron/quickbooks-refresh",
-       "schedule": "* /10 * * * *"
-     }]
+   "crons": [{
+     "path": "/api/cron/quickbooks-refresh",
+     "schedule": "*/10 * * * *"
+   }]
    }
    
    Create /api/cron/quickbooks-refresh.ts that calls the edge function.
@@ -140,7 +140,7 @@ If pg_cron is not available or you prefer external cron, use one of these option
    name: QuickBooks Token Refresh
    on:
      schedule:
-       - cron: '* /10 * * * *'  # Every 10 minutes
+       - cron: '*/10 * * * *'  # Every 10 minutes
    jobs:
      refresh:
        runs-on: ubuntu-latest

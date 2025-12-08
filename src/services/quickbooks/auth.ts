@@ -23,6 +23,13 @@ export interface QuickBooksAuthConfig {
   redirectUrl?: string;
   /** Optional custom scopes (defaults to accounting scope) */
   scopes?: string;
+  /** 
+   * User ID for authorization validation in callback.
+   * REQUIRED for authenticated contexts - the callback will validate that this user
+   * is an admin/owner of the organization before storing credentials.
+   * Without userId, the callback cannot verify authorization, creating a security risk.
+   */
+  userId: string;
 }
 
 /**
@@ -36,6 +43,8 @@ export interface OAuthState {
   nonce: string;
   /** Timestamp when state was created */
   timestamp: number;
+  /** User ID for authorization validation (required) */
+  userId: string;
 }
 
 /**
@@ -61,19 +70,35 @@ function encodeState(state: OAuthState): string {
  * After authorization, the user will be redirected back to the OAuth callback
  * edge function with an authorization code.
  * 
- * @param config - Configuration for the OAuth flow
+ * SECURITY: The userId parameter is REQUIRED. The callback validates that the user
+ * is an admin/owner of the organization before storing credentials. Without userId,
+ * unauthorized users could potentially connect QuickBooks to organizations they don't belong to.
+ * 
+ * @param config - Configuration for the OAuth flow (userId is required)
  * @returns The full authorization URL to redirect the user to
+ * @throws Error if userId is not provided or if required environment variables are missing
  * 
  * @example
  * ```typescript
+ * const { user } = useAuth(); // Get current user from auth context
  * const authUrl = generateQuickBooksAuthUrl({
  *   organizationId: 'org-uuid',
+ *   userId: user.id, // REQUIRED for security
  *   redirectUrl: '/settings/integrations'
  * });
  * window.location.href = authUrl;
  * ```
  */
 export function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): string {
+  // Validate userId is provided for security
+  if (!config.userId) {
+    throw new Error(
+      "userId is required for QuickBooks OAuth. The callback validates that the user " +
+      "is an admin/owner of the organization before storing credentials. " +
+      "Get the current user ID from your auth context (e.g., useAuth hook)."
+    );
+  }
+
   // Get environment variables
   const clientId = import.meta.env.VITE_INTUIT_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -99,15 +124,17 @@ export function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): string 
     redirectUrl: config.redirectUrl,
     nonce: generateNonce(),
     timestamp: Date.now(),
+    userId: config.userId, // Required for authorization validation
   };
 
   // Build the authorization URL
+  // Note: Intuit automatically returns refresh tokens when accounting scope is requested
+  // No need for access_type parameter (not part of Intuit's OAuth 2.0 spec)
   const params = new URLSearchParams({
     client_id: clientId,
     scope: config.scopes || DEFAULT_SCOPES,
     redirect_uri: redirectUri,
     response_type: "code",
-    access_type: "offline", // Required to get refresh token
     state: encodeState(state),
   });
 
@@ -125,7 +152,7 @@ export function decodeOAuthState(stateParam: string): OAuthState | null {
     const decoded = JSON.parse(atob(stateParam));
     
     // Validate required fields
-    if (!decoded.organizationId || !decoded.nonce || !decoded.timestamp) {
+    if (!decoded.organizationId || !decoded.nonce || !decoded.timestamp || !decoded.userId) {
       return null;
     }
 

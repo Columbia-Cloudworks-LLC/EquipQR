@@ -33,6 +33,9 @@ interface IntuitTokenResponse {
 interface OAuthState {
   organizationId: string;
   redirectUrl?: string;
+  nonce: string;
+  timestamp: number;
+  userId: string; // User ID for validation (required for security)
 }
 
 serve(async (req) => {
@@ -111,8 +114,35 @@ serve(async (req) => {
       throw new Error("Missing organization ID in state parameter");
     }
 
+    // Validate state structure - userId is required for security
+    if (!state.nonce || !state.timestamp) {
+      throw new Error("Invalid state parameter: missing nonce or timestamp");
+    }
+
+    if (!state.userId) {
+      logStep("ERROR", { message: "Missing userId in state parameter" });
+      throw new Error("Invalid state parameter: userId is required for authorization validation");
+    }
+
+    // Validate timestamp: must be within last hour to prevent replay attacks
+    const now = Date.now();
+    const stateTimestamp = Number(state.timestamp);
+    if (isNaN(stateTimestamp)) {
+      throw new Error("Invalid timestamp in state parameter");
+    }
+
+    const oneHourMs = 60 * 60 * 1000;
+    if (stateTimestamp > now || now - stateTimestamp > oneHourMs) {
+      logStep("State timestamp validation failed", { 
+        stateTimestamp, 
+        now, 
+        age: now - stateTimestamp 
+      });
+      throw new Error("OAuth state has expired. Please try connecting again.");
+    }
+
     const organizationId = state.organizationId;
-    logStep("Parsed state", { organizationId });
+    logStep("Parsed state", { organizationId, hasNonce: !!state.nonce });
 
     // Construct redirect URI (must match what was used in authorization URL)
     const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
@@ -179,6 +209,41 @@ serve(async (req) => {
     }
 
     logStep("Organization verified", { organizationId, organizationName: org.name });
+
+    // Security: Validate that the user belongs to this organization and has required permissions
+    // userId is required in state - this was validated above
+    const { data: membership, error: membershipError } = await supabaseClient
+      .from('organization_members')
+      .select('id, role')
+      .eq('organization_id', organizationId)
+      .eq('user_id', state.userId)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (membershipError || !membership) {
+      logStep("User not authorized for organization", { 
+        organizationId, 
+        userId: state.userId,
+        error: membershipError?.message 
+      });
+      throw new Error("You are not authorized to connect QuickBooks to this organization");
+    }
+
+    // Only admins/owners can connect QuickBooks
+    if (!['owner', 'admin'].includes(membership.role)) {
+      logStep("User lacks required role", { 
+        organizationId, 
+        userId: state.userId,
+        role: membership.role 
+      });
+      throw new Error("Only organization administrators can connect QuickBooks");
+    }
+
+    logStep("User authorization verified", { 
+      organizationId, 
+      userId: state.userId,
+      role: membership.role 
+    });
 
     // Upsert QuickBooks credentials
     const { error: upsertError } = await supabaseClient
