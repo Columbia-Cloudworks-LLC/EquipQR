@@ -149,7 +149,7 @@ export function decodeOAuthState(stateParam: string): OAuthState | null {
     const decoded = JSON.parse(atob(stateParam));
     
     // Validate required fields
-    if (!decoded.sessionToken || !decoded.timestamp) {
+    if (!decoded.sessionToken || !decoded.nonce || !decoded.timestamp) {
       return null;
     }
 

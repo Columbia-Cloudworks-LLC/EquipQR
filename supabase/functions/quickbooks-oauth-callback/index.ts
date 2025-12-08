@@ -8,11 +8,12 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
-  // Avoid logging sensitive data like tokens
+  // Avoid logging sensitive data like tokens and nonces
   const safeDetails = details ? { ...details } : undefined;
   if (safeDetails) {
     delete safeDetails.access_token;
     delete safeDetails.refresh_token;
+    delete safeDetails.nonce;
   }
   const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : '';
   console.log(`[QUICKBOOKS-OAUTH-CALLBACK] ${step}${detailsStr}`);
