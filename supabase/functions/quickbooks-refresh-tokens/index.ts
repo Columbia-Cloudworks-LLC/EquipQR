@@ -164,7 +164,7 @@ serve(async (req) => {
       return createUnauthorizedResponse("Unauthorized: Empty token");
     }
     
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    const { error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError) {
       logStep("ERROR", { message: "Authentication error", error: userError.message });
