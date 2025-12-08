@@ -664,14 +664,14 @@ serve(async (req) => {
     }
 
   } catch (error) {
+    // Log detailed error server-side only - never expose to client
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
 
+    // Return generic error message to user to prevent information leakage
     return new Response(JSON.stringify({ 
       success: false, 
-      error: errorMessage.includes("QuickBooks") || errorMessage.includes("customer") 
-        ? errorMessage 
-        : "An error occurred while exporting invoice"
+      error: "An error occurred while exporting invoice. Please try again or contact support."
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
