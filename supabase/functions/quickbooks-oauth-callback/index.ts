@@ -167,10 +167,7 @@ serve(async (req) => {
     }
 
     if (state.nonce !== sessionNonce) {
-      logStep("Nonce validation failed", { 
-        stateNonce: state.nonce.substring(0, 8) + '...', 
-        sessionNonce: sessionNonce.substring(0, 8) + '...' 
-      });
+      logStep("Nonce validation failed", { error: "Nonce mismatch" });
       throw new Error("OAuth nonce mismatch. Possible CSRF attack.");
     }
 
