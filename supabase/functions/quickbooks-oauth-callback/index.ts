@@ -112,18 +112,18 @@ serve(async (req) => {
     }
 
     // Validate timestamp: must be within last hour to prevent replay attacks
-    const now = Date.now();
+    const nowMs = Date.now();
     const stateTimestamp = Number(state.timestamp);
     if (isNaN(stateTimestamp)) {
       throw new Error("Invalid timestamp in state parameter");
     }
 
     const oneHourMs = 60 * 60 * 1000;
-    if (stateTimestamp > now || now - stateTimestamp > oneHourMs) {
+    if (stateTimestamp > nowMs || nowMs - stateTimestamp > oneHourMs) {
       logStep("State timestamp validation failed", { 
         stateTimestamp, 
-        now, 
-        age: now - stateTimestamp 
+        now: nowMs, 
+        age: nowMs - stateTimestamp 
       });
       throw new Error("OAuth state has expired. Please try connecting again.");
     }
