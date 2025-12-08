@@ -39,6 +39,7 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 | `INTUIT_CLIENT_ID` | Your Intuit app's Client ID |
 | `INTUIT_CLIENT_SECRET` | Your Intuit app's Client Secret |
 | `QUICKBOOKS_SANDBOX` | Set to `"true"` for sandbox, `"false"` for production |
+| `ENABLE_QB_PDF_ATTACHMENT` | Set to `"true"` to enable PDF attachments on exported invoices (default: `"false"`) |
 
 ### Setting Up Intuit Developer App
 
@@ -87,6 +88,30 @@ Exported invoices include:
 - **Description**: Work order details, equipment info, and public notes
 - **Private Note**: Work order ID, dates, private notes, and cost breakdown
 - **Customer Memo**: Work order title
+- **PDF Attachment** (optional): When `ENABLE_QB_PDF_ATTACHMENT` is enabled, a PDF containing public work order information is automatically attached to the invoice
+
+#### PDF Attachments
+
+When PDF attachments are enabled (`ENABLE_QB_PDF_ATTACHMENT=true`), the system will:
+
+1. **Generate a PDF** containing:
+   - Work order title, status, and priority
+   - Equipment information (name, model, serial number)
+   - Customer/team name
+   - Work order description
+   - **Public notes only** (private notes are excluded from the PDF)
+   - List of public images (image names and descriptions)
+
+2. **Attach the PDF** to the QuickBooks invoice using the Attachable API
+   - The PDF is set to `IncludeOnSend: true`, so it will be included when the invoice is sent to the customer
+   - For updated invoices, any existing PDF attachments are automatically removed and replaced with the new version
+
+3. **Privacy Protection**:
+   - Only public notes and images are included in the PDF
+   - Private notes and cost details remain in the invoice's `PrivateNote` field only
+   - Images associated with private notes are excluded from the PDF
+
+**Note**: PDF generation and attachment failures are logged but do not prevent the invoice from being created or updated. The invoice export will succeed even if PDF attachment fails.
 
 ## Architecture
 
@@ -140,6 +165,12 @@ Exported invoices include:
 - Ensure the customer still exists in QuickBooks
 - Verify the QuickBooks company has proper permissions
 
+**"PDF attachment failed"**
+- Check that `ENABLE_QB_PDF_ATTACHMENT` is set correctly in Supabase Edge Function secrets
+- Review edge function logs for PDF generation errors
+- Verify that the work order has public notes or images to include in the PDF
+- Note: Invoice export will still succeed even if PDF attachment fails
+
 ### API Rate Limits
 
 QuickBooks API has rate limits. If you encounter throttling:
@@ -161,10 +192,11 @@ npm test -- --grep quickbooks
 3. Set `QUICKBOOKS_SANDBOX=true` in edge function secrets
 4. Use `ngrok` or similar for local OAuth callback testing
 
-### Feature Flag
+### Feature Flags
 
-The integration is controlled by `VITE_ENABLE_QUICKBOOKS`:
+The integration is controlled by feature flags:
 
+**QuickBooks Integration** (`VITE_ENABLE_QUICKBOOKS`):
 ```typescript
 import { isQuickBooksEnabled } from '@/lib/flags';
 
@@ -172,6 +204,19 @@ if (isQuickBooksEnabled()) {
   // Show QuickBooks features
 }
 ```
+
+**PDF Attachments** (`VITE_ENABLE_QB_PDF_ATTACHMENT`):
+```typescript
+import { isQBPDFAttachmentEnabled } from '@/lib/flags';
+
+if (isQBPDFAttachmentEnabled()) {
+  // PDF attachment feature is enabled
+}
+```
+
+**Note**: The PDF attachment feature requires both:
+- Client-side flag: `VITE_ENABLE_QB_PDF_ATTACHMENT=true` (for UI purposes)
+- Server-side flag: `ENABLE_QB_PDF_ATTACHMENT=true` (in Supabase Edge Function secrets)
 
 ## API Reference
 

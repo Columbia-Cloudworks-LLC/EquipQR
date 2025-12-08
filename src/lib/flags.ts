@@ -33,7 +33,11 @@ export const FeatureFlags = {
   },
   quickbooks: {
     enabled: QUICKBOOKS_ENABLED,
-    disabled: !QUICKBOOKS_ENABLED
+    disabled: !QUICKBOOKS_ENABLED,
+    pdfAttachment: {
+      enabled: QB_PDF_ATTACHMENT_ENABLED,
+      disabled: !QB_PDF_ATTACHMENT_ENABLED
+    }
   }
 } as const;
 
@@ -67,5 +71,25 @@ export function isQuickBooksEnabled(): boolean {
  */
 export function isQuickBooksDisabled(): boolean {
   return !QUICKBOOKS_ENABLED;
+}
+
+/**
+ * Controls whether PDF attachments are enabled for QuickBooks invoice exports.
+ * When enabled, a PDF containing public work order details will be attached to exported invoices.
+ * 
+ * Set via environment variable: VITE_ENABLE_QB_PDF_ATTACHMENT
+ * Defaults to false (disabled) unless explicitly set to 'true'.
+ * 
+ * Note: This is a client-side flag for UI purposes. The actual feature is controlled
+ * by the ENABLE_QB_PDF_ATTACHMENT environment variable in the Supabase edge function.
+ */
+export const QB_PDF_ATTACHMENT_ENABLED = import.meta.env.VITE_ENABLE_QB_PDF_ATTACHMENT === 'true';
+
+/**
+ * Check if QuickBooks PDF attachment is enabled
+ * @returns true if PDF attachments should be active
+ */
+export function isQBPDFAttachmentEnabled(): boolean {
+  return QB_PDF_ATTACHMENT_ENABLED;
 }
 

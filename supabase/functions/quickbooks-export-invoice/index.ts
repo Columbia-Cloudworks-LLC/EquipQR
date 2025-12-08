@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +26,9 @@ const INTUIT_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bea
 const QUICKBOOKS_API_BASE = Deno.env.get("QUICKBOOKS_SANDBOX") === "false" 
   ? QUICKBOOKS_API_BASE_PRODUCTION 
   : QUICKBOOKS_API_BASE_SANDBOX;
+
+// Feature flag for PDF attachments
+const ENABLE_PDF_ATTACHMENT = Deno.env.get("ENABLE_QB_PDF_ATTACHMENT") === "true";
 
 interface QuickBooksCredential {
   id: string;
@@ -79,6 +83,15 @@ interface WorkOrderNote {
   content: string;
   is_private: boolean;
   author_name: string | null;
+  created_at: string;
+}
+
+interface WorkOrderImage {
+  id: string;
+  file_name: string;
+  file_url: string;
+  description: string | null;
+  note_id: string | null;
   created_at: string;
 }
 
@@ -289,6 +302,326 @@ async function getServiceItem(
   return { value: "1", name: "Services" };
 }
 
+/**
+ * Generate a PDF for the work order with public information only
+ */
+async function generateWorkOrderPDF(
+  workOrder: WorkOrderData,
+  publicNotes: WorkOrderNote[],
+  publicImages: WorkOrderImage[],
+  supabaseClient: any
+): Promise<Uint8Array> {
+  try {
+    logStep("Generating work order PDF");
+
+    const pdfDoc = await PDFDocument.create();
+    let currentPage = pdfDoc.addPage([612, 792]); // US Letter size
+    const { width, height } = currentPage.getSize();
+    
+    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    
+    let yPosition = height - 50;
+    const margin = 50;
+    const lineHeight = 14;
+    const fontSize = 11;
+    const titleFontSize = 16;
+    const maxWidth = width - (margin * 2);
+
+    // Helper to add text with word wrapping
+    const addText = (text: string, size: number = fontSize, bold: boolean = false, x: number = margin) => {
+      const font = bold ? helveticaBoldFont : helveticaFont;
+      
+      // Check if we need a new page
+      if (yPosition < 50) {
+        currentPage = pdfDoc.addPage([612, 792]);
+        yPosition = height - 50;
+      }
+      
+      let page = currentPage; // Use local reference for current page
+
+      // Split by newlines first
+      const paragraphs = text.split('\n');
+      
+      for (const paragraph of paragraphs) {
+        if (paragraph.trim() === '') {
+          yPosition -= lineHeight;
+          continue;
+        }
+
+        // Simple word wrapping for long lines
+        const words = paragraph.split(' ');
+        let currentLine = '';
+        
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          const textWidth = font.widthOfTextAtSize(testLine, size);
+          
+          if (textWidth > maxWidth && currentLine) {
+            // Check for new page before drawing
+            if (yPosition < 50) {
+              currentPage = pdfDoc.addPage([612, 792]);
+              page = currentPage;
+              yPosition = height - 50;
+            }
+            
+            // Draw current line and start new line
+            page.drawText(currentLine, {
+              x,
+              y: yPosition,
+              size,
+              font,
+            });
+            yPosition -= lineHeight;
+            
+            // Check for new page after drawing
+            if (yPosition < 50) {
+              currentPage = pdfDoc.addPage([612, 792]);
+              page = currentPage;
+              yPosition = height - 50;
+            }
+            
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        
+        // Draw remaining line
+        if (currentLine) {
+          // Check for new page before drawing
+          if (yPosition < 50) {
+            currentPage = pdfDoc.addPage([612, 792]);
+            page = currentPage;
+            yPosition = height - 50;
+          }
+          
+          page.drawText(currentLine, {
+            x,
+            y: yPosition,
+            size,
+            font,
+          });
+          yPosition -= lineHeight;
+          
+          // Check for new page after drawing
+          if (yPosition < 50) {
+            currentPage = pdfDoc.addPage([612, 792]);
+            page = currentPage;
+            yPosition = height - 50;
+          }
+        }
+      }
+    };
+
+    // Title
+    addText('WORK ORDER DETAILS', titleFontSize, true);
+    yPosition -= 5;
+
+    // Work Order Information
+    addText(`Title: ${workOrder.title}`, fontSize, true);
+    addText(`Status: ${workOrder.status}`, fontSize);
+    addText(`Priority: ${workOrder.priority}`, fontSize);
+    
+    if (workOrder.equipment) {
+      addText(`Equipment: ${workOrder.equipment.name}`, fontSize);
+      addText(`Model: ${workOrder.equipment.manufacturer} ${workOrder.equipment.model}`, fontSize);
+      if (workOrder.equipment.serial_number) {
+        addText(`Serial Number: ${workOrder.equipment.serial_number}`, fontSize);
+      }
+    }
+
+    if (workOrder.team) {
+      addText(`Customer: ${workOrder.team.name}`, fontSize);
+    }
+
+    addText(`Created: ${new Date(workOrder.created_date).toLocaleDateString()}`, fontSize);
+    if (workOrder.completed_date) {
+      addText(`Completed: ${new Date(workOrder.completed_date).toLocaleDateString()}`, fontSize);
+    }
+
+    yPosition -= 5;
+
+    // Description
+    if (workOrder.description) {
+      addText('Description:', fontSize, true);
+      addText(workOrder.description, fontSize);
+      yPosition -= 5;
+    }
+
+    // Public Notes
+    if (publicNotes.length > 0) {
+      addText('Notes:', fontSize, true);
+      publicNotes.forEach(note => {
+        const noteDate = new Date(note.created_at).toLocaleDateString();
+        const author = note.author_name || 'Unknown';
+        addText(`- ${note.content} (${author} - ${noteDate})`, fontSize);
+      });
+      yPosition -= 5;
+    }
+
+    // Public Images (just list them, embedding would require image processing)
+    if (publicImages.length > 0) {
+      addText('Images:', fontSize, true);
+      publicImages.forEach(image => {
+        const imageText = image.description 
+          ? `${image.file_name}: ${image.description}`
+          : image.file_name;
+        addText(`- ${imageText}`, fontSize);
+      });
+    }
+
+    // Footer on last page
+    const lastPage = pdfDoc.getPages()[pdfDoc.getPageCount() - 1];
+    lastPage.drawText(`Generated on ${new Date().toLocaleString()}`, {
+      x: margin,
+      y: 30,
+      size: 9,
+      font: helveticaFont,
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    logStep("PDF generated successfully", { size: pdfBytes.length });
+    return pdfBytes;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep("ERROR generating PDF", { error: errorMessage });
+    console.error("PDF generation error:", error);
+    throw new Error(`Failed to generate PDF: ${errorMessage}`);
+  }
+}
+
+/**
+ * Get existing attachments for an invoice
+ */
+async function getInvoiceAttachments(
+  accessToken: string,
+  realmId: string,
+  invoiceId: string
+): Promise<Array<{ Id: string; FileName?: string }>> {
+  try {
+    const queryUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(`SELECT * FROM Attachable WHERE AttachableRef.EntityRef.type = 'Invoice' AND AttachableRef.EntityRef.value = '${invoiceId}'`)}`;
+    
+    const response = await fetch(queryUrl, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Accept": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.QueryResponse?.Attachable) {
+        return data.QueryResponse.Attachable;
+      }
+    }
+    return [];
+  } catch (error) {
+    logStep("Error fetching attachments", { error: error instanceof Error ? error.message : String(error) });
+    return [];
+  }
+}
+
+/**
+ * Delete an attachment
+ */
+async function deleteAttachment(
+  accessToken: string,
+  realmId: string,
+  attachmentId: string,
+  syncToken: string
+): Promise<void> {
+  try {
+    const deleteUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/attachable?operation=delete`;
+    
+    const response = await fetch(deleteUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        Id: attachmentId,
+        SyncToken: syncToken,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to delete attachment: ${errorText}`);
+    }
+  } catch (error) {
+    logStep("Error deleting attachment", { error: error instanceof Error ? error.message : String(error) });
+    throw error;
+  }
+}
+
+/**
+ * Upload PDF as attachment to QuickBooks invoice
+ */
+async function attachPDFToInvoice(
+  accessToken: string,
+  realmId: string,
+  invoiceId: string,
+  pdfBytes: Uint8Array,
+  fileName: string
+): Promise<void> {
+  try {
+    logStep("Uploading PDF attachment", { invoiceId, fileName, size: pdfBytes.length });
+
+    // Convert PDF bytes to base64 (Deno-compatible)
+    // Use Uint8Array to string conversion that works in Deno
+    let binaryString = '';
+    for (let i = 0; i < pdfBytes.length; i++) {
+      binaryString += String.fromCharCode(pdfBytes[i]);
+    }
+    const base64Pdf = btoa(binaryString);
+
+    // Create attachment object - QuickBooks Attachable API format
+    const attachment = {
+      FileName: fileName,
+      ContentType: "application/pdf",
+      FileData: base64Pdf, // Base64 encoded PDF content
+      AttachableRef: [
+        {
+          EntityRef: {
+            type: "Invoice",
+            value: invoiceId,
+          },
+        },
+      ],
+      IncludeOnSend: true,
+    };
+
+    const attachUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/attachable`;
+    const response = await fetch(attachUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(attachment),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Attachment upload failed:", errorText);
+      throw new Error(`Failed to upload PDF attachment: ${errorText}`);
+    }
+
+    const result = await response.json();
+    logStep("PDF attachment uploaded successfully", { attachmentId: result.Attachable?.Id });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep("ERROR uploading PDF attachment", { error: errorMessage });
+    console.error("Attachment upload error:", error);
+    throw new Error(`Failed to attach PDF to invoice: ${errorMessage}`);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -460,6 +793,40 @@ serve(async (req) => {
       .eq('work_order_id', work_order_id)
       .order('created_at', { ascending: true });
 
+    // Load work order images (for PDF generation)
+    // We need note IDs to filter images, so fetch notes with IDs
+    const { data: notesWithIds } = await supabaseClient
+      .from('work_order_notes')
+      .select('id, is_private')
+      .eq('work_order_id', work_order_id);
+
+    const privateNoteIds = new Set(
+      (notesWithIds || [])
+        .filter(note => note.is_private)
+        .map(note => note.id)
+    );
+
+    const { data: allImages } = await supabaseClient
+      .from('work_order_images')
+      .select('id, file_name, file_url, description, note_id, created_at')
+      .eq('work_order_id', work_order_id)
+      .order('created_at', { ascending: true });
+
+    // Filter to only public images (not associated with private notes)
+    const publicImages: WorkOrderImage[] = (allImages || [])
+      .filter(img => {
+        // Include image if it's not associated with a note, or if the note is public
+        return !img.note_id || !privateNoteIds.has(img.note_id);
+      })
+      .map(img => ({
+        id: img.id,
+        file_name: img.file_name,
+        file_url: img.file_url,
+        description: img.description,
+        note_id: img.note_id,
+        created_at: img.created_at,
+      }));
+
     // Get valid access token
     const accessToken = await refreshTokenIfNeeded(
       credentials,
@@ -572,6 +939,80 @@ serve(async (req) => {
         invoiceNumber = updateResult.Invoice.DocNumber;
         isUpdate = true;
 
+        // Handle PDF attachment if enabled
+        if (ENABLE_PDF_ATTACHMENT) {
+          try {
+            // Get public notes only
+            const publicNotes = (notes || []).filter(note => !note.is_private);
+            
+            // Generate PDF
+            const pdfBytes = await generateWorkOrderPDF(
+              workOrder as WorkOrderData,
+              publicNotes,
+              publicImages,
+              supabaseClient
+            );
+
+            // Remove existing PDF attachments for this invoice
+            const existingAttachments = await getInvoiceAttachments(
+              accessToken,
+              credentials.realm_id,
+              invoiceId
+            );
+
+            // Find and remove existing PDF attachments
+            for (const attachment of existingAttachments) {
+              if (attachment.FileName?.endsWith('.pdf') || attachment.FileName?.includes('Work-Order')) {
+                try {
+                  // Get attachment details to get SyncToken
+                  const getAttachUrl = `${QUICKBOOKS_API_BASE}/v3/company/${credentials.realm_id}/attachable/${attachment.Id}`;
+                  const getAttachResponse = await fetch(getAttachUrl, {
+                    method: "GET",
+                    headers: {
+                      "Authorization": `Bearer ${accessToken}`,
+                      "Accept": "application/json",
+                    },
+                  });
+
+                  if (getAttachResponse.ok) {
+                    const attachData = await getAttachResponse.json();
+                    if (attachData.Attachable?.SyncToken) {
+                      await deleteAttachment(
+                        accessToken,
+                        credentials.realm_id,
+                        attachment.Id,
+                        attachData.Attachable.SyncToken
+                      );
+                      logStep("Removed existing PDF attachment", { attachmentId: attachment.Id });
+                    }
+                  }
+                } catch (deleteError) {
+                  logStep("Warning: Could not delete existing attachment", { 
+                    error: deleteError instanceof Error ? deleteError.message : String(deleteError) 
+                  });
+                  // Continue even if deletion fails
+                }
+              }
+            }
+
+            // Upload new PDF attachment
+            const pdfFileName = `Work-Order-${workOrder.title.replace(/[^a-z0-9]/gi, '-')}-${invoiceNumber || 'Draft'}.pdf`;
+            await attachPDFToInvoice(
+              accessToken,
+              credentials.realm_id,
+              invoiceId,
+              pdfBytes,
+              pdfFileName
+            );
+          } catch (pdfError) {
+            // Log error but don't fail the entire export
+            const errorMessage = pdfError instanceof Error ? pdfError.message : String(pdfError);
+            logStep("ERROR: PDF attachment failed (invoice still created)", { error: errorMessage });
+            console.error("PDF attachment error:", pdfError);
+            // Continue - invoice export succeeded even if PDF attachment failed
+          }
+        }
+
       } else {
         // Create new invoice
         logStep("Creating new invoice");
@@ -619,6 +1060,38 @@ serve(async (req) => {
         const createResult = await createResponse.json();
         invoiceId = createResult.Invoice.Id;
         invoiceNumber = createResult.Invoice.DocNumber;
+
+        // Handle PDF attachment if enabled
+        if (ENABLE_PDF_ATTACHMENT) {
+          try {
+            // Get public notes only
+            const publicNotes = (notes || []).filter(note => !note.is_private);
+            
+            // Generate PDF
+            const pdfBytes = await generateWorkOrderPDF(
+              workOrder as WorkOrderData,
+              publicNotes,
+              publicImages,
+              supabaseClient
+            );
+
+            // Upload PDF attachment
+            const pdfFileName = `Work-Order-${workOrder.title.replace(/[^a-z0-9]/gi, '-')}-${invoiceNumber}.pdf`;
+            await attachPDFToInvoice(
+              accessToken,
+              credentials.realm_id,
+              invoiceId,
+              pdfBytes,
+              pdfFileName
+            );
+          } catch (pdfError) {
+            // Log error but don't fail the entire export
+            const errorMessage = pdfError instanceof Error ? pdfError.message : String(pdfError);
+            logStep("ERROR: PDF attachment failed (invoice still created)", { error: errorMessage });
+            console.error("PDF attachment error:", pdfError);
+            // Continue - invoice export succeeded even if PDF attachment failed
+          }
+        }
       }
 
       // Update log entry with success

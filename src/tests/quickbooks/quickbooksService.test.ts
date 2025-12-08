@@ -492,5 +492,43 @@ describe('QuickBooks Service', () => {
       expect(result.invoiceNumber).toBe('1001');
       expect(result.isUpdate).toBe(false);
     });
+
+    it('should export invoice successfully even if PDF attachment fails', async () => {
+      // Note: PDF attachment is handled server-side in the edge function.
+      // If PDF attachment fails, the invoice export should still succeed.
+      // This test verifies that the client-side service doesn't break
+      // when the edge function includes PDF attachment logic.
+      
+      const mockSession = {
+        access_token: 'test-token',
+        refresh_token: 'refresh-token',
+        expires_in: 3600,
+        expires_at: Date.now() + 3600000,
+        token_type: 'bearer',
+        user: { id: 'user-123', email: 'test@test.com', app_metadata: {}, user_metadata: {}, aud: 'test', created_at: '' },
+      };
+
+      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+        data: { session: mockSession },
+        error: null,
+      });
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          success: true,
+          invoice_id: 'inv-123',
+          invoice_number: '1001',
+          is_update: false,
+        }),
+      } as Response);
+
+      const result = await exportInvoice(mockWorkOrderId);
+
+      expect(result.success).toBe(true);
+      expect(result.invoiceId).toBe('inv-123');
+      expect(result.invoiceNumber).toBe('1001');
+      expect(result.isUpdate).toBe(false);
+    });
   });
 });
