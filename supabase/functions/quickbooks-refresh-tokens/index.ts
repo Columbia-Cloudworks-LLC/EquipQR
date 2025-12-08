@@ -18,6 +18,17 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[QUICKBOOKS-REFRESH-TOKENS] ${step}${detailsStr}`);
 };
 
+// Helper function to create unauthorized error responses
+const createUnauthorizedResponse = (message: string) => {
+  return new Response(JSON.stringify({ 
+    success: false,
+    error: message
+  }), {
+    status: 401,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+};
+
 // Intuit OAuth endpoints
 const INTUIT_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
 
@@ -127,25 +138,13 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       logStep("ERROR", { message: "No authorization header provided" });
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: "Unauthorized: No authorization header provided"
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createUnauthorizedResponse("Unauthorized: No authorization header provided");
     }
 
     // Validate Authorization header format
     if (!authHeader.startsWith("Bearer ")) {
       logStep("ERROR", { message: "Invalid authorization header format" });
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: "Unauthorized: Invalid authorization header format"
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createUnauthorizedResponse("Unauthorized: Invalid authorization header format");
     }
 
     // Create Supabase client with service role (bypasses RLS)
@@ -154,26 +153,18 @@ serve(async (req) => {
     });
 
     // Verify the JWT token and get user information
+    // Note: Using service role client is intentional here - it's needed to verify
+    // service role tokens sent by the cron job, while still validating user tokens
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError) {
       logStep("ERROR", { message: "Authentication error", error: userError.message });
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: "Unauthorized: Invalid or expired token"
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createUnauthorizedResponse("Unauthorized: Invalid or expired token");
     }
 
-    // Token is valid - log for debugging
-    if (userData.user) {
-      logStep("Authenticated", { userId: userData.user.id });
-    } else {
-      logStep("Authenticated with service role");
-    }
+    // Token is valid - log authentication success without exposing user identifiers
+    logStep("Request authenticated successfully");
 
     // Calculate the threshold time for tokens that need refresh
     // Refresh tokens that will expire within the next REFRESH_WINDOW_MINUTES
