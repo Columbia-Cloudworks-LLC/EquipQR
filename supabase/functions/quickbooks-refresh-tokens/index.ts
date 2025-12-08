@@ -75,9 +75,19 @@ async function refreshToken(
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
+      // Sanitize error text - truncate and log full details server-side only
+      const sanitizedError = errorText.length > 100 
+        ? errorText.substring(0, 100) + '...' 
+        : errorText;
+      // Log full error server-side for debugging
+      console.error(`[QUICKBOOKS-REFRESH] Token refresh failed: ${tokenResponse.status}`, {
+        statusText: tokenResponse.statusText,
+        errorText: errorText // Full error logged server-side only
+      });
+      // Return generic error message to prevent information exposure
       return { 
         success: false, 
-        error: `Token refresh failed: ${tokenResponse.status} - ${errorText}` 
+        error: `Token refresh failed (status: ${tokenResponse.status})` 
       };
     }
 
@@ -199,7 +209,7 @@ serve(async (req) => {
             organizationId: credential.organization_id,
             realmId: credential.realm_id,
             success: false,
-            error: `Database update failed: ${updateError.message}`
+            error: "Database update failed" // Generic error to prevent information exposure
           };
         } else {
           logStep("Token refreshed successfully", { 
@@ -238,16 +248,17 @@ serve(async (req) => {
       } else {
         // If the promise itself was rejected (shouldn't happen, but handle gracefully)
         const credential = credentials[index];
+        const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason);
         logStep("Unexpected error processing credential", {
           organizationId: credential.organization_id,
           realmId: credential.realm_id,
-          error: result.reason
+          error: errorMessage
         });
         return {
           organizationId: credential.organization_id,
           realmId: credential.realm_id,
           success: false,
-          error: result.reason instanceof Error ? result.reason.message : String(result.reason)
+          error: "An unexpected error occurred while refreshing tokens" // Generic error to prevent information exposure
         };
       }
     });

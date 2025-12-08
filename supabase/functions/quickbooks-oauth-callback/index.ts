@@ -170,11 +170,16 @@ serve(async (req) => {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
+      // Sanitize error text for logging - truncate and remove potential sensitive data
+      const sanitizedError = errorText.length > 200 
+        ? errorText.substring(0, 200) + '...' 
+        : errorText;
       logStep("Token exchange failed", { 
         status: tokenResponse.status, 
         statusText: tokenResponse.statusText,
-        error: errorText 
+        error: sanitizedError 
       });
+      // Don't include errorText in thrown error to prevent information exposure
       throw new Error(`Token exchange failed: ${tokenResponse.status} ${tokenResponse.statusText}`);
     }
 
