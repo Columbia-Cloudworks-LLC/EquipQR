@@ -44,5 +44,5 @@ verify_jwt = false
 # Security is handled via state parameter validation and organization membership checks.
 
 [functions.quickbooks-refresh-tokens]
-verify_jwt = false
-# Called by cron job to refresh expiring tokens. Uses service role key internally.
+verify_jwt = true
+# Called by cron job to refresh expiring tokens. Requires authentication with service role key.

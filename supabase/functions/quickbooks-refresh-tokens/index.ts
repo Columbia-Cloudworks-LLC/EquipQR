@@ -123,10 +123,49 @@ serve(async (req) => {
       throw new Error("Supabase configuration is missing");
     }
 
+    // Validate authorization
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      logStep("ERROR", { message: "No authorization header provided" });
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: "Unauthorized: No authorization header provided"
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Create Supabase client with service role (bypasses RLS)
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false }
     });
+
+    // Verify the JWT token and get user information
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError) {
+      logStep("ERROR", { message: "Authentication error", error: userError.message });
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: "Unauthorized: Invalid or expired token"
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check if this is a service role token or an authenticated user
+    // Service role tokens will have specific claims, or we can check the user
+    const user = userData.user;
+    
+    // Log successful authentication (but not for service role to avoid noise)
+    if (user) {
+      logStep("Authenticated", { userId: user.id });
+    } else {
+      logStep("Authenticated with service role");
+    }
 
     // Calculate the threshold time for tokens that need refresh
     // Refresh tokens that will expire within the next REFRESH_WINDOW_MINUTES
