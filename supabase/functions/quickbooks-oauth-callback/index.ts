@@ -32,6 +32,7 @@ interface IntuitTokenResponse {
 
 interface OAuthState {
   sessionToken: string; // Server-side session token (validated against database)
+  nonce: string; // Random nonce for CSRF protection
   timestamp: number;
 }
 
@@ -111,6 +112,10 @@ serve(async (req) => {
       throw new Error("Missing session token in state parameter");
     }
 
+    if (!state?.nonce) {
+      throw new Error("Missing nonce in state parameter");
+    }
+
     // Validate timestamp: must be within last hour to prevent replay attacks
     const nowMs = Date.now();
     const stateTimestamp = Number(state.timestamp);
@@ -153,6 +158,21 @@ serve(async (req) => {
     const organizationId = session.organization_id;
     const userId = session.user_id;
     const redirectUrl = session.redirect_url;
+    const sessionNonce = session.nonce;
+
+    // Validate nonce matches the one stored in the session (CSRF protection)
+    if (!sessionNonce) {
+      logStep("Session validation error", { error: "Session nonce not found" });
+      throw new Error("Invalid OAuth session: missing nonce");
+    }
+
+    if (state.nonce !== sessionNonce) {
+      logStep("Nonce validation failed", { 
+        stateNonce: state.nonce.substring(0, 8) + '...', 
+        sessionNonce: sessionNonce.substring(0, 8) + '...' 
+      });
+      throw new Error("OAuth nonce mismatch. Possible CSRF attack.");
+    }
 
     logStep("Session validated", { 
       organizationId, 
