@@ -259,8 +259,8 @@ serve(async (req) => {
     // Build the QuickBooks Customer query
     let customerQuery = "SELECT * FROM Customer WHERE Active = true";
     if (query && query.trim()) {
-      // Escape single quotes in the query
-      const escapedQuery = query.replace(/'/g, "\\'");
+      // Escape backslashes and single quotes in the query
+      const escapedQuery = query.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
       customerQuery = `SELECT * FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
     }
     customerQuery += " MAXRESULTS 100";
