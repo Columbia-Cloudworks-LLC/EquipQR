@@ -89,7 +89,7 @@ describe('QuickBooksExportButton Component', () => {
     vi.mocked(isQuickBooksEnabled).mockReturnValue(true);
     vi.mocked(usePermissions).mockReturnValue({
       hasRole: (roles: string[]) => roles.includes('admin'),
-    } as any);
+    } as ReturnType<typeof usePermissions>);
     mockGetConnectionStatus.mockResolvedValue({
       isConnected: true,
     });
@@ -122,7 +122,7 @@ describe('QuickBooksExportButton Component', () => {
     it('should not render for non-admin users', () => {
       vi.mocked(usePermissions).mockReturnValue({
         hasRole: () => false,
-      } as any);
+      } as ReturnType<typeof usePermissions>);
       
       const { container } = renderComponent();
       
@@ -204,16 +204,19 @@ describe('QuickBooksExportButton Component', () => {
       
       renderComponent();
       
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Export to QuickBooks/i })).toBeInTheDocument();
+      // Wait for button to be enabled (queries resolved)
+      const button = await waitFor(() => {
+        const btn = screen.getByRole('button', { name: /Export to QuickBooks/i });
+        expect(btn).not.toBeDisabled();
+        return btn;
       });
       
-      const button = screen.getByRole('button', { name: /Export to QuickBooks/i });
       fireEvent.click(button);
       
+      // Wait for the mutation to be called (it's async)
       await waitFor(() => {
         expect(mockExportInvoice).toHaveBeenCalledWith('wo-123');
-      });
+      }, { timeout: 3000 });
     });
 
     it('should show success toast on successful export', async () => {
@@ -225,16 +228,19 @@ describe('QuickBooksExportButton Component', () => {
       
       renderComponent();
       
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Export to QuickBooks/i })).toBeInTheDocument();
+      // Wait for button to be enabled (queries resolved)
+      const button = await waitFor(() => {
+        const btn = screen.getByRole('button', { name: /Export to QuickBooks/i });
+        expect(btn).not.toBeDisabled();
+        return btn;
       });
       
-      const button = screen.getByRole('button', { name: /Export to QuickBooks/i });
       fireEvent.click(button);
       
+      // Wait for the mutation to complete and toast to be called
       await waitFor(() => {
         expect(toast.success).toHaveBeenCalledWith('Invoice 1001 created in QuickBooks');
-      });
+      }, { timeout: 3000 });
     });
   });
 
@@ -284,16 +290,19 @@ describe('QuickBooksExportButton Component', () => {
       
       renderComponent();
       
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Export to QuickBooks/i })).toBeInTheDocument();
+      // Wait for button to be enabled (queries resolved)
+      const button = await waitFor(() => {
+        const btn = screen.getByRole('button', { name: /Export to QuickBooks/i });
+        expect(btn).not.toBeDisabled();
+        return btn;
       });
       
-      const button = screen.getByRole('button', { name: /Export to QuickBooks/i });
       fireEvent.click(button);
       
+      // Wait for the mutation to complete and toast to be called
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith('QuickBooks API error');
-      });
+      }, { timeout: 3000 });
     });
   });
 });

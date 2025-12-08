@@ -9,7 +9,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { QuickBooksConnectionStatus, QuickBooksCredentials } from './types';
+import type { QuickBooksConnectionStatus } from './types';
 
 /**
  * QuickBooks customer from the API

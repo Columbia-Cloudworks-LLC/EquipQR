@@ -117,7 +117,7 @@ describe('QuickBooksIntegration Component', () => {
 
   describe('Permission Checks', () => {
     it('should not render for member role', () => {
-      const { container } = renderComponent({ currentUserRole: 'member' as any });
+      const { container } = renderComponent({ currentUserRole: 'member' as 'owner' | 'admin' | 'member' });
       
       expect(container).toBeEmptyDOMElement();
     });
@@ -171,7 +171,7 @@ describe('QuickBooksIntegration Component', () => {
       // Mock window.location
       const locationSpy = vi.spyOn(window, 'location', 'get');
       const mockLocation = { href: '' };
-      locationSpy.mockReturnValue(mockLocation as any);
+      locationSpy.mockReturnValue(mockLocation as Location);
       
       mockGetConnectionStatus.mockResolvedValue({
         isConnected: false,
@@ -209,7 +209,11 @@ describe('QuickBooksIntegration Component', () => {
       renderComponent();
       
       await waitFor(() => {
-        expect(screen.getByText(/Connected/i)).toBeInTheDocument();
+        // Use getAllByText since there are multiple "Connected" texts (badge and date)
+        const connectedTexts = screen.getAllByText(/Connected/i);
+        expect(connectedTexts.length).toBeGreaterThan(0);
+        // Check that the badge with "Connected" exists
+        expect(connectedTexts[0]).toBeInTheDocument();
       });
     });
 

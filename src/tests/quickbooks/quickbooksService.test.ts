@@ -167,7 +167,7 @@ describe('QuickBooks Service', () => {
         maybeSingle: vi.fn().mockResolvedValue({ data: mockCredentials, error: null }),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       const result = await getConnectionStatus(mockOrganizationId);
 
@@ -184,7 +184,7 @@ describe('QuickBooks Service', () => {
         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       const result = await getConnectionStatus(mockOrganizationId);
 
@@ -199,7 +199,7 @@ describe('QuickBooks Service', () => {
         eq: vi.fn().mockResolvedValue({ error: null }),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       await expect(disconnectQuickBooks(mockOrganizationId)).resolves.not.toThrow();
       expect(supabase.from).toHaveBeenCalledWith('quickbooks_credentials');
@@ -213,7 +213,7 @@ describe('QuickBooks Service', () => {
         }),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       await expect(disconnectQuickBooks(mockOrganizationId)).rejects.toThrow(
         'Failed to disconnect QuickBooks: Permission denied'
@@ -239,7 +239,7 @@ describe('QuickBooks Service', () => {
         maybeSingle: vi.fn().mockResolvedValue({ data: mockMapping, error: null }),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       const result = await getTeamCustomerMapping(mockOrganizationId, mockTeamId);
 
@@ -253,7 +253,7 @@ describe('QuickBooks Service', () => {
         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       const result = await getTeamCustomerMapping(mockOrganizationId, mockTeamId);
 
@@ -279,7 +279,7 @@ describe('QuickBooks Service', () => {
         single: vi.fn().mockResolvedValue({ data: mockMapping, error: null }),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       const result = await updateTeamCustomerMapping(
         mockOrganizationId,
@@ -303,7 +303,7 @@ describe('QuickBooks Service', () => {
       // Make the second eq call resolve with the result
       mockChain.eq.mockReturnValueOnce(mockChain).mockResolvedValueOnce({ error: null });
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       await expect(clearTeamCustomerMapping(mockOrganizationId, mockTeamId)).resolves.not.toThrow();
     });
@@ -327,7 +327,7 @@ describe('QuickBooks Service', () => {
         order: vi.fn().mockResolvedValue({ data: mockLogs, error: null }),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       const result = await getExportLogs(mockWorkOrderId);
 
@@ -345,7 +345,7 @@ describe('QuickBooks Service', () => {
         }),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       const result = await getExportLogs(mockWorkOrderId);
 
@@ -370,7 +370,7 @@ describe('QuickBooks Service', () => {
         maybeSingle: vi.fn().mockResolvedValue({ data: mockExport, error: null }),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       const result = await getLastSuccessfulExport(mockWorkOrderId);
 
@@ -386,7 +386,7 @@ describe('QuickBooks Service', () => {
         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
       const result = await getLastSuccessfulExport(mockWorkOrderId);
 
@@ -435,7 +435,7 @@ describe('QuickBooks Service', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: vi.fn().mockResolvedValue({ customers: mockCustomers }),
-      } as any);
+      } as Response);
 
       const result = await searchCustomers(mockOrganizationId, 'test');
 
@@ -483,7 +483,7 @@ describe('QuickBooks Service', () => {
           invoice_number: '1001',
           is_update: false,
         }),
-      } as any);
+      } as Response);
 
       const result = await exportInvoice(mockWorkOrderId);
 

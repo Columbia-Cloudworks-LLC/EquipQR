@@ -156,7 +156,7 @@ export function decodeOAuthState(stateParam: string): OAuthState | null {
     // Check if state is not too old (1 hour max)
     const maxAge = 60 * 60 * 1000; // 1 hour in milliseconds
     if (Date.now() - decoded.timestamp > maxAge) {
-      console.warn("OAuth state has expired");
+      console.error("OAuth state has expired");
       return null;
     }
 
