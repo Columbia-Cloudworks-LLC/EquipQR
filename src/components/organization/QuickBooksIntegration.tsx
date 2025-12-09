@@ -17,7 +17,8 @@ import {
   RefreshCw, 
   CheckCircle, 
   AlertTriangle,
-  Clock
+  Clock,
+  Wrench
 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -150,12 +151,18 @@ export const QuickBooksIntegration: React.FC<QuickBooksIntegrationProps> = ({
   // Show configuration warning if not configured
   if (!isConfigured) {
     return (
-      <Card>
+      <Card className="border-construction">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Link2 className="h-5 w-5" />
-            QuickBooks Online Integration
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              QuickBooks Online Integration
+            </CardTitle>
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Wrench className="h-3 w-3" />
+              In Development
+            </Badge>
+          </div>
           <CardDescription>
             Connect your QuickBooks Online account to export invoices
           </CardDescription>
@@ -177,12 +184,18 @@ export const QuickBooksIntegration: React.FC<QuickBooksIntegrationProps> = ({
   const isRefreshTokenExpired = connectionStatus?.isRefreshTokenValid === false;
 
   return (
-    <Card>
+    <Card className="border-construction">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Link2 className="h-5 w-5" />
-          QuickBooks Online Integration
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-5 w-5" />
+            QuickBooks Online Integration
+          </CardTitle>
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <Wrench className="h-3 w-3" />
+            In Development
+          </Badge>
+        </div>
         <CardDescription>
           Connect your QuickBooks Online account to export work orders as invoices
         </CardDescription>
