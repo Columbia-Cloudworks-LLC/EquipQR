@@ -6,5 +6,3 @@
 BEGIN;
 -- Migration already applied - no-op
 COMMIT;
-
-
