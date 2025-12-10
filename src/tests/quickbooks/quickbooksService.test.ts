@@ -153,21 +153,24 @@ describe('QuickBooks Service', () => {
       const now = new Date();
       const futureDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
       
-      const mockCredentials = {
+      const mockStatus = {
+        is_connected: true,
         realm_id: 'realm-123',
+        connected_at: now.toISOString(),
         access_token_expires_at: futureDate.toISOString(),
         refresh_token_expires_at: futureDate.toISOString(),
-        scopes: ['com.intuit.quickbooks.accounting'],
-        created_at: now.toISOString(),
+        is_access_token_valid: true,
+        is_refresh_token_valid: true,
+        scopes: 'com.intuit.quickbooks.accounting',
       };
 
-      const mockChain = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: mockCredentials, error: null }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: [mockStatus],
+        error: null,
+        count: 1,
+        status: 200,
+        statusText: 'OK',
+      });
 
       const result = await getConnectionStatus(mockOrganizationId);
 
@@ -175,16 +178,44 @@ describe('QuickBooks Service', () => {
       expect(result.realmId).toBe('realm-123');
       expect(result.isAccessTokenValid).toBe(true);
       expect(result.isRefreshTokenValid).toBe(true);
+      expect(supabase.rpc).toHaveBeenCalledWith('get_quickbooks_connection_status', {
+        p_organization_id: mockOrganizationId,
+      });
     });
 
     it('should return not connected when no credentials exist', async () => {
-      const mockChain = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      const mockStatus = {
+        is_connected: false,
+        realm_id: null,
+        connected_at: null,
+        access_token_expires_at: null,
+        refresh_token_expires_at: null,
+        is_access_token_valid: false,
+        is_refresh_token_valid: false,
+        scopes: null,
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: [mockStatus],
+        error: null,
+        count: 1,
+        status: 200,
+        statusText: 'OK',
+      });
+
+      const result = await getConnectionStatus(mockOrganizationId);
+
+      expect(result.isConnected).toBe(false);
+    });
+
+    it('should return not connected on RPC error', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Permission denied', code: 'PERM001', details: null, hint: null },
+        count: 0,
+        status: 403,
+        statusText: 'Forbidden',
+      });
 
       const result = await getConnectionStatus(mockOrganizationId);
 
@@ -194,29 +225,56 @@ describe('QuickBooks Service', () => {
 
   describe('disconnectQuickBooks', () => {
     it('should disconnect successfully', async () => {
-      const mockChain = {
-        delete: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ error: null }),
+      const mockResult = {
+        success: true,
+        message: 'QuickBooks disconnected successfully',
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: [mockResult],
+        error: null,
+        count: 1,
+        status: 200,
+        statusText: 'OK',
+      });
 
       await expect(disconnectQuickBooks(mockOrganizationId)).resolves.not.toThrow();
-      expect(supabase.from).toHaveBeenCalledWith('quickbooks_credentials');
+      expect(supabase.rpc).toHaveBeenCalledWith('disconnect_quickbooks', {
+        p_organization_id: mockOrganizationId,
+        p_realm_id: null,
+      });
     });
 
-    it('should throw error on failure', async () => {
-      const mockChain = {
-        delete: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ 
-          error: { message: 'Permission denied', code: 'PERM001', details: null, hint: null } 
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
+    it('should throw error on RPC failure', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Permission denied', code: 'PERM001', details: null, hint: null },
+        count: 0,
+        status: 403,
+        statusText: 'Forbidden',
+      });
 
       await expect(disconnectQuickBooks(mockOrganizationId)).rejects.toThrow(
         'Failed to disconnect QuickBooks: Permission denied'
+      );
+    });
+
+    it('should throw error when disconnect fails', async () => {
+      const mockResult = {
+        success: false,
+        message: 'No QuickBooks connection found to disconnect',
+      };
+
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: [mockResult],
+        error: null,
+        count: 1,
+        status: 200,
+        statusText: 'OK',
+      });
+
+      await expect(disconnectQuickBooks(mockOrganizationId)).rejects.toThrow(
+        'No QuickBooks connection found to disconnect'
       );
     });
   });
