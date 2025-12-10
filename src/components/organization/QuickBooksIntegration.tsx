@@ -52,6 +52,24 @@ export const QuickBooksIntegration: React.FC<QuickBooksIntegrationProps> = ({
   const featureEnabled = isQuickBooksEnabled();
   const isConfigured = isQuickBooksConfigured();
 
+  // Debug logging for visibility conditions
+  useEffect(() => {
+    console.log('[QuickBooks Integration] Visibility Debug:', {
+      'VITE_ENABLE_QUICKBOOKS (raw)': import.meta.env.VITE_ENABLE_QUICKBOOKS,
+      'VITE_ENABLE_QUICKBOOKS (type)': typeof import.meta.env.VITE_ENABLE_QUICKBOOKS,
+      'featureEnabled': featureEnabled,
+      'currentUserRole': currentUserRole,
+      'canManage': canManage,
+      'isConfigured': isConfigured,
+      'willRender': featureEnabled && canManage,
+      'reason': !featureEnabled 
+        ? 'Feature flag disabled' 
+        : !canManage 
+        ? 'User lacks permissions (must be admin/owner)' 
+        : 'Component will render'
+    });
+  }, [featureEnabled, canManage, isConfigured, currentUserRole]);
+
   // Check for OAuth callback results in URL params
   useEffect(() => {
     const error = searchParams.get('error');
