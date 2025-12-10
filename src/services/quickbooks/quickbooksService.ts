@@ -146,8 +146,9 @@ export async function validateOAuthSession(
 /**
  * Gets the QuickBooks connection status for an organization
  * 
- * Note: This uses a direct query that will be filtered by RLS policies.
- * Only admin/owner can view credentials.
+ * Note: This uses a secure RPC function that only returns non-sensitive metadata.
+ * OAuth tokens are never exposed to the client.
+ * Only admin/owner can view connection status.
  * 
  * @param organizationId - The organization ID to check
  * @returns Connection status object
@@ -155,37 +156,39 @@ export async function validateOAuthSession(
 export async function getConnectionStatus(
   organizationId: string
 ): Promise<QuickBooksConnectionStatus> {
-  // Query quickbooks_credentials for this organization
-  // RLS policies will only allow admin/owner to see this data
+  // Call secure RPC function that returns only non-sensitive metadata
+  // The function enforces admin/owner authorization server-side
   const { data, error } = await supabase
-    .from('quickbooks_credentials')
-    .select('realm_id, access_token_expires_at, refresh_token_expires_at, scopes, created_at')
-    .eq('organization_id', organizationId)
-    .maybeSingle();
+    .rpc('get_quickbooks_connection_status', {
+      p_organization_id: organizationId,
+    });
 
   if (error) {
     // If error is permission-related, return not connected
-    console.error('Error fetching QuickBooks credentials:', error);
+    console.error('Error fetching QuickBooks connection status:', error);
     return { isConnected: false };
   }
 
-  if (!data) {
+  if (!data || data.length === 0) {
     return { isConnected: false };
   }
 
-  const now = new Date();
-  const accessTokenExpiresAt = new Date(data.access_token_expires_at);
-  const refreshTokenExpiresAt = new Date(data.refresh_token_expires_at);
+  const result = data[0];
+
+  // If not connected, return early
+  if (!result.is_connected) {
+    return { isConnected: false };
+  }
 
   return {
-    isConnected: true,
-    realmId: data.realm_id,
-    connectedAt: data.created_at,
-    accessTokenExpiresAt: data.access_token_expires_at,
-    refreshTokenExpiresAt: data.refresh_token_expires_at,
-    isAccessTokenValid: accessTokenExpiresAt > now,
-    isRefreshTokenValid: refreshTokenExpiresAt > now,
-    scopes: data.scopes,
+    isConnected: result.is_connected,
+    realmId: result.realm_id,
+    connectedAt: result.connected_at,
+    accessTokenExpiresAt: result.access_token_expires_at,
+    refreshTokenExpiresAt: result.refresh_token_expires_at,
+    isAccessTokenValid: result.is_access_token_valid,
+    isRefreshTokenValid: result.is_refresh_token_valid,
+    scopes: result.scopes,
   };
 }
 
@@ -221,7 +224,8 @@ export async function manualTokenRefresh(): Promise<{
 /**
  * Disconnects QuickBooks from an organization by deleting credentials
  * 
- * Note: This operation requires admin/owner permissions via RLS
+ * Note: This uses a secure RPC function with proper authorization checks.
+ * Only admin/owner can disconnect QuickBooks.
  * 
  * @param organizationId - The organization ID to disconnect
  * @param realmId - Optional specific realm to disconnect (if multiple)
@@ -230,19 +234,24 @@ export async function disconnectQuickBooks(
   organizationId: string,
   realmId?: string
 ): Promise<void> {
-  let query = supabase
-    .from('quickbooks_credentials')
-    .delete()
-    .eq('organization_id', organizationId);
-
-  if (realmId) {
-    query = query.eq('realm_id', realmId);
-  }
-
-  const { error } = await query;
+  // Call secure RPC function that enforces admin/owner authorization
+  const { data, error } = await supabase
+    .rpc('disconnect_quickbooks', {
+      p_organization_id: organizationId,
+      p_realm_id: realmId || null,
+    });
 
   if (error) {
     throw new Error(`Failed to disconnect QuickBooks: ${error.message}`);
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error('Failed to disconnect QuickBooks: No response from server');
+  }
+
+  const result = data[0];
+  if (!result.success) {
+    throw new Error(result.message || 'Failed to disconnect QuickBooks');
   }
 }
 
