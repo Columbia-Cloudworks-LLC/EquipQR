@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign } from 'lucide-react';
 import { useWorkOrderCosts } from '@/hooks/useWorkOrderCosts';
+import { useWorkOrderEquipment } from '@/hooks/useWorkOrderEquipment';
 import InlineEditWorkOrderCosts from './InlineEditWorkOrderCosts';
 
 interface WorkOrderCostsSectionProps {
@@ -17,6 +18,10 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
   canEditCosts
 }) => {
   const { data: costs = [], isLoading } = useWorkOrderCosts(workOrderId);
+  const { data: linkedEquipment = [] } = useWorkOrderEquipment(workOrderId);
+  
+  // Get all equipment IDs for this work order (for filtering compatible inventory items)
+  const equipmentIds = linkedEquipment.map(eq => eq.equipment_id).filter(Boolean) as string[];
 
   if (isLoading) {
     return (
@@ -46,6 +51,7 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
         <InlineEditWorkOrderCosts
           costs={costs}
           workOrderId={workOrderId}
+          equipmentIds={equipmentIds}
           canEdit={canAddCosts || canEditCosts}
         />
       </CardContent>
