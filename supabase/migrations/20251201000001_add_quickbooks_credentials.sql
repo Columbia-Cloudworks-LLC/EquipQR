@@ -235,6 +235,8 @@ FOR SELECT
 USING (user_id = (SELECT auth.uid()));
 
 -- RLS Policy: Users can create sessions for their own user_id
+-- SECURITY: This policy is defense-in-depth. Direct INSERT is revoked for authenticated role.
+-- All session creation must go through create_quickbooks_oauth_session RPC which enforces admin/owner role.
 CREATE POLICY "quickbooks_oauth_sessions_insert_policy"
 ON public.quickbooks_oauth_sessions
 FOR INSERT
@@ -244,13 +246,16 @@ WITH CHECK (
         SELECT om.organization_id 
         FROM public.organization_members om
         WHERE om.user_id = (SELECT auth.uid())
+        AND om.role IN ('owner', 'admin')
         AND om.status = 'active'
     )
 );
 
--- Service role can access all sessions (for callback validation)
+-- Service role can access all sessions (for callback validation and RPC functions)
 GRANT ALL ON public.quickbooks_oauth_sessions TO service_role;
-GRANT SELECT, INSERT ON public.quickbooks_oauth_sessions TO authenticated;
+-- SECURITY: Only grant SELECT for authenticated role. INSERT is revoked to prevent bypassing RPC function.
+-- The create_quickbooks_oauth_session RPC uses SECURITY DEFINER so it can still insert via service_role.
+GRANT SELECT ON public.quickbooks_oauth_sessions TO authenticated;
 
 -- Function to clean up expired sessions (can be called by cron)
 CREATE OR REPLACE FUNCTION public.cleanup_expired_quickbooks_oauth_sessions()

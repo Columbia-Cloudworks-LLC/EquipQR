@@ -19,6 +19,66 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[QUICKBOOKS-OAUTH-CALLBACK] ${step}${detailsStr}`);
 };
 
+/**
+ * Validates a redirect URL against allowed domains
+ * Only allows redirects to the same domain as the production URL or relative paths
+ * @param redirectUrl - The redirect URL to validate
+ * @param productionUrl - The production URL to validate against
+ * @returns true if the redirect URL is valid, false otherwise
+ */
+function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): boolean {
+  if (!redirectUrl) {
+    return true; // null/empty is valid (will use default)
+  }
+
+  try {
+    const url = new URL(redirectUrl, productionUrl);
+    
+    // Allow relative paths (same origin)
+    if (url.pathname && !url.hostname) {
+      return true;
+    }
+    
+    // Allow redirects to the same domain as production
+    const productionDomain = new URL(productionUrl).hostname;
+    if (url.hostname === productionDomain) {
+      return true;
+    }
+    
+    // For development/staging, also allow localhost and vercel preview URLs
+    // This allows the app to work in preview deployments
+    const allowedDomains = [
+      productionDomain,
+      'localhost',
+      '127.0.0.1',
+      '.vercel.app', // Vercel preview deployments
+    ];
+    
+    // Check if hostname matches any allowed domain or is a subdomain of an allowed domain
+    for (const domain of allowedDomains) {
+      if (domain.startsWith('.')) {
+        // Wildcard domain (e.g., .vercel.app)
+        if (url.hostname.endsWith(domain) || url.hostname === domain.slice(1)) {
+          return true;
+        }
+      } else if (url.hostname === domain) {
+        return true;
+      }
+    }
+    
+    logStep("Redirect URL validation failed", { 
+      redirectUrl: redirectUrl.substring(0, 100), // Log first 100 chars only
+      hostname: url.hostname,
+      productionDomain 
+    });
+    return false;
+  } catch {
+    // Invalid URL format
+    logStep("Redirect URL is malformed", { redirectUrl: redirectUrl.substring(0, 100) });
+    return false;
+  }
+}
+
 // Intuit OAuth endpoints
 const INTUIT_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
 
@@ -279,9 +339,21 @@ serve(async (req) => {
 
     logStep("Credentials stored successfully", { organizationId, realmId });
 
-    // Redirect to success page
-    const successUrl = redirectUrl || `${productionUrl}/settings/integrations?quickbooks=connected&realm_id=${realmId}`;
-    logStep("Redirecting to success URL", { successUrl });
+    // Validate redirect URL if provided (prevent open redirect attacks)
+    let successUrl: string;
+    if (redirectUrl) {
+      if (!isValidRedirectUrl(redirectUrl, productionUrl)) {
+        logStep("Invalid redirect URL rejected", { redirectUrl: redirectUrl.substring(0, 100) });
+        // Fall back to default redirect on invalid URL
+        successUrl = `${productionUrl}/settings/integrations?quickbooks=connected&realm_id=${realmId}`;
+      } else {
+        successUrl = redirectUrl;
+      }
+    } else {
+      successUrl = `${productionUrl}/settings/integrations?quickbooks=connected&realm_id=${realmId}`;
+    }
+    
+    logStep("Redirecting to success URL", { successUrl: successUrl.substring(0, 100) });
     
     return Response.redirect(successUrl, 302);
 
