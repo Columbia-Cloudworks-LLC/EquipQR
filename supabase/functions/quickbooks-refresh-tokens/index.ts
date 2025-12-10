@@ -154,9 +154,6 @@ serve(async (req) => {
       auth: { persistSession: false }
     });
 
-    // Extract and verify the JWT token
-    // Note: Using service role client is intentional here - it's needed to verify
-    // service role tokens sent by the cron job, while still validating user tokens
     // Extract token after 'bearer ' prefix (7 characters)
     const token = authHeader.substring(7).trim();
     if (!token) {
@@ -164,15 +161,54 @@ serve(async (req) => {
       return createUnauthorizedResponse("Unauthorized: Empty token");
     }
     
-    const { error: userError } = await supabaseClient.auth.getUser(token);
+    // Verify the token is a service role token
+    // This endpoint must only be accessible by service role (e.g., cron jobs)
+    // to prevent enumeration of all QuickBooks credentials across organizations
+    let isServiceRole = false;
     
-    if (userError) {
-      logStep("ERROR", { message: "Authentication error", error: userError.message });
-      return createUnauthorizedResponse("Unauthorized: Invalid or expired token");
+    // Check 1: Direct service role key match (for direct key usage)
+    if (token === supabaseServiceKey) {
+      isServiceRole = true;
+      logStep("Service role key authenticated (direct match)");
+    } else {
+      // Check 2: JWT token with service_role claim
+      try {
+        // Decode JWT to check the role claim (without verification, just read payload)
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          // Decode the payload (second part of JWT)
+          // Handle base64url encoding (JWT uses base64url, not standard base64)
+          const payload = JSON.parse(
+            atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
+          );
+          
+          // Check if the token has service_role claim
+          if (payload.role === 'service_role') {
+            isServiceRole = true;
+            logStep("Service role JWT token authenticated");
+            
+            // Additionally verify the token is valid by attempting to get user
+            const { error: tokenError } = await supabaseClient.auth.getUser(token);
+            
+            if (tokenError) {
+              logStep("ERROR", { message: "Token validation failed", error: tokenError.message });
+              return createUnauthorizedResponse("Unauthorized: Invalid or expired token");
+            }
+          }
+        }
+      } catch (error) {
+        // If JWT decoding fails, it's not a valid service role token
+        logStep("ERROR", { 
+          message: "Failed to decode token", 
+          error: error instanceof Error ? error.message : String(error) 
+        });
+      }
     }
-
-    // Token is valid - log authentication success without exposing user identifiers
-    logStep("Request authenticated successfully");
+    
+    if (!isServiceRole) {
+      logStep("ERROR", { message: "Token is not a service role token" });
+      return createUnauthorizedResponse("Unauthorized: Service role required");
+    }
 
     // Calculate the threshold time for tokens that need refresh
     // Refresh tokens that will expire within the next REFRESH_WINDOW_MINUTES
