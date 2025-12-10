@@ -246,7 +246,7 @@ export async function disconnectQuickBooks(
   }
 
   if (!data || data.length === 0) {
-    throw new Error('Failed to disconnect QuickBooks: No response from server');
+    throw new Error('Unexpected response format from disconnect operation');
   }
 
   const result = data[0];

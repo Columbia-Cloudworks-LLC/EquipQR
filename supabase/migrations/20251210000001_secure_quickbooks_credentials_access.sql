@@ -78,6 +78,7 @@ BEGIN
   END IF;
 
   -- Query credentials (using SECURITY DEFINER to bypass RLS)
+  -- Use ORDER BY to ensure deterministic results (most recent credentials)
   SELECT 
     qc.realm_id,
     qc.created_at,
@@ -87,6 +88,7 @@ BEGIN
   INTO v_credentials
   FROM public.quickbooks_credentials qc
   WHERE qc.organization_id = p_organization_id
+  ORDER BY qc.created_at DESC
   LIMIT 1;
 
   -- If no credentials found, return not connected
