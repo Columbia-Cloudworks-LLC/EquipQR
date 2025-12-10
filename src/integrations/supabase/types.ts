@@ -1648,6 +1648,199 @@ export type Database = {
         }
         Relationships: []
       }
+      quickbooks_credentials: {
+        Row: {
+          id: string
+          organization_id: string
+          realm_id: string
+          access_token: string
+          refresh_token: string
+          access_token_expires_at: string
+          refresh_token_expires_at: string
+          scopes: string
+          token_type: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          realm_id: string
+          access_token: string
+          refresh_token: string
+          access_token_expires_at: string
+          refresh_token_expires_at: string
+          scopes?: string
+          token_type?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          realm_id?: string
+          access_token?: string
+          refresh_token?: string
+          access_token_expires_at?: string
+          refresh_token_expires_at?: string
+          scopes?: string
+          token_type?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_credentials_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quickbooks_oauth_sessions: {
+        Row: {
+          id: string
+          session_token: string
+          organization_id: string
+          user_id: string
+          nonce: string
+          redirect_url: string | null
+          expires_at: string
+          used_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          session_token: string
+          organization_id: string
+          user_id: string
+          nonce: string
+          redirect_url?: string | null
+          expires_at: string
+          used_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          session_token?: string
+          organization_id?: string
+          user_id?: string
+          nonce?: string
+          redirect_url?: string | null
+          expires_at?: string
+          used_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_oauth_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quickbooks_team_customers: {
+        Row: {
+          id: string
+          organization_id: string
+          team_id: string
+          quickbooks_customer_id: string
+          display_name: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          team_id: string
+          quickbooks_customer_id: string
+          display_name: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          team_id?: string
+          quickbooks_customer_id?: string
+          display_name?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_team_customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quickbooks_team_customers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quickbooks_export_logs: {
+        Row: {
+          id: string
+          organization_id: string
+          work_order_id: string
+          realm_id: string
+          quickbooks_invoice_id: string | null
+          status: string
+          error_message: string | null
+          exported_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          work_order_id: string
+          realm_id: string
+          quickbooks_invoice_id?: string | null
+          status: string
+          error_message?: string | null
+          exported_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          work_order_id?: string
+          realm_id?: string
+          quickbooks_invoice_id?: string | null
+          status?: string
+          error_message?: string | null
+          exported_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_export_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quickbooks_export_logs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_order_costs: {
         Row: {
           created_at: string
@@ -2395,6 +2588,38 @@ export type Database = {
       validate_invitation_for_account_creation: {
         Args: { p_invitation_id: string }
         Returns: Json
+      }
+      create_quickbooks_oauth_session: {
+        Args: {
+          p_organization_id: string
+          p_redirect_url?: string | null
+        }
+        Returns: {
+          session_token: string
+          nonce: string
+          expires_at: string
+        }[]
+      }
+      validate_quickbooks_oauth_session: {
+        Args: { p_session_token: string }
+        Returns: {
+          is_valid: boolean
+          organization_id: string
+          user_id: string
+          redirect_url: string | null
+          nonce: string
+        }[]
+      }
+      refresh_quickbooks_tokens_manual: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          credentials_count: number
+          message: string
+        }[]
+      }
+      cleanup_expired_quickbooks_oauth_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
     }
     Enums: {

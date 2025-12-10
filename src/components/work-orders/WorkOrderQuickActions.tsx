@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Download, UserPlus, RotateCcw, Eye, Trash2, Zap, CheckCircle, Play } from 'lucide-react';
@@ -13,6 +13,7 @@ import { useDeleteWorkOrder } from '@/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/hooks/useWorkOrderImageCount';
 import { useWorkOrderStatusUpdate } from '@/hooks/useWorkOrderStatusUpdate';
 import { WorkOrderLike, ensureWorkOrderData } from '@/utils/workOrderTypeConversion';
+import { QuickBooksExportButton } from './QuickBooksExportButton';
 import type { Database } from '@/integrations/supabase/types';
 
 type WorkOrderStatus = Database['public']['Enums']['work_order_status'];
@@ -252,10 +253,10 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
             Take Action
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-56">
           {actions.map((action) => {
             if (action.separator) {
-              return <div key={action.key} className="border-t my-1" />;
+              return <DropdownMenuSeparator key={action.key} />;
             }
             if (!action.show) return null;
             
@@ -271,6 +272,14 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
               </DropdownMenuItem>
             );
           })}
+          
+          {/* QuickBooks Export - Rendered separately due to complex state */}
+          <DropdownMenuSeparator />
+          <QuickBooksExportButton
+            workOrderId={workOrder.id}
+            teamId={workOrder.team_id || null}
+            asMenuItem
+          />
         </DropdownMenuContent>
       </DropdownMenu>
 

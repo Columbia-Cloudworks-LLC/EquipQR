@@ -6,6 +6,7 @@ import {
   WorkOrderNote, 
   WorkOrderImage 
 } from '@/services/WorkOrderService';
+import { workOrderKeys } from '@/hooks/useWorkOrders';
 
 // Re-export types from WorkOrderService for backward compatibility
 export type { WorkOrderNote, WorkOrderImage };
@@ -252,21 +253,32 @@ export const useUpdateWorkOrderStatus = () => {
       return response.data;
     },
     onSuccess: (data, variables) => {
-      // Invalidate all relevant queries for immediate updates with standardized keys
+      // Invalidate the specific work order detail query (used by details page)
+      queryClient.invalidateQueries({ 
+        queryKey: workOrderKeys.detail(variables.organizationId, variables.workOrderId) 
+      });
+      
+      // Invalidate all work order list queries for this organization
+      queryClient.invalidateQueries({ 
+        queryKey: workOrderKeys.lists() 
+      });
+      
+      // Invalidate all work order queries for this organization (catch-all)
+      queryClient.invalidateQueries({ 
+        queryKey: workOrderKeys.all 
+      });
+      
+      // Also invalidate legacy query keys for backward compatibility
       queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', variables.organizationId] });
       queryClient.invalidateQueries({ queryKey: ['workOrders', variables.organizationId] });
       queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', variables.organizationId] });
       queryClient.invalidateQueries({ queryKey: ['workOrder', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['work-orders', variables.organizationId, variables.workOrderId] });
+      
+      // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['notifications', variables.organizationId] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', variables.organizationId] });
-      
-      // Specifically invalidate the work order details queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['workOrder', variables.organizationId, variables.workOrderId] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['workOrder', 'enhanced', variables.organizationId, variables.workOrderId] 
-      });
       
       toast.success('Work order status updated successfully');
     },

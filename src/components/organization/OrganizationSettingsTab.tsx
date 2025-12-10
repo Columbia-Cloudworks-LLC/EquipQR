@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { Settings, Palette } from 'lucide-react';
+import { QuickBooksIntegration } from './QuickBooksIntegration';
 
 const organizationFormSchema = z.object({
   name: z.string().min(1, 'Organization name is required').max(100, 'Name too long'),
@@ -198,6 +199,9 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* QuickBooks Integration Section */}
+      <QuickBooksIntegration currentUserRole={currentUserRole} />
     </div>
   );
 };

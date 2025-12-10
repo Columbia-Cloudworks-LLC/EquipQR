@@ -50,6 +50,10 @@ vi.mock('@/components/teams/TeamMetadataEditor', () => ({
 vi.mock('@/components/teams/AddTeamMemberDialog', () => ({
   default: ({ open }: { open: boolean }) => <div data-testid="add-member-dialog">{open ? 'Open' : 'Closed'}</div>,
 }));
+vi.mock('@/components/teams/QuickBooksCustomerMapping', () => ({
+  QuickBooksCustomerMapping: () => null,
+  default: () => null,
+}));
 
 describe('TeamDetails permissions gating', () => {
   beforeEach(() => {
