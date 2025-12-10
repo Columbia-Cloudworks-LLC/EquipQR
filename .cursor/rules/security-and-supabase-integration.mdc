@@ -1,10 +1,32 @@
 ---
+description: Security, RLS, and Supabase integration rules.
+globs: src/**/*.{ts,tsx}, supabase/**/*.sql
 alwaysApply: true
 ---
-- **Auth**: Use `AuthContext` for session/JWT. Auto-refresh tokens. Protect routes with guards.
-- **RBAC**: Check roles via `OrganizationContext`/`usePermissions` hook. UI: Conditionally render actions (e.g., `if (canEdit) <EditButton />`).
-- **RLS**: Never bypass in code; rely on Supabase policies (see `database-schema.md`). Queries: Always `.eq('organization_id', orgId)`.
-- **Validation**: Zod schemas for all inputs/APIs. Sanitize uploads (Supabase Storage).
-- **CSP**: From `vite.config.ts` – respect headers; avoid unsafe-eval in prod.
-- **Multi-Tenancy**: Isolate data by `organization_id`. For realtime: Filter subscriptions (e.g., `filter: 'organization_id=eq.${orgId}'`).
-- **Edge Functions**: For complex logic (e.g., `supabase/functions/`); validate JWT and permissions.
+# Security & Supabase
+
+## Row Level Security (RLS)
+
+- **CRITICAL**: Never bypass RLS in the client or services.
+- **Verification**: Every table query must implicitly rely on RLS policies.
+- **Policy Pattern**: `organization_id` must match the user's active organization session.
+
+## Data Access
+
+- **Filter**: All queries MUST explicitly filter by `organization_id` as a failsafe, even with RLS enabled.
+
+  ```typescript
+  .eq('organization_id', orgId)
+  ```
+
+- **Auth**: Use useAuth() to get the current user session. Never rely on local storage directly for user details.
+
+## Permissions (RBAC)
+
+- Use usePermissions() or OrganizationContext to check roles before rendering sensitive actions (Edit/Delete buttons).
+- **Edge Functions**: Validate JWT and User Permissions at the start of every function execution.
+
+## Mutations
+
+- Use **Optimistic Updates** in TanStack Query mutations for immediate UI feedback.
+- On error: Rollback the optimistic update and show a toast.

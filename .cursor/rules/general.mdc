@@ -1,7 +1,30 @@
 ---
+description: General behavioral rules and strategies for using MCP tools effectively.
+globs: *
 alwaysApply: true
 ---
-- When suggesting edits: Use the format with `// ... existing code ...` for unchanged sections. Prioritize non-breaking changes.
-- Explore codebase: Use semantic search for patterns (e.g., "equipment query pattern"). Reference docs for context.
-- If unclear: Ask about specific features (e.g., PM templates workflow).
-- Updates: If rules conflict with new changes (e.g., post-Supabase fixes [[memory:8281322]]), suggest revisions.
+# General Guidelines & Tool Usage
+
+## Tool Usage Strategy
+
+You must proactively use available tools to gather context before generating code.
+
+- **Search First**: Before creating any new component, hook, or utility, run a semantic search (e.g., `grep` or `codebase_search`) to ensure it doesn't already exist.
+- **Context Gathering**:
+  - If the user asks about a database change, read `docs/technical/architecture.md` and `supabase/migrations`.
+  - If the user asks about UI, read `docs/technical/standards.md` to find the correct design tokens and components.
+  - If the task involves complex logic, check `docs/technical/` for relevant feature documentation.
+
+## Development Workflow
+
+1. **Analyze**: Understand the user intent and identify the files to touch.
+2. **Explore**: Search for existing patterns in the codebase to maintain consistency.
+3. **Plan**: If the change is large, propose a plan referencing specific files.
+4. **Implement**: Write code that strictly follows `coding-standards.mdc`.
+5. **Verify**: Ensure new code works with existing types and linting rules.
+
+## Output Format
+
+- When suggesting edits, use the `// ... existing code ...` pattern for unchanged sections to keep responses concise.
+- Prioritize non-breaking changes.
+- If a rule conflicts with a new requirement, explicitly ask for clarification.
