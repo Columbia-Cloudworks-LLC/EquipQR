@@ -36,3 +36,21 @@ verify_jwt = false
 
 [functions.part-detail]
 verify_jwt = false
+
+# QuickBooks OAuth Integration
+[functions.quickbooks-oauth-callback]
+verify_jwt = false
+# Handles OAuth callback from Intuit. OAuth callbacks don't include JWT tokens.
+# Security is handled via state parameter validation and organization membership checks.
+
+[functions.quickbooks-refresh-tokens]
+verify_jwt = true
+# Called by cron job to refresh expiring tokens. Requires authentication with service role key.
+
+[functions.quickbooks-search-customers]
+verify_jwt = true
+# Searches QuickBooks customers for team-customer mapping. Requires authenticated admin/owner.
+
+[functions.quickbooks-export-invoice]
+verify_jwt = true
+# Exports work order to QuickBooks as a draft invoice. Requires authenticated admin/owner.

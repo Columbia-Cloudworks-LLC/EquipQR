@@ -181,3 +181,60 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Construction border pattern for "In Development" features */
+  .border-construction {
+    position: relative;
+    border: 2px solid transparent;
+    background: transparent !important;
+  }
+
+  .border-construction::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: var(--radius);
+    background: 
+      repeating-linear-gradient(
+        45deg,
+        #000 0px,
+        #000 8px,
+        #FFEB3B 8px,
+        #FFEB3B 16px
+      );
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .border-construction::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: calc(var(--radius) - 2px);
+    background: hsl(var(--card));
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Ensure card content is above the pseudo-elements */
+  .border-construction > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Dark mode variant - lighter colors for better visibility */
+  .dark .border-construction::before {
+    background: 
+      repeating-linear-gradient(
+        45deg,
+        #FFEB3B 0px,
+        #FFEB3B 8px,
+        #FFA000 8px,
+        #FFA000 16px
+      );
+  }
+}

@@ -372,7 +372,10 @@ export class WorkOrderService extends BaseService {
    */
   async updateStatus(id: string, status: WorkOrder['status']): Promise<ApiResponse<WorkOrder>> {
     try {
-      const updateData: Partial<WorkOrderRow> = { status };
+      const updateData: Partial<WorkOrderRow> = { 
+        status,
+        updated_at: new Date().toISOString()
+      };
 
       // Set completed_date if transitioning to completed
       if (status === 'completed') {
@@ -382,6 +385,11 @@ export class WorkOrderService extends BaseService {
       // Set acceptance_date if transitioning to accepted
       if (status === 'accepted') {
         updateData.acceptance_date = new Date().toISOString();
+      }
+
+      // Clear completed_date when reopening
+      if (status === 'submitted' || status === 'accepted' || status === 'assigned' || status === 'in_progress') {
+        updateData.completed_date = null;
       }
 
       const { error } = await supabase
@@ -395,7 +403,7 @@ export class WorkOrderService extends BaseService {
         return this.handleError(error);
       }
 
-      // Fetch the updated work order with joins
+      // Fetch the updated work order with joins to ensure we have all related data
       return this.getById(id);
     } catch (error) {
       return this.handleError(error);
