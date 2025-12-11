@@ -18,15 +18,15 @@ export const inventoryItemFormSchema = z.object({
     .nullable(),
   quantity_on_hand: z.number()
     .int('Quantity must be an integer')
-    .default(0),
+    .min(0, 'Quantity cannot be negative'),
   low_stock_threshold: z.number()
     .int('Low stock threshold must be an integer')
     .min(1, 'Low stock threshold must be at least 1')
     .default(5),
-  image_url: z.string()
-    .url('Must be a valid URL')
-    .optional()
-    .nullable(),
+  image_url: z.preprocess(
+    (val) => val === '' || val === undefined ? null : val,
+    z.string().url('Must be a valid URL').nullable().optional()
+  ),
   location: z.string()
     .max(255, 'Location must be less than 255 characters')
     .optional()
