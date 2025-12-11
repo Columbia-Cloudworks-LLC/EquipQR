@@ -1,6 +1,7 @@
 -- =====================================================
 -- EquipQR Seed Data (Production-Based)
--- Based on actual production data patterns from ymxkzronkhwxzcdcbnwq
+-- Based on actual production data patterns (project: ymxkzronkhwxzcdcbnwq)
+-- Note: This seed file can be used with any Supabase project
 -- Avoids auth dependencies for reliable testing
 -- =====================================================
 
