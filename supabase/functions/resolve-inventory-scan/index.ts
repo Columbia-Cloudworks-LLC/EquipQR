@@ -129,9 +129,19 @@ Deno.serve(async (req) => {
         // Use external_id match if found, otherwise use sku match (OR semantics)
         currentOrgMatch = externalIdMatch || skuMatch;
         
-        // Only propagate error if both queries failed and no results
-        if (!currentOrgMatch) {
+        // Improved error handling: only propagate error if both queries failed
+        if (!externalIdMatch && !skuMatch) {
+          // Both queries failed or returned no results, propagate errors
           currentOrgError = externalIdErr || skuErr;
+        } else {
+          // At least one query succeeded, log any errors but do not propagate
+          if (externalIdErr) {
+            logStep("external_id query error (ignored due to sku success)", { error: externalIdErr.message || externalIdErr });
+          }
+          if (skuErr) {
+            logStep("sku query error (ignored due to external_id success)", { error: skuErr.message || skuErr });
+          }
+          currentOrgError = null;
         }
       }
 
