@@ -1,3 +1,7 @@
+# Project ID for local Supabase CLI development
+# This is the default production project ID. Developers can override this by linking
+# to a different project using: npx supabase link --project-ref <project-ref>
+# For preview/staging environments, link to the preview branch project.
 project_id = "ymxkzronkhwxzcdcbnwq"
 
 [api]

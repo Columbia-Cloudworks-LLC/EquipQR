@@ -51,7 +51,13 @@ echo "  npx supabase functions deploy manage-billing-exemptions"
 echo ""
 echo "Option B - Using Supabase Dashboard:"
 echo ""
-echo "  1. Go to https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq/settings/functions"
+# Extract project ref from SUPABASE_URL or use default
+PROJECT_REF="${SUPABASE_PROJECT_REF:-ymxkzronkhwxzcdcbnwq}"
+if [ -n "$VITE_SUPABASE_URL" ]; then
+    # Extract project ref from URL (e.g., https://xxxxx.supabase.co -> xxxxx)
+    PROJECT_REF=$(echo "$VITE_SUPABASE_URL" | sed -n 's|https://\([^.]*\)\.supabase\.co.*|\1|p')
+fi
+echo "  1. Go to https://supabase.com/dashboard/project/${PROJECT_REF}/settings/functions"
 echo "  2. Scroll to 'Secrets' section"
 echo "  3. Click 'Add new secret'"
 echo "  4. Name: SUPER_ADMIN_ORG_ID"
