@@ -129,18 +129,21 @@ Deno.serve(async (req) => {
         // Use external_id match if found, otherwise use sku match (OR semantics)
         currentOrgMatch = externalIdMatch || skuMatch;
         
-        // Improved error handling: only propagate error if both queries failed
-        if (!externalIdMatch && !skuMatch) {
-          // Both queries failed or returned no results, propagate errors
-          currentOrgError = externalIdErr || skuErr;
-        } else {
-          // At least one query succeeded, log any errors but do not propagate
+        // Improved error handling: only propagate error if both queries actually failed
+        if (externalIdErr && skuErr) {
+          // Both queries failed, propagate errors
+          currentOrgError = externalIdErr;
+        } else if (externalIdErr || skuErr) {
+          // One query failed, log the error but don't propagate since we may have results
           if (externalIdErr) {
-            logStep("external_id query error (ignored due to sku success)", { error: externalIdErr.message || externalIdErr });
+            logStep("external_id query error (ignored)", { error: externalIdErr.message || externalIdErr });
           }
           if (skuErr) {
-            logStep("sku query error (ignored due to external_id success)", { error: skuErr.message || skuErr });
+            logStep("sku query error (ignored)", { error: skuErr.message || skuErr });
           }
+          currentOrgError = null;
+        } else {
+          // Both queries succeeded
           currentOrgError = null;
         }
       }
@@ -225,18 +228,21 @@ Deno.serve(async (req) => {
           }
           otherOrgsMatches = Array.from(combinedMatches.values());
           
-          // Improved error handling: only propagate error if both queries failed
-          if ((!externalIdMatches || externalIdMatches.length === 0) && (!skuMatches || skuMatches.length === 0)) {
-            // Both queries failed or returned no results, propagate errors
-            otherOrgsError = externalIdErr || skuErr;
-          } else {
-            // At least one query succeeded, log any errors but do not propagate
+          // Improved error handling: only propagate error if both queries actually failed
+          if (externalIdErr && skuErr) {
+            // Both queries failed, propagate errors
+            otherOrgsError = externalIdErr;
+          } else if (externalIdErr || skuErr) {
+            // One query failed, log the error but don't propagate since we may have results
             if (externalIdErr) {
-              logStep("external_id query error (ignored due to sku success)", { error: externalIdErr.message || externalIdErr });
+              logStep("external_id query error (ignored)", { error: externalIdErr.message || externalIdErr });
             }
             if (skuErr) {
-              logStep("sku query error (ignored due to external_id success)", { error: skuErr.message || skuErr });
+              logStep("sku query error (ignored)", { error: skuErr.message || skuErr });
             }
+            otherOrgsError = null;
+          } else {
+            // Both queries succeeded
             otherOrgsError = null;
           }
         }
