@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS public.inventory_items (
   -- Constraints
   CONSTRAINT inventory_items_sku_org_unique UNIQUE (organization_id, sku) WHERE sku IS NOT NULL,
   CONSTRAINT inventory_items_external_id_org_unique UNIQUE (organization_id, external_id) WHERE external_id IS NOT NULL,
-  CONSTRAINT inventory_items_low_stock_threshold_check CHECK (low_stock_threshold >= 0)
+  CONSTRAINT inventory_items_low_stock_threshold_check CHECK (low_stock_threshold >= 1)
 );
 
 -- Indexes for inventory_items
