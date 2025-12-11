@@ -194,11 +194,6 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                     className="mt-1"
                   />
-                  {quantity > selectedItem.quantity_on_hand && (
-                    <p className="text-sm text-destructive mt-1">
-                      Warning: Quantity exceeds available stock
-                    </p>
-                  )}
                 </div>
                 {selectedItem.default_unit_cost && (
                   <div>
