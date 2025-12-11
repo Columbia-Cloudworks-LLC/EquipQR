@@ -213,6 +213,11 @@ BEGIN
     RAISE EXCEPTION 'User must be authenticated';
   END IF;
   
+  -- Validate that delta is non-zero (zero adjustments are not meaningful)
+  IF p_delta = 0 THEN
+    RAISE EXCEPTION 'Inventory adjustment delta cannot be zero';
+  END IF;
+  
   -- Lock the inventory item row for update
   SELECT quantity_on_hand, organization_id
   INTO v_current_quantity, v_organization_id

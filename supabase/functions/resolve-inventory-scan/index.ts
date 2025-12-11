@@ -98,44 +98,42 @@ Deno.serve(async (req) => {
     if (current_organization_id) {
       logStep("Checking current organization", { orgId: current_organization_id });
 
-      let currentOrgQuery = supabaseClient
-        .from('inventory_items')
-        .select('id, name, organization_id')
-        .eq('organization_id', current_organization_id);
+      let currentOrgMatch = null;
+      let currentOrgError = null;
 
       if (isUUID) {
-        currentOrgQuery = currentOrgQuery.eq('id', scanned_value);
+        const result = await supabaseClient
+          .from('inventory_items')
+          .select('id, name, organization_id')
+          .eq('organization_id', current_organization_id)
+          .eq('id', scanned_value)
+          .maybeSingle();
+        currentOrgMatch = result.data;
+        currentOrgError = result.error;
       } else {
-        // Search by external_id or sku - use separate queries to avoid SQL injection
-        // First try external_id
-        const { data: externalIdMatch, error: externalIdError } = await supabaseClient
+        // Search by external_id or sku - query both separately to avoid SQL injection
+        const { data: externalIdMatch, error: externalIdErr } = await supabaseClient
           .from('inventory_items')
           .select('id, name, organization_id')
           .eq('organization_id', current_organization_id)
           .eq('external_id', scanned_value)
           .maybeSingle();
 
-        if (!externalIdError && externalIdMatch) {
-          logStep("Found in current organization by external_id", { itemId: externalIdMatch.id });
-          return new Response(
-            JSON.stringify({
-              type: 'inventory',
-              id: externalIdMatch.id,
-              name: externalIdMatch.name,
-              organization_id: externalIdMatch.organization_id
-            }),
-            {
-              status: 200,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-          );
+        const { data: skuMatch, error: skuErr } = await supabaseClient
+          .from('inventory_items')
+          .select('id, name, organization_id')
+          .eq('organization_id', current_organization_id)
+          .eq('sku', scanned_value)
+          .maybeSingle();
+
+        // Use external_id match if found, otherwise use sku match (OR semantics)
+        currentOrgMatch = externalIdMatch || skuMatch;
+        
+        // Only propagate error if both queries failed and no results
+        if (!currentOrgMatch) {
+          currentOrgError = externalIdErr || skuErr;
         }
-
-        // Then try sku
-        currentOrgQuery = currentOrgQuery.eq('sku', scanned_value);
       }
-
-      const { data: currentOrgMatch, error: currentOrgError } = await currentOrgQuery.maybeSingle();
 
       if (!currentOrgError && currentOrgMatch) {
         logStep("Found in current organization", { itemId: currentOrgMatch.id });
@@ -216,7 +214,21 @@ Deno.serve(async (req) => {
             skuMatches.forEach(item => combinedMatches.set(item.id, item));
           }
           otherOrgsMatches = Array.from(combinedMatches.values());
-          otherOrgsError = externalIdErr || skuErr;
+          
+          // Improved error handling: only propagate error if both queries failed
+          if ((!externalIdMatches || externalIdMatches.length === 0) && (!skuMatches || skuMatches.length === 0)) {
+            // Both queries failed or returned no results, propagate errors
+            otherOrgsError = externalIdErr || skuErr;
+          } else {
+            // At least one query succeeded, log any errors but do not propagate
+            if (externalIdErr) {
+              logStep("external_id query error (ignored due to sku success)", { error: externalIdErr.message || externalIdErr });
+            }
+            if (skuErr) {
+              logStep("sku query error (ignored due to external_id success)", { error: skuErr.message || skuErr });
+            }
+            otherOrgsError = null;
+          }
         }
 
         if (!otherOrgsError && otherOrgsMatches && otherOrgsMatches.length > 0) {
