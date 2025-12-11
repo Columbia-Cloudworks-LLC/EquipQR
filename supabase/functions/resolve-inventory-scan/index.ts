@@ -98,71 +98,90 @@ Deno.serve(async (req) => {
     if (current_organization_id) {
       logStep("Checking current organization", { orgId: current_organization_id });
 
-      let currentOrgMatch = null;
-      let currentOrgError = null;
+      // Verify user is a member of the organization before querying
+      const { data: orgMembership, error: membershipError } = await supabaseClient
+        .from('organization_members')
+        .select('organization_id')
+        .eq('organization_id', current_organization_id)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle();
 
-      if (isUUID) {
-        const result = await supabaseClient
-          .from('inventory_items')
-          .select('id, name, organization_id')
-          .eq('organization_id', current_organization_id)
-          .eq('id', scanned_value)
-          .maybeSingle();
-        currentOrgMatch = result.data;
-        currentOrgError = result.error;
+      if (membershipError || !orgMembership) {
+        logStep("User is not a member of the organization", { 
+          orgId: current_organization_id, 
+          userId: user.id,
+          error: membershipError?.message 
+        });
+        // Continue to next step (check other orgs) instead of returning error
+        // This allows the function to check if the item exists in other orgs the user belongs to
       } else {
-        // Search by external_id or sku - query both separately to avoid SQL injection
-        const { data: externalIdMatch, error: externalIdErr } = await supabaseClient
-          .from('inventory_items')
-          .select('id, name, organization_id')
-          .eq('organization_id', current_organization_id)
-          .eq('external_id', scanned_value)
-          .maybeSingle();
+        let currentOrgMatch = null;
+        let currentOrgError = null;
 
-        const { data: skuMatch, error: skuErr } = await supabaseClient
-          .from('inventory_items')
-          .select('id, name, organization_id')
-          .eq('organization_id', current_organization_id)
-          .eq('sku', scanned_value)
-          .maybeSingle();
-
-        // Use external_id match if found, otherwise use sku match (OR semantics)
-        currentOrgMatch = externalIdMatch || skuMatch;
-        
-        // Improved error handling: only propagate error if both queries actually failed
-        if (externalIdErr && skuErr) {
-          // Both queries failed, propagate errors
-          currentOrgError = externalIdErr;
-        } else if (externalIdErr || skuErr) {
-          // One query failed, log the error but don't propagate since we may have results
-          if (externalIdErr) {
-            logStep("external_id query error (ignored)", { error: externalIdErr.message || externalIdErr });
-          }
-          if (skuErr) {
-            logStep("sku query error (ignored)", { error: skuErr.message || skuErr });
-          }
-          currentOrgError = null;
+        if (isUUID) {
+          const result = await supabaseClient
+            .from('inventory_items')
+            .select('id, name, organization_id')
+            .eq('organization_id', current_organization_id)
+            .eq('id', scanned_value)
+            .maybeSingle();
+          currentOrgMatch = result.data;
+          currentOrgError = result.error;
         } else {
-          // Both queries succeeded
-          currentOrgError = null;
-        }
-      }
+          // Search by external_id or sku - query both separately to avoid SQL injection
+          const { data: externalIdMatch, error: externalIdErr } = await supabaseClient
+            .from('inventory_items')
+            .select('id, name, organization_id')
+            .eq('organization_id', current_organization_id)
+            .eq('external_id', scanned_value)
+            .maybeSingle();
 
-      if (!currentOrgError && currentOrgMatch) {
-        logStep("Found in current organization", { itemId: currentOrgMatch.id });
-        return new Response(
-          JSON.stringify({
-            type: 'inventory',
-            id: currentOrgMatch.id,
-            orgId: current_organization_id,
-            action: 'view',
-            name: currentOrgMatch.name
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          const { data: skuMatch, error: skuErr } = await supabaseClient
+            .from('inventory_items')
+            .select('id, name, organization_id')
+            .eq('organization_id', current_organization_id)
+            .eq('sku', scanned_value)
+            .maybeSingle();
+
+          // Use external_id match if found, otherwise use sku match (OR semantics)
+          currentOrgMatch = externalIdMatch || skuMatch;
+          
+          // Improved error handling: only propagate error if both queries actually failed
+          if (externalIdErr && skuErr) {
+            // Both queries failed, propagate errors
+            currentOrgError = externalIdErr;
+          } else if (externalIdErr || skuErr) {
+            // One query failed, log the error but don't propagate since we may have results
+            if (externalIdErr) {
+              logStep("external_id query error (ignored)", { error: externalIdErr.message || externalIdErr });
+            }
+            if (skuErr) {
+              logStep("sku query error (ignored)", { error: skuErr.message || skuErr });
+            }
+            currentOrgError = null;
+          } else {
+            // Both queries succeeded
+            currentOrgError = null;
           }
-        );
+        }
+
+        if (!currentOrgError && currentOrgMatch) {
+          logStep("Found in current organization", { itemId: currentOrgMatch.id });
+          return new Response(
+            JSON.stringify({
+              type: 'inventory',
+              id: currentOrgMatch.id,
+              orgId: current_organization_id,
+              action: 'view',
+              name: currentOrgMatch.name
+            }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
       }
     }
 

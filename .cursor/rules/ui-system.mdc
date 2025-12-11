@@ -17,7 +17,7 @@ alwaysApply: true
 - **Layout**:
   - Use `Page` component for top-level layout consistency.
   - Use `PageHeader` for titles and breadcrumbs.
-- **Forms**: Use `src/components/form/` wrappers (`TextField`, `SelectField`) which handle labels, errors, and accessiblity automatically.
+- **Forms**: Use `src/components/form/` wrappers (`TextField`, `SelectField`) which handle labels, errors, and accessibility automatically.
 - **Loading**: Use `Skeleton` components, not spinning loaders, for content structure.
 - **Empty States**: Use `EmptyState` component when lists are empty.
 

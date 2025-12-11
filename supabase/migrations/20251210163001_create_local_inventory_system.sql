@@ -37,8 +37,6 @@ CREATE TABLE IF NOT EXISTS public.inventory_items (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   
   -- Constraints
-  CONSTRAINT inventory_items_sku_org_unique UNIQUE (organization_id, sku) WHERE sku IS NOT NULL,
-  CONSTRAINT inventory_items_external_id_org_unique UNIQUE (organization_id, external_id) WHERE external_id IS NOT NULL,
   CONSTRAINT inventory_items_low_stock_threshold_check CHECK (low_stock_threshold >= 1)
 );
 
@@ -52,6 +50,14 @@ CREATE INDEX IF NOT EXISTS idx_inventory_items_sku
 CREATE INDEX IF NOT EXISTS idx_inventory_items_low_stock 
   ON public.inventory_items(organization_id, quantity_on_hand, low_stock_threshold) 
   WHERE quantity_on_hand < low_stock_threshold;
+
+-- Unique indexes for SKU and external_id (replacing table-level constraints with WHERE clauses)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_inventory_items_sku_org_unique 
+  ON public.inventory_items(organization_id, sku) 
+  WHERE sku IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_inventory_items_external_id_org_unique 
+  ON public.inventory_items(organization_id, external_id) 
+  WHERE external_id IS NOT NULL;
 
 -- ============================================================================
 -- PART 3: Create inventory_transactions table (Audit Log)
@@ -245,7 +251,7 @@ BEGIN
 
   -- Warn if new quantity is suspiciously low
   IF v_new_quantity < -1000 THEN
-    RAISE WARNING 'Inventory item % for org % adjusted by user % to suspiciously low quantity: %', p_item_id, v_organization_id, p_user_id, v_new_quantity;
+    RAISE WARNING 'Inventory item % for org % adjusted by user % to suspiciously low quantity: %', p_item_id, v_organization_id, v_user_id, v_new_quantity;
   END IF;
   
   -- Determine transaction type

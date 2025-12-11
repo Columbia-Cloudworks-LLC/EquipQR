@@ -45,7 +45,7 @@ const InventoryItemDetail = () => {
     currentOrganization?.id,
     itemId
   );
-  const { data: managers = [] } = useInventoryItemManagers(
+  const { data: managers = [], refetch: refetchManagers } = useInventoryItemManagers(
     currentOrganization?.id,
     itemId
   );
@@ -391,7 +391,7 @@ const InventoryItemDetail = () => {
                                 const { assignInventoryManagers } = await import('@/services/inventoryService');
                                 const currentManagerIds = managers.map(m => m.userId).filter(id => id !== manager.userId);
                                 await assignInventoryManagers(currentOrganization.id, itemId, currentManagerIds);
-                                managersQuery.refetch();
+                                refetchManagers();
                                 toast({
                                   title: 'Manager removed',
                                   description: `${manager.userName} is no longer a manager for this item.`
