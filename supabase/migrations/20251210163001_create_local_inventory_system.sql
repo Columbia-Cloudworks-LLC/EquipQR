@@ -190,7 +190,6 @@ CREATE POLICY "inventory_item_managers_organization_isolation" ON public.invento
 CREATE OR REPLACE FUNCTION public.adjust_inventory_quantity(
   p_item_id UUID,
   p_delta INTEGER,
-  p_user_id UUID,
   p_reason TEXT,
   p_work_order_id UUID DEFAULT NULL
 )
@@ -204,7 +203,21 @@ DECLARE
   v_new_quantity INTEGER;
   v_organization_id UUID;
   v_transaction_type inventory_transaction_type;
+  v_user_id UUID;
 BEGIN
+  -- Get the current user's ID from auth context
+  v_user_id := auth.uid();
+  
+  -- Check if user is authenticated
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'User must be authenticated';
+  END IF;
+  
+  -- Validate that delta is non-zero (zero adjustments are not meaningful)
+  IF p_delta = 0 THEN
+    RAISE EXCEPTION 'Inventory adjustment delta cannot be zero';
+  END IF;
+  
   -- Lock the inventory item row for update
   SELECT quantity_on_hand, organization_id
   INTO v_current_quantity, v_organization_id
@@ -220,7 +233,7 @@ BEGIN
   -- Verify user has access to this organization
   IF NOT EXISTS (
     SELECT 1 FROM public.organization_members
-    WHERE user_id = p_user_id
+    WHERE user_id = v_user_id
     AND organization_id = v_organization_id
     AND status = 'active'
   ) THEN
@@ -262,7 +275,7 @@ BEGIN
   ) VALUES (
     p_item_id,
     v_organization_id,
-    p_user_id,
+    v_user_id,
     v_current_quantity,
     v_new_quantity,
     p_delta,
@@ -277,7 +290,7 @@ END;
 $$;
 
 -- Grant execute permission to authenticated users
-GRANT EXECUTE ON FUNCTION public.adjust_inventory_quantity(UUID, INTEGER, UUID, TEXT, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.adjust_inventory_quantity(UUID, INTEGER, TEXT, UUID) TO authenticated;
 
 -- ============================================================================
 -- PART 10: Create updated_at trigger function (if not exists)

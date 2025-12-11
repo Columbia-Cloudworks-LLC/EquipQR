@@ -98,19 +98,55 @@ Deno.serve(async (req) => {
     if (current_organization_id) {
       logStep("Checking current organization", { orgId: current_organization_id });
 
-      let currentOrgQuery = supabaseClient
-        .from('inventory_items')
-        .select('id, name, organization_id')
-        .eq('organization_id', current_organization_id);
+      let currentOrgMatch = null;
+      let currentOrgError = null;
 
       if (isUUID) {
-        currentOrgQuery = currentOrgQuery.eq('id', scanned_value);
+        const result = await supabaseClient
+          .from('inventory_items')
+          .select('id, name, organization_id')
+          .eq('organization_id', current_organization_id)
+          .eq('id', scanned_value)
+          .maybeSingle();
+        currentOrgMatch = result.data;
+        currentOrgError = result.error;
       } else {
-        // Use proper Supabase query syntax for OR conditions
-        currentOrgQuery = currentOrgQuery.or(`external_id.eq.${scanned_value},sku.eq.${scanned_value}`);
-      }
+        // Search by external_id or sku - query both separately to avoid SQL injection
+        const { data: externalIdMatch, error: externalIdErr } = await supabaseClient
+          .from('inventory_items')
+          .select('id, name, organization_id')
+          .eq('organization_id', current_organization_id)
+          .eq('external_id', scanned_value)
+          .maybeSingle();
 
-      const { data: currentOrgMatch, error: currentOrgError } = await currentOrgQuery.maybeSingle();
+        const { data: skuMatch, error: skuErr } = await supabaseClient
+          .from('inventory_items')
+          .select('id, name, organization_id')
+          .eq('organization_id', current_organization_id)
+          .eq('sku', scanned_value)
+          .maybeSingle();
+
+        // Use external_id match if found, otherwise use sku match (OR semantics)
+        currentOrgMatch = externalIdMatch || skuMatch;
+        
+        // Improved error handling: only propagate error if both queries actually failed
+        if (externalIdErr && skuErr) {
+          // Both queries failed, propagate errors
+          currentOrgError = externalIdErr;
+        } else if (externalIdErr || skuErr) {
+          // One query failed, log the error but don't propagate since we may have results
+          if (externalIdErr) {
+            logStep("external_id query error (ignored)", { error: externalIdErr.message || externalIdErr });
+          }
+          if (skuErr) {
+            logStep("sku query error (ignored)", { error: skuErr.message || skuErr });
+          }
+          currentOrgError = null;
+        } else {
+          // Both queries succeeded
+          currentOrgError = null;
+        }
+      }
 
       if (!currentOrgError && currentOrgMatch) {
         logStep("Found in current organization", { itemId: currentOrgMatch.id });
@@ -157,20 +193,59 @@ Deno.serve(async (req) => {
       if (otherOrgs.length > 0) {
         const orgIds = otherOrgs.map(m => m.organization_id);
 
-        let otherOrgsQuery = supabaseClient
-          .from('inventory_items')
-          .select('id, name, organization_id')
-          .in('organization_id', orgIds);
+        let otherOrgsMatches: Array<{ id: string; name: string; organization_id: string }> = [];
+        let otherOrgsError = null;
 
         if (isUUID) {
-          otherOrgsQuery = otherOrgsQuery.eq('id', scanned_value);
+          const result = await supabaseClient
+            .from('inventory_items')
+            .select('id, name, organization_id')
+            .in('organization_id', orgIds)
+            .eq('id', scanned_value);
+          otherOrgsMatches = result.data || [];
+          otherOrgsError = result.error;
         } else {
-          otherOrgsQuery = otherOrgsQuery.or(
-            `external_id.eq.${scanned_value},sku.eq.${scanned_value}`
-          );
-        }
+          // Search by external_id or sku - query both separately to avoid SQL injection
+          const { data: externalIdMatches, error: externalIdErr } = await supabaseClient
+            .from('inventory_items')
+            .select('id, name, organization_id')
+            .in('organization_id', orgIds)
+            .eq('external_id', scanned_value);
 
-        const { data: otherOrgsMatches, error: otherOrgsError } = await otherOrgsQuery;
+          const { data: skuMatches, error: skuErr } = await supabaseClient
+            .from('inventory_items')
+            .select('id, name, organization_id')
+            .in('organization_id', orgIds)
+            .eq('sku', scanned_value);
+
+          // Combine results, removing duplicates by id
+          const combinedMatches = new Map<string, { id: string; name: string; organization_id: string }>();
+          if (externalIdMatches) {
+            externalIdMatches.forEach(item => combinedMatches.set(item.id, item));
+          }
+          if (skuMatches) {
+            skuMatches.forEach(item => combinedMatches.set(item.id, item));
+          }
+          otherOrgsMatches = Array.from(combinedMatches.values());
+          
+          // Improved error handling: only propagate error if both queries actually failed
+          if (externalIdErr && skuErr) {
+            // Both queries failed, propagate errors
+            otherOrgsError = externalIdErr;
+          } else if (externalIdErr || skuErr) {
+            // One query failed, log the error but don't propagate since we may have results
+            if (externalIdErr) {
+              logStep("external_id query error (ignored)", { error: externalIdErr.message || externalIdErr });
+            }
+            if (skuErr) {
+              logStep("sku query error (ignored)", { error: skuErr.message || skuErr });
+            }
+            otherOrgsError = null;
+          } else {
+            // Both queries succeeded
+            otherOrgsError = null;
+          }
+        }
 
         if (!otherOrgsError && otherOrgsMatches && otherOrgsMatches.length > 0) {
           if (otherOrgsMatches.length === 1) {

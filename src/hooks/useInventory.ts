@@ -252,7 +252,7 @@ export const useAdjustInventoryQuantity = () => {
       adjustment: InventoryQuantityAdjustment;
     }) => {
       if (!user) throw new Error('User not authenticated');
-      return await adjustInventoryQuantity(organizationId, adjustment, user.id);
+      return await adjustInventoryQuantity(organizationId, adjustment);
     },
     onSuccess: (newQuantity, variables) => {
       // Invalidate related queries
