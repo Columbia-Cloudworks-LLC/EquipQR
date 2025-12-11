@@ -37,8 +37,8 @@ export const getInventoryItems = async (
       query = query.ilike('location', `%${filters.location}%`);
     }
 
-    // Note: Equipment compatibility filter is handled via getCompatibleInventoryItems
-    // This function is for general inventory listing
+    // Note: Equipment compatibility filter is not applied in this function.
+    // Use getCompatibleInventoryItems for equipment-based filtering.
 
     const { data, error } = await query.order('name', { ascending: true });
 
