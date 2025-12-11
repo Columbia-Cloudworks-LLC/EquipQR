@@ -290,7 +290,7 @@ END;
 $$;
 
 -- Grant execute permission to authenticated users
-GRANT EXECUTE ON FUNCTION public.adjust_inventory_quantity(UUID, INTEGER, UUID, TEXT, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.adjust_inventory_quantity(UUID, INTEGER, TEXT, UUID) TO authenticated;
 
 -- ============================================================================
 -- PART 10: Create updated_at trigger function (if not exists)
