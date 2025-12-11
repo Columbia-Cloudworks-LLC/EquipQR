@@ -106,8 +106,33 @@ Deno.serve(async (req) => {
       if (isUUID) {
         currentOrgQuery = currentOrgQuery.eq('id', scanned_value);
       } else {
-        // Use proper Supabase query syntax for OR conditions
-        currentOrgQuery = currentOrgQuery.or(`external_id.eq.${scanned_value},sku.eq.${scanned_value}`);
+        // Search by external_id or sku - use separate queries to avoid SQL injection
+        // First try external_id
+        const { data: externalIdMatch, error: externalIdError } = await supabaseClient
+          .from('inventory_items')
+          .select('id, name, organization_id')
+          .eq('organization_id', current_organization_id)
+          .eq('external_id', scanned_value)
+          .maybeSingle();
+
+        if (!externalIdError && externalIdMatch) {
+          logStep("Found in current organization by external_id", { itemId: externalIdMatch.id });
+          return new Response(
+            JSON.stringify({
+              type: 'inventory',
+              id: externalIdMatch.id,
+              name: externalIdMatch.name,
+              organization_id: externalIdMatch.organization_id
+            }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+
+        // Then try sku
+        currentOrgQuery = currentOrgQuery.eq('sku', scanned_value);
       }
 
       const { data: currentOrgMatch, error: currentOrgError } = await currentOrgQuery.maybeSingle();
@@ -157,20 +182,42 @@ Deno.serve(async (req) => {
       if (otherOrgs.length > 0) {
         const orgIds = otherOrgs.map(m => m.organization_id);
 
-        let otherOrgsQuery = supabaseClient
-          .from('inventory_items')
-          .select('id, name, organization_id')
-          .in('organization_id', orgIds);
+        let otherOrgsMatches: Array<{ id: string; name: string; organization_id: string }> = [];
+        let otherOrgsError = null;
 
         if (isUUID) {
-          otherOrgsQuery = otherOrgsQuery.eq('id', scanned_value);
+          const result = await supabaseClient
+            .from('inventory_items')
+            .select('id, name, organization_id')
+            .in('organization_id', orgIds)
+            .eq('id', scanned_value);
+          otherOrgsMatches = result.data || [];
+          otherOrgsError = result.error;
         } else {
-          otherOrgsQuery = otherOrgsQuery.or(
-            `external_id.eq.${scanned_value},sku.eq.${scanned_value}`
-          );
-        }
+          // Search by external_id or sku - query both separately to avoid SQL injection
+          const { data: externalIdMatches, error: externalIdErr } = await supabaseClient
+            .from('inventory_items')
+            .select('id, name, organization_id')
+            .in('organization_id', orgIds)
+            .eq('external_id', scanned_value);
 
-        const { data: otherOrgsMatches, error: otherOrgsError } = await otherOrgsQuery;
+          const { data: skuMatches, error: skuErr } = await supabaseClient
+            .from('inventory_items')
+            .select('id, name, organization_id')
+            .in('organization_id', orgIds)
+            .eq('sku', scanned_value);
+
+          // Combine results, removing duplicates by id
+          const combinedMatches = new Map<string, { id: string; name: string; organization_id: string }>();
+          if (externalIdMatches) {
+            externalIdMatches.forEach(item => combinedMatches.set(item.id, item));
+          }
+          if (skuMatches) {
+            skuMatches.forEach(item => combinedMatches.set(item.id, item));
+          }
+          otherOrgsMatches = Array.from(combinedMatches.values());
+          otherOrgsError = externalIdErr || skuErr;
+        }
 
         if (!otherOrgsError && otherOrgsMatches && otherOrgsMatches.length > 0) {
           if (otherOrgsMatches.length === 1) {

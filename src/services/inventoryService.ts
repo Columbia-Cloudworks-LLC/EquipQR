@@ -275,14 +275,12 @@ export const deleteInventoryItem = async (
 
 export const adjustInventoryQuantity = async (
   organizationId: string,
-  adjustment: InventoryQuantityAdjustment,
-  userId: string
+  adjustment: InventoryQuantityAdjustment
 ): Promise<number> => {
   try {
     const { data, error } = await supabase.rpc('adjust_inventory_quantity', {
       p_item_id: adjustment.itemId,
       p_delta: adjustment.delta,
-      p_user_id: userId,
       p_reason: adjustment.reason,
       p_work_order_id: adjustment.workOrderId || null
     });
