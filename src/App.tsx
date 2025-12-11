@@ -43,6 +43,8 @@ const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 // const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin'));
 const PMTemplateView = lazy(() => import('@/pages/PMTemplateView'));
 const PartPicker = lazy(() => import('@/pages/PartPicker'));
+const InventoryList = lazy(() => import('@/pages/InventoryList'));
+const InventoryItemDetail = lazy(() => import('@/pages/InventoryItemDetail'));
 
 
 const BrandedTopBar = () => {
@@ -153,6 +155,8 @@ function App() {
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />
                                 <Route path="/part-picker" element={<PartPicker />} />
+                                <Route path="/inventory" element={<InventoryList />} />
+                                <Route path="/inventory/:itemId" element={<InventoryItemDetail />} />
                                 <Route path="/support" element={<DashboardSupport />} />
                                 {/* Billing debug routes removed */}
                                 {/* {import.meta.env.DEV && <Route path="/debug/billing" element={<DebugBilling />} />} */}

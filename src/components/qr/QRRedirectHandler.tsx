@@ -8,15 +8,17 @@ import { useQRRedirectWithOrgSwitch } from '@/hooks/useQRRedirectWithOrgSwitch';
 import { logger } from '@/utils/logger';
 
 interface QRRedirectHandlerProps {
-  equipmentId: string | undefined;
+  equipmentId?: string | undefined;
+  inventoryItemId?: string | undefined;
 }
 
-export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentId }) => {
+export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentId, inventoryItemId }) => {
   const [shouldNavigate, setShouldNavigate] = React.useState(false);
   const [navigationTarget, setNavigationTarget] = React.useState<string | null>(null);
   
   const { state, isSwitchingOrg, handleOrgSwitch, retry } = useQRRedirectWithOrgSwitch({
     equipmentId,
+    inventoryItemId,
     onComplete: (targetPath) => {
       // Allow parent component to run any additional logic here (analytics, toasts, etc.)
       if (import.meta.env.DEV) {
@@ -37,7 +39,7 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">
-                  Verifying equipment access...
+                  Verifying access...
                 </p>
               </div>
             </div>
@@ -75,17 +77,17 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Equipment found in:
-              </p>
-              <p className="font-medium text-foreground">
-                {state.equipmentInfo.organizationName}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Your role: {state.equipmentInfo.userRole}
-              </p>
-            </div>
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {state.equipmentInfo ? 'Equipment' : 'Inventory item'} found in:
+                </p>
+                <p className="font-medium text-foreground">
+                  {state.equipmentInfo?.organizationName || state.inventoryInfo?.organizationName}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Your role: {state.equipmentInfo?.userRole || state.inventoryInfo?.userRole}
+                </p>
+              </div>
 
             <div className="flex flex-col space-y-2">
               <Button 

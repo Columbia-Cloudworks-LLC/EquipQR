@@ -1,0 +1,331 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  getInventoryItems,
+  getInventoryItemById,
+  createInventoryItem,
+  updateInventoryItem,
+  deleteInventoryItem,
+  adjustInventoryQuantity,
+  getInventoryTransactions,
+  getCompatibleInventoryItems,
+  getInventoryItemManagers,
+  assignInventoryManagers
+} from '@/services/inventoryService';
+import type {
+  InventoryItemFormData,
+  InventoryQuantityAdjustment,
+  InventoryFilters
+} from '@/types/inventory';
+import { useAppToast } from '@/hooks/useAppToast';
+
+const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
+
+// ============================================
+// Query Hooks
+// ============================================
+
+export const useInventoryItems = (
+  organizationId: string | undefined,
+  filters: InventoryFilters = {},
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+
+  return useQuery({
+    queryKey: ['inventory-items', organizationId, filters],
+    queryFn: async () => {
+      if (!organizationId) return [];
+      return await getInventoryItems(organizationId, filters);
+    },
+    enabled: !!organizationId,
+    staleTime
+  });
+};
+
+export const useInventoryItem = (
+  organizationId: string | undefined,
+  itemId: string | undefined,
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+
+  return useQuery({
+    queryKey: ['inventory-item', organizationId, itemId],
+    queryFn: async () => {
+      if (!organizationId || !itemId) return null;
+      return await getInventoryItemById(organizationId, itemId);
+    },
+    enabled: !!organizationId && !!itemId,
+    staleTime
+  });
+};
+
+export const useInventoryTransactions = (
+  organizationId: string | undefined,
+  itemId?: string,
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? 2 * 60 * 1000; // 2 minutes for transactions
+
+  return useQuery({
+    queryKey: ['inventory-transactions', organizationId, itemId],
+    queryFn: async () => {
+      if (!organizationId) return [];
+      return await getInventoryTransactions(organizationId, itemId);
+    },
+    enabled: !!organizationId,
+    staleTime
+  });
+};
+
+export const useCompatibleInventoryItems = (
+  organizationId: string | undefined,
+  equipmentIds: string[],
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+
+  return useQuery({
+    queryKey: ['compatible-inventory-items', organizationId, equipmentIds.sort().join(',')],
+    queryFn: async () => {
+      if (!organizationId || equipmentIds.length === 0) return [];
+      return await getCompatibleInventoryItems(organizationId, equipmentIds);
+    },
+    enabled: !!organizationId && equipmentIds.length > 0,
+    staleTime
+  });
+};
+
+export const useInventoryItemManagers = (
+  organizationId: string | undefined,
+  itemId: string | undefined,
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+
+  return useQuery({
+    queryKey: ['inventory-item-managers', organizationId, itemId],
+    queryFn: async () => {
+      if (!organizationId || !itemId) return [];
+      return await getInventoryItemManagers(organizationId, itemId);
+    },
+    enabled: !!organizationId && !!itemId,
+    staleTime
+  });
+};
+
+// ============================================
+// Mutation Hooks
+// ============================================
+
+export const useCreateInventoryItem = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      formData
+    }: {
+      organizationId: string;
+      formData: InventoryItemFormData;
+    }) => {
+      if (!user) throw new Error('User not authenticated');
+      return await createInventoryItem(organizationId, formData, user.id);
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate inventory items list
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-items', variables.organizationId]
+      });
+      toast({
+        title: 'Inventory item created',
+        description: `${data.name} has been added to inventory.`
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error creating inventory item',
+        description: error instanceof Error ? error.message : 'Failed to create inventory item',
+        variant: 'destructive'
+      });
+    }
+  });
+};
+
+export const useUpdateInventoryItem = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      itemId,
+      formData
+    }: {
+      organizationId: string;
+      itemId: string;
+      formData: Partial<InventoryItemFormData>;
+    }) => {
+      return await updateInventoryItem(organizationId, itemId, formData);
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-items', variables.organizationId]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-item', variables.organizationId, variables.itemId]
+      });
+      toast({
+        title: 'Inventory item updated',
+        description: `${data.name} has been updated.`
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error updating inventory item',
+        description: error instanceof Error ? error.message : 'Failed to update inventory item',
+        variant: 'destructive'
+      });
+    }
+  });
+};
+
+export const useDeleteInventoryItem = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      itemId
+    }: {
+      organizationId: string;
+      itemId: string;
+    }) => {
+      return await deleteInventoryItem(organizationId, itemId);
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate inventory items list
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-items', variables.organizationId]
+      });
+      toast({
+        title: 'Inventory item deleted',
+        description: 'The inventory item has been removed.'
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error deleting inventory item',
+        description: error instanceof Error ? error.message : 'Failed to delete inventory item',
+        variant: 'destructive'
+      });
+    }
+  });
+};
+
+export const useAdjustInventoryQuantity = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      adjustment
+    }: {
+      organizationId: string;
+      adjustment: InventoryQuantityAdjustment;
+    }) => {
+      if (!user) throw new Error('User not authenticated');
+      return await adjustInventoryQuantity(organizationId, adjustment);
+    },
+    onSuccess: (newQuantity, variables) => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-items', variables.organizationId]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-item', variables.organizationId, variables.adjustment.itemId]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-transactions', variables.organizationId]
+      });
+
+      // Show warning if quantity is negative
+      if (newQuantity < 0) {
+        toast({
+          title: 'Inventory adjusted',
+          description: `Quantity is now negative: ${newQuantity}`,
+          variant: 'warning'
+        });
+      } else {
+        toast({
+          title: 'Inventory adjusted',
+          description: `New quantity: ${newQuantity}`
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error adjusting inventory',
+        description: error instanceof Error ? error.message : 'Failed to adjust inventory quantity',
+        variant: 'destructive'
+      });
+    }
+  });
+};
+
+export const useAssignInventoryManagers = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      itemId,
+      userIds
+    }: {
+      organizationId: string;
+      itemId: string;
+      userIds: string[];
+    }) => {
+      return await assignInventoryManagers(organizationId, itemId, userIds);
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate managers query
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-item-managers', variables.organizationId, variables.itemId]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-item', variables.organizationId, variables.itemId]
+      });
+      toast({
+        title: 'Managers updated',
+        description: 'Inventory item managers have been updated.'
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error updating managers',
+        description: error instanceof Error ? error.message : 'Failed to update managers',
+        variant: 'destructive'
+      });
+    }
+  });
+};
+

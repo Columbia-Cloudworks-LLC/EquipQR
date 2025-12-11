@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Edit2, Check, X, DollarSign } from 'lucide-react';
+import { Edit2, Check, X, DollarSign, Package } from 'lucide-react';
 import { WorkOrderCost } from '@/services/workOrderCostsService';
 import { useWorkOrderCostsState } from '@/hooks/useWorkOrderCostsState';
 import { 
@@ -9,22 +9,36 @@ import {
   useDeleteWorkOrderCost 
 } from '@/hooks/useWorkOrderCosts';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useAdjustInventoryQuantity } from '@/hooks/useInventory';
+import { supabase } from '@/integrations/supabase/client';
+import { InventoryPartSelector } from './InventoryPartSelector';
 import WorkOrderCostsEditor from './WorkOrderCostsEditor';
+import { useAppToast } from '@/hooks/useAppToast';
 
 interface InlineEditWorkOrderCostsProps {
   costs: WorkOrderCost[];
   workOrderId: string;
+  equipmentIds: string[];
   canEdit: boolean;
 }
 
 const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   costs,
   workOrderId,
+  equipmentIds,
   canEdit
 }) => {
   const isMobile = useIsMobile();
+  const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
+  const { toast } = useAppToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showInventorySelector, setShowInventorySelector] = useState(false);
+  
+  const adjustInventoryMutation = useAdjustInventoryQuantity();
   
   const {
     costs: editCosts,
@@ -116,6 +130,55 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   const handleCancel = () => {
     resetCosts(costs);
     setIsEditing(false);
+  };
+
+  const handleAddFromInventory = async (itemId: string, quantity: number, unitCost: number) => {
+    if (!currentOrganization || !user) return;
+
+    try {
+      // Adjust inventory quantity (decrease by quantity used)
+      const newQuantity = await adjustInventoryMutation.mutateAsync({
+        organizationId: currentOrganization.id,
+        adjustment: {
+          itemId,
+          delta: -quantity,
+          reason: `Used in work order ${workOrderId}`,
+          workOrderId
+        }
+      });
+
+      // Get inventory item name for description
+      const { data: inventoryItem } = await supabase
+        .from('inventory_items')
+        .select('name')
+        .eq('id', itemId)
+        .single();
+
+      // Create work order cost record
+      await createCostMutation.mutateAsync({
+        work_order_id: workOrderId,
+        description: inventoryItem?.name || `Inventory item (ID: ${itemId.substring(0, 8)}...)`,
+        quantity: quantity,
+        unit_price_cents: Math.round(unitCost * 100)
+      });
+
+      // Show warning if quantity went negative
+      if (newQuantity < 0) {
+        toast({
+          title: 'Inventory adjusted',
+          description: `Warning: Inventory quantity is now negative: ${newQuantity}`,
+          variant: 'warning'
+        });
+      } else {
+        toast({
+          title: 'Part added',
+          description: `Added ${quantity} unit(s) from inventory to work order`
+        });
+      }
+    } catch (error) {
+      console.error('Error adding part from inventory:', error);
+      // Error handling is done in mutation hooks
+    }
   };
 
   const MobileCostDisplay = ({ cost }: { cost: WorkOrderCost }) => (
@@ -274,6 +337,17 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-sm font-medium">Edit Cost Items</h4>
         <div className="flex gap-2">
+          {equipmentIds.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowInventorySelector(true)}
+              disabled={isSaving}
+            >
+              <Package className="h-4 w-4 mr-1" />
+              Add from Inventory
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -302,6 +376,16 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         onUpdateCost={updateCost}
         hasError={!validateCosts()}
       />
+
+      {/* Inventory Part Selector */}
+      {showInventorySelector && equipmentIds.length > 0 && (
+        <InventoryPartSelector
+          open={showInventorySelector}
+          onClose={() => setShowInventorySelector(false)}
+          equipmentIds={equipmentIds}
+          onSelect={handleAddFromInventory}
+        />
+      )}
     </div>
   );
 };
