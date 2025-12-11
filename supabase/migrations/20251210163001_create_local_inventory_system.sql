@@ -242,6 +242,11 @@ BEGIN
   
   -- Calculate new quantity
   v_new_quantity := v_current_quantity + p_delta;
+
+  -- Warn if new quantity is suspiciously low
+  IF v_new_quantity < -1000 THEN
+    RAISE WARNING 'Inventory item % for org % adjusted by user % to suspiciously low quantity: %', p_item_id, v_organization_id, p_user_id, v_new_quantity;
+  END IF;
   
   -- Determine transaction type
   IF p_work_order_id IS NOT NULL THEN
