@@ -60,7 +60,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
       description: '',
       sku: '',
       external_id: '',
-      quantity_on_hand: undefined,
+      quantity_on_hand: 0,
       low_stock_threshold: 5,
       image_url: '',
       location: '',
@@ -92,7 +92,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         description: '',
         sku: '',
         external_id: '',
-        quantity_on_hand: undefined,
+        quantity_on_hand: 0,
         low_stock_threshold: 5,
         image_url: '',
         location: '',
@@ -307,10 +307,10 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                         onChange={(e) => {
                           const value = e.target.value;
                           if (value === '') {
-                            field.onChange(undefined);
+                            field.onChange(0);
                           } else {
                             const numValue = parseInt(value, 10);
-                            field.onChange(isNaN(numValue) ? undefined : numValue);
+                            field.onChange(isNaN(numValue) ? 0 : numValue);
                           }
                         }}
                       />

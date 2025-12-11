@@ -191,7 +191,10 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
                     min="1"
                     max={selectedItem.quantity_on_hand}
                     value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setQuantity(Math.max(1, Math.min(val, selectedItem.quantity_on_hand)));
+                    }}
                     className="mt-1"
                   />
                 </div>

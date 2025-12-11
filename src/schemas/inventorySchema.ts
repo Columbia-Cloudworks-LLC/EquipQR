@@ -17,8 +17,7 @@ export const inventoryItemFormSchema = z.object({
     .optional()
     .nullable(),
   quantity_on_hand: z.number()
-    .int('Quantity must be an integer')
-    .min(0, 'Quantity cannot be negative'),
+    .int('Quantity must be an integer'),
   low_stock_threshold: z.number()
     .int('Low stock threshold must be an integer')
     .min(1, 'Low stock threshold must be at least 1')

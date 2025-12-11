@@ -259,10 +259,9 @@ BEGIN
     v_transaction_type := 'work_order';
   ELSIF p_delta < 0 THEN
     v_transaction_type := 'usage';
-  ELSIF p_delta > 0 THEN
-    v_transaction_type := 'restock';
   ELSE
-    v_transaction_type := 'adjustment';
+    -- p_delta > 0 (already validated that delta != 0)
+    v_transaction_type := 'restock';
   END IF;
   
   -- Update inventory quantity
