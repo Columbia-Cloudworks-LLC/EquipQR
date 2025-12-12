@@ -48,25 +48,11 @@ export const useQRRedirectWithOrgSwitch = ({
    * Shared logic for verifying organization access and determining if a switch is needed
    * Returns an object with the updated state properties to ensure type safety
    */
-  const verifyOrganizationAccess = useCallback(async <T extends { organizationId: string; organizationName: string; userHasAccess: boolean }>(
-    orgInfo: T | null,
+  const verifyOrganizationAccess = useCallback(async (
+    orgInfo: EquipmentOrganizationInfo | InventoryOrganizationInfo | null,
     targetPath: string,
     itemType: 'equipment' | 'inventory'
   ): Promise<Partial<QRRedirectState>> => {
-    // Helper to create type-safe state updates with the correct info object
-    const createStateUpdate = (
-      baseState: Omit<Partial<QRRedirectState>, 'equipmentInfo' | 'inventoryInfo'>,
-      info: T
-    ): Partial<QRRedirectState> => {
-      return {
-        ...baseState,
-        ...(itemType === 'equipment' 
-          ? { equipmentInfo: info as EquipmentOrganizationInfo }
-          : { inventoryInfo: info as InventoryOrganizationInfo }
-        )
-      };
-    };
-
     if (!orgInfo) {
       return {
         isLoading: false,
@@ -91,29 +77,41 @@ export const useQRRedirectWithOrgSwitch = ({
       const hasMultipleOrgs = await checkUserHasMultipleOrganizations();
       
       if (hasMultipleOrgs) {
-        return createStateUpdate({
+        return {
           isLoading: false,
           needsOrgSwitch: true,
-          targetPath
-        }, orgInfo);
+          targetPath,
+          ...(itemType === 'equipment' 
+            ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
+            : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
+          )
+        };
       } else {
         // Only one org, refresh session to ensure context is current
         await refreshSession();
-        return createStateUpdate({
+        return {
           isLoading: false,
           canProceed: true,
-          targetPath
-        }, orgInfo);
+          targetPath,
+          ...(itemType === 'equipment' 
+            ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
+            : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
+          )
+        };
       }
     } else {
       // Already in correct organization
-      return createStateUpdate({
+      return {
         isLoading: false,
         canProceed: true,
-        targetPath
-      }, orgInfo);
+        targetPath,
+        ...(itemType === 'equipment' 
+          ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
+          : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
+        )
+      };
     }
-  }, [getCurrentOrganization, refreshSession]);
+  }, [getCurrentOrganization, refreshSession, checkUserHasMultipleOrganizations]);
 
   const checkInventoryItemOrganization = useCallback(async () => {
     if (!inventoryItemId || !user) return;
