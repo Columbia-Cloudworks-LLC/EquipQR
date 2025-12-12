@@ -136,7 +136,9 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     if (!currentOrganization || !user) return;
 
     try {
-      // Check current inventory quantity before adjustment (for UX, actual check happens in RPC)
+      // Fetch current item for display purposes (name, etc.)
+      // Note: Stock validation happens in the RPC function with row locking
+      // to prevent race conditions and overselling
       const { data: currentItem, error: fetchError } = await supabase
         .from('inventory_items')
         .select('quantity_on_hand, name')
@@ -147,23 +149,25 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
       if (fetchError || !currentItem) {
         toast({
           title: 'Error',
-          description: 'Failed to fetch current inventory quantity',
+          description: 'Failed to fetch inventory item details',
           variant: 'destructive'
         });
         return;
       }
 
-      // Client-side validation: warn if insufficient stock (actual validation happens in RPC with row locking)
+      // Client-side UX check: warn if stock appears insufficient
+      // The RPC function will enforce this with row locking to prevent race conditions
       if (currentItem.quantity_on_hand < quantity) {
         toast({
           title: 'Insufficient stock',
-          description: `Available: ${currentItem.quantity_on_hand}, Requested: ${quantity}. Proceeding may result in negative inventory.`,
+          description: `Available: ${currentItem.quantity_on_hand}, Requested: ${quantity}. The request will be rejected if stock is insufficient.`,
           variant: 'warning'
         });
       }
 
       // Adjust inventory quantity (decrease by quantity used)
-      // RPC function uses FOR UPDATE locking to prevent race conditions
+      // RPC function uses FOR UPDATE row locking and validates stock levels
+      // to prevent race conditions and overselling
       const newQuantity = await adjustInventoryMutation.mutateAsync({
         organizationId: currentOrganization.id,
         adjustment: {
@@ -174,10 +178,10 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         }
       });
 
+      // Only create work order cost if inventory adjustment succeeded
       // Use the name we already fetched, or fallback to querying again
       const itemName = currentItem.name || `Inventory item (ID: ${itemId.substring(0, 8)}...)`;
 
-      // Create work order cost record
       await createCostMutation.mutateAsync({
         work_order_id: workOrderId,
         description: itemName,
@@ -185,22 +189,49 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         unit_price_cents: Math.round(unitCost * 100)
       });
 
-      // Show warning if quantity went negative
-      if (newQuantity < 0) {
-        toast({
-          title: 'Inventory adjusted',
-          description: `Warning: Inventory quantity is now negative: ${newQuantity}`,
-          variant: 'warning'
-        });
-      } else {
-        toast({
-          title: 'Part added',
-          description: `Added ${quantity} unit(s) from inventory to work order`
-        });
-      }
+      toast({
+        title: 'Part added',
+        description: `Added ${quantity} unit(s) from inventory to work order. Remaining stock: ${newQuantity}`
+      });
     } catch (error) {
+      // Error handling: The mutation hook's onError will show a generic toast,
+      // but we provide additional context here for insufficient stock errors
       console.error('Error adding part from inventory:', error);
-      // Error handling is done in mutation hooks
+      
+      // Extract error message from Supabase RPC error
+      // Supabase RPC errors have the message in error.message or error.details
+      let errorMessage = '';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      } else if (error && typeof error === 'object' && 'details' in error) {
+        errorMessage = String(error.details);
+      } else {
+        errorMessage = String(error);
+      }
+      
+      // Check if it's an insufficient stock error from the RPC function
+      // The RPC function raises: 'Insufficient stock: requested X units, but only Y available'
+      if (errorMessage.includes('Insufficient stock')) {
+        // Extract the specific details from the error message if available
+        const match = errorMessage.match(/Insufficient stock: requested (\d+) units, but only (\d+) available/);
+        if (match) {
+          toast({
+            title: 'Cannot add part',
+            description: `Insufficient stock: Only ${match[2]} unit(s) available, but ${match[1]} requested. The quantity may have changed since you selected this item.`,
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'Cannot add part',
+            description: 'Insufficient stock available. The quantity may have changed since you selected this item.',
+            variant: 'destructive'
+          });
+        }
+      }
+      // Other errors are handled by the mutation hook's onError callback
+      // The work order cost will NOT be created because we're in the catch block
     }
   };
 
