@@ -2,7 +2,7 @@
 
 # <a href=https://equipqr.app>EquipQR</a>™
 
-<a href=https://equipqr.app><img src="public/eqr-icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR™ Logo" width="200" /></a>
+<a href="https://equipqr.app"><img src="public/eqr-icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR™ Logo" width="200" /></a>
 
 ## 🚜 Fleet Equipment Management Platform 🚧
 
