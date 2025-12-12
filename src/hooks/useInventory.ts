@@ -142,6 +142,9 @@ export const useCreateInventoryItem = () => {
       organizationId: string;
       formData: InventoryItemFormData;
     }) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useInventory.ts:137',message:'useCreateInventoryItem mutationFn called',data:{organizationId,userId:user?.id,name:formData.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       if (!user) throw new Error('User not authenticated');
       return await createInventoryItem(organizationId, formData, user.id);
     },
@@ -159,7 +162,7 @@ export const useCreateInventoryItem = () => {
       toast({
         title: 'Error creating inventory item',
         description: error instanceof Error ? error.message : 'Failed to create inventory item',
-        variant: 'destructive'
+        variant: 'error'
       });
     }
   });
@@ -198,7 +201,7 @@ export const useUpdateInventoryItem = () => {
       toast({
         title: 'Error updating inventory item',
         description: error instanceof Error ? error.message : 'Failed to update inventory item',
-        variant: 'destructive'
+        variant: 'error'
       });
     }
   });
@@ -232,7 +235,7 @@ export const useDeleteInventoryItem = () => {
       toast({
         title: 'Error deleting inventory item',
         description: error instanceof Error ? error.message : 'Failed to delete inventory item',
-        variant: 'destructive'
+        variant: 'error'
       });
     }
   });
@@ -284,7 +287,7 @@ export const useAdjustInventoryQuantity = () => {
       toast({
         title: 'Error adjusting inventory',
         description: error instanceof Error ? error.message : 'Failed to adjust inventory quantity',
-        variant: 'destructive'
+        variant: 'error'
       });
     }
   });
@@ -323,7 +326,7 @@ export const useAssignInventoryManagers = () => {
       toast({
         title: 'Error updating managers',
         description: error instanceof Error ? error.message : 'Failed to update managers',
-        variant: 'destructive'
+        variant: 'error'
       });
     }
   });

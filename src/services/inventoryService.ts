@@ -16,6 +16,9 @@ export const getInventoryItems = async (
   organizationId: string,
   filters: InventoryFilters = {}
 ): Promise<InventoryItem[]> => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'inventoryService.ts:15',message:'getInventoryItems called',data:{organizationId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   try {
     let query = supabase
       .from('inventory_items')
@@ -41,6 +44,10 @@ export const getInventoryItems = async (
     // Use getCompatibleInventoryItems for equipment-based filtering.
 
     const { data, error } = await query.order('name', { ascending: true });
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'inventoryService.ts:43',message:'Query result',data:{error:error?{code:error.code,message:error.message,hint:error.hint,details:error.details}:null,dataLength:data?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
 
     if (error) throw error;
 
@@ -100,6 +107,9 @@ export const createInventoryItem = async (
   formData: InventoryItemFormData,
   userId: string
 ): Promise<InventoryItem> => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'inventoryService.ts:98',message:'createInventoryItem called',data:{organizationId,userId,name:formData.name,quantity_on_hand:formData.quantity_on_hand},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
   try {
     // Create the inventory item
     const { data: itemData, error: itemError } = await supabase
@@ -119,6 +129,10 @@ export const createInventoryItem = async (
       })
       .select()
       .single();
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'inventoryService.ts:123',message:'Insert result',data:{error:itemError?{code:itemError.code,message:itemError.message,hint:itemError.hint,details:itemError.details}:null,itemDataId:itemData?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
 
     if (itemError) throw itemError;
 

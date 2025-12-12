@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Package, History, Link2, Users, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity } from '@/hooks/useInventory';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { InventoryItemForm } from '@/components/inventory/InventoryItemForm';
+import InventoryQRCodeDisplay from '@/components/inventory/InventoryQRCodeDisplay';
 import { useAppToast } from '@/hooks/useAppToast';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
@@ -34,8 +35,11 @@ const InventoryItemDetail = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAdjustDialog, setShowAdjustDialog] = useState(false);
-  const [adjustQuantity, setAdjustQuantity] = useState(0);
+  const [showAddInput, setShowAddInput] = useState(false);
+  const [showSubtractInput, setShowSubtractInput] = useState(false);
+  const [adjustmentAmount, setAdjustmentAmount] = useState(1);
   const [adjustReason, setAdjustReason] = useState('');
+  const [showQRCode, setShowQRCode] = useState(false);
 
   const { data: item, isLoading: itemLoading } = useInventoryItem(
     currentOrganization?.id,
@@ -93,23 +97,61 @@ const InventoryItemDetail = () => {
     }
   };
 
-  const handleAdjustQuantity = async () => {
-    if (!currentOrganization || !itemId || !user || adjustQuantity === 0) return;
+  const resetAdjustDialog = () => {
+    setShowAddInput(false);
+    setShowSubtractInput(false);
+    setAdjustmentAmount(1);
+    setAdjustReason('');
+  };
+
+  const handleAdjustQuantity = async (delta: number) => {
+    if (!currentOrganization || !itemId || !user || delta === 0) return;
     try {
       await adjustMutation.mutateAsync({
         organizationId: currentOrganization.id,
         adjustment: {
           itemId,
-          delta: adjustQuantity,
+          delta,
           reason: adjustReason || 'Manual adjustment'
         }
       });
       setShowAdjustDialog(false);
-      setAdjustQuantity(0);
-      setAdjustReason('');
+      resetAdjustDialog();
     } catch {
       // Error handled in mutation
     }
+  };
+
+  const handleQuickAdd = () => {
+    handleAdjustQuantity(1);
+  };
+
+  const handleQuickTake = () => {
+    handleAdjustQuantity(-1);
+  };
+
+  const handleShowAddMore = () => {
+    setShowAddInput(true);
+    setShowSubtractInput(false);
+    setAdjustmentAmount(1);
+  };
+
+  const handleShowTakeMore = () => {
+    setShowSubtractInput(true);
+    setShowAddInput(false);
+    setAdjustmentAmount(1);
+  };
+
+  const handleCancelInput = () => {
+    setShowAddInput(false);
+    setShowSubtractInput(false);
+    setAdjustmentAmount(1);
+  };
+
+  const handleSubmitMore = () => {
+    if (adjustmentAmount <= 0) return;
+    const delta = showAddInput ? adjustmentAmount : -adjustmentAmount;
+    handleAdjustQuantity(delta);
   };
 
   const canEdit = canCreateEquipment(); // Reuse equipment permission
@@ -164,22 +206,28 @@ const InventoryItemDetail = () => {
               description={item.description || 'Inventory item details'}
             />
           </div>
-          {canEdit && (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowAdjustDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Adjust Quantity
-              </Button>
-              <Button variant="outline" onClick={() => setShowEditForm(true)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowQRCode(true)}>
+              <QrCode className="h-4 w-4 mr-2" />
+              QR Code
+            </Button>
+            {canEdit && (
+              <>
+                <Button variant="outline" onClick={() => setShowAdjustDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adjust Quantity
+                </Button>
+                <Button variant="outline" onClick={() => setShowEditForm(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -447,48 +495,169 @@ const InventoryItemDetail = () => {
           </DialogContent>
         </Dialog>
 
+        {/* QR Code Display */}
+        {itemId && (
+          <InventoryQRCodeDisplay
+            open={showQRCode}
+            onClose={() => setShowQRCode(false)}
+            itemId={itemId}
+            itemName={item.name}
+          />
+        )}
+
         {/* Adjust Quantity Dialog */}
-        <Dialog open={showAdjustDialog} onOpenChange={setShowAdjustDialog}>
+        <Dialog 
+          open={showAdjustDialog} 
+          onOpenChange={(open) => {
+            setShowAdjustDialog(open);
+            if (!open) {
+              resetAdjustDialog();
+            }
+          }}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Adjust Quantity</DialogTitle>
-              <DialogDescription>
-                Current quantity: {item.quantity_on_hand}
-              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Change Amount</Label>
-                <Input
-                  type="number"
-                  value={adjustQuantity}
-                  onChange={(e) => setAdjustQuantity(parseInt(e.target.value) || 0)}
-                  placeholder="e.g., +10 or -5"
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Use positive numbers to add, negative to subtract
-                </p>
+            <div className="space-y-6">
+              {/* Current Quantity Display */}
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-2">Current quantity</p>
+                <p className="text-4xl font-bold">{item.quantity_on_hand}</p>
               </div>
+
+              {/* Add Section */}
+              {!showSubtractInput && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Add to inventory</Label>
+                  {showAddInput ? (
+                    <div className="space-y-3">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={adjustmentAmount}
+                        onChange={(e) => setAdjustmentAmount(Math.max(1, parseInt(e.target.value) || 1))}
+                        placeholder="Enter amount to add"
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={handleCancelInput}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleSubmitMore}
+                          disabled={adjustmentAmount <= 0 || adjustMutation.isPending}
+                          className="flex-1"
+                        >
+                          {adjustMutation.isPending ? 'Adding...' : 'Add'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleQuickAdd}
+                        disabled={adjustMutation.isPending}
+                        className="flex-1"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add 1
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleShowAddMore}
+                        className="flex-1"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add More
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Take Section */}
+              {!showAddInput && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Take from inventory</Label>
+                  {showSubtractInput ? (
+                    <div className="space-y-3">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={adjustmentAmount}
+                        onChange={(e) => setAdjustmentAmount(Math.max(1, parseInt(e.target.value) || 1))}
+                        placeholder="Enter amount to take"
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={handleCancelInput}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleSubmitMore}
+                          disabled={adjustmentAmount <= 0 || adjustMutation.isPending}
+                          className="flex-1"
+                        >
+                          {adjustMutation.isPending ? 'Taking...' : 'Take'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleQuickTake}
+                        disabled={adjustMutation.isPending}
+                        variant="destructive"
+                        className="flex-1"
+                      >
+                        <Minus className="h-4 w-4 mr-2" />
+                        Take 1
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleShowTakeMore}
+                        className="flex-1"
+                      >
+                        <Minus className="h-4 w-4 mr-2" />
+                        Take More
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Reason Field - Always visible */}
               <div>
-                <Label>Reason</Label>
+                <Label htmlFor="adjust-reason" className="text-sm font-medium">
+                  Reason <span className="text-muted-foreground font-normal">(optional)</span>
+                </Label>
                 <Textarea
+                  id="adjust-reason"
                   value={adjustReason}
                   onChange={(e) => setAdjustReason(e.target.value)}
                   placeholder="Reason for adjustment..."
                   rows={3}
+                  className="mt-1"
                 />
               </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowAdjustDialog(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleAdjustQuantity}
-                  disabled={adjustQuantity === 0 || adjustMutation.isPending}
-                >
-                  {adjustMutation.isPending ? 'Adjusting...' : 'Adjust Quantity'}
-                </Button>
-              </div>
+
+              {/* Cancel Button - Only show when not in input mode */}
+              {!showAddInput && !showSubtractInput && (
+                <div className="flex justify-end">
+                  <Button variant="outline" onClick={() => setShowAdjustDialog(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>

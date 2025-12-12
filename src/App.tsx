@@ -28,6 +28,7 @@ const FleetMap = lazy(() => import('@/pages/FleetMap'));
 const Organization = lazy(() => import('@/pages/Organization'));
 const QRScanner = lazy(() => import('@/pages/QRScanner'));
 const QRRedirect = lazy(() => import('@/pages/QRRedirect'));
+const InventoryQRRedirect = lazy(() => import('@/pages/InventoryQRRedirect'));
 // Billing and monetization features removed
 // const Billing = lazy(() => import('@/pages/Billing'));
 const Settings = lazy(() => import('@/pages/Settings'));
@@ -77,6 +78,7 @@ function App() {
         <Route path="/support" element={<Suspense fallback={<div>Loading...</div>}><Support /></Suspense>} />
         <Route path="/invitation/:token" element={<Suspense fallback={<div>Loading...</div>}><InvitationAccept /></Suspense>} />
         <Route path="/qr/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><QRRedirect /></Suspense>} />
+        <Route path="/qr/inventory/:itemId" element={<Suspense fallback={<div>Loading...</div>}><InventoryQRRedirect /></Suspense>} />
         <Route path="/terms-of-service" element={<Suspense fallback={<div>Loading...</div>}><TermsOfService /></Suspense>} />
         <Route path="/privacy-policy" element={<Suspense fallback={<div>Loading...</div>}><PrivacyPolicy /></Suspense>} />
 

@@ -43,6 +43,9 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   onClose,
   editingItem
 }) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:45',message:'Form component rendered',data:{open,editingItemId:editingItem?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
   const { currentOrganization } = useOrganization();
   const [equipmentSearch, setEquipmentSearch] = useState('');
   const [managerSearch, setManagerSearch] = useState('');
@@ -72,7 +75,12 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
 
   // Load editing data
   useEffect(() => {
+    console.log('[DEBUG] Form reset useEffect triggered', { open, editingItem: editingItem?.id, currentName: form.getValues('name') });
     if (open && editingItem) {
+      // #region agent log
+      console.log('[DEBUG] Resetting form for editing');
+      fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:77',message:'Resetting form for editing',data:{editingItemName:editingItem.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       form.reset({
         name: editingItem.name,
         description: editingItem.description || '',
@@ -87,6 +95,11 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         managerIds: [] // Will be loaded separately
       });
     } else if (open && !editingItem) {
+      // #region agent log
+      const beforeReset = form.getValues('name');
+      console.log('[DEBUG] Resetting form for create, name before reset:', beforeReset);
+      fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:92',message:'Resetting form for create',data:{nameBeforeReset:beforeReset},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       form.reset({
         name: '',
         description: '',
@@ -100,6 +113,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         compatibleEquipmentIds: [],
         managerIds: []
       });
+      console.log('[DEBUG] After reset, name value:', form.getValues('name'));
     }
   }, [open, editingItem, form]);
 
@@ -137,23 +151,43 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   }, [editingItem, currentOrganization?.id, form]);
 
   const onSubmit = async (data: InventoryItemFormData) => {
-    if (!currentOrganization) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:142',message:'onSubmit called',data:{name:data.name,quantity_on_hand:data.quantity_on_hand,currentOrganizationId:currentOrganization?.id,editingItemId:editingItem?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    if (!currentOrganization) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:145',message:'No currentOrganization - early return',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
+      return;
+    }
 
     try {
       if (editingItem) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:152',message:'Calling updateMutation',data:{organizationId:currentOrganization.id,itemId:editingItem.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
         await updateMutation.mutateAsync({
           organizationId: currentOrganization.id,
           itemId: editingItem.id,
           formData: data
         });
       } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:160',message:'Calling createMutation',data:{organizationId:currentOrganization.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
         await createMutation.mutateAsync({
           organizationId: currentOrganization.id,
           formData: data
         });
       }
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:168',message:'Mutation successful, calling onClose',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       onClose();
     } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:172',message:'Error in onSubmit catch block',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       // Error handling is done in the mutation hooks
       console.error('Error submitting form:', error);
     }
@@ -161,6 +195,15 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
 
   const selectedEquipmentIds = form.watch('compatibleEquipmentIds') || [];
   const selectedManagerIds = form.watch('managerIds') || [];
+  
+  // Watch name field for debugging
+  const watchedName = form.watch('name');
+  // #region agent log
+  React.useEffect(() => {
+    console.log('[DEBUG] Name field value changed:', watchedName);
+    fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:165',message:'Name field value changed',data:{watchedName,formNameValue:form.getValues('name')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  }, [watchedName, form]);
+  // #endregion
 
   const filteredEquipment = allEquipment.filter(eq =>
     eq.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
@@ -193,6 +236,9 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:197',message:'Rendering Dialog',data:{open,currentOrganizationId:currentOrganization?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -208,7 +254,16 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={(e) => {
+            const formValues = form.getValues();
+            const formErrors = form.formState.errors;
+            const nameValue = form.getValues('name');
+            // #region agent log
+            console.log('[DEBUG] Form submit - formValues:', formValues, 'nameValue:', nameValue, 'errors:', formErrors);
+            fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemForm.tsx:217',message:'Form submit event triggered',data:{formValues,formErrors,nameValue},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+            form.handleSubmit(onSubmit)(e);
+          }} className="space-y-6">
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField

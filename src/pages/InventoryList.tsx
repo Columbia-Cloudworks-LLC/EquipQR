@@ -33,8 +33,14 @@ const InventoryList = () => {
   );
 
   const handleAddItem = () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryList.tsx:35',message:'handleAddItem called',data:{showFormBefore:showForm},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     setEditingItem(null);
     setShowForm(true);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryList.tsx:38',message:'After setShowForm(true)',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
   };
 
 
@@ -48,6 +54,10 @@ const InventoryList = () => {
   };
 
   const canCreate = canCreateEquipment(); // Reuse equipment permission
+
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryList.tsx:50',message:'Permission check result',data:{canCreate,currentOrganizationId:currentOrganization?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
 
   if (!currentOrganization) {
     return (
@@ -86,7 +96,11 @@ const InventoryList = () => {
           description={`Manage inventory items for ${currentOrganization.name}`}
           actions={
             canCreate && (
-              <Button onClick={handleAddItem}>
+              <Button onClick={handleAddItem} 
+                // #region agent log
+                onMouseDown={()=>fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryList.tsx:89',message:'Button mousedown event',data:{canCreate},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{})}
+                // #endregion
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Item
               </Button>
@@ -242,6 +256,9 @@ const InventoryList = () => {
         )}
 
         {/* Form Dialog */}
+        {/* #region agent log */}
+        {(()=>{fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryList.tsx:245',message:'Checking showForm condition',data:{showForm,willRender:!!showForm},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});return null;})()}
+        {/* #endregion */}
         {showForm && (
           <InventoryItemForm
             open={showForm}
