@@ -1,12 +1,14 @@
-# EquipQR™
-
 <div align="center">
-  <img src="public/eqr-icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR™ Logo" width="200" />
-</div>
+
+# <a href=https://equipqr.app>EquipQR</a>™
+
+<a href=https://equipqr.app><img src="public/eqr-icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR™ Logo" width="200" /></a>
 
 ## 🚜 Fleet Equipment Management Platform 🚧
 
 A comprehensive fleet equipment management platform built with React, TypeScript, and modern web technologies.
+
+</div>
 
 ## 🚀 Features
 
