@@ -1,0 +1,32 @@
+---
+description: UI components, design tokens, and styling guidelines.
+globs: src/**/*.{ts,tsx,css}
+alwaysApply: true
+---
+# UI System & UX
+
+## Design Tokens
+
+- **Source of Truth**: `docs/technical/standards.md`.
+- **Colors**: Use CSS variables (e.g., `bg-primary`, `text-muted-foreground`) defined in `src/index.css`. Never use hardcoded hex values.
+- **Spacing**: Use standard Tailwind classes or CSS vars (`--content-padding`).
+
+## Component Usage
+
+- **Primitives**: Always check `src/components/ui/` first. Do not reinvent `Button`, `Input`, or `Card`.
+- **Layout**:
+  - Use `Page` component for top-level layout consistency.
+  - Use `PageHeader` for titles and breadcrumbs.
+- **Forms**: Use `src/components/form/` wrappers (`TextField`, `SelectField`) which handle labels, errors, and accessibility automatically.
+- **Loading**: Use `Skeleton` components, not spinning loaders, for content structure.
+- **Empty States**: Use `EmptyState` component when lists are empty.
+
+## Responsive Design
+
+- **Mobile First**: Write styles for mobile first, then `sm:`, `md:`, `lg:`.
+- **Breakpoints**: Respect the project's Tailwind config (including `xs: 475px`).
+
+## Accessibility
+
+- Ensure all interactive elements have focus rings (`ring-offset-2`, etc.).
+- Forms must have `aria-describedby` for error messages (handled by Form components).

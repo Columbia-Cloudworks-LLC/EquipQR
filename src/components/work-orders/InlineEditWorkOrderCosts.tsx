@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Edit2, Check, X, DollarSign } from 'lucide-react';
+import { Edit2, Check, X, DollarSign, Package } from 'lucide-react';
 import { WorkOrderCost } from '@/services/workOrderCostsService';
 import { useWorkOrderCostsState } from '@/hooks/useWorkOrderCostsState';
 import { 
@@ -9,22 +9,36 @@ import {
   useDeleteWorkOrderCost 
 } from '@/hooks/useWorkOrderCosts';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useAdjustInventoryQuantity } from '@/hooks/useInventory';
+import { supabase } from '@/integrations/supabase/client';
+import { InventoryPartSelector } from './InventoryPartSelector';
 import WorkOrderCostsEditor from './WorkOrderCostsEditor';
+import { useAppToast } from '@/hooks/useAppToast';
 
 interface InlineEditWorkOrderCostsProps {
   costs: WorkOrderCost[];
   workOrderId: string;
+  equipmentIds: string[];
   canEdit: boolean;
 }
 
 const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   costs,
   workOrderId,
+  equipmentIds,
   canEdit
 }) => {
   const isMobile = useIsMobile();
+  const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
+  const { toast } = useAppToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showInventorySelector, setShowInventorySelector] = useState(false);
+  
+  const adjustInventoryMutation = useAdjustInventoryQuantity();
   
   const {
     costs: editCosts,
@@ -116,6 +130,109 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   const handleCancel = () => {
     resetCosts(costs);
     setIsEditing(false);
+  };
+
+  const handleAddFromInventory = async (itemId: string, quantity: number, unitCost: number) => {
+    if (!currentOrganization || !user) return;
+
+    try {
+      // Fetch current item for display purposes (name, etc.)
+      // Note: Stock validation happens in the RPC function with row locking
+      // to prevent race conditions and overselling
+      const { data: currentItem, error: fetchError } = await supabase
+        .from('inventory_items')
+        .select('quantity_on_hand, name')
+        .eq('id', itemId)
+        .eq('organization_id', currentOrganization.id)
+        .single();
+
+      if (fetchError || !currentItem) {
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch inventory item details',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Client-side UX check: warn if stock appears insufficient
+      // The RPC function will enforce this with row locking to prevent race conditions
+      if (currentItem.quantity_on_hand < quantity) {
+        toast({
+          title: 'Insufficient stock',
+          description: `Available: ${currentItem.quantity_on_hand}, Requested: ${quantity}. The request will be rejected if stock is insufficient.`,
+          variant: 'warning'
+        });
+      }
+
+      // Adjust inventory quantity (decrease by quantity used)
+      // RPC function uses FOR UPDATE row locking and validates stock levels
+      // to prevent race conditions and overselling
+      const newQuantity = await adjustInventoryMutation.mutateAsync({
+        organizationId: currentOrganization.id,
+        adjustment: {
+          itemId,
+          delta: -quantity,
+          reason: `Used in work order ${workOrderId}`,
+          workOrderId
+        }
+      });
+
+      // Only create work order cost if inventory adjustment succeeded
+      // Use the name we already fetched, or fallback to querying again
+      const itemName = currentItem.name || `Inventory item (ID: ${itemId.substring(0, 8)}...)`;
+
+      await createCostMutation.mutateAsync({
+        work_order_id: workOrderId,
+        description: itemName,
+        quantity: quantity,
+        unit_price_cents: Math.round(unitCost * 100)
+      });
+
+      toast({
+        title: 'Part added',
+        description: `Added ${quantity} unit(s) from inventory to work order. Remaining stock: ${newQuantity}`
+      });
+    } catch (error) {
+      // Error handling: The mutation hook's onError will show a generic toast,
+      // but we provide additional context here for insufficient stock errors
+      console.error('Error adding part from inventory:', error);
+      
+      // Extract error message from Supabase RPC error
+      // Supabase RPC errors have the message in error.message or error.details
+      let errorMessage = '';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      } else if (error && typeof error === 'object' && 'details' in error) {
+        errorMessage = String(error.details);
+      } else {
+        errorMessage = String(error);
+      }
+      
+      // Check if it's an insufficient stock error from the RPC function
+      // The RPC function raises: 'Insufficient stock: requested X units, but only Y available'
+      if (errorMessage.includes('Insufficient stock')) {
+        // Extract the specific details from the error message if available
+        const match = errorMessage.match(/Insufficient stock: requested (\d+) units, but only (\d+) available/);
+        if (match) {
+          toast({
+            title: 'Cannot add part',
+            description: `Insufficient stock: Only ${match[2]} unit(s) available, but ${match[1]} requested. The quantity may have changed since you selected this item.`,
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'Cannot add part',
+            description: 'Insufficient stock available. The quantity may have changed since you selected this item.',
+            variant: 'destructive'
+          });
+        }
+      }
+      // Other errors are handled by the mutation hook's onError callback
+      // The work order cost will NOT be created because we're in the catch block
+    }
   };
 
   const MobileCostDisplay = ({ cost }: { cost: WorkOrderCost }) => (
@@ -274,6 +391,17 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-sm font-medium">Edit Cost Items</h4>
         <div className="flex gap-2">
+          {equipmentIds.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowInventorySelector(true)}
+              disabled={isSaving}
+            >
+              <Package className="h-4 w-4 mr-1" />
+              Add from Inventory
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -302,6 +430,16 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         onUpdateCost={updateCost}
         hasError={!validateCosts()}
       />
+
+      {/* Inventory Part Selector */}
+      {showInventorySelector && equipmentIds.length > 0 && (
+        <InventoryPartSelector
+          open={showInventorySelector}
+          onClose={() => setShowInventorySelector(false)}
+          equipmentIds={equipmentIds}
+          onSelect={handleAddFromInventory}
+        />
+      )}
     </div>
   );
 };

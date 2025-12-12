@@ -1,0 +1,44 @@
+import { z } from 'zod';
+
+export const inventoryItemFormSchema = z.object({
+  name: z.string()
+    .min(1, 'Name is required')
+    .max(255, 'Name must be less than 255 characters'),
+  description: z.string()
+    .max(1000, 'Description must be less than 1000 characters')
+    .optional()
+    .nullable(),
+  sku: z.string()
+    .max(100, 'SKU must be less than 100 characters')
+    .optional()
+    .nullable(),
+  external_id: z.string()
+    .max(100, 'External ID must be less than 100 characters')
+    .optional()
+    .nullable(),
+  quantity_on_hand: z.number()
+    .int('Quantity must be an integer')
+    .min(-10000, 'Quantity cannot be less than -10,000 (prevents data entry errors while allowing reasonable backorders)'),
+  low_stock_threshold: z.number()
+    .int('Low stock threshold must be an integer')
+    .min(1, 'Low stock threshold must be at least 1')
+    .default(5),
+  image_url: z.preprocess(
+    (val) => val === '' || val === undefined ? null : val,
+    z.string().url('Must be a valid URL').nullable().optional()
+  ),
+  location: z.string()
+    .max(255, 'Location must be less than 255 characters')
+    .optional()
+    .nullable(),
+  default_unit_cost: z.number()
+    .min(0, 'Unit cost cannot be negative')
+    .max(999999.99, 'Unit cost seems too high')
+    .optional()
+    .nullable(),
+  compatibleEquipmentIds: z.array(z.string().uuid()).default([]),
+  managerIds: z.array(z.string().uuid()).default([])
+});
+
+export type InventoryItemFormData = z.infer<typeof inventoryItemFormSchema>;
+

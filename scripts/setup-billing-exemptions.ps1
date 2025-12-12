@@ -51,7 +51,18 @@ Write-Host "  npx supabase functions deploy manage-billing-exemptions" -Foregrou
 Write-Host ""
 Write-Host "Option B - Using Supabase Dashboard:"
 Write-Host ""
-Write-Host "  1. Go to https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq/settings/functions"
+# Extract project ref from SUPABASE_URL or use default
+$PROJECT_REF = $env:SUPABASE_PROJECT_REF
+if (-not $PROJECT_REF -and $env:VITE_SUPABASE_URL) {
+    # Extract project ref from URL (e.g., https://xxxxx.supabase.co -> xxxxx)
+    if ($env:VITE_SUPABASE_URL -match 'https://([^\.]+)\.supabase\.co') {
+        $PROJECT_REF = $matches[1]
+    }
+}
+if (-not $PROJECT_REF) {
+    $PROJECT_REF = "ymxkzronkhwxzcdcbnwq"
+}
+Write-Host "  1. Go to https://supabase.com/dashboard/project/${PROJECT_REF}/settings/functions"
 Write-Host "  2. Scroll to 'Secrets' section"
 Write-Host "  3. Click 'Add new secret'"
 Write-Host "  4. Name: SUPER_ADMIN_ORG_ID"

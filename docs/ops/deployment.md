@@ -670,6 +670,16 @@ EquipQR™ is designed to work with Supabase for backend functionality:
 3. **Authentication**: Configure Supabase Auth for user management
 4. **Real-time Updates**: Enable real-time subscriptions for live data
 
+### Supabase Branch Configuration
+
+EquipQR™ uses Supabase Branching for environment management:
+- **Production Branch**: `ymxkzronkhwxzcdcbnwq` (main branch)
+- **Preview/Staging Branch**: `olsdirkvvfegvclbpgrg` (preview branch)
+
+The `supabase/config.toml` file includes a `[remotes.staging]` section that configures the preview branch for Supabase CLI operations.
+
+**⚠️ Important**: Edge Function secrets are branch-specific. You must configure secrets separately for each branch. See [Supabase Branch Secrets Configuration](./supabase-branch-secrets.md) for detailed instructions.
+
 ### Supabase Configuration
 EquipQR™ uses Supabase for all backend functionality. Ensure proper configuration:
 
