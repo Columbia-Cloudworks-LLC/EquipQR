@@ -99,6 +99,8 @@ Deno.serve(async (req) => {
       logStep("Checking current organization", { orgId: current_organization_id });
 
       // Verify user is a member of the organization before querying
+      // CRITICAL: If current_organization_id is provided, user MUST be a member
+      // This prevents users from discovering inventory in organizations they don't have access to
       const { data: orgMembership, error: membershipError } = await supabaseClient
         .from('organization_members')
         .select('organization_id')
@@ -113,8 +115,15 @@ Deno.serve(async (req) => {
           userId: user.id,
           error: membershipError?.message 
         });
-        // Continue to next step (check other orgs) instead of returning error
-        // This allows the function to check if the item exists in other orgs the user belongs to
+        return new Response(
+          JSON.stringify({ 
+            error: "Forbidden: You are not a member of the specified organization" 
+          }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       } else {
         let currentOrgMatch = null;
         let currentOrgError = null;
