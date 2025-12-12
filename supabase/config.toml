@@ -58,3 +58,10 @@ verify_jwt = true
 [functions.quickbooks-export-invoice]
 verify_jwt = true
 # Exports work order to QuickBooks as a draft invoice. Requires authenticated admin/owner.
+
+# Staging/Preview Branch Configuration
+# This configuration allows Supabase CLI to deploy to the preview branch project
+# when working with the staging environment. The preview branch is a persistent
+# branch that mirrors the production schema but uses separate data.
+[remotes.staging]
+project_id = "olsdirkvvfegvclbpgrg"
