@@ -136,7 +136,34 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     if (!currentOrganization || !user) return;
 
     try {
+      // Check current inventory quantity before adjustment (for UX, actual check happens in RPC)
+      const { data: currentItem, error: fetchError } = await supabase
+        .from('inventory_items')
+        .select('quantity_on_hand, name')
+        .eq('id', itemId)
+        .eq('organization_id', currentOrganization.id)
+        .single();
+
+      if (fetchError || !currentItem) {
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch current inventory quantity',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Client-side validation: warn if insufficient stock (actual validation happens in RPC with row locking)
+      if (currentItem.quantity_on_hand < quantity) {
+        toast({
+          title: 'Insufficient stock',
+          description: `Available: ${currentItem.quantity_on_hand}, Requested: ${quantity}. Proceeding may result in negative inventory.`,
+          variant: 'warning'
+        });
+      }
+
       // Adjust inventory quantity (decrease by quantity used)
+      // RPC function uses FOR UPDATE locking to prevent race conditions
       const newQuantity = await adjustInventoryMutation.mutateAsync({
         organizationId: currentOrganization.id,
         adjustment: {
@@ -147,17 +174,13 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         }
       });
 
-      // Get inventory item name for description
-      const { data: inventoryItem } = await supabase
-        .from('inventory_items')
-        .select('name')
-        .eq('id', itemId)
-        .single();
+      // Use the name we already fetched, or fallback to querying again
+      const itemName = currentItem.name || `Inventory item (ID: ${itemId.substring(0, 8)}...)`;
 
       // Create work order cost record
       await createCostMutation.mutateAsync({
         work_order_id: workOrderId,
-        description: inventoryItem?.name || `Inventory item (ID: ${itemId.substring(0, 8)}...)`,
+        description: itemName,
         quantity: quantity,
         unit_price_cents: Math.round(unitCost * 100)
       });

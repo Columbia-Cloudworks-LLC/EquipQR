@@ -149,8 +149,10 @@ Deno.serve(async (req) => {
           
           // Improved error handling: only propagate error if both queries actually failed
           if (externalIdErr && skuErr) {
-            // Both queries failed, propagate errors
-            currentOrgError = externalIdErr;
+            // Both queries failed, combine error messages for better debugging
+            currentOrgError = new Error(
+              `Both queries failed: external_id: ${externalIdErr.message || externalIdErr}, sku: ${skuErr.message || skuErr}`
+            );
           } else if (externalIdErr || skuErr) {
             // One query failed, log the error but don't propagate since we may have results
             if (externalIdErr) {
@@ -249,8 +251,10 @@ Deno.serve(async (req) => {
           
           // Improved error handling: only propagate error if both queries actually failed
           if (externalIdErr && skuErr) {
-            // Both queries failed, propagate errors
-            otherOrgsError = externalIdErr;
+            // Both queries failed, combine error messages for better debugging
+            otherOrgsError = new Error(
+              `Both queries failed: external_id: ${externalIdErr.message || externalIdErr}, sku: ${skuErr.message || skuErr}`
+            );
           } else if (externalIdErr || skuErr) {
             // One query failed, log the error but don't propagate since we may have results
             if (externalIdErr) {

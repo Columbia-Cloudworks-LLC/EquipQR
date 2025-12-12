@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS public.inventory_items (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   
   -- Constraints
-  CONSTRAINT inventory_items_low_stock_threshold_check CHECK (low_stock_threshold >= 1)
+  CONSTRAINT inventory_items_low_stock_threshold_check CHECK (low_stock_threshold >= 1),
+  CONSTRAINT inventory_items_quantity_on_hand_check CHECK (quantity_on_hand >= -10000)
 );
 
 -- Indexes for inventory_items
@@ -259,7 +260,7 @@ BEGIN
     v_transaction_type := 'work_order';
   ELSIF p_delta < 0 THEN
     v_transaction_type := 'usage';
-  ELSE
+  ELSIF p_delta > 0 THEN
     -- p_delta > 0 (already validated that delta != 0)
     v_transaction_type := 'restock';
   END IF;
