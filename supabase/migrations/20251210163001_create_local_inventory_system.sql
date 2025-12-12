@@ -38,6 +38,10 @@ CREATE TABLE IF NOT EXISTS public.inventory_items (
   
   -- Constraints
   CONSTRAINT inventory_items_low_stock_threshold_check CHECK (low_stock_threshold >= 1),
+  -- Allow negative quantities for backorders, but prevent unreasonably large negative values
+  -- that could indicate data entry errors (e.g., -1,000,000). The RPC function
+  -- adjust_inventory_quantity prevents going negative for reductions, but this constraint
+  -- provides a safety net for direct updates and manual adjustments.
   CONSTRAINT inventory_items_quantity_on_hand_check CHECK (quantity_on_hand >= -10000)
 );
 
