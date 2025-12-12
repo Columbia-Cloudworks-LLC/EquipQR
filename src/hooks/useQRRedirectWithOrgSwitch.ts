@@ -52,7 +52,21 @@ export const useQRRedirectWithOrgSwitch = ({
     orgInfo: T | null,
     targetPath: string,
     itemType: 'equipment' | 'inventory'
-  ): Promise<Partial<QRRedirectState> | null> => {
+  ): Promise<Partial<QRRedirectState>> => {
+    // Helper to create type-safe state updates with the correct info object
+    const createStateUpdate = (
+      baseState: Omit<Partial<QRRedirectState>, 'equipmentInfo' | 'inventoryInfo'>,
+      info: T
+    ): Partial<QRRedirectState> => {
+      return {
+        ...baseState,
+        ...(itemType === 'equipment' 
+          ? { equipmentInfo: info as EquipmentOrganizationInfo }
+          : { inventoryInfo: info as InventoryOrganizationInfo }
+        )
+      };
+    };
+
     if (!orgInfo) {
       return {
         isLoading: false,
@@ -77,39 +91,27 @@ export const useQRRedirectWithOrgSwitch = ({
       const hasMultipleOrgs = await checkUserHasMultipleOrganizations();
       
       if (hasMultipleOrgs) {
-        return {
+        return createStateUpdate({
           isLoading: false,
           needsOrgSwitch: true,
-          targetPath,
-          ...(itemType === 'equipment' 
-            ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
-            : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
-          )
-        };
+          targetPath
+        }, orgInfo);
       } else {
         // Only one org, refresh session to ensure context is current
         await refreshSession();
-        return {
+        return createStateUpdate({
           isLoading: false,
           canProceed: true,
-          targetPath,
-          ...(itemType === 'equipment' 
-            ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
-            : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
-          )
-        };
+          targetPath
+        }, orgInfo);
       }
     } else {
       // Already in correct organization
-      return {
+      return createStateUpdate({
         isLoading: false,
         canProceed: true,
-        targetPath,
-        ...(itemType === 'equipment' 
-          ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
-          : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
-        )
-      };
+        targetPath
+      }, orgInfo);
     }
   }, [getCurrentOrganization, refreshSession]);
 
@@ -128,9 +130,7 @@ export const useQRRedirectWithOrgSwitch = ({
         'inventory'
       );
 
-      if (stateUpdate) {
-        setState(prev => ({ ...prev, ...stateUpdate }));
-      }
+      setState(prev => ({ ...prev, ...stateUpdate }));
     } catch (error) {
       console.error('❌ Error checking inventory item organization:', error);
       setState(prev => ({
@@ -157,9 +157,7 @@ export const useQRRedirectWithOrgSwitch = ({
         'equipment'
       );
 
-      if (stateUpdate) {
-        setState(prev => ({ ...prev, ...stateUpdate }));
-      }
+      setState(prev => ({ ...prev, ...stateUpdate }));
     } catch (error) {
       console.error('❌ Error checking equipment organization:', error);
       setState(prev => ({
