@@ -46,31 +46,27 @@ export const useQRRedirectWithOrgSwitch = ({
 
   /**
    * Shared logic for verifying organization access and determining if a switch is needed
+   * Returns an object with the updated state properties to ensure type safety
    */
   const verifyOrganizationAccess = useCallback(async <T extends { organizationId: string; organizationName: string; userHasAccess: boolean }>(
     orgInfo: T | null,
     targetPath: string,
-    itemType: 'equipment' | 'inventory',
-    infoKey: 'equipmentInfo' | 'inventoryInfo'
-  ) => {
+    itemType: 'equipment' | 'inventory'
+  ): Promise<Partial<QRRedirectState> | null> => {
     if (!orgInfo) {
-      setState(prev => ({
-        ...prev,
+      return {
         isLoading: false,
         error: `${itemType === 'equipment' ? 'Equipment' : 'Inventory item'} not found or access denied`,
         targetPath: '/dashboard/scanner'
-      }));
-      return;
+      };
     }
 
     if (!orgInfo.userHasAccess) {
-      setState(prev => ({
-        ...prev,
+      return {
         isLoading: false,
         error: `You don't have access to ${itemType} in ${orgInfo.organizationName}`,
         targetPath: '/dashboard/scanner'
-      }));
-      return;
+      };
     }
 
     const currentOrg = getCurrentOrganization();
@@ -81,33 +77,39 @@ export const useQRRedirectWithOrgSwitch = ({
       const hasMultipleOrgs = await checkUserHasMultipleOrganizations();
       
       if (hasMultipleOrgs) {
-        setState(prev => ({
-          ...prev,
+        return {
           isLoading: false,
           needsOrgSwitch: true,
-          [infoKey]: orgInfo,
-          targetPath
-        }));
+          targetPath,
+          ...(itemType === 'equipment' 
+            ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
+            : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
+          )
+        };
       } else {
         // Only one org, refresh session to ensure context is current
         await refreshSession();
-        setState(prev => ({
-          ...prev,
+        return {
           isLoading: false,
           canProceed: true,
-          [infoKey]: orgInfo,
-          targetPath
-        }));
+          targetPath,
+          ...(itemType === 'equipment' 
+            ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
+            : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
+          )
+        };
       }
     } else {
       // Already in correct organization
-      setState(prev => ({
-        ...prev,
+      return {
         isLoading: false,
         canProceed: true,
-        [infoKey]: orgInfo,
-        targetPath
-      }));
+        targetPath,
+        ...(itemType === 'equipment' 
+          ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
+          : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
+        )
+      };
     }
   }, [getCurrentOrganization, refreshSession]);
 
@@ -120,12 +122,15 @@ export const useQRRedirectWithOrgSwitch = ({
       const inventoryInfo = await getInventoryItemOrganization(inventoryItemId);
       const targetPath = `/dashboard/inventory/${inventoryItemId}?qr=true`;
       
-      await verifyOrganizationAccess(
+      const stateUpdate = await verifyOrganizationAccess(
         inventoryInfo,
         targetPath,
-        'inventory',
-        'inventoryInfo'
+        'inventory'
       );
+
+      if (stateUpdate) {
+        setState(prev => ({ ...prev, ...stateUpdate }));
+      }
     } catch (error) {
       console.error('❌ Error checking inventory item organization:', error);
       setState(prev => ({
@@ -146,12 +151,15 @@ export const useQRRedirectWithOrgSwitch = ({
       const equipmentInfo = await getEquipmentOrganization(equipmentId);
       const targetPath = `/dashboard/equipment/${equipmentId}?qr=true`;
 
-      await verifyOrganizationAccess(
+      const stateUpdate = await verifyOrganizationAccess(
         equipmentInfo,
         targetPath,
-        'equipment',
-        'equipmentInfo'
+        'equipment'
       );
+
+      if (stateUpdate) {
+        setState(prev => ({ ...prev, ...stateUpdate }));
+      }
     } catch (error) {
       console.error('❌ Error checking equipment organization:', error);
       setState(prev => ({
