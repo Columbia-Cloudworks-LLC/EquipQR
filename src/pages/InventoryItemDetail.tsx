@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity } from '@/hooks/useInventory';
+import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem } from '@/hooks/useInventory';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -18,10 +18,14 @@ import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { InventoryItemForm } from '@/components/inventory/InventoryItemForm';
 import InventoryQRCodeDisplay from '@/components/inventory/InventoryQRCodeDisplay';
+import InlineEditField from '@/components/equipment/InlineEditField';
 import { useAppToast } from '@/hooks/useAppToast';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import type { Equipment } from '@/services/EquipmentService';
+import type { InventoryItem } from '@/types/inventory';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -30,10 +34,12 @@ const InventoryItemDetail = () => {
   const { user } = useAuth();
   const { toast } = useAppToast();
   const { canCreateEquipment } = usePermissions(); // Reuse equipment permissions
+  const isMobile = useIsMobile();
 
   const [activeTab, setActiveTab] = useState('overview');
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showAdjustDialog, setShowAdjustDialog] = useState(false);
   const [showAddInput, setShowAddInput] = useState(false);
   const [showSubtractInput, setShowSubtractInput] = useState(false);
@@ -55,6 +61,7 @@ const InventoryItemDetail = () => {
   );
   const deleteMutation = useDeleteInventoryItem();
   const adjustMutation = useAdjustInventoryQuantity();
+  const updateMutation = useUpdateInventoryItem();
 
   // Get compatible equipment
   const [compatibleEquipment, setCompatibleEquipment] = useState<Equipment[]>([]);
@@ -156,6 +163,21 @@ const InventoryItemDetail = () => {
 
   const canEdit = canCreateEquipment(); // Reuse equipment permission
 
+  // Handle inline field updates
+  const handleFieldUpdate = async (field: keyof InventoryItem, value: string | number) => {
+    if (!currentOrganization || !itemId) return;
+    try {
+      await updateMutation.mutateAsync({
+        organizationId: currentOrganization.id,
+        itemId: itemId,
+        formData: { [field]: value }
+      });
+    } catch (error) {
+      // Error handling is done in the mutation hook
+      throw error;
+    }
+  };
+
   if (!currentOrganization) {
     return (
       <Page maxWidth="7xl" padding="responsive">
@@ -196,55 +218,49 @@ const InventoryItemDetail = () => {
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-4 md:space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        {/* Mobile-first header: stack vertically on mobile, horizontal on desktop */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          {/* Title section - always on top */}
+          <div className="flex items-center gap-4 min-w-0 flex-1">
             <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/inventory')}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <PageHeader
-              title={item.name}
-              description={item.description || 'Inventory item details'}
-            />
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
+                {item.name}
+              </h1>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowQRCode(true)}>
-              <QrCode className="h-4 w-4 mr-2" />
-              QR Code
-            </Button>
+          
+          {/* Action buttons - below title on mobile, to the right on desktop */}
+          <div className="flex flex-wrap gap-2 md:flex-nowrap">
             {canEdit && (
-              <>
-                <Button variant="outline" onClick={() => setShowAdjustDialog(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adjust Quantity
-                </Button>
-                <Button variant="outline" onClick={() => setShowEditForm(true)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </>
+              <Button variant="default" onClick={() => setShowAdjustDialog(true)} className="flex-1 md:flex-initial">
+                <Plus className="h-4 w-4 mr-2" />
+                Adjust Qty
+              </Button>
             )}
+            <Button variant="outline" onClick={() => setShowQRCode(true)} size="icon">
+              <QrCode className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">
+          <TabsList className={cn(isMobile && "!flex flex-col w-full h-auto gap-1")}>
+            <TabsTrigger value="overview" className={isMobile ? "w-full justify-start" : ""}>
               <Package className="h-4 w-4 mr-2" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="transactions">
+            <TabsTrigger value="transactions" className={isMobile ? "w-full justify-start" : ""}>
               <History className="h-4 w-4 mr-2" />
               Transaction History
             </TabsTrigger>
-            <TabsTrigger value="compatibility">
+            <TabsTrigger value="compatibility" className={isMobile ? "w-full justify-start" : ""}>
               <Link2 className="h-4 w-4 mr-2" />
               Compatibility
             </TabsTrigger>
-            <TabsTrigger value="managers">
+            <TabsTrigger value="managers" className={isMobile ? "w-full justify-start" : ""}>
               <Users className="h-4 w-4 mr-2" />
               Managers
             </TabsTrigger>
@@ -258,33 +274,66 @@ const InventoryItemDetail = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label className="text-muted-foreground">Name</Label>
-                    <p className="font-medium">{item.name}</p>
+                    <Label className="text-sm font-medium text-gray-500">Name</Label>
+                    <div className="mt-1">
+                      <InlineEditField
+                        value={item.name || ''}
+                        onSave={(value) => handleFieldUpdate('name', value)}
+                        canEdit={canEdit}
+                        placeholder="Enter item name"
+                        className="text-base"
+                      />
+                    </div>
                   </div>
-                  {item.description && (
-                    <div>
-                      <Label className="text-muted-foreground">Description</Label>
-                      <p>{item.description}</p>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Description</Label>
+                    <div className="mt-1">
+                      <InlineEditField
+                        value={item.description || ''}
+                        onSave={(value) => handleFieldUpdate('description', value)}
+                        canEdit={canEdit}
+                        type="textarea"
+                        placeholder="Enter description"
+                        className="text-base"
+                      />
                     </div>
-                  )}
-                  {item.sku && (
-                    <div>
-                      <Label className="text-muted-foreground">SKU</Label>
-                      <p className="font-mono">{item.sku}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">SKU</Label>
+                    <div className="mt-1">
+                      <InlineEditField
+                        value={item.sku || ''}
+                        onSave={(value) => handleFieldUpdate('sku', value)}
+                        canEdit={canEdit}
+                        placeholder="Enter SKU"
+                        className="text-base font-mono"
+                      />
                     </div>
-                  )}
-                  {item.external_id && (
-                    <div>
-                      <Label className="text-muted-foreground">External ID</Label>
-                      <p className="font-mono">{item.external_id}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">External ID</Label>
+                    <div className="mt-1">
+                      <InlineEditField
+                        value={item.external_id || ''}
+                        onSave={(value) => handleFieldUpdate('external_id', value)}
+                        canEdit={canEdit}
+                        placeholder="Enter external ID"
+                        className="text-base font-mono"
+                      />
                     </div>
-                  )}
-                  {item.location && (
-                    <div>
-                      <Label className="text-muted-foreground">Location</Label>
-                      <p>{item.location}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Location</Label>
+                    <div className="mt-1">
+                      <InlineEditField
+                        value={item.location || ''}
+                        onSave={(value) => handleFieldUpdate('location', value)}
+                        canEdit={canEdit}
+                        placeholder="Enter location"
+                        className="text-base"
+                      />
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -327,6 +376,28 @@ const InventoryItemDetail = () => {
                     alt={item.name}
                     className="max-w-full h-auto rounded-md"
                   />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Delete Section */}
+            {canEdit && (
+              <Card className="border-destructive">
+                <CardHeader>
+                  <CardTitle className="text-destructive">Delete Item</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Once you delete an inventory item, there is no going back. This action cannot be undone.
+                  </p>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowDeleteConfirmation(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Inventory Item
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -475,21 +546,47 @@ const InventoryItemDetail = () => {
           />
         )}
 
-        {/* Delete Dialog */}
-        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        {/* Delete Confirmation Dialog - First Step */}
+        <Dialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete Inventory Item</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete "{item.name}"? This action cannot be undone.
+                Are you sure you want to delete "{item.name}"? This will permanently delete the item and all its transaction history. This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              <Button variant="outline" onClick={() => setShowDeleteConfirmation(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={() => {
+                setShowDeleteConfirmation(false);
+                setShowDeleteDialog(true);
+              }}>
+                Continue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Dialog - Final Confirmation */}
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Final Confirmation</DialogTitle>
+              <DialogDescription>
+                This will permanently delete "{item.name}" and all {transactions.length} transaction record{transactions.length !== 1 ? 's' : ''}. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => {
+                setShowDeleteDialog(false);
+                setShowDeleteConfirmation(false);
+              }}>
                 Cancel
               </Button>
               <Button variant="destructive" onClick={handleDelete}>
-                Delete
+                Delete Permanently
               </Button>
             </div>
           </DialogContent>
