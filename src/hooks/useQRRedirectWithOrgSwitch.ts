@@ -44,71 +44,88 @@ export const useQRRedirectWithOrgSwitch = ({
   const [isSwitchingOrg, setIsSwitchingOrg] = useState(false);
   const [hasCalledComplete, setHasCalledComplete] = useState(false);
 
+  /**
+   * Shared logic for verifying organization access and determining if a switch is needed
+   */
+  const verifyOrganizationAccess = useCallback(async <T extends { organizationId: string; organizationName: string; userHasAccess: boolean }>(
+    orgInfo: T | null,
+    targetPath: string,
+    itemType: 'equipment' | 'inventory',
+    infoKey: 'equipmentInfo' | 'inventoryInfo'
+  ) => {
+    if (!orgInfo) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: `${itemType === 'equipment' ? 'Equipment' : 'Inventory item'} not found or access denied`,
+        targetPath: '/dashboard/scanner'
+      }));
+      return;
+    }
+
+    if (!orgInfo.userHasAccess) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: `You don't have access to ${itemType} in ${orgInfo.organizationName}`,
+        targetPath: '/dashboard/scanner'
+      }));
+      return;
+    }
+
+    const currentOrg = getCurrentOrganization();
+
+    // Check if we need to switch organizations
+    if (!currentOrg || currentOrg.id !== orgInfo.organizationId) {
+      // Need to switch organization
+      const hasMultipleOrgs = await checkUserHasMultipleOrganizations();
+      
+      if (hasMultipleOrgs) {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          needsOrgSwitch: true,
+          [infoKey]: orgInfo,
+          targetPath
+        }));
+      } else {
+        // Only one org, refresh session to ensure context is current
+        await refreshSession();
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          canProceed: true,
+          [infoKey]: orgInfo,
+          targetPath
+        }));
+      }
+    } else {
+      // Already in correct organization
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        canProceed: true,
+        [infoKey]: orgInfo,
+        targetPath
+      }));
+    }
+  }, [getCurrentOrganization, refreshSession]);
+
   const checkInventoryItemOrganization = useCallback(async () => {
     if (!inventoryItemId || !user) return;
 
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Get inventory item organization info
       const inventoryInfo = await getInventoryItemOrganization(inventoryItemId);
-      
-      if (!inventoryInfo) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: 'Inventory item not found or access denied',
-          targetPath: '/dashboard/scanner'
-        }));
-        return;
-      }
-
-      if (!inventoryInfo.userHasAccess) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: `You don't have access to inventory items in ${inventoryInfo.organizationName}`,
-          targetPath: '/dashboard/scanner'
-        }));
-        return;
-      }
-
-      const currentOrg = getCurrentOrganization();
       const targetPath = `/dashboard/inventory/${inventoryItemId}?qr=true`;
-
-      // Check if we need to switch organizations
-      if (!currentOrg || currentOrg.id !== inventoryInfo.organizationId) {
-        // Need to switch organization
-        const hasMultipleOrgs = await checkUserHasMultipleOrganizations();
-        
-        if (hasMultipleOrgs) {
-          setState(prev => ({
-            ...prev,
-            isLoading: false,
-            needsOrgSwitch: true,
-            inventoryInfo,
-            targetPath
-          }));
-        } else {
-          await refreshSession();
-          setState(prev => ({
-            ...prev,
-            isLoading: false,
-            canProceed: true,
-            inventoryInfo,
-            targetPath
-          }));
-        }
-      } else {
-        // Already in correct organization
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          canProceed: true,
-          inventoryInfo,
-          targetPath
-        }));
-      }
+      
+      await verifyOrganizationAccess(
+        inventoryInfo,
+        targetPath,
+        'inventory',
+        'inventoryInfo'
+      );
     } catch (error) {
       console.error('❌ Error checking inventory item organization:', error);
       setState(prev => ({
@@ -118,7 +135,7 @@ export const useQRRedirectWithOrgSwitch = ({
         targetPath: '/dashboard/scanner'
       }));
     }
-  }, [inventoryItemId, user, getCurrentOrganization, refreshSession]);
+  }, [inventoryItemId, user, verifyOrganizationAccess]);
 
   const checkEquipmentOrganization = useCallback(async () => {
     if (!equipmentId || !user) return;
@@ -126,79 +143,25 @@ export const useQRRedirectWithOrgSwitch = ({
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Get equipment organization info
       const equipmentInfo = await getEquipmentOrganization(equipmentId);
-      
-      if (!equipmentInfo) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-           error: 'Equipment not found or access denied',
-           targetPath: '/dashboard/scanner'
-        }));
-        return;
-      }
-
-      if (!equipmentInfo.userHasAccess) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-           error: `You don't have access to equipment in ${equipmentInfo.organizationName}`,
-           targetPath: '/dashboard/scanner'
-        }));
-        return;
-      }
-
-      const currentOrg = getCurrentOrganization();
       const targetPath = `/dashboard/equipment/${equipmentId}?qr=true`;
 
-      // Check if we need to switch organizations
-      if (!currentOrg || currentOrg.id !== equipmentInfo.organizationId) {
-        // Need to switch organization
-        
-        // Check if user has multiple organizations
-        const hasMultipleOrgs = await checkUserHasMultipleOrganizations();
-        
-        if (hasMultipleOrgs) {
-          setState(prev => ({
-            ...prev,
-            isLoading: false,
-            needsOrgSwitch: true,
-            equipmentInfo,
-            targetPath
-          }));
-        } else {
-          // Only one org, refresh session to ensure context is current
-          await refreshSession();
-          setState(prev => ({
-            ...prev,
-            isLoading: false,
-            canProceed: true,
-            equipmentInfo,
-            targetPath
-          }));
-        }
-      } else {
-        // Already in correct organization
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          canProceed: true,
-          equipmentInfo,
-          targetPath
-        }));
-      }
-
+      await verifyOrganizationAccess(
+        equipmentInfo,
+        targetPath,
+        'equipment',
+        'equipmentInfo'
+      );
     } catch (error) {
       console.error('❌ Error checking equipment organization:', error);
       setState(prev => ({
         ...prev,
         isLoading: false,
-         error: 'Failed to verify equipment access',
-         targetPath: '/dashboard/scanner'
+        error: 'Failed to verify equipment access',
+        targetPath: '/dashboard/scanner'
       }));
     }
-  }, [equipmentId, user, getCurrentOrganization, refreshSession]);
+  }, [equipmentId, user, verifyOrganizationAccess]);
 
   useEffect(() => {
     // Handle inventory item
