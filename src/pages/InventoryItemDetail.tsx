@@ -164,18 +164,17 @@ const InventoryItemDetail = () => {
   const canEdit = canCreateEquipment(); // Reuse equipment permission
 
   // Handle inline field updates
-  const handleFieldUpdate = async (field: keyof InventoryItem, value: string | number) => {
+  // Only string fields can be edited inline (name, description, sku, external_id, location)
+  const handleFieldUpdate = async (
+    field: 'name' | 'description' | 'sku' | 'external_id' | 'location',
+    value: string
+  ) => {
     if (!currentOrganization || !itemId) return;
-    try {
-      await updateMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        itemId: itemId,
-        formData: { [field]: value }
-      });
-    } catch (error) {
-      // Error handling is done in the mutation hook
-      throw error;
-    }
+    await updateMutation.mutateAsync({
+      organizationId: currentOrganization.id,
+      itemId: itemId,
+      formData: { [field]: value }
+    });
   };
 
   if (!currentOrganization) {
@@ -235,19 +234,30 @@ const InventoryItemDetail = () => {
           {/* Action buttons - below title on mobile, to the right on desktop */}
           <div className="flex flex-wrap gap-2 md:flex-nowrap">
             {canEdit && (
-              <Button variant="default" onClick={() => setShowAdjustDialog(true)} className="flex-1 md:flex-initial">
+              <Button
+                variant="default"
+                onClick={() => setShowAdjustDialog(true)}
+                className="flex-1 md:flex-initial"
+                aria-label="Adjust Quantity"
+              >
                 <Plus className="h-4 w-4 mr-2" />
-                Adjust Qty
+                <span className="inline md:hidden">Adjust Qty</span>
+                <span className="hidden md:inline">Adjust Quantity</span>
               </Button>
             )}
-            <Button variant="outline" onClick={() => setShowQRCode(true)} size="icon">
+            <Button
+              variant="outline"
+              onClick={() => setShowQRCode(true)}
+              size="icon"
+              aria-label="Show QR Code"
+            >
               <QrCode className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className={cn(isMobile && "!flex flex-col w-full h-auto gap-1")}>
+          <TabsList className={cn(isMobile && "flex flex-col w-full h-auto gap-1")}>
             <TabsTrigger value="overview" className={isMobile ? "w-full justify-start" : ""}>
               <Package className="h-4 w-4 mr-2" />
               Overview
@@ -274,7 +284,7 @@ const InventoryItemDetail = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Name</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Name</Label>
                     <div className="mt-1">
                       <InlineEditField
                         value={item.name || ''}
@@ -286,7 +296,7 @@ const InventoryItemDetail = () => {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Description</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Description</Label>
                     <div className="mt-1">
                       <InlineEditField
                         value={item.description || ''}
@@ -299,7 +309,7 @@ const InventoryItemDetail = () => {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">SKU</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">SKU</Label>
                     <div className="mt-1">
                       <InlineEditField
                         value={item.sku || ''}
@@ -311,7 +321,7 @@ const InventoryItemDetail = () => {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">External ID</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">External ID</Label>
                     <div className="mt-1">
                       <InlineEditField
                         value={item.external_id || ''}
@@ -323,7 +333,7 @@ const InventoryItemDetail = () => {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Location</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Location</Label>
                     <div className="mt-1">
                       <InlineEditField
                         value={item.location || ''}
