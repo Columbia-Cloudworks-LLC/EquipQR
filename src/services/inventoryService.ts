@@ -384,7 +384,7 @@ export const getInventoryTransactions = async (
     const transactions = (data || []).map(transaction => ({
       ...transaction,
       inventoryItemName: (transaction.inventory_items as { name: string })?.name,
-      userName: profiles[transaction.user_id]?.name ?? transaction.user_id ?? 'Unknown User'
+      userName: profiles[transaction.user_id]?.name ?? 'Unknown User'
     }));
 
     return {
