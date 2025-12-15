@@ -78,8 +78,7 @@ export const useInventoryTransactions = (
     queryKey: ['inventory-transactions', organizationId, itemId],
     queryFn: async () => {
       if (!organizationId) return [];
-      const result = await getInventoryTransactions(organizationId, itemId);
-      return result;
+      return await getInventoryTransactions(organizationId, itemId);
     },
     enabled: !!organizationId,
     staleTime
