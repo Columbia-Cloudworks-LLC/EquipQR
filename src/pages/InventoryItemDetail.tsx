@@ -56,11 +56,6 @@ const InventoryItemDetail = () => {
     itemId
   );
   
-  // #region agent log
-  React.useEffect(() => {
-    fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InventoryItemDetail.tsx:54',message:'Transactions state update',data:{transactionsCount:transactions.length,organizationId:currentOrganization?.id,itemId,isLoading:transactionsLoading},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  }, [transactions, currentOrganization?.id, itemId, transactionsLoading]);
-  // #endregion
   const { data: managers = [], refetch: refetchManagers } = useInventoryItemManagers(
     currentOrganization?.id,
     itemId
