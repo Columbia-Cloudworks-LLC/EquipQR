@@ -276,7 +276,15 @@ export const useAdjustInventoryQuantity = () => {
       });
       // Invalidate transactions with both organizationId and itemId to match the exact query key
       queryClient.invalidateQueries({
-        queryKey: ['inventory-transactions', variables.organizationId, variables.adjustment.itemId]
+        predicate: (query) => {
+          const qk = query.queryKey;
+          return (
+            Array.isArray(qk) &&
+            qk[0] === 'inventory-transactions' &&
+            qk[1] === variables.organizationId &&
+            qk[2] === variables.adjustment.itemId
+          );
+        }
       });
 
       // Show warning if quantity is negative
