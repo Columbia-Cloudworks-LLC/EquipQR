@@ -16,9 +16,6 @@ export const getInventoryItems = async (
   organizationId: string,
   filters: InventoryFilters = {}
 ): Promise<InventoryItem[]> => {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'inventoryService.ts:15',message:'getInventoryItems called',data:{organizationId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   try {
     let query = supabase
       .from('inventory_items')
@@ -44,10 +41,6 @@ export const getInventoryItems = async (
     // Use getCompatibleInventoryItems for equipment-based filtering.
 
     const { data, error } = await query.order('name', { ascending: true });
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'inventoryService.ts:43',message:'Query result',data:{error:error?{code:error.code,message:error.message,hint:error.hint,details:error.details}:null,dataLength:data?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
 
     if (error) throw error;
 
@@ -107,9 +100,6 @@ export const createInventoryItem = async (
   formData: InventoryItemFormData,
   userId: string
 ): Promise<InventoryItem> => {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'inventoryService.ts:98',message:'createInventoryItem called',data:{organizationId,userId,name:formData.name,quantity_on_hand:formData.quantity_on_hand},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
   try {
     // Create the inventory item
     const { data: itemData, error: itemError } = await supabase
@@ -129,10 +119,6 @@ export const createInventoryItem = async (
       })
       .select()
       .single();
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'inventoryService.ts:123',message:'Insert result',data:{error:itemError?{code:itemError.code,message:itemError.message,hint:itemError.hint,details:itemError.details}:null,itemDataId:itemData?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
 
     if (itemError) throw itemError;
 
@@ -312,34 +298,90 @@ export const adjustInventoryQuantity = async (
 // Transactions
 // ============================================
 
+export interface TransactionPaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedTransactionsResult {
+  transactions: InventoryTransaction[];
+  totalCount: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+export const DEFAULT_TRANSACTION_LIMIT = 50;
+
 export const getInventoryTransactions = async (
   organizationId: string,
-  itemId?: string
-): Promise<InventoryTransaction[]> => {
+  itemId?: string,
+  pagination?: TransactionPaginationParams
+): Promise<PaginatedTransactionsResult> => {
   try {
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? DEFAULT_TRANSACTION_LIMIT;
+    const startIndex = (page - 1) * limit;
+
+    // Fetch transactions with count in a single query (reduces database round trips)
     let query = supabase
       .from('inventory_transactions')
       .select(`
         *,
-        inventory_items!inner(name),
-        profiles!inventory_transactions_user_id_fkey(name)
-      `)
+        inventory_items!inner(name)
+      `, { count: 'exact' })
       .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(startIndex, startIndex + limit - 1);
 
     if (itemId) {
       query = query.eq('inventory_item_id', itemId);
     }
 
-    const { data, error } = await query.limit(1000);
+    const { data, count: totalCount, error } = await query;
 
     if (error) throw error;
 
-    return (data || []).map(transaction => ({
+    // Fetch profiles separately because inventory_transactions.user_id references auth.users (not public.profiles).
+    // Supabase's PostgREST relational queries require a direct FK to the target table for automatic joins.
+    // Since profiles.id also references auth.users (no direct FK from transactions->profiles), we must
+    // query profiles in a separate request. This adds one round-trip but ensures reliable user name lookups.
+    const userIds = [...new Set((data || []).map(t => t.user_id).filter(Boolean))];
+    let profiles: Record<string, { name: string }> = {};
+    
+    if (userIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name, organization_id')
+        .in('id', userIds)
+        .eq('organization_id', organizationId)
+        .limit(userIds.length);
+
+      if (profilesError) {
+        logger.warn('Error fetching user profiles for inventory transactions:', profilesError);
+      }
+
+      if (!profilesError && profilesData) {
+        profiles = profilesData.reduce((acc, p) => {
+          acc[p.id] = { name: p.name };
+          return acc;
+        }, {} as Record<string, { name: string }>);
+      }
+    }
+
+    const transactions = (data || []).map(transaction => ({
       ...transaction,
       inventoryItemName: (transaction.inventory_items as { name: string })?.name,
-      userName: (transaction.profiles as { name: string })?.name
+      userName: profiles[transaction.user_id]?.name ?? 'Unknown User'
     }));
+
+    return {
+      transactions,
+      totalCount: totalCount ?? 0,
+      page,
+      limit,
+      hasMore: startIndex + transactions.length < (totalCount ?? 0)
+    };
   } catch (error) {
     logger.error('Error fetching inventory transactions:', error);
     throw error;

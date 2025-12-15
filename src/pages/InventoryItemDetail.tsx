@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode } from 'lucide-react';
+import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem } from '@/hooks/useInventory';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -25,7 +25,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { Equipment } from '@/services/EquipmentService';
-import type { InventoryItem } from '@/types/inventory';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -51,10 +50,12 @@ const InventoryItemDetail = () => {
     currentOrganization?.id,
     itemId
   );
-  const { data: transactions = [] } = useInventoryTransactions(
+  const { data: transactionsData } = useInventoryTransactions(
     currentOrganization?.id,
     itemId
   );
+  const transactions = transactionsData?.transactions ?? [];
+  
   const { data: managers = [], refetch: refetchManagers } = useInventoryItemManagers(
     currentOrganization?.id,
     itemId

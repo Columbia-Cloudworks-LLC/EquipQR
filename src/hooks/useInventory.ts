@@ -10,7 +10,10 @@ import {
   getInventoryTransactions,
   getCompatibleInventoryItems,
   getInventoryItemManagers,
-  assignInventoryManagers
+  assignInventoryManagers,
+  DEFAULT_TRANSACTION_LIMIT,
+  type TransactionPaginationParams,
+  type PaginatedTransactionsResult
 } from '@/services/inventoryService';
 import type {
   InventoryItemFormData,
@@ -65,20 +68,30 @@ export const useInventoryItem = (
   });
 };
 
+const EMPTY_PAGINATED_RESULT: PaginatedTransactionsResult = {
+  transactions: [],
+  totalCount: 0,
+  page: 1,
+  limit: DEFAULT_TRANSACTION_LIMIT,
+  hasMore: false
+};
+
 export const useInventoryTransactions = (
   organizationId: string | undefined,
   itemId?: string,
   options?: {
     staleTime?: number;
+    pagination?: TransactionPaginationParams;
   }
 ) => {
   const staleTime = options?.staleTime ?? 2 * 60 * 1000; // 2 minutes for transactions
+  const pagination = options?.pagination;
 
   return useQuery({
-    queryKey: ['inventory-transactions', organizationId, itemId],
+    queryKey: ['inventory-transactions', organizationId, itemId, pagination?.page, pagination?.limit],
     queryFn: async () => {
-      if (!organizationId) return [];
-      return await getInventoryTransactions(organizationId, itemId);
+      if (!organizationId) return EMPTY_PAGINATED_RESULT;
+      return await getInventoryTransactions(organizationId, itemId, pagination);
     },
     enabled: !!organizationId,
     staleTime
@@ -142,9 +155,6 @@ export const useCreateInventoryItem = () => {
       organizationId: string;
       formData: InventoryItemFormData;
     }) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useInventory.ts:137',message:'useCreateInventoryItem mutationFn called',data:{organizationId,userId:user?.id,name:formData.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
       if (!user) throw new Error('User not authenticated');
       return await createInventoryItem(organizationId, formData, user.id);
     },
@@ -265,8 +275,10 @@ export const useAdjustInventoryQuantity = () => {
       queryClient.invalidateQueries({
         queryKey: ['inventory-item', variables.organizationId, variables.adjustment.itemId]
       });
+      // Invalidate all transaction queries for this item (uses TanStack Query's partial key matching,
+      // which will match any query key that starts with these elements regardless of pagination params)
       queryClient.invalidateQueries({
-        queryKey: ['inventory-transactions', variables.organizationId]
+        queryKey: ['inventory-transactions', variables.organizationId, variables.adjustment.itemId]
       });
 
       // Show warning if quantity is negative
