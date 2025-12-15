@@ -340,7 +340,8 @@ export const getInventoryTransactions = async (
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, name')
-        .in('id', userIds);
+        .in('id', userIds)
+        .eq('organization_id', organizationId);
 
       if (!profilesError && profilesData) {
         profiles = profilesData.reduce((acc, p) => {
