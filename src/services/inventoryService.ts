@@ -314,7 +314,7 @@ export const getInventoryTransactions = async (
   itemId?: string
 ): Promise<InventoryTransaction[]> => {
   try {
-    // Fetch transactions with inventory item names (this join works because there's a FK)
+    // Fetch transactions with inventory item names (the join with inventory_items works because there's a FK; profiles are fetched separately)
     let query = supabase
       .from('inventory_transactions')
       .select(`
