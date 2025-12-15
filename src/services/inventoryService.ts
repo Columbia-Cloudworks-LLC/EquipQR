@@ -359,7 +359,7 @@ export const getInventoryTransactions = async (
     // Fetch profiles separately (since there's no direct FK from inventory_transactions to profiles).
     // This adds an additional round-trip to the database. Consider adding an FK constraint in a future
     // migration to enable a single-query join with Supabase's relational queries.
-    const userIds = [...new Set((data || []).map(t => t.user_id))];
+    const userIds = [...new Set((data || []).map(t => t.user_id).filter(Boolean))];
     let profiles: Record<string, { name: string }> = {};
     
     if (userIds.length > 0) {
