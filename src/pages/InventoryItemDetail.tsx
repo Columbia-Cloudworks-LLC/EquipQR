@@ -51,7 +51,7 @@ const InventoryItemDetail = () => {
     currentOrganization?.id,
     itemId
   );
-  const { data: transactions = [], isLoading: transactionsLoading } = useInventoryTransactions(
+  const { data: transactions = [] } = useInventoryTransactions(
     currentOrganization?.id,
     itemId
   );
