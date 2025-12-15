@@ -267,10 +267,6 @@ export const useAdjustInventoryQuantity = () => {
       queryClient.invalidateQueries({
         queryKey: ['inventory-transactions', variables.organizationId, variables.adjustment.itemId]
       });
-      // Also invalidate all transactions for this organization (in case itemId is undefined in some queries)
-      queryClient.invalidateQueries({
-        queryKey: ['inventory-transactions', variables.organizationId]
-      });
 
       // Show warning if quantity is negative
       if (newQuantity < 0) {
