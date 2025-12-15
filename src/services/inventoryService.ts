@@ -311,7 +311,7 @@ export interface PaginatedTransactionsResult {
   hasMore: boolean;
 }
 
-const DEFAULT_TRANSACTION_LIMIT = 50;
+export const DEFAULT_TRANSACTION_LIMIT = 50;
 
 export const getInventoryTransactions = async (
   organizationId: string,
@@ -323,27 +323,13 @@ export const getInventoryTransactions = async (
     const limit = pagination?.limit ?? DEFAULT_TRANSACTION_LIMIT;
     const startIndex = (page - 1) * limit;
 
-    // First, get the total count for pagination metadata
-    let countQuery = supabase
-      .from('inventory_transactions')
-      .select('*', { count: 'exact', head: true })
-      .eq('organization_id', organizationId);
-
-    if (itemId) {
-      countQuery = countQuery.eq('inventory_item_id', itemId);
-    }
-
-    const { count: totalCount, error: countError } = await countQuery;
-
-    if (countError) throw countError;
-
-    // Fetch transactions with inventory item names (the join with inventory_items works because there's a FK; profiles are fetched separately)
+    // Fetch transactions with count in a single query (reduces database round trips)
     let query = supabase
       .from('inventory_transactions')
       .select(`
         *,
         inventory_items!inner(name)
-      `)
+      `, { count: 'exact' })
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
       .range(startIndex, startIndex + limit - 1);
@@ -352,13 +338,14 @@ export const getInventoryTransactions = async (
       query = query.eq('inventory_item_id', itemId);
     }
 
-    const { data, error } = await query;
+    const { data, count: totalCount, error } = await query;
 
     if (error) throw error;
 
-    // Fetch profiles separately (since there's no direct FK from inventory_transactions to profiles).
-    // This adds an additional round-trip to the database. Consider adding an FK constraint in a future
-    // migration to enable a single-query join with Supabase's relational queries.
+    // Fetch profiles separately because inventory_transactions.user_id references auth.users (not public.profiles).
+    // Supabase's PostgREST relational queries require a direct FK to the target table for automatic joins.
+    // Since profiles.id also references auth.users (no direct FK from transactions->profiles), we must
+    // query profiles in a separate request. This adds one round-trip but ensures reliable user name lookups.
     const userIds = [...new Set((data || []).map(t => t.user_id).filter(Boolean))];
     let profiles: Record<string, { name: string }> = {};
     

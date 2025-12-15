@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode } from 'lucide-react';
+import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem } from '@/hooks/useInventory';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -25,7 +25,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { Equipment } from '@/services/EquipmentService';
-import type { InventoryItem } from '@/types/inventory';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -126,7 +125,6 @@ const InventoryItemDetail = () => {
       });
       setShowAdjustDialog(false);
       resetAdjustDialog();
-      // Transactions will be refetched automatically via TanStack Query invalidation
     } catch {
       // Error handled in mutation
     }

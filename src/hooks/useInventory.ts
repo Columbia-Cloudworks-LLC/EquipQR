@@ -11,6 +11,7 @@ import {
   getCompatibleInventoryItems,
   getInventoryItemManagers,
   assignInventoryManagers,
+  DEFAULT_TRANSACTION_LIMIT,
   type TransactionPaginationParams,
   type PaginatedTransactionsResult
 } from '@/services/inventoryService';
@@ -71,7 +72,7 @@ const EMPTY_PAGINATED_RESULT: PaginatedTransactionsResult = {
   transactions: [],
   totalCount: 0,
   page: 1,
-  limit: 50,
+  limit: DEFAULT_TRANSACTION_LIMIT,
   hasMore: false
 };
 
@@ -274,17 +275,10 @@ export const useAdjustInventoryQuantity = () => {
       queryClient.invalidateQueries({
         queryKey: ['inventory-item', variables.organizationId, variables.adjustment.itemId]
       });
-      // Invalidate transactions with both organizationId and itemId to match the exact query key
+      // Invalidate all transaction queries for this item (uses TanStack Query's partial key matching,
+      // which will match any query key that starts with these elements regardless of pagination params)
       queryClient.invalidateQueries({
-        predicate: (query) => {
-          const qk = query.queryKey;
-          return (
-            Array.isArray(qk) &&
-            qk[0] === 'inventory-transactions' &&
-            qk[1] === variables.organizationId &&
-            qk[2] === variables.adjustment.itemId
-          );
-        }
+        queryKey: ['inventory-transactions', variables.organizationId, variables.adjustment.itemId]
       });
 
       // Show warning if quantity is negative
