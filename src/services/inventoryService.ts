@@ -365,8 +365,9 @@ export const getInventoryTransactions = async (
     if (userIds.length > 0) {
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, name')
+        .select('id, name, organization_id')
         .in('id', userIds)
+        .eq('organization_id', organizationId)
         .limit(userIds.length);
 
       if (profilesError) {
