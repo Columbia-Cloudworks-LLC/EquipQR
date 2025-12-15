@@ -343,7 +343,7 @@ export const getInventoryTransactions = async (
     return (data || []).map(transaction => ({
       ...transaction,
       inventoryItemName: (transaction.inventory_items as { name: string })?.name,
-      userName: profiles[transaction.user_id]?.name
+      userName: profiles[transaction.user_id]?.name ?? transaction.user_id ?? 'Unknown User'
     }));
   } catch (error) {
     logger.error('Error fetching inventory transactions:', error);
