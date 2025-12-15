@@ -16,9 +16,6 @@ export const getInventoryItems = async (
   organizationId: string,
   filters: InventoryFilters = {}
 ): Promise<InventoryItem[]> => {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'inventoryService.ts:15',message:'getInventoryItems called',data:{organizationId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   try {
     let query = supabase
       .from('inventory_items')
@@ -317,12 +314,12 @@ export const getInventoryTransactions = async (
   itemId?: string
 ): Promise<InventoryTransaction[]> => {
   try {
+    // Fetch transactions with inventory item names (this join works because there's a FK)
     let query = supabase
       .from('inventory_transactions')
       .select(`
         *,
-        inventory_items!inner(name),
-        profiles!inventory_transactions_user_id_fkey(name)
+        inventory_items!inner(name)
       `)
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
@@ -335,10 +332,28 @@ export const getInventoryTransactions = async (
 
     if (error) throw error;
 
+    // Fetch profiles separately (since there's no direct FK from inventory_transactions to profiles)
+    const userIds = [...new Set((data || []).map(t => t.user_id))];
+    let profiles: Record<string, { name: string }> = {};
+    
+    if (userIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', userIds);
+
+      if (!profilesError && profilesData) {
+        profiles = profilesData.reduce((acc, p) => {
+          acc[p.id] = { name: p.name };
+          return acc;
+        }, {} as Record<string, { name: string }>);
+      }
+    }
+
     return (data || []).map(transaction => ({
       ...transaction,
       inventoryItemName: (transaction.inventory_items as { name: string })?.name,
-      userName: (transaction.profiles as { name: string })?.name
+      userName: profiles[transaction.user_id]?.name
     }));
   } catch (error) {
     logger.error('Error fetching inventory transactions:', error);

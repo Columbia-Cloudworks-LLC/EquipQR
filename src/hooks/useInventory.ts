@@ -74,11 +74,22 @@ export const useInventoryTransactions = (
 ) => {
   const staleTime = options?.staleTime ?? 2 * 60 * 1000; // 2 minutes for transactions
 
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useInventory.ts:68',message:'useInventoryTransactions hook',data:{organizationId,itemId,enabled:!!organizationId,queryKey:['inventory-transactions',organizationId,itemId]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+
   return useQuery({
     queryKey: ['inventory-transactions', organizationId, itemId],
     queryFn: async () => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useInventory.ts:79',message:'Query function executing',data:{organizationId,itemId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       if (!organizationId) return [];
-      return await getInventoryTransactions(organizationId, itemId);
+      const result = await getInventoryTransactions(organizationId, itemId);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a65f405d-0706-4f0e-be3a-35b48c38930e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useInventory.ts:82',message:'Query function result',data:{resultCount:result.length,firstItemId:result[0]?.inventory_item_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      return result;
     },
     enabled: !!organizationId,
     staleTime
@@ -265,6 +276,11 @@ export const useAdjustInventoryQuantity = () => {
       queryClient.invalidateQueries({
         queryKey: ['inventory-item', variables.organizationId, variables.adjustment.itemId]
       });
+      // Invalidate transactions with both organizationId and itemId to match the exact query key
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-transactions', variables.organizationId, variables.adjustment.itemId]
+      });
+      // Also invalidate all transactions for this organization (in case itemId is undefined in some queries)
       queryClient.invalidateQueries({
         queryKey: ['inventory-transactions', variables.organizationId]
       });
