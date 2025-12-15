@@ -321,7 +321,9 @@ export const getInventoryTransactions = async (
 
     if (error) throw error;
 
-    // Fetch profiles separately (since there's no direct FK from inventory_transactions to profiles)
+    // Fetch profiles separately (since there's no direct FK from inventory_transactions to profiles).
+    // This adds an additional round-trip to the database. Consider adding an FK constraint in a future
+    // migration to enable a single-query join with Supabase's relational queries.
     const userIds = [...new Set((data || []).map(t => t.user_id))];
     let profiles: Record<string, { name: string }> = {};
     
@@ -331,6 +333,10 @@ export const getInventoryTransactions = async (
         .select('id, name')
         .in('id', userIds)
         .eq('organization_id', organizationId);
+
+      if (profilesError) {
+        logger.warn('Error fetching user profiles for inventory transactions:', profilesError);
+      }
 
       if (!profilesError && profilesData) {
         profiles = profilesData.reduce((acc, p) => {
