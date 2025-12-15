@@ -125,10 +125,7 @@ const InventoryItemDetail = () => {
       });
       setShowAdjustDialog(false);
       resetAdjustDialog();
-      // Manually refetch transactions after adjustment
-      setTimeout(() => {
-        refetchTransactions();
-      }, 500);
+      // Transactions will be refetched automatically via TanStack Query invalidation
     } catch {
       // Error handled in mutation
     }
