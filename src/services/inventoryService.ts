@@ -331,8 +331,7 @@ export const getInventoryTransactions = async (
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, name')
-        .in('id', userIds)
-        .eq('organization_id', organizationId);
+        .in('id', userIds);
 
       if (profilesError) {
         logger.warn('Error fetching user profiles for inventory transactions:', profilesError);
