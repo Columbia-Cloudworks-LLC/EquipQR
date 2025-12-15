@@ -51,10 +51,11 @@ const InventoryItemDetail = () => {
     currentOrganization?.id,
     itemId
   );
-  const { data: transactions = [] } = useInventoryTransactions(
+  const { data: transactionsData } = useInventoryTransactions(
     currentOrganization?.id,
     itemId
   );
+  const transactions = transactionsData?.transactions ?? [];
   
   const { data: managers = [], refetch: refetchManagers } = useInventoryItemManagers(
     currentOrganization?.id,

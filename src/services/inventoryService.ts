@@ -298,11 +298,45 @@ export const adjustInventoryQuantity = async (
 // Transactions
 // ============================================
 
+export interface TransactionPaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedTransactionsResult {
+  transactions: InventoryTransaction[];
+  totalCount: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+const DEFAULT_TRANSACTION_LIMIT = 50;
+
 export const getInventoryTransactions = async (
   organizationId: string,
-  itemId?: string
-): Promise<InventoryTransaction[]> => {
+  itemId?: string,
+  pagination?: TransactionPaginationParams
+): Promise<PaginatedTransactionsResult> => {
   try {
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? DEFAULT_TRANSACTION_LIMIT;
+    const startIndex = (page - 1) * limit;
+
+    // First, get the total count for pagination metadata
+    let countQuery = supabase
+      .from('inventory_transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', organizationId);
+
+    if (itemId) {
+      countQuery = countQuery.eq('inventory_item_id', itemId);
+    }
+
+    const { count: totalCount, error: countError } = await countQuery;
+
+    if (countError) throw countError;
+
     // Fetch transactions with inventory item names (the join with inventory_items works because there's a FK; profiles are fetched separately)
     let query = supabase
       .from('inventory_transactions')
@@ -311,13 +345,14 @@ export const getInventoryTransactions = async (
         inventory_items!inner(name)
       `)
       .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(startIndex, startIndex + limit - 1);
 
     if (itemId) {
       query = query.eq('inventory_item_id', itemId);
     }
 
-    const { data, error } = await query.limit(1000);
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -345,11 +380,19 @@ export const getInventoryTransactions = async (
       }
     }
 
-    return (data || []).map(transaction => ({
+    const transactions = (data || []).map(transaction => ({
       ...transaction,
       inventoryItemName: (transaction.inventory_items as { name: string })?.name,
       userName: profiles[transaction.user_id]?.name ?? transaction.user_id ?? 'Unknown User'
     }));
+
+    return {
+      transactions,
+      totalCount: totalCount ?? 0,
+      page,
+      limit,
+      hasMore: startIndex + transactions.length < (totalCount ?? 0)
+    };
   } catch (error) {
     logger.error('Error fetching inventory transactions:', error);
     throw error;

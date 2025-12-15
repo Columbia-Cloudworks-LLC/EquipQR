@@ -10,7 +10,9 @@ import {
   getInventoryTransactions,
   getCompatibleInventoryItems,
   getInventoryItemManagers,
-  assignInventoryManagers
+  assignInventoryManagers,
+  type TransactionPaginationParams,
+  type PaginatedTransactionsResult
 } from '@/services/inventoryService';
 import type {
   InventoryItemFormData,
@@ -65,20 +67,30 @@ export const useInventoryItem = (
   });
 };
 
+const EMPTY_PAGINATED_RESULT: PaginatedTransactionsResult = {
+  transactions: [],
+  totalCount: 0,
+  page: 1,
+  limit: 50,
+  hasMore: false
+};
+
 export const useInventoryTransactions = (
   organizationId: string | undefined,
   itemId?: string,
   options?: {
     staleTime?: number;
+    pagination?: TransactionPaginationParams;
   }
 ) => {
   const staleTime = options?.staleTime ?? 2 * 60 * 1000; // 2 minutes for transactions
+  const pagination = options?.pagination;
 
   return useQuery({
-    queryKey: ['inventory-transactions', organizationId, itemId],
+    queryKey: ['inventory-transactions', organizationId, itemId, pagination?.page, pagination?.limit],
     queryFn: async () => {
-      if (!organizationId) return [];
-      return await getInventoryTransactions(organizationId, itemId);
+      if (!organizationId) return EMPTY_PAGINATED_RESULT;
+      return await getInventoryTransactions(organizationId, itemId, pagination);
     },
     enabled: !!organizationId,
     staleTime
