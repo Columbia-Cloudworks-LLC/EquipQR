@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode, Search, Check, X } from 'lucide-react';
+import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode, Search, X } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useAssignInventoryManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem } from '@/hooks/useInventory';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -20,7 +20,6 @@ import PageHeader from '@/components/layout/PageHeader';
 import { InventoryItemForm } from '@/components/inventory/InventoryItemForm';
 import InventoryQRCodeDisplay from '@/components/inventory/InventoryQRCodeDisplay';
 import InlineEditField from '@/components/equipment/InlineEditField';
-import { useAppToast } from '@/hooks/useAppToast';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -34,7 +33,6 @@ const InventoryItemDetail = () => {
   const navigate = useNavigate();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
-  const { toast } = useAppToast();
   const { canCreateEquipment } = usePermissions(); // Reuse equipment permissions
   const isMobile = useIsMobile();
 

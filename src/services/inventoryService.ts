@@ -515,6 +515,9 @@ export const assignInventoryManagers = async (
     if (itemError) throw itemError;
 
     // Delete existing assignments
+    // NOTE: inventory_item_managers does not have an organization_id column, so we can't add an explicit
+    // org filter here. We instead do defense-in-depth by verifying the inventory item belongs to the
+    // provided organization above, and rely on RLS to prevent cross-org access.
     const { error: deleteError } = await supabase
       .from('inventory_item_managers')
       .delete()
