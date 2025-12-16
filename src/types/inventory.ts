@@ -76,14 +76,14 @@ export interface InventoryItemManager extends InventoryItemManagerRow {
  */
 export interface InventoryItemFormData {
   name: string;
-  description?: string;
-  sku?: string;
-  external_id?: string;
+  description?: string | null;
+  sku?: string | null;
+  external_id?: string | null;
   quantity_on_hand: number;
   low_stock_threshold: number;
-  image_url?: string;
-  location?: string;
-  default_unit_cost?: number;
+  image_url?: string | null;
+  location?: string | null;
+  default_unit_cost?: number | null;
   compatibleEquipmentIds?: string[];
   managerIds?: string[];
 }

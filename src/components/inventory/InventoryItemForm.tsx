@@ -29,8 +29,8 @@ import { useCreateInventoryItem, useUpdateInventoryItem } from '@/hooks/useInven
 import { useEquipment } from '@/hooks/useEquipment';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { supabase } from '@/integrations/supabase/client';
-import { inventoryItemFormSchema, type InventoryItemFormData } from '@/schemas/inventorySchema';
-import type { InventoryItem } from '@/types/inventory';
+import { inventoryItemFormSchema } from '@/schemas/inventorySchema';
+import type { InventoryItem, InventoryItemFormData } from '@/types/inventory';
 
 interface InventoryItemFormProps {
   open: boolean;
@@ -51,7 +51,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   const updateMutation = useUpdateInventoryItem();
 
   const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
-  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id);
+  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id ?? '');
 
   const form = useForm<InventoryItemFormData>({
     resolver: zodResolver(inventoryItemFormSchema),
