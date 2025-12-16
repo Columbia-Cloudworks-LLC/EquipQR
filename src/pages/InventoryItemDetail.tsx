@@ -27,6 +27,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { Equipment } from '@/services/EquipmentService';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
+import { logger } from '@/utils/logger';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -185,6 +186,21 @@ const InventoryItemDetail = () => {
       if (checked) return current.includes(userId) ? current : [...current, userId];
       return current.filter((id) => id !== userId);
     });
+  };
+
+  const handleRemoveManager = async (userId: string) => {
+    if (!currentOrganization || !itemId) return;
+    const currentManagerIds = managers.map((m) => m.userId).filter((id) => id !== userId);
+    try {
+      await assignManagersMutation.mutateAsync({
+        organizationId: currentOrganization.id,
+        itemId,
+        userIds: currentManagerIds
+      });
+    } catch (error) {
+      // Error toast is handled by the mutation hook; we just log for diagnostics.
+      logger.error('Error removing inventory manager', error);
+    }
   };
 
   // Handle inline field updates
@@ -563,23 +579,7 @@ const InventoryItemDetail = () => {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={async () => {
-                              if (!currentOrganization || !itemId) return;
-                              try {
-                                const currentManagerIds = managers.map(m => m.userId).filter(id => id !== manager.userId);
-                                await assignManagersMutation.mutateAsync({
-                                  organizationId: currentOrganization.id,
-                                  itemId,
-                                  userIds: currentManagerIds
-                                });
-                              } catch (err) {
-                                console.error('Error removing manager:', err);
-                                toast({
-                                  title: 'Error',
-                                  description: 'Failed to remove manager'
-                                });
-                              }
-                            }}
+                            onClick={() => void handleRemoveManager(manager.userId)}
                             disabled={assignManagersMutation.isPending}
                           >
                             <Minus className="h-4 w-4" />
@@ -636,11 +636,7 @@ const InventoryItemDetail = () => {
                               <div className="font-medium">{member.name || 'Unknown'}</div>
                               <div className="text-sm text-muted-foreground">{member.email}</div>
                             </div>
-                            {isSelected && (
-                              <Badge variant="secondary" className="text-xs">
-                                <Check className="h-3 w-3 mr-1" />
-                              </Badge>
-                            )}
+                            {/* Selection is already indicated by the checkbox */}
                           </div>
                         );
                       })
@@ -654,10 +650,14 @@ const InventoryItemDetail = () => {
                         return member ? (
                           <Badge key={id} variant="secondary" className="gap-1">
                             {member.name || member.email}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
+                            <button
+                              type="button"
+                              className="inline-flex items-center"
                               onClick={() => handleToggleManager(id, false)}
-                            />
+                              aria-label={`Remove ${member.name || member.email}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
                           </Badge>
                         ) : null;
                       })}
