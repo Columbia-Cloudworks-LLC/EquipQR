@@ -233,11 +233,14 @@ export const bulkLinkEquipmentToItem = async (
     }
 
     // Get current links
-    const { data: currentLinks } = await supabase
+    const { data: currentLinks, error: currentLinksError } = await supabase
       .from('equipment_part_compatibility')
       .select('equipment_id')
       .eq('inventory_item_id', itemId);
 
+    if (currentLinksError) {
+      throw currentLinksError;
+    }
     const currentEquipmentIds = (currentLinks || []).map((link: { equipment_id: string }) => link.equipment_id);
     
     // Calculate changes
