@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode, Search, Check, X } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useLinkItemToEquipment, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useAssignInventoryManagers, useBulkLinkEquipmentToItem } from '@/hooks/useInventory';
+import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useAssignInventoryManagers, useBulkLinkEquipmentToItem } from '@/hooks/useInventory';
 import { useEquipment } from '@/hooks/useEquipment';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
