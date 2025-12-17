@@ -521,7 +521,8 @@ export const assignInventoryManagers = async (
     const { error: deleteError } = await supabase
       .from('inventory_item_managers')
       .delete()
-      .eq('inventory_item_id', itemId);
+      .eq('inventory_item_id', itemId)
+      .eq('organization_id', organizationId);
     if (deleteError) throw deleteError;
 
     // Insert new assignments
