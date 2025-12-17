@@ -28,7 +28,11 @@ export const getCompatibleEquipmentForItem = async (
       .from('equipment_part_compatibility')
       .select(`
         equipment_id,
-        equipment:equipment_id(*)
+        equipment:equipment_id(
+          id,
+          name,
+          organization_id
+        )
       `)
       .eq('inventory_item_id', itemId)
       .eq('equipment.organization_id', organizationId);
