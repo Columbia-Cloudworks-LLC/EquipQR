@@ -30,7 +30,8 @@ import { useEquipment } from '@/hooks/useEquipment';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { supabase } from '@/integrations/supabase/client';
 import { inventoryItemFormSchema } from '@/schemas/inventorySchema';
-import type { InventoryItem, InventoryItemFormData } from '@/types/inventory';
+import type { InventoryItem } from '@/types/inventory';
+import type { InventoryItemFormData } from '@/schemas/inventorySchema';
 
 interface InventoryItemFormProps {
   open: boolean;

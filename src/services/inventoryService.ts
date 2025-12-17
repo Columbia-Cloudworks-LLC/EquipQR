@@ -3,10 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import type {
   InventoryItem,
   InventoryTransaction,
-  InventoryItemFormData,
   InventoryQuantityAdjustment,
   InventoryFilters
 } from '@/types/inventory';
+import type { InventoryItemFormData } from '@/schemas/inventorySchema';
 
 // ============================================
 // Get Inventory Items
@@ -521,8 +521,7 @@ export const assignInventoryManagers = async (
     const { error: deleteError } = await supabase
       .from('inventory_item_managers')
       .delete()
-      .eq('inventory_item_id', itemId)
-      .eq('organization_id', organizationId);
+      .eq('inventory_item_id', itemId);
     if (deleteError) throw deleteError;
 
     // Insert new assignments

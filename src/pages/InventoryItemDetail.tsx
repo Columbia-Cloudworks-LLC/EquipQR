@@ -653,7 +653,6 @@ const InventoryItemDetail = () => {
                               className="inline-flex items-center"
                               onClick={() => handleToggleManager(id, false)}
                               aria-label={`Remove ${member.name || member.email}`}
-                              aria-label={`Remove ${member.name || member.email}`}
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -674,12 +673,17 @@ const InventoryItemDetail = () => {
                     <Button
                       onClick={async () => {
                         if (!currentOrganization || !itemId) return;
-                        await assignManagersMutation.mutateAsync({
-                          organizationId: currentOrganization.id,
-                          itemId,
-                          userIds: selectedManagerIds
-                        });
-                        setShowManageManagers(false);
+                        try {
+                          await assignManagersMutation.mutateAsync({
+                            organizationId: currentOrganization.id,
+                            itemId,
+                            userIds: selectedManagerIds
+                          });
+                          setShowManageManagers(false);
+                        } catch (error) {
+                          // Error toast is handled by the mutation hook; keep dialog open.
+                          logger.error('Error saving inventory managers', error);
+                        }
                       }}
                       disabled={assignManagersMutation.isPending}
                     >

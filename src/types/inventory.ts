@@ -71,22 +71,9 @@ export interface InventoryItemManager extends InventoryItemManagerRow {
 // Form & Input Types
 // ============================================
 
-/**
- * InventoryItemFormData - Data structure for creating/editing inventory items
- */
-export interface InventoryItemFormData {
-  name: string;
-  description?: string | null;
-  sku?: string | null;
-  external_id?: string | null;
-  quantity_on_hand: number;
-  low_stock_threshold: number;
-  image_url?: string | null;
-  location?: string | null;
-  default_unit_cost?: number | null;
-  compatibleEquipmentIds?: string[];
-  managerIds?: string[];
-}
+// NOTE: InventoryItemFormData is defined by Zod schema (source of truth).
+// Re-export the inferred type to avoid drift between manual interfaces and validation.
+export type InventoryItemFormData = import('@/schemas/inventorySchema').InventoryItemFormData;
 
 /**
  * InventoryQuantityAdjustment - Data for adjusting inventory quantity
