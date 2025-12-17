@@ -653,6 +653,7 @@ const InventoryItemDetail = () => {
                               className="inline-flex items-center"
                               onClick={() => handleToggleManager(id, false)}
                               aria-label={`Remove ${member.name || member.email}`}
+                              aria-label={`Remove ${member.name || member.email}`}
                             >
                               <X className="h-3 w-3" />
                             </button>
