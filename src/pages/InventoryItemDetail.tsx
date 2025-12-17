@@ -75,7 +75,6 @@ const InventoryItemDetail = () => {
   const deleteMutation = useDeleteInventoryItem();
   const adjustMutation = useAdjustInventoryQuantity();
   const updateMutation = useUpdateInventoryItem();
-  const linkEquipmentMutation = useLinkItemToEquipment();
   const unlinkEquipmentMutation = useUnlinkItemFromEquipment();
   const bulkLinkEquipmentMutation = useBulkLinkEquipmentToItem();
   const assignManagersMutation = useAssignInventoryManagers();
