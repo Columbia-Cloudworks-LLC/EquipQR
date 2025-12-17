@@ -1031,6 +1031,7 @@ const InventoryItemDetail = () => {
                         {isSelected && (
                           <Badge variant="secondary" className="text-xs">
                             <Check className="h-3 w-3 mr-1" />
+                            Selected
                           </Badge>
                         )}
                       </div>
