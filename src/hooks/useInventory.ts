@@ -18,7 +18,8 @@ import {
 import {
   linkItemToEquipment,
   unlinkItemFromEquipment,
-  getCompatibleEquipmentForItem
+  getCompatibleEquipmentForItem,
+  bulkLinkEquipmentToItem
 } from '@/services/inventoryCompatibilityService';
 import type {
   InventoryQuantityAdjustment,
@@ -393,6 +394,10 @@ export const useLinkItemToEquipment = () => {
       queryClient.invalidateQueries({
         queryKey: ['inventory-item', variables.organizationId, variables.itemId]
       });
+      // Invalidate compatible items queries for equipment detail pages
+      queryClient.invalidateQueries({
+        queryKey: ['compatible-inventory-items', variables.organizationId]
+      });
       toast({
         title: 'Equipment linked',
         description: 'Equipment has been added to compatibility list.'
@@ -432,6 +437,10 @@ export const useUnlinkItemFromEquipment = () => {
       queryClient.invalidateQueries({
         queryKey: ['inventory-item', variables.organizationId, variables.itemId]
       });
+      // Invalidate compatible items queries for equipment detail pages
+      queryClient.invalidateQueries({
+        queryKey: ['compatible-inventory-items', variables.organizationId]
+      });
       toast({
         title: 'Equipment unlinked',
         description: 'Equipment has been removed from compatibility list.'
@@ -441,6 +450,56 @@ export const useUnlinkItemFromEquipment = () => {
       toast({
         title: 'Error unlinking equipment',
         description: error instanceof Error ? error.message : 'Failed to unlink equipment',
+        variant: 'error'
+      });
+    }
+  });
+};
+
+export const useBulkLinkEquipmentToItem = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      itemId,
+      equipmentIds
+    }: {
+      organizationId: string;
+      itemId: string;
+      equipmentIds: string[];
+    }) => {
+      return await bulkLinkEquipmentToItem(organizationId, itemId, equipmentIds);
+    },
+    onSuccess: (result, variables) => {
+      // Invalidate queries to refetch compatible equipment
+      queryClient.invalidateQueries({
+        queryKey: ['compatible-equipment', variables.organizationId, variables.itemId]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-item', variables.organizationId, variables.itemId]
+      });
+      // Invalidate compatible items queries for equipment detail pages
+      queryClient.invalidateQueries({
+        queryKey: ['compatible-inventory-items', variables.organizationId]
+      });
+      
+      // Show summary toast with counts
+      const { added, removed } = result;
+      const messages = [];
+      if (added > 0) messages.push(`${added} added`);
+      if (removed > 0) messages.push(`${removed} removed`);
+      
+      toast({
+        title: 'Equipment compatibility updated',
+        description: messages.length > 0 ? messages.join(', ') : 'No changes made'
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error updating equipment compatibility',
+        description: error instanceof Error ? error.message : 'Failed to update equipment compatibility',
         variant: 'error'
       });
     }

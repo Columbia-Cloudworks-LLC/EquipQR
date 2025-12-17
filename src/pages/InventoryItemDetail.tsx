@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode, Search, Check, X } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useLinkItemToEquipment, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useAssignInventoryManagers } from '@/hooks/useInventory';
+import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useLinkItemToEquipment, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useAssignInventoryManagers, useBulkLinkEquipmentToItem } from '@/hooks/useInventory';
 import { useEquipment } from '@/hooks/useEquipment';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { logger } from '@/utils/logger';
+import { useAppToast } from '@/hooks/useAppToast';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -34,6 +35,7 @@ const InventoryItemDetail = () => {
   const { user } = useAuth();
   const { canCreateEquipment } = usePermissions(); // Reuse equipment permissions
   const isMobile = useIsMobile();
+  const { toast } = useAppToast();
 
   const [activeTab, setActiveTab] = useState('overview');
   const [showEditForm, setShowEditForm] = useState(false);
@@ -77,6 +79,7 @@ const InventoryItemDetail = () => {
   const updateMutation = useUpdateInventoryItem();
   const linkEquipmentMutation = useLinkItemToEquipment();
   const unlinkEquipmentMutation = useUnlinkItemFromEquipment();
+  const bulkLinkEquipmentMutation = useBulkLinkEquipmentToItem();
   const assignManagersMutation = useAssignInventoryManagers();
 
   const handleDelete = async () => {
@@ -172,33 +175,17 @@ const InventoryItemDetail = () => {
   const handleSaveEquipmentCompatibility = async () => {
     if (!currentOrganization || !itemId) return;
 
-    const currentEquipmentIds = compatibleEquipment.map(eq => eq.id);
-    const toAdd = selectedEquipmentIds.filter(id => !currentEquipmentIds.includes(id));
-    const toRemove = currentEquipmentIds.filter(id => !selectedEquipmentIds.includes(id));
-
     try {
-      // Execute all link/unlink operations concurrently
-      const addPromises = toAdd.map(equipmentId =>
-        linkEquipmentMutation.mutateAsync({
-          organizationId: currentOrganization.id,
-          itemId,
-          equipmentId
-        })
-      );
-
-      const removePromises = toRemove.map(equipmentId =>
-        unlinkEquipmentMutation.mutateAsync({
-          organizationId: currentOrganization.id,
-          itemId,
-          equipmentId
-        })
-      );
-
-      await Promise.all([...addPromises, ...removePromises]);
+      // Use bulk operation to avoid multiple toast notifications
+      await bulkLinkEquipmentMutation.mutateAsync({
+        organizationId: currentOrganization.id,
+        itemId,
+        equipmentIds: selectedEquipmentIds
+      });
 
       setShowAddEquipmentDialog(false);
     } catch {
-      // Errors handled in mutations
+      // Errors handled in mutation
     }
   };
 
@@ -1002,14 +989,25 @@ const InventoryItemDetail = () => {
                 />
               </div>
               <div className="border rounded-md p-2 space-y-2 max-h-96 overflow-y-auto">
-                {allEquipment
-                  .filter(
+                {(() => {
+                  const filteredEquipment = allEquipment.filter(
                     (eq) =>
                       eq.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
                       (eq.manufacturer ?? '').toLowerCase().includes(equipmentSearch.toLowerCase()) ||
                       (eq.model ?? '').toLowerCase().includes(equipmentSearch.toLowerCase())
-                  )
-                  .map((equipment) => {
+                  );
+
+                  if (filteredEquipment.length === 0) {
+                    return (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        {allEquipment.length === 0
+                          ? 'No equipment available'
+                          : 'No equipment found matching your search'}
+                      </p>
+                    );
+                  }
+
+                  return filteredEquipment.map((equipment) => {
                     const isSelected = selectedEquipmentIds.includes(equipment.id);
                     return (
                       <div
@@ -1036,7 +1034,8 @@ const InventoryItemDetail = () => {
                         )}
                       </div>
                     );
-                  })}
+                  });
+                })()}
               </div>
               {selectedEquipmentIds.length > 0 && (
                 <div className="flex flex-wrap gap-2">
