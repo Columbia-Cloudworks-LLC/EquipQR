@@ -1041,10 +1041,14 @@ const InventoryItemDetail = () => {
                     return equipment ? (
                       <Badge key={id} variant="secondary" className="gap-1">
                         {equipment.name}
-                        <X
-                          className="h-3 w-3 cursor-pointer"
+                        <button
+                          type="button"
+                          aria-label={`Remove ${equipment.name} from selected equipment`}
                           onClick={() => handleEquipmentToggle(id, false)}
-                        />
+                          className="ml-1 inline-flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        >
+                          <X className="h-3 w-3" aria-hidden="true" />
+                        </button>
                       </Badge>
                     ) : null;
                   })}
