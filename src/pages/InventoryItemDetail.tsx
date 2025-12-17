@@ -35,7 +35,7 @@ const InventoryItemDetail = () => {
   const { user } = useAuth();
   const { canCreateEquipment } = usePermissions(); // Reuse equipment permissions
   const isMobile = useIsMobile();
-  const { toast } = useAppToast();
+  useAppToast();
 
   const [activeTab, setActiveTab] = useState('overview');
   const [showEditForm, setShowEditForm] = useState(false);
