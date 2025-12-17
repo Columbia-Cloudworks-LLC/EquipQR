@@ -15,6 +15,10 @@ import {
   type TransactionPaginationParams,
   type PaginatedTransactionsResult
 } from '@/services/inventoryService';
+import {
+  linkItemToEquipment,
+  unlinkItemFromEquipment
+} from '@/services/inventoryCompatibilityService';
 import type {
   InventoryItemFormData,
   InventoryQuantityAdjustment,
@@ -338,6 +342,78 @@ export const useAssignInventoryManagers = () => {
       toast({
         title: 'Error updating managers',
         description: error instanceof Error ? error.message : 'Failed to update managers',
+        variant: 'error'
+      });
+    }
+  });
+};
+
+export const useLinkItemToEquipment = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      itemId,
+      equipmentId
+    }: {
+      organizationId: string;
+      itemId: string;
+      equipmentId: string;
+    }) => {
+      return await linkItemToEquipment(organizationId, itemId, equipmentId);
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate queries to refetch compatible equipment
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-item', variables.organizationId, variables.itemId]
+      });
+      toast({
+        title: 'Equipment linked',
+        description: 'Equipment has been added to compatibility list.'
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error linking equipment',
+        description: error instanceof Error ? error.message : 'Failed to link equipment',
+        variant: 'error'
+      });
+    }
+  });
+};
+
+export const useUnlinkItemFromEquipment = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      itemId,
+      equipmentId
+    }: {
+      organizationId: string;
+      itemId: string;
+      equipmentId: string;
+    }) => {
+      return await unlinkItemFromEquipment(organizationId, itemId, equipmentId);
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate queries to refetch compatible equipment
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-item', variables.organizationId, variables.itemId]
+      });
+      toast({
+        title: 'Equipment unlinked',
+        description: 'Equipment has been removed from compatibility list.'
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error unlinking equipment',
+        description: error instanceof Error ? error.message : 'Failed to unlink equipment',
         variant: 'error'
       });
     }
