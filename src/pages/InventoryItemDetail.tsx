@@ -1027,8 +1027,8 @@ const InventoryItemDetail = () => {
                   .filter(
                     (eq) =>
                       eq.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-                      eq.manufacturer?.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-                      eq.model?.toLowerCase().includes(equipmentSearch.toLowerCase())
+                      (eq.manufacturer ?? '').toLowerCase().includes(equipmentSearch.toLowerCase()) ||
+                      (eq.model ?? '').toLowerCase().includes(equipmentSearch.toLowerCase())
                   )
                   .map((equipment) => {
                     const isSelected = selectedEquipmentIds.includes(equipment.id);
