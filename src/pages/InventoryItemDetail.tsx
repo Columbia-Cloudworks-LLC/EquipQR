@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode, Search, X } from 'lucide-react';
+import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode, Search, Check, X } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useAssignInventoryManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem } from '@/hooks/useInventory';
+import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useAssignInventoryManagers, useBulkLinkEquipmentToItem } from '@/hooks/useInventory';
+import { useEquipment } from '@/hooks/useEquipment';
 import { usePermissions } from '@/hooks/usePermissions';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,7 +24,6 @@ import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import type { Equipment } from '@/services/EquipmentService';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { logger } from '@/utils/logger';
 
@@ -46,6 +45,9 @@ const InventoryItemDetail = () => {
   const [adjustmentAmount, setAdjustmentAmount] = useState(1);
   const [adjustReason, setAdjustReason] = useState('');
   const [showQRCode, setShowQRCode] = useState(false);
+  const [showAddEquipmentDialog, setShowAddEquipmentDialog] = useState(false);
+  const [equipmentSearch, setEquipmentSearch] = useState('');
+  const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([]);
   const [showManageManagers, setShowManageManagers] = useState(false);
   const [managerSearch, setManagerSearch] = useState('');
   const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>([]);
@@ -64,39 +66,18 @@ const InventoryItemDetail = () => {
     currentOrganization?.id,
     itemId
   );
-  const assignManagersMutation = useAssignInventoryManagers();
+  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id);
+  const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
+  const { data: compatibleEquipment = [] } = useCompatibleEquipmentForItem(
+    currentOrganization?.id,
+    itemId
+  );
   const deleteMutation = useDeleteInventoryItem();
   const adjustMutation = useAdjustInventoryQuantity();
   const updateMutation = useUpdateInventoryItem();
-  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id ?? '');
-
-  // Get compatible equipment
-  const [compatibleEquipment, setCompatibleEquipment] = useState<Equipment[]>([]);
-  
-  React.useEffect(() => {
-    if (!itemId || !currentOrganization?.id) return;
-    
-    const fetchCompatibleEquipment = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('equipment_part_compatibility')
-          .select('equipment_id, equipment:equipment_id(*)')
-          .eq('inventory_item_id', itemId);
-        
-        if (error) throw error;
-        
-        const equipment = (data || [])
-          .map((row: { equipment: unknown }) => row.equipment)
-          .filter(Boolean) as Equipment[];
-        
-        setCompatibleEquipment(equipment);
-      } catch (error) {
-        console.error('Error fetching compatible equipment:', error);
-      }
-    };
-    
-    fetchCompatibleEquipment();
-  }, [itemId, currentOrganization?.id]);
+  const unlinkEquipmentMutation = useUnlinkItemFromEquipment();
+  const bulkLinkEquipmentMutation = useBulkLinkEquipmentToItem();
+  const assignManagersMutation = useAssignInventoryManagers();
 
   const handleDelete = async () => {
     if (!currentOrganization || !itemId) return;
@@ -166,6 +147,51 @@ const InventoryItemDetail = () => {
     if (adjustmentAmount <= 0) return;
     const delta = showAddInput ? adjustmentAmount : -adjustmentAmount;
     handleAdjustQuantity(delta);
+  };
+
+  const handleRemoveEquipment = async (equipmentId: string) => {
+    if (!currentOrganization || !itemId) return;
+    try {
+      await unlinkEquipmentMutation.mutateAsync({
+        organizationId: currentOrganization.id,
+        itemId,
+        equipmentId
+      });
+    } catch {
+      // Error handled in mutation
+    }
+  };
+
+  const handleOpenAddEquipmentDialog = () => {
+    const currentEquipmentIds = compatibleEquipment.map(eq => eq.id);
+    setSelectedEquipmentIds(currentEquipmentIds);
+    setEquipmentSearch('');
+    setShowAddEquipmentDialog(true);
+  };
+
+  const handleSaveEquipmentCompatibility = async () => {
+    if (!currentOrganization || !itemId) return;
+
+    try {
+      // Use bulk operation to avoid multiple toast notifications
+      await bulkLinkEquipmentMutation.mutateAsync({
+        organizationId: currentOrganization.id,
+        itemId,
+        equipmentIds: selectedEquipmentIds
+      });
+
+      setShowAddEquipmentDialog(false);
+    } catch {
+      // Errors handled in mutation
+    }
+  };
+
+  const handleEquipmentToggle = (equipmentId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedEquipmentIds(prev => [...prev, equipmentId]);
+    } else {
+      setSelectedEquipmentIds(prev => prev.filter(id => id !== equipmentId));
+    }
   };
 
   const canEdit = canCreateEquipment(); // Reuse equipment permission
@@ -495,14 +521,31 @@ const InventoryItemDetail = () => {
 
           <TabsContent value="compatibility" className="space-y-4">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle>Compatible Equipment</CardTitle>
+                {canEdit && (
+                  <Button
+                    onClick={handleOpenAddEquipmentDialog}
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Manage Equipment
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {compatibleEquipment.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    No compatible equipment linked
-                  </p>
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">
+                      No compatible equipment linked
+                    </p>
+                    {canEdit && (
+                      <Button onClick={handleOpenAddEquipmentDialog} variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Equipment
+                      </Button>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {compatibleEquipment.map((equipment) => (
@@ -517,7 +560,12 @@ const InventoryItemDetail = () => {
                           </p>
                         </div>
                         {canEdit && (
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveEquipment(equipment.id)}
+                            disabled={unlinkEquipmentMutation.isPending}
+                          >
                             <Minus className="h-4 w-4" />
                           </Button>
                         )}
@@ -914,6 +962,110 @@ const InventoryItemDetail = () => {
                   </Button>
                 </div>
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add/Manage Equipment Compatibility Dialog */}
+        <Dialog open={showAddEquipmentDialog} onOpenChange={setShowAddEquipmentDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Manage Compatible Equipment</DialogTitle>
+              <DialogDescription>
+                Select equipment that is compatible with this inventory item
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search equipment..."
+                  value={equipmentSearch}
+                  onChange={(e) => setEquipmentSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="border rounded-md p-2 space-y-2 max-h-96 overflow-y-auto">
+                {(() => {
+                  const filteredEquipment = allEquipment.filter(
+                    (eq) =>
+                      eq.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
+                      (eq.manufacturer ?? '').toLowerCase().includes(equipmentSearch.toLowerCase()) ||
+                      (eq.model ?? '').toLowerCase().includes(equipmentSearch.toLowerCase())
+                  );
+
+                  if (filteredEquipment.length === 0) {
+                    return (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        {allEquipment.length === 0
+                          ? 'No equipment available'
+                          : 'No equipment found matching your search'}
+                      </p>
+                    );
+                  }
+
+                  return filteredEquipment.map((equipment) => {
+                    const isSelected = selectedEquipmentIds.includes(equipment.id);
+                    return (
+                      <div
+                        key={equipment.id}
+                        className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded"
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) =>
+                            handleEquipmentToggle(equipment.id, checked as boolean)
+                          }
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium">{equipment.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {equipment.manufacturer} {equipment.model}
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Check className="h-3 w-3 mr-1" />
+                            Selected
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+              {selectedEquipmentIds.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedEquipmentIds.map((id) => {
+                    const equipment = allEquipment.find((eq) => eq.id === id);
+                    return equipment ? (
+                      <Badge key={id} variant="secondary" className="gap-1">
+                        {equipment.name}
+                        <X
+                          className="h-3 w-3 cursor-pointer"
+                          onClick={() => handleEquipmentToggle(id, false)}
+                        />
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAddEquipmentDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveEquipmentCompatibility}
+                  disabled={bulkLinkEquipmentMutation.isPending}
+                >
+                  {bulkLinkEquipmentMutation.isPending
+                    ? 'Saving...'
+                    : 'Save Changes'}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
