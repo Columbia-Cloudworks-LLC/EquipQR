@@ -510,6 +510,203 @@ export type Database = {
         }
         Relationships: []
       }
+      equipment_part_compatibility: {
+        Row: {
+          equipment_id: string
+          inventory_item_id: string
+        }
+        Insert: {
+          equipment_id: string
+          inventory_item_id: string
+        }
+        Update: {
+          equipment_id?: string
+          inventory_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_part_compatibility_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_part_compatibility_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_items: {
+        Row: {
+          created_at: string
+          created_by: string
+          default_unit_cost: number | null
+          description: string | null
+          external_id: string | null
+          id: string
+          image_url: string | null
+          location: string | null
+          low_stock_threshold: number
+          name: string
+          organization_id: string
+          quantity_on_hand: number
+          sku: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          default_unit_cost?: number | null
+          description?: string | null
+          external_id?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          low_stock_threshold?: number
+          name: string
+          organization_id: string
+          quantity_on_hand?: number
+          sku?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          default_unit_cost?: number | null
+          description?: string | null
+          external_id?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          low_stock_threshold?: number
+          name?: string
+          organization_id?: string
+          quantity_on_hand?: number
+          sku?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_item_managers: {
+        Row: {
+          inventory_item_id: string
+          user_id: string
+        }
+        Insert: {
+          inventory_item_id: string
+          user_id: string
+        }
+        Update: {
+          inventory_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_item_managers_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_item_managers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_transactions: {
+        Row: {
+          change_amount: number
+          created_at: string
+          id: string
+          inventory_item_id: string
+          new_quantity: number
+          notes: string | null
+          organization_id: string
+          previous_quantity: number
+          transaction_type: Database["public"]["Enums"]["inventory_transaction_type"]
+          user_id: string
+          work_order_id: string | null
+        }
+        Insert: {
+          change_amount: number
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          new_quantity: number
+          notes?: string | null
+          organization_id: string
+          previous_quantity: number
+          transaction_type: Database["public"]["Enums"]["inventory_transaction_type"]
+          user_id: string
+          work_order_id?: string | null
+        }
+        Update: {
+          change_amount?: number
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          new_quantity?: number
+          notes?: string | null
+          organization_id?: string
+          previous_quantity?: number
+          transaction_type?: Database["public"]["Enums"]["inventory_transaction_type"]
+          user_id?: string
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transactions_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geocoded_locations: {
         Row: {
           created_at: string
@@ -2148,6 +2345,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_inventory_quantity: {
+        Args: {
+          p_item_id: string
+          p_delta: number
+          p_reason: string
+          p_work_order_id?: string | null
+        }
+        Returns: number
+      }
       accept_invitation_atomic: {
         Args: { p_invitation_token: string; p_user_id?: string }
         Returns: Json
@@ -2640,6 +2846,12 @@ export type Database = {
         | "on_hold"
         | "completed"
         | "cancelled"
+      inventory_transaction_type:
+        | "usage"
+        | "restock"
+        | "adjustment"
+        | "initial"
+        | "work_order"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2785,6 +2997,13 @@ export const Constants = {
         "on_hold",
         "completed",
         "cancelled",
+      ],
+      inventory_transaction_type: [
+        "usage",
+        "restock",
+        "adjustment",
+        "initial",
+        "work_order",
       ],
     },
   },

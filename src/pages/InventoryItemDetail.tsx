@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode } from 'lucide-react';
+import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode, Search, X } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem } from '@/hooks/useInventory';
+import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useAssignInventoryManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem } from '@/hooks/useInventory';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -14,24 +14,25 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { InventoryItemForm } from '@/components/inventory/InventoryItemForm';
 import InventoryQRCodeDisplay from '@/components/inventory/InventoryQRCodeDisplay';
 import InlineEditField from '@/components/equipment/InlineEditField';
-import { useAppToast } from '@/hooks/useAppToast';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { Equipment } from '@/services/EquipmentService';
+import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
+import { logger } from '@/utils/logger';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
-  const { toast } = useAppToast();
   const { canCreateEquipment } = usePermissions(); // Reuse equipment permissions
   const isMobile = useIsMobile();
 
@@ -45,6 +46,9 @@ const InventoryItemDetail = () => {
   const [adjustmentAmount, setAdjustmentAmount] = useState(1);
   const [adjustReason, setAdjustReason] = useState('');
   const [showQRCode, setShowQRCode] = useState(false);
+  const [showManageManagers, setShowManageManagers] = useState(false);
+  const [managerSearch, setManagerSearch] = useState('');
+  const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>([]);
 
   const { data: item, isLoading: itemLoading } = useInventoryItem(
     currentOrganization?.id,
@@ -56,13 +60,15 @@ const InventoryItemDetail = () => {
   );
   const transactions = transactionsData?.transactions ?? [];
   
-  const { data: managers = [], refetch: refetchManagers } = useInventoryItemManagers(
+  const { data: managers = [], isLoading: managersLoading, isError: managersIsError } = useInventoryItemManagers(
     currentOrganization?.id,
     itemId
   );
+  const assignManagersMutation = useAssignInventoryManagers();
   const deleteMutation = useDeleteInventoryItem();
   const adjustMutation = useAdjustInventoryQuantity();
   const updateMutation = useUpdateInventoryItem();
+  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id ?? '');
 
   // Get compatible equipment
   const [compatibleEquipment, setCompatibleEquipment] = useState<Equipment[]>([]);
@@ -163,6 +169,37 @@ const InventoryItemDetail = () => {
   };
 
   const canEdit = canCreateEquipment(); // Reuse equipment permission
+
+  const activeMembers = members.filter((m) => m.status === 'active');
+  const filteredMembers = activeMembers.filter((member) => {
+    const needle = managerSearch.toLowerCase();
+    return (
+      (member.name ?? '').toLowerCase().includes(needle) ||
+      (member.email ?? '').toLowerCase().includes(needle)
+    );
+  });
+
+  const handleToggleManager = (userId: string, checked: boolean) => {
+    setSelectedManagerIds((current) => {
+      if (checked) return current.includes(userId) ? current : [...current, userId];
+      return current.filter((id) => id !== userId);
+    });
+  };
+
+  const handleRemoveManager = async (userId: string) => {
+    if (!currentOrganization || !itemId) return;
+    const currentManagerIds = managers.map((m) => m.userId).filter((id) => id !== userId);
+    try {
+      await assignManagersMutation.mutateAsync({
+        organizationId: currentOrganization.id,
+        itemId,
+        userIds: currentManagerIds
+      });
+    } catch (error) {
+      // Error toast is handled by the mutation hook; we just log for diagnostics.
+      logger.error('Error removing inventory manager', error);
+    }
+  };
 
   // Handle inline field updates
   // Only string fields can be edited inline (name, description, sku, external_id, location)
@@ -495,10 +532,35 @@ const InventoryItemDetail = () => {
           <TabsContent value="managers" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Managers</CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle>Managers</CardTitle>
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedManagerIds(managers.map((m) => m.userId));
+                        setManagerSearch('');
+                        setShowManageManagers(true);
+                      }}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Manage
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                {managers.length === 0 ? (
+                {managersLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                ) : managersIsError ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    Failed to load managers for this item.
+                  </p>
+                ) : managers.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">No managers assigned</p>
                 ) : (
                   <div className="space-y-2">
@@ -515,26 +577,8 @@ const InventoryItemDetail = () => {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={async () => {
-                              if (!currentOrganization || !itemId) return;
-                              try {
-                                const { assignInventoryManagers } = await import('@/services/inventoryService');
-                                const currentManagerIds = managers.map(m => m.userId).filter(id => id !== manager.userId);
-                                await assignInventoryManagers(currentOrganization.id, itemId, currentManagerIds);
-                                refetchManagers();
-                                toast({
-                                  title: 'Manager removed',
-                                  description: `${manager.userName} is no longer a manager for this item.`
-                                });
-                              } catch (err) {
-                                console.error('Error removing manager:', err);
-                                toast({
-                                  title: 'Error',
-                                  description: 'Failed to remove manager',
-                                  variant: 'destructive'
-                                });
-                              }
-                            }}
+                            onClick={() => void handleRemoveManager(manager.userId)}
+                            disabled={assignManagersMutation.isPending}
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
@@ -545,6 +589,110 @@ const InventoryItemDetail = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Manage Managers Dialog */}
+            <Dialog open={showManageManagers} onOpenChange={setShowManageManagers}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Manage Managers</DialogTitle>
+                  <DialogDescription>
+                    Choose which organization members are managers for this inventory item.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search members..."
+                      value={managerSearch}
+                      onChange={(e) => setManagerSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+
+                  <div className="max-h-72 overflow-y-auto border rounded-md p-2 space-y-2">
+                    {filteredMembers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        No members found
+                      </p>
+                    ) : (
+                      filteredMembers.map((member) => {
+                        const isSelected = selectedManagerIds.includes(member.id);
+                        return (
+                          <div
+                            key={member.id}
+                            className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded"
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={(checked) =>
+                                handleToggleManager(member.id, checked as boolean)
+                              }
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium">{member.name || 'Unknown'}</div>
+                              <div className="text-sm text-muted-foreground">{member.email}</div>
+                            </div>
+                            {/* Selection is already indicated by the checkbox */}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {selectedManagerIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedManagerIds.map((id) => {
+                        const member = activeMembers.find((m) => m.id === id);
+                        return member ? (
+                          <Badge key={id} variant="secondary" className="gap-1">
+                            {member.name || member.email}
+                            <button
+                              type="button"
+                              className="inline-flex items-center"
+                              onClick={() => handleToggleManager(id, false)}
+                              aria-label={`Remove ${member.name || member.email}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowManageManagers(false)}
+                      disabled={assignManagersMutation.isPending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        if (!currentOrganization || !itemId) return;
+                        try {
+                          await assignManagersMutation.mutateAsync({
+                            organizationId: currentOrganization.id,
+                            itemId,
+                            userIds: selectedManagerIds
+                          });
+                          setShowManageManagers(false);
+                        } catch (error) {
+                          // Error toast is handled by the mutation hook; keep dialog open.
+                          logger.error('Error saving inventory managers', error);
+                        }
+                      }}
+                      disabled={assignManagersMutation.isPending}
+                    >
+                      {assignManagersMutation.isPending ? 'Saving...' : 'Save'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         </Tabs>
 

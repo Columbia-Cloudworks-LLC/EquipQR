@@ -16,10 +16,10 @@ import {
   type PaginatedTransactionsResult
 } from '@/services/inventoryService';
 import type {
-  InventoryItemFormData,
   InventoryQuantityAdjustment,
   InventoryFilters
 } from '@/types/inventory';
+import type { InventoryItemFormData } from '@/schemas/inventorySchema';
 import { useAppToast } from '@/hooks/useAppToast';
 
 const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
