@@ -217,7 +217,6 @@ const InventoryItemDetail = () => {
         });
       }
 
-      await fetchCompatibleEquipment();
       setShowAddEquipmentDialog(false);
     } catch {
       // Errors handled in mutations
