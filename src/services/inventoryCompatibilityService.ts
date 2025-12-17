@@ -215,10 +215,14 @@ export const bulkLinkEquipmentToItem = async (
         throw countError;
       }
 
-      await supabase
+      const { error: deleteError } = await supabase
         .from('equipment_part_compatibility')
         .delete()
         .eq('inventory_item_id', itemId);
+
+      if (deleteError) {
+        throw deleteError;
+      }
       
       return { added: 0, removed: count ?? 0 };
     }
