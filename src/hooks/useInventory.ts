@@ -17,7 +17,8 @@ import {
 } from '@/services/inventoryService';
 import {
   linkItemToEquipment,
-  unlinkItemFromEquipment
+  unlinkItemFromEquipment,
+  getCompatibleEquipmentForItem
 } from '@/services/inventoryCompatibilityService';
 import type {
   InventoryQuantityAdjustment,
@@ -136,6 +137,26 @@ export const useInventoryItemManagers = (
     queryFn: async () => {
       if (!organizationId || !itemId) return [];
       return await getInventoryItemManagers(organizationId, itemId);
+    },
+    enabled: !!organizationId && !!itemId,
+    staleTime
+  });
+};
+
+export const useCompatibleEquipmentForItem = (
+  organizationId: string | undefined,
+  itemId: string | undefined,
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+
+  return useQuery({
+    queryKey: ['compatible-equipment', organizationId, itemId],
+    queryFn: async () => {
+      if (!organizationId || !itemId) return [];
+      return await getCompatibleEquipmentForItem(organizationId, itemId);
     },
     enabled: !!organizationId && !!itemId,
     staleTime
@@ -367,6 +388,9 @@ export const useLinkItemToEquipment = () => {
     onSuccess: (_, variables) => {
       // Invalidate queries to refetch compatible equipment
       queryClient.invalidateQueries({
+        queryKey: ['compatible-equipment', variables.organizationId, variables.itemId]
+      });
+      queryClient.invalidateQueries({
         queryKey: ['inventory-item', variables.organizationId, variables.itemId]
       });
       toast({
@@ -402,6 +426,9 @@ export const useUnlinkItemFromEquipment = () => {
     },
     onSuccess: (_, variables) => {
       // Invalidate queries to refetch compatible equipment
+      queryClient.invalidateQueries({
+        queryKey: ['compatible-equipment', variables.organizationId, variables.itemId]
+      });
       queryClient.invalidateQueries({
         queryKey: ['inventory-item', variables.organizationId, variables.itemId]
       });

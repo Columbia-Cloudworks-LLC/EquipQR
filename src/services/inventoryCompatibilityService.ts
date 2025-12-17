@@ -1,6 +1,38 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import type { InventoryItem } from '@/types/inventory';
+import type { Equipment } from './EquipmentService';
+
+// ============================================
+// Get Compatible Equipment for Item
+// ============================================
+
+export const getCompatibleEquipmentForItem = async (
+  organizationId: string,
+  itemId: string
+): Promise<Equipment[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('equipment_part_compatibility')
+      .select(`
+        equipment_id,
+        equipment:equipment_id(*)
+      `)
+      .eq('inventory_item_id', itemId)
+      .eq('equipment.organization_id', organizationId);
+
+    if (error) throw error;
+
+    const equipment = (data || [])
+      .map((row: { equipment: unknown }) => row.equipment)
+      .filter(Boolean) as Equipment[];
+
+    return equipment;
+  } catch (error) {
+    logger.error('Error fetching compatible equipment for item:', error);
+    throw error;
+  }
+};
 
 // ============================================
 // Get Compatible Items for Equipment

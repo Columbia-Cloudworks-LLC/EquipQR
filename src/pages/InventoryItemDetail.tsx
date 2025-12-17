@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode, Search, Check, X } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useLinkItemToEquipment, useUnlinkItemFromEquipment } from '@/hooks/useInventory';
+import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useLinkItemToEquipment, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useAssignInventoryManagers } from '@/hooks/useInventory';
 import { useEquipment } from '@/hooks/useEquipment';
 import { usePermissions } from '@/hooks/usePermissions';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,7 +24,6 @@ import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import type { Equipment } from '@/services/EquipmentService';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { logger } from '@/utils/logger';
 
@@ -50,6 +48,9 @@ const InventoryItemDetail = () => {
   const [showAddEquipmentDialog, setShowAddEquipmentDialog] = useState(false);
   const [equipmentSearch, setEquipmentSearch] = useState('');
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([]);
+  const [showManageManagers, setShowManageManagers] = useState(false);
+  const [managerSearch, setManagerSearch] = useState('');
+  const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>([]);
 
   const { data: item, isLoading: itemLoading } = useInventoryItem(
     currentOrganization?.id,
@@ -65,40 +66,18 @@ const InventoryItemDetail = () => {
     currentOrganization?.id,
     itemId
   );
+  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id);
   const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
+  const { data: compatibleEquipment = [] } = useCompatibleEquipmentForItem(
+    currentOrganization?.id,
+    itemId
+  );
   const deleteMutation = useDeleteInventoryItem();
   const adjustMutation = useAdjustInventoryQuantity();
   const updateMutation = useUpdateInventoryItem();
   const linkEquipmentMutation = useLinkItemToEquipment();
   const unlinkEquipmentMutation = useUnlinkItemFromEquipment();
-
-  // Get compatible equipment
-  const [compatibleEquipment, setCompatibleEquipment] = useState<Equipment[]>([]);
-  
-  const fetchCompatibleEquipment = React.useCallback(async () => {
-    if (!itemId || !currentOrganization?.id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('equipment_part_compatibility')
-        .select('equipment_id, equipment:equipment_id(*)')
-        .eq('inventory_item_id', itemId);
-      
-      if (error) throw error;
-      
-      const equipment = (data || [])
-        .map((row: { equipment: unknown }) => row.equipment)
-        .filter(Boolean) as Equipment[];
-      
-      setCompatibleEquipment(equipment);
-    } catch (error) {
-      console.error('Error fetching compatible equipment:', error);
-    }
-  }, [itemId, currentOrganization?.id]);
-  
-  React.useEffect(() => {
-    fetchCompatibleEquipment();
-  }, [fetchCompatibleEquipment]);
+  const assignManagersMutation = useAssignInventoryManagers();
 
   const handleDelete = async () => {
     if (!currentOrganization || !itemId) return;
@@ -178,7 +157,6 @@ const InventoryItemDetail = () => {
         itemId,
         equipmentId
       });
-      await fetchCompatibleEquipment();
     } catch {
       // Error handled in mutation
     }
@@ -199,23 +177,24 @@ const InventoryItemDetail = () => {
     const toRemove = currentEquipmentIds.filter(id => !selectedEquipmentIds.includes(id));
 
     try {
-      // Add new equipment
-      for (const equipmentId of toAdd) {
-        await linkEquipmentMutation.mutateAsync({
+      // Execute all link/unlink operations concurrently
+      const addPromises = toAdd.map(equipmentId =>
+        linkEquipmentMutation.mutateAsync({
           organizationId: currentOrganization.id,
           itemId,
           equipmentId
-        });
-      }
+        })
+      );
 
-      // Remove unselected equipment
-      for (const equipmentId of toRemove) {
-        await unlinkEquipmentMutation.mutateAsync({
+      const removePromises = toRemove.map(equipmentId =>
+        unlinkEquipmentMutation.mutateAsync({
           organizationId: currentOrganization.id,
           itemId,
           equipmentId
-        });
-      }
+        })
+      );
+
+      await Promise.all([...addPromises, ...removePromises]);
 
       setShowAddEquipmentDialog(false);
     } catch {
