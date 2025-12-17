@@ -26,7 +26,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
 import { logger } from '@/utils/logger';
-import { useAppToast } from '@/hooks/useAppToast';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -35,7 +34,6 @@ const InventoryItemDetail = () => {
   const { user } = useAuth();
   const { canCreateEquipment } = usePermissions(); // Reuse equipment permissions
   const isMobile = useIsMobile();
-  useAppToast();
 
   const [activeTab, setActiveTab] = useState('overview');
   const [showEditForm, setShowEditForm] = useState(false);
@@ -1062,9 +1060,9 @@ const InventoryItemDetail = () => {
                 </Button>
                 <Button
                   onClick={handleSaveEquipmentCompatibility}
-                  disabled={linkEquipmentMutation.isPending || unlinkEquipmentMutation.isPending}
+                  disabled={bulkLinkEquipmentMutation.isPending}
                 >
-                  {linkEquipmentMutation.isPending || unlinkEquipmentMutation.isPending
+                  {bulkLinkEquipmentMutation.isPending
                     ? 'Saving...'
                     : 'Save Changes'}
                 </Button>

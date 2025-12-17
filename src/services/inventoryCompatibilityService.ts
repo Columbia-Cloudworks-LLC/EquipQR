@@ -187,17 +187,7 @@ export const bulkLinkEquipmentToItem = async (
   equipmentIds: string[]
 ): Promise<{ added: number; removed: number }> => {
   try {
-    if (equipmentIds.length === 0) {
-      // If no equipment selected, remove all links
-      await supabase
-        .from('equipment_part_compatibility')
-        .delete()
-        .eq('inventory_item_id', itemId);
-      
-      return { added: 0, removed: 0 };
-    }
-
-    // Verify item belongs to organization
+    // Verify item belongs to organization FIRST (before any operations)
     const { data: item, error: itemError } = await supabase
       .from('inventory_items')
       .select('id')
@@ -207,6 +197,26 @@ export const bulkLinkEquipmentToItem = async (
 
     if (itemError || !item) {
       throw new Error('Inventory item not found or access denied');
+    }
+
+    if (equipmentIds.length === 0) {
+      // If no equipment selected, remove all links
+      // Count existing links before deleting
+      const { count, error: countError } = await supabase
+        .from('equipment_part_compatibility')
+        .select('equipment_id', { count: 'exact', head: true })
+        .eq('inventory_item_id', itemId);
+
+      if (countError) {
+        throw countError;
+      }
+
+      await supabase
+        .from('equipment_part_compatibility')
+        .delete()
+        .eq('inventory_item_id', itemId);
+      
+      return { added: 0, removed: count ?? 0 };
     }
 
     // Verify all equipment belong to organization
