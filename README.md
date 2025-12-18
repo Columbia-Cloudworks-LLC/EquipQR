@@ -76,4 +76,4 @@ npm run test:coverage # Run with coverage report
 
 ## 📄 License
 
-Copyright © 2025 Columbia Cloudworks LLC. All rights reserved.
+Copyright © 2025 <a href="https://columbiacloudworks.com">Columbia Cloudworks LLC</a>. All rights reserved.
