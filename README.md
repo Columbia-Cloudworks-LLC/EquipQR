@@ -47,7 +47,7 @@ Detailed documentation is located in the [`/docs`](./docs/README.md) directory:
 1. **Clone & Install**
 
     ```bash
-    git clone [https://github.com/Columbia-Cloudworks-LLC/EquipQR](https://github.com/Columbia-Cloudworks-LLC/EquipQR)
+    git clone https://github.com/Columbia-Cloudworks-LLC/EquipQR
     cd equipqr && npm i
     ```
 
