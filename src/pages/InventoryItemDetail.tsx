@@ -66,7 +66,7 @@ const InventoryItemDetail = () => {
     currentOrganization?.id,
     itemId
   );
-  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id);
+  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id ?? "");
   const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
   const { data: compatibleEquipment = [] } = useCompatibleEquipmentForItem(
     currentOrganization?.id,
