@@ -450,7 +450,7 @@ export const useUnlinkItemFromEquipment = () => {
       toast({
         title: 'Error unlinking equipment',
         description: error instanceof Error ? error.message : 'Failed to unlink equipment',
-        variant: 'error'
+        variant: 'destructive'
       });
     }
   });
