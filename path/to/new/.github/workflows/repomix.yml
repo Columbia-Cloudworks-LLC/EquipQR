@@ -1,0 +1,33 @@
+name: Repomix Artifact
+
+on:
+  push:
+    branches: [ main, preview ]
+  pull_request:
+    branches: [ main, preview ]
+  workflow_dispatch:
+
+jobs:
+  pack:
+    name: Pack Repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pack with Repomix
+        uses: yamadashy/repomix/.github/actions/repomix@main
+        with:
+          # Matches the output filename in your repomix.config.json
+          output: repomix-EquipQR.xml
+          # Uses style: xml by default, matching your config
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: repomix-EquipQR.xml
+          path: repomix-EquipQR.xml
+          retention-days: 30
