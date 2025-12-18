@@ -500,7 +500,7 @@ export const useBulkLinkEquipmentToItem = () => {
       toast({
         title: 'Error updating equipment compatibility',
         description: error instanceof Error ? error.message : 'Failed to update equipment compatibility',
-        variant: 'error'
+        variant: 'destructive'
       });
     }
   });
