@@ -446,7 +446,7 @@ export const getInventoryItemManagers = async (
 ): Promise<Array<{ userId: string; userName: string; userEmail: string }>> => {
   try {
     // First, fetch manager user IDs and ensure the inventory item belongs to the org.
-    // Note: inventory_item_managers.user_id references auth.users, so we cannot join directly to profiles.
+    // Note: inventory_item_managers.user_id references profiles.id (via inventory_item_managers_user_id_fkey); we still resolve names/emails via organization_members + profiles below to enforce org scoping.
     const { data: managerRows, error: managerError } = await supabase
       .from('inventory_item_managers')
       .select(`
