@@ -16,8 +16,9 @@ import {
   CheckCircle2,
   Package
 } from "lucide-react";
+import type React from "react";
 
-const OnboardingGuide = () => {
+const OnboardingGuide: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Introduction */}
