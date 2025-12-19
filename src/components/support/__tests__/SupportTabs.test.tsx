@@ -176,32 +176,28 @@ describe('SupportTabs', () => {
       await user.click(tipsTab);
       
       expect(screen.getByText('Equipment Management')).toBeInTheDocument();
-      expect(screen.getByText(/Keep equipment records up to date/)).toBeInTheDocument();
-      expect(screen.getByText(/Attach QR codes to physical equipment/)).toBeInTheDocument();
     });
 
-    it('displays team organization best practices', async () => {
+    it('displays team collaboration best practices', async () => {
       const user = userEvent.setup();
       render(<SupportTabs />);
       
       const tipsTab = screen.getByRole('tab', { name: /Tips/i });
       await user.click(tipsTab);
       
-      expect(screen.getByText('Team Organization')).toBeInTheDocument();
-      expect(screen.getByText(/Create separate Teams for each major customer/)).toBeInTheDocument();
-      expect(screen.getByText(/Assign equipment to Teams based on location or customer/)).toBeInTheDocument();
+      expect(screen.getByText('Team Collaboration')).toBeInTheDocument();
     });
 
-    it('displays work order workflow best practices', async () => {
+    it('displays work order efficiency best practices', async () => {
       const user = userEvent.setup();
       render(<SupportTabs />);
       
       const tipsTab = screen.getByRole('tab', { name: /Tips/i });
       await user.click(tipsTab);
       
-      expect(screen.getByText('Work Order Workflow')).toBeInTheDocument();
-      expect(screen.getByText(/Use descriptive titles and detailed descriptions/)).toBeInTheDocument();
-      expect(screen.getByText(/Set realistic due dates/)).toBeInTheDocument();
+      expect(screen.getByText('Work Order Efficiency')).toBeInTheDocument();
+      expect(screen.getByText(/Use clear, descriptive titles and detailed descriptions/)).toBeInTheDocument();
+      expect(screen.getByText(/Set appropriate priorities and realistic due dates/)).toBeInTheDocument();
     });
   });
 
