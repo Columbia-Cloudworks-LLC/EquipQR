@@ -88,13 +88,11 @@ describe('SupportTabs', () => {
       const faqTab = screen.getByRole('tab', { name: /FAQ/i });
       await user.click(faqTab);
       
-      expect(screen.getByText(/How do I get started with EquipQR™?/)).toBeInTheDocument();
-      expect(screen.getByText(/How do QR codes work in EquipQR™?/)).toBeInTheDocument();
-      expect(screen.getByText(/What are Teams in EquipQR™?/)).toBeInTheDocument();
-      expect(screen.getByText(/How do Work Orders work?/)).toBeInTheDocument();
-      expect(screen.getByText(/What's the difference between Organization and Team Members?/)).toBeInTheDocument();
+      expect(screen.getByText(/How do I get started with EquipQR™\?/)).toBeInTheDocument();
+      expect(screen.getByText(/How do QR codes work in EquipQR™\?/)).toBeInTheDocument();
+      expect(screen.getByText(/How do I manage work orders effectively\?/)).toBeInTheDocument();
+      expect(screen.getByText(/How do I organize teams and permissions\?/)).toBeInTheDocument();
     });
-
     it('expands FAQ accordion when clicked', async () => {
       const user = userEvent.setup();
       render(<SupportTabs />);
