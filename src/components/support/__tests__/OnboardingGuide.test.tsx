@@ -20,13 +20,14 @@ describe('OnboardingGuide', () => {
       expect(screen.getByText(/This guide will take you from account creation to full operation/)).toBeInTheDocument();
     });
 
-    it('renders all 4 phase cards', () => {
+    it('renders all 5 phase cards', () => {
       render(<OnboardingGuide />);
       
       expect(screen.getByText(/Phase 1: Building Your Team/)).toBeInTheDocument();
       expect(screen.getByText(/Phase 2: Building Your Fleet/)).toBeInTheDocument();
-      expect(screen.getByText(/Phase 3: The Requestor Workflow/)).toBeInTheDocument();
-      expect(screen.getByText(/Phase 4: Getting to Work/)).toBeInTheDocument();
+      expect(screen.getByText(/Phase 3: Managing Inventory/)).toBeInTheDocument();
+      expect(screen.getByText(/Phase 4: The Requestor Workflow/)).toBeInTheDocument();
+      expect(screen.getByText(/Phase 5: Getting to Work/)).toBeInTheDocument();
     });
   });
 
@@ -52,15 +53,23 @@ describe('OnboardingGuide', () => {
     it('displays Phase 3 with correct title, badge, and description', () => {
       render(<OnboardingGuide />);
       
-      expect(screen.getByText(/Phase 3: The Requestor Workflow/)).toBeInTheDocument();
-      expect(screen.getByText('Premium Service')).toBeInTheDocument();
-      expect(screen.getByText('Offer a "Zero-Phone-Call" service level to trusted customers')).toBeInTheDocument();
+      expect(screen.getByText(/Phase 3: Managing Inventory/)).toBeInTheDocument();
+      expect(screen.getByText('Parts & Stock')).toBeInTheDocument();
+      expect(screen.getByText('Track parts, consumables, and stock levels to ensure your shop never runs out.')).toBeInTheDocument();
     });
 
     it('displays Phase 4 with correct title, badge, and description', () => {
       render(<OnboardingGuide />);
       
-      expect(screen.getByText(/Phase 4: Getting to Work/)).toBeInTheDocument();
+      expect(screen.getByText(/Phase 4: The Requestor Workflow/)).toBeInTheDocument();
+      expect(screen.getByText('Premium Service')).toBeInTheDocument();
+      expect(screen.getByText('Offer a "Zero-Phone-Call" service level to trusted customers')).toBeInTheDocument();
+    });
+
+    it('displays Phase 5 with correct title, badge, and description', () => {
+      render(<OnboardingGuide />);
+      
+      expect(screen.getByText(/Phase 5: Getting to Work/)).toBeInTheDocument();
       // Work Orders appears multiple times (badge and in content)
       const workOrdersElements = screen.getAllByText('Work Orders');
       expect(workOrdersElements.length).toBeGreaterThanOrEqual(1);
@@ -273,8 +282,9 @@ describe('OnboardingGuide', () => {
       expect(screen.getByText('Welcome to EquipQR™')).toBeInTheDocument();
       expect(screen.getByText(/Phase 1: Building Your Team/)).toBeInTheDocument();
       expect(screen.getByText(/Phase 2: Building Your Fleet/)).toBeInTheDocument();
-      expect(screen.getByText(/Phase 3: The Requestor Workflow/)).toBeInTheDocument();
-      expect(screen.getByText(/Phase 4: Getting to Work/)).toBeInTheDocument();
+      expect(screen.getByText(/Phase 3: Managing Inventory/)).toBeInTheDocument();
+      expect(screen.getByText(/Phase 4: The Requestor Workflow/)).toBeInTheDocument();
+      expect(screen.getByText(/Phase 5: Getting to Work/)).toBeInTheDocument();
     });
 
     it('has accordion triggers that are focusable buttons', () => {
@@ -295,6 +305,7 @@ describe('OnboardingGuide', () => {
       // CardDescriptions should be present
       expect(screen.getByText('Get your personnel into the system with the right access levels')).toBeInTheDocument();
       expect(screen.getByText('Populate the system with your equipment assets')).toBeInTheDocument();
+      expect(screen.getByText('Track parts, consumables, and stock levels to ensure your shop never runs out.')).toBeInTheDocument();
       expect(screen.getByText('Offer a "Zero-Phone-Call" service level to trusted customers')).toBeInTheDocument();
       expect(screen.getByText('Execute repairs with People, Equipment, and Requests in place')).toBeInTheDocument();
     });
@@ -327,6 +338,7 @@ describe('OnboardingGuide', () => {
       expect(screen.getByText(/Phase 2/)).toBeInTheDocument();
       expect(screen.getByText(/Phase 3/)).toBeInTheDocument();
       expect(screen.getByText(/Phase 4/)).toBeInTheDocument();
+      expect(screen.getByText(/Phase 5/)).toBeInTheDocument();
     });
 
     it('provides comprehensive team setup information', () => {
@@ -344,6 +356,18 @@ describe('OnboardingGuide', () => {
       expect(screen.getByText(/Fill in Basic Information/)).toBeInTheDocument();
       expect(screen.getByText(/Team Assignment/)).toBeInTheDocument();
       expect(screen.getByText(/Status & Location/)).toBeInTheDocument();
+    });
+
+    it('provides complete inventory management guidance', () => {
+      render(<OnboardingGuide />);
+      
+      expect(screen.getByText(/Navigate to the/)).toBeInTheDocument();
+      expect(screen.getByText(/"Add Item"/)).toBeInTheDocument();
+      expect(screen.getByText(/Enter Part Details:/)).toBeInTheDocument();
+      expect(screen.getByText(/Name & SKU:/)).toBeInTheDocument();
+      expect(screen.getByText(/Quantity on Hand:/)).toBeInTheDocument();
+      expect(screen.getByText(/Low Stock Threshold:/)).toBeInTheDocument();
+      expect(screen.getByText(/Link to Equipment:/)).toBeInTheDocument();
     });
 
     it('explains the premium Requestor workflow', () => {

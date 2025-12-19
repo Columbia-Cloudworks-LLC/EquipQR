@@ -13,7 +13,8 @@ import {
   MessageSquarePlus,
   QrCode,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  Package
 } from "lucide-react";
 
 const OnboardingGuide = () => {
@@ -217,7 +218,56 @@ const OnboardingGuide = () => {
         </CardContent>
       </Card>
 
-      {/* Phase 3: The Requestor Workflow */}
+      {/* Phase 3: Managing Inventory */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Package className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                Phase 3: Managing Inventory
+                <Badge variant="secondary">Parts & Stock</Badge>
+              </CardTitle>
+              <CardDescription>
+                Track parts, consumables, and stock levels to ensure your shop never runs out.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-muted-foreground">
+              Keep track of your spare parts and consumables to streamline repairs.
+            </p>
+            <ol className="list-decimal list-inside space-y-3 text-sm">
+              <li>Navigate to the <strong>Inventory</strong> page.</li>
+              <li>Click <strong>"Add Item"</strong>.</li>
+              <li>
+                <strong>Enter Part Details:</strong>
+                <ul className="list-disc list-inside ml-4 mt-2 space-y-1 text-muted-foreground">
+                  <li><strong>Name & SKU:</strong> Identify the part (e.g., "Oil Filter", "OF-123").</li>
+                  <li><strong>Quantity on Hand:</strong> Current stock count.</li>
+                  <li><strong>Low Stock Threshold:</strong> Set a minimum limit (e.g., 5) to receive alerts when stock runs low.</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Link to Equipment:</strong>
+                <span className="ml-1 text-muted-foreground">
+                  Select which machines this part is compatible with. This helps technicians find the right parts quickly during repairs.
+                </span>
+              </li>
+              <li>Click <strong>Create Item</strong>.</li>
+            </ol>
+            <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+              <strong>Tip:</strong> Technicians can consume these parts directly within Work Orders, automatically deducting from your inventory count.
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Phase 4: The Requestor Workflow */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -226,7 +276,7 @@ const OnboardingGuide = () => {
             </div>
             <div>
               <CardTitle className="flex items-center gap-2">
-                Phase 3: The Requestor Workflow
+                Phase 4: The Requestor Workflow
                 <Badge variant="default">Premium Service</Badge>
               </CardTitle>
               <CardDescription>
@@ -287,7 +337,7 @@ const OnboardingGuide = () => {
         </CardContent>
       </Card>
 
-      {/* Phase 4: Getting to Work */}
+      {/* Phase 5: Getting to Work */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -296,7 +346,7 @@ const OnboardingGuide = () => {
             </div>
             <div>
               <CardTitle className="flex items-center gap-2">
-                Phase 4: Getting to Work
+                Phase 5: Getting to Work
                 <Badge variant="secondary">Work Orders</Badge>
               </CardTitle>
               <CardDescription>
