@@ -44,7 +44,7 @@ const ContactSection: React.FC = () => (
 );
 
 // Dashboard version - embedded in dashboard layout
-export const DashboardSupport = () => {
+export const DashboardSupport: React.FC = () => {
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-6">
@@ -64,7 +64,7 @@ export const DashboardSupport = () => {
 };
 
 // Public version - with landing header and footer
-const Support = () => {
+const Support: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <LandingHeader />

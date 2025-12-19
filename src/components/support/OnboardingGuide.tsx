@@ -71,8 +71,8 @@ const OnboardingGuide: React.FC = () => {
                     <li>
                       <strong>Select Organization Role</strong>:
                       <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
-                        <li><Badge variant="secondary" className="mr-1">Admin</Badge> Full access to organization settings, billing, and all records.</li>
-                        <li><Badge variant="outline" className="mr-1">Member</Badge> General access. <em>Note: "Members" cannot see or touch equipment until they are assigned to a Team.</em></li>
+                        <li className="flex items-start gap-1"><Badge variant="secondary" className="mr-1 mt-0.5 shrink-0">Admin</Badge> <span>Full access to organization settings, billing, and all records.</span></li>
+                        <li className="flex items-start gap-1"><Badge variant="outline" className="mr-1 mt-0.5 shrink-0">Member</Badge> <span>General access. <em>Note: "Members" cannot see or touch equipment until they are assigned to a Team.</em></span></li>
                       </ul>
                     </li>
                     <li>Click <strong>Send Invitation</strong>.</li>
@@ -124,10 +124,10 @@ const OnboardingGuide: React.FC = () => {
                         <div className="flex items-start gap-2 rounded-md border bg-accent/50 p-3">
                           <MessageSquarePlus className="h-4 w-4 mt-0.5 text-primary" />
                           <div>
-                            <p className="font-medium flex items-center gap-2">
+                            <div className="font-medium flex items-center gap-2">
                               Requestor
                               <Badge variant="default" className="text-xs">Premium</Badge>
-                            </p>
+                            </div>
                             <p className="text-sm text-muted-foreground">Designed for recurring customers. A Requestor can scan a machine's QR code to submit a new Work Order Request directly.</p>
                           </div>
                         </div>
@@ -207,9 +207,9 @@ const OnboardingGuide: React.FC = () => {
               </li>
               <li>
                 <strong>Team Assignment:</strong>
-                <span className="ml-1 text-muted-foreground">
-                  <Badge variant="destructive" className="mr-1">Crucial</Badge>
-                  Assign the equipment to the specific Team that manages it. Only users in that team (Managers/Technicians) will be able to service it.
+                <span className="ml-1 text-muted-foreground inline-flex items-start gap-1 flex-wrap">
+                  <Badge variant="destructive" className="shrink-0">Crucial</Badge>
+                  <span>Assign the equipment to the specific Team that manages it. Only users in that team (Managers/Technicians) will be able to service it.</span>
                 </span>
               </li>
               <li><strong>Status & Location:</strong> Set the initial status (e.g., "Available") and physical location.</li>
@@ -319,7 +319,7 @@ const OnboardingGuide: React.FC = () => {
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">4</div>
                   <div>
                     <p className="font-medium">The Queue</p>
-                    <p className="text-sm text-muted-foreground">The request appears immediately in that Team's queue with a status of <Badge variant="outline">Submitted</Badge>.</p>
+                    <span className="text-sm text-muted-foreground inline-flex items-center gap-1 flex-wrap">The request appears immediately in that Team's queue with a status of <Badge variant="outline">Submitted</Badge>.</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 rounded-md border bg-background p-3">
@@ -365,7 +365,7 @@ const OnboardingGuide: React.FC = () => {
               <li>Navigate to <strong>Work Orders</strong>.</li>
               <li><strong>Creating a Job:</strong> Click <strong>"Create Work Order"</strong> for internal jobs (e.g., "500 Hour Service").</li>
               <li>
-                <strong>Handling Requests:</strong> Look for items with the <Badge variant="outline">Submitted</Badge> status (incoming from Requestors).
+                <div className="inline-flex items-center gap-1 flex-wrap"><strong>Handling Requests:</strong> <span>Look for items with the</span> <Badge variant="outline">Submitted</Badge> <span>status (incoming from Requestors).</span></div>
                 <ul className="list-disc list-inside ml-4 mt-2 space-y-1 text-muted-foreground">
                   <li>Open the request.</li>
                   <li>Review the customer's description.</li>
@@ -377,7 +377,7 @@ const OnboardingGuide: React.FC = () => {
                 <strong>Execution:</strong> The assigned Technician will see this job in their "My Work Orders" view, where they can log time, upload photos, and use inventory parts.
               </li>
             </ol>
-            <div className="flex items-center gap-2 rounded-md bg-green-500/10 p-3 text-green-700 dark:text-green-400">
+            <div className="flex items-center gap-2 rounded-md bg-success/10 p-3 text-success">
               <CheckCircle2 className="h-5 w-5" />
               <span className="font-medium">You're all set! Your repair shop is now fully operational.</span>
             </div>

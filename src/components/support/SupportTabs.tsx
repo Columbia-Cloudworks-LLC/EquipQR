@@ -1,3 +1,5 @@
+import type React from "react";
+import type { LucideIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -21,7 +23,7 @@ import {
 import OnboardingGuide from './OnboardingGuide';
 
 // Shared FAQ Section Component
-const FAQSection = () => {
+const FAQSection: React.FC = () => {
   return (
     <Card>
       <CardHeader>
@@ -103,11 +105,22 @@ const FAQSection = () => {
 };
 
 // Helper component for the hierarchy visualization
-const HierarchyNode = ({ icon: Icon, title, name, role, badgeVariant = "secondary", children, description, isCustomer = false }: any) => (
+interface HierarchyNodeProps {
+  icon: LucideIcon;
+  title: string;
+  name?: string;
+  role?: string;
+  badgeVariant?: "default" | "secondary" | "destructive" | "outline";
+  children?: React.ReactNode;
+  description?: string;
+  isCustomer?: boolean;
+}
+
+const HierarchyNode: React.FC<HierarchyNodeProps> = ({ icon: Icon, title, name, role, badgeVariant = "secondary", children, description, isCustomer = false }) => (
   <div className="relative">
-    <div className={`flex items-start gap-3 p-3 border rounded-lg shadow-sm z-10 relative ${isCustomer ? 'bg-orange-50/50 border-orange-100 dark:bg-orange-950/10 dark:border-orange-900/50' : 'bg-card'}`}>
+    <div className={`flex items-start gap-3 p-3 border rounded-lg shadow-sm z-10 relative ${isCustomer ? 'bg-warning/10 border-warning/20 dark:bg-warning/5 dark:border-warning/30' : 'bg-card'}`}>
       <div className="mt-1">
-        <Icon className={`h-5 w-5 ${isCustomer ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`} />
+        <Icon className={`h-5 w-5 ${isCustomer ? 'text-warning dark:text-warning' : 'text-muted-foreground'}`} />
       </div>
       <div className="flex-1">
         <div className="flex items-center gap-2 flex-wrap">
@@ -127,7 +140,7 @@ const HierarchyNode = ({ icon: Icon, title, name, role, badgeVariant = "secondar
 );
 
 // Shared Roles Section Component
-const RolesSection = () => {
+const RolesSection: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* 1. Organization Level Roles */}
@@ -164,7 +177,7 @@ const RolesSection = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <UserCheck className="h-4 w-4 text-blue-500" />
+                <UserCheck className="h-4 w-4 text-info" />
                 Admin
               </CardTitle>
             </CardHeader>
@@ -259,7 +272,7 @@ const RolesSection = () => {
                     </div>
                     
                     <div className="mt-4 pt-4 border-t border-dashed">
-                      <p className="text-[10px] font-semibold uppercase text-orange-600/70 mb-2">Customer Staff (External)</p>
+                      <p className="text-[10px] font-semibold uppercase text-warning/70 mb-2">Customer Staff (External)</p>
                       <HierarchyNode 
                         icon={UserPlus} 
                         title="Alice (ABC Employee)" 
@@ -298,7 +311,7 @@ const RolesSection = () => {
                       />
                     </div>
                      <div className="mt-4 pt-4 border-t border-dashed">
-                      <p className="text-[10px] font-semibold uppercase text-orange-600/70 mb-2">Customer Staff (External)</p>
+                      <p className="text-[10px] font-semibold uppercase text-warning/70 mb-2">Customer Staff (External)</p>
                       <HierarchyNode 
                         icon={UserPlus} 
                         title="Mike (XYZ Employee)" 
@@ -339,7 +352,7 @@ const RolesSection = () => {
           <div className="divide-y">
             <div className="grid grid-cols-4 p-3 text-sm">
               <div className="font-medium flex items-center gap-2">
-                <UserCheck className="h-4 w-4 text-blue-600" />
+                <UserCheck className="h-4 w-4 text-info" />
                 Manager
               </div>
               <div className="col-span-3 text-muted-foreground">
@@ -349,7 +362,7 @@ const RolesSection = () => {
 
             <div className="grid grid-cols-4 p-3 text-sm">
               <div className="font-medium flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-green-600" />
+                <Wrench className="h-4 w-4 text-success" />
                 Technician
               </div>
               <div className="col-span-3 text-muted-foreground">
@@ -357,9 +370,9 @@ const RolesSection = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 p-3 text-sm bg-orange-50/30">
+            <div className="grid grid-cols-4 p-3 text-sm bg-warning/10">
               <div className="font-medium flex items-center gap-2">
-                <UserPlus className="h-4 w-4 text-orange-600" />
+                <UserPlus className="h-4 w-4 text-warning" />
                 Requestor
               </div>
               <div className="col-span-3 text-muted-foreground">
@@ -367,9 +380,9 @@ const RolesSection = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 p-3 text-sm bg-orange-50/30">
+            <div className="grid grid-cols-4 p-3 text-sm bg-warning/10">
               <div className="font-medium flex items-center gap-2">
-                <Eye className="h-4 w-4 text-gray-600" />
+                <Eye className="h-4 w-4 text-muted-foreground" />
                 Viewer
               </div>
               <div className="col-span-3 text-muted-foreground">
@@ -412,7 +425,7 @@ const RolesSection = () => {
 };
 
 // Shared Best Practices Section Component
-const BestPracticesSection = () => {
+const BestPracticesSection: React.FC = () => {
   return (
     <Card>
       <CardHeader>
@@ -457,7 +470,7 @@ const BestPracticesSection = () => {
  * Shared tabbed interface for support content
  * Used by both DashboardSupport and public Support components
  */
-const SupportTabs = () => {
+const SupportTabs: React.FC = () => {
   return (
     <Tabs defaultValue="guide" className="w-full">
       <TabsList className="grid w-full grid-cols-4">
