@@ -361,7 +361,9 @@ describe('OnboardingGuide', () => {
     it('provides complete inventory management guidance', () => {
       render(<OnboardingGuide />);
       
-      expect(screen.getByText(/Navigate to the/)).toBeInTheDocument();
+      // Use getAllByText since "Navigate to the" matches multiple elements (Equipment and Inventory pages)
+      const navigateElements = screen.getAllByText(/Navigate to the/);
+      expect(navigateElements.length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/"Add Item"/)).toBeInTheDocument();
       expect(screen.getByText(/Enter Part Details:/)).toBeInTheDocument();
       expect(screen.getByText(/Name & SKU:/)).toBeInTheDocument();
