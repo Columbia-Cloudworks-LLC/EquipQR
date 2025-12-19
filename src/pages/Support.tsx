@@ -22,6 +22,8 @@ import {
 import LandingHeader from '@/components/landing/LandingHeader';
 import LegalFooter from '@/components/layout/LegalFooter';
 import OnboardingGuide from '@/components/support/OnboardingGuide';
+import Page from '@/components/layout/Page';
+import PageHeader from '@/components/layout/PageHeader';
 
 // Shared FAQ Section Component
 const FAQSection = () => (
@@ -247,56 +249,55 @@ const BestPracticesSection = () => (
 // Dashboard version - embedded in dashboard layout
 export const DashboardSupport = () => {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Support & Documentation</h1>
-        <p className="text-muted-foreground">
-          Find answers to common questions and learn how to use EquipQR™ effectively
-        </p>
+    <Page maxWidth="7xl" padding="responsive">
+      <div className="space-y-6">
+        <PageHeader 
+          title="Support & Documentation"
+          description="Find answers to common questions and learn how to use EquipQR™ effectively"
+        />
+
+        {/* Contact Section - Always visible */}
+        <ContactSection />
+
+        {/* Tabbed Content */}
+        <Tabs defaultValue="guide" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="guide" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 hidden sm:inline" />
+              <span>Guide</span>
+            </TabsTrigger>
+            <TabsTrigger value="faq" className="flex items-center gap-2">
+              <HelpCircle className="h-4 w-4 hidden sm:inline" />
+              <span>FAQ</span>
+            </TabsTrigger>
+            <TabsTrigger value="roles" className="flex items-center gap-2">
+              <Users className="h-4 w-4 hidden sm:inline" />
+              <span>Roles</span>
+            </TabsTrigger>
+            <TabsTrigger value="tips" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4 hidden sm:inline" />
+              <span>Tips</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="guide" className="mt-6">
+            <OnboardingGuide />
+          </TabsContent>
+
+          <TabsContent value="faq" className="mt-6">
+            <FAQSection />
+          </TabsContent>
+
+          <TabsContent value="roles" className="mt-6">
+            <RolesSection />
+          </TabsContent>
+
+          <TabsContent value="tips" className="mt-6">
+            <BestPracticesSection />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      {/* Contact Section - Always visible */}
-      <ContactSection />
-
-      {/* Tabbed Content */}
-      <Tabs defaultValue="guide" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="guide" className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 hidden sm:inline" />
-            <span>Guide</span>
-          </TabsTrigger>
-          <TabsTrigger value="faq" className="flex items-center gap-2">
-            <HelpCircle className="h-4 w-4 hidden sm:inline" />
-            <span>FAQ</span>
-          </TabsTrigger>
-          <TabsTrigger value="roles" className="flex items-center gap-2">
-            <Users className="h-4 w-4 hidden sm:inline" />
-            <span>Roles</span>
-          </TabsTrigger>
-          <TabsTrigger value="tips" className="flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 hidden sm:inline" />
-            <span>Tips</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="guide" className="mt-6">
-          <OnboardingGuide />
-        </TabsContent>
-
-        <TabsContent value="faq" className="mt-6">
-          <FAQSection />
-        </TabsContent>
-
-        <TabsContent value="roles" className="mt-6">
-          <RolesSection />
-        </TabsContent>
-
-        <TabsContent value="tips" className="mt-6">
-          <BestPracticesSection />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </Page>
   );
 };
 
