@@ -18,7 +18,6 @@ import OnboardingGuide from './OnboardingGuide';
 
 // Shared FAQ Section Component
 const FAQSection = () => {
-  
   return (
     <Card>
       <CardHeader>
