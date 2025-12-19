@@ -1,4 +1,4 @@
-import React from "react";
+import type { FC } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -14,7 +14,7 @@ import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 
 // Shared Contact Section Component
-const ContactSection: React.FC = () => (
+const ContactSection: FC = () => (
   <Card>
     <CardHeader>
       <CardTitle className="flex items-center gap-2">

@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -22,7 +22,7 @@ import {
 import OnboardingGuide from './OnboardingGuide';
 
 // Shared FAQ Section Component
-const FAQSection: React.FC = () => {
+const FAQSection: FC = () => {
   return (
     <Card>
       <CardHeader>
@@ -128,7 +128,7 @@ const HierarchyNode = ({ icon: Icon, title, name, role, badgeVariant = "secondar
 );
 
 // Shared Roles Section Component
-const RolesSection: React.FC = () => {
+const RolesSection: FC = () => {
   return (
     <div className="space-y-8">
       {/* 1. Organization Level Roles */}
@@ -413,7 +413,7 @@ const RolesSection: React.FC = () => {
 };
 
 // Shared Best Practices Section Component
-const BestPracticesSection: React.FC = () => {
+const BestPracticesSection: FC = () => {
   return (
     <Card>
       <CardHeader>
@@ -458,7 +458,7 @@ const BestPracticesSection: React.FC = () => {
  * Shared tabbed interface for support content
  * Used by both DashboardSupport and public Support components
  */
-const SupportTabs: React.FC = () => {
+const SupportTabs: FC = () => {
   return (
     <Tabs defaultValue="guide" className="w-full">
       <TabsList className="grid w-full grid-cols-4">
