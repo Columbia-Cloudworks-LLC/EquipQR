@@ -140,6 +140,20 @@ describe('EquipmentCard', () => {
 
       expect(screen.getByText(/0 hours/)).toBeInTheDocument();
     });
+
+    it('shows 0 hours when working_hours is undefined', () => {
+      const equipmentWithUndefinedHours = { ...mockEquipment, working_hours: undefined };
+      render(<EquipmentCard equipment={equipmentWithUndefinedHours} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText(/0 hours/)).toBeInTheDocument();
+    });
+
+    it('formats large working hours with locale string', () => {
+      const equipmentWithLargeHours = { ...mockEquipment, working_hours: 12500 };
+      render(<EquipmentCard equipment={equipmentWithLargeHours} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText(/12,500 hours/)).toBeInTheDocument();
+    });
   });
 
   describe('Last Maintenance', () => {
@@ -148,6 +162,118 @@ describe('EquipmentCard', () => {
 
       // Date format may vary, but the year should be there
       expect(screen.getByText(/2024/)).toBeInTheDocument();
+    });
+
+    it('does not render last maintenance section when not provided', () => {
+      const equipmentWithoutMaintenance = { ...mockEquipment, last_maintenance: undefined };
+      render(<EquipmentCard equipment={equipmentWithoutMaintenance} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.queryByText(/Last maintenance/)).not.toBeInTheDocument();
+    });
+
+    it('handles empty string for last_maintenance', () => {
+      const equipmentWithEmptyMaintenance = { ...mockEquipment, last_maintenance: '' };
+      render(<EquipmentCard equipment={equipmentWithEmptyMaintenance} onShowQRCode={mockOnShowQRCode} />);
+
+      // Empty string is falsy, so last maintenance section should not render
+      expect(screen.queryByText(/Last maintenance/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Image Handling', () => {
+    it('renders fallback Package icon when no image_url is provided', () => {
+      const equipmentWithoutImage = { ...mockEquipment, image_url: undefined };
+      render(<EquipmentCard equipment={equipmentWithoutImage} onShowQRCode={mockOnShowQRCode} />);
+
+      // Should not have an img element for equipment
+      const images = screen.queryAllByRole('img');
+      const equipmentImage = images.find(img => img.getAttribute('alt')?.includes('equipment'));
+      expect(equipmentImage).toBeUndefined();
+    });
+
+    it('handles image load error by setting fallback image', () => {
+      render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      const images = screen.getAllByRole('img');
+      const equipmentImage = images.find(img => img.getAttribute('src') === 'https://example.com/forklift.jpg');
+      
+      expect(equipmentImage).toBeInTheDocument();
+      
+      // Simulate image error
+      if (equipmentImage) {
+        fireEvent.error(equipmentImage);
+        
+        // After error, src should be updated to fallback
+        expect(equipmentImage.getAttribute('src')).toContain('unsplash.com');
+      }
+    });
+
+    it('renders alt text with equipment name', () => {
+      render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      const images = screen.getAllByRole('img');
+      const equipmentImage = images.find(img => img.getAttribute('alt')?.includes('Forklift A1'));
+      expect(equipmentImage).toBeInTheDocument();
+    });
+  });
+
+  describe('Location Handling', () => {
+    it('renders location when provided', () => {
+      render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText('Warehouse A')).toBeInTheDocument();
+    });
+
+    it('handles empty location gracefully', () => {
+      const equipmentWithEmptyLocation = { ...mockEquipment, location: '' };
+      render(<EquipmentCard equipment={equipmentWithEmptyLocation} onShowQRCode={mockOnShowQRCode} />);
+
+      // Should still render without crashing
+      expect(screen.getByText('Forklift A1')).toBeInTheDocument();
+    });
+  });
+
+  describe('Text Truncation and Long Content', () => {
+    it('handles long equipment names', () => {
+      const longNameEquipment = { 
+        ...mockEquipment, 
+        name: 'Very Long Equipment Name That Should Be Displayed Properly Without Breaking Layout' 
+      };
+      render(<EquipmentCard equipment={longNameEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText(/Very Long Equipment Name/)).toBeInTheDocument();
+    });
+
+    it('handles long serial numbers', () => {
+      const longSerialEquipment = { 
+        ...mockEquipment, 
+        serial_number: 'VERY-LONG-SERIAL-NUMBER-12345678901234567890' 
+      };
+      render(<EquipmentCard equipment={longSerialEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText(/VERY-LONG-SERIAL/)).toBeInTheDocument();
+    });
+
+    it('handles long location names with truncation', () => {
+      const longLocationEquipment = { 
+        ...mockEquipment, 
+        location: 'Building A, Floor 3, Room 301, Corner Office Near the Window' 
+      };
+      render(<EquipmentCard equipment={longLocationEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      // Location should still be in the document (may be truncated via CSS)
+      expect(screen.getByText(/Building A, Floor 3/)).toBeInTheDocument();
+    });
+
+    it('handles long manufacturer and model names', () => {
+      const longMfgEquipment = { 
+        ...mockEquipment, 
+        manufacturer: 'Very Long Manufacturer Company Name Inc.',
+        model: 'Extended Model Name Pro Max Ultra Edition'
+      };
+      render(<EquipmentCard equipment={longMfgEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText(/Very Long Manufacturer Company Name/)).toBeInTheDocument();
     });
   });
 
@@ -160,6 +286,36 @@ describe('EquipmentCard', () => {
 
       // Component should render without errors
       expect(screen.getByText('Forklift A1')).toBeInTheDocument();
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('handles equipment with minimum required fields', () => {
+      const minimalEquipment = {
+        id: 'eq-minimal',
+        name: 'Minimal Equipment',
+        manufacturer: 'Mfg',
+        model: 'Model',
+        serial_number: 'SN1',
+        status: 'active',
+        location: 'Loc'
+      };
+      render(<EquipmentCard equipment={minimalEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText('Minimal Equipment')).toBeInTheDocument();
+      expect(screen.getByText('Mfg Model')).toBeInTheDocument();
+    });
+
+    it('handles special characters in equipment fields', () => {
+      const specialCharEquipment = {
+        ...mockEquipment,
+        name: 'Equipment <Test> & "Quotes"',
+        location: "O'Brien's Warehouse"
+      };
+      render(<EquipmentCard equipment={specialCharEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText('Equipment <Test> & "Quotes"')).toBeInTheDocument();
+      expect(screen.getByText("O'Brien's Warehouse")).toBeInTheDocument();
     });
   });
 });

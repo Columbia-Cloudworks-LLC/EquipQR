@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { WorkOrderService } from '../WorkOrderService';
+import { WorkOrderService } from '../workOrderService';
 
 // Mock the supabase client
 vi.mock('@/integrations/supabase/client', () => ({
