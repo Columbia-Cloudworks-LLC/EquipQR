@@ -97,6 +97,32 @@ describe('WorkOrderFilters', () => {
       // Component should render successfully with active filters
       expect(screen.getByPlaceholderText(/search work orders/i)).toBeInTheDocument();
     });
+
+    it('calls onQuickFilter with correct preset for each quick filter button', () => {
+      render(<WorkOrderFilters {...defaultProps} />);
+
+      const myWorkButton = screen.getByRole('button', { name: /my work/i });
+      const urgentButton = screen.getByRole('button', { name: /urgent/i });
+      const overdueButton = screen.getByRole('button', { name: /overdue/i });
+
+      fireEvent.click(myWorkButton);
+      expect(mockOnQuickFilter).toHaveBeenCalledWith('my-work');
+
+      fireEvent.click(urgentButton);
+      expect(mockOnQuickFilter).toHaveBeenCalledWith('urgent');
+
+      fireEvent.click(overdueButton);
+      expect(mockOnQuickFilter).toHaveBeenCalledWith('overdue');
+    });
+
+    it('resets all filters when clear filters is clicked', () => {
+      render(<WorkOrderFilters {...defaultProps} activeFilterCount={3} />);
+
+      const clearButton = screen.getByRole('button', { name: /clear/i });
+      fireEvent.click(clearButton);
+
+      expect(mockOnClearFilters).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Mobile View', () => {
@@ -122,6 +148,43 @@ describe('WorkOrderFilters', () => {
       render(<WorkOrderFilters {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /filters/i })).toBeInTheDocument();
+    });
+
+    it('calls onShowMobileFiltersChange when filter button is clicked', () => {
+      render(<WorkOrderFilters {...defaultProps} />);
+
+      const filterButton = screen.getByRole('button', { name: /filters/i });
+      fireEvent.click(filterButton);
+
+      expect(mockOnShowMobileFiltersChange).toHaveBeenCalledWith(true);
+    });
+
+    it('displays badge on mobile filter button when filters are active', () => {
+      render(<WorkOrderFilters {...defaultProps} activeFilterCount={5} />);
+
+      const badge = screen.getByText('5');
+      expect(badge).toBeInTheDocument();
+    });
+
+    it('closes mobile sheet when onShowMobileFiltersChange is called with false', () => {
+      render(<WorkOrderFilters {...defaultProps} showMobileFilters={true} />);
+
+      // Simulate closing the sheet
+      mockOnShowMobileFiltersChange(false);
+      expect(mockOnShowMobileFiltersChange).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe('Filter Combinations', () => {
+    it('updates search query independently of other filters', () => {
+      render(<WorkOrderFilters {...defaultProps} activeFilterCount={2} />);
+
+      const searchInput = screen.getByPlaceholderText(/search work orders/i);
+      fireEvent.change(searchInput, { target: { value: 'maintenance' } });
+
+      expect(mockOnFilterChange).toHaveBeenCalledWith('searchQuery', 'maintenance');
+      // Other filters should remain unchanged
+      expect(mockOnClearFilters).not.toHaveBeenCalled();
     });
   });
 

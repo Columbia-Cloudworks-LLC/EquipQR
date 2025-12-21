@@ -162,5 +162,102 @@ describe('EquipmentCard', () => {
       expect(screen.getByText('Forklift A1')).toBeInTheDocument();
     });
   });
+
+  describe('Edge Cases', () => {
+    it('handles image loading errors gracefully', () => {
+      render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      const images = screen.getAllByRole('img');
+      const equipmentImage = images.find(img => img.getAttribute('src') === 'https://example.com/forklift.jpg');
+      
+      if (equipmentImage) {
+        // Simulate image error
+        fireEvent.error(equipmentImage);
+        
+        // Component should still be functional
+        expect(screen.getByText('Forklift A1')).toBeInTheDocument();
+      }
+    });
+
+    it('handles equipment with null working_hours', () => {
+      const equipmentWithNullHours = { ...mockEquipment, working_hours: null };
+      render(<EquipmentCard equipment={equipmentWithNullHours} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText(/0 hours/)).toBeInTheDocument();
+    });
+
+    it('handles equipment with undefined working_hours', () => {
+      const { working_hours, ...equipmentWithoutHours } = mockEquipment;
+      render(<EquipmentCard equipment={equipmentWithoutHours as typeof mockEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      // Should render without crashing
+      expect(screen.getByText('Forklift A1')).toBeInTheDocument();
+    });
+
+    it('handles equipment without location', () => {
+      const { location, ...equipmentWithoutLocation } = mockEquipment;
+      render(<EquipmentCard equipment={equipmentWithoutLocation as typeof mockEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText('Forklift A1')).toBeInTheDocument();
+      expect(screen.queryByText('Warehouse A')).not.toBeInTheDocument();
+    });
+
+    it('handles equipment without last_maintenance date', () => {
+      const { last_maintenance, ...equipmentWithoutMaintenance } = mockEquipment;
+      render(<EquipmentCard equipment={equipmentWithoutMaintenance as typeof mockEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText('Forklift A1')).toBeInTheDocument();
+    });
+
+    it('handles equipment with very long name', () => {
+      const longNameEquipment = {
+        ...mockEquipment,
+        name: 'This is an extremely long equipment name that should be truncated or handled appropriately by the component to prevent layout issues'
+      };
+      render(<EquipmentCard equipment={longNameEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText(longNameEquipment.name)).toBeInTheDocument();
+    });
+
+    it('handles equipment with very long serial number', () => {
+      const longSerialEquipment = {
+        ...mockEquipment,
+        serial_number: 'SERIAL-NUMBER-WITH-VERY-LONG-IDENTIFIER-123456789-ABCDEFGHIJK'
+      };
+      render(<EquipmentCard equipment={longSerialEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText(longSerialEquipment.serial_number)).toBeInTheDocument();
+    });
+
+    it('handles equipment without image_url', () => {
+      const { image_url, ...equipmentWithoutImage } = mockEquipment;
+      render(<EquipmentCard equipment={equipmentWithoutImage as typeof mockEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText('Forklift A1')).toBeInTheDocument();
+    });
+
+    it('handles equipment with empty string values', () => {
+      const equipmentWithEmptyStrings = {
+        ...mockEquipment,
+        manufacturer: '',
+        model: '',
+        location: ''
+      };
+      render(<EquipmentCard equipment={equipmentWithEmptyStrings} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.getByText('Forklift A1')).toBeInTheDocument();
+    });
+
+    it('handles equipment with very high working_hours', () => {
+      const highHoursEquipment = {
+        ...mockEquipment,
+        working_hours: 999999
+      };
+      render(<EquipmentCard equipment={highHoursEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      // Should format large numbers with commas
+      expect(screen.getByText(/999,999/)).toBeInTheDocument();
+    });
+  });
 });
 

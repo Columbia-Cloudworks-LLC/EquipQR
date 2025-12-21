@@ -3,6 +3,10 @@ import '@testing-library/jest-dom';
 import { afterEach, beforeAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
+// Mock environment variables for Supabase
+process.env.VITE_SUPABASE_URL = 'https://test.supabase.co';
+process.env.VITE_SUPABASE_ANON_KEY = 'test-anon-key';
+
 declare global {
   // Expose A11y control functions for tests
   let startA11yChecks: () => void;
