@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import Teams from '../Teams';
+import Teams from '@/features/teams/pages/Teams';
 import type { Team } from '@/features/teams/hooks/useTeams';
 
 vi.mock('@/features/teams/components/CreateTeamDialog', () => ({

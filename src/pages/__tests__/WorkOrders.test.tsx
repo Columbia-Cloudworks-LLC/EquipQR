@@ -2,10 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkOrderData } from '@/types/workOrder';
-import WorkOrders from '../WorkOrders';
+import WorkOrders from '@/features/work-orders/pages/WorkOrders';
 import * as useTeamBasedWorkOrdersModule from '@/features/teams/hooks/useTeamBasedWorkOrders';
 import '@/contexts/OrganizationContext';
-import * as useWorkOrderFiltersModule from '@/hooks/useWorkOrderFilters';
+import * as useWorkOrderFiltersModule from '@/features/work-orders/hooks/useWorkOrderFilters';
 
 // Mock all required contexts and hooks
 vi.mock('@/hooks/useAuth', () => ({
@@ -90,7 +90,7 @@ vi.mock('@/hooks/useBatchAssignUnassignedWorkOrders', () => ({
   }))
 }));
 
-vi.mock('@/hooks/useWorkOrderFilters', () => ({
+vi.mock('@/features/work-orders/hooks/useWorkOrderFilters', () => ({
   useWorkOrderFilters: vi.fn(() => ({
     filters: { 
       searchQuery: '', 
@@ -115,29 +115,27 @@ vi.mock('@/hooks/useWorkOrderReopening', () => ({
   }))
 }));
 
-vi.mock('@/components/work-orders/WorkOrdersHeader', () => ({
-  WorkOrdersHeader: ({ onCreateClick, subtitle }: { onCreateClick: () => void; subtitle: string }) => (
-    <div>
-      <h1>Work Orders</h1>
-      <p>{subtitle}</p>
-      <button onClick={onCreateClick}>Create Work Order</button>
-    </div>
-  )
-}));
-
-vi.mock('@/components/work-orders/AutoAssignmentBanner', () => ({
+// Mock components - paths must match actual imports in WorkOrders.tsx
+vi.mock('@/features/work-orders/components/AutoAssignmentBanner', () => ({
   AutoAssignmentBanner: () => <div data-testid="auto-assignment-banner">Auto Assignment Banner</div>
 }));
 
-vi.mock('@/components/work-orders/WorkOrderFilters', () => ({
-  WorkOrderFilters: () => (
+vi.mock('@/features/work-orders/components/WorkOrderFilters', () => ({
+  WorkOrderFilters: ({ filters, onFilterChange }: { 
+    filters: { searchQuery: string }; 
+    onFilterChange: (key: string, value: string) => void;
+  }) => (
     <div data-testid="work-order-filters">
-      <input placeholder="Search work orders..." />
+      <input 
+        placeholder="Search work orders..." 
+        value={filters.searchQuery}
+        onChange={(e) => onFilterChange('searchQuery', e.target.value)}
+      />
     </div>
   )
 }));
 
-vi.mock('@/components/work-orders/WorkOrdersList', () => ({
+vi.mock('@/features/work-orders/components/WorkOrdersList', () => ({
   WorkOrdersList: ({ workOrders, onCreateClick }: { 
     workOrders: WorkOrderData[]; 
     hasActiveFilters: boolean; 
@@ -164,7 +162,7 @@ vi.mock('@/components/notifications/NotificationCenter', () => ({
   default: () => <div data-testid="notification-center">Notifications</div>
 }));
 
-vi.mock('@/components/work-orders/WorkOrderForm', () => ({
+vi.mock('@/features/work-orders/components/WorkOrderForm', () => ({
   default: ({ open, onClose }: { open: boolean; onClose: () => void }) => 
     open ? (
       <div data-testid="work-order-form">
@@ -355,11 +353,29 @@ describe('WorkOrders Page', () => {
   });
 
   it('responds to search input', async () => {
+    const mockUpdateFilter = vi.fn();
+    vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue({
+      filters: { 
+        searchQuery: '', 
+        statusFilter: 'all', 
+        assigneeFilter: 'all', 
+        teamFilter: 'all', 
+        priorityFilter: 'all', 
+        dueDateFilter: 'all' 
+      },
+      filteredWorkOrders: [],
+      getActiveFilterCount: vi.fn(() => 0),
+      clearAllFilters: vi.fn(),
+      applyQuickFilter: vi.fn(),
+      updateFilter: mockUpdateFilter
+    });
+
     render(<WorkOrders />);
     
     const searchInput = screen.getByPlaceholderText(/search work orders/i);
     fireEvent.change(searchInput, { target: { value: 'maintenance' } });
     
-    expect(searchInput).toHaveValue('maintenance');
+    // Verify the filter update function was called with the search value
+    expect(mockUpdateFilter).toHaveBeenCalledWith('searchQuery', 'maintenance');
   });
 });

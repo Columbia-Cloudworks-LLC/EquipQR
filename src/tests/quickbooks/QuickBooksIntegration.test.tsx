@@ -61,7 +61,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-import { QuickBooksIntegration } from '@/components/organization/QuickBooksIntegration';
+import { QuickBooksIntegration } from '@/features/organization/components/QuickBooksIntegration';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { toast } from 'sonner';
 import { useSearchParams as useSearchParamsMock } from 'react-router-dom';

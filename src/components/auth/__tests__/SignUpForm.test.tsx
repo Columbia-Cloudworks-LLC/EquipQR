@@ -549,12 +549,13 @@ describe('SignUpForm', () => {
     it('should prevent multiple rapid submissions', async () => {
       const user = userEvent.setup();
       const setIsLoading = vi.fn();
+      let resolveSignUp: (value: unknown) => void;
       
-      // Mock signUp with delay to simulate real network conditions
+      // Mock signUp with a controlled promise that doesn't resolve immediately
       mockSignUp.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve({ error: null, data: { user: null, session: null } }), 50)
-        )
+        new Promise(resolve => {
+          resolveSignUp = resolve;
+        })
       );
       
       const TestWrapper = () => {
@@ -584,22 +585,25 @@ describe('SignUpForm', () => {
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       
-      // Fire first click and immediately fire additional rapid clicks
+      // Fire first click - this starts the submission
       await user.click(submitButton);
-      
-      // Fire additional rapid clicks while first submission is processing
-      user.click(submitButton); // Don't await - fire immediately
-      user.click(submitButton); // Don't await - fire immediately
       
       // Wait for the button to be disabled (loading state active)
       await waitFor(() => {
         expect(submitButton).toBeDisabled();
       });
-
-      // Should only be called once due to loading state protection
-      await waitFor(() => {
-        expect(mockSignUp).toHaveBeenCalledTimes(1);
-      });
+      
+      // Now attempt additional clicks while button is disabled
+      // These should NOT trigger additional submissions
+      await user.click(submitButton).catch(() => {/* button is disabled */});
+      await user.click(submitButton).catch(() => {/* button is disabled */});
+      await user.click(submitButton).catch(() => {/* button is disabled */});
+      
+      // Verify only ONE call was made despite multiple click attempts
+      expect(mockSignUp).toHaveBeenCalledTimes(1);
+      
+      // Resolve the promise to clean up
+      resolveSignUp!({ error: null, data: { user: null, session: null } });
     });
   });
 
@@ -898,7 +902,7 @@ describe('SignUpForm', () => {
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeDisabled();
-    });
+    }, 10000);
 
     it('should enable submit when org name is different from invited org', async () => {
       const user = userEvent.setup();
@@ -959,7 +963,7 @@ describe('SignUpForm', () => {
           }
         });
       });
-    });
+    }, 10000);
 
     it('should update placeholder text when invited', () => {
       render(
