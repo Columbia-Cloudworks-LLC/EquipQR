@@ -60,7 +60,7 @@ const { mockResend, mockCancel, mockUpdateRole, mockRemoveMember } = vi.hoisted(
   mockUpdateRole: vi.fn().mockResolvedValue({}),
   mockRemoveMember: vi.fn().mockResolvedValue({}),
 }));
-vi.mock('@/hooks/useOrganizationInvitations', () => ({
+vi.mock('@/features/organization/hooks/useOrganizationInvitations', () => ({
   useOrganizationInvitations: vi.fn().mockReturnValue({
     data: [
       { id: 'inv-1', email: 'invitee@example.com', role: 'member', status: 'pending', createdAt: '2024-01-01T00:00:00Z' },
@@ -75,7 +75,7 @@ vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
   useTeamMembership: vi.fn().mockReturnValue({ teamMemberships: [] }),
 }));
 
-vi.mock('@/hooks/useOrganizationMembers', () => ({
+vi.mock('@/features/organization/hooks/useOrganizationMembers', () => ({
   useUpdateMemberRole: vi.fn().mockReturnValue({ mutateAsync: mockUpdateRole, isPending: false }),
   useRemoveMember: vi.fn().mockReturnValue({ mutateAsync: mockRemoveMember, isPending: false }),
 }));

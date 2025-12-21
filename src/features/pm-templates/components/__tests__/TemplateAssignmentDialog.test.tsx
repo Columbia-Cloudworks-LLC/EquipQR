@@ -10,7 +10,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useBulkAssignTemplate } from '@/features/equipment/hooks/useEquipmentTemplateManagement';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
 
-vi.mock('@/hooks/usePMTemplates', () => ({
+vi.mock('@/features/pm-templates/hooks/usePMTemplates', () => ({
   usePMTemplate: vi.fn(),
 }));
 

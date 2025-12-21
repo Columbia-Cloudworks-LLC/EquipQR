@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import Dashboard from '../Dashboard';
+import Dashboard from '@/features/dashboard/pages/Dashboard';
 import * as useSimpleOrganizationModule from '@/hooks/useSimpleOrganization';
 import * as useTeamBasedDashboardModule from '@/features/teams/hooks/useTeamBasedDashboard';
 

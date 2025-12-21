@@ -8,7 +8,7 @@ import { TestProviders } from '@/test/utils/TestProviders';
 const mockCreatePMTemplate = vi.fn();
 const mockUpdatePMTemplate = vi.fn();
 
-vi.mock('@/hooks/usePMTemplates', () => ({
+vi.mock('@/features/pm-templates/hooks/usePMTemplates', () => ({
   useCreatePMTemplate: () => mockCreatePMTemplate(),
   useUpdatePMTemplate: () => mockUpdatePMTemplate(),
 }));

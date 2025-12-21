@@ -9,7 +9,7 @@ import {
   useUpdatePMTemplate,
   useDeletePMTemplate,
   useClonePMTemplate
-} from '../usePMTemplates';
+} from '@/features/pm-templates/hooks/usePMTemplates';
 
 // Mock services and dependencies
 vi.mock('@/contexts/OrganizationContext');

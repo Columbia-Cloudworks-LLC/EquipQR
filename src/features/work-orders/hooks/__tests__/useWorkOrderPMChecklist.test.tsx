@@ -24,8 +24,8 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 // Mock dependencies
-vi.mock('@/hooks/usePMTemplates');
-vi.mock('@/hooks/useSimplifiedOrganizationRestrictions');
+vi.mock('@/features/pm-templates/hooks/usePMTemplates');
+vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
 
 const mockTemplates = [
   {
@@ -71,8 +71,8 @@ describe('useWorkOrderPMChecklist', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     
-    const { usePMTemplates } = await import('@/hooks/usePMTemplates');
-    const { useSimplifiedOrganizationRestrictions } = await import('@/hooks/useSimplifiedOrganizationRestrictions');
+    const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
+    const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
     
     vi.mocked(usePMTemplates).mockReturnValue({
       data: mockTemplates,
@@ -119,7 +119,7 @@ describe('useWorkOrderPMChecklist', () => {
     });
 
     it('returns only global templates when user lacks custom PM template permissions', async () => {
-      const { useSimplifiedOrganizationRestrictions } = await import('@/hooks/useSimplifiedOrganizationRestrictions');
+      const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
       
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         restrictions: {
@@ -236,7 +236,7 @@ describe('useWorkOrderPMChecklist', () => {
 
   describe('edit mode template preservation', () => {
     it('correctly preserves current template selection in edit mode', async () => {
-      const { useSimplifiedOrganizationRestrictions } = await import('@/hooks/useSimplifiedOrganizationRestrictions');
+      const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
       
       // Simulate free user without custom PM template permissions
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
@@ -271,7 +271,7 @@ describe('useWorkOrderPMChecklist', () => {
     });
 
     it('includes template from values even when filtered out by restrictions', async () => {
-      const { useSimplifiedOrganizationRestrictions } = await import('@/hooks/useSimplifiedOrganizationRestrictions');
+      const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
       
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         restrictions: {
@@ -306,7 +306,7 @@ describe('useWorkOrderPMChecklist', () => {
 
   describe('edge cases', () => {
     it('handles missing templates gracefully', async () => {
-      const { usePMTemplates } = await import('@/hooks/usePMTemplates');
+      const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
       
       vi.mocked(usePMTemplates).mockReturnValue({
         data: [],
@@ -405,7 +405,7 @@ describe('useWorkOrderPMChecklist', () => {
 
   describe('loading state', () => {
     it('returns isLoading true when templates are loading', async () => {
-      const { usePMTemplates } = await import('@/hooks/usePMTemplates');
+      const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
       
       vi.mocked(usePMTemplates).mockReturnValue({
         data: undefined,
@@ -447,7 +447,7 @@ describe('useWorkOrderPMChecklist', () => {
     });
 
     it('falls back to first template if Forklift PM is not available', async () => {
-      const { usePMTemplates } = await import('@/hooks/usePMTemplates');
+      const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
       
       const templatesWithoutDefault = mockTemplates.filter(t => t.name !== 'Forklift PM');
       vi.mocked(usePMTemplates).mockReturnValue({
