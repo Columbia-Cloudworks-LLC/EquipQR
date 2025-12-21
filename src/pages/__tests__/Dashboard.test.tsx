@@ -3,7 +3,7 @@ import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Dashboard from '../Dashboard';
 import * as useSimpleOrganizationModule from '@/hooks/useSimpleOrganization';
-import * as useTeamBasedDashboardModule from '@/hooks/useTeamBasedDashboard';
+import * as useTeamBasedDashboardModule from '@/features/teams/hooks/useTeamBasedDashboard';
 
 // Mock query result type for testing
 // Note: Using 'any' here is acceptable for test mocks to avoid complex UseQueryResult typing
@@ -52,7 +52,7 @@ vi.mock('@/hooks/useSession', () => ({
   }))
 }));
 
-vi.mock('@/hooks/useTeamMembership', () => ({
+vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
   useTeamMembership: vi.fn(() => ({
     teamMemberships: [],
     isLoading: false,
@@ -113,7 +113,7 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn()
 }));
 
-vi.mock('@/hooks/useTeamBasedDashboard', () => ({
+vi.mock('@/features/teams/hooks/useTeamBasedDashboard', () => ({
   useTeamBasedDashboardStats: vi.fn(),
   useTeamBasedEquipment: vi.fn(),
   useTeamBasedRecentWorkOrders: vi.fn(),
@@ -128,7 +128,7 @@ vi.mock('@/hooks/usePermissions', () => ({
   }))
 }));
 
-vi.mock('@/hooks/useTeams', () => ({
+vi.mock('@/features/teams/hooks/useTeams', () => ({
   useTeams: vi.fn(() => ({
     teams: [],
     isLoading: false,

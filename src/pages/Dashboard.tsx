@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Users, ClipboardList, AlertTriangle, ChevronRight } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWorkOrders, useTeamBasedDashboardAccess } from '@/hooks/useTeamBasedDashboard';
+import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWorkOrders, useTeamBasedDashboardAccess } from '@/features/teams/hooks/useTeamBasedDashboard';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { StatsCard } from '@/components/dashboard/StatsCard';

@@ -14,18 +14,18 @@ import {
   DEFAULT_TRANSACTION_LIMIT,
   type TransactionPaginationParams,
   type PaginatedTransactionsResult
-} from '@/services/inventoryService';
+} from '@/features/inventory/services/inventoryService';
 import {
   linkItemToEquipment,
   unlinkItemFromEquipment,
   getCompatibleEquipmentForItem,
   bulkLinkEquipmentToItem
-} from '@/services/inventoryCompatibilityService';
+} from '@/features/inventory/services/inventoryCompatibilityService';
 import type {
   InventoryQuantityAdjustment,
   InventoryFilters
-} from '@/types/inventory';
-import type { InventoryItemFormData } from '@/schemas/inventorySchema';
+} from '@/features/inventory/types/inventory';
+import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { useAppToast } from '@/hooks/useAppToast';
 
 const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes

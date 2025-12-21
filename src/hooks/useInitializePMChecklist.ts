@@ -1,6 +1,6 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPM, defaultForkliftChecklist, PMChecklistItem } from '@/services/preventativeMaintenanceService';
+import { createPM, defaultForkliftChecklist, PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
@@ -27,7 +27,7 @@ export const useInitializePMChecklist = () => {
       // If templateId provided, try to fetch template data
       if (templateId) {
         try {
-          const { pmChecklistTemplatesService } = await import('@/services/pmChecklistTemplatesService');
+          const { pmChecklistTemplatesService } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
           const template = await pmChecklistTemplatesService.getTemplate(templateId);
           
           if (template && Array.isArray(template.template_data)) {

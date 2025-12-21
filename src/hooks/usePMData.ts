@@ -7,7 +7,7 @@ import {
   getPMsByWorkOrderId,
   updatePM,
   UpdatePMData,
-} from '@/services/preventativeMaintenanceService';
+} from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
 
 // Legacy hook - returns first PM found

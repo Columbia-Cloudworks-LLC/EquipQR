@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
-import { defaultForkliftChecklist } from '@/services/preventativeMaintenanceService';
+import { defaultForkliftChecklist } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { Database } from '@/integrations/supabase/types';
 
 export interface HistoricalWorkOrderData {

@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { useMemo } from 'react';
 import type { Database } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
-import type { OrganizationMember } from '@/types/organization';
+import type { OrganizationMember } from '@/features/organization/types/organization';
 
 // Re-export the canonical type for backward compatibility
 export type RealOrganizationMember = OrganizationMember;

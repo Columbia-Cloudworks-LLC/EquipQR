@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
-import type { OrganizationAdmin } from '@/types/organization';
+import type { OrganizationAdmin } from '@/features/organization/types/organization';
 
 // Re-export the type for backward compatibility
 export type { OrganizationAdmin };

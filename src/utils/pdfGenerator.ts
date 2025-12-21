@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { PMChecklistItem, PreventativeMaintenance } from '@/services/preventativeMaintenanceService';
+import { PMChecklistItem, PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 interface WorkOrderSummary {
   id: string;

@@ -40,7 +40,7 @@ export interface DashboardStats {
 }
 
 /**
- * @deprecated Use EquipmentService.getAll() from '@/services/EquipmentService' instead.
+ * @deprecated Use EquipmentService.getAll() from '@/features/equipment/services/EquipmentService' instead.
  */
 export const getEquipmentByOrganization = async (organizationId: string): Promise<Equipment[]> => {
   try {
@@ -63,7 +63,7 @@ export const getEquipmentByOrganization = async (organizationId: string): Promis
 };
 
 /**
- * @deprecated Use EquipmentService.getById() from '@/services/EquipmentService' instead.
+ * @deprecated Use EquipmentService.getById() from '@/features/equipment/services/EquipmentService' instead.
  */
 export const getEquipmentById = async (organizationId: string, equipmentId: string): Promise<Equipment | undefined> => {
   try {

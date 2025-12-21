@@ -11,11 +11,11 @@ import {
   type Team,
   type DashboardStats
 } from '@/services/supabaseDataService';
-import { WorkOrderService } from '@/services/WorkOrderService';
-import { EquipmentService, Equipment } from '@/services/EquipmentService';
+import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
+import { EquipmentService, Equipment } from '@/features/equipment/services/EquipmentService';
 import { useMemo } from 'react';
-import { useWorkOrders, workOrderKeys } from './useWorkOrders';
-import type { WorkOrder } from '@/types/workOrder';
+import { useWorkOrders, workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
+import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 
 // Hook with better caching and stale times for teams
 export const useTeams = (organizationId?: string) => {
@@ -203,6 +203,6 @@ export const useWorkOrderStats = (organizationId?: string) => {
 
 // Re-export types for convenience
 export type { WorkOrder } from '@/types/workOrder';
-export type { Equipment } from '@/services/EquipmentService';
+export type { Equipment } from '@/features/equipment/services/EquipmentService';
 export type { Team, DashboardStats } from '@/services/supabaseDataService';
 

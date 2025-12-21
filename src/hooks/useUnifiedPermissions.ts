@@ -10,7 +10,7 @@ import {
   EquipmentNotesPermissions,
   Role
 } from '@/types/permissions';
-import { WorkOrderData } from '@/types/workOrder';
+import { WorkOrderData } from '@/features/work-orders/types/workOrder';
 
 export const useUnifiedPermissions = () => {
   const { getCurrentOrganization, getUserTeamIds, hasTeamAccess, canManageTeam } = useSession();

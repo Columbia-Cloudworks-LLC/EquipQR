@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { deleteWorkOrderCascade } from '@/services/deleteWorkOrderService';
+import { deleteWorkOrderCascade } from '@/features/work-orders/services/deleteWorkOrderService';
 import { useToast } from '@/hooks/use-toast';
 import { useOrganization } from '@/contexts/OrganizationContext';
 

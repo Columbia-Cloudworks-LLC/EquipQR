@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useTeams } from '@/hooks/useTeams';
+import { useTeams } from '@/features/teams/hooks/useTeams';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useOrganization } from '@/contexts/OrganizationContext';
 

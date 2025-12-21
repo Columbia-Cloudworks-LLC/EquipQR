@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
 import React from 'react';
-import Equipment from '@/pages/Equipment';
+import Equipment from '@/features/equipment/pages/Equipment';
 import { render } from '@/test/utils/test-utils';
 
 
@@ -13,7 +13,7 @@ vi.mock('@/hooks/usePermissions', () => ({
 }));
 
 // Mock filtering hook to control states
-vi.mock('@/hooks/useEquipmentFiltering', () => ({
+vi.mock('@/features/equipment/hooks/useEquipmentFiltering', () => ({
   useEquipmentFiltering: vi.fn(() => ({
     filters: { search: '', status: 'all' },
     sortConfig: { field: 'name', direction: 'asc' },
@@ -39,7 +39,7 @@ vi.mock('@/hooks/useEquipmentFiltering', () => ({
 }));
 
 // Stub child components to simplify rendering assertions
-vi.mock('@/components/equipment/EquipmentHeader', () => ({
+vi.mock('@/features/equipment/components/EquipmentHeader', () => ({
   default: ({ organizationName, onAddEquipment }: { organizationName?: string; onAddEquipment?: () => void }) => (
     <div>
       <div>Header - {organizationName}</div>
@@ -48,17 +48,17 @@ vi.mock('@/components/equipment/EquipmentHeader', () => ({
   ),
 }));
 
-vi.mock('@/components/equipment/EquipmentFilters', () => ({
+vi.mock('@/features/equipment/components/EquipmentFilters', () => ({
   EquipmentFilters: () => <div>Filters</div>,
 }));
 
-vi.mock('@/components/equipment/EquipmentSortHeader', () => ({
+vi.mock('@/features/equipment/components/EquipmentSortHeader', () => ({
   default: ({ resultCount, totalCount }: { resultCount?: number; totalCount?: number }) => (
     <div>SortHeader resultCount={resultCount} totalCount={totalCount}</div>
   ),
 }));
 
-vi.mock('@/components/equipment/EquipmentGrid', () => ({
+vi.mock('@/features/equipment/components/EquipmentGrid', () => ({
   default: ({ onShowQRCode }: { onShowQRCode?: (id: string) => void }) => (
     <div>
       <div>Grid</div>
@@ -67,23 +67,23 @@ vi.mock('@/components/equipment/EquipmentGrid', () => ({
   ),
 }));
 
-vi.mock('@/components/equipment/EquipmentLoadingState', () => ({
+vi.mock('@/features/equipment/components/EquipmentLoadingState', () => ({
   default: () => <div>Loading Equipment...</div>,
 }));
 
-vi.mock('@/components/equipment/EquipmentForm', () => ({
+vi.mock('@/features/equipment/components/EquipmentForm', () => ({
   default: ({ open }: { open?: boolean }) => (
     <div data-testid="equipment-form">{open ? 'Form Open' : 'Form Closed'}</div>
   ),
 }));
 
-vi.mock('@/components/equipment/QRCodeDisplay', () => ({
+vi.mock('@/features/equipment/components/QRCodeDisplay', () => ({
   default: ({ open, equipmentName }: { open?: boolean; equipmentName?: string }) => (
     <div data-testid="qr-modal">{open ? `QR for ${equipmentName}` : 'Closed'}</div>
   ),
 }));
 
-import { useEquipmentFiltering } from '@/hooks/useEquipmentFiltering';
+import { useEquipmentFiltering } from '@/features/equipment/hooks/useEquipmentFiltering';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
 vi.mock('@/contexts/OrganizationContext', () => ({

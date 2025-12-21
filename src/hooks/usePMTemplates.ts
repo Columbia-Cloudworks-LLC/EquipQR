@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
-import { pmChecklistTemplatesService, PMTemplate, PMTemplateSummary, templateToSummary } from '@/services/pmChecklistTemplatesService';
-import { PMChecklistItem } from '@/services/preventativeMaintenanceService';
+import { pmChecklistTemplatesService, PMTemplate, PMTemplateSummary, templateToSummary } from '@/features/pm-templates/services/pmChecklistTemplatesService';
+import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { queryKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
 

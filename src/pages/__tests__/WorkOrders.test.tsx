@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkOrderData } from '@/types/workOrder';
 import WorkOrders from '../WorkOrders';
-import * as useTeamBasedWorkOrdersModule from '@/hooks/useTeamBasedWorkOrders';
+import * as useTeamBasedWorkOrdersModule from '@/features/teams/hooks/useTeamBasedWorkOrders';
 import '@/contexts/OrganizationContext';
 import * as useWorkOrderFiltersModule from '@/hooks/useWorkOrderFilters';
 
@@ -43,7 +43,7 @@ vi.mock('@/contexts/UserContext', () => ({
   UserProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
 
-vi.mock('@/hooks/useTeamBasedWorkOrders', () => ({
+vi.mock('@/features/teams/hooks/useTeamBasedWorkOrders', () => ({
   useTeamBasedWorkOrders: vi.fn(() => ({
     data: [],
     isLoading: false,
@@ -61,7 +61,7 @@ vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: vi.fn(() => false)
 }));
 
-vi.mock('@/hooks/useTeamManagement', () => ({
+vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
   useTeams: vi.fn(() => ({
     data: [{ id: 'team-1', name: 'Test Team' }],
     isLoading: false,

@@ -14,7 +14,7 @@ import {
 // Mock services and dependencies
 vi.mock('@/contexts/OrganizationContext');
 vi.mock('@/hooks/useAuth');
-vi.mock('@/services/pmChecklistTemplatesService');
+vi.mock('@/features/pm-templates/services/pmChecklistTemplatesService');
 vi.mock('sonner');
 
 const mockTemplates = [
@@ -86,7 +86,7 @@ describe('usePMTemplates', () => {
     // Apply mocks to modules
     const { useOrganization } = await import('@/contexts/OrganizationContext');
     const { useAuth } = await import('@/hooks/useAuth');
-    const { pmChecklistTemplatesService, templateToSummary } = await import('@/services/pmChecklistTemplatesService');
+    const { pmChecklistTemplatesService, templateToSummary } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
     const { toast } = await import('sonner');
     
     vi.mocked(useOrganization).mockReturnValue({
@@ -159,7 +159,7 @@ describe('usePMTemplates', () => {
     });
 
     it('handles loading state', async () => {
-      const { pmChecklistTemplatesService } = await import('@/services/pmChecklistTemplatesService');
+      const { pmChecklistTemplatesService } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
       vi.mocked(pmChecklistTemplatesService.listTemplates).mockImplementation(() => new Promise(() => {}));
 
       const { result } = renderHook(() => usePMTemplates(), { wrapper });
@@ -168,7 +168,7 @@ describe('usePMTemplates', () => {
     });
 
     it('handles error state', async () => {
-      const { pmChecklistTemplatesService } = await import('@/services/pmChecklistTemplatesService');
+      const { pmChecklistTemplatesService } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
       vi.mocked(pmChecklistTemplatesService.listTemplates).mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(() => usePMTemplates(), { wrapper });
@@ -218,7 +218,7 @@ describe('usePMTemplates', () => {
     });
 
     it('handles creation error with permission message', async () => {
-      const { pmChecklistTemplatesService } = await import('@/services/pmChecklistTemplatesService');
+      const { pmChecklistTemplatesService } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
       vi.mocked(pmChecklistTemplatesService.createTemplate).mockRejectedValue(
         new Error('insufficient privileges')
       );
@@ -241,7 +241,7 @@ describe('usePMTemplates', () => {
     });
 
     it('handles general creation error', async () => {
-      const { pmChecklistTemplatesService } = await import('@/services/pmChecklistTemplatesService');
+      const { pmChecklistTemplatesService } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
       vi.mocked(pmChecklistTemplatesService.createTemplate).mockRejectedValue(
         new Error('Network error')
       );
@@ -307,7 +307,7 @@ describe('usePMTemplates', () => {
     });
 
     it('handles update permission error', async () => {
-      const { pmChecklistTemplatesService } = await import('@/services/pmChecklistTemplatesService');
+      const { pmChecklistTemplatesService } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
       vi.mocked(pmChecklistTemplatesService.updateTemplate).mockRejectedValue(
         new Error('insufficient privileges')
       );
@@ -344,7 +344,7 @@ describe('usePMTemplates', () => {
     });
 
     it('handles protected template deletion error', async () => {
-      const { pmChecklistTemplatesService } = await import('@/services/pmChecklistTemplatesService');
+      const { pmChecklistTemplatesService } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
       vi.mocked(pmChecklistTemplatesService.deleteTemplate).mockRejectedValue(
         new Error('Cannot delete protected template')
       );
@@ -381,7 +381,7 @@ describe('usePMTemplates', () => {
     });
 
     it('handles clone permission error', async () => {
-      const { pmChecklistTemplatesService } = await import('@/services/pmChecklistTemplatesService');
+      const { pmChecklistTemplatesService } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
       vi.mocked(pmChecklistTemplatesService.cloneTemplate).mockRejectedValue(
         new Error('insufficient privileges')
       );

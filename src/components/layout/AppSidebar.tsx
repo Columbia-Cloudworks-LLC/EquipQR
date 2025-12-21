@@ -40,7 +40,7 @@ import type { LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { isLightColor } from "@/lib/utils";
-import OrganizationSwitcher from "@/components/organization/OrganizationSwitcher";
+import OrganizationSwitcher from "@/features/organization/components/OrganizationSwitcher";
 import { useAuth } from "@/hooks/useAuth";
 import { useUser } from "@/contexts/useUser";
 import { useOrganization } from "@/contexts/OrganizationContext";

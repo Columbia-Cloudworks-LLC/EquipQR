@@ -2,9 +2,9 @@ import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Teams from '../Teams';
-import type { Team } from '@/hooks/useTeams';
+import type { Team } from '@/features/teams/hooks/useTeams';
 
-vi.mock('@/components/teams/CreateTeamDialog', () => ({
+vi.mock('@/features/teams/components/CreateTeamDialog', () => ({
   default: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
     open ? (
       <div data-testid="team-form-modal">
@@ -19,7 +19,7 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock('@/hooks/useTeams', () => ({
+vi.mock('@/features/teams/hooks/useTeams', () => ({
   useTeams: vi.fn()
 }));
 
@@ -31,7 +31,7 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn()
 }));
 
-import { useTeams } from '@/hooks/useTeams';
+import { useTeams } from '@/features/teams/hooks/useTeams';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 
