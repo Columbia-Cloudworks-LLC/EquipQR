@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Home, 
-  Package, 
+  Forklift, // Changed from Package
   ClipboardList, 
   Users, 
   Map, 
@@ -59,7 +59,7 @@ interface NavigationItem {
 
 const mainNavigation: NavigationItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Equipment", url: "/dashboard/equipment", icon: Package },
+  { title: "Equipment", url: "/dashboard/equipment", icon: Forklift }, // Updated icon
   { title: "Work Orders", url: "/dashboard/work-orders", icon: ClipboardList },
   { title: "Inventory", url: "/dashboard/inventory", icon: Warehouse },
   { title: "Teams", url: "/dashboard/teams", icon: Users },
