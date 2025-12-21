@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Users, ClipboardList, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Forklift, Users, ClipboardList, AlertTriangle, ChevronRight } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWorkOrders, useTeamBasedDashboardAccess } from '@/features/teams/hooks/useTeamBasedDashboard';
 import { Badge } from '@/components/ui/badge';
@@ -63,7 +63,7 @@ const Dashboard = () => {
         />
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <StatsCard
-            icon={<Package className="h-4 w-4" />}
+            icon={<Forklift className="h-4 w-4" />}
             label="Total Equipment"
             value={0}
             sublabel="0 active"
@@ -158,7 +158,7 @@ const Dashboard = () => {
         {/* Mobile: order-2 (second), Desktop: order-1 (first) */}
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4 order-2 md:order-1">
         <StatsCard
-          icon={<Package className="h-4 w-4" />}
+          icon={<Forklift className="h-4 w-4" />}
           label="Total Equipment"
           value={stats?.totalEquipment || 0}
           sublabel={`${stats?.activeEquipment || 0} active`}
@@ -210,7 +210,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle id="recent-equipment-heading" className="flex items-center gap-2">
-                      <Package className="h-5 w-5" />
+                      <Forklift className="h-5 w-5" />
                       Recent Equipment
                     </CardTitle>
                     <CardDescription>

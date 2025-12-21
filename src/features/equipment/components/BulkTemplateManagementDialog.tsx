@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-import { Package, Loader2, AlertCircle, Trash2, RefreshCw } from 'lucide-react';
+import { Forklift, Loader2, AlertCircle, Trash2, RefreshCw } from 'lucide-react';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useBulkAssignTemplate, useBulkRemoveTemplates, useBulkChangeTemplate } from '@/features/equipment/hooks/useEquipmentTemplateManagement';
@@ -91,7 +91,7 @@ export const BulkTemplateManagementDialog: React.FC<BulkTemplateManagementDialog
 
   const getActionIcon = () => {
     switch (action) {
-      case 'assign': return <Package className="h-4 w-4" />;
+      case 'assign': return <Forklift className="h-4 w-4" />;
       case 'remove': return <Trash2 className="h-4 w-4" />;
       case 'change': return <RefreshCw className="h-4 w-4" />;
     }
@@ -115,7 +115,7 @@ export const BulkTemplateManagementDialog: React.FC<BulkTemplateManagementDialog
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="assign" id="assign" />
                 <Label htmlFor="assign" className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
+                  <Forklift className="h-4 w-4" />
                   Assign template to equipment
                 </Label>
               </div>
@@ -198,7 +198,7 @@ export const BulkTemplateManagementDialog: React.FC<BulkTemplateManagementDialog
                 <Card key={eq.id} className="p-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Package className="h-4 w-4 text-muted-foreground" />
+                      <Forklift className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">{eq.name}</span>
                     </div>
                     <div className="flex items-center gap-2">

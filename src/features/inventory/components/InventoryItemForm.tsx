@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Search, Package, Users, Check, X } from 'lucide-react';
+import { Search, Forklift, Users, Check, X } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useCreateInventoryItem, useUpdateInventoryItem } from '@/features/inventory/hooks/useInventory';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
@@ -399,7 +399,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Package className="h-4 w-4" />
+                  <Forklift className="h-4 w-4" />
                   Compatible Equipment
                 </CardTitle>
               </CardHeader>

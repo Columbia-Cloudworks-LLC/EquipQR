@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, MapPin, Calendar, Package, QrCode, Trash2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Forklift, QrCode, Trash2 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -173,7 +173,7 @@ const EquipmentDetails = () => {
         />
         <Card>
           <CardContent className="text-center py-12">
-            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <Forklift className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Organization Selected</h3>
             <p className="text-muted-foreground">
               Please select an organization to view equipment details.
@@ -213,7 +213,7 @@ const EquipmentDetails = () => {
         />
         <Card>
           <CardContent className="text-center py-12">
-            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <Forklift className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Equipment not found</h3>
             <p className="text-muted-foreground">
               The equipment you're looking for doesn't exist or you don't have access to it.
@@ -284,7 +284,7 @@ const EquipmentDetails = () => {
                     />
                   ) : (
                     <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
-                      <Package className="h-16 w-16 text-muted-foreground" />
+                      <Forklift className="h-16 w-16 text-muted-foreground" />
                     </div>
                   )}
                 </CardContent>
