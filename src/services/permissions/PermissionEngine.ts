@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+import { logger } from '@/utils/logger';
 import { UserContext, PermissionRule, PermissionCache } from '@/types/permissions';
 
 type EntityContext = { teamId?: string; assigneeId?: string; [key: string]: unknown };
