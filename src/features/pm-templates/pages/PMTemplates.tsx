@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
-import { usePMTemplates, usePMTemplate, useClonePMTemplate, useDeletePMTemplate } from '@/hooks/usePMTemplates';
+import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
+import { usePMTemplates, usePMTemplate, useClonePMTemplate, useDeletePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

@@ -5,7 +5,7 @@ import { TemplateAssignmentDialog } from '../TemplateAssignmentDialog';
 import { TestProviders } from '@/test/utils/TestProviders';
 
 // Mock hooks with named imports
-import { usePMTemplate } from '@/hooks/usePMTemplates';
+import { usePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useBulkAssignTemplate } from '@/features/equipment/hooks/useEquipmentTemplateManagement';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';

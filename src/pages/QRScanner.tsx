@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { QrCode, AlertCircle, CheckCircle, ArrowLeft, Camera, Package } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
-import { useInventoryItem } from '@/hooks/useInventory';
+import { useInventoryItem } from '@/features/inventory/hooks/useInventory';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import QRScannerComponent from '@/components/scanner/QRScannerComponent';

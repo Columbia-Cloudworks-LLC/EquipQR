@@ -1,5 +1,5 @@
 
-import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
+import { RealOrganizationMember } from '@/features/organization/hooks/useOrganizationMembers';
 
 export interface OrganizationRestrictions {
   canManageTeams: boolean;

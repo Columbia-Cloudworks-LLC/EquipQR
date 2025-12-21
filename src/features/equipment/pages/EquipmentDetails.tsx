@@ -23,7 +23,7 @@ import QRCodeDisplay from '@/features/equipment/components/QRCodeDisplay';
 import { DeleteEquipmentDialog } from '@/features/equipment/components/DeleteEquipmentDialog';
 import { WorkingHoursTimelineModal } from '@/features/equipment/components/WorkingHoursTimelineModal';
 import { useCreateScan } from '@/features/equipment/hooks/useEquipment';
-import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
+import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 

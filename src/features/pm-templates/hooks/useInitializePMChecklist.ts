@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPM, defaultForkliftChecklist, PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
@@ -104,3 +103,4 @@ export const useInitializePMChecklist = () => {
     }
   });
 };
+

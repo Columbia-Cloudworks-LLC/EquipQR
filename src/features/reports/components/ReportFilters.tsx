@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { CalendarIcon, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { ReportFilters as ReportFiltersType, ReportType } from '@/pages/Reports';
+import { ReportFilters as ReportFiltersType, ReportType } from '@/features/reports/types/reports';
 import { Equipment, WorkOrder } from '@/services/supabaseDataService';
 
 interface ReportFiltersProps {

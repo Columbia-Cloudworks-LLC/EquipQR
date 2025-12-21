@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Download, FileText, FileSpreadsheet } from 'lucide-react';
-import { ReportFilters } from '@/pages/Reports';
+import { ReportFilters } from '@/features/reports/types/reports';
 import { Equipment, WorkOrder, DashboardStats } from '@/services/supabaseDataService';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';

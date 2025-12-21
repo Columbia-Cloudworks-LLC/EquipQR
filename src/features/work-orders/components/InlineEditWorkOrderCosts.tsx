@@ -11,7 +11,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useAdjustInventoryQuantity } from '@/hooks/useInventory';
+import { useAdjustInventoryQuantity } from '@/features/inventory/hooks/useInventory';
 import { supabase } from '@/integrations/supabase/client';
 import { InventoryPartSelector } from './InventoryPartSelector';
 import WorkOrderCostsEditor from './WorkOrderCostsEditor';

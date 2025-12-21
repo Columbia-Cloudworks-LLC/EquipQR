@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getOrganizationRestrictions, getRestrictionMessage } from '../organizationRestrictions';
-import type { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
+import type { RealOrganizationMember } from '@/features/organization/hooks/useOrganizationMembers';
 
 describe('organizationRestrictions', () => {
   describe('getOrganizationRestrictions', () => {

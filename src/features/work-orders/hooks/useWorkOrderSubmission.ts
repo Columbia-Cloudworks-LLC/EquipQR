@@ -3,7 +3,7 @@
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useCreateWorkOrder, CreateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderCreation';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderUpdate';
-import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from '@/hooks/useHistoricalWorkOrders';
+import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from '@/features/work-orders/hooks/useHistoricalWorkOrders';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
 import { WorkOrderFormData } from './useWorkOrderForm';
 import { dateToISOString } from '@/lib/utils';

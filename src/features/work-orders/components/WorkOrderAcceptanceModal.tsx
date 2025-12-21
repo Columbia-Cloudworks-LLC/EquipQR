@@ -6,8 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { User, Users, UserCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
-import { useOrganizationAdmins } from '@/hooks/useOrganizationAdmins';
+import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
+import { useOrganizationAdmins } from '@/features/organization/hooks/useOrganizationAdmins';
 import { useTeams } from '@/features/teams/hooks/useTeamManagement';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { toast } from 'sonner';

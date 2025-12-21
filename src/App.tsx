@@ -17,7 +17,7 @@ const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
 const AppSidebar = lazy(() => import('@/components/layout/AppSidebar'));
 const TopBar = lazy(() => import('@/components/layout/TopBar'));
 const LegalFooter = lazy(() => import('@/components/layout/LegalFooter'));
-const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Dashboard = lazy(() => import('@/features/dashboard/pages/Dashboard'));
 const Equipment = lazy(() => import('@/features/equipment/pages/Equipment'));
 const EquipmentDetails = lazy(() => import('@/features/equipment/pages/EquipmentDetails'));
 const WorkOrders = lazy(() => import('@/features/work-orders/pages/WorkOrders'));

@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateInvitation } from '@/hooks/useOrganizationInvitations';
+import { useCreateInvitation } from '@/features/organization/hooks/useOrganizationInvitations';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 

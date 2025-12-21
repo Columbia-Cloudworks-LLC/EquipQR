@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { ReportType } from '@/pages/Reports';
+import { ReportType } from '@/features/reports/types/reports';
 import { Equipment, WorkOrder, DashboardStats } from '@/services/supabaseDataService';
 
 interface ReportChartsProps {

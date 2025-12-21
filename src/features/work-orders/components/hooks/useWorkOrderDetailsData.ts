@@ -2,7 +2,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkOrderById } from '@/features/work-orders/hooks/useWorkOrders';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
-import { usePMByWorkOrderAndEquipment } from '@/hooks/usePMData';
+import { usePMByWorkOrderAndEquipment } from '@/features/pm-templates/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import type { Tables } from '@/integrations/supabase/types';
 

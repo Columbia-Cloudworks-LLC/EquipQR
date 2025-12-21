@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Wrench, Info, CheckCircle2, Globe } from "lucide-react";
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
-import { usePMTemplates } from '@/hooks/usePMTemplates';
-import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
+import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
 
 interface WorkOrderPMSectionProps {
   values: WorkOrderFormData & { pmTemplateId?: string };

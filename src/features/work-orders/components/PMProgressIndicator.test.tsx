@@ -3,10 +3,10 @@ import { render, screen } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect, type MockedFunction } from 'vitest';
 import PMProgressIndicator from './PMProgressIndicator';
 import { TestProviders } from '@/test/utils/TestProviders';
-import { usePMByWorkOrderId } from '@/hooks/usePMData';
+import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
 
 // Mock hooks with proper factory to avoid hoisting
-vi.mock('@/hooks/usePMData', () => ({
+vi.mock('@/features/pm-templates/hooks/usePMData', () => ({
   usePMByWorkOrderId: vi.fn()
 }));
 

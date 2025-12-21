@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
+import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { Tables } from '@/integrations/supabase/types';
 

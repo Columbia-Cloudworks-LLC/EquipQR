@@ -6,7 +6,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
-import { usePMByWorkOrderId } from '@/hooks/usePMData';
+import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import { useAuth } from '@/hooks/useAuth';
 import { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';

@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Wrench, X } from 'lucide-react';
-import { usePMTemplate } from '@/hooks/usePMTemplates';
+import { usePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useRemoveTemplateFromEquipment } from '@/features/equipment/hooks/useEquipmentTemplateManagement';
 import { usePermissions } from '@/hooks/usePermissions';
 

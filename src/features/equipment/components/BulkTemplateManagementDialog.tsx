@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 import { Package, Loader2, AlertCircle, Trash2, RefreshCw } from 'lucide-react';
-import { usePMTemplates } from '@/hooks/usePMTemplates';
+import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useBulkAssignTemplate, useBulkRemoveTemplates, useBulkChangeTemplate } from '@/features/equipment/hooks/useEquipmentTemplateManagement';
 import { Alert, AlertDescription } from '@/components/ui/alert';

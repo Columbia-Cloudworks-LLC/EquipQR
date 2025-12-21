@@ -8,11 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { Search, Package, Loader2 } from 'lucide-react';
-import { usePMTemplate } from '@/hooks/usePMTemplates';
+import { usePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
 import { useCreateWorkOrder } from '@/features/work-orders/hooks/useWorkOrderCreation';
-import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
+import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useInitializePMChecklist';
 import { toast } from 'sonner';
 
 interface TemplateApplicationDialogProps {

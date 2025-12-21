@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { usePMTemplate, useClonePMTemplate } from '@/hooks/usePMTemplates';
+import { usePMTemplate, useClonePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMa
 import { Copy, Download, Edit, Globe, ListTree, Lock, Shield, Wrench } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
 import { generateTemplatePreviewPDF } from '@/utils/templatePDF';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';

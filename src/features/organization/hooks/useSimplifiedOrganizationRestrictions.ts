@@ -1,4 +1,4 @@
-import { useOrganizationMembers } from './useOrganizationMembers';
+import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { getSimplifiedOrganizationRestrictions, getRestrictionMessage } from '@/utils/simplifiedOrganizationRestrictions';
 

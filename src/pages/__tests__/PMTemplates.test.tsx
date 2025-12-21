@@ -12,12 +12,12 @@ import {
   useUpdatePMTemplate, 
   useDeletePMTemplate, 
   useClonePMTemplate 
-} from '@/hooks/usePMTemplates';
+} from '@/features/pm-templates/hooks/usePMTemplates';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
 
-vi.mock('@/hooks/usePMTemplates', () => ({
+vi.mock('@/features/pm-templates/hooks/usePMTemplates', () => ({
   usePMTemplates: vi.fn(),
   usePMTemplate: vi.fn(),
   useCreatePMTemplate: vi.fn(),
@@ -34,7 +34,7 @@ vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: vi.fn(),
 }));
 
-vi.mock('@/hooks/useSimplifiedOrganizationRestrictions', () => ({
+vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions', () => ({
   useSimplifiedOrganizationRestrictions: vi.fn(),
 }));
 

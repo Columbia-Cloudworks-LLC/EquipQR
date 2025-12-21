@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clipboard, Wrench } from 'lucide-react';
 import { WorkOrderData, PMData, PermissionLevels } from '@/features/work-orders/types/workOrderDetails';
-import { usePMTemplates } from '@/hooks/usePMTemplates';
+import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 
 interface WorkOrderDetailsPMInfoProps {
   workOrder: WorkOrderData;

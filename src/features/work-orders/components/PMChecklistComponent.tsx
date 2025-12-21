@@ -18,14 +18,14 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
 import { SaveStatus } from '@/components/ui/SaveStatus';
 import { toast } from 'sonner';
-import { useUpdatePM } from '@/hooks/usePMData';
+import { useUpdatePM } from '@/features/pm-templates/hooks/usePMData';
 import { useQueryClient } from '@tanstack/react-query';
 import PrintExportDropdown from './PrintExportDropdown';
 import { PMChecklistPDFGenerator } from '@/utils/pdfGenerator';
 import { workOrderRevertService } from '@/features/work-orders/services/workOrderRevertService';
 import { WorkOrderData, EquipmentData, TeamMemberData, OrganizationData } from '@/features/work-orders/types/workOrderDetails';
 import { logger } from '@/utils/logger';
-import { usePMTemplates } from '@/hooks/usePMTemplates';
+import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 
 interface PMChecklistComponentProps {
   pm: PreventativeMaintenance;

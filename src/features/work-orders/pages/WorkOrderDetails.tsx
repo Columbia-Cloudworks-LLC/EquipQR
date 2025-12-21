@@ -23,7 +23,7 @@ import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChang
 import { WorkOrderDetailsSidebar } from '@/features/work-orders/components/WorkOrderDetailsSidebar';
 import { WorkOrderDetailsMobile } from '@/features/work-orders/components/WorkOrderDetailsMobile';
 import { WorkOrderNotesMobile } from '@/features/work-orders/components/WorkOrderNotesMobile';
-import { useInitializePMChecklist } from '@/hooks/useInitializePMChecklist';
+import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useInitializePMChecklist';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
 

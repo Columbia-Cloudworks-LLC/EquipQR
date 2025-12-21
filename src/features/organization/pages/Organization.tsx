@@ -1,6 +1,6 @@
 import React from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useOrganizationMembersQuery } from '@/hooks/useOrganizationMembers';
+import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 
 import OrganizationHeader from '@/features/organization/components/OrganizationHeader';

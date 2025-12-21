@@ -7,8 +7,8 @@ import {
   shouldBlockInvitation,
   BillingState 
 } from '../index';
-import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
-import { SlotAvailability } from '@/hooks/useOrganizationSlots';
+import { RealOrganizationMember } from '@/features/organization/hooks/useOrganizationMembers';
+import { SlotAvailability } from '@/features/organization/hooks/useOrganizationSlots';
 
 // Mock data helpers
 const createMember = (status: 'active' | 'pending' = 'active', role: 'owner' | 'admin' | 'member' = 'member'): RealOrganizationMember => ({

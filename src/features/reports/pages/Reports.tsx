@@ -10,19 +10,7 @@ import ReportFilters from '@/features/reports/components/ReportFilters';
 import ReportCharts from '@/features/reports/components/ReportCharts';
 import ReportExport from '@/features/reports/components/ReportExport';
 import Page from '@/components/layout/Page';
-
-export type ReportType = 'equipment' | 'maintenance' | 'workorders' | 'kpis';
-
-export interface ReportFilters {
-  type: ReportType;
-  dateRange: {
-    from: Date | undefined;
-    to: Date | undefined;
-  };
-  status?: string;
-  location?: string;
-  priority?: string;
-}
+import type { ReportFilters } from '@/features/reports/types/reports';
 
 const Reports = () => {
   const { currentOrganization } = useOrganization();

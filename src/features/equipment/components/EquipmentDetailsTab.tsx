@@ -13,7 +13,7 @@ import { useUpdateEquipment } from "@/features/equipment/hooks/useEquipment";
 import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
 import { useTeams } from "@/features/teams/hooks/useTeamManagement";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { usePMTemplates } from "@/hooks/usePMTemplates";
+import { usePMTemplates } from "@/features/pm-templates/hooks/usePMTemplates";
 import { toast } from "sonner";
 import { logger } from '@/utils/logger';
 

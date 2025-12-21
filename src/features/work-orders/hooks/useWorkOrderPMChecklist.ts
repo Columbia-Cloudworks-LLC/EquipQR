@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
-import { usePMTemplates } from '@/hooks/usePMTemplates';
-import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
+import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
 import type { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { logger } from '@/utils/logger';
 

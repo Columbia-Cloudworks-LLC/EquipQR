@@ -29,7 +29,7 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
 import { generateTemplatePreviewPDF } from '@/utils/templatePDF';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
-import { useCreatePMTemplate, useUpdatePMTemplate } from '@/hooks/usePMTemplates';
+import { useCreatePMTemplate, useUpdatePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { nanoid } from 'nanoid';
 
 type SaveTrigger = 'text' | 'selection' | 'manual';

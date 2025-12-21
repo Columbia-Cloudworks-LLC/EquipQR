@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useCompatibleInventoryItems } from '@/hooks/useInventory';
+import { useCompatibleInventoryItems } from '@/features/inventory/hooks/useInventory';
 
 interface InventoryPartSelectorProps {
   open: boolean;

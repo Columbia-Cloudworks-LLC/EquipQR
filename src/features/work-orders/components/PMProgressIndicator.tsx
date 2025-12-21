@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
 import { Wrench, CheckCircle2 } from 'lucide-react';
-import { usePMByWorkOrderId } from '@/hooks/usePMData';
+import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
 import { getItemStatus } from '@/utils/pmChecklistHelpers';
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 

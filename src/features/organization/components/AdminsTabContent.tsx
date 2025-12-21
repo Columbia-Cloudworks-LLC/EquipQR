@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Crown, Mail } from 'lucide-react';
-import { OrganizationAdmin } from '@/hooks/useOrganizationAdmins';
+import { OrganizationAdmin } from '@/features/organization/hooks/useOrganizationAdmins';
 import { getRoleBadgeVariant } from '@/utils/badgeVariants';
 
 interface AdminsTabContentProps {
