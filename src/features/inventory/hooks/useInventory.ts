@@ -114,7 +114,7 @@ export const useCompatibleInventoryItems = (
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
 
   return useQuery({
-    queryKey: ['compatible-inventory-items', organizationId, [...equipmentIds].sort().join(',')],
+    queryKey: ['compatible-inventory-items', organizationId, equipmentIds.slice().sort().join(',')],
     queryFn: async () => {
       if (!organizationId || equipmentIds.length === 0) return [];
       return await getCompatibleInventoryItems(organizationId, equipmentIds);
