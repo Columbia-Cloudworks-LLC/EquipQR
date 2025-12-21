@@ -1,7 +1,7 @@
 
 // Compatibility layer for usePermissions hook
 import { useUnifiedPermissions } from './useUnifiedPermissions';
-import type { WorkOrderData } from '@/types/workOrder';
+import type { WorkOrderData } from '@/features/work-orders/types/workOrder';
 
 export const usePermissions = () => {
   const permissions = useUnifiedPermissions();

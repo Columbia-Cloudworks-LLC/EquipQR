@@ -1,11 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
-import PMTemplateView from '@/pages/PMTemplateView';
+import PMTemplateView from '@/features/pm-templates/pages/PMTemplateView';
 import { TestProviders } from '@/test/utils/TestProviders';
-import { usePMTemplate } from '@/hooks/usePMTemplates';
+import { usePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 
-vi.mock('@/hooks/usePMTemplates', () => ({
+vi.mock('@/features/pm-templates/hooks/usePMTemplates', () => ({
   usePMTemplate: vi.fn(),
   useClonePMTemplate: vi.fn(() => ({
     mutateAsync: vi.fn(),

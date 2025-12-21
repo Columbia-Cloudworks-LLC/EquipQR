@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import * as svc from '@/services/partsService';
+import * as svc from '@/features/part-picker/services/partsService';
 
 vi.mock('@/integrations/supabase/client', () => {
   return {

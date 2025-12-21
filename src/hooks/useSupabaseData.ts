@@ -2,34 +2,34 @@
  * @deprecated This entire file is deprecated. Migration guide:
  * 
  * Equipment hooks:
- * - useEquipmentByOrganization → useEquipment from '@/hooks/useEquipment'
- * - useEquipmentById → useEquipmentById from '@/hooks/useEquipment'
- * - useCreateEquipment → useCreateEquipment from '@/hooks/useEquipment'
- * - useUpdateEquipment → useUpdateEquipment from '@/hooks/useEquipment'
+ * - useEquipmentByOrganization → useEquipment from '@/features/equipment/hooks/useEquipment'
+ * - useEquipmentById → useEquipmentById from '@/features/equipment/hooks/useEquipment'
+ * - useCreateEquipment → useCreateEquipment from '@/features/equipment/hooks/useEquipment'
+ * - useUpdateEquipment → useUpdateEquipment from '@/features/equipment/hooks/useEquipment'
  * 
  * Teams hooks:
- * - useTeamsByOrganization → useTeams from '@/hooks/useTeamManagement'
+ * - useTeamsByOrganization → useTeams from '@/features/teams/hooks/useTeamManagement'
  * 
  * Dashboard hooks:
  * - useDashboardStats → useDashboard from '@/hooks/useQueries'
  * 
  * Work Order hooks:
- * - useWorkOrdersByEquipment → useEquipmentWorkOrders from '@/hooks/useEquipment'
+ * - useWorkOrdersByEquipment → useEquipmentWorkOrders from '@/features/equipment/hooks/useEquipment'
  * - useAllWorkOrders → useWorkOrders from '@/hooks/useWorkOrders'
  * - useWorkOrderById → useWorkOrderById from '@/hooks/useWorkOrders'
  * 
  * Notes hooks:
- * - useNotesByEquipment → useEquipmentNotes from '@/hooks/useEquipment'
- * - useCreateNote → useCreateNote from '@/hooks/useEquipment'
+ * - useNotesByEquipment → useEquipmentNotes from '@/features/equipment/hooks/useEquipment'
+ * - useCreateNote → useCreateNote from '@/features/equipment/hooks/useEquipment'
  * 
  * Scans hooks:
- * - useScansByEquipment → useEquipmentScans from '@/hooks/useEquipment'
- * - useCreateScan → useCreateScan from '@/hooks/useEquipment'
+ * - useScansByEquipment → useEquipmentScans from '@/features/equipment/hooks/useEquipment'
+ * - useCreateScan → useCreateScan from '@/features/equipment/hooks/useEquipment'
  * 
  * @module useSupabaseData
- * @see {@link @/hooks/useEquipment} for equipment-related hooks
+ * @see {@link @/features/equipment/hooks/useEquipment} for equipment-related hooks
  * @see {@link @/hooks/useWorkOrders} for work order hooks
- * @see {@link @/hooks/useTeamManagement} for team hooks
+ * @see {@link @/features/teams/hooks/useTeamManagement} for team hooks
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as supabaseService from '@/services/supabaseDataService';
@@ -37,7 +37,7 @@ import { toast } from '@/hooks/use-toast';
 
 // Equipment hooks
 /**
- * @deprecated Use useEquipment from '@/hooks/useEquipment' instead.
+ * @deprecated Use useEquipment from '@/features/equipment/hooks/useEquipment' instead.
  */
 export const useEquipmentByOrganization = (organizationId?: string) => {
   return useQuery({
@@ -49,7 +49,7 @@ export const useEquipmentByOrganization = (organizationId?: string) => {
 };
 
 /**
- * @deprecated Use useEquipmentById from '@/hooks/useEquipment' instead.
+ * @deprecated Use useEquipmentById from '@/features/equipment/hooks/useEquipment' instead.
  */
 export const useEquipmentById = (organizationId: string, equipmentId?: string) => {
   return useQuery({
@@ -63,7 +63,7 @@ export const useEquipmentById = (organizationId: string, equipmentId?: string) =
 };
 
 /**
- * @deprecated Use useTeams from '@/hooks/useTeamManagement' instead.
+ * @deprecated Use useTeams from '@/features/teams/hooks/useTeamManagement' instead.
  */
 export const useTeamsByOrganization = (organizationId?: string) => {
   return useQuery({
@@ -92,7 +92,7 @@ export const useDashboardStats = (organizationId?: string) => {
 };
 
 /**
- * @deprecated Use useEquipmentWorkOrders from '@/hooks/useEquipment' instead.
+ * @deprecated Use useEquipmentWorkOrders from '@/features/equipment/hooks/useEquipment' instead.
  */
 export const useWorkOrdersByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
@@ -132,7 +132,7 @@ export const useWorkOrderById = (organizationId: string, workOrderId?: string) =
 };
 
 /**
- * @deprecated Use useEquipmentNotes from '@/hooks/useEquipment' instead.
+ * @deprecated Use useEquipmentNotes from '@/features/equipment/hooks/useEquipment' instead.
  */
 export const useNotesByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
@@ -146,7 +146,7 @@ export const useNotesByEquipment = (organizationId: string, equipmentId?: string
 };
 
 /**
- * @deprecated Use useEquipmentScans from '@/hooks/useEquipment' instead.
+ * @deprecated Use useEquipmentScans from '@/features/equipment/hooks/useEquipment' instead.
  */
 export const useScansByEquipment = (organizationId: string, equipmentId?: string) => {
   return useQuery({
@@ -160,7 +160,7 @@ export const useScansByEquipment = (organizationId: string, equipmentId?: string
 };
 
 /**
- * @deprecated Use useCreateScan from '@/hooks/useEquipment' instead.
+ * @deprecated Use useCreateScan from '@/features/equipment/hooks/useEquipment' instead.
  */
 export const useCreateScan = (organizationId: string) => {
   const queryClient = useQueryClient();
@@ -236,7 +236,7 @@ export const useUpdateWorkOrderStatus = (organizationId: string) => {
 };
 
 /**
- * @deprecated Use useCreateEquipment from '@/hooks/useEquipment' instead.
+ * @deprecated Use useCreateEquipment from '@/features/equipment/hooks/useEquipment' instead.
  */
 export const useCreateEquipment = (organizationId: string) => {
   const queryClient = useQueryClient();
@@ -316,7 +316,7 @@ export const useCreateWorkOrder = (organizationId: string) => {
 };
 
 /**
- * @deprecated Use useCreateNote from '@/hooks/useEquipment' instead.
+ * @deprecated Use useCreateNote from '@/features/equipment/hooks/useEquipment' instead.
  */
 export const useCreateNote = (organizationId: string) => {
   const queryClient = useQueryClient();
@@ -361,7 +361,7 @@ export const useCreateNote = (organizationId: string) => {
 };
 
 /**
- * @deprecated Use useUpdateEquipment from '@/hooks/useEquipment' instead.
+ * @deprecated Use useUpdateEquipment from '@/features/equipment/hooks/useEquipment' instead.
  */
 export const useUpdateEquipment = (organizationId: string) => {
   const queryClient = useQueryClient();

@@ -1,5 +1,5 @@
-import { useOrganizationMembers } from './useOrganizationMembers';
-import { useOrganizationAdmins } from './useOrganizationAdmins';
+import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
+import { useOrganizationAdmins } from '@/features/organization/hooks/useOrganizationAdmins';
 import { SessionOrganization } from '@/contexts/SessionContext';
 
 export interface OrganizationStats {

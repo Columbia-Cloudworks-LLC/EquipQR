@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSession } from '@/hooks/useSession';
-import { getEquipmentOrganization, checkUserHasMultipleOrganizations, EquipmentOrganizationInfo } from '@/services/equipmentOrganizationService';
-import { getInventoryItemOrganization, InventoryOrganizationInfo } from '@/services/inventoryOrganizationService';
+import { getEquipmentOrganization, checkUserHasMultipleOrganizations, EquipmentOrganizationInfo } from '@/features/equipment/services/equipmentOrganizationService';
+import { getInventoryItemOrganization, InventoryOrganizationInfo } from '@/features/inventory/services/inventoryOrganizationService';
 import { toast } from 'sonner';
 
 export interface QRRedirectState {

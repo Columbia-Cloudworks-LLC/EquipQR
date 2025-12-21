@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Check, AlertCircle, CheckCircle, Settings, Users } from 'lucide-react';
-import { useNotifications, useMarkNotificationAsRead, type Notification } from '@/hooks/useWorkOrderData';
-import { useWorkOrderPermissionLevels } from '@/hooks/useWorkOrderPermissionLevels';
+import { useNotifications, useMarkNotificationAsRead, type Notification } from '@/features/work-orders/hooks/useWorkOrderData';
+import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 

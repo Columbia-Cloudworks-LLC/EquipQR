@@ -1,6 +1,6 @@
 // Validation utility functions for equipment and form validation
 
-import { type EquipmentValidationContext } from '@/types/equipment';
+import { type EquipmentValidationContext } from '@/features/equipment/types/equipment';
 
 /**
  * Creates a validation context from session data

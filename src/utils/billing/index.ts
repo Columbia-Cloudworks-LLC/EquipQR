@@ -2,8 +2,8 @@
  * @deprecated Billing system has been removed. All functions return free/unlimited values.
  */
 
-import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
-import { SlotAvailability } from '@/hooks/useOrganizationSlots';
+import { RealOrganizationMember } from '@/features/organization/hooks/useOrganizationMembers';
+import { SlotAvailability } from '@/features/organization/hooks/useOrganizationSlots';
 
 // Output interface - simplified for free/unlimited model
 export interface BillingCalculation {

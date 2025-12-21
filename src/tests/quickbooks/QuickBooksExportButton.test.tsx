@@ -54,7 +54,7 @@ vi.mock('sonner', () => ({
   },
 }));
 
-import { QuickBooksExportButton } from '@/components/work-orders/QuickBooksExportButton';
+import { QuickBooksExportButton } from '@/features/work-orders/components/QuickBooksExportButton';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';

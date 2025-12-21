@@ -1,4 +1,4 @@
-import type { PMChecklistItem } from '@/services/preventativeMaintenanceService'
+import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService'
 
 export const getItemStatus = (item: PMChecklistItem): 'not_rated' | 'ok' | 'adjusted' | 'recommend_repairs' | 'requires_immediate_repairs' | 'unsafe_condition' => {
   if (!item.condition) return 'not_rated'

@@ -1,5 +1,5 @@
 
-import { Organization, OrganizationMember } from '@/types/organization';
+import { Organization, OrganizationMember } from '@/features/organization/types/organization';
 
 export const mockOrganization: Organization = {
   id: 'org-1',
