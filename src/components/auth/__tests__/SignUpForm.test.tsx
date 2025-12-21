@@ -549,7 +549,7 @@ describe('SignUpForm', () => {
     it('should prevent multiple rapid submissions', async () => {
       const user = userEvent.setup();
       const setIsLoading = vi.fn();
-      let resolveSignUp: (value: unknown) => void;
+      let resolveSignUp: (value: unknown) => void = () => {};
       
       // Mock signUp with a controlled promise that doesn't resolve immediately
       mockSignUp.mockImplementation(() => 
@@ -603,7 +603,7 @@ describe('SignUpForm', () => {
       expect(mockSignUp).toHaveBeenCalledTimes(1);
       
       // Resolve the promise to clean up
-      resolveSignUp!({ error: null, data: { user: null, session: null } });
+      resolveSignUp({ error: null, data: { user: null, session: null } });
     });
   });
 
