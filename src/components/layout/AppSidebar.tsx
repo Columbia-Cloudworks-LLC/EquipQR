@@ -34,8 +34,7 @@ import {
   User,
   HelpCircle,
   ClipboardCheck,
-  Warehouse,
-  Wrench // Add Wrench import
+  Warehouse
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -62,7 +61,7 @@ const mainNavigation: NavigationItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
   { title: "Equipment", url: "/dashboard/equipment", icon: Forklift }, // Updated icon
   { title: "Work Orders", url: "/dashboard/work-orders", icon: ClipboardList },
-  { title: "Inventory", url: "/dashboard/inventory", icon: Wrench }, // Changed from Warehouse to Wrench
+  { title: "Inventory", url: "/dashboard/inventory", icon: Warehouse },
   { title: "Teams", url: "/dashboard/teams", icon: Users },
   { title: "Fleet Map", url: "/dashboard/fleet-map", icon: Map },
 ];
@@ -74,6 +73,7 @@ const managementNavigation: NavigationItem[] = [
   // Billing removed - app is now free
   // { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
   { title: "Reports", url: "/dashboard/reports", icon: FileText },
+  { title: "Settings", url: "/dashboard/settings", icon: Settings },
 ];
 
 // Billing debug routes removed
@@ -307,12 +307,6 @@ const AppSidebar = () => {
                   align="end"
                   sideOffset={4}
                 >
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard/settings" onClick={handleNavClick} className="text-sm cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/dashboard/support" onClick={handleNavClick} className="text-sm cursor-pointer">
                       <HelpCircle className="mr-2 h-4 w-4" />

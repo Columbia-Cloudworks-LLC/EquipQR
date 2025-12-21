@@ -1,7 +1,9 @@
 import fs from 'fs';
 
 const summaryPath = 'coverage/coverage-summary.json';
-const baseline = Number(process.env.COVERAGE_BASELINE || 60);
+// Coverage baseline restored to 70% to maintain quality standards
+// TODO: Add tests for new feature modules to ensure adequate coverage
+const baseline = Number(process.env.COVERAGE_BASELINE || 70);
 
 if (!fs.existsSync(summaryPath)) {
   console.error(`Coverage summary not found at ${summaryPath}`);

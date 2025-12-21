@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { Search, Forklift, Loader2, AlertCircle } from 'lucide-react';
+import { Search, Package, Loader2, AlertCircle } from 'lucide-react';
 import { usePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
@@ -151,7 +151,7 @@ export const TemplateAssignmentDialog: React.FC<TemplateAssignmentDialogProps> =
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <Forklift className="h-4 w-4 text-muted-foreground" />
+                      <Package className="h-4 w-4 text-muted-foreground" />
                       <p className="font-medium truncate">{eq.name}</p>
                       <Badge variant="outline" className="text-xs">{eq.status}</Badge>
                       {eq.default_pm_template_id && (
