@@ -382,7 +382,15 @@ async function getServiceItem(
     const accountResponse = await fetch(accountUrl, { method: "GET", headers });
     
     if (!accountResponse.ok) {
-      throw new Error("Failed to query income accounts");
+      const errorText = await accountResponse.text();
+      logStep("Failed to query income accounts", {
+        status: accountResponse.status,
+        statusText: accountResponse.statusText,
+        body: errorText,
+      });
+      throw new Error(
+        `Failed to query income accounts: ${accountResponse.status} ${accountResponse.statusText}`,
+      );
     }
     
     const accountData = await accountResponse.json();
