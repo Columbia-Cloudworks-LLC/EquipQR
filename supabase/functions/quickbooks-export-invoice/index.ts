@@ -290,7 +290,7 @@ async function getServiceItem(
   };
 
   // 1. Try to find our specific "EquipQR Services" item
-  const specificQuery = `SELECT * FROM Item WHERE Name = 'EquipQR Services' AND Type = 'Service'`;
+  const specificQuery = `SELECT * FROM Item WHERE Name = 'EquipQR Services' AND Type = 'Service' AND Active = true`;
   const specificUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(specificQuery)}`;
   
   try {
