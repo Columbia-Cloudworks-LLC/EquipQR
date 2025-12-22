@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Clock, Edit } from "lucide-react";
+import { Forklift, Clock, Edit } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -127,7 +127,7 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
       <div className="space-y-2">
         <Label>Equipment</Label>
         <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border">
-          <Package className="h-4 w-4 text-muted-foreground" />
+          <Forklift className="h-4 w-4 text-muted-foreground" />
           <div className="flex-1">
             <div className="font-medium">{equipment.name}</div>
             <div className="text-sm text-muted-foreground">

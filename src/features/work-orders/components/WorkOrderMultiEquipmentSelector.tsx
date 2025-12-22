@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Package, Check } from 'lucide-react';
+import { Search, Forklift, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -82,7 +82,7 @@ export const WorkOrderMultiEquipmentSelector: React.FC<WorkOrderMultiEquipmentSe
         <Card>
           <CardContent className="p-4">
             <div className="text-center text-muted-foreground">
-              <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <Forklift className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No additional equipment available from this team</p>
             </div>
           </CardContent>
@@ -153,7 +153,7 @@ export const WorkOrderMultiEquipmentSelector: React.FC<WorkOrderMultiEquipmentSe
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <Forklift className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           <span className="font-medium truncate">{equipment.name}</span>
                           {isSelected && (
                             <Badge variant="secondary" className="text-xs">

@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { Package, Info } from "lucide-react";
+import { Forklift, Info } from "lucide-react";
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
@@ -117,7 +117,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
         <div className="space-y-2">
           <Label>Equipment</Label>
           <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border">
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <Forklift className="h-4 w-4 text-muted-foreground" />
             <div className="flex-1">
               <div className="font-medium">{preSelectedEquipment.name}</div>
               <div className="text-sm text-muted-foreground">
