@@ -185,6 +185,3 @@ describe('UnifiedMembersList', () => {
     }
   });
 });
-
-
-
