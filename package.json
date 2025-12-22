@@ -2,6 +2,7 @@
   "name": "equipqr",
   "private": true,
   "version": "1.6.6",
+  "versionNote": "Version 1.6.5 was intentionally skipped; the next published release is 1.6.6.",
   "type": "module",
   "overrides": {
     "vite": "^5.4.1",
