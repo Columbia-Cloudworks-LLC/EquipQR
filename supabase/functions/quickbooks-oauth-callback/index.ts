@@ -239,7 +239,8 @@ serve(async (req) => {
     });
 
     // Construct redirect URI (must match what was used in authorization URL)
-    const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
+    // Use the request URL to ensure the domain matches (handles custom domains vs supabase.co)
+    const redirectUri = `${url.origin}${url.pathname}`;
 
     // Exchange authorization code for tokens
     logStep("Exchanging code for tokens");
