@@ -41,6 +41,27 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 | `QUICKBOOKS_SANDBOX` | Set to `"true"` for sandbox, `"false"` for production |
 | `ENABLE_QB_PDF_ATTACHMENT` | Set to `"true"` to enable PDF attachments on exported invoices (default: `"false"`) |
 
+### Vault Secrets (Token Refresh Scheduler)
+
+The QuickBooks token refresh scheduler runs every 15 minutes via `pg_cron` and requires vault secrets to call the Edge Function securely. These must be configured **manually** in each Supabase environment after the migration runs.
+
+**Run this SQL in the Supabase SQL Editor for each environment:**
+
+```sql
+-- Insert vault secrets (replace with actual values for each environment)
+INSERT INTO vault.secrets (name, secret)
+VALUES 
+  ('service_role_key', '<YOUR_SERVICE_ROLE_KEY>'),
+  ('supabase_url', 'https://<YOUR_PROJECT_REF>.supabase.co');
+```
+
+| Secret Name | Description | Where to Find |
+|-------------|-------------|---------------|
+| `service_role_key` | Supabase service role key | Dashboard → Settings → API → Project API keys → service_role (secret) |
+| `supabase_url` | Supabase project URL | Dashboard → Settings → API → Project URL |
+
+**Important**: Each environment (preview, production) has different keys. Configure them separately.
+
 ### Setting Up Intuit Developer App
 
 1. Go to [Intuit Developer Portal](https://developer.intuit.com/)
@@ -84,11 +105,18 @@ Before exporting invoices, map each team to a QuickBooks customer:
 
 Exported invoices include:
 
-- **Line Item**: Single service line item with total cost
+- **Line Item**: Single service line item with total cost (uses "EquipQR Services" item)
 - **Description**: Work order details, equipment info, and public notes
 - **Private Note**: Work order ID, dates, private notes, and cost breakdown
 - **Customer Memo**: Work order title
 - **PDF Attachment** (optional): When `ENABLE_QB_PDF_ATTACHMENT` is enabled, a PDF containing public work order information is automatically attached to the invoice
+
+#### Service Item Selection
+
+When exporting, the system will use a QuickBooks service item in this priority:
+1. An existing item named "EquipQR Services"
+2. Any active Service-type item in your QuickBooks account
+3. Auto-create an "EquipQR Services" item (requires an Income account to exist)
 
 #### PDF Attachments
 
@@ -129,9 +157,15 @@ When PDF attachments are enabled (`ENABLE_QB_PDF_ATTACHMENT=true`), the system w
 | Function | Purpose |
 |----------|---------|
 | `quickbooks-oauth-callback` | Handles OAuth callback |
-| `quickbooks-refresh-tokens` | Background token refresh |
+| `quickbooks-refresh-tokens` | Background token refresh (called by pg_cron every 15 min) |
 | `quickbooks-search-customers` | Customer search API |
 | `quickbooks-export-invoice` | Invoice creation/update |
+
+### Scheduled Jobs
+
+| Job | Schedule | Purpose |
+|-----|----------|---------|
+| `refresh-quickbooks-tokens` | Every 15 minutes | Refreshes access tokens expiring within 15 minutes to prevent connection drops |
 
 ### Security
 
@@ -164,6 +198,11 @@ When PDF attachments are enabled (`ENABLE_QB_PDF_ATTACHMENT=true`), the system w
 - Check the QuickBooks API logs in Supabase
 - Ensure the customer still exists in QuickBooks
 - Verify the QuickBooks company has proper permissions
+
+**"Could not find or create a valid Service Item"**
+- The system automatically searches for or creates an "EquipQR Services" item
+- Ensure your QuickBooks account has at least one Income account (required for item creation)
+- Check that EquipQR has permission to create items in your QuickBooks company
 
 **"PDF attachment failed"**
 - Check that `ENABLE_QB_PDF_ATTACHMENT` is set correctly in Supabase Edge Function secrets

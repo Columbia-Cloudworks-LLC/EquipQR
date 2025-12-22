@@ -272,34 +272,134 @@ function buildPrivateNote(
 }
 
 /**
- * Get or create a generic service item for invoicing
+ * Get an existing service item or create a new one for invoicing
+ * 
+ * Search priority:
+ * 1. Look for specific "EquipQR Services" item
+ * 2. Fall back to any active Service item
+ * 3. Create a new "EquipQR Services" item if none exist
  */
 async function getServiceItem(
   accessToken: string,
   realmId: string
 ): Promise<{ value: string; name: string }> {
-  // Query for existing "Services" item
-  const queryUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent("SELECT * FROM Item WHERE Type = 'Service' MAXRESULTS 1")}`;
-  
-  const response = await fetch(queryUrl, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${accessToken}`,
-      "Accept": "application/json",
-    },
-  });
+  const headers = {
+    "Authorization": `Bearer ${accessToken}`,
+    "Accept": "application/json",
+    "Content-Type": "application/json"
+  };
 
-  if (response.ok) {
-    const data = await response.json();
-    if (data.QueryResponse?.Item?.[0]) {
-      const item = data.QueryResponse.Item[0];
-      return { value: item.Id, name: item.Name };
+  // 1. Try to find our specific "EquipQR Services" item
+  const specificQuery = `SELECT * FROM Item WHERE Name = 'EquipQR Services' AND Type = 'Service'`;
+  const specificUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(specificQuery)}`;
+  
+  try {
+    const response = await fetch(specificUrl, { method: "GET", headers });
+    if (response.ok) {
+      const data = await response.json();
+      if (data.QueryResponse?.Item?.[0]) {
+        logStep("Found EquipQR Services item", { id: data.QueryResponse.Item[0].Id });
+        return { 
+          value: data.QueryResponse.Item[0].Id, 
+          name: data.QueryResponse.Item[0].Name 
+        };
+      }
     }
+  } catch (e) {
+    logStep("Error searching for EquipQR Services item", { error: e instanceof Error ? e.message : String(e) });
   }
 
-  // If no service item found, use a default value
-  // Note: In production, you might want to create an item or use a configured one
-  return { value: "1", name: "Services" };
+  // 2. Fallback: Find ANY active Service item
+  const genericQuery = `SELECT * FROM Item WHERE Type = 'Service' AND Active = true MAXRESULTS 1`;
+  const genericUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(genericQuery)}`;
+  
+  try {
+    const response = await fetch(genericUrl, { method: "GET", headers });
+    if (response.ok) {
+      const data = await response.json();
+      if (data.QueryResponse?.Item?.[0]) {
+        logStep("Found generic service item", { 
+          id: data.QueryResponse.Item[0].Id, 
+          name: data.QueryResponse.Item[0].Name 
+        });
+        return { 
+          value: data.QueryResponse.Item[0].Id, 
+          name: data.QueryResponse.Item[0].Name 
+        };
+      }
+    }
+  } catch (e) {
+    logStep("Error searching for generic service item", { error: e instanceof Error ? e.message : String(e) });
+  }
+
+  // 3. Last Resort: Create a new service item
+  // First, we need to find an income account to associate with the item
+  logStep("No service items found, attempting to create EquipQR Services item");
+  
+  try {
+    // Query for an income account (required for service items)
+    const accountQuery = `SELECT * FROM Account WHERE AccountType = 'Income' AND Active = true MAXRESULTS 1`;
+    const accountUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(accountQuery)}`;
+    
+    const accountResponse = await fetch(accountUrl, { method: "GET", headers });
+    
+    if (!accountResponse.ok) {
+      throw new Error("Failed to query income accounts");
+    }
+    
+    const accountData = await accountResponse.json();
+    
+    if (!accountData.QueryResponse?.Account?.[0]) {
+      throw new Error("No income account found in QuickBooks");
+    }
+    
+    const incomeAccount = accountData.QueryResponse.Account[0];
+    logStep("Found income account for service item", { 
+      id: incomeAccount.Id, 
+      name: incomeAccount.Name 
+    });
+
+    // Create the service item
+    const createUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/item`;
+    const newItem = {
+      Name: "EquipQR Services",
+      Type: "Service",
+      IncomeAccountRef: {
+        value: incomeAccount.Id,
+        name: incomeAccount.Name
+      },
+      Description: "General services for EquipQR Work Orders"
+    };
+
+    const createResponse = await fetch(createUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(newItem)
+    });
+
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      logStep("Failed to create service item", { error: errorText });
+      throw new Error(`Failed to create service item: ${createResponse.status}`);
+    }
+
+    const createdItem = await createResponse.json();
+    logStep("Successfully created EquipQR Services item", { id: createdItem.Item?.Id });
+    
+    return { 
+      value: createdItem.Item.Id, 
+      name: createdItem.Item.Name 
+    };
+    
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    logStep("ERROR: Could not find or create service item", { error: errorMessage });
+    throw new Error(
+      "Could not find or create a valid Service Item in QuickBooks. " +
+      "Please ensure at least one Service item exists in your QuickBooks account, " +
+      "or check that EquipQR has permission to create items."
+    );
+  }
 }
 
 /**
