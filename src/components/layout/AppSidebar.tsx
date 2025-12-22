@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Home, 
-  Forklift, // Changed from Package
+  Forklift,
   ClipboardList, 
   Users, 
   Map, 
