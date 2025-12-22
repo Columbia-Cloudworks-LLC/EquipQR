@@ -434,7 +434,7 @@ async function getServiceItem(
     const errorMessage = e instanceof Error ? e.message : String(e);
     logStep("ERROR: Could not find or create service item", { error: errorMessage });
     throw new Error(
-      "Could not find or create a valid Service Item in QuickBooks. " +
+      `Could not find or create a valid Service Item in QuickBooks: ${errorMessage}. ` +
       "Please ensure at least one Service item exists in your QuickBooks account, " +
       "or check that EquipQR has permission to create items."
     );
