@@ -550,7 +550,7 @@ describe('SignUpForm', () => {
       const user = userEvent.setup();
       const setIsLoading = vi.fn();
       type SignUpResolution = { error: null; data: { user: null; session: null } };
-      let resolveSignUp: (value: SignUpResolution) => void = () => {};
+      let resolveSignUp!: (value: SignUpResolution) => void;
       
       // Mock signUp with a controlled promise that doesn't resolve immediately
       mockSignUp.mockImplementation(() => 
