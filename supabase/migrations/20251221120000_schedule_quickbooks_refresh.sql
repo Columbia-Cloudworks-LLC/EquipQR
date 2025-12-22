@@ -16,6 +16,7 @@
 
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 CREATE EXTENSION IF NOT EXISTS supabase_vault;
+CREATE EXTENSION IF NOT EXISTS pg_net;
 
 -- ============================================================================
 -- PART 2: Create helper function to call the edge function with vault secret
