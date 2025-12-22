@@ -177,7 +177,7 @@ describe('SignInForm', () => {
     expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
   });
 
-  it('should disable submit button during form submission', async () => {
+  it('should prevent multiple rapid submissions', async () => {
     const user = userEvent.setup();
     
     // Mock signIn with delay to simulate real network conditions
@@ -211,8 +211,11 @@ describe('SignInForm', () => {
     // Button should be enabled initially
     expect(submitButton).not.toBeDisabled();
     
-    // Fire click
-    await user.click(submitButton);
+    // Rapidly fire multiple clicks synchronously to simulate race condition
+    // This tests that the isLoading guard prevents multiple submissions
+    fireEvent.click(submitButton);
+    fireEvent.click(submitButton);
+    fireEvent.click(submitButton);
     
     // Wait for the button to be disabled (loading state active)
     await waitFor(() => {
@@ -224,8 +227,10 @@ describe('SignInForm', () => {
       expect(submitButton).not.toBeDisabled();
     }, { timeout: 1000 });
     
-    // Should have been called at least once
-    expect(mockSignIn).toHaveBeenCalled();
+    // Verify signIn was called only once despite multiple rapid clicks
+    // The isLoading guard in handleSubmit should prevent duplicate submissions
+    expect(mockSignIn).toHaveBeenCalledTimes(1);
+    expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
   });
 
   it('should handle form reset correctly', async () => {
