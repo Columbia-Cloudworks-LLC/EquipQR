@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -113,8 +114,14 @@ export const useCompatibleInventoryItems = (
 ) => {
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
 
+  // Memoize the sorted key to avoid recalculating on every render
+  const sortedKey = useMemo(
+    () => equipmentIds.slice().sort().join(','),
+    [equipmentIds]
+  );
+
   return useQuery({
-    queryKey: ['compatible-inventory-items', organizationId, equipmentIds.slice().sort().join(',')],
+    queryKey: ['compatible-inventory-items', organizationId, sortedKey],
     queryFn: async () => {
       if (!organizationId || equipmentIds.length === 0) return [];
       return await getCompatibleInventoryItems(organizationId, equipmentIds);
