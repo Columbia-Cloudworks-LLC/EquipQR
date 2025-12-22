@@ -66,6 +66,12 @@ BEGIN
     RETURN;
   END IF;
 
+  -- Basic validation of Supabase URL from vault (defense-in-depth)
+  -- Ensure it is an https Supabase project URL to avoid SSRF/misconfiguration issues
+  IF supabase_url !~ '^https://[A-Za-z0-9.-]+\.supabase\.co/?$' THEN
+    RAISE WARNING 'QuickBooks token refresh skipped: invalid supabase_url format in vault secrets';
+    RETURN;
+  END IF;
   -- Call the edge function and capture request ID
   SELECT net.http_post(
     url := supabase_url || '/functions/v1/quickbooks-refresh-tokens',
