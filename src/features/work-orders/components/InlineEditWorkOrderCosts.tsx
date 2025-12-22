@@ -445,5 +445,3 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
 };
 
 export default InlineEditWorkOrderCosts;
-
-
