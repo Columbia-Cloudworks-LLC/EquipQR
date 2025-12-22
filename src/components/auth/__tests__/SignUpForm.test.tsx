@@ -549,7 +549,8 @@ describe('SignUpForm', () => {
     it('should prevent multiple rapid submissions', async () => {
       const user = userEvent.setup();
       const setIsLoading = vi.fn();
-      let resolveSignUp: (value: unknown) => void = () => {};
+      type SignUpResolution = { error: null; data: { user: null; session: null } };
+      let resolveSignUp: (value: SignUpResolution) => void = () => {};
       
       // Mock signUp with a controlled promise that doesn't resolve immediately
       mockSignUp.mockImplementation(() => 
