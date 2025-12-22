@@ -345,9 +345,27 @@ async function getServiceItem(
           name: data.QueryResponse.Item[0].Name 
         };
       }
+    } else if (response.status === 401 || response.status === 403 || response.status >= 500) {
+      // For auth and server errors, do not attempt item creation
+      let errorBody: string | undefined;
+      try {
+        errorBody = await response.text();
+      } catch {
+        // Ignore body read errors
+      }
+      logStep("Error response searching for generic service item", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody,
+      });
+      throw new Error(`QuickBooks generic item query failed with status ${response.status}`);
     }
   } catch (e) {
     logStep("Error searching for generic service item", { error: e instanceof Error ? e.message : String(e) });
+    // Rethrow explicit errors to stop fallback item creation
+    if (e instanceof Error && e.message.includes("QuickBooks generic item query failed")) {
+      throw e;
+    }
   }
 
   // 3. Last Resort: Create a new service item
