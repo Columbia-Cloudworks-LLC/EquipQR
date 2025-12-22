@@ -426,7 +426,7 @@ async function getServiceItem(
     if (!createResponse.ok) {
       const errorText = await createResponse.text();
       logStep("Failed to create service item", { error: errorText });
-      throw new Error(`Failed to create service item: ${createResponse.status}`);
+      throw new Error(`Failed to create service item: ${createResponse.status} - ${errorText}`);
     }
 
     const createdItem = await createResponse.json();
