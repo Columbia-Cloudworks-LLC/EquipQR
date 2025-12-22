@@ -181,7 +181,7 @@ describe('EquipmentCard', () => {
   });
 
   describe('Image Handling', () => {
-    it('renders fallback Package icon when no image_url is provided', () => {
+    it('renders fallback Forklift icon when no image_url is provided', () => {
       const equipmentWithoutImage = { ...mockEquipment, image_url: undefined };
       render(<EquipmentCard equipment={equipmentWithoutImage} onShowQRCode={mockOnShowQRCode} />);
 

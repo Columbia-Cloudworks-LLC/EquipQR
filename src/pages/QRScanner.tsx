@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { QrCode, AlertCircle, CheckCircle, ArrowLeft, Camera, Package } from 'lucide-react';
+import { QrCode, AlertCircle, CheckCircle, ArrowLeft, Camera, Forklift, Package } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { useInventoryItem } from '@/features/inventory/hooks/useInventory';
@@ -396,6 +396,7 @@ const QRScanner = () => {
                   </div>
 
                   <Button onClick={viewEquipment} className="w-full">
+                    <Forklift className="h-4 w-4 mr-2" />
                     View Full Details
                   </Button>
                 </div>

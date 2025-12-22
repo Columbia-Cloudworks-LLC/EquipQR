@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { QrCode, MapPin, Calendar, Package, Clock } from 'lucide-react';
+import { QrCode, MapPin, Calendar, Forklift, Clock } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getStatusColor } from '@/features/equipment/utils/equipmentHelpers';
 
@@ -88,7 +88,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <Package className="h-12 w-12 text-muted-foreground/50" />
+              <Forklift className="h-12 w-12 text-muted-foreground/50" />
             </div>
           )}
         </div>

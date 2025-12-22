@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Package } from 'lucide-react';
+import { Plus, Forklift } from 'lucide-react';
 import EquipmentCard from './EquipmentCard';
 
 interface Equipment {
@@ -39,7 +39,7 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
     return (
       <Card>
         <CardContent className="text-center py-12">
-          <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <Forklift className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No equipment found</h3>
           <p className="text-muted-foreground mb-4">
             {searchQuery || statusFilter !== 'all' 

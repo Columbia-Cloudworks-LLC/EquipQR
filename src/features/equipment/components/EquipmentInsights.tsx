@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
-  Package, 
+  Forklift, 
   CheckCircle, 
   Wrench, 
   XCircle, 
@@ -116,7 +116,7 @@ const EquipmentInsights: React.FC<EquipmentInsightsProps> = ({
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center">
-            <Package className="h-4 w-4 mr-2" />
+            <Forklift className="h-4 w-4 mr-2" />
             Status Overview
           </CardTitle>
         </CardHeader>
@@ -233,7 +233,7 @@ const EquipmentInsights: React.FC<EquipmentInsightsProps> = ({
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center">
-            <Package className="h-4 w-4 mr-2" />
+            <Forklift className="h-4 w-4 mr-2" />
             Top Manufacturers
           </CardTitle>
         </CardHeader>
