@@ -32,18 +32,21 @@ DECLARE
   supabase_url text;
   request_id bigint;
   current_user_role text;
-  is_superuser boolean;
+  cron_job_id text;
 BEGIN
-  -- Authorization check: Only allow postgres superuser (pg_cron) or explicitly granted roles
-  -- pg_cron executes jobs as the postgres superuser
-  SELECT rolname, rolsuper
-  INTO current_user_role, is_superuser
+  -- Authorization check: Only allow postgres superuser in pg_cron context
+  -- pg_cron executes jobs as the postgres superuser and sets cron.job_id
+  SELECT rolname
+  INTO current_user_role
   FROM pg_roles
   WHERE oid = current_user::oid;
-  
-  -- Check if current user is postgres superuser (pg_cron context) or has superuser privileges
-  IF current_user_role != 'postgres' AND NOT is_superuser THEN
-    RAISE EXCEPTION 'Access denied: This function can only be called by pg_cron scheduler or authorized superusers';
+
+  -- Detect pg_cron context via cron.job_id (NULL when not running under pg_cron)
+  cron_job_id := current_setting('cron.job_id', true);
+
+  -- Check that the caller is postgres and that this is running inside a pg_cron job
+  IF current_user_role != 'postgres' OR cron_job_id IS NULL THEN
+    RAISE EXCEPTION 'Access denied: This function can only be called by the pg_cron scheduler as postgres';
   END IF;
 
   -- Retrieve the service role key from vault
