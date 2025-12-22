@@ -309,8 +309,13 @@ async function getServiceItem(
       let errorBody: string | undefined;
       try {
         errorBody = await response.text();
-      } catch {
-        // Ignore body read errors
+      } catch (readError) {
+        errorBody = "Unable to read error response body";
+        logStep("Failed to read error response body when searching for EquipQR Services item", {
+          status: response.status,
+          statusText: response.statusText,
+          error: readError instanceof Error ? readError.message : String(readError),
+        });
       }
       logStep("Error response searching for EquipQR Services item", {
         status: response.status,
