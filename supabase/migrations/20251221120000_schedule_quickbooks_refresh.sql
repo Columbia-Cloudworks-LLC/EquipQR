@@ -29,6 +29,7 @@ AS $$
 DECLARE
   service_role_key text;
   supabase_url text;
+  request_id bigint;
 BEGIN
   -- Retrieve the service role key from vault
   SELECT decrypted_secret INTO service_role_key
@@ -47,16 +48,24 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Call the edge function
-  PERFORM net.http_post(
+  -- Call the edge function and capture request ID
+  SELECT net.http_post(
     url := supabase_url || '/functions/v1/quickbooks-refresh-tokens',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || service_role_key
     )
-  );
+  ) INTO request_id;
+
+  -- Verify request was scheduled
+  IF request_id IS NULL THEN
+    RAISE WARNING 'Failed to schedule QuickBooks token refresh request';
+  END IF;
 END;
 $$;
+
+-- Restrict access to the function (security improvement)
+REVOKE EXECUTE ON FUNCTION public.invoke_quickbooks_token_refresh() FROM PUBLIC;
 
 COMMENT ON FUNCTION public.invoke_quickbooks_token_refresh() IS 
   'Calls the quickbooks-refresh-tokens edge function using credentials stored in vault.secrets';

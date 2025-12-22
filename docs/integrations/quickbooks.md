@@ -48,11 +48,12 @@ The QuickBooks token refresh scheduler runs every 15 minutes via `pg_cron` and r
 **Run this SQL in the Supabase SQL Editor for each environment:**
 
 ```sql
--- Insert vault secrets (replace with actual values for each environment)
+-- Insert vault secrets
+-- IMPORTANT: Replace the entire placeholder including angle brackets <...> with your actual values
 INSERT INTO vault.secrets (name, secret)
 VALUES 
-  ('service_role_key', '<YOUR_SERVICE_ROLE_KEY>'),
-  ('supabase_url', 'https://<YOUR_PROJECT_REF>.supabase.co');
+  ('service_role_key', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'), 
+  ('supabase_url', 'https://your-project-ref.supabase.co');
 ```
 
 | Secret Name | Description | Where to Find |

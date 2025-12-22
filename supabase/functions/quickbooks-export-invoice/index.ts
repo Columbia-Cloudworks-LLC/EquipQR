@@ -304,9 +304,27 @@ async function getServiceItem(
           name: data.QueryResponse.Item[0].Name 
         };
       }
+    } else if (response.status === 401 || response.status === 403 || response.status >= 500) {
+      // For auth and server errors, do not attempt the fallback query
+      let errorBody: string | undefined;
+      try {
+        errorBody = await response.text();
+      } catch {
+        // Ignore body read errors
+      }
+      logStep("Error response searching for EquipQR Services item", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody,
+      });
+      throw new Error(`QuickBooks item query failed with status ${response.status}`);
     }
   } catch (e) {
     logStep("Error searching for EquipQR Services item", { error: e instanceof Error ? e.message : String(e) });
+    // Rethrow explicit errors to stop fallback
+    if (e instanceof Error && e.message.includes("QuickBooks item query failed")) {
+      throw e;
+    }
   }
 
   // 2. Fallback: Find ANY active Service item
@@ -348,12 +366,12 @@ async function getServiceItem(
     }
     
     const accountData = await accountResponse.json();
+    const incomeAccount = accountData.QueryResponse?.Account?.[0];
     
-    if (!accountData.QueryResponse?.Account?.[0]) {
+    if (!incomeAccount) {
       throw new Error("No income account found in QuickBooks");
     }
     
-    const incomeAccount = accountData.QueryResponse.Account[0];
     logStep("Found income account for service item", { 
       id: incomeAccount.Id, 
       name: incomeAccount.Name 
@@ -384,7 +402,12 @@ async function getServiceItem(
     }
 
     const createdItem = await createResponse.json();
-    logStep("Successfully created EquipQR Services item", { id: createdItem.Item?.Id });
+    
+    if (!createdItem?.Item?.Id) {
+      throw new Error("QuickBooks returned invalid item structure after creation");
+    }
+
+    logStep("Successfully created EquipQR Services item", { id: createdItem.Item.Id });
     
     return { 
       value: createdItem.Item.Id, 
