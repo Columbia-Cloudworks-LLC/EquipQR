@@ -31,7 +31,21 @@ DECLARE
   service_role_key text;
   supabase_url text;
   request_id bigint;
+  current_user_role text;
 BEGIN
+  -- Authorization check: Only allow postgres superuser (pg_cron) or explicitly granted roles
+  -- pg_cron executes jobs as the postgres superuser
+  SELECT rolname INTO current_user_role
+  FROM pg_roles
+  WHERE oid = current_user::oid;
+  
+  -- Check if current user is postgres superuser (pg_cron context) or has superuser privileges
+  IF current_user_role != 'postgres' AND NOT EXISTS (
+    SELECT 1 FROM pg_roles WHERE oid = current_user::oid AND rolsuper = true
+  ) THEN
+    RAISE EXCEPTION 'Access denied: This function can only be called by pg_cron scheduler or authorized superusers';
+  END IF;
+
   -- Retrieve the service role key from vault
   SELECT decrypted_secret INTO service_role_key
   FROM vault.decrypted_secrets
@@ -66,10 +80,13 @@ END;
 $$;
 
 -- Restrict access to the function (security improvement)
+-- Only pg_cron scheduler (runs as postgres superuser) can execute this function
 REVOKE EXECUTE ON FUNCTION public.invoke_quickbooks_token_refresh() FROM PUBLIC;
 
 COMMENT ON FUNCTION public.invoke_quickbooks_token_refresh() IS 
-  'Calls the quickbooks-refresh-tokens edge function using credentials stored in vault.secrets';
+  'Calls the quickbooks-refresh-tokens edge function using credentials stored in vault.secrets. '
+  'This function is secured and can only be called by pg_cron scheduler (postgres superuser) '
+  'or other authorized superusers. It includes internal authorization checks to prevent unauthorized access.';
 
 -- ============================================================================
 -- PART 3: Schedule the cron job
