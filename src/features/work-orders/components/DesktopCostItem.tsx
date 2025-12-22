@@ -79,5 +79,3 @@ const DesktopCostItem: React.FC<DesktopCostItemProps> = React.memo(({
 DesktopCostItem.displayName = 'DesktopCostItem';
 
 export default DesktopCostItem;
-
-
