@@ -360,10 +360,9 @@ async function getServiceItem(
     }
   } catch (e) {
     logStep("Error searching for generic service item", { error: e instanceof Error ? e.message : String(e) });
-    // Rethrow explicit errors to stop fallback item creation
-    if (e instanceof Error && e.message.includes("QuickBooks generic item query failed")) {
-      throw e;
-    }
+    // Rethrow all errors to stop fallback item creation
+    // This includes network errors, auth errors, and any other failures
+    throw e instanceof Error ? e : new Error(String(e));
   }
 
   // 3. Last Resort: Create a new service item
