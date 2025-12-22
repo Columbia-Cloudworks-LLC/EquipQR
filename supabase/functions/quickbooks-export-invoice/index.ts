@@ -321,10 +321,8 @@ async function getServiceItem(
     }
   } catch (e) {
     logStep("Error searching for EquipQR Services item", { error: e instanceof Error ? e.message : String(e) });
-    // Rethrow explicit errors to stop fallback
-    if (e instanceof Error && e.message.includes("QuickBooks item query failed")) {
-      throw e;
-    }
+    // For network or unexpected errors, do not attempt the fallback query
+    throw e instanceof Error ? e : new Error(String(e));
   }
 
   // 2. Fallback: Find ANY active Service item
