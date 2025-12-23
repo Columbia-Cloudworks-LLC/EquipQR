@@ -330,18 +330,9 @@ describe('TemplateApplicationDialog', () => {
         </TestProviders>
       );
 
-      // Find the card by looking for the equipment name text and traversing up to the parent div
+      // Click the equipment name text, which is inside the clickable card
       const alphaText = screen.getByText('Forklift Alpha');
-      // The Card component renders a div, so we can use the parent structure
-      const card = alphaText.closest('div[class*="p-3"]');
-      
-      // The card should exist
-      expect(card).toBeTruthy();
-      
-      // Click the card
-      if (card) {
-        fireEvent.click(card);
-      }
+      fireEvent.click(alphaText);
 
       // Check if the checkbox is now checked
       const checkboxes = screen.getAllByRole('checkbox');
