@@ -101,10 +101,10 @@ const Auth = () => {
             </CardTitle>
             <CardDescription>
               {pendingQRScan ? (
-                <div className="flex items-center justify-center gap-2 text-blue-600">
+                <span className="flex items-center justify-center gap-2 text-blue-600">
                   <QrCode className="h-4 w-4" />
                   <span>Complete sign in to view scanned equipment</span>
-                </div>
+                </span>
               ) : (
                 'Sign in to your account or create a new one to get started'
               )}

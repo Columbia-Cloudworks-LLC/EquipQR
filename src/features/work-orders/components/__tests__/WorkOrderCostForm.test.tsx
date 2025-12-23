@@ -258,10 +258,14 @@ describe('WorkOrderCostForm', () => {
         />
       );
 
+      const descriptionInput = screen.getByLabelText(/Description/i);
       const quantityInput = screen.getByLabelText(/Quantity/i);
-      // Clear the default value and enter 0
+      
+      // Fill description to isolate the quantity validation error
+      await user.type(descriptionInput, 'Test Cost');
+      // Clear the quantity field - the onChange handler converts empty to 0
+      // which is less than the minimum of 0.01
       await user.clear(quantityInput);
-      await user.type(quantityInput, '0');
 
       const submitButton = screen.getByRole('button', { name: /^add$/i });
       await user.click(submitButton);
@@ -281,10 +285,15 @@ describe('WorkOrderCostForm', () => {
         />
       );
 
+      const descriptionInput = screen.getByLabelText(/Description/i);
       const priceInput = screen.getByLabelText(/Unit Price/i);
-      // Clear and enter a negative value
-      await user.clear(priceInput);
-      await user.type(priceInput, '-10');
+      
+      // Fill description to isolate the unit price validation error
+      await user.type(descriptionInput, 'Test Cost');
+      
+      // For negative numbers, we need to use fireEvent.change directly
+      // as userEvent.type has issues with the minus sign in number inputs
+      fireEvent.change(priceInput, { target: { value: '-10' } });
 
       const submitButton = screen.getByRole('button', { name: /^add$/i });
       await user.click(submitButton);

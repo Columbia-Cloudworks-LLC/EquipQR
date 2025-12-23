@@ -101,26 +101,28 @@ export const DeleteEquipmentDialog = ({
               <AlertTriangle className="h-5 w-5 text-destructive" />
               Delete this equipment?
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4">
-              <p>
-                This will permanently delete <strong>{equipmentName}</strong> and all associated data.
-              </p>
-              
-              {impactLoading ? (
-                <div className="flex items-center gap-2 text-sm">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Calculating impact...
-                </div>
-              ) : impact ? (
-                <div className="bg-muted rounded-lg p-4 space-y-2 text-sm">
-                  <div className="font-medium">This will delete:</div>
-                  <ul className="space-y-1">
-                    <li>• Work orders: <strong>{impact.workOrders}</strong></li>
-                    <li>• Preventative maintenance records: <strong>{impact.pmCount}</strong></li>
-                    <li>• Images (notes + work orders): <strong>{totalImages}</strong></li>
-                  </ul>
-                </div>
-              ) : null}
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-sm text-muted-foreground">
+                <p>
+                  This will permanently delete <strong>{equipmentName}</strong> and all associated data.
+                </p>
+                
+                {impactLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Calculating impact...
+                  </div>
+                ) : impact ? (
+                  <div className="bg-muted rounded-lg p-4 space-y-2">
+                    <div className="font-medium">This will delete:</div>
+                    <ul className="space-y-1">
+                      <li>• Work orders: <strong>{impact.workOrders}</strong></li>
+                      <li>• Preventative maintenance records: <strong>{impact.pmCount}</strong></li>
+                      <li>• Images (notes + work orders): <strong>{totalImages}</strong></li>
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -146,34 +148,36 @@ export const DeleteEquipmentDialog = ({
             <AlertTriangle className="h-5 w-5 text-destructive" />
             Confirm Equipment Deletion
           </DialogTitle>
-          <DialogDescription className="space-y-4">
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-              <p className="font-medium text-destructive mb-2">
-                ⚠️ This action cannot be undone
-              </p>
-              <p className="text-sm">
-                Deleting <strong>{equipmentName}</strong> will permanently and irreversibly delete:
-              </p>
-              <ul className="text-sm mt-2 space-y-1">
-                <li>• The equipment record</li>
-                <li>• All work orders tied to it</li>
-                <li>• All PM records tied to those work orders</li>
-                <li>• All images from equipment notes and work orders (files removed from storage)</li>
-              </ul>
-            </div>
+          <DialogDescription asChild>
+            <div className="space-y-4 text-sm text-muted-foreground">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                <p className="font-medium text-destructive mb-2">
+                  ⚠️ This action cannot be undone
+                </p>
+                <p>
+                  Deleting <strong>{equipmentName}</strong> will permanently and irreversibly delete:
+                </p>
+                <ul className="mt-2 space-y-1">
+                  <li>• The equipment record</li>
+                  <li>• All work orders tied to it</li>
+                  <li>• All PM records tied to those work orders</li>
+                  <li>• All images from equipment notes and work orders (files removed from storage)</li>
+                </ul>
+              </div>
 
-            <div className="flex items-start space-x-2">
-              <Checkbox 
-                id="acknowledge"
-                checked={acknowledged}
-                onCheckedChange={(checked) => setAcknowledged(checked === true)}
-              />
-              <label 
-                htmlFor="acknowledge" 
-                className="text-sm leading-5 cursor-pointer"
-              >
-                I understand this will permanently delete this equipment and all related work orders, PMs, and images.
-              </label>
+              <div className="flex items-start space-x-2">
+                <Checkbox 
+                  id="acknowledge"
+                  checked={acknowledged}
+                  onCheckedChange={(checked) => setAcknowledged(checked === true)}
+                />
+                <label 
+                  htmlFor="acknowledge" 
+                  className="leading-5 cursor-pointer"
+                >
+                  I understand this will permanently delete this equipment and all related work orders, PMs, and images.
+                </label>
+              </div>
             </div>
           </DialogDescription>
         </DialogHeader>

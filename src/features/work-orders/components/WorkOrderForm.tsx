@@ -277,16 +277,18 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
               <Clock className="h-5 w-5 text-amber-600" />
               Equipment Working Hours Not Updated
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>
-                You're about to create a work order without updating the equipment's working hours.
-              </p>
-              <p className="font-medium text-amber-800">
-                Are you sure you want to start work on this machine without documenting the current hours?
-              </p>
-              <p className="text-sm text-muted-foreground">
-                This information is important for maintenance scheduling and equipment lifecycle tracking.
-              </p>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  You're about to create a work order without updating the equipment's working hours.
+                </p>
+                <p className="font-medium text-amber-800">
+                  Are you sure you want to start work on this machine without documenting the current hours?
+                </p>
+                <p>
+                  This information is important for maintenance scheduling and equipment lifecycle tracking.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

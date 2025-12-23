@@ -158,10 +158,18 @@ const mockWorkOrder: WorkOrder = {
   has_pm: false,
   pm_required: false,
   created_by: 'user-1',
-  created_by_admin: false,
+  created_by_admin: null,
+  created_by_name: null,
   updated_at: '2024-01-01T00:00:00Z',
-  is_historical: false
-} as WorkOrder;
+  is_historical: false,
+  acceptance_date: null,
+  assignee_id: null,
+  assignee_name: null,
+  completed_date: null,
+  historical_notes: null,
+  historical_start_date: null,
+  team_id: null
+};
 
 describe('WorkOrderForm', () => {
   const mockOnClose = vi.fn();

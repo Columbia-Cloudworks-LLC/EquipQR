@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Search, Filter, Calendar, User, X, Users } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/workOrder';
@@ -93,6 +93,9 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
             <SheetContent side="bottom" className="h-[90vh]">
               <SheetHeader className="pb-4">
                 <SheetTitle>Filter Work Orders</SheetTitle>
+                <SheetDescription>
+                  Use the options below to filter work orders by status, assignee, priority, due date, and team.
+                </SheetDescription>
               </SheetHeader>
               
               {/* Filters */}
