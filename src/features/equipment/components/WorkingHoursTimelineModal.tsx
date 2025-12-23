@@ -255,7 +255,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className={isMobile ? 'text-lg' : ''}>Working Hours Timeline</DialogTitle>
           <DialogDescription className={isMobile ? 'text-sm' : ''}>
-            Track and manage working hours for {equipmentName}
+            Track and manage runtime for {equipmentName}
           </DialogDescription>
         </DialogHeader>
 
@@ -263,7 +263,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
           {/* Current Hours Summary */}
           <div className={`${isMobile ? 'flex-col space-y-3' : 'flex items-center justify-between'} p-4 bg-muted/50 rounded-lg`}>
             <div>
-              <p className="text-sm text-muted-foreground">Current Working Hours</p>
+              <p className="text-sm text-muted-foreground">Current Hours</p>
               <p className={`${isMobile ? 'text-xl' : 'text-2xl'} font-semibold`}>
                 {isLoadingCurrent ? '...' : `${currentHours || 0} hours`}
               </p>

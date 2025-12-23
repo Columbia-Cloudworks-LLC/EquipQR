@@ -105,6 +105,10 @@ const EquipmentInsights: React.FC<EquipmentInsightsProps> = ({
 
   return (
     <div className="space-y-4 mb-6">
+      <div className="space-y-1">
+        <h2 className="text-lg font-semibold">Insights</h2>
+        <p className="text-sm text-muted-foreground">Key metrics across your equipment fleet.</p>
+      </div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-muted-foreground">
         <span>Showing {filteredTotal} of {totalEquipment} equipment items</span>
         {filteredTotal !== totalEquipment && (

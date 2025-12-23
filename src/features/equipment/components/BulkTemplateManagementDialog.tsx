@@ -234,3 +234,5 @@ export const BulkTemplateManagementDialog: React.FC<BulkTemplateManagementDialog
     </Dialog>
   );
 };
+
+export default BulkTemplateManagementDialog;

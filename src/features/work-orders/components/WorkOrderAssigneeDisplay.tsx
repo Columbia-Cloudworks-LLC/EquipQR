@@ -81,6 +81,7 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => setIsEditing(true)}
+              aria-label="Edit assignment"
               className="h-8 w-8 p-0"
             >
               <Edit3 className="h-4 w-4" />
@@ -96,7 +97,7 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
           <div className="flex-1">
             <div className="font-medium">{assignment.name}</div>
             <div className="text-sm text-muted-foreground">
-              {assignment.type === 'user' && 'Individual Assignment'}
+              {assignment.type === 'user' && 'Individual assignee'}
               {assignment.type === 'unassigned' && 'No one assigned'}
             </div>
           </div>

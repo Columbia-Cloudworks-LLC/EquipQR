@@ -80,11 +80,11 @@ describe('EquipmentFormActions', () => {
 
   describe('Layout', () => {
     it('applies flex layout classes', () => {
-      const { container } = render(
+      render(
         <EquipmentFormActions isEdit={false} isPending={false} onClose={mockOnClose} />
       );
       
-      const actionsContainer = container.querySelector('div');
+      const actionsContainer = screen.getByTestId('equipment-form-actions');
       expect(actionsContainer).toHaveClass('flex');
       expect(actionsContainer).toHaveClass('gap-2');
       expect(actionsContainer).toHaveClass('justify-end');

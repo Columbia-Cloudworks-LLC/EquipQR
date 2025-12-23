@@ -17,6 +17,7 @@ export interface OrganizationRestrictions {
 export const getOrganizationRestrictions = (
   _members: RealOrganizationMember[]
 ): OrganizationRestrictions => {
+  void _members;
   // Billing is permanently disabled - grant all features to all organizations
   return {
     canManageTeams: true,

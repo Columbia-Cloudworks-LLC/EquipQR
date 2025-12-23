@@ -27,6 +27,9 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
   if (isLoading) {
     return (
       <Card>
+        <CardHeader>
+          <CardTitle>Preventative Maintenance (PM)</CardTitle>
+        </CardHeader>
         <CardContent className="pt-6">
           <div className="h-16 bg-muted animate-pulse rounded" />
         </CardContent>
@@ -40,7 +43,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-600" />
-            Preventative Maintenance
+            Preventative Maintenance (PM)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -60,7 +63,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CheckCircle className="h-5 w-5 text-green-600" />
-          Latest Preventative Maintenance
+            Latest Preventative Maintenance (PM)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

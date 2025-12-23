@@ -24,8 +24,8 @@ import { WorkOrderCost } from '@/features/work-orders/services/workOrderCostsSer
 
 const costFormSchema = z.object({
   description: z.string().min(1, 'Description is required').max(255, 'Description too long'),
-  quantity: z.number().min(0.01, 'Quantity must be greater than 0').max(9999.99, 'Quantity too large'),
-  unit_price: z.number().min(0, 'Unit price cannot be negative').max(999999.99, 'Unit price too large'),
+  quantity: z.coerce.number().min(0.01, 'Quantity must be greater than 0').max(9999.99, 'Quantity too large'),
+  unit_price: z.coerce.number().min(0, 'Unit price cannot be negative').max(999999.99, 'Unit price too large'),
 });
 
 type CostFormData = z.infer<typeof costFormSchema>;
@@ -66,6 +66,16 @@ const WorkOrderCostForm: React.FC<WorkOrderCostFormProps> = ({
   }, [open, editingCost, form]);
 
   const onSubmit = async (data: CostFormData) => {
+    if (data.quantity < 0.01) {
+      form.setError('quantity', { type: 'manual', message: 'Quantity must be greater than 0' });
+      return;
+    }
+
+    if (data.unit_price < 0) {
+      form.setError('unit_price', { type: 'manual', message: 'Unit price cannot be negative' });
+      return;
+    }
+
     try {
       const costData = {
         description: data.description,
@@ -93,6 +103,11 @@ const WorkOrderCostForm: React.FC<WorkOrderCostFormProps> = ({
   };
 
   const isLoading = createCostMutation.isPending || updateCostMutation.isPending;
+  const watchedQuantity = form.watch('quantity');
+  const watchedUnitPrice = form.watch('unit_price');
+  const quantityErrorText = watchedQuantity < 0.01 ? 'Quantity must be greater than 0' : undefined;
+  const unitPriceErrorText = watchedUnitPrice < 0 ? 'Unit price cannot be negative' : undefined;
+  const handleFormSubmit = form.handleSubmit(onSubmit);
 
   const calculateTotal = () => {
     const quantity = form.watch('quantity') || 0;
@@ -110,7 +125,12 @@ const WorkOrderCostForm: React.FC<WorkOrderCostFormProps> = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={(event) => {
+              handleFormSubmit(event);
+            }}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="description"
@@ -145,7 +165,10 @@ const WorkOrderCostForm: React.FC<WorkOrderCostFormProps> = ({
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </FormControl>
-                    <FormMessage />
+                <FormMessage />
+                {quantityErrorText && (
+                  <p className="text-sm text-destructive">{quantityErrorText}</p>
+                )}
                   </FormItem>
                 )}
               />
@@ -166,7 +189,10 @@ const WorkOrderCostForm: React.FC<WorkOrderCostFormProps> = ({
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </FormControl>
-                    <FormMessage />
+                <FormMessage />
+                {unitPriceErrorText && (
+                  <p className="text-sm text-destructive">{unitPriceErrorText}</p>
+                )}
                   </FormItem>
                 )}
               />

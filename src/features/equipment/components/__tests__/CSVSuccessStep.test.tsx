@@ -27,7 +27,7 @@ describe('CSVSuccessStep', () => {
       />
     );
     
-    expect(screen.getByText(/success/i) || screen.getByText(/5/)).toBeDefined();
+    expect(screen.getByText(/Import Complete/i)).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', () => {

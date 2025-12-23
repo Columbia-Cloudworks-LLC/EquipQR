@@ -6,6 +6,12 @@ import ImportCsvWizard from '../ImportCsvWizard';
 describe('ImportCsvWizard', () => {
   const mockOnClose = vi.fn();
   const mockOnSuccess = vi.fn();
+  const baseProps = {
+    onClose: mockOnClose,
+    onSuccess: mockOnSuccess,
+    organizationId: 'org-1',
+    organizationName: 'Test Org',
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -16,8 +22,7 @@ describe('ImportCsvWizard', () => {
       render(
         <ImportCsvWizard 
           open={true} 
-          onClose={mockOnClose} 
-          onSuccess={mockOnSuccess} 
+          {...baseProps} 
         />
       );
       
@@ -28,8 +33,7 @@ describe('ImportCsvWizard', () => {
       render(
         <ImportCsvWizard 
           open={false} 
-          onClose={mockOnClose} 
-          onSuccess={mockOnSuccess} 
+          {...baseProps} 
         />
       );
       
@@ -42,13 +46,12 @@ describe('ImportCsvWizard', () => {
       render(
         <ImportCsvWizard 
           open={true} 
-          onClose={mockOnClose} 
-          onSuccess={mockOnSuccess} 
+          {...baseProps} 
         />
       );
       
       // Should show upload step
-      expect(screen.getByText(/upload/i) || screen.getByText(/csv/i)).toBeDefined();
+      expect(screen.getAllByText(/upload/i).length).toBeGreaterThan(0);
     });
   });
 });

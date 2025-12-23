@@ -49,7 +49,7 @@ export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = (
               </div>
             </div>
             <Select value={filters.status} onValueChange={(value) => onFilterChange('status', value)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px]" aria-label="Filter by status">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -64,7 +64,7 @@ export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = (
           
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <Select value={filters.manufacturer} onValueChange={(value) => onFilterChange('manufacturer', value)}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Manufacturer">
                 <Building className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Manufacturer" />
               </SelectTrigger>
@@ -79,7 +79,7 @@ export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = (
             </Select>
 
             <Select value={filters.location} onValueChange={(value) => onFilterChange('location', value)}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Location">
                 <MapPin className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
@@ -94,7 +94,7 @@ export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = (
             </Select>
 
             <Select value={filters.team} onValueChange={(value) => onFilterChange('team', value)}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Team">
                 <Users className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Team" />
               </SelectTrigger>

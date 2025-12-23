@@ -6,7 +6,8 @@ import CustomAttributesSection from './CustomAttributesSection';
 import type { CustomAttribute } from '@/hooks/useCustomAttributes';
 
 interface InlineEditCustomAttributesProps {
-  value: Record<string, string>;
+  attributes?: Record<string, string>;
+  value?: Record<string, string>;
   onSave: (newValue: Record<string, string>) => Promise<void>;
   canEdit: boolean;
 }
@@ -91,17 +92,19 @@ const renderAttributeValue = (value: string): React.ReactNode => {
 };
 
 const InlineEditCustomAttributes: React.FC<InlineEditCustomAttributesProps> = ({
+  attributes,
   value,
   onSave,
   canEdit
 }) => {
+  const attributesData = attributes ?? value ?? {};
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editAttributes, setEditAttributes] = useState<CustomAttribute[]>([]);
 
   const handleStartEdit = () => {
     // Convert object format to array format for editing
-    const attributeArray = Object.entries(value).map(([key, val]) => ({
+    const attributeArray = Object.entries(attributesData).map(([key, val]) => ({
       id: crypto.randomUUID(),
       key,
       value: String(val)
@@ -134,14 +137,14 @@ const InlineEditCustomAttributes: React.FC<InlineEditCustomAttributesProps> = ({
     setIsEditing(false);
   };
 
-  if (!canEdit && Object.keys(value).length === 0) {
+  if (!canEdit && Object.keys(attributesData).length === 0) {
     return <p className="text-muted-foreground">No custom attributes</p>;
   }
 
   if (!canEdit) {
     return (
       <div className="flex flex-wrap gap-4">
-        {Object.entries(value).map(([key, val]) => (
+        {Object.entries(attributesData).map(([key, val]) => (
           <div key={key} className="p-3 border rounded-lg min-w-[200px] flex-1 basis-[200px] max-w-full break-words">
             <div className="text-sm font-medium text-muted-foreground mb-1">{key}</div>
             {renderAttributeValue(val)}
@@ -161,13 +164,14 @@ const InlineEditCustomAttributes: React.FC<InlineEditCustomAttributesProps> = ({
             size="sm"
             className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={handleStartEdit}
+            aria-label="Edit custom attributes"
           >
             <Edit2 className="h-3 w-3" />
           </Button>
         </div>
-        {Object.keys(value).length > 0 ? (
+        {Object.keys(attributesData).length > 0 ? (
           <div className="flex flex-wrap gap-4">
-            {Object.entries(value).map(([key, val]) => (
+            {Object.entries(attributesData).map(([key, val]) => (
               <div key={key} className="p-3 border rounded-lg min-w-[200px] flex-1 basis-[200px] max-w-full break-words">
                 <div className="text-sm font-medium text-muted-foreground mb-1">{key}</div>
                 {renderAttributeValue(val)}

@@ -100,3 +100,5 @@ export const CSVUploadStep: React.FC<CSVUploadStepProps> = ({
     </div>
   );
 };
+
+export default CSVUploadStep;

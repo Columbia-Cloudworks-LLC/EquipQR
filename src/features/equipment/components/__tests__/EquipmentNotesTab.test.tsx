@@ -108,12 +108,11 @@ describe('EquipmentNotesTab', () => {
 
       render(<EquipmentNotesTab equipmentId="eq-1" />);
       
-      await waitFor(() => {
-        const submitButton = screen.queryByText('Submit');
-        if (submitButton) {
-          fireEvent.click(submitButton);
-        }
-      });
+      const addNoteButton = await screen.findByText('Add Note');
+      fireEvent.click(addNoteButton);
+
+      const submitButton = await screen.findByText('Submit');
+      fireEvent.click(submitButton);
       
       await waitFor(() => {
         expect(equipmentNotesServiceModule.createEquipmentNoteWithImages).toHaveBeenCalled();

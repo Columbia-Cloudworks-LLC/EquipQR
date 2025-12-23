@@ -3,6 +3,20 @@ import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import BulkTemplateManagementDialog from '../BulkTemplateManagementDialog';
 
+vi.mock('@/contexts/OrganizationContext', () => ({
+  useOrganization: vi.fn(() => ({ currentOrganization: { id: 'org-1' } })),
+}));
+
+vi.mock('@/features/pm-templates/hooks/usePMTemplates', () => ({
+  usePMTemplates: vi.fn(() => ({ data: [] })),
+}));
+
+vi.mock('@/features/equipment/hooks/useEquipmentTemplateManagement', () => ({
+  useBulkAssignTemplate: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+  useBulkRemoveTemplates: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+  useBulkChangeTemplate: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+}));
+
 describe('BulkTemplateManagementDialog', () => {
   const mockOnClose = vi.fn();
 
@@ -16,11 +30,11 @@ describe('BulkTemplateManagementDialog', () => {
         <BulkTemplateManagementDialog 
           open={true} 
           onClose={mockOnClose} 
-          equipmentIds={['eq-1', 'eq-2']} 
+          selectedEquipment={[]} 
         />
       );
       
-      expect(screen.getByText(/bulk template/i)).toBeInTheDocument();
+      expect(screen.getByText(/Manage PM Templates/i)).toBeInTheDocument();
     });
 
     it('does not render when open is false', () => {
@@ -28,11 +42,11 @@ describe('BulkTemplateManagementDialog', () => {
         <BulkTemplateManagementDialog 
           open={false} 
           onClose={mockOnClose} 
-          equipmentIds={['eq-1']} 
+          selectedEquipment={[]} 
         />
       );
       
-      expect(screen.queryByText(/bulk template/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Manage PM Templates/i)).not.toBeInTheDocument();
     });
   });
 });

@@ -96,7 +96,7 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
               disabled={isLoadingMembers}
             >
               <SelectTrigger>
-                <SelectValue placeholder={isLoadingMembers ? "Loading..." : assignmentOptions.length === 0 ? "No assignees available" : "Select assignee..."} />
+                <SelectValue placeholder={isLoadingMembers ? "Loading..." : assignmentOptions.length === 0 ? "No assignees available" : "Select user..."} />
               </SelectTrigger>
               <SelectContent>
                 {assignmentOptions.length === 0 && !isLoadingMembers ? (
@@ -122,6 +122,9 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
                 )}
               </SelectContent>
             </Select>
+            {assignmentOptions.length === 0 && !isLoadingMembers && (
+              <p className="text-sm text-muted-foreground">No team members available</p>
+            )}
             {errors.assignmentId && (
               <p className="text-sm text-destructive">{errors.assignmentId}</p>
             )}

@@ -185,18 +185,18 @@ describe('EquipmentForm', () => {
 
   describe('Layout', () => {
     it('applies responsive grid layout', () => {
-      const { container } = render(<EquipmentForm open={true} onClose={mockOnClose} />);
+      render(<EquipmentForm open={true} onClose={mockOnClose} />);
       
-      const grid = container.querySelector('[class*="grid"]');
+      const grid = document.querySelector('.grid-cols-1');
       expect(grid).toHaveClass('grid');
       expect(grid).toHaveClass('grid-cols-1');
       expect(grid).toHaveClass('md:grid-cols-2');
     });
 
     it('applies max width and scroll classes', () => {
-      const { container } = render(<EquipmentForm open={true} onClose={mockOnClose} />);
+      render(<EquipmentForm open={true} onClose={mockOnClose} />);
       
-      const dialogContent = container.querySelector('[class*="max-w-4xl"]');
+      const dialogContent = document.querySelector('[class*="max-w-4xl"]');
       expect(dialogContent).toBeInTheDocument();
     });
   });

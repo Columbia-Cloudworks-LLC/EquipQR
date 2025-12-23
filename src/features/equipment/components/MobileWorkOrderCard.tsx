@@ -25,6 +25,13 @@ interface MobileWorkOrderCardProps {
 const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) => {
   const navigate = useNavigate();
   const permissions = useUnifiedPermissions();
+  const handleNavigate = () => navigate(`/dashboard/work-orders/${workOrder.id}`);
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleNavigate();
+    }
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -64,7 +71,13 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card
+      className="hover:shadow-md transition-shadow cursor-pointer"
+      role="button"
+      tabIndex={0}
+      onClick={handleNavigate}
+      onKeyDown={handleKeyDown}
+    >
       <CardContent className="p-4">
         <div className="space-y-3">
           {/* Header */}
@@ -161,7 +174,10 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => navigate(`/dashboard/work-orders/${workOrder.id}`)}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleNavigate();
+              }}
               className="ml-auto"
             >
               View Details

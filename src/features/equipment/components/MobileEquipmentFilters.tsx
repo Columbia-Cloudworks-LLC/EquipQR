@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Filter, X } from 'lucide-react';
 import { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
@@ -43,6 +43,17 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
   onQuickFilter,
   filterOptions
 }) => {
+  const [isSheetOpen, setIsSheetOpen] = React.useState(showMobileFilters);
+
+  React.useEffect(() => {
+    setIsSheetOpen(showMobileFilters);
+  }, [showMobileFilters]);
+
+  const handleSheetOpenChange = (open: boolean) => {
+    setIsSheetOpen(open);
+    onShowMobileFiltersChange(open);
+  };
+
   return (
     <div className="space-y-3">
       {/* Search Bar */}
@@ -71,7 +82,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             className="whitespace-nowrap"
             onClick={() => {
               onQuickFilter(preset.value);
-              onShowMobileFiltersChange(false);
+              handleSheetOpenChange(false);
             }}
           >
             {preset.label}
@@ -81,7 +92,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
 
       {/* Filter Button with Active Count */}
       <div className="flex gap-2">
-        <Sheet open={showMobileFilters} onOpenChange={onShowMobileFiltersChange}>
+        <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
           <SheetTrigger asChild>
             <Button variant="outline" className="flex-1 h-12 justify-between">
               <div className="flex items-center gap-2">
@@ -99,6 +110,9 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             <div className="p-6 pb-0">
               <SheetHeader className="pb-4">
                 <SheetTitle>Filter Equipment</SheetTitle>
+                <SheetDescription>
+                  Filter equipment by status, manufacturer, location, or team.
+                </SheetDescription>
               </SheetHeader>
             </div>
             

@@ -24,7 +24,11 @@ const ResponsiveEquipmentTabs: React.FC<ResponsiveEquipmentTabsProps> = ({
             <TabsTrigger value="details" className={isMobile ? 'text-xs py-2' : ''}>
               Details
             </TabsTrigger>
-            <TabsTrigger value="work-orders" className={isMobile ? 'text-xs py-2' : ''}>
+            <TabsTrigger
+              value="work-orders"
+              className={isMobile ? 'text-xs py-2' : ''}
+              onClick={() => onTabChange('work-orders')}
+            >
               {isMobile ? 'Orders' : 'Work Orders'}
             </TabsTrigger>
             <TabsTrigger value="notes" className={isMobile ? 'text-xs py-2' : ''}>

@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import EquipmentBasicInfoSection from '../form/EquipmentBasicInfoSection';
 import { equipmentFormSchema, EquipmentFormData } from '@/features/equipment/types/equipment';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Form } from '@/components/ui/form';
 
 const TestWrapper = ({ defaultValues }: { defaultValues?: Partial<EquipmentFormData> }) => {
   const form = useForm<EquipmentFormData>({
@@ -20,7 +21,11 @@ const TestWrapper = ({ defaultValues }: { defaultValues?: Partial<EquipmentFormD
     }
   });
 
-  return <EquipmentBasicInfoSection form={form} />;
+  return (
+    <Form {...form}>
+      <EquipmentBasicInfoSection form={form} />
+    </Form>
+  );
 };
 
 describe('EquipmentBasicInfoSection', () => {

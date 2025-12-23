@@ -169,8 +169,8 @@ describe('EquipmentDetailsTab', () => {
 
       render(<EquipmentDetailsTab equipment={mockEquipment} />);
       
-      const saveButton = screen.getByText('Save');
-      fireEvent.click(saveButton);
+      const saveButtons = screen.getAllByText('Save');
+      fireEvent.click(saveButtons[0]);
       
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalled();

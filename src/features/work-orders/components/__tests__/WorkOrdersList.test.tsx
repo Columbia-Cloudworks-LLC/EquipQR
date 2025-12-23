@@ -9,9 +9,13 @@ vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: vi.fn(() => false)
 }));
 
-vi.mock('react-router-dom', () => ({
-  useNavigate: vi.fn(() => vi.fn())
-}));
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: vi.fn(() => vi.fn()),
+  };
+});
 
 // Mock WorkOrderCard
 vi.mock('../WorkOrderCard', () => ({
@@ -339,7 +343,7 @@ describe('WorkOrdersList', () => {
   });
 
   describe('Navigation', () => {
-    it('sets up navigation handler for work order cards', () => {
+    it('sets up navigation handler for work order cards', async () => {
       const { useNavigate } = await import('react-router-dom');
       const mockNavigate = vi.fn();
       vi.mocked(useNavigate).mockReturnValue(mockNavigate);

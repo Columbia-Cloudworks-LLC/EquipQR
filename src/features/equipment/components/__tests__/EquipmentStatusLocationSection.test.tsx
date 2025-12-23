@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, within } from '@/test/utils/test-utils';
 import { describe, it, expect } from 'vitest';
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import EquipmentStatusLocationSection from '../form/EquipmentStatusLocationSection';
 import { equipmentFormSchema, EquipmentFormData } from '@/features/equipment/types/equipment';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,7 +20,11 @@ const TestWrapper = ({ defaultValues }: { defaultValues?: Partial<EquipmentFormD
     }
   });
 
-  return <EquipmentStatusLocationSection form={form} />;
+  return (
+    <FormProvider {...form}>
+      <EquipmentStatusLocationSection form={form} />
+    </FormProvider>
+  );
 };
 
 describe('EquipmentStatusLocationSection', () => {

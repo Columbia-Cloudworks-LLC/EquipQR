@@ -13,7 +13,7 @@ const EquipmentFormActions: React.FC<EquipmentFormActionsProps> = ({
   onClose
 }) => {
   return (
-    <div className="flex gap-2 justify-end">
+    <div className="flex gap-2 justify-end" data-testid="equipment-form-actions">
       <Button type="button" variant="outline" onClick={onClose}>
         Cancel
       </Button>

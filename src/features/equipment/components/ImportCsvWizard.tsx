@@ -20,13 +20,15 @@ interface ImportCsvWizardProps {
   onClose: () => void;
   organizationId: string;
   organizationName: string;
+  onSuccess?: () => void;
 }
 
 const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
   open,
   onClose,
   organizationId,
-  organizationName
+  organizationName,
+  onSuccess
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -73,6 +75,12 @@ const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
       importId: generateImportId()
     });
   }, []);
+  React.useEffect(() => {
+    if (state.importProgress.completed) {
+      onSuccess?.();
+    }
+  }, [state.importProgress.completed, onSuccess]);
+
 
   const handleClose = useCallback(() => {
     if (state.importProgress.isImporting) {
@@ -384,7 +392,7 @@ const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5" />
-            Import Equipment CSV
+            Import CSV
           </DialogTitle>
         </DialogHeader>
 

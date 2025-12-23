@@ -65,11 +65,7 @@ describe('InlineEditCustomAttributes', () => {
         />
       );
       
-      // Save would be triggered by user interaction
-      // This depends on the actual component implementation
-      await waitFor(() => {
-        // Component should handle save
-      });
+      expect(screen.getByText('Custom Attributes')).toBeInTheDocument();
     });
   });
 
@@ -84,7 +80,7 @@ describe('InlineEditCustomAttributes', () => {
       );
       
       // Should render without errors
-      expect(screen.getByText(/custom attributes/i) || screen.queryByText('Color')).toBeDefined();
+      expect(screen.getByText(/No custom attributes/i)).toBeInTheDocument();
     });
   });
 });

@@ -153,7 +153,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   };
 
   // Can assign teams (only admins/owners)
-  const canAssignTeams = permissions.organization.canManageMembers;
+  const canAssignTeams = permissions.organization?.canManageMembers ?? false;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -273,7 +273,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                   onClick={() => setShowWorkingHoursModal(true)}
                   className="h-auto p-0 font-normal text-base text-left justify-start hover:underline"
                 >
-                  {equipment.working_hours?.toLocaleString() || '0'} hours
+                  {equipment.working_hours ?? 0} hours
                 </Button>
               </div>
             </div>

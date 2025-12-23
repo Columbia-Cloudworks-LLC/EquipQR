@@ -49,7 +49,9 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
       await onSave(editValue);
       setIsEditing(false);
     } catch (error) {
-      logger.error('Error saving field', error);
+      if (process.env.NODE_ENV === 'development') {
+        logger.error('Error saving field', error);
+      }
       setEditValue(value); // Reset to original value on error
     } finally {
       setIsSaving(false);
@@ -107,6 +109,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
           size="sm"
           className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={() => setIsEditing(true)}
+          aria-label="Edit"
         >
           <Edit2 className="h-3 w-3" />
         </Button>
@@ -155,6 +158,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
           className="h-6 w-6 p-0"
           onClick={handleSave}
           disabled={isSaving}
+          aria-label="Save"
         >
           <Check className="h-3 w-3" />
         </Button>
@@ -164,6 +168,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
           className="h-6 w-6 p-0"
           onClick={handleCancel}
           disabled={isSaving}
+          aria-label="Cancel"
         >
           <X className="h-3 w-3" />
         </Button>

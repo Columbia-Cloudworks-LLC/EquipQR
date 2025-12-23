@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import TeamSelectionSection from '../form/TeamSelectionSection';
 import { equipmentFormSchema, EquipmentFormData } from '@/features/equipment/types/equipment';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Form } from '@/components/ui/form';
 import * as usePermissionsModule from '@/hooks/usePermissions';
 import * as useTeamsModule from '@/features/teams/hooks/useTeams';
 
@@ -48,12 +49,29 @@ const TestWrapper = ({ defaultValues, isAdmin = false }: { defaultValues?: Parti
     hasRole: vi.fn((roles: string[]) => isAdmin && (roles.includes('owner') || roles.includes('admin')))
   });
 
-  return <TeamSelectionSection form={form} />;
+  return (
+    <Form {...form}>
+      <TeamSelectionSection form={form} />
+    </Form>
+  );
 };
 
 describe('TeamSelectionSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useTeamsModule.useTeams).mockReturnValue({
+      teams: [
+        { id: 'team-1', name: 'Team 1', description: 'Description 1' },
+        { id: 'team-2', name: 'Team 2', description: null }
+      ],
+      managedTeams: [
+        { id: 'team-1', name: 'Team 1', description: 'Description 1' }
+      ],
+      isLoading: false
+    });
+    vi.mocked(usePermissionsModule.usePermissions).mockReturnValue({
+      hasRole: vi.fn(() => false)
+    });
   });
 
   describe('Core Rendering', () => {

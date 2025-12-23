@@ -27,7 +27,8 @@ describe('EquipmentInsights', () => {
     render(<EquipmentInsights equipment={mockEquipment} filteredEquipment={mockEquipment} />);
     
     // Insights should be displayed
-    expect(screen.getByText(/insights/i) || screen.queryByText('1000')).toBeDefined();
+    const insightsText = screen.queryByText(/Insights/i) || screen.queryByText('1000');
+    expect(insightsText).not.toBeNull();
   });
 
   it('handles empty data', () => {

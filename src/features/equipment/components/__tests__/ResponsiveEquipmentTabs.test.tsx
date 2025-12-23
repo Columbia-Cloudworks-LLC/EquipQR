@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ResponsiveEquipmentTabs from '../ResponsiveEquipmentTabs';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Mock mobile hook
 vi.mock('@/hooks/use-mobile', () => ({
@@ -13,6 +14,7 @@ describe('ResponsiveEquipmentTabs', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useIsMobile).mockReturnValue(false);
   });
 
   describe('Desktop Rendering', () => {

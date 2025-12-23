@@ -1,32 +1,34 @@
 import React from 'react';
-import { render, screen } from '@/test/utils/test-utils';
+import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import CSVUploadStep from '../csv-import/CSVUploadStep';
 
 describe('CSVUploadStep', () => {
-  const mockOnNext = vi.fn();
-  const mockOnFileSelect = vi.fn();
+  const mockOnFileUpload = vi.fn();
+  const baseProps = {
+    onFileUpload: mockOnFileUpload,
+    file: null,
+    rowCount: 0,
+    delimiter: ','
+  };
 
   it('renders upload step', () => {
     render(
-      <CSVUploadStep 
-        onNext={mockOnNext} 
-        onFileSelect={mockOnFileSelect} 
-      />
+      <CSVUploadStep {...baseProps} />
     );
     
-    expect(screen.getByText(/upload/i) || screen.getByText(/csv/i)).toBeDefined();
+    expect(screen.getByText(/Upload CSV File/i)).toBeInTheDocument();
   });
 
   it('calls onFileSelect when file is selected', () => {
-    render(
-      <CSVUploadStep 
-        onNext={mockOnNext} 
-        onFileSelect={mockOnFileSelect} 
-      />
-    );
-    
-    // File selection would trigger onFileSelect
+    const { container } = render(<CSVUploadStep {...baseProps} />);
+    const file = new File(['a,b,c'], 'test.csv', { type: 'text/csv' });
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    if (input) {
+      fireEvent.change(input, { target: { files: [file] } });
+    }
+
+    expect(mockOnFileUpload).toHaveBeenCalledWith(file);
   });
 });
 

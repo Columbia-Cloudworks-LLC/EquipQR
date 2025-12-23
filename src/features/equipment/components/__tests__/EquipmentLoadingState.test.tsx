@@ -15,15 +15,14 @@ describe('EquipmentLoadingState', () => {
     it('renders skeleton cards in grid layout', () => {
       render(<EquipmentLoadingState />);
       
-      // The grid should be present
-      const grid = screen.getByText('Equipment').closest('div')?.querySelector('[class*="grid"]');
+      const grid = document.querySelector('[class*="grid"]');
       expect(grid).toBeInTheDocument();
     });
 
     it('applies responsive grid classes', () => {
-      const { container } = render(<EquipmentLoadingState />);
+      render(<EquipmentLoadingState />);
       
-      const grid = container.querySelector('[class*="grid"]');
+      const grid = document.querySelector('[class*="grid"]');
       expect(grid).toHaveClass('grid');
       expect(grid).toHaveClass('gap-6');
       expect(grid).toHaveClass('md:grid-cols-2');
@@ -33,16 +32,16 @@ describe('EquipmentLoadingState', () => {
 
   describe('Layout Structure', () => {
     it('renders cards with proper structure', () => {
-      const { container } = render(<EquipmentLoadingState />);
+      render(<EquipmentLoadingState />);
       
-      const cards = container.querySelectorAll('[class*="card"]');
+      const cards = document.querySelectorAll('[class*="card"]');
       expect(cards.length).toBeGreaterThanOrEqual(3);
     });
 
     it('renders skeleton elements inside cards', () => {
-      const { container } = render(<EquipmentLoadingState />);
+      render(<EquipmentLoadingState />);
       
-      const skeletons = container.querySelectorAll('[class*="skeleton"]');
+      const skeletons = document.querySelectorAll('.animate-pulse');
       expect(skeletons.length).toBeGreaterThanOrEqual(3);
     });
   });
