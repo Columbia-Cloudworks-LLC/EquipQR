@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -113,11 +114,13 @@ export const useCompatibleInventoryItems = (
 ) => {
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
 
-  // Create stable sorted key directly in queryKey
+  // Create stable sorted key using useMemo to avoid recomputation on every render
   // This ensures the key only changes when IDs change, not when array reference changes
-  const sortedKey = equipmentIds.length > 0 
-    ? [...equipmentIds].sort().join(',')
-    : '';
+  const sortedKey = useMemo(() => {
+    return equipmentIds.length > 0 
+      ? [...equipmentIds].sort().join(',')
+      : '';
+  }, [equipmentIds]);
 
   return useQuery({
     queryKey: ['compatible-inventory-items', organizationId, sortedKey],
@@ -456,7 +459,7 @@ export const useUnlinkItemFromEquipment = () => {
       toast({
         title: 'Error unlinking equipment',
         description: error instanceof Error ? error.message : 'Failed to unlink equipment',
-        variant: 'destructive'
+        variant: 'error'
       });
     }
   });
@@ -506,9 +509,8 @@ export const useBulkLinkEquipmentToItem = () => {
       toast({
         title: 'Error updating equipment compatibility',
         description: error instanceof Error ? error.message : 'Failed to update equipment compatibility',
-        variant: 'destructive'
+        variant: 'error'
       });
     }
   });
 };
-

@@ -42,10 +42,10 @@ vi.mock('@/components/common/InlineNoteComposer', () => ({
 }));
 
 vi.mock('@/components/common/ImageGallery', () => ({
-  default: ({ images }: { images: Array<{ url: string }> }) => (
+  default: ({ images }: { images: Array<{ file_url?: string; url?: string }> }) => (
     <div data-testid="image-gallery">
-      {images.map((img: { url: string }, i: number) => (
-        <div key={i} data-testid={`image-${i}`}>{img.url}</div>
+      {images.map((img: { file_url?: string; url?: string }, i: number) => (
+        <div key={i} data-testid={`image-${i}`}>{img.file_url || img.url}</div>
       ))}
     </div>
   )
@@ -54,18 +54,37 @@ vi.mock('@/components/common/ImageGallery', () => ({
 const mockNotes = [
   {
     id: 'note-1',
+    equipment_id: 'eq-1',
     content: 'Test note 1',
-    created_at: '2024-01-15',
-    created_by: 'user-1',
+    author_id: 'user-1',
+    created_at: '2024-01-15T00:00:00Z',
+    updated_at: '2024-01-15T00:00:00Z',
     hours_worked: 2,
     is_private: false,
+    author_name: 'Test User',
     images: []
   }
 ];
 
 const mockImages = [
-  { id: 'img-1', url: 'https://example.com/image1.jpg' }
-];
+  {
+    id: 'img-1',
+    equipment_note_id: 'note-1',
+    file_name: 'image1.jpg',
+    file_url: 'https://example.com/image1.jpg',
+    file_size: 1024,
+    mime_type: 'image/jpeg',
+    description: null,
+    uploaded_by: 'user-1',
+    created_at: '2024-01-15T00:00:00Z',
+    uploaded_by_name: 'Test User',
+    note_content: 'Test note 1',
+    note_author_name: 'Test User',
+    is_private_note: false,
+    equipment_notes: null,
+    profiles: null
+  }
+] as unknown as Awaited<ReturnType<typeof equipmentNotesServiceModule.getEquipmentImages>>;
 
 describe('EquipmentNotesTab', () => {
   beforeEach(() => {
@@ -89,6 +108,9 @@ describe('EquipmentNotesTab', () => {
       
       await waitFor(() => {
         expect(screen.getByTestId('image-gallery')).toBeInTheDocument();
+        // Verify that the mocked images are actually passed to and rendered by ImageGallery
+        expect(screen.getByTestId('image-0')).toBeInTheDocument();
+        expect(screen.getByText(mockImages[0].file_url)).toBeInTheDocument();
       });
     });
   });
@@ -97,14 +119,35 @@ describe('EquipmentNotesTab', () => {
     it('shows note composer when add button is clicked', async () => {
       render(<EquipmentNotesTab equipmentId="eq-1" />);
       
-      // Note composer should be available for creating notes
+      // Wait for initial render with notes
       await waitFor(() => {
-        // Component should render note creation UI
+        expect(screen.getByText('Test note 1')).toBeInTheDocument();
+      });
+      
+      // Click the "Add Note" button
+      const addNoteButton = screen.getByText('Add Note');
+      fireEvent.click(addNoteButton);
+      
+      // Verify that the note composer is now visible
+      await waitFor(() => {
+        expect(screen.getByTestId('note-composer')).toBeInTheDocument();
       });
     });
 
     it('creates note when submitted', async () => {
-      vi.mocked(equipmentNotesServiceModule.createEquipmentNoteWithImages).mockResolvedValue({ id: 'note-2' });
+      const newNote = {
+        id: 'note-2',
+        equipment_id: 'eq-1',
+        content: 'Test note',
+        author_id: 'user-1',
+        created_at: '2024-01-16T00:00:00Z',
+        updated_at: '2024-01-16T00:00:00Z',
+        hours_worked: 0,
+        is_private: false,
+        author_name: 'Test User',
+        images: []
+      };
+      vi.mocked(equipmentNotesServiceModule.createEquipmentNoteWithImages).mockResolvedValue(newNote);
 
       render(<EquipmentNotesTab equipmentId="eq-1" />);
       
@@ -139,5 +182,3 @@ describe('EquipmentNotesTab', () => {
     });
   });
 });
-
-

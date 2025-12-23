@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@/test/utils/test-utils';
+import { render, screen, fireEvent, within } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useForm } from 'react-hook-form';
 import TeamSelectionSection from '../form/TeamSelectionSection';
@@ -13,19 +13,64 @@ import * as useTeamsModule from '@/features/teams/hooks/useTeams';
 vi.mock('@/features/teams/hooks/useTeams', () => ({
   useTeams: vi.fn(() => ({
     teams: [
-      { id: 'team-1', name: 'Team 1', description: 'Description 1' },
-      { id: 'team-2', name: 'Team 2', description: null }
+      { 
+        id: 'team-1', 
+        name: 'Team 1', 
+        description: 'Description 1',
+        organization_id: 'org-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+        members: [],
+        member_count: 0
+      },
+      { 
+        id: 'team-2', 
+        name: 'Team 2', 
+        description: null,
+        organization_id: 'org-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+        members: [],
+        member_count: 0
+      }
     ],
     managedTeams: [
-      { id: 'team-1', name: 'Team 1', description: 'Description 1' }
+      { 
+        id: 'team-1', 
+        name: 'Team 1', 
+        description: 'Description 1',
+        organization_id: 'org-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+        members: [],
+        member_count: 0
+      }
     ],
-    isLoading: false
+    isLoading: false,
+    error: null
   }))
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: vi.fn(() => ({
-    hasRole: vi.fn(() => false)
+    canManageTeam: vi.fn(() => false),
+    canViewTeam: vi.fn(() => true),
+    canCreateTeam: vi.fn(() => false),
+    canManageEquipment: vi.fn(() => false),
+    canViewEquipment: vi.fn(() => true),
+    canCreateEquipment: vi.fn(() => false),
+    canUpdateEquipmentStatus: vi.fn(() => false),
+    canManageWorkOrder: vi.fn(() => false),
+    canViewWorkOrder: vi.fn(() => true),
+    canCreateWorkOrder: vi.fn(() => false),
+    canAssignWorkOrder: vi.fn(() => false),
+    canChangeWorkOrderStatus: vi.fn(() => false),
+    canManageOrganization: vi.fn(() => false),
+    canInviteMembers: vi.fn(() => false),
+    isOrganizationAdmin: vi.fn(() => false),
+    hasRole: vi.fn(() => false),
+    isTeamMember: vi.fn(() => true),
+    isTeamManager: vi.fn(() => false)
   }))
 }));
 
@@ -46,7 +91,24 @@ const TestWrapper = ({ defaultValues, isAdmin = false }: { defaultValues?: Parti
 
   // Mock permissions based on isAdmin prop
   vi.mocked(usePermissionsModule.usePermissions).mockReturnValue({
-    hasRole: vi.fn((roles: string[]) => isAdmin && (roles.includes('owner') || roles.includes('admin')))
+    canManageTeam: vi.fn(() => isAdmin),
+    canViewTeam: vi.fn(() => true),
+    canCreateTeam: vi.fn(() => isAdmin),
+    canManageEquipment: vi.fn(() => isAdmin),
+    canViewEquipment: vi.fn(() => true),
+    canCreateEquipment: vi.fn(() => isAdmin),
+    canUpdateEquipmentStatus: vi.fn(() => isAdmin),
+    canManageWorkOrder: vi.fn(() => isAdmin),
+    canViewWorkOrder: vi.fn(() => true),
+    canCreateWorkOrder: vi.fn(() => isAdmin),
+    canAssignWorkOrder: vi.fn(() => isAdmin),
+    canChangeWorkOrderStatus: vi.fn(() => isAdmin),
+    canManageOrganization: vi.fn(() => isAdmin),
+    canInviteMembers: vi.fn(() => isAdmin),
+    isOrganizationAdmin: vi.fn(() => isAdmin),
+    hasRole: vi.fn((roles: string[]) => isAdmin && (roles.includes('owner') || roles.includes('admin'))),
+    isTeamMember: vi.fn(() => true),
+    isTeamManager: vi.fn(() => isAdmin)
   });
 
   return (
@@ -61,16 +123,61 @@ describe('TeamSelectionSection', () => {
     vi.clearAllMocks();
     vi.mocked(useTeamsModule.useTeams).mockReturnValue({
       teams: [
-        { id: 'team-1', name: 'Team 1', description: 'Description 1' },
-        { id: 'team-2', name: 'Team 2', description: null }
+        { 
+          id: 'team-1', 
+          name: 'Team 1', 
+          description: 'Description 1',
+          organization_id: 'org-1',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+          members: [],
+          member_count: 0
+        },
+        { 
+          id: 'team-2', 
+          name: 'Team 2', 
+          description: null,
+          organization_id: 'org-1',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+          members: [],
+          member_count: 0
+        }
       ],
       managedTeams: [
-        { id: 'team-1', name: 'Team 1', description: 'Description 1' }
+        { 
+          id: 'team-1', 
+          name: 'Team 1', 
+          description: 'Description 1',
+          organization_id: 'org-1',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+          members: [],
+          member_count: 0
+        }
       ],
-      isLoading: false
+      isLoading: false,
+      error: null
     });
     vi.mocked(usePermissionsModule.usePermissions).mockReturnValue({
-      hasRole: vi.fn(() => false)
+      canManageTeam: vi.fn(() => false),
+      canViewTeam: vi.fn(() => true),
+      canCreateTeam: vi.fn(() => false),
+      canManageEquipment: vi.fn(() => false),
+      canViewEquipment: vi.fn(() => true),
+      canCreateEquipment: vi.fn(() => false),
+      canUpdateEquipmentStatus: vi.fn(() => false),
+      canManageWorkOrder: vi.fn(() => false),
+      canViewWorkOrder: vi.fn(() => true),
+      canCreateWorkOrder: vi.fn(() => false),
+      canAssignWorkOrder: vi.fn(() => false),
+      canChangeWorkOrderStatus: vi.fn(() => false),
+      canManageOrganization: vi.fn(() => false),
+      canInviteMembers: vi.fn(() => false),
+      isOrganizationAdmin: vi.fn(() => false),
+      hasRole: vi.fn(() => false),
+      isTeamMember: vi.fn(() => true),
+      isTeamManager: vi.fn(() => false)
     });
   });
 
@@ -93,7 +200,8 @@ describe('TeamSelectionSection', () => {
       vi.mocked(useTeamsModule.useTeams).mockReturnValue({
         teams: [],
         managedTeams: [],
-        isLoading: true
+        isLoading: true,
+        error: null
       });
 
       render(<TestWrapper />);
@@ -118,9 +226,14 @@ describe('TeamSelectionSection', () => {
     it('shows "unassigned" option for admins', async () => {
       render(<TestWrapper isAdmin={true} />);
       
-      screen.getByText('Select a team (optional)');
-      // Note: This would require clicking to open the dropdown
-      // The option should be available in the select content
+      const combobox = screen.getByRole('combobox');
+      fireEvent.click(combobox);
+      
+      // Wait for the dropdown to appear
+      const listbox = await screen.findByRole('listbox');
+      const unassignedOption = within(listbox).getByRole('option', { name: 'No team assigned' });
+      
+      expect(unassignedOption).toBeInTheDocument();
     });
 
     it('shows helper text for non-admins', () => {
@@ -156,5 +269,3 @@ describe('TeamSelectionSection', () => {
     });
   });
 });
-
-

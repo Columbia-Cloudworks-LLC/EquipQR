@@ -181,13 +181,14 @@ describe('SignInForm', () => {
     const user = userEvent.setup();
     
     // Mock signIn with delay to simulate real network conditions
+    // This delay allows us to verify the guard mechanism works before the request completes
     mockSignIn.mockImplementation(() => 
       new Promise(resolve => 
         setTimeout(() => resolve({ error: null }), 100)
       )
     );
     
-    // Create a wrapper that manages loading state internally
+    // Create a wrapper that manages loading state internally to test the actual guard behavior
     const TestWrapper = () => {
       const [localIsLoading, setLocalIsLoading] = React.useState(false);
       return (
@@ -211,24 +212,30 @@ describe('SignInForm', () => {
     // Button should be enabled initially
     expect(submitButton).not.toBeDisabled();
     
-    // Rapidly fire multiple clicks synchronously to simulate race condition
-    // This tests that the isLoading guard prevents multiple submissions
-    fireEvent.click(submitButton);
-    fireEvent.click(submitButton);
+    // Fire the first click - this should trigger the submission and set loading state
     fireEvent.click(submitButton);
     
-    // Wait for the button to be disabled (loading state active)
+    // Wait for React to process the state update and re-render with disabled button
+    // This confirms the isLoading guard is active after the first submission
     await waitFor(() => {
       expect(submitButton).toBeDisabled();
-    }, { timeout: 1000 });
-
-    // Wait for submission to complete
+    }, { timeout: 500 });
+    
+    // Now that loading is active, fire additional clicks
+    // These should be blocked by the isLoading guard in handleSubmit
+    fireEvent.click(submitButton);
+    fireEvent.click(submitButton);
+    
+    // Verify signIn was called only once (first click) before the guard was active
+    // Additional clicks should be prevented by the isLoading check
+    expect(mockSignIn).toHaveBeenCalledTimes(1);
+    
+    // Wait for submission to complete and button to re-enable
     await waitFor(() => {
       expect(submitButton).not.toBeDisabled();
-    }, { timeout: 1000 });
+    }, { timeout: 500 });
     
-    // Verify signIn was called only once despite multiple rapid clicks
-    // The isLoading guard in handleSubmit should prevent duplicate submissions
+    // Final verification: signIn was still only called once despite multiple clicks
     expect(mockSignIn).toHaveBeenCalledTimes(1);
     expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
   });

@@ -50,10 +50,9 @@ describe('ImportCsvWizard', () => {
         />
       );
       
-      // Should show upload step
-      expect(screen.getAllByText(/upload/i).length).toBeGreaterThan(0);
+      // Should show upload step indicator and upload step content
+      expect(screen.getByText('Upload')).toBeInTheDocument();
+      expect(screen.getByText('Upload CSV File')).toBeInTheDocument();
     });
   });
 });
-
-

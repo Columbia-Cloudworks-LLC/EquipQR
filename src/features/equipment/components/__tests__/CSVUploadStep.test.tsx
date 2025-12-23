@@ -13,11 +13,33 @@ describe('CSVUploadStep', () => {
   };
 
   it('renders upload step', () => {
-    render(
+    const { container } = render(
       <CSVUploadStep {...baseProps} />
     );
     
-    expect(screen.getByText(/Upload CSV File/i)).toBeInTheDocument();
+    // Verify main heading
+    expect(screen.getByRole('heading', { name: /Upload CSV File/i })).toBeInTheDocument();
+    
+    // Verify upload instructions
+    expect(screen.getByText(/Drag and drop your CSV file here, or click to browse/i)).toBeInTheDocument();
+    
+    // Verify choose file button
+    expect(screen.getByRole('button', { name: /Choose File/i })).toBeInTheDocument();
+    
+    // Verify info alert with description
+    expect(screen.getByText(/Upload a CSV file with equipment data/i)).toBeInTheDocument();
+    expect(screen.getByText(/Maximum 10,000 rows and 5MB file size/i)).toBeInTheDocument();
+    
+    // Verify requirements section
+    expect(screen.getByText(/Requirements:/i)).toBeInTheDocument();
+    expect(screen.getByText(/CSV format with header row/i)).toBeInTheDocument();
+    
+    // Verify file input is present (hidden)
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(fileInput).toBeInTheDocument();
+    expect(fileInput).toHaveAttribute('type', 'file');
+    expect(fileInput).toHaveAttribute('accept', '.csv');
+    expect(fileInput).toHaveAttribute('id', 'csv-upload');
   });
 
   it('calls onFileSelect when file is selected', () => {
@@ -31,5 +53,3 @@ describe('CSVUploadStep', () => {
     expect(mockOnFileUpload).toHaveBeenCalledWith(file);
   });
 });
-
-

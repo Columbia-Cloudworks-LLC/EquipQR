@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@/test/utils/test-utils';
+import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import InlineEditCustomAttributes from '../InlineEditCustomAttributes';
 
@@ -65,7 +65,36 @@ describe('InlineEditCustomAttributes', () => {
         />
       );
       
-      expect(screen.getByText('Custom Attributes')).toBeInTheDocument();
+      // Click the edit button to enter edit mode
+      const editButton = screen.getByLabelText('Edit custom attributes');
+      fireEvent.click(editButton);
+      
+      // Wait for edit mode to be active
+      await waitFor(() => {
+        expect(screen.getByText('Edit Custom Attributes')).toBeInTheDocument();
+      });
+      
+      // Find and update the Color attribute value
+      // The inputs are rendered with the current values, so we can find by display value
+      const colorValueInput = screen.getByDisplayValue('Red');
+      fireEvent.change(colorValueInput, { target: { value: 'Blue' } });
+      
+      // Wait for the state to update (CustomAttributesSection calls onChange via useEffect)
+      await waitFor(() => {
+        expect(colorValueInput).toHaveValue('Blue');
+      });
+      
+      // Click the Save button
+      const saveButton = screen.getByText('Save');
+      fireEvent.click(saveButton);
+      
+      // Verify onSave was called with updated attributes
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith({
+          Color: 'Blue',
+          Size: 'Large'
+        });
+      });
     });
   });
 
