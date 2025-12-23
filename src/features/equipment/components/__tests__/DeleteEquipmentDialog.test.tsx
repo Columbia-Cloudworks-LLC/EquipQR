@@ -2,6 +2,8 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DeleteEquipmentDialog } from '../DeleteEquipmentDialog';
+import * as deleteEquipmentServiceModule from '@/features/equipment/services/deleteEquipmentService';
+import * as useDeleteEquipmentModule from '@/features/equipment/hooks/useDeleteEquipment';
 
 // Mock services and hooks
 vi.mock('@/features/equipment/services/deleteEquipmentService', () => ({
@@ -35,11 +37,9 @@ describe('DeleteEquipmentDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    const { getEquipmentDeletionImpact } = require('@/features/equipment/services/deleteEquipmentService');
-    vi.mocked(getEquipmentDeletionImpact).mockResolvedValue(mockImpact);
+    vi.mocked(deleteEquipmentServiceModule.getEquipmentDeletionImpact).mockResolvedValue(mockImpact);
     
-    const { useDeleteEquipment } = require('@/features/equipment/hooks/useDeleteEquipment');
-    vi.mocked(useDeleteEquipment).mockReturnValue({
+    vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
       mutateAsync: vi.fn().mockResolvedValue(undefined),
       isPending: false
     });
@@ -59,8 +59,7 @@ describe('DeleteEquipmentDialog', () => {
     });
 
     it('shows loading state while fetching impact', () => {
-      const { getEquipmentDeletionImpact } = require('@/features/equipment/services/deleteEquipmentService');
-      vi.mocked(getEquipmentDeletionImpact).mockImplementation(() => new Promise(() => {}));
+      vi.mocked(deleteEquipmentServiceModule.getEquipmentDeletionImpact).mockImplementation(() => new Promise(() => {}));
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       
@@ -88,8 +87,7 @@ describe('DeleteEquipmentDialog', () => {
     });
 
     it('disables continue button while loading impact', () => {
-      const { getEquipmentDeletionImpact } = require('@/features/equipment/services/deleteEquipmentService');
-      vi.mocked(getEquipmentDeletionImpact).mockImplementation(() => new Promise(() => {}));
+      vi.mocked(deleteEquipmentServiceModule.getEquipmentDeletionImpact).mockImplementation(() => new Promise(() => {}));
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       
@@ -168,9 +166,8 @@ describe('DeleteEquipmentDialog', () => {
 
   describe('Deletion Process', () => {
     it('calls delete mutation when delete button is clicked', async () => {
-      const { useDeleteEquipment } = require('@/features/equipment/hooks/useDeleteEquipment');
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipment).mockReturnValue({
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false
       });
@@ -197,9 +194,8 @@ describe('DeleteEquipmentDialog', () => {
     });
 
     it('calls onSuccess after successful deletion', async () => {
-      const { useDeleteEquipment } = require('@/features/equipment/hooks/useDeleteEquipment');
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipment).mockReturnValue({
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false
       });
@@ -225,9 +221,8 @@ describe('DeleteEquipmentDialog', () => {
     });
 
     it('closes dialog after successful deletion', async () => {
-      const { useDeleteEquipment } = require('@/features/equipment/hooks/useDeleteEquipment');
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipment).mockReturnValue({
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false
       });
@@ -253,9 +248,8 @@ describe('DeleteEquipmentDialog', () => {
     });
 
     it('shows loading state during deletion', async () => {
-      const { useDeleteEquipment } = require('@/features/equipment/hooks/useDeleteEquipment');
       const mockMutateAsync = vi.fn(() => new Promise(() => {}));
-      vi.mocked(useDeleteEquipment).mockReturnValue({
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: true
       });
@@ -330,8 +324,7 @@ describe('DeleteEquipmentDialog', () => {
 
   describe('Error Handling', () => {
     it('handles error when fetching impact fails', async () => {
-      const { getEquipmentDeletionImpact } = require('@/features/equipment/services/deleteEquipmentService');
-      vi.mocked(getEquipmentDeletionImpact).mockRejectedValue(new Error('Failed to fetch'));
+      vi.mocked(deleteEquipmentServiceModule.getEquipmentDeletionImpact).mockRejectedValue(new Error('Failed to fetch'));
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       
@@ -340,4 +333,5 @@ describe('DeleteEquipmentDialog', () => {
     });
   });
 });
+
 

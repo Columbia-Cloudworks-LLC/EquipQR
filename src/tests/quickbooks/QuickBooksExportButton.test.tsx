@@ -131,8 +131,24 @@ describe('QuickBooksExportButton Component', () => {
 
     it('should render for admin users', async () => {
       vi.mocked(usePermissions).mockReturnValue({
-        hasRole: (roles: string[]) => roles.includes('admin'),
-      } as any);
+        canManageTeam: () => true,
+        canViewTeam: () => true,
+        canCreateTeam: () => true,
+        canManageEquipment: () => true,
+        canViewEquipment: () => true,
+        canCreateEquipment: () => true,
+        canManageWorkOrder: () => true,
+        canViewWorkOrder: () => true,
+        canCreateWorkOrder: () => true,
+        canManageInventory: () => true,
+        canViewInventory: () => true,
+        canCreateInventory: () => true,
+        canManageOrganization: () => true,
+        canViewOrganization: () => true,
+        canManagePMTemplates: () => true,
+        canViewPMTemplates: () => true,
+        canCreatePMTemplates: () => true
+      });
       
       renderComponent();
       

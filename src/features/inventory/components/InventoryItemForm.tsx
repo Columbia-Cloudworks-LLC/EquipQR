@@ -73,9 +73,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
 
   // Load editing data
   useEffect(() => {
-    console.log('[DEBUG] Form reset useEffect triggered', { open, editingItem: editingItem?.id, currentName: form.getValues('name') });
     if (open && editingItem) {
-      console.log('[DEBUG] Resetting form for editing');
       form.reset({
         name: editingItem.name,
         description: editingItem.description || '',
@@ -90,8 +88,6 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         managerIds: [] // Will be loaded separately
       });
     } else if (open && !editingItem) {
-      const beforeReset = form.getValues('name');
-      console.log('[DEBUG] Resetting form for create, name before reset:', beforeReset);
       form.reset({
         name: '',
         description: '',
@@ -105,7 +101,6 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         compatibleEquipmentIds: [],
         managerIds: []
       });
-      console.log('[DEBUG] After reset, name value:', form.getValues('name'));
     }
   }, [open, editingItem, form]);
 
@@ -161,20 +156,14 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         });
       }
       onClose();
-    } catch (error) {
+    } catch {
       // Error handling is done in the mutation hooks
-      console.error('Error submitting form:', error);
     }
   };
 
   const selectedEquipmentIds = form.watch('compatibleEquipmentIds') || [];
   const selectedManagerIds = form.watch('managerIds') || [];
   
-  // Watch name field for debugging
-  const watchedName = form.watch('name');
-  React.useEffect(() => {
-    console.log('[DEBUG] Name field value changed:', watchedName);
-  }, [watchedName, form]);
 
   const filteredEquipment = allEquipment.filter(eq =>
     eq.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
@@ -222,13 +211,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={(e) => {
-            const formValues = form.getValues();
-            const formErrors = form.formState.errors;
-            const nameValue = form.getValues('name');
-            console.log('[DEBUG] Form submit - formValues:', formValues, 'nameValue:', nameValue, 'errors:', formErrors);
-            form.handleSubmit(onSubmit)(e);
-          }} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField

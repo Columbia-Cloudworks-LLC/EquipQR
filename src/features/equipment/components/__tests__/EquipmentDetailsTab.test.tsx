@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EquipmentDetailsTab from '../EquipmentDetailsTab';
 import { Tables } from '@/integrations/supabase/types';
+import * as useEquipmentModule from '@/features/equipment/hooks/useEquipment';
+import * as useUnifiedPermissionsModule from '@/hooks/useUnifiedPermissions';
 
 // Mock dependencies
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
@@ -52,11 +54,11 @@ vi.mock('sonner', () => ({
 }));
 
 vi.mock('../QRCodeDisplay', () => ({
-  default: ({ open, onClose }: any) => open ? <div data-testid="qr-code-display">QR Code</div> : null
+  default: ({ open }: { open: boolean }) => open ? <div data-testid="qr-code-display">QR Code</div> : null
 }));
 
 vi.mock('../InlineEditField', () => ({
-  default: ({ value, onSave, canEdit }: any) => (
+  default: ({ value, onSave, canEdit }: { value: string; onSave: (value: string) => void; canEdit: boolean }) => (
     <div data-testid="inline-edit-field">
       <span>{value}</span>
       {canEdit && <button onClick={() => onSave('new value')}>Save</button>}
@@ -65,7 +67,7 @@ vi.mock('../InlineEditField', () => ({
 }));
 
 vi.mock('../InlineEditCustomAttributes', () => ({
-  default: ({ attributes, onSave, canEdit }: any) => (
+  default: ({ onSave, canEdit }: { onSave: (attrs: Record<string, unknown>) => void; canEdit: boolean }) => (
     <div data-testid="inline-edit-custom-attributes">
       {canEdit && <button onClick={() => onSave({})}>Save Attributes</button>}
     </div>
@@ -73,7 +75,7 @@ vi.mock('../InlineEditCustomAttributes', () => ({
 }));
 
 vi.mock('../WorkingHoursTimelineModal', () => ({
-  WorkingHoursTimelineModal: ({ open, onClose }: any) => 
+  WorkingHoursTimelineModal: ({ open }: { open: boolean }) => 
     open ? <div data-testid="working-hours-modal">Working Hours</div> : null
 }));
 
@@ -106,8 +108,7 @@ describe('EquipmentDetailsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    const { useUpdateEquipment } = require('@/features/equipment/hooks/useEquipment');
-    vi.mocked(useUpdateEquipment).mockReturnValue({
+    vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
       mutateAsync: vi.fn().mockResolvedValue(mockEquipment),
       isPending: false
     });
@@ -160,9 +161,8 @@ describe('EquipmentDetailsTab', () => {
     });
 
     it('calls update mutation when field is saved', async () => {
-      const { useUpdateEquipment } = require('@/features/equipment/hooks/useEquipment');
       const mockMutateAsync = vi.fn().mockResolvedValue(mockEquipment);
-      vi.mocked(useUpdateEquipment).mockReturnValue({
+      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false
       });
@@ -186,9 +186,8 @@ describe('EquipmentDetailsTab', () => {
     });
 
     it('updates custom attributes when saved', async () => {
-      const { useUpdateEquipment } = require('@/features/equipment/hooks/useEquipment');
       const mockMutateAsync = vi.fn().mockResolvedValue(mockEquipment);
-      vi.mocked(useUpdateEquipment).mockReturnValue({
+      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false
       });
@@ -230,9 +229,8 @@ describe('EquipmentDetailsTab', () => {
     });
 
     it('allows changing team assignment', async () => {
-      const { useUpdateEquipment } = require('@/features/equipment/hooks/useEquipment');
       const mockMutateAsync = vi.fn().mockResolvedValue(mockEquipment);
-      vi.mocked(useUpdateEquipment).mockReturnValue({
+      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false
       });
@@ -251,9 +249,8 @@ describe('EquipmentDetailsTab', () => {
     });
 
     it('allows changing PM template', async () => {
-      const { useUpdateEquipment } = require('@/features/equipment/hooks/useEquipment');
       const mockMutateAsync = vi.fn().mockResolvedValue(mockEquipment);
-      vi.mocked(useUpdateEquipment).mockReturnValue({
+      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false
       });
@@ -266,8 +263,7 @@ describe('EquipmentDetailsTab', () => {
 
   describe('Permission-Based Rendering', () => {
     it('disables editing when canEdit is false', () => {
-      const { useUnifiedPermissions } = require('@/hooks/useUnifiedPermissions');
-      vi.mocked(useUnifiedPermissions).mockReturnValue({
+      vi.mocked(useUnifiedPermissionsModule.useUnifiedPermissions).mockReturnValue({
         equipment: {
           getPermissions: vi.fn(() => ({
             canEdit: false,
@@ -282,4 +278,5 @@ describe('EquipmentDetailsTab', () => {
     });
   });
 });
+
 

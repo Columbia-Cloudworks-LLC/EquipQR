@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import CustomAttributesSection from '../CustomAttributesSection';
+import * as useCustomAttributesModule from '@/hooks/useCustomAttributes';
 
 // Mock hook
 vi.mock('@/hooks/useCustomAttributes', () => ({
@@ -18,8 +19,7 @@ describe('CustomAttributesSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    const { useCustomAttributes } = require('@/hooks/useCustomAttributes');
-    vi.mocked(useCustomAttributes).mockReturnValue({
+    vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
       attributes: [],
       addAttribute: mockAddAttribute,
       removeAttribute: mockRemoveAttribute,
@@ -60,8 +60,7 @@ describe('CustomAttributesSection', () => {
     });
 
     it('displays attributes from hook', () => {
-      const { useCustomAttributes } = require('@/hooks/useCustomAttributes');
-      vi.mocked(useCustomAttributes).mockReturnValue({
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
         attributes: [
           { id: 'attr-1', key: 'Color', value: 'Red' },
           { id: 'attr-2', key: 'Size', value: 'Large' }
@@ -81,8 +80,7 @@ describe('CustomAttributesSection', () => {
     });
 
     it('calls updateAttribute when attribute key changes', () => {
-      const { useCustomAttributes } = require('@/hooks/useCustomAttributes');
-      vi.mocked(useCustomAttributes).mockReturnValue({
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
         attributes: [
           { id: 'attr-1', key: 'Color', value: 'Red' }
         ],
@@ -101,8 +99,7 @@ describe('CustomAttributesSection', () => {
     });
 
     it('calls updateAttribute when attribute value changes', () => {
-      const { useCustomAttributes } = require('@/hooks/useCustomAttributes');
-      vi.mocked(useCustomAttributes).mockReturnValue({
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
         attributes: [
           { id: 'attr-1', key: 'Color', value: 'Red' }
         ],
@@ -121,8 +118,7 @@ describe('CustomAttributesSection', () => {
     });
 
     it('calls removeAttribute when delete button is clicked', () => {
-      const { useCustomAttributes } = require('@/hooks/useCustomAttributes');
-      vi.mocked(useCustomAttributes).mockReturnValue({
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
         attributes: [
           { id: 'attr-1', key: 'Color', value: 'Red' }
         ],
@@ -183,8 +179,7 @@ describe('CustomAttributesSection', () => {
 
   describe('OnChange Callback', () => {
     it('calls onChange when attributes change', async () => {
-      const { useCustomAttributes } = require('@/hooks/useCustomAttributes');
-      vi.mocked(useCustomAttributes).mockReturnValue({
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
         attributes: [
           { id: 'attr-1', key: 'Color', value: 'Red' }
         ],
@@ -202,4 +197,5 @@ describe('CustomAttributesSection', () => {
     });
   });
 });
+
 

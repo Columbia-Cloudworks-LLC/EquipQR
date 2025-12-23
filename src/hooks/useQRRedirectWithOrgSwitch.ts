@@ -111,7 +111,8 @@ export const useQRRedirectWithOrgSwitch = ({
         )
       };
     }
-  }, [getCurrentOrganization, refreshSession, checkUserHasMultipleOrganizations]);
+    // checkUserHasMultipleOrganizations is a stable imported function, not a dependency
+  }, [getCurrentOrganization, refreshSession]);
 
   const checkInventoryItemOrganization = useCallback(async () => {
     if (!inventoryItemId || !user) return;

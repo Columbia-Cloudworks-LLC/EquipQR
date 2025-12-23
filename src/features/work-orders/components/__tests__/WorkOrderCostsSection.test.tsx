@@ -20,7 +20,7 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderEquipment', () => ({
 
 // Mock InlineEditWorkOrderCosts
 vi.mock('../InlineEditWorkOrderCosts', () => ({
-  default: ({ costs, workOrderId, canEdit }: any) => (
+  default: ({ costs, workOrderId, canEdit }: { costs: unknown[]; workOrderId: string; canEdit: boolean }) => (
     <div data-testid="inline-edit-costs">
       <div data-testid="costs-count">{costs.length}</div>
       <div data-testid="work-order-id">{workOrderId}</div>

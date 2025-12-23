@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
+import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import InlineEditCustomAttributes from '../InlineEditCustomAttributes';
 
@@ -88,4 +88,5 @@ describe('InlineEditCustomAttributes', () => {
     });
   });
 });
+
 

@@ -10,8 +10,7 @@ interface OrganizationSidebarProps {
 }
 
 const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
-  organization,
-  onUpgrade
+  organization
 }) => {
   return (
     <div className="space-y-4 sm:space-y-6">

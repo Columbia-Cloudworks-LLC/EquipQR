@@ -24,7 +24,7 @@ vi.mock('../WorkOrderCard', () => ({
 
 // Mock WorkOrdersEmptyState
 vi.mock('../WorkOrdersEmptyState', () => ({
-  WorkOrdersEmptyState: ({ hasActiveFilters, onCreateClick }: any) => (
+  WorkOrdersEmptyState: ({ hasActiveFilters, onCreateClick }: { hasActiveFilters: boolean; onCreateClick: () => void }) => (
     <div data-testid="empty-state">
       <div data-testid="has-filters">{hasActiveFilters ? 'true' : 'false'}</div>
       <button data-testid="create-button" onClick={onCreateClick}>Create Work Order</button>

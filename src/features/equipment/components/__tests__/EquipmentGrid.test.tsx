@@ -5,7 +5,7 @@ import EquipmentGrid from '../EquipmentGrid';
 
 // Mock EquipmentCard
 vi.mock('../EquipmentCard', () => ({
-  default: ({ equipment, onShowQRCode }: { equipment: any; onShowQRCode: (id: string) => void }) => (
+  default: ({ equipment, onShowQRCode }: { equipment: { id: string; name: string }; onShowQRCode: (id: string) => void }) => (
     <div data-testid={`equipment-card-${equipment.id}`}>
       <div>{equipment.name}</div>
       <button onClick={() => onShowQRCode(equipment.id)}>Show QR</button>
@@ -186,4 +186,5 @@ describe('EquipmentGrid', () => {
     });
   });
 });
+
 

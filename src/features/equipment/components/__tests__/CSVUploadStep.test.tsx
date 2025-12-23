@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@/test/utils/test-utils';
+import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import CSVUploadStep from '../csv-import/CSVUploadStep';
 
@@ -29,4 +29,5 @@ describe('CSVUploadStep', () => {
     // File selection would trigger onFileSelect
   });
 });
+
 

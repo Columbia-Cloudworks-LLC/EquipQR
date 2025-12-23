@@ -3,24 +3,39 @@ import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect } from 'vitest';
 import EquipmentInsights from '../EquipmentInsights';
 
+interface MockEquipment {
+  id: string;
+  name?: string;
+  manufacturer?: string;
+  model?: string;
+  serial_number?: string;
+  status?: string;
+  location?: string;
+  installation_date?: string;
+  working_hours?: number;
+}
+
 describe('EquipmentInsights', () => {
-  const mockEquipment = {
+  const mockEquipment: MockEquipment[] = [{
     id: 'eq-1',
+    name: 'Test Equipment',
     working_hours: 1000,
     status: 'active'
-  };
+  }];
 
   it('renders insights', () => {
-    render(<EquipmentInsights equipment={mockEquipment as any} />);
+    render(<EquipmentInsights equipment={mockEquipment} filteredEquipment={mockEquipment} />);
     
     // Insights should be displayed
     expect(screen.getByText(/insights/i) || screen.queryByText('1000')).toBeDefined();
   });
 
   it('handles empty data', () => {
-    render(<EquipmentInsights equipment={{ id: 'eq-1' } as any} />);
+    const emptyEquipment: MockEquipment[] = [{ id: 'eq-1' }];
+    render(<EquipmentInsights equipment={emptyEquipment} filteredEquipment={emptyEquipment} />);
     
     // Should render without errors
   });
 });
+
 

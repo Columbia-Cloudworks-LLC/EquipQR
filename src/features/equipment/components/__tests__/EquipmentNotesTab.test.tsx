@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EquipmentNotesTab from '../EquipmentNotesTab';
+import * as equipmentNotesServiceModule from '@/features/equipment/services/equipmentNotesService';
 
 // Mock dependencies
 vi.mock('@/hooks/useAuth', () => ({
@@ -30,7 +31,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 vi.mock('@/components/common/InlineNoteComposer', () => ({
-  default: ({ onSubmit, onCancel }: any) => (
+  default: ({ onSubmit, onCancel }: { onSubmit: (data: { content: string; hoursWorked: number; isPrivate: boolean; images: unknown[] }) => void; onCancel: () => void }) => (
     <div data-testid="note-composer">
       <button onClick={() => onSubmit({ content: 'Test note', hoursWorked: 0, isPrivate: false, images: [] })}>
         Submit
@@ -41,9 +42,9 @@ vi.mock('@/components/common/InlineNoteComposer', () => ({
 }));
 
 vi.mock('@/components/common/ImageGallery', () => ({
-  default: ({ images }: any) => (
+  default: ({ images }: { images: Array<{ url: string }> }) => (
     <div data-testid="image-gallery">
-      {images.map((img: any, i: number) => (
+      {images.map((img: { url: string }, i: number) => (
         <div key={i} data-testid={`image-${i}`}>{img.url}</div>
       ))}
     </div>
@@ -70,11 +71,8 @@ describe('EquipmentNotesTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    const { getEquipmentNotesWithImages } = require('@/features/equipment/services/equipmentNotesService');
-    vi.mocked(getEquipmentNotesWithImages).mockResolvedValue(mockNotes);
-    
-    const { getEquipmentImages } = require('@/features/equipment/services/equipmentNotesService');
-    vi.mocked(getEquipmentImages).mockResolvedValue(mockImages);
+    vi.mocked(equipmentNotesServiceModule.getEquipmentNotesWithImages).mockResolvedValue(mockNotes);
+    vi.mocked(equipmentNotesServiceModule.getEquipmentImages).mockResolvedValue(mockImages);
   });
 
   describe('Core Rendering', () => {
@@ -106,8 +104,7 @@ describe('EquipmentNotesTab', () => {
     });
 
     it('creates note when submitted', async () => {
-      const { createEquipmentNoteWithImages } = require('@/features/equipment/services/equipmentNotesService');
-      vi.mocked(createEquipmentNoteWithImages).mockResolvedValue({ id: 'note-2' });
+      vi.mocked(equipmentNotesServiceModule.createEquipmentNoteWithImages).mockResolvedValue({ id: 'note-2' });
 
       render(<EquipmentNotesTab equipmentId="eq-1" />);
       
@@ -119,7 +116,7 @@ describe('EquipmentNotesTab', () => {
       });
       
       await waitFor(() => {
-        expect(createEquipmentNoteWithImages).toHaveBeenCalled();
+        expect(equipmentNotesServiceModule.createEquipmentNoteWithImages).toHaveBeenCalled();
       });
     });
   });
@@ -134,8 +131,7 @@ describe('EquipmentNotesTab', () => {
     });
 
     it('handles image deletion', async () => {
-      const { deleteEquipmentNoteImage } = require('@/features/equipment/services/equipmentNotesService');
-      vi.mocked(deleteEquipmentNoteImage).mockResolvedValue(undefined);
+      vi.mocked(equipmentNotesServiceModule.deleteEquipmentNoteImage).mockResolvedValue(undefined);
 
       render(<EquipmentNotesTab equipmentId="eq-1" />);
       
@@ -144,4 +140,5 @@ describe('EquipmentNotesTab', () => {
     });
   });
 });
+
 

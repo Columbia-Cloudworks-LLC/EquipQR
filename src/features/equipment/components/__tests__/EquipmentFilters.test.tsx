@@ -11,7 +11,7 @@ vi.mock('@/hooks/use-mobile', () => ({
 
 // Mock mobile and desktop filter components
 vi.mock('../MobileEquipmentFilters', () => ({
-  MobileEquipmentFilters: ({ filters, activeFilterCount, showMobileFilters, onShowMobileFiltersChange, onFilterChange, onClearFilters, onQuickFilter, filterOptions }: any) => (
+  MobileEquipmentFilters: ({ activeFilterCount, showMobileFilters }: { activeFilterCount: number; showMobileFilters: boolean }) => (
     <div data-testid="mobile-filters">
       <div>Mobile Filters</div>
       <div>Active Count: {activeFilterCount}</div>
@@ -21,7 +21,7 @@ vi.mock('../MobileEquipmentFilters', () => ({
 }));
 
 vi.mock('../DesktopEquipmentFilters', () => ({
-  DesktopEquipmentFilters: ({ filters, onFilterChange, onClearFilters, filterOptions, hasActiveFilters }: any) => (
+  DesktopEquipmentFilters: ({ hasActiveFilters }: { hasActiveFilters: boolean }) => (
     <div data-testid="desktop-filters">
       <div>Desktop Filters</div>
       <div>Has Active: {hasActiveFilters ? 'true' : 'false'}</div>
@@ -305,7 +305,7 @@ describe('EquipmentFilters', () => {
           filters={{ 
             ...defaultFilters,
             maintenanceDateFrom: null,
-            maintenanceDateTo: undefined as any
+            maintenanceDateTo: undefined
           }}
         />
       );
@@ -314,4 +314,5 @@ describe('EquipmentFilters', () => {
     });
   });
 });
+
 

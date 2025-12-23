@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EquipmentWorkOrdersTab from '../EquipmentWorkOrdersTab';
+import * as useEquipmentModule from '@/features/equipment/hooks/useEquipment';
 
 // Mock hooks and components
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
@@ -21,15 +22,15 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../MobileWorkOrderCard', () => ({
-  default: ({ workOrder }: any) => <div data-testid={`mobile-wo-${workOrder.id}`}>Mobile WO {workOrder.id}</div>
+  default: ({ workOrder }: { workOrder: { id: string } }) => <div data-testid={`mobile-wo-${workOrder.id}`}>Mobile WO {workOrder.id}</div>
 }));
 
 vi.mock('@/features/work-orders/components/DesktopWorkOrderCard', () => ({
-  default: ({ workOrder }: any) => <div data-testid={`desktop-wo-${workOrder.id}`}>Desktop WO {workOrder.id}</div>
+  default: ({ workOrder }: { workOrder: { id: string } }) => <div data-testid={`desktop-wo-${workOrder.id}`}>Desktop WO {workOrder.id}</div>
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderForm', () => ({
-  default: ({ open, onClose }: any) => open ? <div data-testid="work-order-form">Work Order Form</div> : null
+  default: ({ open }: { open: boolean }) => open ? <div data-testid="work-order-form">Work Order Form</div> : null
 }));
 
 const mockWorkOrders = [
@@ -59,8 +60,7 @@ describe('EquipmentWorkOrdersTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    const { useEquipmentWorkOrders } = require('@/features/equipment/hooks/useEquipment');
-    vi.mocked(useEquipmentWorkOrders).mockReturnValue({
+    vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue({
       data: mockWorkOrders,
       isLoading: false
     });
@@ -102,8 +102,7 @@ describe('EquipmentWorkOrdersTab', () => {
     });
 
     it('displays singular form for one work order', () => {
-      const { useEquipmentWorkOrders } = require('@/features/equipment/hooks/useEquipment');
-      vi.mocked(useEquipmentWorkOrders).mockReturnValue({
+      vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue({
         data: [mockWorkOrders[0]],
         isLoading: false
       });
@@ -121,8 +120,7 @@ describe('EquipmentWorkOrdersTab', () => {
 
   describe('Loading State', () => {
     it('shows loading skeletons when isLoading is true', () => {
-      const { useEquipmentWorkOrders } = require('@/features/equipment/hooks/useEquipment');
-      vi.mocked(useEquipmentWorkOrders).mockReturnValue({
+      vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue({
         data: [],
         isLoading: true
       });
@@ -141,8 +139,7 @@ describe('EquipmentWorkOrdersTab', () => {
 
   describe('Empty State', () => {
     it('shows empty state when no work orders', () => {
-      const { useEquipmentWorkOrders } = require('@/features/equipment/hooks/useEquipment');
-      vi.mocked(useEquipmentWorkOrders).mockReturnValue({
+      vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue({
         data: [],
         isLoading: false
       });
@@ -233,4 +230,5 @@ describe('EquipmentWorkOrdersTab', () => {
     });
   });
 });
+
 

@@ -81,17 +81,17 @@ vi.mock('../WorkOrderFormHeader', () => ({
 }));
 
 vi.mock('../WorkOrderGeneralInfo', () => ({
-  WorkOrderGeneralInfo: ({ values, setValue }: any) => (
+  WorkOrderGeneralInfo: ({ values, setValue }: { values: { title?: string; description?: string }; setValue: (field: string, value: string) => void }) => (
     <div data-testid="general-info">
       <input
         data-testid="title-input"
-        value={values.title}
+        value={values.title || ''}
         onChange={(e) => setValue('title', e.target.value)}
         placeholder="Title"
       />
       <textarea
         data-testid="description-input"
-        value={values.description}
+        value={values.description || ''}
         onChange={(e) => setValue('description', e.target.value)}
         placeholder="Description"
       />
@@ -116,7 +116,7 @@ vi.mock('../WorkOrderPMChecklist', () => ({
 }));
 
 vi.mock('../WorkOrderFormActions', () => ({
-  WorkOrderFormActions: ({ onCancel, onSubmit, isLoading }: any) => (
+  WorkOrderFormActions: ({ onCancel, onSubmit, isLoading }: { onCancel: () => void; onSubmit: () => void; isLoading: boolean }) => (
     <div data-testid="form-actions">
       <button data-testid="cancel-button" onClick={onCancel}>Cancel</button>
       <button data-testid="submit-button" onClick={onSubmit} disabled={isLoading}>
@@ -127,7 +127,7 @@ vi.mock('../WorkOrderFormActions', () => ({
 }));
 
 vi.mock('../WorkOrderHistoricalToggle', () => ({
-  WorkOrderHistoricalToggle: ({ isHistorical, onToggle }: any) => (
+  WorkOrderHistoricalToggle: ({ isHistorical, onToggle }: { isHistorical: boolean; onToggle: (value: boolean) => void }) => (
     <div data-testid="historical-toggle">
       <input
         type="checkbox"

@@ -15,11 +15,6 @@ describe('EquipmentLoadingState', () => {
     it('renders skeleton cards in grid layout', () => {
       render(<EquipmentLoadingState />);
       
-      // Should render 3 skeleton cards
-      const skeletons = screen.getAllByRole('generic').filter(
-        (el) => el.className.includes('skeleton') || el.querySelector('[class*="skeleton"]')
-      );
-      
       // The grid should be present
       const grid = screen.getByText('Equipment').closest('div')?.querySelector('[class*="grid"]');
       expect(grid).toBeInTheDocument();
@@ -52,4 +47,5 @@ describe('EquipmentLoadingState', () => {
     });
   });
 });
+
 

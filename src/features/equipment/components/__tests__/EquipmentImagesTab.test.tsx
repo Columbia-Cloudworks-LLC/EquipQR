@@ -1,7 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
+import { render, screen, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EquipmentImagesTab from '../EquipmentImagesTab';
+import * as equipmentImagesServiceModule from '@/features/equipment/services/equipmentImagesService';
+import * as equipmentNotesServiceModule from '@/features/equipment/services/equipmentNotesService';
 
 // Mock dependencies
 vi.mock('@/hooks/useAuth', () => ({
@@ -35,9 +37,9 @@ vi.mock('@/features/equipment/services/equipmentNotesService', () => ({
 }));
 
 vi.mock('@/components/common/ImageGallery', () => ({
-  default: ({ images }: any) => (
+  default: ({ images }: { images?: Array<{ url: string }> }) => (
     <div data-testid="image-gallery">
-      {images?.map((img: any, i: number) => (
+      {images?.map((img: { url: string }, i: number) => (
         <div key={i} data-testid={`image-${i}`}>{img.url}</div>
       ))}
     </div>
@@ -45,7 +47,7 @@ vi.mock('@/components/common/ImageGallery', () => ({
 }));
 
 vi.mock('@/components/common/ImageUploadWithNote', () => ({
-  default: ({ onUpload, onCancel }: any) => (
+  default: ({ onUpload, onCancel }: { onUpload: (files: File[]) => void; onCancel: () => void }) => (
     <div data-testid="image-upload">
       <button onClick={() => onUpload([new File([], 'test.jpg')])}>Upload</button>
       <button onClick={onCancel}>Cancel</button>
@@ -62,8 +64,7 @@ describe('EquipmentImagesTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    const { getAllEquipmentImages } = require('@/features/equipment/services/equipmentImagesService');
-    vi.mocked(getAllEquipmentImages).mockResolvedValue(mockImages);
+    vi.mocked(equipmentImagesServiceModule.getAllEquipmentImages).mockResolvedValue(mockImages);
   });
 
   describe('Core Rendering', () => {
@@ -111,8 +112,7 @@ describe('EquipmentImagesTab', () => {
     });
 
     it('handles image upload', async () => {
-      const { createEquipmentNoteWithImages } = require('@/features/equipment/services/equipmentNotesService');
-      vi.mocked(createEquipmentNoteWithImages).mockResolvedValue({ id: 'note-1' });
+      vi.mocked(equipmentNotesServiceModule.createEquipmentNoteWithImages).mockResolvedValue({ id: 'note-1' });
 
       render(
         <EquipmentImagesTab 
@@ -130,8 +130,7 @@ describe('EquipmentImagesTab', () => {
 
   describe('Image Deletion', () => {
     it('handles image deletion', async () => {
-      const { deleteEquipmentImage } = require('@/features/equipment/services/equipmentImagesService');
-      vi.mocked(deleteEquipmentImage).mockResolvedValue(undefined);
+      vi.mocked(equipmentImagesServiceModule.deleteEquipmentImage).mockResolvedValue(undefined);
 
       render(
         <EquipmentImagesTab 
@@ -149,8 +148,7 @@ describe('EquipmentImagesTab', () => {
 
   describe('Display Image', () => {
     it('handles setting display image', async () => {
-      const { updateEquipmentDisplayImage } = require('@/features/equipment/services/equipmentImagesService');
-      vi.mocked(updateEquipmentDisplayImage).mockResolvedValue(undefined);
+      vi.mocked(equipmentImagesServiceModule.updateEquipmentDisplayImage).mockResolvedValue(undefined);
 
       render(
         <EquipmentImagesTab 
@@ -169,8 +167,7 @@ describe('EquipmentImagesTab', () => {
 
   describe('Loading State', () => {
     it('shows loading state while fetching images', () => {
-      const { getAllEquipmentImages } = require('@/features/equipment/services/equipmentImagesService');
-      vi.mocked(getAllEquipmentImages).mockImplementation(() => new Promise(() => {}));
+      vi.mocked(equipmentImagesServiceModule.getAllEquipmentImages).mockImplementation(() => new Promise(() => {}));
 
       render(
         <EquipmentImagesTab 
@@ -185,8 +182,7 @@ describe('EquipmentImagesTab', () => {
 
   describe('Empty State', () => {
     it('handles empty images list', async () => {
-      const { getAllEquipmentImages } = require('@/features/equipment/services/equipmentImagesService');
-      vi.mocked(getAllEquipmentImages).mockResolvedValue([]);
+      vi.mocked(equipmentImagesServiceModule.getAllEquipmentImages).mockResolvedValue([]);
 
       render(
         <EquipmentImagesTab 
@@ -201,4 +197,5 @@ describe('EquipmentImagesTab', () => {
     });
   });
 });
+
 

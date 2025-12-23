@@ -1,7 +1,8 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@/test/utils/test-utils';
+import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EquipmentScansTab from '../EquipmentScansTab';
+import * as useEquipmentModule from '@/features/equipment/hooks/useEquipment';
 
 // Mock hooks
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
@@ -29,8 +30,7 @@ describe('EquipmentScansTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    const { useEquipmentScans } = require('@/features/equipment/hooks/useEquipment');
-    vi.mocked(useEquipmentScans).mockReturnValue({
+    vi.mocked(useEquipmentModule.useEquipmentScans).mockReturnValue({
       data: mockScans,
       isLoading: false
     });
@@ -61,8 +61,7 @@ describe('EquipmentScansTab', () => {
 
   describe('Loading State', () => {
     it('shows loading skeletons when isLoading is true', () => {
-      const { useEquipmentScans } = require('@/features/equipment/hooks/useEquipment');
-      vi.mocked(useEquipmentScans).mockReturnValue({
+      vi.mocked(useEquipmentModule.useEquipmentScans).mockReturnValue({
         data: [],
         isLoading: true
       });
@@ -76,8 +75,7 @@ describe('EquipmentScansTab', () => {
 
   describe('Empty State', () => {
     it('shows empty state when no scans', () => {
-      const { useEquipmentScans } = require('@/features/equipment/hooks/useEquipment');
-      vi.mocked(useEquipmentScans).mockReturnValue({
+      vi.mocked(useEquipmentModule.useEquipmentScans).mockReturnValue({
         data: [],
         isLoading: false
       });
@@ -100,8 +98,7 @@ describe('EquipmentScansTab', () => {
 
   describe('Time Formatting', () => {
     it('formats recent scans correctly', () => {
-      const { useEquipmentScans } = require('@/features/equipment/hooks/useEquipment');
-      vi.mocked(useEquipmentScans).mockReturnValue({
+      vi.mocked(useEquipmentModule.useEquipmentScans).mockReturnValue({
         data: [{
           id: 'scan-1',
           scanned_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
@@ -118,4 +115,5 @@ describe('EquipmentScansTab', () => {
     });
   });
 });
+
 

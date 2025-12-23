@@ -35,7 +35,7 @@ vi.mock('@/hooks/useAuth', () => ({
 
 // Mock sub-components
 vi.mock('../WorkOrderAcceptanceModal', () => ({
-  default: ({ open, onClose, onAccept }: any) => (
+  default: ({ open, onClose, onAccept }: { open: boolean; onClose: () => void; onAccept: () => void }) => (
     open ? (
       <div data-testid="acceptance-modal">
         <button data-testid="accept-button" onClick={onAccept}>Accept</button>
@@ -46,7 +46,7 @@ vi.mock('../WorkOrderAcceptanceModal', () => ({
 }));
 
 vi.mock('../WorkOrderAssigneeDisplay', () => ({
-  default: ({ workOrder }: any) => (
+  default: ({ workOrder }: { workOrder: { assigneeName?: string | null } }) => (
     <div data-testid="assignee-display">
       {workOrder.assigneeName || 'Unassigned'}
     </div>
@@ -96,7 +96,9 @@ describe('WorkOrderStatusManager', () => {
           />
         );
 
-        expect(screen.getByText(new RegExp(status.replace('_', ' '), 'i'))).toBeInTheDocument();
+        // Use getAllByText since status text might appear in multiple places (badge, descriptions, etc.)
+        const statusElements = screen.getAllByText(new RegExp(status.replace('_', ' '), 'i'));
+        expect(statusElements.length).toBeGreaterThan(0);
         unmount();
       });
     });
@@ -112,8 +114,8 @@ describe('WorkOrderStatusManager', () => {
       );
 
       expect(screen.getByText(/Available Actions:/i)).toBeInTheDocument();
-      expect(screen.getByText(/Accept/i)).toBeInTheDocument();
-      expect(screen.getByText(/Cancel/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Accept/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
     });
 
     it('opens acceptance modal when accept is clicked', async () => {
@@ -124,7 +126,7 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      const acceptButton = screen.getByText(/Accept/i).closest('button');
+      const acceptButton = screen.getByRole('button', { name: /Accept/i });
       if (acceptButton) {
         fireEvent.click(acceptButton);
       }
@@ -151,7 +153,7 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      const cancelButton = screen.getByText(/Cancel/i).closest('button');
+      const cancelButton = screen.getByRole('button', { name: /Cancel/i });
       if (cancelButton) {
         fireEvent.click(cancelButton);
       }
@@ -176,7 +178,7 @@ describe('WorkOrderStatusManager', () => {
       );
 
       expect(screen.getByText(/Assign & Start/i)).toBeInTheDocument();
-      expect(screen.getByText(/Cancel/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
     });
 
     it('updates status to in_progress when assign & start is clicked', async () => {
@@ -221,7 +223,7 @@ describe('WorkOrderStatusManager', () => {
       );
 
       expect(screen.getByText(/Start Work/i)).toBeInTheDocument();
-      expect(screen.getByText(/Put on Hold/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Put on Hold/i })).toBeInTheDocument();
     });
   });
 
@@ -234,8 +236,8 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      expect(screen.getByText(/Complete/i)).toBeInTheDocument();
-      expect(screen.getByText(/Put on Hold/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Complete/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Put on Hold/i })).toBeInTheDocument();
     });
 
     it('disables complete button when PM is not completed', async () => {
@@ -258,7 +260,7 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      const completeButton = screen.getByText(/Complete/i).closest('button');
+      const completeButton = screen.getByRole('button', { name: /Complete/i });
       expect(completeButton).toBeDisabled();
     });
 
@@ -282,7 +284,7 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      const completeButton = screen.getByText(/Complete/i).closest('button');
+      const completeButton = screen.getByRole('button', { name: /Complete/i });
       expect(completeButton).not.toBeDisabled();
     });
 
@@ -319,8 +321,8 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      expect(screen.getByText(/Resume/i)).toBeInTheDocument();
-      expect(screen.getByText(/Cancel/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Resume/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
     });
   });
 
@@ -392,7 +394,7 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      expect(screen.getByText(/Cancel/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
     });
 
     it('allows assigned technician to change status', async () => {
@@ -464,7 +466,7 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      const acceptButton = screen.getByText(/Accept/i).closest('button');
+      const acceptButton = screen.getByRole('button', { name: /Accept/i });
       if (acceptButton) {
         fireEvent.click(acceptButton);
       }
@@ -498,7 +500,7 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      const acceptButton = screen.getByText(/Accept/i).closest('button');
+      const acceptButton = screen.getByRole('button', { name: /Accept/i });
       if (acceptButton) {
         fireEvent.click(acceptButton);
       }
@@ -537,7 +539,7 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      const acceptButton = screen.getByText(/Accept/i).closest('button');
+      const acceptButton = screen.getByRole('button', { name: /Accept/i });
       expect(acceptButton).toBeDisabled();
     });
   });

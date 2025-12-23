@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EquipmentForm from '../EquipmentForm';
+import * as useEquipmentFormModule from '../hooks/useEquipmentForm';
 
 // Mock hooks
 vi.mock('../hooks/useEquipmentForm', () => ({
@@ -32,7 +33,7 @@ vi.mock('../form/TeamSelectionSection', () => ({
 }));
 
 vi.mock('../form/EquipmentFormActions', () => ({
-  default: ({ isEdit, isPending, onClose }: any) => (
+  default: ({ isEdit, isPending, onClose }: { isEdit: boolean; isPending: boolean; onClose: () => void }) => (
     <div data-testid="form-actions">
       <button onClick={onClose}>Cancel</button>
       <button type="submit" disabled={isPending}>
@@ -61,7 +62,7 @@ describe('EquipmentForm', () => {
   const mockOnSubmit = vi.fn();
   const mockForm = {
     control: {},
-    handleSubmit: vi.fn((fn) => (e: any) => {
+    handleSubmit: vi.fn((fn) => (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       fn({});
     }),
@@ -73,8 +74,7 @@ describe('EquipmentForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    const { useEquipmentForm } = require('../hooks/useEquipmentForm');
-    vi.mocked(useEquipmentForm).mockReturnValue({
+    vi.mocked(useEquipmentFormModule.useEquipmentForm).mockReturnValue({
       form: mockForm,
       onSubmit: mockOnSubmit,
       isEdit: false,
@@ -103,8 +103,7 @@ describe('EquipmentForm', () => {
     });
 
     it('shows edit title when in edit mode', () => {
-      const { useEquipmentForm } = require('../hooks/useEquipmentForm');
-      vi.mocked(useEquipmentForm).mockReturnValue({
+      vi.mocked(useEquipmentFormModule.useEquipmentForm).mockReturnValue({
         form: mockForm,
         onSubmit: mockOnSubmit,
         isEdit: true,
@@ -153,9 +152,6 @@ describe('EquipmentForm', () => {
 
   describe('Custom Attributes', () => {
     it('calls setValue when custom attributes change', () => {
-      const { useCustomAttributes } = require('@/hooks/useCustomAttributes');
-      const mockOnChange = vi.fn();
-      
       render(<EquipmentForm open={true} onClose={mockOnClose} />);
       
       // CustomAttributesSection should be rendered and handle onChange
@@ -167,15 +163,13 @@ describe('EquipmentForm', () => {
     it('passes equipment data to useEquipmentForm hook', () => {
       render(<EquipmentForm open={true} onClose={mockOnClose} equipment={mockEquipment} />);
       
-      const { useEquipmentForm } = require('../hooks/useEquipmentForm');
-      expect(useEquipmentForm).toHaveBeenCalledWith(mockEquipment, mockOnClose);
+      expect(useEquipmentFormModule.useEquipmentForm).toHaveBeenCalledWith(mockEquipment, mockOnClose);
     });
 
     it('passes undefined when no equipment provided', () => {
       render(<EquipmentForm open={true} onClose={mockOnClose} />);
       
-      const { useEquipmentForm } = require('../hooks/useEquipmentForm');
-      expect(useEquipmentForm).toHaveBeenCalledWith(undefined, mockOnClose);
+      expect(useEquipmentFormModule.useEquipmentForm).toHaveBeenCalledWith(undefined, mockOnClose);
     });
   });
 
@@ -207,4 +201,5 @@ describe('EquipmentForm', () => {
     });
   });
 });
+
 
