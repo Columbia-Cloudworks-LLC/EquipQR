@@ -131,6 +131,7 @@ describe('QuickBooksExportButton Component', () => {
 
     it('should render for admin users', async () => {
       vi.mocked(usePermissions).mockReturnValue({
+        hasRole: (roles: string[]) => roles.includes('admin'),
         canManageTeam: () => true,
         canViewTeam: () => true,
         canCreateTeam: () => true,
@@ -148,7 +149,7 @@ describe('QuickBooksExportButton Component', () => {
         canManagePMTemplates: () => true,
         canViewPMTemplates: () => true,
         canCreatePMTemplates: () => true
-      });
+      } as ReturnType<typeof usePermissions>);
       
       renderComponent();
       

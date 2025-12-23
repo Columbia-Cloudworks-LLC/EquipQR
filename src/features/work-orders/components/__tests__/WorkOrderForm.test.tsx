@@ -330,7 +330,37 @@ describe('WorkOrderForm', () => {
   });
 
   describe('Edit Mode', () => {
-    it('renders form in edit mode when workOrder is provided', () => {
+    it('renders form in edit mode when workOrder is provided', async () => {
+      const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
+      
+      vi.mocked(useWorkOrderForm).mockReturnValue({
+        form: {
+          values: {
+            title: 'Test Work Order',
+            description: 'Test description',
+            priority: 'high',
+            equipmentId: 'eq-1',
+            dueDate: '2024-01-15',
+            estimatedHours: 4,
+            hasPM: false,
+            pmTemplateId: null,
+            assignmentType: 'unassigned',
+            assignmentId: null,
+            isHistorical: false
+          },
+          errors: {},
+          isValid: true,
+          setValue: vi.fn(),
+          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
+            e.preventDefault();
+            fn();
+          }),
+          reset: vi.fn()
+        },
+        isEditMode: true,
+        checkForUnsavedChanges: vi.fn(() => false)
+      });
+
       render(
         <WorkOrderForm
           open={true}
@@ -342,7 +372,37 @@ describe('WorkOrderForm', () => {
       expect(screen.getByTestId('form-header')).toHaveTextContent('Edit Work Order');
     });
 
-    it('does not show historical toggle in edit mode', () => {
+    it('does not show historical toggle in edit mode', async () => {
+      const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
+      
+      vi.mocked(useWorkOrderForm).mockReturnValue({
+        form: {
+          values: {
+            title: 'Test Work Order',
+            description: 'Test description',
+            priority: 'high',
+            equipmentId: 'eq-1',
+            dueDate: '2024-01-15',
+            estimatedHours: 4,
+            hasPM: false,
+            pmTemplateId: null,
+            assignmentType: 'unassigned',
+            assignmentId: null,
+            isHistorical: false
+          },
+          errors: {},
+          isValid: true,
+          setValue: vi.fn(),
+          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
+            e.preventDefault();
+            fn();
+          }),
+          reset: vi.fn()
+        },
+        isEditMode: true,
+        checkForUnsavedChanges: vi.fn(() => false)
+      });
+
       render(
         <WorkOrderForm
           open={true}
@@ -355,8 +415,53 @@ describe('WorkOrderForm', () => {
     });
 
     it('calls onSubmit when provided in edit mode', async () => {
+      const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
       const { useWorkOrderSubmission } = await import('@/features/work-orders/hooks/useWorkOrderSubmission');
       const mockSubmitForm = vi.fn();
+      
+      const mockHandleSubmit = vi.fn((fn) => {
+        // Immediately call the function with form values
+        const formValues = {
+          title: 'Test Work Order',
+          description: 'Test description',
+          priority: 'high',
+          equipmentId: 'eq-1',
+          dueDate: '2024-01-15',
+          estimatedHours: 4,
+          hasPM: false,
+          pmTemplateId: null,
+          assignmentType: 'unassigned',
+          assignmentId: null,
+          isHistorical: false
+        };
+        fn(formValues);
+        return Promise.resolve();
+      });
+
+      vi.mocked(useWorkOrderForm).mockReturnValue({
+        form: {
+          values: {
+            title: 'Test Work Order',
+            description: 'Test description',
+            priority: 'high',
+            equipmentId: 'eq-1',
+            dueDate: '2024-01-15',
+            estimatedHours: 4,
+            hasPM: false,
+            pmTemplateId: null,
+            assignmentType: 'unassigned',
+            assignmentId: null,
+            isHistorical: false
+          },
+          errors: {},
+          isValid: true,
+          setValue: vi.fn(),
+          handleSubmit: mockHandleSubmit,
+          reset: vi.fn()
+        },
+        isEditMode: true,
+        checkForUnsavedChanges: vi.fn(() => false)
+      });
       
       vi.mocked(useWorkOrderSubmission).mockReturnValue({
         submitForm: mockSubmitForm,
@@ -399,6 +504,8 @@ describe('WorkOrderForm', () => {
     it('disables submit button when form is invalid', async () => {
       const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
       
+      // Reset and set up the mock
+      vi.mocked(useWorkOrderForm).mockReset();
       vi.mocked(useWorkOrderForm).mockReturnValue({
         form: {
           values: {

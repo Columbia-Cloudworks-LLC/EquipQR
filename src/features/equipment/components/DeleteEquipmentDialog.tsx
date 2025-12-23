@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertDialog,
@@ -44,6 +44,14 @@ export const DeleteEquipmentDialog = ({
   const [acknowledged, setAcknowledged] = useState(false);
   
   const deleteEquipmentMutation = useDeleteEquipment();
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setStep('initial');
+      setAcknowledged(false);
+    }
+  }, [open]);
 
   // Fetch deletion impact when dialog opens
   const { data: impact, isLoading: impactLoading } = useQuery({

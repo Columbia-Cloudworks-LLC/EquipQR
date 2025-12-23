@@ -118,9 +118,11 @@ describe('CustomAttributesSection', () => {
     });
 
     it('calls removeAttribute when delete button is clicked', () => {
+      // Need at least 2 attributes so delete button is not disabled
       vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
         attributes: [
-          { id: 'attr-1', key: 'Color', value: 'Red' }
+          { id: 'attr-1', key: 'Color', value: 'Red' },
+          { id: 'attr-2', key: 'Size', value: 'Large' }
         ],
         addAttribute: mockAddAttribute,
         removeAttribute: mockRemoveAttribute,
@@ -130,7 +132,7 @@ describe('CustomAttributesSection', () => {
 
       render(<CustomAttributesSection onChange={mockOnChange} />);
       
-      const deleteButton = screen.getByRole('button', { name: /delete/i });
+      const deleteButton = screen.getByRole('button', { name: /delete attribute color/i });
       fireEvent.click(deleteButton);
       
       expect(mockRemoveAttribute).toHaveBeenCalledWith('attr-1');
@@ -143,6 +145,15 @@ describe('CustomAttributesSection', () => {
         { id: 'attr-1', key: 'Key1', value: 'Value1' }
       ];
 
+      // Mock the hook to return the array attributes (simulating what the real hook does)
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
+        attributes: initialAttributes,
+        addAttribute: mockAddAttribute,
+        removeAttribute: mockRemoveAttribute,
+        updateAttribute: mockUpdateAttribute,
+        getCleanAttributes: () => [{ key: 'Key1', value: 'Value1' }]
+      });
+
       render(<CustomAttributesSection initialAttributes={initialAttributes} onChange={mockOnChange} />);
       
       expect(screen.getByDisplayValue('Key1')).toBeInTheDocument();
@@ -150,6 +161,19 @@ describe('CustomAttributesSection', () => {
     });
 
     it('handles object format initial attributes', () => {
+      // Mock the hook to return the converted attributes (simulating what the real hook does)
+      // The component converts object format to array format before passing to the hook
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
+        attributes: [
+          { id: 'attr-1', key: 'Key1', value: 'Value1' },
+          { id: 'attr-2', key: 'Key2', value: 'Value2' }
+        ],
+        addAttribute: mockAddAttribute,
+        removeAttribute: mockRemoveAttribute,
+        updateAttribute: mockUpdateAttribute,
+        getCleanAttributes: () => [{ key: 'Key1', value: 'Value1' }, { key: 'Key2', value: 'Value2' }]
+      });
+
       const initialAttributes = {
         Key1: 'Value1',
         Key2: 'Value2'

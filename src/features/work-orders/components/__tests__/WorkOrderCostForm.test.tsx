@@ -103,17 +103,15 @@ describe('WorkOrderCostForm', () => {
       fireEvent.change(quantityInput, { target: { value: '2' } });
       fireEvent.change(priceInput, { target: { value: '10.50' } });
 
-      const submitButton = screen.getByRole('button', { name: /add cost/i });
+      const submitButton = screen.getByRole('button', { name: /^add$/i });
       fireEvent.click(submitButton);
 
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledWith({
-          workOrderId: 'wo-1',
-          costData: {
-            description: 'Test Cost',
-            quantity: 2,
-            unit_price_cents: 1050 // $10.50 * 100
-          }
+          work_order_id: 'wo-1',
+          description: 'Test Cost',
+          quantity: 2,
+          unit_price_cents: 1050 // $10.50 * 100
         });
       });
     });
@@ -139,7 +137,7 @@ describe('WorkOrderCostForm', () => {
       const descriptionInput = screen.getByLabelText(/Description/i);
       fireEvent.change(descriptionInput, { target: { value: 'Test Cost' } });
 
-      const submitButton = screen.getByRole('button', { name: /add cost/i });
+      const submitButton = screen.getByRole('button', { name: /^add$/i });
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -204,7 +202,7 @@ describe('WorkOrderCostForm', () => {
       const descriptionInput = screen.getByLabelText(/Description/i);
       fireEvent.change(descriptionInput, { target: { value: 'Updated Cost' } });
 
-      const submitButton = screen.getByRole('button', { name: /update cost/i });
+      const submitButton = screen.getByRole('button', { name: /^update$/i });
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -230,7 +228,7 @@ describe('WorkOrderCostForm', () => {
         />
       );
 
-      const submitButton = screen.getByRole('button', { name: /add cost/i });
+      const submitButton = screen.getByRole('button', { name: /^add$/i });
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -250,7 +248,7 @@ describe('WorkOrderCostForm', () => {
       const quantityInput = screen.getByLabelText(/Quantity/i);
       fireEvent.change(quantityInput, { target: { value: '0' } });
 
-      const submitButton = screen.getByRole('button', { name: /add cost/i });
+      const submitButton = screen.getByRole('button', { name: /^add$/i });
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -270,7 +268,7 @@ describe('WorkOrderCostForm', () => {
       const priceInput = screen.getByLabelText(/Unit Price/i);
       fireEvent.change(priceInput, { target: { value: '-10' } });
 
-      const submitButton = screen.getByRole('button', { name: /add cost/i });
+      const submitButton = screen.getByRole('button', { name: /^add$/i });
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -326,7 +324,7 @@ describe('WorkOrderCostForm', () => {
         />
       );
 
-      const submitButton = screen.getByRole('button', { name: /add cost/i });
+      const submitButton = screen.getByRole('button', { name: /saving.../i });
       expect(submitButton).toBeDisabled();
     });
   });

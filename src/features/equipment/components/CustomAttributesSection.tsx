@@ -103,6 +103,7 @@ const CustomAttributesSection: React.FC<CustomAttributesSectionProps> = ({
                 size="icon"
                 onClick={() => removeAttribute(attribute.id)}
                 disabled={attributes.length === 1}
+                aria-label={`Delete attribute ${attribute.key || 'unnamed'}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

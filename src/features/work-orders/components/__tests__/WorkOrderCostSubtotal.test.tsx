@@ -36,7 +36,14 @@ describe('WorkOrderCostSubtotal', () => {
   });
 
   describe('Empty State', () => {
-    it('shows no costs message when subtotal is zero', () => {
+    it('shows no costs message when subtotal is zero', async () => {
+      const { useWorkOrderCostsSubtotal } = await import('@/features/work-orders/hooks/useWorkOrderCostsSubtotal');
+      
+      vi.mocked(useWorkOrderCostsSubtotal).mockReturnValue({
+        data: 0,
+        isLoading: false
+      });
+
       render(<WorkOrderCostSubtotal workOrderId="wo-1" />);
 
       expect(screen.getByText(/No costs/i)).toBeInTheDocument();
@@ -83,7 +90,14 @@ describe('WorkOrderCostSubtotal', () => {
   });
 
   describe('Edge Cases', () => {
-    it('handles zero cents correctly', () => {
+    it('handles zero cents correctly', async () => {
+      const { useWorkOrderCostsSubtotal } = await import('@/features/work-orders/hooks/useWorkOrderCostsSubtotal');
+      
+      vi.mocked(useWorkOrderCostsSubtotal).mockReturnValue({
+        data: 0,
+        isLoading: false
+      });
+
       render(<WorkOrderCostSubtotal workOrderId="wo-1" />);
 
       expect(screen.getByText(/No costs/i)).toBeInTheDocument();
