@@ -71,5 +71,3 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
 };
 
 export default WorkOrderImagesSection;
-
-

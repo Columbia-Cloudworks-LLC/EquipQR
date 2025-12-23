@@ -134,5 +134,3 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
 };
 
 export default WorkOrderAssigneeDisplay;
-
-

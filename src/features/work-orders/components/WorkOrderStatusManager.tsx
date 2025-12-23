@@ -347,5 +347,3 @@ const getStatusActions = (): StatusAction[] => {
 };
 
 export default WorkOrderStatusManager;
-
-

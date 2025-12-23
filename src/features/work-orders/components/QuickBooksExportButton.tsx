@@ -192,5 +192,3 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
 };
 
 export default QuickBooksExportButton;
-
-

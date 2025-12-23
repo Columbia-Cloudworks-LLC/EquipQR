@@ -975,5 +975,3 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 };
 
 export default PMChecklistComponent;
-
-

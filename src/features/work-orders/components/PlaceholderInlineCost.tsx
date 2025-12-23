@@ -128,5 +128,3 @@ const PlaceholderInlineCost: React.FC<PlaceholderInlineCostProps> = ({
 };
 
 export default PlaceholderInlineCost;
-
-

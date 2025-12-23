@@ -223,5 +223,3 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
 };
 
 export default WorkOrderAcceptanceModal;
-
-

@@ -301,5 +301,3 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({
 };
 
 export default MobileWorkOrderCard;
-
-

@@ -149,5 +149,3 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
 };
 
 export default WorkOrderAssignmentSelector;
-
-

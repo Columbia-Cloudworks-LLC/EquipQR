@@ -60,5 +60,3 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
 };
 
 export default WorkOrderCostsSection;
-
-

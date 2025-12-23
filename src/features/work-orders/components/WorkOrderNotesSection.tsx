@@ -312,5 +312,3 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
 };
 
 export default WorkOrderNotesSection;
-
-

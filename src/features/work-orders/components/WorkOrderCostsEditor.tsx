@@ -110,5 +110,3 @@ const WorkOrderCostsEditor: React.FC<WorkOrderCostsEditorProps> = ({
 };
 
 export default WorkOrderCostsEditor;
-
-

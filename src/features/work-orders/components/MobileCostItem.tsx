@@ -97,5 +97,3 @@ const MobileCostItem: React.FC<MobileCostItemProps> = React.memo(({
 MobileCostItem.displayName = 'MobileCostItem';
 
 export default MobileCostItem;
-
-

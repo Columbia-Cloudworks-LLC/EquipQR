@@ -63,6 +63,3 @@ describe('PrintExportDropdown', () => {
     expect(svg).toBeInTheDocument();
   });
 });
-
-
-

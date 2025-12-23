@@ -268,5 +268,3 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
 };
 
 export default WorkOrderRequestForm;
-
-

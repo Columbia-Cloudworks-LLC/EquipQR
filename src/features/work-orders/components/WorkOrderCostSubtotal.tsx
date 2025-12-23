@@ -44,5 +44,3 @@ const WorkOrderCostSubtotal: React.FC<WorkOrderCostSubtotalProps> = ({
 };
 
 export default WorkOrderCostSubtotal;
-
-
