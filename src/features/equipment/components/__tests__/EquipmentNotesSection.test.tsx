@@ -72,6 +72,3 @@ describe('EquipmentNotesSection', () => {
     });
   });
 });
-
-
-

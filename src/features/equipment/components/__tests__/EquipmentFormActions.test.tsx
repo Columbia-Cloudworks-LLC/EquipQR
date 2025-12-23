@@ -91,6 +91,3 @@ describe('EquipmentFormActions', () => {
     });
   });
 });
-
-
-

@@ -16,10 +16,30 @@ vi.mock('react-router-dom', async () => {
 const mockWorkOrder = {
   id: 'wo-1',
   title: 'Test Work Order',
-  status: 'open',
+  description: 'Test description',
+  status: 'submitted' as const,
+  priority: 'medium' as const,
+  equipment_id: 'eq-1',
+  organization_id: 'org-1',
+  created_by: 'user-1',
   created_date: '2024-01-15',
   due_date: '2024-01-20',
-  equipment_id: 'eq-1'
+  updated_at: '2024-01-15T00:00:00Z',
+  has_pm: false,
+  is_historical: false,
+  pm_required: false,
+  acceptance_date: null,
+  assignee_id: null,
+  assignee_name: null,
+  assigneeName: undefined,
+  team_id: null,
+  teamName: undefined,
+  created_by_admin: null,
+  created_by_name: null,
+  completed_date: null,
+  estimated_hours: null,
+  historical_notes: null,
+  historical_start_date: null
 };
 
 describe('MobileWorkOrderCard', () => {
@@ -37,7 +57,7 @@ describe('MobileWorkOrderCard', () => {
     it('displays work order status', () => {
       render(<MobileWorkOrderCard workOrder={mockWorkOrder} />);
       
-      expect(screen.getByText('open')).toBeInTheDocument();
+      expect(screen.getByText('Submitted')).toBeInTheDocument();
     });
   });
 
@@ -53,6 +73,3 @@ describe('MobileWorkOrderCard', () => {
     });
   });
 });
-
-
-

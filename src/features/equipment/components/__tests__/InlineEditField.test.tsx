@@ -282,6 +282,3 @@ describe('InlineEditField', () => {
     });
   });
 });
-
-
-

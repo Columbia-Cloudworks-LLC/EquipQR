@@ -130,6 +130,3 @@ describe('ResponsiveEquipmentTabs', () => {
     });
   });
 });
-
-
-

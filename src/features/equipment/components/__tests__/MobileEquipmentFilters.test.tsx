@@ -303,6 +303,3 @@ describe('MobileEquipmentFilters', () => {
     });
   });
 });
-
-
-

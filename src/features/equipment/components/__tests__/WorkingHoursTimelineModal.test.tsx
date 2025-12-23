@@ -16,7 +16,8 @@ describe('WorkingHoursTimelineModal', () => {
         <WorkingHoursTimelineModal 
           open={true} 
           onClose={mockOnClose} 
-          equipmentId="eq-1" 
+          equipmentId="eq-1"
+          equipmentName="Test Equipment"
         />
       );
       
@@ -28,7 +29,8 @@ describe('WorkingHoursTimelineModal', () => {
         <WorkingHoursTimelineModal 
           open={false} 
           onClose={mockOnClose} 
-          equipmentId="eq-1" 
+          equipmentId="eq-1"
+          equipmentName="Test Equipment"
         />
       );
       
@@ -40,7 +42,8 @@ describe('WorkingHoursTimelineModal', () => {
         <WorkingHoursTimelineModal 
           open={true} 
           onClose={mockOnClose} 
-          equipmentId="eq-1" 
+          equipmentId="eq-1"
+          equipmentName="Test Equipment"
         />
       );
       
@@ -51,6 +54,3 @@ describe('WorkingHoursTimelineModal', () => {
     });
   });
 });
-
-
-
