@@ -32,6 +32,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { inventoryItemFormSchema } from '@/features/inventory/schemas/inventorySchema';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
+import { logger } from '@/utils/logger';
 
 interface InventoryItemFormProps {
   open: boolean;
@@ -156,7 +157,8 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         });
       }
       onClose();
-    } catch {
+    } catch (error) {
+      logger.error('Error submitting inventory item form:', { error, editingItem: !!editingItem });
       // Error handling is done in the mutation hooks
     }
   };
