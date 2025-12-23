@@ -82,7 +82,8 @@ describe('WorkOrderAssignment', () => {
         />
       );
 
-      expect(screen.getByText(/Assignee/i)).toBeInTheDocument();
+      // Use exact match to avoid matching "Select assignee..." placeholder
+      expect(screen.getByText(/^Assignee$/)).toBeInTheDocument();
     });
   });
 
@@ -124,7 +125,8 @@ describe('WorkOrderAssignment', () => {
 
       // When switching types, assignmentId should be cleared
       // This is tested through the component's handleAssignmentTypeChange logic
-      expect(screen.getByText(/Assignee/i)).toBeInTheDocument();
+      // Use exact match to avoid matching "Select assignee..." placeholder
+      expect(screen.getByText(/^Assignee$/)).toBeInTheDocument();
     });
   });
 
@@ -144,7 +146,8 @@ describe('WorkOrderAssignment', () => {
         />
       );
 
-      expect(screen.getByText(/Assignee/i)).toBeInTheDocument();
+      // Use exact match to avoid matching "Select assignee..." placeholder
+      expect(screen.getByText(/^Assignee$/)).toBeInTheDocument();
     });
 
     it('shows loading state when assignees are loading', async () => {
