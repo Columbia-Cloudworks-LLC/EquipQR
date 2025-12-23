@@ -14,5 +14,3 @@ export const useWorkOrderCostsSubtotal = (workOrderId: string) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
-
-

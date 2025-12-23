@@ -59,7 +59,7 @@ interface NavigationItem {
 
 const mainNavigation: NavigationItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Equipment", url: "/dashboard/equipment", icon: Forklift }, // Updated icon
+  { title: "Equipment", url: "/dashboard/equipment", icon: Forklift },
   { title: "Work Orders", url: "/dashboard/work-orders", icon: ClipboardList },
   { title: "Inventory", url: "/dashboard/inventory", icon: Warehouse },
   { title: "Teams", url: "/dashboard/teams", icon: Users },

@@ -237,5 +237,3 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
 };
 
 export default WorkOrderTimeline;
-
-

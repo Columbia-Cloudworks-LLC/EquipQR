@@ -183,5 +183,3 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
  * @deprecated Use useWorkOrderAssignmentOptions instead
  */
 export const useWorkOrderAssignment = useWorkOrderAssignmentOptions;
-
-
