@@ -152,5 +152,3 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
 };
 
 export default WorkOrderDetailsInfo;
-
-
