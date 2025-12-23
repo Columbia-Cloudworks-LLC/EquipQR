@@ -19,7 +19,20 @@ vi.mock('@/hooks/useQuickWorkOrderAssignment', () => ({
   useQuickWorkOrderAssignment: vi.fn(() => ({
     mutate: vi.fn(),
     mutateAsync: vi.fn(),
-    isPending: false
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false
   }))
 }));
 
@@ -113,8 +126,21 @@ describe('WorkOrderAssignmentSelector', () => {
       vi.mocked(useQuickWorkOrderAssignment).mockReturnValue({
         mutate: vi.fn(),
         mutateAsync: vi.fn(),
-        isPending: true
-      });
+        isPending: true,
+        data: undefined,
+        error: null,
+        isError: false,
+        isSuccess: false,
+        status: 'pending' as const,
+        variables: undefined,
+        reset: vi.fn(),
+        isIdle: false,
+        context: undefined,
+        failureCount: 0,
+        failureReason: null,
+        submittedAt: 0,
+        isPaused: false
+      } as ReturnType<typeof useQuickWorkOrderAssignment>);
 
       render(
         <WorkOrderAssignmentSelector
@@ -136,6 +162,7 @@ describe('WorkOrderAssignmentSelector', () => {
       vi.mocked(useWorkOrderContextualAssignment).mockReturnValue({
         assignmentOptions: [],
         isLoading: true,
+        error: null,
         hasTeamAssignment: false
       });
 

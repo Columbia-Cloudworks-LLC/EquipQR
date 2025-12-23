@@ -78,26 +78,28 @@ const mockWorkOrder: WorkOrder = {
   equipmentName: 'Test Equipment',
   organization_id: 'org-1',
   created_date: '2024-01-01T00:00:00Z',
-  createdDate: '2024-01-01T00:00:00Z',
   due_date: '2024-01-15T00:00:00Z',
-  dueDate: '2024-01-15T00:00:00Z',
   assignee_id: 'user-1',
+  assignee_name: 'John Doe',
   assigneeName: 'John Doe',
   team_id: 'team-1',
   teamName: 'Maintenance Team',
   equipmentTeamName: 'Maintenance Team',
   estimated_hours: 4,
-  estimatedHours: 4,
   has_pm: false,
   pm_required: false,
   created_by: 'user-2',
-  created_by_admin: false,
+  created_by_admin: null,
   created_by_name: 'Jane Smith',
   createdByName: 'Jane Smith',
   updated_at: '2024-01-01T00:00:00Z',
   is_historical: false,
+  acceptance_date: null,
+  completed_date: null,
+  historical_notes: null,
+  historical_start_date: null,
   assignedTo: { id: 'user-1', name: 'John Doe' }
-} as WorkOrder;
+};
 
 describe('WorkOrderCard', () => {
   const mockOnNavigate = vi.fn();
@@ -254,11 +256,10 @@ describe('WorkOrderCard', () => {
     });
 
     it('displays overdue indicator when due date is past and status is not completed', () => {
-      const overdueOrder = {
+      const overdueOrder: WorkOrder = {
         ...mockWorkOrder,
         due_date: '2023-01-01T00:00:00Z',
-        dueDate: '2023-01-01T00:00:00Z',
-        status: 'in_progress'
+        status: 'in_progress' as const
       };
 
       render(
@@ -328,9 +329,9 @@ describe('WorkOrderCard', () => {
     });
 
     it('displays accept button when status is submitted', () => {
-      const submittedOrder = {
+      const submittedOrder: WorkOrder = {
         ...mockWorkOrder,
-        status: 'submitted'
+        status: 'submitted' as const
       };
 
       render(
@@ -347,9 +348,9 @@ describe('WorkOrderCard', () => {
     });
 
     it('calls onAcceptClick when accept button is clicked', () => {
-      const submittedOrder = {
+      const submittedOrder: WorkOrder = {
         ...mockWorkOrder,
-        status: 'submitted'
+        status: 'submitted' as const
       };
 
       render(
@@ -368,9 +369,9 @@ describe('WorkOrderCard', () => {
     });
 
     it('shows loading state when isAccepting is true', () => {
-      const submittedOrder = {
+      const submittedOrder: WorkOrder = {
         ...mockWorkOrder,
-        status: 'submitted'
+        status: 'submitted' as const
       };
 
       render(
@@ -505,11 +506,10 @@ describe('WorkOrderCard', () => {
     });
 
     it('displays due date with overdue indicator when overdue', () => {
-      const overdueOrder = {
+      const overdueOrder: WorkOrder = {
         ...mockWorkOrder,
         due_date: '2023-01-01T00:00:00Z',
-        dueDate: '2023-01-01T00:00:00Z',
-        status: 'in_progress'
+        status: 'in_progress' as const
       };
 
       render(
@@ -612,11 +612,10 @@ describe('WorkOrderCard', () => {
     });
 
     it('handles completed date display', () => {
-      const completedOrder = {
+      const completedOrder: WorkOrder = {
         ...mockWorkOrder,
         completed_date: '2024-01-10T00:00:00Z',
-        completedDate: '2024-01-10T00:00:00Z',
-        status: 'completed'
+        status: 'completed' as const
       };
 
       render(
@@ -690,4 +689,3 @@ describe('WorkOrderCard', () => {
     });
   });
 });
-
