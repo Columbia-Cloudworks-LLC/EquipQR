@@ -102,10 +102,26 @@ const mockHooks = {
     error: null,
   },
   useCreateWorkOrder: {
+    mutate: vi.fn(),
     mutateAsync: vi.fn().mockResolvedValue({ id: 'wo-1' }),
+    status: 'idle',
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    data: null,
+    error: null,
+    reset: vi.fn(),
   },
   useInitializePMChecklist: {
+    mutate: vi.fn(),
     mutateAsync: vi.fn().mockResolvedValue({}),
+    status: 'idle',
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    data: null,
+    error: null,
+    reset: vi.fn(),
   }
 };
 
