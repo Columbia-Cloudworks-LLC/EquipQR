@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import WorkOrderCostForm from '../WorkOrderCostForm';
 
@@ -230,6 +231,7 @@ describe('WorkOrderCostForm', () => {
 
   describe('Form Validation', () => {
     it('shows error when description is empty', async () => {
+      const user = userEvent.setup();
       render(
         <WorkOrderCostForm
           open={true}
@@ -239,7 +241,7 @@ describe('WorkOrderCostForm', () => {
       );
 
       const submitButton = screen.getByRole('button', { name: /^add$/i });
-      fireEvent.click(submitButton);
+      await user.click(submitButton);
 
       await waitFor(() => {
         expect(screen.getByText(/Description is required/i)).toBeInTheDocument();
@@ -247,6 +249,7 @@ describe('WorkOrderCostForm', () => {
     });
 
     it('shows error when quantity is invalid', async () => {
+      const user = userEvent.setup();
       render(
         <WorkOrderCostForm
           open={true}
@@ -256,10 +259,12 @@ describe('WorkOrderCostForm', () => {
       );
 
       const quantityInput = screen.getByLabelText(/Quantity/i);
-      fireEvent.change(quantityInput, { target: { value: '0' } });
+      // Clear the default value and enter 0
+      await user.clear(quantityInput);
+      await user.type(quantityInput, '0');
 
       const submitButton = screen.getByRole('button', { name: /^add$/i });
-      fireEvent.click(submitButton);
+      await user.click(submitButton);
 
       await waitFor(() => {
         expect(screen.getByText(/Quantity must be greater than 0/i)).toBeInTheDocument();
@@ -267,6 +272,7 @@ describe('WorkOrderCostForm', () => {
     });
 
     it('shows error when unit price is negative', async () => {
+      const user = userEvent.setup();
       render(
         <WorkOrderCostForm
           open={true}
@@ -276,10 +282,12 @@ describe('WorkOrderCostForm', () => {
       );
 
       const priceInput = screen.getByLabelText(/Unit Price/i);
-      fireEvent.change(priceInput, { target: { value: '-10' } });
+      // Clear and enter a negative value
+      await user.clear(priceInput);
+      await user.type(priceInput, '-10');
 
       const submitButton = screen.getByRole('button', { name: /^add$/i });
-      fireEvent.click(submitButton);
+      await user.click(submitButton);
 
       await waitFor(() => {
         expect(screen.getByText(/Unit price cannot be negative/i)).toBeInTheDocument();
