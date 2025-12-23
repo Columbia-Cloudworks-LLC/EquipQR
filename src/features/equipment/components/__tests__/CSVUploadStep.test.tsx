@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { describe, it, expect, vi } from 'vitest';
-import CSVUploadStep from '../csv-import/CSVUploadStep';
+import { CSVUploadStep } from '../csv-import/CSVUploadStep';
 
 describe('CSVUploadStep', () => {
   const mockOnFileUpload = vi.fn();

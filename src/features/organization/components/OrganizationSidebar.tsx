@@ -6,7 +6,6 @@ import { SessionStatus } from '@/components/session/SessionStatus';
 
 interface OrganizationSidebarProps {
   organization: SessionOrganization;
-  onUpgrade: () => void;
 }
 
 const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({

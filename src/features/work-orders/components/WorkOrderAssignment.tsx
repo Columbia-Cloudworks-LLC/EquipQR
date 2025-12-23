@@ -96,7 +96,7 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
               disabled={isLoadingMembers}
             >
               <SelectTrigger>
-                <SelectValue placeholder={isLoadingMembers ? "Loading..." : assignmentOptions.length === 0 ? "No assignees available" : "Select user..."} />
+                <SelectValue placeholder={isLoadingMembers ? "Loading..." : assignmentOptions.length === 0 ? "No assignees available" : "Select assignee..."} />
               </SelectTrigger>
               <SelectContent>
                 {assignmentOptions.length === 0 && !isLoadingMembers ? (
