@@ -166,10 +166,19 @@ describe('sessionPersistence', () => {
     });
 
     it('should return false for boundary case at 15 minutes', () => {
-      // At exactly 15 minutes, the lastRefreshTime equals fifteenMinutesAgo
-      // so lastRefreshTime < fifteenMinutesAgo is false
-      const boundaryRefresh = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      expect(shouldRefreshSession(boundaryRefresh)).toBe(false);
+      // Mock Date.now() to ensure consistent timing for boundary test
+      const fixedNow = 1700000000000; // Fixed timestamp
+      const originalDateNow = Date.now;
+      Date.now = vi.fn(() => fixedNow);
+      
+      try {
+        // At exactly 15 minutes, the lastRefreshTime equals fifteenMinutesAgo
+        // so lastRefreshTime < fifteenMinutesAgo is false
+        const boundaryRefresh = new Date(fixedNow - 15 * 60 * 1000).toISOString();
+        expect(shouldRefreshSession(boundaryRefresh)).toBe(false);
+      } finally {
+        Date.now = originalDateNow;
+      }
     });
 
     it('should return false for very recent refresh', () => {
