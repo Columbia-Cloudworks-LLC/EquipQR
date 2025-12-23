@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { Search, Forklift, Loader2 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 import { usePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
@@ -92,7 +93,7 @@ export const TemplateApplicationDialog: React.FC<TemplateApplicationDialogProps>
 
           successCount++;
         } catch (error) {
-          console.error('Error creating PM for equipment:', equipmentId, error);
+          logger.error('Error creating PM for equipment', { equipmentId, error });
           errorCount++;
         }
       }
@@ -111,7 +112,7 @@ export const TemplateApplicationDialog: React.FC<TemplateApplicationDialogProps>
 
       onClose();
     } catch (error) {
-      console.error('Error applying template:', error);
+      logger.error('Error applying template', { error });
       toast.error('Failed to apply template');
     } finally {
       setIsCreating(false);

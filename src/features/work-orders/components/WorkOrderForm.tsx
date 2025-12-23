@@ -104,7 +104,6 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   });
 
   const isSubmitting = isLoading || isUpdating;
-  const isSubmitDisabled = isSubmitting || !form.isValid;
 
   // Get assignment data for auto-assignment suggestions
   const assignmentData = useWorkOrderAssignmentOptions(currentOrganization?.id || '');
@@ -263,9 +262,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
           <WorkOrderFormActions
             onCancel={handleClose}
             onSubmit={handleSubmit}
-            isLoading={isSubmitDisabled}
             isSubmitting={isSubmitting}
-            isDisabled={isSubmitDisabled}
             isValid={form.isValid}
             isEditMode={isEditMode}
           />

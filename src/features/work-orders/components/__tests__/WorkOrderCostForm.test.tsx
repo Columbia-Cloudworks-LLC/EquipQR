@@ -3,18 +3,32 @@ import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import WorkOrderCostForm from '../WorkOrderCostForm';
 
+// Helper to create a complete mock mutation result with proper typing
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const createMockMutationResult = (overrides: Record<string, any> = {}): any => ({
+  mutate: vi.fn(),
+  mutateAsync: vi.fn().mockResolvedValue({}),
+  isPending: false,
+  isIdle: true,
+  isSuccess: false,
+  isError: false,
+  data: undefined,
+  error: null,
+  variables: undefined,
+  context: undefined,
+  status: 'idle',
+  reset: vi.fn(),
+  failureCount: 0,
+  failureReason: null,
+  submittedAt: 0,
+  isPaused: false,
+  ...overrides
+});
+
 // Mock hooks
 vi.mock('@/features/work-orders/hooks/useWorkOrderCosts', () => ({
-  useCreateWorkOrderCost: vi.fn(() => ({
-    mutate: vi.fn(),
-    mutateAsync: vi.fn().mockResolvedValue({}),
-    isPending: false
-  })),
-  useUpdateWorkOrderCost: vi.fn(() => ({
-    mutate: vi.fn(),
-    mutateAsync: vi.fn().mockResolvedValue({}),
-    isPending: false
-  }))
+  useCreateWorkOrderCost: vi.fn(() => createMockMutationResult()),
+  useUpdateWorkOrderCost: vi.fn(() => createMockMutationResult())
 }));
 
 const mockCost = {
@@ -23,6 +37,8 @@ const mockCost = {
   description: 'Test Cost',
   quantity: 2,
   unit_price_cents: 1000, // $10.00
+  total_price_cents: 2000, // quantity * unit_price
+  created_by: 'user-1',
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z'
 };
@@ -81,11 +97,9 @@ describe('WorkOrderCostForm', () => {
       const { useCreateWorkOrderCost } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
       const mockMutateAsync = vi.fn().mockResolvedValue({});
       
-      vi.mocked(useCreateWorkOrderCost).mockReturnValue({
-        mutate: vi.fn(),
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useCreateWorkOrderCost).mockReturnValue(
+        createMockMutationResult({ mutateAsync: mockMutateAsync })
+      );
 
       render(
         <WorkOrderCostForm
@@ -120,11 +134,9 @@ describe('WorkOrderCostForm', () => {
       const { useCreateWorkOrderCost } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
       const mockMutateAsync = vi.fn().mockResolvedValue({});
       
-      vi.mocked(useCreateWorkOrderCost).mockReturnValue({
-        mutate: vi.fn(),
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useCreateWorkOrderCost).mockReturnValue(
+        createMockMutationResult({ mutateAsync: mockMutateAsync })
+      );
 
       render(
         <WorkOrderCostForm
@@ -184,11 +196,9 @@ describe('WorkOrderCostForm', () => {
       const { useUpdateWorkOrderCost } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
       const mockMutateAsync = vi.fn().mockResolvedValue({});
       
-      vi.mocked(useUpdateWorkOrderCost).mockReturnValue({
-        mutate: vi.fn(),
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useUpdateWorkOrderCost).mockReturnValue(
+        createMockMutationResult({ mutateAsync: mockMutateAsync })
+      );
 
       render(
         <WorkOrderCostForm
@@ -310,11 +320,9 @@ describe('WorkOrderCostForm', () => {
     it('disables submit button when mutation is pending', async () => {
       const { useCreateWorkOrderCost } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
       
-      vi.mocked(useCreateWorkOrderCost).mockReturnValue({
-        mutate: vi.fn(),
-        mutateAsync: vi.fn(),
-        isPending: true
-      });
+      vi.mocked(useCreateWorkOrderCost).mockReturnValue(
+        createMockMutationResult({ isPending: true, isIdle: false, status: 'pending' as const })
+      );
 
       render(
         <WorkOrderCostForm

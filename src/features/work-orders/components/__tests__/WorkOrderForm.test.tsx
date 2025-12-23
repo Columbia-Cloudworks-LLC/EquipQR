@@ -116,11 +116,11 @@ vi.mock('../WorkOrderPMChecklist', () => ({
 }));
 
 vi.mock('../WorkOrderFormActions', () => ({
-  WorkOrderFormActions: ({ onCancel, onSubmit, isLoading }: { onCancel: () => void; onSubmit: () => void; isLoading: boolean }) => (
+  WorkOrderFormActions: ({ onCancel, onSubmit, isSubmitting }: { onCancel: () => void; onSubmit: () => void; isSubmitting: boolean }) => (
     <div data-testid="form-actions">
       <button data-testid="cancel-button" onClick={onCancel}>Cancel</button>
-      <button data-testid="submit-button" onClick={onSubmit} disabled={isLoading}>
-        {isLoading ? 'Submitting...' : 'Submit'}
+      <button data-testid="submit-button" onClick={onSubmit} disabled={isSubmitting}>
+        {isSubmitting ? 'Submitting...' : 'Submit'}
       </button>
     </div>
   )

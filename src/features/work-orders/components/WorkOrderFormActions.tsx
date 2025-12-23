@@ -6,27 +6,17 @@ interface WorkOrderFormActionsProps {
   onSubmit: () => void;
   isValid: boolean;
   isEditMode: boolean;
-  /** Optional disabled state override (e.g., invalid form) */
-  isDisabled?: boolean;
-  /** Loading state from form submission hook (legacy, prefer isSubmitting) */
-  isLoading?: boolean;
-  /** Pending state for submit mutations; used for both disabled state and button label */
+  /** Pending state for submit mutations; controls disabled state and button label */
   isSubmitting?: boolean;
 }
 
 export const WorkOrderFormActions: React.FC<WorkOrderFormActionsProps> = ({
   onCancel,
   onSubmit,
-  isLoading,
-  isDisabled,
-  isSubmitting,
+  isSubmitting = false,
   isValid,
   isEditMode
 }) => {
-  const isPending = isSubmitting ?? isLoading;
-  const submitDisabled = (isDisabled ?? false) || isPending || !isValid;
-  const showLoadingState = isPending;
-
   return (
     <div className="flex gap-2 justify-end">
       <Button type="button" variant="outline" onClick={onCancel}>
@@ -35,9 +25,9 @@ export const WorkOrderFormActions: React.FC<WorkOrderFormActionsProps> = ({
       <Button 
         onClick={onSubmit}
         data-testid="submit-button"
-        disabled={submitDisabled}
+        disabled={isSubmitting || !isValid}
       >
-        {showLoadingState ? 
+        {isSubmitting ? 
           (isEditMode ? 'Updating...' : 'Creating...') : 
           (isEditMode ? 'Update Work Order' : 'Create Work Order')
         }

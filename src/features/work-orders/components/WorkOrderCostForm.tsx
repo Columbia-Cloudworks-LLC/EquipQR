@@ -66,16 +66,6 @@ const WorkOrderCostForm: React.FC<WorkOrderCostFormProps> = ({
   }, [open, editingCost, form]);
 
   const onSubmit = async (data: CostFormData) => {
-    if (data.quantity < 0.01) {
-      form.setError('quantity', { type: 'manual', message: 'Quantity must be greater than 0' });
-      return;
-    }
-
-    if (data.unit_price < 0) {
-      form.setError('unit_price', { type: 'manual', message: 'Unit price cannot be negative' });
-      return;
-    }
-
     try {
       const costData = {
         description: data.description,
@@ -103,10 +93,6 @@ const WorkOrderCostForm: React.FC<WorkOrderCostFormProps> = ({
   };
 
   const isLoading = createCostMutation.isPending || updateCostMutation.isPending;
-  const watchedQuantity = form.watch('quantity');
-  const watchedUnitPrice = form.watch('unit_price');
-  const quantityErrorText = watchedQuantity < 0.01 ? 'Quantity must be greater than 0' : undefined;
-  const unitPriceErrorText = watchedUnitPrice < 0 ? 'Unit price cannot be negative' : undefined;
   const handleFormSubmit = form.handleSubmit(onSubmit);
 
   const calculateTotal = () => {
@@ -165,10 +151,7 @@ const WorkOrderCostForm: React.FC<WorkOrderCostFormProps> = ({
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </FormControl>
-                <FormMessage />
-                {quantityErrorText && (
-                  <p className="text-sm text-destructive">{quantityErrorText}</p>
-                )}
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -189,10 +172,7 @@ const WorkOrderCostForm: React.FC<WorkOrderCostFormProps> = ({
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </FormControl>
-                <FormMessage />
-                {unitPriceErrorText && (
-                  <p className="text-sm text-destructive">{unitPriceErrorText}</p>
-                )}
+                    <FormMessage />
                   </FormItem>
                 )}
               />
