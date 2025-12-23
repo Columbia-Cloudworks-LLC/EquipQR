@@ -39,6 +39,8 @@ vi.mock('sonner', () => ({
   },
 }));
 
+const ASYNC_TEST_TIMEOUT = 3000;
+
 const mockTemplate = {
   id: 'template-1',
   name: 'Monthly PM Template',
@@ -328,9 +330,10 @@ describe('TemplateApplicationDialog', () => {
         </TestProviders>
       );
 
-      // Find the card containing "Forklift Alpha" text
+      // Find the card by looking for the equipment name text and traversing up to the parent div
       const alphaText = screen.getByText('Forklift Alpha');
-      const card = alphaText.closest('[class*="cursor-pointer"]');
+      // The Card component renders a div, so we can use the parent structure
+      const card = alphaText.closest('div[class*="p-3"]');
       
       // The card should exist
       expect(card).toBeTruthy();
@@ -528,7 +531,7 @@ describe('TemplateApplicationDialog', () => {
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith('Failed to create PM work orders');
-      }, { timeout: 3000 });
+      }, { timeout: ASYNC_TEST_TIMEOUT });
     });
 
     it('shows partial success when some work orders fail', async () => {
@@ -563,7 +566,7 @@ describe('TemplateApplicationDialog', () => {
         expect(toast.success).toHaveBeenCalledWith(
           'Successfully created 1 PM work order (2 failed)'
         );
-      }, { timeout: 3000 });
+      }, { timeout: ASYNC_TEST_TIMEOUT });
     });
 
     it('handles checklist initialization failure', async () => {
@@ -590,7 +593,7 @@ describe('TemplateApplicationDialog', () => {
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith('Failed to create PM work orders');
-      }, { timeout: 3000 });
+      }, { timeout: ASYNC_TEST_TIMEOUT });
     });
   });
 
