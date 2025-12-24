@@ -115,7 +115,12 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   }
 
   // Construct the redirect URI (edge function URL)
+  // CRITICAL: This must EXACTLY match what the callback function uses for token exchange.
+  // Both use the same pattern: ${SUPABASE_URL}/functions/v1/quickbooks-oauth-callback
   const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
+
+  // Log the redirect URI for debugging (safe - no secrets)
+  console.log('[QuickBooks OAuth] Authorize redirect_uri:', redirectUri);
 
   // Create minimal state object - session token and nonce (org/user validated server-side)
   const state: OAuthState = {

@@ -238,9 +238,12 @@ serve(async (req) => {
       hasRedirectUrl: !!redirectUrl
     });
 
-    // Construct redirect URI (must match what was used in authorization URL)
-    // Use the request URL to ensure the domain matches (handles custom domains vs supabase.co)
-    const redirectUri = `${url.origin}${url.pathname}`;
+    // Construct redirect URI (must EXACTLY match what was used in authorization URL)
+    // CRITICAL: Use SUPABASE_URL, not req.url - Edge Function proxying can alter the scheme (http vs https).
+    // This matches the client-side auth.ts which uses VITE_SUPABASE_URL.
+    const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
+
+    logStep("Redirect URI for token exchange", { redirectUri });
 
     // Exchange authorization code for tokens
     logStep("Exchanging code for tokens");
