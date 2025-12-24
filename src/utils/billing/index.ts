@@ -2,8 +2,8 @@
  * @deprecated Billing system has been removed. All functions return free/unlimited values.
  */
 
-import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
-import { SlotAvailability } from '@/hooks/useOrganizationSlots';
+import { RealOrganizationMember } from '@/features/organization/hooks/useOrganizationMembers';
+import { SlotAvailability } from '@/features/organization/hooks/useOrganizationSlots';
 
 // Output interface - simplified for free/unlimited model
 export interface BillingCalculation {
@@ -122,6 +122,7 @@ export function calculateBilling(state: BillingState): BillingCalculation {
  * Check if organization is free (always true - billing is permanently disabled)
  */
 export function isFreeOrganization(_members: RealOrganizationMember[]): boolean {
+  void _members;
   return true;
 }
 
@@ -130,6 +131,7 @@ export function isFreeOrganization(_members: RealOrganizationMember[]): boolean 
  * @param _slotAvailability - Unused, kept for backward compatibility with existing API
  */
 export function hasLicenses(_slotAvailability?: SlotAvailability): boolean {
+  void _slotAvailability;
   return true;
 }
 
@@ -140,6 +142,8 @@ export function hasLicenses(_slotAvailability?: SlotAvailability): boolean {
  * @param _totalNeeded Unused. Kept for backward compatibility with the existing API.
  */
 export function getSlotStatus(_slotAvailability?: SlotAvailability, _totalNeeded?: number): SlotStatus {
+  void _slotAvailability;
+  void _totalNeeded;
   // Billing is disabled - always unlimited
   return {
     status: 'unlimited',
@@ -150,19 +154,20 @@ export function getSlotStatus(_slotAvailability?: SlotAvailability, _totalNeeded
 
 /**
  * Check if invitation should be blocked (always false when billing is disabled)
- * @param slotAvailability Unused. Kept for backward compatibility with the existing API.
- * @param slotAvailability - Unused, kept for backward compatibility with existing API
+ * @param _slotAvailability - Unused, kept for backward compatibility with existing API
  */
-export function shouldBlockInvitation(slotAvailability?: SlotAvailability): boolean {
+export function shouldBlockInvitation(_slotAvailability?: SlotAvailability): boolean {
+  void _slotAvailability;
   // Billing is disabled - never block invitations
   return false;
 }
 
 /**
  * Check if can upgrade from free (always false when billing is disabled)
- * @param members - Unused, kept for backward compatibility with existing API
+ * @param _members - Unused, kept for backward compatibility with existing API
  */
-export function canUpgradeFromFree(members: RealOrganizationMember[]): boolean {
+export function canUpgradeFromFree(_members: RealOrganizationMember[]): boolean {
+  void _members;
   // Billing is disabled - no upgrades needed
   return false;
 }
@@ -172,16 +177,18 @@ export function canUpgradeFromFree(members: RealOrganizationMember[]): boolean {
  * @param members - Unused, kept for backward compatibility with existing API
  */
 export function canUpgradeSlots(_members: RealOrganizationMember[]): boolean {
+  void _members;
   // Billing is disabled - no upgrades needed
   return false;
 }
 
 /**
  * Get upgrade message (returns free message)
- * @param slotAvailability - Unused, kept for backward compatibility with existing API
+ * @param _slotAvailability - Unused, kept for backward compatibility with existing API
  * @returns Message indicating all features are free
  */
-export function getUpgradeMessage(slotAvailability?: SlotAvailability): string {
+export function getUpgradeMessage(_slotAvailability?: SlotAvailability): string {
+  void _slotAvailability;
   return 'All features are free and unlimited.';
 }
 
@@ -189,6 +196,7 @@ export function getUpgradeMessage(slotAvailability?: SlotAvailability): string {
  * @deprecated Billing is disabled. Always returns unlimited.
  */
 export function getLicenseStatus(_slotAvailability?: SlotAvailability) {
+  void _slotAvailability;
   return {
     status: 'unlimited' as const,
     message: 'Unlimited licenses available',

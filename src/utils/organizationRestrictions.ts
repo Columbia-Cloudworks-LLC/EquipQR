@@ -1,5 +1,5 @@
 
-import { RealOrganizationMember } from '@/hooks/useOrganizationMembers';
+import { RealOrganizationMember } from '@/features/organization/hooks/useOrganizationMembers';
 
 export interface OrganizationRestrictions {
   canManageTeams: boolean;
@@ -17,6 +17,7 @@ export interface OrganizationRestrictions {
 export const getOrganizationRestrictions = (
   _members: RealOrganizationMember[]
 ): OrganizationRestrictions => {
+  void _members;
   // Billing is permanently disabled - grant all features to all organizations
   return {
     canManageTeams: true,

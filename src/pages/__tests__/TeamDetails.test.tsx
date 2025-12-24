@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { render } from '@/test/utils/test-utils';
-import TeamDetails from '@/pages/TeamDetails';
+import TeamDetails from '@/features/teams/pages/TeamDetails';
 
 // Keep real router but stub params/navigate
 vi.mock('react-router-dom', async () => {
@@ -29,7 +29,7 @@ const mockTeam = {
   created_at: new Date().toISOString(),
 };
 
-vi.mock('@/hooks/useTeamManagement', () => ({
+vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
   useTeam: vi.fn(() => ({ data: mockTeam, isLoading: false })),
   useTeamMutations: vi.fn(() => ({ deleteTeam: { mutateAsync: vi.fn() } })),
 }));
@@ -41,16 +41,16 @@ vi.mock('@/hooks/usePermissions', () => ({
 }));
 
 // Stub heavy child components
-vi.mock('@/components/teams/TeamMembersList', () => ({
+vi.mock('@/features/teams/components/TeamMembersList', () => ({
   default: () => <div>Members List</div>,
 }));
-vi.mock('@/components/teams/TeamMetadataEditor', () => ({
+vi.mock('@/features/teams/components/TeamMetadataEditor', () => ({
   default: ({ open }: { open: boolean }) => <div data-testid="metadata-editor">{open ? 'Open' : 'Closed'}</div>,
 }));
-vi.mock('@/components/teams/AddTeamMemberDialog', () => ({
+vi.mock('@/features/teams/components/AddTeamMemberDialog', () => ({
   default: ({ open }: { open: boolean }) => <div data-testid="add-member-dialog">{open ? 'Open' : 'Closed'}</div>,
 }));
-vi.mock('@/components/teams/QuickBooksCustomerMapping', () => ({
+vi.mock('@/features/teams/components/QuickBooksCustomerMapping', () => ({
   QuickBooksCustomerMapping: () => null,
   default: () => null,
 }));

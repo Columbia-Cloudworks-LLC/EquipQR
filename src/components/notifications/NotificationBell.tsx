@@ -19,7 +19,7 @@ import {
   useNotificationSubscription,
   useMarkAllNotificationsAsRead
 } from '@/hooks/useNotificationSettings';
-import { useMarkNotificationAsRead, type Notification } from '@/hooks/useWorkOrderData';
+import { useMarkNotificationAsRead, type Notification } from '@/features/work-orders/hooks/useWorkOrderData';
 
 interface NotificationBellProps {
   organizationId: string;

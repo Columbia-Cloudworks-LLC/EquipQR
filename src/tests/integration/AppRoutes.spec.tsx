@@ -24,11 +24,11 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
 
 // Mock all page components
 vi.mock('@/pages/Dashboard', () => ({ default: () => <div data-testid="dashboard-page">Dashboard</div> }));
-vi.mock('@/pages/Equipment', () => ({ default: () => <div data-testid="equipment-page">Equipment</div> }));
-vi.mock('@/pages/EquipmentDetails', () => ({ default: () => <div data-testid="equipment-details-page">Equipment Details</div> }));
+vi.mock('@/features/equipment/pages/Equipment', () => ({ default: () => <div data-testid="equipment-page">Equipment</div> }));
+vi.mock('@/features/equipment/pages/EquipmentDetails', () => ({ default: () => <div data-testid="equipment-details-page">Equipment Details</div> }));
 vi.mock('@/pages/WorkOrders', () => ({ default: () => <div data-testid="work-orders-page">Work Orders</div> }));
 vi.mock('@/pages/WorkOrderDetails', () => ({ default: () => <div data-testid="work-order-details-page">Work Order Details</div> }));
-vi.mock('@/pages/Teams', () => ({ default: () => <div data-testid="teams-page">Teams</div> }));
+vi.mock('@/features/teams/pages/Teams', () => ({ default: () => <div data-testid="teams-page">Teams</div> }));
 vi.mock('@/pages/FleetMap', () => ({ default: () => <div data-testid="fleet-map-page">Fleet Map</div> }));
 vi.mock('@/pages/Organization', () => ({ default: () => <div data-testid="organization-page">Organization</div> }));
 vi.mock('@/pages/QRScanner', () => ({ default: () => <div data-testid="scanner-page">Scanner</div> }));

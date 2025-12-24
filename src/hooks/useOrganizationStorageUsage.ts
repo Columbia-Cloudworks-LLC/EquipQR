@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { OrganizationStorageService, type StorageUsage } from '@/services/organizationStorageService';
+import { OrganizationStorageService, type StorageUsage } from '@/features/organization/services/organizationStorageService';
 
 export type { StorageUsage };
 

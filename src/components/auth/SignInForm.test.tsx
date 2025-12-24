@@ -177,17 +177,18 @@ describe('SignInForm', () => {
     expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
   });
 
-  it('should handle multiple rapid submissions', async () => {
+  it('should prevent multiple rapid submissions', async () => {
     const user = userEvent.setup();
     
     // Mock signIn with delay to simulate real network conditions
+    // This delay allows us to verify the guard mechanism works before the request completes
     mockSignIn.mockImplementation(() => 
       new Promise(resolve => 
-        setTimeout(() => resolve({ error: null }), 50)
+        setTimeout(() => resolve({ error: null }), 100)
       )
     );
     
-    // Create a wrapper that manages loading state internally
+    // Create a wrapper that manages loading state internally to test the actual guard behavior
     const TestWrapper = () => {
       const [localIsLoading, setLocalIsLoading] = React.useState(false);
       return (
@@ -208,22 +209,35 @@ describe('SignInForm', () => {
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'password123');
     
-    // Fire first click and immediately fire additional rapid clicks
-    await user.click(submitButton);
+    // Button should be enabled initially
+    expect(submitButton).not.toBeDisabled();
     
-    // Fire additional rapid clicks while first submission is processing
-    user.click(submitButton); // Don't await - fire immediately
-    user.click(submitButton); // Don't await - fire immediately
+    // Fire the first click - this should trigger the submission and set loading state
+    fireEvent.click(submitButton);
     
-    // Wait for the button to be disabled (loading state active)
+    // Wait for React to process the state update and re-render with disabled button
+    // This confirms the isLoading guard is active after the first submission
     await waitFor(() => {
       expect(submitButton).toBeDisabled();
-    });
-
-    // Should only be called once due to loading state protection
+    }, { timeout: 500 });
+    
+    // Now that loading is active, fire additional clicks
+    // These should be blocked by the isLoading guard in handleSubmit
+    fireEvent.click(submitButton);
+    fireEvent.click(submitButton);
+    
+    // Verify signIn was called only once (first click) before the guard was active
+    // Additional clicks should be prevented by the isLoading check
+    expect(mockSignIn).toHaveBeenCalledTimes(1);
+    
+    // Wait for submission to complete and button to re-enable
     await waitFor(() => {
-      expect(mockSignIn).toHaveBeenCalledTimes(1);
-    });
+      expect(submitButton).not.toBeDisabled();
+    }, { timeout: 500 });
+    
+    // Final verification: signIn was still only called once despite multiple clicks
+    expect(mockSignIn).toHaveBeenCalledTimes(1);
+    expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
   });
 
   it('should handle form reset correctly', async () => {

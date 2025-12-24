@@ -54,7 +54,7 @@ vi.mock('sonner', () => ({
   },
 }));
 
-import { QuickBooksExportButton } from '@/components/work-orders/QuickBooksExportButton';
+import { QuickBooksExportButton } from '@/features/work-orders/components/QuickBooksExportButton';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
@@ -132,7 +132,24 @@ describe('QuickBooksExportButton Component', () => {
     it('should render for admin users', async () => {
       vi.mocked(usePermissions).mockReturnValue({
         hasRole: (roles: string[]) => roles.includes('admin'),
-      } as any);
+        canManageTeam: () => true,
+        canViewTeam: () => true,
+        canCreateTeam: () => true,
+        canManageEquipment: () => true,
+        canViewEquipment: () => true,
+        canCreateEquipment: () => true,
+        canManageWorkOrder: () => true,
+        canViewWorkOrder: () => true,
+        canCreateWorkOrder: () => true,
+        canManageInventory: () => true,
+        canViewInventory: () => true,
+        canCreateInventory: () => true,
+        canManageOrganization: () => true,
+        canViewOrganization: () => true,
+        canManagePMTemplates: () => true,
+        canViewPMTemplates: () => true,
+        canCreatePMTemplates: () => true
+      } as ReturnType<typeof usePermissions>);
       
       renderComponent();
       

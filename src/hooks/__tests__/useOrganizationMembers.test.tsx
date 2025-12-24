@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
 import { QueryClient, type UseMutationResult } from '@tanstack/react-query';
-import { useOrganizationMembers, useUpdateMemberRole, useRemoveMember } from '../useOrganizationMembers';
+import { useOrganizationMembers, useUpdateMemberRole, useRemoveMember } from '@/features/organization/hooks/useOrganizationMembers';
 
 // Mock dependencies
 vi.mock('@/integrations/supabase/client', async () => {

@@ -385,9 +385,9 @@ const EquipmentActions = ({ equipment }) => {
 
 **1. Code Splitting**
 ```typescript
-// Route-based splitting
-const Equipment = lazy(() => import('@/pages/Equipment'));
-const WorkOrders = lazy(() => import('@/pages/WorkOrders'));
+// Route-based splitting with feature modules
+const Equipment = lazy(() => import('@/features/equipment/pages/Equipment'));
+const WorkOrders = lazy(() => import('@/features/work-orders/pages/WorkOrders'));
 
 // Component-based splitting
 const HeavyChart = lazy(() => import('@/components/HeavyChart'));

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
-import PMTemplates from '../PMTemplates';
+import PMTemplates from '@/features/pm-templates/pages/PMTemplates';
 import { TestProviders } from '@/test/utils/TestProviders';
 
 // Mock hooks with named imports
@@ -12,12 +12,12 @@ import {
   useUpdatePMTemplate, 
   useDeletePMTemplate, 
   useClonePMTemplate 
-} from '@/hooks/usePMTemplates';
+} from '@/features/pm-templates/hooks/usePMTemplates';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useSimplifiedOrganizationRestrictions } from '@/hooks/useSimplifiedOrganizationRestrictions';
+import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
 
-vi.mock('@/hooks/usePMTemplates', () => ({
+vi.mock('@/features/pm-templates/hooks/usePMTemplates', () => ({
   usePMTemplates: vi.fn(),
   usePMTemplate: vi.fn(),
   useCreatePMTemplate: vi.fn(),
@@ -34,12 +34,12 @@ vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: vi.fn(),
 }));
 
-vi.mock('@/hooks/useSimplifiedOrganizationRestrictions', () => ({
+vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions', () => ({
   useSimplifiedOrganizationRestrictions: vi.fn(),
 }));
 
-// Mock components
-vi.mock('@/components/organization/ChecklistTemplateEditor', () => ({
+// Mock components - paths must match actual imports in PMTemplates.tsx
+vi.mock('@/features/organization/components/ChecklistTemplateEditor', () => ({
   ChecklistTemplateEditor: vi.fn(({ template, onSave, onCancel }) => (
     <div data-testid="template-editor">
       <div>Template Editor</div>
@@ -50,7 +50,7 @@ vi.mock('@/components/organization/ChecklistTemplateEditor', () => ({
   )),
 }));
 
-vi.mock('@/components/pm-templates/TemplateAssignmentDialog', () => ({
+vi.mock('@/features/pm-templates/components/TemplateAssignmentDialog', () => ({
   TemplateAssignmentDialog: vi.fn(({ templateId, open, onClose }) => 
     open ? (
       <div data-testid="assignment-dialog">

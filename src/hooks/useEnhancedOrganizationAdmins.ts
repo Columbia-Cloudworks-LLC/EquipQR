@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useOrganizationAdmins, type OrganizationAdmin } from './useOrganizationAdmins';
+import { useOrganizationAdmins, type OrganizationAdmin } from '@/features/organization/hooks/useOrganizationAdmins';
 import { useBackgroundSync } from './useCacheInvalidation';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
 
