@@ -1,7 +1,7 @@
 -- Migration: Add complete QuickBooks credentials infrastructure
 -- Description: Creates credentials table and secure RPC functions for QuickBooks OAuth
 -- Author: System  
--- Date: 2024-12-24
+-- Date: 2025-12-24
 --
 -- This migration adds the missing quickbooks_credentials table and related functions
 -- that were not properly applied in previous migrations due to timestamp ordering issues.
