@@ -239,8 +239,18 @@ serve(async (req) => {
     });
 
     // Construct redirect URI (must EXACTLY match what was used in authorization URL)
-    // CRITICAL: Use SUPABASE_URL, not req.url - Edge Function proxying can alter the scheme (http vs https).
-    // This matches the client-side auth.ts which uses VITE_SUPABASE_URL.
+    // 
+    // ARCHITECTURE NOTE: Both client (VITE_SUPABASE_URL) and server (SUPABASE_URL) use the 
+    // Supabase project URL (e.g., https://xxx.supabase.co). These are the SAME VALUE by design:
+    // - SUPABASE_URL is automatically set by Supabase Edge Functions runtime
+    // - VITE_SUPABASE_URL is the client-side equivalent configured in .env
+    // 
+    // This is intentionally NOT using req.url because Edge Function proxying can alter the 
+    // scheme (http vs https) or hostname, causing OAuth redirect_uri mismatch errors.
+    // Using the canonical Supabase URL ensures consistency across authorization and token exchange.
+    //
+    // If you encounter "invalid_grant" errors, verify that both environment variables 
+    // point to the same Supabase project URL (check .env and Supabase dashboard).
     const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
 
     logStep("Redirect URI for token exchange", { redirectUri });
