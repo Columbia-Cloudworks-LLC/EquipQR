@@ -115,7 +115,20 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   }
 
   // Construct the redirect URI (edge function URL)
+  // 
+  // ARCHITECTURE NOTE: This redirect URI MUST exactly match what the server-side callback uses.
+  // Both client (VITE_SUPABASE_URL) and server (SUPABASE_URL) should be the same Supabase 
+  // project URL (e.g., https://xxx.supabase.co). Supabase Edge Functions automatically set 
+  // SUPABASE_URL to match the project URL, and VITE_SUPABASE_URL should be configured 
+  // identically in the client .env file.
+  //
+  // Using the Supabase project URL (rather than window.location) ensures OAuth redirect_uri 
+  // consistency even when the app is accessed via custom domains or preview deployments.
+  // The Edge Function callback also uses SUPABASE_URL for the same reason.
   const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
+
+  // Log the redirect URI for debugging (safe - no secrets)
+  console.log('[QuickBooks OAuth] Authorize redirect_uri:', redirectUri);
 
   // Create minimal state object - session token and nonce (org/user validated server-side)
   const state: OAuthState = {
