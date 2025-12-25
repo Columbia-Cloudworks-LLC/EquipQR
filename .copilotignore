@@ -1,0 +1,7 @@
+# GitHub Copilot Ignore File
+# Files and patterns that Copilot should not suggest changes for
+
+# Database migrations are immutable after deployment
+# Modifying them breaks Supabase migration tracking
+supabase/migrations/*.sql
+
