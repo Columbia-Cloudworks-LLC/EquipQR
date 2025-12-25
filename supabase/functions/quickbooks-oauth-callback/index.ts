@@ -247,7 +247,7 @@ serve(async (req) => {
     // 
     // This is intentionally NOT using req.url because Edge Function proxying can alter the 
     // scheme (http vs https) or hostname, causing OAuth redirect_uri mismatch errors.
-    // Using the canonical Supabase URL ensures consistency across authorization and token exchange.
+    // Using the canonical Supabase URL (rather than req.url / the request URL) ensures consistency across authorization and token exchange.
     //
     // If you encounter "invalid_grant" errors, verify that both environment variables 
     // point to the same Supabase project URL (check .env and Supabase dashboard).
