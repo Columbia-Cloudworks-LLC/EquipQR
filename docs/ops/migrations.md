@@ -132,26 +132,28 @@ CREATE TRIGGER validate_invitation_expiration
 
 ## Local Development
 
+> **Note**: Supabase CLI is included as a dev dependency in this project. Always use `npx supabase` commands. Do NOT install globally with `npm install -g supabase` as global installation is not supported.
+
 ### Running Migrations
 ```bash
 # Apply all pending migrations
-supabase db push
+npx supabase db push
 
 # Reset database to clean state and apply all migrations
-supabase db reset
+npx supabase db reset
 
 # Generate types after migrations
-supabase gen types typescript --local > src/integrations/supabase/types.ts
+npx supabase gen types typescript --local > src/integrations/supabase/types.ts
 ```
 
 ### Testing Migrations
 Before pushing to production, always test the complete migration chain:
 ```bash
 # Test complete database reset
-supabase db reset
+npx supabase db reset
 
 # Verify all tables and policies exist
-supabase db diff
+npx supabase db diff
 ```
 
 ### Migration Validation Script
@@ -269,7 +271,7 @@ $$;
 ### Debugging Commands
 ```bash
 # Check local migration status
-supabase migration list
+npx supabase migration list
 
 # Check production migrations (use Supabase MCP tools)
 # mcp_supabase_list_migrations with project_id
@@ -281,10 +283,10 @@ ls supabase/migrations/*.sql | sort
 cat supabase/migrations/20250822120000_migration_name.sql
 
 # Check database schema
-supabase db diff
+npx supabase db diff
 
 # Inspect table structure
-supabase db shell
+npx supabase db shell
 \d+ table_name
 
 # Validate migration filenames
@@ -294,9 +296,9 @@ node scripts/supabase-fix-migrations.mjs
 ### Emergency Recovery
 If migrations are severely broken:
 1. Backup any important data
-2. Run `supabase db reset` to start fresh
+2. Run `npx supabase db reset` to start fresh
 3. Fix migration files using the naming conventions
-4. Re-run `supabase db push`
+4. Re-run `npx supabase db push`
 5. Restore data if needed
 
 ## CI/CD Integration
@@ -307,10 +309,10 @@ The project includes automated migration validation in CI. Migrations are tested
 ### Production Deployment
 Always test migrations in staging before production:
 1. Deploy to staging environment
-2. Run `supabase db push` on staging
+2. Run `npx supabase db push` on staging
 3. Verify functionality
 4. Deploy to production
-5. Run `supabase db push` on production
+5. Run `npx supabase db push` on production
 
 ## Security Considerations
 

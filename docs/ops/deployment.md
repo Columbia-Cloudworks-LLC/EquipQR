@@ -711,12 +711,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 #### Database Migrations
 Ensure database schema is properly migrated before deployment:
 ```bash
-# Local development
-supabase db push
+# Local development (Supabase CLI is included as dev dependency)
+npx supabase db push
 
 # Production deployment
-supabase db push --linked
+npx supabase db push --linked
 ```
+
+> **Note**: Supabase CLI is included as a dev dependency. Always use `npx supabase` commands. Do NOT install globally. See [Local Supabase Development Guide](./local-supabase-development.md) for detailed setup instructions.
 
 ## Monitoring and Logging
 

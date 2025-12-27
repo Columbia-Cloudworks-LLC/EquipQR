@@ -92,11 +92,16 @@ Visit `http://localhost:8080` to see the application running!
 
 3. **Set Up Database (Optional for Development)**
    ```bash
+   # Install dependencies (includes Supabase CLI as dev dependency)
+   npm ci
+   
    # If you want to run migrations locally
    npx supabase login
    npx supabase link --project-ref your-project-ref
    npx supabase db pull
    ```
+   
+   > **Note**: Supabase CLI is included as a dev dependency. Use `npx supabase` commands. Do NOT install globally with `npm install -g supabase` as global installation is not supported.
 
 ### Development Workflow
 
