@@ -40,7 +40,7 @@ Detailed documentation is located in the [`/docs`](./docs/README.md) directory:
 * **🚀 Getting Started**: [Setup Guide](./docs/technical/setup.md) & [Developer Onboarding](./docs/getting-started/developer-onboarding.md)
 * **🏗️ Architecture**: [System Architecture](./docs/technical/architecture.md) & [Database Schema](./docs/technical/architecture.md#database-schema)
 * **📘 Guides**: [Workflows](./docs/guides/workflows.md) & [Permissions](./docs/guides/permissions.md)
-* **⚙️ Operations**: [Deployment](./docs/ops/deployment.md) & [Migrations](./docs/ops/migrations.md)
+* **⚙️ Operations**: [Deployment](./docs/ops/deployment.md), [Migrations](./docs/ops/migrations.md) & [Local Supabase Development](./docs/ops/local-supabase-development.md)
 
 ## 🛠️ Quick Start
 

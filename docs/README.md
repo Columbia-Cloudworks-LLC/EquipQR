@@ -27,6 +27,7 @@ Operational documentation for deployment and maintenance:
 - **[Deployment](./ops/deployment.md)** - Complete deployment guide including build, hosting, runners, and versioning
 - **[Migrations](./ops/migrations.md)** - Database migration guide with critical rules
 - **[Migration Rules Quick Reference](./ops/migration-rules-quick-reference.md)** - Quick reference for migration best practices
+- **[Local Supabase Development](./ops/local-supabase-development.md)** - Complete guide for local Supabase setup, edge function development, and migration synchronization
 
 ## 🎯 Quick Navigation
 
@@ -90,6 +91,7 @@ Operational documentation for deployment and maintenance:
 #### Deployment & DevOps
 - [Deployment Guide](./ops/deployment.md) - Platform-specific deployment
 - [Migrations](./ops/migrations.md) - Database migrations
+- [Local Supabase Development](./ops/local-supabase-development.md) - Local development setup and edge function workflow
 - [Architecture - Performance](./technical/architecture.md#performance-architecture)
 
 #### Business Logic & Features
