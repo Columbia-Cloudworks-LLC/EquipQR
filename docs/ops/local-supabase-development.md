@@ -193,7 +193,7 @@ git checkout -b feature/quickbooks-edge-function-update
    - Check logs for issues
 
 4. **Before committing**:
-   - Ensure migrations are in sync (see Step 7)
+   - Ensure migrations are in sync (see the "Migration Management" section below)
    - Verify no migrations were accidentally modified
    - Run validation scripts
 
