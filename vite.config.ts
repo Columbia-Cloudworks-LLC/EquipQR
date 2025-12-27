@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://hcaptcha.com https://*.hcaptcha.com https://cdn.gpteng.co https://js.sentry-cdn.com https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com",
         "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com https://cdn.gpteng.co https://*.googleapis.com https://*.gstatic.com",
         "frame-src 'self' https://hcaptcha.com https://*.hcaptcha.com",
-        "connect-src 'self' https://hcaptcha.com https://*.hcaptcha.com https://lovable-api.com https://*.sentry.io https://*.supabase.co https://*.equipqr.app https://*.vercel.app https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com wss://*.equipqr.app wss://*.vercel.app wss://localhost:* ws://localhost:*",
+        "connect-src 'self' https://hcaptcha.com https://*.hcaptcha.com https://lovable-api.com https://*.sentry.io https://*.supabase.co https://*.equipqr.app https://*.vercel.app https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com wss://*.equipqr.app wss://*.vercel.app wss://localhost:* ws://localhost:* http://localhost:* http://127.0.0.1:*",
         "img-src 'self' data: blob: https: https://*.googleapis.com https://*.gstatic.com",
         "font-src 'self' data: https://cdn.gpteng.co",
         "worker-src 'self' blob:"
