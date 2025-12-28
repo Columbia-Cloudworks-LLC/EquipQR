@@ -102,7 +102,7 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   // Validate OAuth redirect base URL format
   
   const isLocalhost = oauthRedirectBaseUrl.includes('localhost') || oauthRedirectBaseUrl.includes('127.0.0.1');
-  const isSupabaseUrl = oauthRedirectBaseUrl.match(/^https:\/\/[a-z0-9-]+\.supabase\.co$/);
+  const isSupabaseUrl = oauthRedirectBaseUrl.match(/^https:\/\/[a-z0-9-]+\.supabase\.co$/i);
   
   if (isLocalhost) {
     // Allow localhost for local development with Intuit sandbox
