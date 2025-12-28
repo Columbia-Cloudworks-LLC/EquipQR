@@ -55,11 +55,6 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
         creatorId: user.id
       });
 
-      toast({
-        title: "Success",
-        description: "Team created successfully",
-      });
-
       // Invalidate access snapshot for permissions
       queryClient.invalidateQueries({ queryKey: ['access-snapshot'] });
       
