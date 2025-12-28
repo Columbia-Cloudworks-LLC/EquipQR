@@ -70,7 +70,15 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
       onClose();
     } catch (error) {
       console.error('Error creating team:', error);
-      // Error toast is handled by useTeamMutations hook
+      // Mutation errors are handled by useTeamMutations hook, but add fallback for unexpected errors
+      // This ensures users always get feedback if something goes wrong outside the mutation
+      if (!(error instanceof Error && error.message.includes('mutation'))) {
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred while creating the team. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
