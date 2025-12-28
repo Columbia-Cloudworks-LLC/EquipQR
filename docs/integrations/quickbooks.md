@@ -68,8 +68,17 @@ VALUES
 1. Go to [Intuit Developer Portal](https://developer.intuit.com/)
 2. Create a new app or use an existing one
 3. Configure OAuth settings:
-   - **Redirect URI**: `https://your-supabase-url.supabase.co/functions/v1/quickbooks-oauth-callback`
+   - **Redirect URI**: 
+     - **For Production**: `https://your-supabase-project-ref.supabase.co/functions/v1/quickbooks-oauth-callback`
+       - Must be your actual Supabase project URL (ending in `.supabase.co`), not a custom domain
+       - Find your project URL in Supabase Dashboard → Settings → API → Project URL
+       - The Edge Function callback uses `SUPABASE_URL` (the actual project URL) for token exchange
+     - **For Local Development**: `http://localhost:54321/functions/v1/quickbooks-oauth-callback`
+       - Edge Functions run on port 54321 when using `supabase functions serve`
+       - Intuit's sandbox environment allows localhost URLs for development
+       - Ensure your `VITE_QB_OAUTH_REDIRECT_BASE_URL` matches this (e.g., `http://localhost:54321`)
    - **Scopes**: `com.intuit.quickbooks.accounting`
+   - **IMPORTANT**: The redirect URI in your authorization request must match EXACTLY what's registered here
 4. Copy the Client ID and Client Secret
 
 ## Usage
