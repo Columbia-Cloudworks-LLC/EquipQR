@@ -76,8 +76,8 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   // Get environment variables
   const clientId = import.meta.env.VITE_INTUIT_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  // OAuth redirect base URL - defaults to VITE_SUPABASE_URL but can be overridden for local dev
-  // When developing locally, set this to your production Supabase URL since Edge Functions run on production
+  // OAuth redirect base URL - must match what's registered in Intuit Developer Portal
+  // Falls back to VITE_SUPABASE_URL if not explicitly set
   const oauthRedirectBaseUrl = import.meta.env.VITE_QB_OAUTH_REDIRECT_BASE_URL || supabaseUrl;
 
   if (!clientId) {
@@ -92,98 +92,24 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
     );
   }
 
-  // Validate oauthRedirectBaseUrl exists and is a string
-  if (!oauthRedirectBaseUrl || typeof oauthRedirectBaseUrl !== 'string') {
+  // Validate oauthRedirectBaseUrl exists and is a valid URL
+  // See docs/integrations/quickbooks.md and env.example for configuration guidance
+  if (!oauthRedirectBaseUrl) {
     throw new Error(
-      "OAuth redirect base URL is not configured. Set VITE_QB_OAUTH_REDIRECT_BASE_URL or ensure VITE_SUPABASE_URL is set."
+      "OAuth redirect base URL is not configured. " +
+      "Set VITE_QB_OAUTH_REDIRECT_BASE_URL or ensure VITE_SUPABASE_URL is set. " +
+      "See docs/integrations/quickbooks.md for setup instructions."
     );
   }
 
-  // Validate OAuth redirect base URL format
-  const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(oauthRedirectBaseUrl);
-  const isSupabaseUrl = oauthRedirectBaseUrl.match(/^https:\/\/[a-z0-9-]+\.supabase\.co$/i);
-  
-  if (isLocalhost) {
-    // Allow localhost for local development with Intuit sandbox
-    // Note: The redirect URI must match EXACTLY what's registered in Intuit Developer Portal
-    // Edge Functions require a valid port specification (e.g., http://localhost:54321)
-    // Edge Functions typically run on port 54321 when using 'supabase functions serve'
-    const localhostMatch = oauthRedirectBaseUrl.match(/^http:\/\/(localhost|127\.0\.0\.1):(\d+)$/);
-    
-    // Validate that localhost URL has a valid port specification
-    if (!localhostMatch) {
-      throw new Error(
-        `Invalid localhost redirect base URL: "${oauthRedirectBaseUrl}". ` +
-        `Localhost URLs must include a port number (e.g., http://localhost:54321). ` +
-        `Edge Functions require a port to be accessible. ` +
-        `When using 'supabase functions serve', Edge Functions run on port 54321 by default.`
-      );
-    } else {
-      const port = parseInt(localhostMatch[2], 10);
-      
-      // Validate port is a valid number
-      if (isNaN(port) || port < 1 || port > 65535) {
-        throw new Error(
-          `Invalid port number in redirect base URL: "${oauthRedirectBaseUrl}". ` +
-          `Port must be a number between 1 and 65535.`
-        );
-      }
-      
-      if (port === 8080) {
-        // Port 8080 is where Vite dev server runs, not Edge Functions
-        // Edge Functions run on 54321 by default
-        console.warn(
-          `[QuickBooks OAuth] Warning: Using port 8080 for redirect base URL. ` +
-          `Port 8080 is where the Vite dev server (frontend) runs. ` +
-          `Edge Functions typically run on port 54321 when using 'supabase functions serve'. ` +
-          `Ensure the redirect URI (${oauthRedirectBaseUrl}/functions/v1/quickbooks-oauth-callback) matches EXACTLY ` +
-          `what's registered in Intuit Developer Portal. If Edge Functions are running on a different port, ` +
-          `make sure you have a proxy set up or update Intuit registration accordingly.`
-        );
-      } else if (port !== 54321) {
-        console.info(
-          `[QuickBooks OAuth] Using localhost port ${port} for redirect base URL. ` +
-          `Ensure this matches what's registered in Intuit Developer Portal.`
-        );
-      }
-    }
-  } else if (!isSupabaseUrl && !oauthRedirectBaseUrl.startsWith('https://')) {
-    // For non-localhost, must be HTTPS
+  // Basic URL syntax validation - catches typos and malformed values
+  try {
+    new URL(oauthRedirectBaseUrl);
+  } catch {
     throw new Error(
-      "QuickBooks OAuth redirect base URL must be HTTPS for production environments. " +
-      "For local development, use http://localhost:<port> (typically 54321 for Edge Functions)"
+      `Invalid OAuth redirect base URL: "${oauthRedirectBaseUrl}". ` +
+      `Expected a valid URL. See docs/integrations/quickbooks.md for configuration examples.`
     );
-  } else if (!isLocalhost && !isSupabaseUrl) {
-    // Non-localhost, non-Supabase URL - validate it's a proper HTTPS URL before warning about custom domain
-    // This distinguishes between valid custom domains and malformed URLs
-    let isValidHttpsUrl = false;
-    try {
-      const parsedUrl = new URL(oauthRedirectBaseUrl);
-      // Check if it's a valid HTTPS URL with a proper hostname
-      isValidHttpsUrl = parsedUrl.protocol === 'https:' && 
-                        parsedUrl.hostname.length > 0 &&
-                        parsedUrl.hostname.includes('.');
-    } catch {
-      // URL parsing failed - not a valid URL
-      isValidHttpsUrl = false;
-    }
-
-    if (isValidHttpsUrl) {
-      // Valid HTTPS URL that's not Supabase - warn about custom domain usage
-      console.warn(
-        `[QuickBooks OAuth] Warning: VITE_QB_OAUTH_REDIRECT_BASE_URL (${oauthRedirectBaseUrl}) appears to be a custom domain. ` +
-        `The Edge Function callback uses SUPABASE_URL (the actual Supabase project URL like https://xxx.supabase.co). ` +
-        `The redirect URI must match exactly what's registered in QuickBooks app settings. ` +
-        `Ensure your custom domain is registered in QuickBooks and properly routes to your Edge Function.`
-      );
-    } else {
-      // Invalid/malformed URL
-      throw new Error(
-        `Invalid OAuth redirect base URL: "${oauthRedirectBaseUrl}". ` +
-        `Expected a valid HTTPS URL (e.g., https://your-project.supabase.co) or localhost URL for development. ` +
-        `Please check your VITE_QB_OAUTH_REDIRECT_BASE_URL configuration.`
-      );
-    }
   }
 
   // Create server-side OAuth session (validates user is admin/owner of org)
@@ -211,23 +137,8 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
     throw new Error("Failed to create OAuth session: No nonce returned");
   }
 
-  // Construct the redirect URI (edge function URL)
-  // 
-  // ARCHITECTURE NOTE: This redirect URI MUST exactly match what's registered in QuickBooks app settings.
-  //
-  // For local development:
-  // - Edge Functions run at http://localhost:54321/functions/v1/<function-name> when using 'supabase functions serve'
-  // - Set VITE_QB_OAUTH_REDIRECT_BASE_URL=http://localhost:54321
-  // - Register http://localhost:54321/functions/v1/quickbooks-oauth-callback in Intuit Developer Portal
-  // - The Edge Function callback uses SUPABASE_URL (which will be http://localhost:54321 in local dev)
-  //
-  // For production:
-  // - Edge Functions run on Supabase at https://xxx.supabase.co/functions/v1/<function-name>
-  // - Set VITE_QB_OAUTH_REDIRECT_BASE_URL to your production Supabase project URL (https://xxx.supabase.co)
-  // - Register https://xxx.supabase.co/functions/v1/quickbooks-oauth-callback in Intuit Developer Portal
-  // - The Edge Function callback uses SUPABASE_URL (the actual project URL) for token exchange
-  //
-  // CRITICAL: The redirect URI sent in the authorization request must match EXACTLY what's registered in QuickBooks.
+  // Construct the redirect URI - must match EXACTLY what's registered in Intuit Developer Portal
+  // See docs/integrations/quickbooks.md for configuration details
   const redirectBaseUrl = oauthRedirectBaseUrl.trim().replace(/\/+$/, '');
   const redirectUri = `${redirectBaseUrl}/functions/v1/quickbooks-oauth-callback`;
 
