@@ -119,34 +119,34 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
         `Edge Functions require a port to be accessible. ` +
         `When using 'supabase functions serve', Edge Functions run on port 54321 by default.`
       );
-    }
-    
-    const port = parseInt(localhostMatch[2], 10);
-    
-    // Validate port is a valid number
-    if (isNaN(port) || port < 1 || port > 65535) {
-      throw new Error(
-        `Invalid port number in redirect base URL: "${oauthRedirectBaseUrl}". ` +
-        `Port must be a number between 1 and 65535.`
-      );
-    }
-    
-    if (port === 8080) {
-      // Port 8080 is where Vite dev server runs, not Edge Functions
-      // Edge Functions run on 54321 by default
-      console.warn(
-        `[QuickBooks OAuth] Warning: Using port 8080 for redirect base URL. ` +
-        `Port 8080 is where the Vite dev server (frontend) runs. ` +
-        `Edge Functions typically run on port 54321 when using 'supabase functions serve'. ` +
-        `Ensure the redirect URI (${oauthRedirectBaseUrl}/functions/v1/quickbooks-oauth-callback) matches EXACTLY ` +
-        `what's registered in Intuit Developer Portal. If Edge Functions are running on a different port, ` +
-        `make sure you have a proxy set up or update Intuit registration accordingly.`
-      );
-    } else if (port !== 54321) {
-      console.info(
-        `[QuickBooks OAuth] Using localhost port ${port} for redirect base URL. ` +
-        `Ensure this matches what's registered in Intuit Developer Portal.`
-      );
+    } else {
+      const port = parseInt(localhostMatch[2], 10);
+      
+      // Validate port is a valid number
+      if (isNaN(port) || port < 1 || port > 65535) {
+        throw new Error(
+          `Invalid port number in redirect base URL: "${oauthRedirectBaseUrl}". ` +
+          `Port must be a number between 1 and 65535.`
+        );
+      }
+      
+      if (port === 8080) {
+        // Port 8080 is where Vite dev server runs, not Edge Functions
+        // Edge Functions run on 54321 by default
+        console.warn(
+          `[QuickBooks OAuth] Warning: Using port 8080 for redirect base URL. ` +
+          `Port 8080 is where the Vite dev server (frontend) runs. ` +
+          `Edge Functions typically run on port 54321 when using 'supabase functions serve'. ` +
+          `Ensure the redirect URI (${oauthRedirectBaseUrl}/functions/v1/quickbooks-oauth-callback) matches EXACTLY ` +
+          `what's registered in Intuit Developer Portal. If Edge Functions are running on a different port, ` +
+          `make sure you have a proxy set up or update Intuit registration accordingly.`
+        );
+      } else if (port !== 54321) {
+        console.info(
+          `[QuickBooks OAuth] Using localhost port ${port} for redirect base URL. ` +
+          `Ensure this matches what's registered in Intuit Developer Portal.`
+        );
+      }
     }
   } else if (!isSupabaseUrl && !oauthRedirectBaseUrl.startsWith('https://')) {
     // For non-localhost, must be HTTPS
