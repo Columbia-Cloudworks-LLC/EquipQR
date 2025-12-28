@@ -60,9 +60,9 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
         description: "Team created successfully",
       });
 
-      // Invalidate teams query (handled by mutation) and access snapshot for permissions
-      queryClient.invalidateQueries({ queryKey: ['teams', organizationId] });
+      // Invalidate access snapshot for permissions
       queryClient.invalidateQueries({ queryKey: ['access-snapshot'] });
+      
       
       // Reset form and close
       setName('');
