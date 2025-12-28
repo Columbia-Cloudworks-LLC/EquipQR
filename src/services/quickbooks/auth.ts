@@ -154,13 +154,36 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
       "For local development, use http://localhost:<port> (typically 54321 for Edge Functions)"
     );
   } else if (!isLocalhost && !isSupabaseUrl) {
-    // Warn if using a custom domain in production
-    console.warn(
-      `[QuickBooks OAuth] Warning: VITE_QB_OAUTH_REDIRECT_BASE_URL (${oauthRedirectBaseUrl}) does not match Supabase project URL format. ` +
-      `The Edge Function callback uses SUPABASE_URL (the actual Supabase project URL like https://xxx.supabase.co). ` +
-      `The redirect URI must match exactly what's registered in QuickBooks app settings. ` +
-      `If you're using a custom domain, ensure it's registered in both QuickBooks and matches your Edge Function's SUPABASE_URL.`
-    );
+    // Non-localhost, non-Supabase URL - validate it's a proper HTTPS URL before warning about custom domain
+    // This distinguishes between valid custom domains and malformed URLs
+    let isValidHttpsUrl = false;
+    try {
+      const parsedUrl = new URL(oauthRedirectBaseUrl);
+      // Check if it's a valid HTTPS URL with a proper hostname
+      isValidHttpsUrl = parsedUrl.protocol === 'https:' && 
+                        parsedUrl.hostname.length > 0 &&
+                        parsedUrl.hostname.includes('.');
+    } catch {
+      // URL parsing failed - not a valid URL
+      isValidHttpsUrl = false;
+    }
+
+    if (isValidHttpsUrl) {
+      // Valid HTTPS URL that's not Supabase - warn about custom domain usage
+      console.warn(
+        `[QuickBooks OAuth] Warning: VITE_QB_OAUTH_REDIRECT_BASE_URL (${oauthRedirectBaseUrl}) appears to be a custom domain. ` +
+        `The Edge Function callback uses SUPABASE_URL (the actual Supabase project URL like https://xxx.supabase.co). ` +
+        `The redirect URI must match exactly what's registered in QuickBooks app settings. ` +
+        `Ensure your custom domain is registered in QuickBooks and properly routes to your Edge Function.`
+      );
+    } else {
+      // Invalid/malformed URL
+      throw new Error(
+        `Invalid OAuth redirect base URL: "${oauthRedirectBaseUrl}". ` +
+        `Expected a valid HTTPS URL (e.g., https://your-project.supabase.co) or localhost URL for development. ` +
+        `Please check your VITE_QB_OAUTH_REDIRECT_BASE_URL configuration.`
+      );
+    }
   }
 
   // Create server-side OAuth session (validates user is admin/owner of org)
