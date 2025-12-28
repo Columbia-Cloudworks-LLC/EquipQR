@@ -18,12 +18,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Pack with Repomix
-        uses: yamadashy/repomix/.github/actions/repomix@main
+      # Use Node 20 (LTS) to match your project config
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          # Matches the output filename in repomix.config.json
-          output: repomix-EquipQR.xml
-          # Uses style: xml by default, matching your config
+          node-version: '20'
+          cache: 'npm'
+
+      # Install dependencies so repomix can resolve local imports
+      - name: Install Dependencies
+        run: npm ci
+
+      # Run repomix directly via npx (uses repomix.config.json automatically)
+      - name: Pack with Repomix
+        run: npx --yes repomix
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
