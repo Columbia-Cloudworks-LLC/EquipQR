@@ -709,13 +709,36 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 ```
 
 #### Database Migrations
-Ensure database schema is properly migrated before deployment:
+
+> **⚠️ IMPORTANT: Local-First Development Workflow**
+> 
+> All database migrations must be developed and tested locally before deploying to production.
+
+**Standard workflow:**
+
+1. **Develop and test locally** (REQUIRED):
+   ```bash
+   # Create migration
+   npx supabase migration new your_migration_name
+   
+   # Test locally with complete database reset
+   npx supabase db reset
+   npx supabase db diff
+   ```
+
+2. **Deploy to production** (only after local testing succeeds):
+   ```bash
+   # Deploy to production
+   npx supabase db push --linked
+   ```
+
+**Local development commands:**
 ```bash
-# Local development (Supabase CLI is included as dev dependency)
+# Apply migrations to local database
 npx supabase db push
 
-# Production deployment
-npx supabase db push --linked
+# Reset local database and apply all migrations (primary testing method)
+npx supabase db reset
 ```
 
 > **Note**: Supabase CLI is included as a dev dependency. Always use `npx supabase` commands. Do NOT install globally. See [Local Supabase Development Guide](./local-supabase-development.md) for detailed setup instructions.

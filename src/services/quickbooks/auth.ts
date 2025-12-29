@@ -76,6 +76,22 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   // Get environment variables
   const clientId = import.meta.env.VITE_INTUIT_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const explicitOAuthRedirectBaseUrl = import.meta.env.VITE_QB_OAUTH_REDIRECT_BASE_URL;
+  
+  // OAuth redirect base URL - must match what's registered in Intuit Developer Portal
+  // Falls back to VITE_SUPABASE_URL if not explicitly set
+  const oauthRedirectBaseUrl = explicitOAuthRedirectBaseUrl || supabaseUrl;
+  
+  // Validate that if both are set, they should match to prevent OAuth redirect URI mismatches
+  if (explicitOAuthRedirectBaseUrl && supabaseUrl && explicitOAuthRedirectBaseUrl !== supabaseUrl) {
+    console.warn(
+      `[QuickBooks OAuth] Warning: VITE_QB_OAUTH_REDIRECT_BASE_URL (${explicitOAuthRedirectBaseUrl}) ` +
+      `does not match VITE_SUPABASE_URL (${supabaseUrl}). ` +
+      `Using VITE_QB_OAUTH_REDIRECT_BASE_URL for OAuth redirect. ` +
+      `Ensure the redirect URI (${explicitOAuthRedirectBaseUrl}/functions/v1/quickbooks-oauth-callback) ` +
+      `matches EXACTLY what's registered in Intuit Developer Portal.`
+    );
+  }
 
   if (!clientId) {
     throw new Error(
@@ -86,6 +102,26 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   if (!supabaseUrl) {
     throw new Error(
       "Supabase URL is not configured. Missing VITE_SUPABASE_URL environment variable."
+    );
+  }
+
+  // Validate oauthRedirectBaseUrl exists and is a valid URL
+  // See docs/integrations/quickbooks.md and env.example for configuration guidance
+  if (!oauthRedirectBaseUrl) {
+    throw new Error(
+      "OAuth redirect base URL is not configured. " +
+      "Set VITE_QB_OAUTH_REDIRECT_BASE_URL or ensure VITE_SUPABASE_URL is set. " +
+      "See docs/integrations/quickbooks.md for setup instructions."
+    );
+  }
+
+  // Basic URL syntax validation - catches typos and malformed values
+  try {
+    new URL(oauthRedirectBaseUrl);
+  } catch {
+    throw new Error(
+      `Invalid OAuth redirect base URL: "${oauthRedirectBaseUrl}". ` +
+      `Expected a valid URL. See docs/integrations/quickbooks.md for configuration examples.`
     );
   }
 
@@ -114,18 +150,10 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
     throw new Error("Failed to create OAuth session: No nonce returned");
   }
 
-  // Construct the redirect URI (edge function URL)
-  // 
-  // ARCHITECTURE NOTE: This redirect URI MUST exactly match what the server-side callback uses.
-  // Both client (VITE_SUPABASE_URL) and server (SUPABASE_URL) should be the same Supabase 
-  // project URL (e.g., https://xxx.supabase.co). Supabase Edge Functions automatically set 
-  // SUPABASE_URL to match the project URL, and VITE_SUPABASE_URL should be configured 
-  // identically in the client .env file.
-  //
-  // Using the Supabase project URL (rather than window.location) ensures OAuth redirect_uri 
-  // consistency even when the app is accessed via custom domains or preview deployments.
-  // The Edge Function callback also uses SUPABASE_URL for the same reason.
-  const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
+  // Construct the redirect URI - must match EXACTLY what's registered in Intuit Developer Portal
+  // See docs/integrations/quickbooks.md for configuration details
+  const redirectBaseUrl = oauthRedirectBaseUrl.trim().replace(/\/+$/, '');
+  const redirectUri = `${redirectBaseUrl}/functions/v1/quickbooks-oauth-callback`;
 
   // Log the redirect URI for debugging (safe - no secrets)
   console.log('[QuickBooks OAuth] Authorize redirect_uri:', redirectUri);

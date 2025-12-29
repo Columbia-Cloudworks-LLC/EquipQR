@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface CreateTeamDialogProps {
@@ -18,8 +19,9 @@ interface CreateTeamDialogProps {
 const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, organizationId }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { createTeamWithCreator } = useTeamMutations();
   const queryClient = useQueryClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,41 +36,42 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
       return;
     }
 
-    setIsLoading(true);
-    
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a team",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const { error } = await supabase
-        .from('teams')
-        .insert({
+      await createTeamWithCreator.mutateAsync({
+        teamData: {
           name: name.trim(),
           description: description.trim() || null,
           organization_id: organizationId
-        });
+        },
+        creatorId: user.id
+      });
 
-      if (error) throw error;
-
+      // Show success toast
       toast({
         title: "Success",
         description: "Team created successfully",
       });
 
-      // Invalidate relevant queries with org-scoped key
-      queryClient.invalidateQueries({ queryKey: ['optimized-teams', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['teams-fallback', organizationId] });
+      // Invalidate access snapshot for permissions
+      queryClient.invalidateQueries({ queryKey: ['access-snapshot'] });
       
       // Reset form and close
       setName('');
       setDescription('');
       onClose();
     } catch (error) {
+      // Mutation errors are already handled by useTeamMutations hook's onError callback
+      // No need for additional error handling here
       console.error('Error creating team:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create team. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -109,8 +112,8 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Creating...' : 'Create Team'}
+            <Button type="submit" disabled={createTeamWithCreator.isPending}>
+              {createTeamWithCreator.isPending ? 'Creating...' : 'Create Team'}
             </Button>
           </DialogFooter>
         </form>

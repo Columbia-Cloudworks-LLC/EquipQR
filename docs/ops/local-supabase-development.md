@@ -33,6 +33,10 @@ npx supabase --version
 
 ## Step-by-Step Local Setup
 
+> **⚠️ IMPORTANT: This is now the standard workflow for database development.**
+> 
+> All database development should be done locally first, then deployed to production. This setup guide will get you started with local Supabase development.
+
 ### Step 1: Install Dependencies
 
 ```bash
@@ -58,19 +62,22 @@ npx supabase link --project-ref ymxkzronkhwxzcdcbnwq
 
 This syncs your local `supabase/config.toml` with the remote project configuration.
 
-### Step 3: Pull Migrations from Production
+### Step 3: Pull Migrations from Production (Initial Sync Only)
 
 Pull all migrations to ensure your local migrations match production:
 
 ```bash
-# Pull migrations from remote
+# Pull migrations from remote (for initial setup)
 npx supabase db pull
 
 # Verify migrations are in sync
 npx supabase migration list
 ```
 
-**Important**: After pulling, verify migrations match production using the validation script:
+**Important**: 
+- This step is primarily for **initial setup** to sync existing migrations from production
+- After initial setup, you'll develop new migrations locally first
+- After pulling, verify migrations match production using the validation script:
 
 ```bash
 node scripts/supabase-fix-migrations.mjs
@@ -199,18 +206,39 @@ git checkout -b feature/quickbooks-edge-function-update
 
 ## Migration Management
 
+> **⚠️ IMPORTANT: Local-First Development**
+> 
+> **All database migrations must be developed and tested locally before deploying to production.**
+> 
+> The standard workflow is:
+> 1. **Create migration locally**
+> 2. **Test locally** with `npx supabase db reset`
+> 3. **Deploy to production** only after successful local testing
+
 ### Creating New Migrations
 
-If you need new migrations (only if schema changes are needed):
+**Standard workflow for creating new migrations:**
 
-```bash
-# Create a new migration
-npx supabase migration new your_migration_name
+1. **Create the migration file**:
+   ```bash
+   npx supabase migration new your_migration_name
+   ```
 
-# Edit the generated file in supabase/migrations/
-# Apply locally to test
-npx supabase db reset  # Resets and applies all migrations
-```
+2. **Write your migration SQL** in the generated file in `supabase/migrations/`
+
+3. **Test locally** (REQUIRED before production deployment):
+   ```bash
+   # Reset local database and apply all migrations (including your new one)
+   npx supabase db reset
+   
+   # Verify schema matches expectations
+   npx supabase db diff
+   ```
+
+4. **Deploy to production** (only after local testing succeeds):
+   ```bash
+   npx supabase db push --linked
+   ```
 
 ### Verifying Migrations Before Committing
 
@@ -339,40 +367,63 @@ node scripts/supabase-fix-migrations.mjs
 
 ## Best Practices Summary
 
-### 1. Always Pull Before Starting Work
+### 1. Develop and Test Locally First (PRIMARY WORKFLOW)
+
+**This is the standard workflow for all database development:**
 
 ```bash
+# Start local Supabase instance
+npx supabase start
+
+# Create and test migrations locally
+npx supabase migration new your_migration_name
+npx supabase db reset  # Test the migration
+
+# Test edge functions locally
+npx supabase functions serve --env-file .env.local
+```
+
+**Key principle**: All database changes must be tested locally with `npx supabase db reset` before deploying to production.
+
+### 2. Sync with Production (Initial Setup Only)
+
+**Pull from production for initial setup or to sync existing migrations:**
+
+```bash
+# Pull migrations from production (for initial sync or to get latest changes)
 npx supabase db pull
 npx supabase functions pull
 ```
 
-### 2. Test Locally Before Committing
-
-```bash
-npx supabase start
-npx supabase functions serve
-# Test your changes
-```
+**Note**: This is primarily for initial setup or when syncing changes made by other developers. Your daily workflow should be local-first.
 
 ### 3. Never Modify Existing Migrations
 
 - Check `git log` to see if a migration was already deployed
 - Use `node scripts/check-missing-migrations.mjs` to verify
-- Production is the source of truth
+- Production is the source of truth for migration timestamps
+- If a migration is already in production, create a new migration to fix issues
 
 ### 4. Use Validation Scripts
 
 ```bash
 # Before every commit
 node scripts/supabase-fix-migrations.mjs
+
+# Check for missing migrations
+node scripts/check-missing-migrations.mjs
 ```
 
-### 5. Keep Local in Sync
+### 5. Deploy to Production Only After Local Testing
+
+**Only deploy after successful local testing:**
 
 ```bash
-# Regularly sync with production
-npx supabase db pull
-npx supabase functions pull
+# Deploy migrations to production (after local testing succeeds)
+npx supabase db push --linked
+
+# Deploy edge functions to production
+npx supabase functions deploy
 ```
 
 ## Troubleshooting

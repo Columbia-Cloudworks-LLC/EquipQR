@@ -68,8 +68,14 @@ VALUES
 1. Go to [Intuit Developer Portal](https://developer.intuit.com/)
 2. Create a new app or use an existing one
 3. Configure OAuth settings:
-   - **Redirect URI**: `https://your-supabase-url.supabase.co/functions/v1/quickbooks-oauth-callback`
+   - **Redirect URI**: `{your-base-url}/functions/v1/quickbooks-oauth-callback`
+     - Examples:
+       - Default Supabase: `https://your-project-ref.supabase.co/functions/v1/quickbooks-oauth-callback`
+       - Custom domain: `https://supabase.yourdomain.com/functions/v1/quickbooks-oauth-callback`
+       - Local dev: `http://localhost:54321/functions/v1/quickbooks-oauth-callback`
+     - Set `VITE_QB_OAUTH_REDIRECT_BASE_URL` to match the base URL (e.g., `https://supabase.yourdomain.com`)
    - **Scopes**: `com.intuit.quickbooks.accounting`
+   - **IMPORTANT**: The redirect URI must match EXACTLY between Intuit Developer Portal and `VITE_QB_OAUTH_REDIRECT_BASE_URL`
 4. Copy the Client ID and Client Secret
 
 ## Usage
