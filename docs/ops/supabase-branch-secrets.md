@@ -62,6 +62,7 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 |------------|--------------|---------------|-------|
 | `INTUIT_CLIENT_ID` | All QuickBooks functions | `Q0...` | QuickBooks OAuth client ID |
 | `INTUIT_CLIENT_SECRET` | All QuickBooks functions | `...` | QuickBooks OAuth client secret |
+| `QB_OAUTH_REDIRECT_BASE_URL` | `quickbooks-oauth-callback` | `https://supabase.equipqr.app` | **⚠️ CRITICAL: Must match client `VITE_QB_OAUTH_REDIRECT_BASE_URL`** |
 | `QUICKBOOKS_SANDBOX` | All QuickBooks functions | `true` or `false` | Set to `true` for sandbox, `false` for production |
 | `ENABLE_QB_PDF_ATTACHMENT` | `quickbooks-export-invoice` | `true` or `false` | Enable PDF attachment for invoice exports |
 
@@ -113,6 +114,7 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 - `PRODUCTION_URL` ✅
+- `QB_OAUTH_REDIRECT_BASE_URL` ✅ **⚠️ CRITICAL: Must match `VITE_QB_OAUTH_REDIRECT_BASE_URL`**
 - `QUICKBOOKS_SANDBOX` ✅
 
 #### `quickbooks-refresh-tokens`
@@ -221,6 +223,7 @@ VITE_GOOGLE_MAPS_BROWSER_KEY=<your-google-maps-api-key>
 # QuickBooks (if enabled)
 INTUIT_CLIENT_ID=<your-intuit-client-id>
 INTUIT_CLIENT_SECRET=<your-intuit-client-secret>
+QB_OAUTH_REDIRECT_BASE_URL=https://supabase.preview.equipqr.app
 QUICKBOOKS_SANDBOX=true
 ENABLE_QB_PDF_ATTACHMENT=false
 ```

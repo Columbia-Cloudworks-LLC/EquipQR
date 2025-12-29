@@ -112,6 +112,10 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
+    // QB_OAUTH_REDIRECT_BASE_URL must match what the frontend uses (VITE_QB_OAUTH_REDIRECT_BASE_URL)
+    // This is required because OAuth 2.0 requires exact redirect_uri match between authorization and token exchange
+    // If using a custom domain for Supabase (e.g., supabase.equipqr.app), this must be set to that domain
+    const qbOAuthRedirectBaseUrl = Deno.env.get("QB_OAUTH_REDIRECT_BASE_URL") || supabaseUrl;
 
     if (!clientId || !clientSecret) {
       logStep("ERROR", { message: "Missing INTUIT_CLIENT_ID or INTUIT_CLIENT_SECRET" });
@@ -121,6 +125,23 @@ serve(async (req) => {
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error("Supabase configuration is missing");
     }
+
+    // Validate OAuth redirect base URL
+    if (!qbOAuthRedirectBaseUrl) {
+      throw new Error("OAuth redirect base URL is not configured (QB_OAUTH_REDIRECT_BASE_URL or SUPABASE_URL)");
+    }
+
+    try {
+      new URL(qbOAuthRedirectBaseUrl);
+    } catch {
+      logStep("ERROR", { message: `Invalid QB_OAUTH_REDIRECT_BASE_URL: ${qbOAuthRedirectBaseUrl.substring(0, 50)}` });
+      throw new Error("Invalid OAuth redirect base URL configuration");
+    }
+
+    logStep("Using OAuth redirect base URL", { 
+      baseUrl: qbOAuthRedirectBaseUrl.substring(0, 50),
+      isCustom: !!Deno.env.get("QB_OAUTH_REDIRECT_BASE_URL")
+    });
 
     // Parse query parameters from the URL
     const url = new URL(req.url);
@@ -238,8 +259,12 @@ serve(async (req) => {
       hasRedirectUrl: !!redirectUrl
     });
 
-    // Use canonical SUPABASE_URL (not req.url) to avoid proxy scheme/host mismatches
-    const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
+    // Use QB_OAUTH_REDIRECT_BASE_URL (or fallback to SUPABASE_URL) for the redirect_uri
+    // This MUST match the redirect_uri used in the authorization request (frontend)
+    // OAuth 2.0 requires exact match between authorization and token exchange
+    // Note: Must match client preprocessing: .trim().replace(/\/+$/, '')
+    const redirectBaseUrl = qbOAuthRedirectBaseUrl!.trim().replace(/\/+$/, ''); // Remove whitespace and trailing slashes
+    const redirectUri = `${redirectBaseUrl}/functions/v1/quickbooks-oauth-callback`;
 
     // Exchange authorization code for tokens
     logStep("Exchanging code for tokens");
