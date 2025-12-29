@@ -85,30 +85,10 @@ Follow the hierarchy documented in `docs/technical/architecture.md`:
 
 ## 4. Database Migrations
 
-### CRITICAL: Never Modify Applied Migrations
-- **NEVER** suggest changes to files in `supabase/migrations/` after they've been committed
-- Migration timestamps are **PERMANENT** once applied to production
-- Modifying migration files breaks Supabase migration tracking
-- Supabase will report "Remote migration versions not found in local migrations directory" errors
-- **Production is the source of truth** - local files must match production timestamps exactly
-
-### Migration File Rules
-- Migration files are **immutable** after deployment
-- Do **NOT** suggest:
-  - Renaming migration files (even to fix ordering)
-  - Modifying SQL content in applied migrations
-  - Reordering migration files
-  - Fixing "issues" in existing migration files
-  - Formatting changes to migration files
-- Only suggest changes for **NEW migrations** before first deployment
-- If migration improvements are needed, create a **NEW migration file** instead
-
-### Migration Workflow
-- Always verify production state using Supabase MCP tools before suggesting migration changes
-- Use `mcp_supabase_list_migrations` to check what's actually in production
-- For fixing migration order: Only rename NEW migrations before deployment, never rename already-applied migrations
-
-**Reference**: See `docs/ops/migrations.md` and `docs/ops/migration-rules-quick-reference.md` for detailed migration guidelines.
+- Migration files are immutable after deployment. Never modify applied migrations.
+- If changes are needed, create a new migration file instead.
+- Verify production state with `mcp_supabase_list_migrations` before suggesting changes.
+- See `docs/ops/migrations.md` for detailed guidelines.
 
 ## 5. UI/UX System
 
