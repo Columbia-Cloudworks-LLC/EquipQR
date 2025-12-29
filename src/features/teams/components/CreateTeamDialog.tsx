@@ -55,25 +55,23 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
         creatorId: user.id
       });
 
+      // Show success toast
+      toast({
+        title: "Success",
+        description: "Team created successfully",
+      });
+
       // Invalidate access snapshot for permissions
       queryClient.invalidateQueries({ queryKey: ['access-snapshot'] });
-      
       
       // Reset form and close
       setName('');
       setDescription('');
       onClose();
     } catch (error) {
+      // Mutation errors are already handled by useTeamMutations hook's onError callback
+      // No need for additional error handling here
       console.error('Error creating team:', error);
-      // Mutation errors are handled by useTeamMutations hook, but add fallback for unexpected errors
-      // This ensures users always get feedback if something goes wrong outside the mutation
-      if (!(error instanceof Error && error.message.includes('mutation'))) {
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred while creating the team. Please try again.",
-          variant: "destructive",
-        });
-      }
     }
   };
 
