@@ -30,6 +30,8 @@ dist-ssr
 # Backup Files used for Testing
 supabase/*.backup
 supabase/.temp/*
+supabase/.branches/*
+supabase/snippets/Untitled*.sql
 
 # Coverage Files
 coverage/*
