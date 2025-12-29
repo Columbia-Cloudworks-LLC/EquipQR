@@ -9,7 +9,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
-    testTimeout: 10000, // Increase default timeout for complex form tests
+    testTimeout: 10000,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['supabase/**', 'node_modules/**'],
     coverage: {
@@ -77,9 +77,9 @@ export default defineConfig({
       thresholds: {
         global: {
           branches: 70,
-          functions: 45,  // Lower threshold - functions are hard to cover with mocked dependencies
-          lines: 60,  // Currently at 63.75%, set slightly below to allow for variance
-          statements: 60,  // Currently at 63.75%, set slightly below to allow for variance
+          functions: 45,
+          lines: 60,
+          statements: 60,
         },
       },
     },

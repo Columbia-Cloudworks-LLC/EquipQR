@@ -272,12 +272,8 @@ function buildPrivateNote(
 }
 
 /**
- * Get an existing service item or create a new one for invoicing
- * 
- * Search priority:
- * 1. Look for specific "EquipQR Services" item
- * 2. Fall back to any active Service item
- * 3. Create a new "EquipQR Services" item if none exist
+ * Get an existing service item or create a new one for invoicing.
+ * Priority: "EquipQR Services" → any active Service item → create new.
  */
 async function getServiceItem(
   accessToken: string,
@@ -289,168 +285,97 @@ async function getServiceItem(
     "Content-Type": "application/json"
   };
 
-  // 1. Try to find our specific "EquipQR Services" item
+  // Try "EquipQR Services" item
   const specificQuery = `SELECT * FROM Item WHERE Name = 'EquipQR Services' AND Type = 'Service' AND Active = true`;
   const specificUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(specificQuery)}`;
+  const specificResponse = await fetch(specificUrl, { method: "GET", headers });
   
-  try {
-    const response = await fetch(specificUrl, { method: "GET", headers });
-    if (response.ok) {
-      const data = await response.json();
-      if (data.QueryResponse?.Item?.[0]) {
-        logStep("Found EquipQR Services item", { id: data.QueryResponse.Item[0].Id });
-        return { 
-          value: data.QueryResponse.Item[0].Id, 
-          name: data.QueryResponse.Item[0].Name 
-        };
-      }
-    } else if (response.status === 401 || response.status === 403 || response.status >= 500) {
-      // For auth and server errors, do not attempt the fallback query
-      let errorBody: string | undefined;
-      try {
-        errorBody = await response.text();
-      } catch (readError) {
-        errorBody = "Unable to read error response body";
-        logStep("Failed to read error response body when searching for EquipQR Services item", {
-          status: response.status,
-          statusText: response.statusText,
-          error: readError instanceof Error ? readError.message : String(readError),
-        });
-      }
-      logStep("Error response searching for EquipQR Services item", {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorBody,
-      });
-      throw new Error(`QuickBooks item query failed with status ${response.status}`);
+  if (specificResponse.ok) {
+    const data = await specificResponse.json();
+    if (data.QueryResponse?.Item?.[0]) {
+      logStep("Found EquipQR Services item", { id: data.QueryResponse.Item[0].Id });
+      return { 
+        value: data.QueryResponse.Item[0].Id, 
+        name: data.QueryResponse.Item[0].Name 
+      };
     }
-  } catch (e) {
-    logStep("Error searching for EquipQR Services item", { error: e instanceof Error ? e.message : String(e) });
-    // For network or unexpected errors, do not attempt the fallback query
-    throw e instanceof Error ? e : new Error(String(e));
+  } else if (specificResponse.status === 401 || specificResponse.status === 403 || specificResponse.status >= 500) {
+    throw new Error(`QuickBooks item query failed with status ${specificResponse.status}`);
   }
 
-  // 2. Fallback: Find ANY active Service item
+  // Fallback to any active Service item
   const genericQuery = `SELECT * FROM Item WHERE Type = 'Service' AND Active = true MAXRESULTS 1`;
   const genericUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(genericQuery)}`;
+  const genericResponse = await fetch(genericUrl, { method: "GET", headers });
   
-  try {
-    const response = await fetch(genericUrl, { method: "GET", headers });
-    if (response.ok) {
-      const data = await response.json();
-      if (data.QueryResponse?.Item?.[0]) {
-        logStep("Found generic service item", { 
-          id: data.QueryResponse.Item[0].Id, 
-          name: data.QueryResponse.Item[0].Name 
-        });
-        return { 
-          value: data.QueryResponse.Item[0].Id, 
-          name: data.QueryResponse.Item[0].Name 
-        };
-      }
-    } else if (response.status === 401 || response.status === 403 || response.status >= 500) {
-      // For auth and server errors, do not attempt item creation
-      let errorBody: string | undefined;
-      try {
-        errorBody = await response.text();
-      } catch {
-        // Ignore body read errors
-      }
-      logStep("Error response searching for generic service item", {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorBody,
+  if (genericResponse.ok) {
+    const data = await genericResponse.json();
+    if (data.QueryResponse?.Item?.[0]) {
+      logStep("Found generic service item", { 
+        id: data.QueryResponse.Item[0].Id, 
+        name: data.QueryResponse.Item[0].Name 
       });
-      throw new Error(`QuickBooks generic item query failed with status ${response.status}`);
+      return { 
+        value: data.QueryResponse.Item[0].Id, 
+        name: data.QueryResponse.Item[0].Name 
+      };
     }
-  } catch (e) {
-    logStep("Error searching for generic service item", { error: e instanceof Error ? e.message : String(e) });
-    // Rethrow all errors to stop fallback item creation
-    // This includes network errors, auth errors, and any other failures
-    throw e instanceof Error ? e : new Error(String(e));
+  } else if (genericResponse.status === 401 || genericResponse.status === 403 || genericResponse.status >= 500) {
+    throw new Error(`QuickBooks generic item query failed with status ${genericResponse.status}`);
   }
 
-  // 3. Last Resort: Create a new service item
-  // First, we need to find an income account to associate with the item
-  logStep("No service items found, attempting to create EquipQR Services item");
+  // Create new "EquipQR Services" item
+  logStep("No service items found, creating EquipQR Services item");
   
-  try {
-    // Query for an income account (required for service items)
-    const accountQuery = `SELECT * FROM Account WHERE AccountType = 'Income' AND Active = true MAXRESULTS 1`;
-    const accountUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(accountQuery)}`;
-    
-    const accountResponse = await fetch(accountUrl, { method: "GET", headers });
-    
-    if (!accountResponse.ok) {
-      const errorText = await accountResponse.text();
-      logStep("Failed to query income accounts", {
-        status: accountResponse.status,
-        statusText: accountResponse.statusText,
-        body: errorText,
-      });
-      throw new Error(
-        `Failed to query income accounts: ${accountResponse.status} ${accountResponse.statusText}`,
-      );
-    }
-    
-    const accountData = await accountResponse.json();
-    const incomeAccount = accountData.QueryResponse?.Account?.[0];
-    
-    if (!incomeAccount) {
-      throw new Error("No income account found in QuickBooks");
-    }
-    
-    logStep("Found income account for service item", { 
-      id: incomeAccount.Id, 
-      name: incomeAccount.Name 
-    });
-
-    // Create the service item
-    const createUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/item`;
-    const newItem = {
-      Name: "EquipQR Services",
-      Type: "Service",
-      IncomeAccountRef: {
-        value: incomeAccount.Id,
-        name: incomeAccount.Name
-      },
-      Description: "General services for EquipQR Work Orders"
-    };
-
-    const createResponse = await fetch(createUrl, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(newItem)
-    });
-
-    if (!createResponse.ok) {
-      const errorText = await createResponse.text();
-      logStep("Failed to create service item", { error: errorText });
-      throw new Error(`Failed to create service item: ${createResponse.status} - ${errorText}`);
-    }
-
-    const createdItem = await createResponse.json();
-    
-    if (!createdItem?.Item?.Id) {
-      throw new Error("QuickBooks returned invalid item structure after creation");
-    }
-
-    logStep("Successfully created EquipQR Services item", { id: createdItem.Item.Id });
-    
-    return { 
-      value: createdItem.Item.Id, 
-      name: createdItem.Item.Name 
-    };
-    
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    logStep("ERROR: Could not find or create service item", { error: errorMessage });
-    throw new Error(
-      `Could not find or create a valid Service Item in QuickBooks: ${errorMessage}. ` +
-      "Please ensure at least one Service item exists in your QuickBooks account, " +
-      "or check that EquipQR has permission to create items."
-    );
+  const accountQuery = `SELECT * FROM Account WHERE AccountType = 'Income' AND Active = true MAXRESULTS 1`;
+  const accountUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(accountQuery)}`;
+  const accountResponse = await fetch(accountUrl, { method: "GET", headers });
+  
+  if (!accountResponse.ok) {
+    throw new Error(`Failed to query income accounts: ${accountResponse.status} ${accountResponse.statusText}`);
   }
+  
+  const accountData = await accountResponse.json();
+  const incomeAccount = accountData.QueryResponse?.Account?.[0];
+  
+  if (!incomeAccount) {
+    throw new Error("No income account found in QuickBooks");
+  }
+
+  const createUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/item`;
+  const newItem = {
+    Name: "EquipQR Services",
+    Type: "Service",
+    IncomeAccountRef: {
+      value: incomeAccount.Id,
+      name: incomeAccount.Name
+    },
+    Description: "General services for EquipQR Work Orders"
+  };
+
+  const createResponse = await fetch(createUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(newItem)
+  });
+
+  if (!createResponse.ok) {
+    const errorText = await createResponse.text();
+    throw new Error(`Failed to create service item: ${createResponse.status} - ${errorText}`);
+  }
+
+  const createdItem = await createResponse.json();
+  
+  if (!createdItem?.Item?.Id) {
+    throw new Error("QuickBooks returned invalid item structure after creation");
+  }
+
+  logStep("Successfully created EquipQR Services item", { id: createdItem.Item.Id });
+  
+  return { 
+    value: createdItem.Item.Id, 
+    name: createdItem.Item.Name 
+  };
 }
 
 /**
@@ -759,7 +684,7 @@ async function attachPDFToInvoice(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Attachment upload failed:", errorText);
+      logStep("Attachment upload failed", { error: errorText });
       throw new Error(`Failed to upload PDF attachment: ${errorText}`);
     }
 
@@ -1081,7 +1006,7 @@ serve(async (req) => {
 
         if (!updateResponse.ok) {
           const errorText = await updateResponse.text();
-          console.error("Invoice update failed:", errorText);
+          logStep("Invoice update failed", { error: errorText });
           throw new Error("Failed to update invoice in QuickBooks");
         }
 
@@ -1204,7 +1129,7 @@ serve(async (req) => {
 
         if (!createResponse.ok) {
           const errorText = await createResponse.text();
-          console.error("Invoice creation failed:", errorText);
+          logStep("Invoice creation failed", { error: errorText });
           throw new Error("Failed to create invoice in QuickBooks");
         }
 
