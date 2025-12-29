@@ -43,13 +43,9 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 
 ### Vault Secrets (Token Refresh Scheduler)
 
-The QuickBooks token refresh scheduler runs every 15 minutes via `pg_cron` and requires vault secrets to call the Edge Function securely. These must be configured **manually** in each Supabase environment after the migration runs.
-
-**Run this SQL in the Supabase SQL Editor for each environment:**
+The token refresh scheduler requires vault secrets. Run this SQL in each Supabase environment:
 
 ```sql
--- Insert vault secrets
--- IMPORTANT: Replace the entire placeholder including angle brackets <...> with your actual values
 INSERT INTO vault.secrets (name, secret)
 VALUES 
   ('service_role_key', '<your-service-role-key>'), 
@@ -61,7 +57,7 @@ VALUES
 | `service_role_key` | Supabase service role key | Dashboard → Settings → API → Project API keys → service_role (secret) |
 | `supabase_url` | Supabase project URL | Dashboard → Settings → API → Project URL |
 
-**Important**: Each environment (preview, production) has different keys. Configure them separately.
+Configure separately for each environment (preview, production).
 
 ### Setting Up Intuit Developer App
 
@@ -69,13 +65,11 @@ VALUES
 2. Create a new app or use an existing one
 3. Configure OAuth settings:
    - **Redirect URI**: `{your-base-url}/functions/v1/quickbooks-oauth-callback`
-     - Examples:
-       - Default Supabase: `https://your-project-ref.supabase.co/functions/v1/quickbooks-oauth-callback`
-       - Custom domain: `https://supabase.yourdomain.com/functions/v1/quickbooks-oauth-callback`
-       - Local dev: `http://localhost:54321/functions/v1/quickbooks-oauth-callback`
-     - Set `VITE_QB_OAUTH_REDIRECT_BASE_URL` to match the base URL (e.g., `https://supabase.yourdomain.com`)
+     - Default: `https://your-project-ref.supabase.co/functions/v1/quickbooks-oauth-callback`
+     - Custom domain: `https://supabase.yourdomain.com/functions/v1/quickbooks-oauth-callback`
+     - Local dev: `http://localhost:54321/functions/v1/quickbooks-oauth-callback`
+     - Set `VITE_QB_OAUTH_REDIRECT_BASE_URL` to match the base URL
    - **Scopes**: `com.intuit.quickbooks.accounting`
-   - **IMPORTANT**: The redirect URI must match EXACTLY between Intuit Developer Portal and `VITE_QB_OAUTH_REDIRECT_BASE_URL`
 4. Copy the Client ID and Client Secret
 
 ## Usage
