@@ -134,12 +134,12 @@ serve(async (req) => {
     try {
       new URL(qbOAuthRedirectBaseUrl);
     } catch {
-      logStep("ERROR", { message: `Invalid QB_OAUTH_REDIRECT_BASE_URL: ${qbOAuthRedirectBaseUrl.substring(0, 50)}` });
+      logStep("ERROR", { message: `Invalid QB_OAUTH_REDIRECT_BASE_URL: ${qbOAuthRedirectBaseUrl}` });
       throw new Error("Invalid OAuth redirect base URL configuration");
     }
 
     logStep("Using OAuth redirect base URL", { 
-      baseUrl: qbOAuthRedirectBaseUrl.substring(0, 50),
+      baseUrl: qbOAuthRedirectBaseUrl,
       isCustom: !!Deno.env.get("QB_OAUTH_REDIRECT_BASE_URL")
     });
 
@@ -263,7 +263,7 @@ serve(async (req) => {
     // This MUST match the redirect_uri used in the authorization request (frontend)
     // OAuth 2.0 requires exact match between authorization and token exchange
     // Note: Must match client preprocessing: .trim().replace(/\/+$/, '')
-    const redirectBaseUrl = qbOAuthRedirectBaseUrl!.trim().replace(/\/+$/, ''); // Remove whitespace and trailing slashes
+    const redirectBaseUrl = qbOAuthRedirectBaseUrl.trim().replace(/\/+$/, ''); // Remove whitespace and trailing slashes
     const redirectUri = `${redirectBaseUrl}/functions/v1/quickbooks-oauth-callback`;
 
     // Exchange authorization code for tokens
