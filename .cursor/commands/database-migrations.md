@@ -22,9 +22,11 @@ Help create and manage database migrations, generating complete migration files 
     - Include progress monitoring for large datasets
     - Consider zero-downtime deployment strategies
 4. **Testing Strategy**
-    - Create test data scenarios
-    - Verify migration on staging environment
+    - **Test locally first** (REQUIRED): Use `npx supabase db reset` to test migration on local database
+    - Create test data scenarios for local testing
+    - Verify migration works with complete database reset locally
     - Plan rollback procedures and testing
+    - Deploy to production only after successful local testing
     - Document deployment steps and timing
 
 ## Database Migration Checklist
@@ -36,5 +38,7 @@ Help create and manage database migrations, generating complete migration files 
 - [ ] Ensured migrations are atomic and reversible
 - [ ] Added error handling and validation
 - [ ] Created test data scenarios
-- [ ] Verified migration on staging environment
+- [ ] **Tested locally with `npx supabase db reset`** (REQUIRED before production)
+- [ ] Verified schema with `npx supabase db diff` after local testing
+- [ ] Deploy to production only after successful local testing
 - [ ] Documented deployment steps and timing

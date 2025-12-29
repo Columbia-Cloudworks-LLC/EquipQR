@@ -54,19 +54,31 @@ my_migration.sql  # No timestamp
 
 ### Adding a New Migration
 
+> **⚠️ IMPORTANT: Local-First Development**
+> 
+> All migrations must be developed and tested locally before deploying to production.
+
+**Standard workflow:**
+
 ```bash
 # 1. Create migration with current timestamp
 # Format: YYYYMMDDHHMMSS (year, month, day, hour, minute, second)
-touch supabase/migrations/20251028143022_add_new_feature.sql
+npx supabase migration new add_new_feature
+# OR manually create:
+# touch supabase/migrations/20251028143022_add_new_feature.sql
 
 # 2. Write migration (use IF NOT EXISTS for safety)
-# 3. Test locally
-supabase db reset
+# Edit the generated file in supabase/migrations/
+
+# 3. Test locally (REQUIRED before production deployment)
+npx supabase db reset  # Resets and applies all migrations
+npx supabase db diff   # Verify schema matches expectations
 
 # 4. Validate filename
 node scripts/supabase-fix-migrations.mjs
 
-# 5. Deploy to production
+# 5. Deploy to production (only after local testing succeeds)
+npx supabase db push --linked
 # Migration timestamp is now PERMANENT
 ```
 
@@ -132,14 +144,18 @@ node scripts/supabase-fix-migrations.mjs
 
 ## 📝 Checklist Before Deployment
 
+**⚠️ Local testing is REQUIRED before production deployment:**
+
 - [ ] Migration filename matches `YYYYMMDDHHMMSS_description.sql`
 - [ ] Used `IF NOT EXISTS` for safe operations
-- [ ] Tested with `supabase db reset` locally
+- [ ] **Tested with `npx supabase db reset` locally** (REQUIRED)
+- [ ] Verified schema with `npx supabase db diff`
 - [ ] Validated with `node scripts/supabase-fix-migrations.mjs`
-- [ ] Checked production state with MCP tools
+- [ ] Checked production state with MCP tools (for existing migrations)
 - [ ] Verified migration is idempotent (can run multiple times)
 - [ ] Added RLS policies if creating new tables
 - [ ] Updated TypeScript types if needed
+- [ ] **Only deploy to production after all local tests pass**
 
 ## 🎯 Remember
 

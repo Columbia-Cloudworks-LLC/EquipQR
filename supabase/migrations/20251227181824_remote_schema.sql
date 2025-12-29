@@ -12,6 +12,12 @@
 --   - Original migration was generated via Supabase remote schema pull and contained
 --     function definitions and schema changes that are now part of the base schema.
 --   - See deployment logs and docs/ops/migration-rules-quick-reference.md for details.
+--
+-- Local development compatibility:
+--   - This placeholder is safe for local development environments
+--   - Running `npx supabase db reset` will apply this migration as a no-op
+--   - The SELECT 1 statement ensures the migration completes successfully without errors
+--   - Local environments that haven't applied this migration will apply it as a no-op
 
 -- No-op: migration already applied
 SELECT 1;

@@ -76,9 +76,22 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   // Get environment variables
   const clientId = import.meta.env.VITE_INTUIT_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const explicitOAuthRedirectBaseUrl = import.meta.env.VITE_QB_OAUTH_REDIRECT_BASE_URL;
+  
   // OAuth redirect base URL - must match what's registered in Intuit Developer Portal
   // Falls back to VITE_SUPABASE_URL if not explicitly set
-  const oauthRedirectBaseUrl = import.meta.env.VITE_QB_OAUTH_REDIRECT_BASE_URL || supabaseUrl;
+  const oauthRedirectBaseUrl = explicitOAuthRedirectBaseUrl || supabaseUrl;
+  
+  // Validate that if both are set, they should match to prevent OAuth redirect URI mismatches
+  if (explicitOAuthRedirectBaseUrl && supabaseUrl && explicitOAuthRedirectBaseUrl !== supabaseUrl) {
+    console.warn(
+      `[QuickBooks OAuth] Warning: VITE_QB_OAUTH_REDIRECT_BASE_URL (${explicitOAuthRedirectBaseUrl}) ` +
+      `does not match VITE_SUPABASE_URL (${supabaseUrl}). ` +
+      `Using VITE_QB_OAUTH_REDIRECT_BASE_URL for OAuth redirect. ` +
+      `Ensure the redirect URI (${explicitOAuthRedirectBaseUrl}/functions/v1/quickbooks-oauth-callback) ` +
+      `matches EXACTLY what's registered in Intuit Developer Portal.`
+    );
+  }
 
   if (!clientId) {
     throw new Error(
