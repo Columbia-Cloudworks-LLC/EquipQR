@@ -169,7 +169,7 @@ serve(async (req) => {
         : error === 'invalid_request'
         ? 'Invalid OAuth request'
         : 'QuickBooks connection failed';
-      const errorUrl = `${productionUrl}/settings/integrations?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(userFriendlyError)}`;
+      const errorUrl = `${productionUrl}/dashboard/organization?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(userFriendlyError)}`;
       return Response.redirect(errorUrl, 302);
     }
 
@@ -366,16 +366,19 @@ serve(async (req) => {
 
     // Validate redirect URL if provided (prevent open redirect attacks)
     let successUrl: string;
+    const defaultRedirectPath = '/dashboard/organization';
     if (redirectUrl) {
       if (!isValidRedirectUrl(redirectUrl, productionUrl)) {
         logStep("Invalid redirect URL rejected", { redirectUrl: redirectUrl.substring(0, 100) });
         // Fall back to default redirect on invalid URL
-        successUrl = `${productionUrl}/settings/integrations?quickbooks=connected&realm_id=${realmId}`;
+        successUrl = `${productionUrl}${defaultRedirectPath}?qb_connected=true&realm_id=${realmId}`;
       } else {
-        successUrl = redirectUrl;
+        // Append success params to the provided redirect URL
+        const separator = redirectUrl.includes('?') ? '&' : '?';
+        successUrl = `${productionUrl}${redirectUrl}${separator}qb_connected=true&realm_id=${realmId}`;
       }
     } else {
-      successUrl = `${productionUrl}/settings/integrations?quickbooks=connected&realm_id=${realmId}`;
+      successUrl = `${productionUrl}${defaultRedirectPath}?qb_connected=true&realm_id=${realmId}`;
     }
     
     logStep("Redirecting to success URL", { successUrl: successUrl.substring(0, 100) });
@@ -390,7 +393,7 @@ serve(async (req) => {
     // Get production URL for error redirect
     // Use generic error message to prevent information exposure
     const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
-    const errorUrl = `${productionUrl}/settings/integrations?error=oauth_failed&error_description=${encodeURIComponent("Failed to connect QuickBooks. Please try again.")}`;
+    const errorUrl = `${productionUrl}/dashboard/organization?error=oauth_failed&error_description=${encodeURIComponent("Failed to connect QuickBooks. Please try again.")}`;
     
     return Response.redirect(errorUrl, 302);
   }
