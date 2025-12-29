@@ -126,11 +126,8 @@ serve(async (req) => {
       throw new Error("Supabase configuration is missing");
     }
 
-    // Validate OAuth redirect base URL
-    if (!qbOAuthRedirectBaseUrl) {
-      throw new Error("OAuth redirect base URL is not configured (QB_OAUTH_REDIRECT_BASE_URL or SUPABASE_URL)");
-    }
-
+    // Validate OAuth redirect base URL format
+    // Note: qbOAuthRedirectBaseUrl is guaranteed to have a value at this point due to fallback to supabaseUrl
     try {
       new URL(qbOAuthRedirectBaseUrl);
     } catch {
