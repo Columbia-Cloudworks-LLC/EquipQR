@@ -21,7 +21,8 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 
 /**
  * Validates a redirect URL against allowed domains
- * Only allows redirects to the same domain as the production URL or relative paths
+ * Only allows redirects to the same domain as the production URL, relative paths,
+ * localhost, or allowed preview domains
  * @param redirectUrl - The redirect URL to validate
  * @param productionUrl - The production URL to validate against
  * @returns true if the redirect URL is valid, false otherwise
@@ -32,26 +33,27 @@ function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): 
   }
 
   try {
-    const url = new URL(redirectUrl, productionUrl);
-    
-    // Allow relative paths (same origin)
-    if (url.pathname && !url.hostname) {
+    // Check if it's a relative path (starts with /)
+    if (redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
       return true;
     }
     
-    // Allow redirects to the same domain as production
+    const url = new URL(redirectUrl);
     const productionDomain = new URL(productionUrl).hostname;
+    
+    // Allow redirects to the same domain as production
     if (url.hostname === productionDomain) {
       return true;
     }
     
-    // For development/staging, also allow localhost and vercel preview URLs
-    // This allows the app to work in preview deployments
+    // For development/staging, also allow localhost, 127.0.0.1, and vercel preview URLs
+    // This allows the app to work in local development and preview deployments
     const allowedDomains = [
       productionDomain,
       'localhost',
       '127.0.0.1',
       '.vercel.app', // Vercel preview deployments
+      '.netlify.app', // Netlify preview deployments
     ];
     
     // Check if hostname matches any allowed domain or is a subdomain of an allowed domain
@@ -157,6 +159,8 @@ serve(async (req) => {
     });
 
     // Handle OAuth errors from Intuit
+    // Note: At this point we may not have the origin URL yet (state hasn't been parsed)
+    // So we redirect to production for OAuth errors from Intuit
     if (error) {
       logStep("OAuth error from Intuit", { error, errorDescription });
       // Sanitize error description - only pass through standard OAuth error codes
@@ -238,6 +242,7 @@ serve(async (req) => {
     const userId = session.user_id;
     const redirectUrl = session.redirect_url;
     const sessionNonce = session.nonce;
+    const originUrl = session.origin_url; // The origin to redirect back to (e.g., localhost or production)
 
     // Validate nonce matches the one stored in the session (CSRF protection)
     if (!sessionNonce) {
@@ -253,7 +258,9 @@ serve(async (req) => {
     logStep("Session validated", { 
       organizationId, 
       userId,
-      hasRedirectUrl: !!redirectUrl
+      hasRedirectUrl: !!redirectUrl,
+      hasOriginUrl: !!originUrl,
+      originUrl: originUrl ? originUrl.substring(0, 50) : null
     });
 
     // Use QB_OAUTH_REDIRECT_BASE_URL (or fallback to SUPABASE_URL) for the redirect_uri
@@ -361,6 +368,18 @@ serve(async (req) => {
 
     logStep("Credentials stored successfully", { organizationId, realmId });
 
+    // Determine the base URL for the redirect
+    // Use the origin URL from the session if available, otherwise fall back to production URL
+    // This allows local development to redirect back to localhost
+    const baseUrl = originUrl || productionUrl;
+    
+    // Validate the origin URL if provided (prevent open redirect attacks)
+    if (originUrl && !isValidRedirectUrl(originUrl, productionUrl)) {
+      logStep("Invalid origin URL rejected, using production URL", { originUrl: originUrl.substring(0, 100) });
+    }
+    
+    const finalBaseUrl = (originUrl && isValidRedirectUrl(originUrl, productionUrl)) ? originUrl : productionUrl;
+
     // Validate redirect URL if provided (prevent open redirect attacks)
     let successUrl: string;
     const defaultRedirectPath = '/dashboard/organization';
@@ -368,14 +387,14 @@ serve(async (req) => {
       if (!isValidRedirectUrl(redirectUrl, productionUrl)) {
         logStep("Invalid redirect URL rejected", { redirectUrl: redirectUrl.substring(0, 100) });
         // Fall back to default redirect on invalid URL
-        successUrl = `${productionUrl}${defaultRedirectPath}?qb_connected=true&realm_id=${realmId}`;
+        successUrl = `${finalBaseUrl}${defaultRedirectPath}?qb_connected=true&realm_id=${realmId}`;
       } else {
         // Append success params to the provided redirect URL
         const separator = redirectUrl.includes('?') ? '&' : '?';
-        successUrl = `${productionUrl}${redirectUrl}${separator}qb_connected=true&realm_id=${realmId}`;
+        successUrl = `${finalBaseUrl}${redirectUrl}${separator}qb_connected=true&realm_id=${realmId}`;
       }
     } else {
-      successUrl = `${productionUrl}${defaultRedirectPath}?qb_connected=true&realm_id=${realmId}`;
+      successUrl = `${finalBaseUrl}${defaultRedirectPath}?qb_connected=true&realm_id=${realmId}`;
     }
     
     logStep("Redirecting to success URL", { successUrl: successUrl.substring(0, 100) });

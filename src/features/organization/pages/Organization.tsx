@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
+import { useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 import OrganizationHeader from '@/features/organization/components/OrganizationHeader';
 import OrganizationTabs from '@/features/organization/components/OrganizationTabs';
@@ -10,6 +13,34 @@ import Page from '@/components/layout/Page';
 
 const Organization = () => {
   const { currentOrganization, isLoading } = useOrganization();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+
+  // Handle QuickBooks OAuth callback results at the page level
+  // This ensures the toast is shown even if the Settings tab isn't active
+  useEffect(() => {
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    const success = searchParams.get('qb_connected');
+
+    if (error) {
+      toast.error(errorDescription || 'Failed to connect QuickBooks');
+      // Clear the error params
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('error');
+      newParams.delete('error_description');
+      setSearchParams(newParams, { replace: true });
+    } else if (success) {
+      toast.success('QuickBooks connected successfully!');
+      // Refresh connection status
+      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'connection'] });
+      // Clear the success param
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('qb_connected');
+      newParams.delete('realm_id');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, queryClient]);
 
   // Custom hooks for data and business logic
   const { data: members = [], isLoading: membersLoading } = useOrganizationMembersQuery(currentOrganization?.id || '');

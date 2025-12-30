@@ -8,7 +8,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, QrCode } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { usePendingRedirectHandler } from '@/hooks/usePendingRedirectHandler';
 import Logo from '@/components/ui/Logo';
 import SignUpForm from '@/components/auth/SignUpForm';
 import SignInForm from '@/components/auth/SignInForm';
@@ -23,10 +22,7 @@ const Auth = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingQRScan, setPendingQRScan] = useState(false);
 
-  // Handle pending redirects after authentication
-  usePendingRedirectHandler();
-
-  // Check if user came here from a QR scan
+  // Check if user came here from a QR scan (read-only check, doesn't clear)
   useEffect(() => {
     const pendingRedirect = sessionStorage.getItem('pendingRedirect');
     if (pendingRedirect && pendingRedirect.includes('qr=true')) {
@@ -34,11 +30,19 @@ const Auth = () => {
     }
   }, []);
 
-  // Redirect if already authenticated
+  // Handle pending redirects after authentication
+  // This replaces usePendingRedirectHandler to avoid race conditions with duplicate effects
   useEffect(() => {
     if (user && !authLoading) {
-      // The usePendingRedirectHandler will handle the redirect
-      navigate('/');
+      // Check for pending redirect first (e.g., from OAuth callbacks or QR scans)
+      const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+      if (pendingRedirect) {
+        // Clear it and navigate there
+        sessionStorage.removeItem('pendingRedirect');
+        navigate(pendingRedirect, { replace: true });
+      } else {
+        navigate('/');
+      }
     }
   }, [user, authLoading, navigate]);
 
