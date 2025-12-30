@@ -51,20 +51,9 @@ vi.mock('sonner', () => ({
   },
 }));
 
-// Mock useSearchParams
-const mockSetSearchParams = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useSearchParams: vi.fn(() => [new URLSearchParams(), mockSetSearchParams]),
-  };
-});
-
 import { QuickBooksIntegration } from '@/features/organization/components/QuickBooksIntegration';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { toast } from 'sonner';
-import { useSearchParams as useSearchParamsMock } from 'react-router-dom';
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -252,30 +241,6 @@ describe('QuickBooksIntegration Component', () => {
     });
   });
 
-  describe('OAuth Callback Handling', () => {
-    it('should show success toast on successful connection', async () => {
-      const params = new URLSearchParams({ qb_connected: 'true' });
-      vi.mocked(useSearchParamsMock).mockReturnValue([params, mockSetSearchParams]);
-      
-      renderComponent();
-      
-      await waitFor(() => {
-        expect(toast.success).toHaveBeenCalledWith('QuickBooks connected successfully!');
-      });
-    });
-
-    it('should show error toast on OAuth error', async () => {
-      const params = new URLSearchParams({ 
-        error: 'access_denied',
-        error_description: 'User denied access' 
-      });
-      vi.mocked(useSearchParamsMock).mockReturnValue([params, mockSetSearchParams]);
-      
-      renderComponent();
-      
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith('User denied access');
-      });
-    });
-  });
+  // Note: OAuth callback handling tests are in Organization.test.tsx
+  // since that functionality moved to the page level
 });
