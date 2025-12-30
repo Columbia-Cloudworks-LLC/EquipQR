@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import { usePagePermissions } from '@/hooks/usePagePermissions';

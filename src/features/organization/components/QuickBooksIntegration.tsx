@@ -5,7 +5,7 @@
  * Shows connection status and provides connect/disconnect functionality.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,9 +36,9 @@ interface QuickBooksIntegrationProps {
   currentUserRole: 'owner' | 'admin' | 'member';
 }
 
-export const QuickBooksIntegration: React.FC<QuickBooksIntegrationProps> = ({
+export const QuickBooksIntegration = ({
   currentUserRole
-}) => {
+}: QuickBooksIntegrationProps) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const [isConnecting, setIsConnecting] = useState(false);

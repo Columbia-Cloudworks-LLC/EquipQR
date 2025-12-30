@@ -5,6 +5,12 @@
 --
 -- This fixes an issue where users testing locally get redirected to production
 -- after completing the QuickBooks OAuth flow.
+--
+-- ROLLBACK INSTRUCTIONS (if needed):
+-- 1. Drop the column: ALTER TABLE public.quickbooks_oauth_sessions DROP COLUMN IF EXISTS origin_url;
+-- 2. Restore original function signatures by re-running previous migration versions
+--    or by manually removing the origin_url parameter from create_quickbooks_oauth_session
+--    and removing origin_url from validate_quickbooks_oauth_session return type.
 
 -- ============================================================================
 -- PART 1: Add origin_url column

@@ -371,14 +371,15 @@ serve(async (req) => {
     // Determine the base URL for the redirect
     // Use the origin URL from the session if available, otherwise fall back to production URL
     // This allows local development to redirect back to localhost
-    const baseUrl = originUrl || productionUrl;
+    const isOriginValidRedirect = !!originUrl && isValidRedirectUrl(originUrl, productionUrl);
     
     // Validate the origin URL if provided (prevent open redirect attacks)
-    if (originUrl && !isValidRedirectUrl(originUrl, productionUrl)) {
+    if (originUrl && !isOriginValidRedirect) {
       logStep("Invalid origin URL rejected, using production URL", { originUrl: originUrl.substring(0, 100) });
     }
     
-    const finalBaseUrl = (originUrl && isValidRedirectUrl(originUrl, productionUrl)) ? originUrl : productionUrl;
+    // Normalize finalBaseUrl: remove trailing slashes to prevent double slashes in URL construction
+    const finalBaseUrl = (isOriginValidRedirect ? originUrl : productionUrl).replace(/\/+$/, '');
 
     // Validate redirect URL if provided (prevent open redirect attacks)
     let successUrl: string;
