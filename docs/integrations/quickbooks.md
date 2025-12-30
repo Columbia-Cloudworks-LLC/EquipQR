@@ -38,8 +38,25 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 |-------------|-------------|
 | `INTUIT_CLIENT_ID` | Your Intuit app's Client ID |
 | `INTUIT_CLIENT_SECRET` | Your Intuit app's Client Secret |
+| `QB_OAUTH_REDIRECT_BASE_URL` | **CRITICAL**: Must match `VITE_QB_OAUTH_REDIRECT_BASE_URL` (see below) |
 | `QUICKBOOKS_SANDBOX` | Set to `"true"` for sandbox, `"false"` for production |
 | `ENABLE_QB_PDF_ATTACHMENT` | Set to `"true"` to enable PDF attachments on exported invoices (default: `"false"`) |
+
+**⚠️ Important: OAuth Redirect URL Configuration**
+
+OAuth 2.0 requires that the `redirect_uri` used during authorization **must exactly match** the `redirect_uri` used during token exchange. If you're using a custom domain for Supabase:
+
+1. Set `VITE_QB_OAUTH_REDIRECT_BASE_URL` in your client environment (e.g., `https://supabase.equipqr.app`)
+2. Set `QB_OAUTH_REDIRECT_BASE_URL` in your Edge Function secrets to the **same value**
+3. Register this URL in the Intuit Developer Portal as a Redirect URI
+
+| Environment | `VITE_QB_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` |
+|-------------|------------------------------------------------------------------|
+| Production | `https://supabase.equipqr.app` |
+| Preview | `https://supabase.preview.equipqr.app` |
+| Local | `http://localhost:54321` |
+
+If these values don't match, OAuth will fail with "oauth_failed" error.
 
 ### Vault Secrets (Token Refresh Scheduler)
 
@@ -182,6 +199,12 @@ When PDF attachments are enabled (`ENABLE_QB_PDF_ATTACHMENT=true`), the system w
 **"QuickBooks is not configured"**
 - Ensure `VITE_INTUIT_CLIENT_ID` is set in your environment
 - Verify the Intuit app credentials are correct
+
+**"Failed to connect QuickBooks" / "oauth_failed" error**
+- **Most common cause**: `redirect_uri` mismatch between client and server
+- Verify `VITE_QB_OAUTH_REDIRECT_BASE_URL` (client) matches `QB_OAUTH_REDIRECT_BASE_URL` (Edge Function secret)
+- Ensure both match what's registered in the Intuit Developer Portal
+- Check Edge Function logs for detailed error messages
 
 **"Authorization has expired"**
 - Click **Reconnect QuickBooks** to re-authorize

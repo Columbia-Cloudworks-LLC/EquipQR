@@ -145,6 +145,8 @@ INTUIT_CLIENT_ID=<your-sandbox-client-id>
 INTUIT_CLIENT_SECRET=<your-sandbox-client-secret>
 QUICKBOOKS_SANDBOX=true
 PRODUCTION_URL=http://localhost:8080
+# CRITICAL: Must match VITE_QB_OAUTH_REDIRECT_BASE_URL in client .env
+QB_OAUTH_REDIRECT_BASE_URL=http://localhost:54321
 
 # Other required secrets
 RESEND_API_KEY=<your-resend-key>

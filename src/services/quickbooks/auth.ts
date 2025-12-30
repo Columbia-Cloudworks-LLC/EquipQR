@@ -25,6 +25,8 @@ export interface QuickBooksAuthConfig {
   redirectUrl?: string;
   /** Optional custom scopes (defaults to accounting scope) */
   scopes?: string;
+  /** Optional origin URL to redirect back to (defaults to window.location.origin) */
+  originUrl?: string;
 }
 
 /**
@@ -97,11 +99,16 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
     throw new Error(`Invalid OAuth redirect base URL: "${oauthRedirectBaseUrl}"`);
   }
 
+  // Get the origin URL (where to redirect back to after OAuth)
+  // This is important for local development vs production
+  const originUrl = config.originUrl || (typeof window !== 'undefined' ? window.location.origin : null);
+
   // Create server-side OAuth session (validates user is admin/owner of org)
   const { data: sessionData, error: sessionError } = await supabase
     .rpc('create_quickbooks_oauth_session', {
       p_organization_id: config.organizationId,
       p_redirect_url: config.redirectUrl || null,
+      p_origin_url: originUrl,
     });
 
   if (sessionError) {

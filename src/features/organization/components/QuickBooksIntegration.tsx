@@ -5,7 +5,7 @@
  * Shows connection status and provides connect/disconnect functionality.
  */
 
-import React, { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,18 +31,16 @@ import {
 } from '@/services/quickbooks';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { toast } from 'sonner';
-import { useSearchParams } from 'react-router-dom';
 
 interface QuickBooksIntegrationProps {
   currentUserRole: 'owner' | 'admin' | 'member';
 }
 
-export const QuickBooksIntegration: React.FC<QuickBooksIntegrationProps> = ({
+export const QuickBooksIntegration = ({
   currentUserRole
-}) => {
+}: QuickBooksIntegrationProps) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [isConnecting, setIsConnecting] = useState(false);
 
   // Check if user can manage QuickBooks (admin/owner only)
@@ -52,31 +50,8 @@ export const QuickBooksIntegration: React.FC<QuickBooksIntegrationProps> = ({
   const featureEnabled = isQuickBooksEnabled();
   const isConfigured = isQuickBooksConfigured();
 
-  // Removed debug logging - component visibility is controlled by featureEnabled and canManage
-
-  // Check for OAuth callback results in URL params
-  useEffect(() => {
-    const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
-    const success = searchParams.get('qb_connected');
-
-    if (error) {
-      toast.error(errorDescription || 'Failed to connect QuickBooks');
-      // Clear the error params - create new URLSearchParams to ensure React Router detects change
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('error');
-      newParams.delete('error_description');
-      setSearchParams(newParams, { replace: true });
-    } else if (success) {
-      toast.success('QuickBooks connected successfully!');
-      // Refresh connection status
-      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'connection'] });
-      // Clear the success param - create new URLSearchParams to ensure React Router detects change
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('qb_connected');
-      setSearchParams(newParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams, queryClient]);
+  // Note: OAuth callback results (qb_connected, error params) are handled at the 
+  // Organization page level to avoid duplicate toasts. See Organization.tsx.
 
   // Query for connection status
   const { 

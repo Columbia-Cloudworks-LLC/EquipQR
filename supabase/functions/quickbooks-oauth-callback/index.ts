@@ -21,7 +21,8 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 
 /**
  * Validates a redirect URL against allowed domains
- * Only allows redirects to the same domain as the production URL or relative paths
+ * Only allows redirects to the same domain as the production URL, relative paths,
+ * localhost, or allowed preview domains
  * @param redirectUrl - The redirect URL to validate
  * @param productionUrl - The production URL to validate against
  * @returns true if the redirect URL is valid, false otherwise
@@ -32,26 +33,27 @@ function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): 
   }
 
   try {
-    const url = new URL(redirectUrl, productionUrl);
-    
-    // Allow relative paths (same origin)
-    if (url.pathname && !url.hostname) {
+    // Check if it's a relative path (starts with /)
+    if (redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
       return true;
     }
     
-    // Allow redirects to the same domain as production
+    const url = new URL(redirectUrl);
     const productionDomain = new URL(productionUrl).hostname;
+    
+    // Allow redirects to the same domain as production
     if (url.hostname === productionDomain) {
       return true;
     }
     
-    // For development/staging, also allow localhost and vercel preview URLs
-    // This allows the app to work in preview deployments
+    // For development/staging, also allow localhost, 127.0.0.1, and vercel preview URLs
+    // This allows the app to work in local development and preview deployments
     const allowedDomains = [
       productionDomain,
       'localhost',
       '127.0.0.1',
       '.vercel.app', // Vercel preview deployments
+      '.netlify.app', // Netlify preview deployments
     ];
     
     // Check if hostname matches any allowed domain or is a subdomain of an allowed domain
@@ -112,6 +114,10 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
+    // QB_OAUTH_REDIRECT_BASE_URL must match what the frontend uses (VITE_QB_OAUTH_REDIRECT_BASE_URL)
+    // This is required because OAuth 2.0 requires exact redirect_uri match between authorization and token exchange
+    // If using a custom domain for Supabase (e.g., supabase.equipqr.app), this must be set to that domain
+    const qbOAuthRedirectBaseUrl = Deno.env.get("QB_OAUTH_REDIRECT_BASE_URL") || supabaseUrl;
 
     if (!clientId || !clientSecret) {
       logStep("ERROR", { message: "Missing INTUIT_CLIENT_ID or INTUIT_CLIENT_SECRET" });
@@ -121,6 +127,20 @@ serve(async (req) => {
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error("Supabase configuration is missing");
     }
+
+    // Validate OAuth redirect base URL format
+    // Note: qbOAuthRedirectBaseUrl is guaranteed to have a value at this point due to the earlier supabaseUrl check (lines 127-129) and fallback to supabaseUrl (line 120)
+    try {
+      new URL(qbOAuthRedirectBaseUrl);
+    } catch {
+      logStep("ERROR", { message: `Invalid QB_OAUTH_REDIRECT_BASE_URL: ${qbOAuthRedirectBaseUrl}` });
+      throw new Error("Invalid OAuth redirect base URL configuration");
+    }
+
+    logStep("Using OAuth redirect base URL", { 
+      baseUrl: qbOAuthRedirectBaseUrl,
+      isCustom: !!Deno.env.get("QB_OAUTH_REDIRECT_BASE_URL")
+    });
 
     // Parse query parameters from the URL
     const url = new URL(req.url);
@@ -139,6 +159,9 @@ serve(async (req) => {
     });
 
     // Handle OAuth errors from Intuit
+    // Note: At this point we haven't validated the session yet, so we don't have access
+    // to the origin_url from the session data. Therefore, we redirect to production
+    // for OAuth errors from Intuit.
     if (error) {
       logStep("OAuth error from Intuit", { error, errorDescription });
       // Sanitize error description - only pass through standard OAuth error codes
@@ -148,7 +171,7 @@ serve(async (req) => {
         : error === 'invalid_request'
         ? 'Invalid OAuth request'
         : 'QuickBooks connection failed';
-      const errorUrl = `${productionUrl}/settings/integrations?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(userFriendlyError)}`;
+      const errorUrl = `${productionUrl}/dashboard/organization?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(userFriendlyError)}`;
       return Response.redirect(errorUrl, 302);
     }
 
@@ -220,6 +243,7 @@ serve(async (req) => {
     const userId = session.user_id;
     const redirectUrl = session.redirect_url;
     const sessionNonce = session.nonce;
+    const originUrl = session.origin_url; // The origin to redirect back to (e.g., localhost or production)
 
     // Validate nonce matches the one stored in the session (CSRF protection)
     if (!sessionNonce) {
@@ -235,11 +259,17 @@ serve(async (req) => {
     logStep("Session validated", { 
       organizationId, 
       userId,
-      hasRedirectUrl: !!redirectUrl
+      hasRedirectUrl: !!redirectUrl,
+      hasOriginUrl: !!originUrl,
+      originUrl: originUrl ? originUrl.substring(0, 50) : null
     });
 
-    // Use canonical SUPABASE_URL (not req.url) to avoid proxy scheme/host mismatches
-    const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
+    // Use QB_OAUTH_REDIRECT_BASE_URL (or fallback to SUPABASE_URL) for the redirect_uri
+    // This MUST match the redirect_uri used in the authorization request (frontend)
+    // OAuth 2.0 requires exact match between authorization and token exchange
+    // Note: Must match client preprocessing: .trim().replace(/\/+$/, '')
+    const redirectBaseUrl = qbOAuthRedirectBaseUrl.trim().replace(/\/+$/, ''); // Remove whitespace and trailing slashes
+    const redirectUri = `${redirectBaseUrl}/functions/v1/quickbooks-oauth-callback`;
 
     // Exchange authorization code for tokens
     logStep("Exchanging code for tokens");
@@ -339,18 +369,39 @@ serve(async (req) => {
 
     logStep("Credentials stored successfully", { organizationId, realmId });
 
+    // Determine the base URL for the redirect
+    // Use the origin URL from the session if available, otherwise fall back to production URL
+    // This allows local development to redirect back to localhost
+    const isOriginValidRedirect = !!originUrl && isValidRedirectUrl(originUrl, productionUrl);
+    
+    // Validate the origin URL if provided (prevent open redirect attacks)
+    if (originUrl && !isOriginValidRedirect) {
+      logStep("Invalid origin URL rejected, using production URL", { originUrl: originUrl.substring(0, 100) });
+    }
+    
+    // Normalize finalBaseUrl: remove trailing slashes to prevent double slashes in URL construction
+    const finalBaseUrl = (isOriginValidRedirect ? originUrl : productionUrl).replace(/\/+$/, '');
+
     // Validate redirect URL if provided (prevent open redirect attacks)
+    // Breaking change (v1.7.0): URL params changed from `quickbooks=connected` to `qb_connected=true`
+    // and default redirect path changed from `/settings/integrations` to `/dashboard/organization`
     let successUrl: string;
+    const defaultRedirectPath = '/dashboard/organization';
     if (redirectUrl) {
       if (!isValidRedirectUrl(redirectUrl, productionUrl)) {
         logStep("Invalid redirect URL rejected", { redirectUrl: redirectUrl.substring(0, 100) });
         // Fall back to default redirect on invalid URL
-        successUrl = `${productionUrl}/settings/integrations?quickbooks=connected&realm_id=${realmId}`;
+        successUrl = `${finalBaseUrl}${defaultRedirectPath}?qb_connected=true&realm_id=${realmId}`;
       } else {
-        successUrl = redirectUrl;
+        // Handle both absolute URLs and relative paths
+        // For absolute URLs (validated by isValidRedirectUrl), use directly without prepending finalBaseUrl
+        const isAbsoluteRedirectUrl = /^https?:\/\//i.test(redirectUrl);
+        const baseSuccessUrl = isAbsoluteRedirectUrl ? redirectUrl : `${finalBaseUrl}${redirectUrl}`;
+        const separator = baseSuccessUrl.includes('?') ? '&' : '?';
+        successUrl = `${baseSuccessUrl}${separator}qb_connected=true&realm_id=${realmId}`;
       }
     } else {
-      successUrl = `${productionUrl}/settings/integrations?quickbooks=connected&realm_id=${realmId}`;
+      successUrl = `${finalBaseUrl}${defaultRedirectPath}?qb_connected=true&realm_id=${realmId}`;
     }
     
     logStep("Redirecting to success URL", { successUrl: successUrl.substring(0, 100) });
@@ -365,7 +416,7 @@ serve(async (req) => {
     // Get production URL for error redirect
     // Use generic error message to prevent information exposure
     const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
-    const errorUrl = `${productionUrl}/settings/integrations?error=oauth_failed&error_description=${encodeURIComponent("Failed to connect QuickBooks. Please try again.")}`;
+    const errorUrl = `${productionUrl}/dashboard/organization?error=oauth_failed&error_description=${encodeURIComponent("Failed to connect QuickBooks. Please try again.")}`;
     
     return Response.redirect(errorUrl, 302);
   }
