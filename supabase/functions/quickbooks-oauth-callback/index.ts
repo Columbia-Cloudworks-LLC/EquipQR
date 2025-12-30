@@ -129,7 +129,7 @@ serve(async (req) => {
     }
 
     // Validate OAuth redirect base URL format
-    // Note: qbOAuthRedirectBaseUrl is guaranteed to have a value at this point due to fallback to supabaseUrl
+    // Note: qbOAuthRedirectBaseUrl is guaranteed to have a value at this point due to the earlier supabaseUrl check (lines 127-129) and fallback to supabaseUrl (line 120)
     try {
       new URL(qbOAuthRedirectBaseUrl);
     } catch {
@@ -159,8 +159,9 @@ serve(async (req) => {
     });
 
     // Handle OAuth errors from Intuit
-    // Note: At this point we may not have the origin URL yet (state hasn't been parsed)
-    // So we redirect to production for OAuth errors from Intuit
+    // Note: At this point we haven't validated the session yet, so we don't have access
+    // to the origin_url from the session data. Therefore, we redirect to production
+    // for OAuth errors from Intuit.
     if (error) {
       logStep("OAuth error from Intuit", { error, errorDescription });
       // Sanitize error description - only pass through standard OAuth error codes
@@ -382,6 +383,8 @@ serve(async (req) => {
     const finalBaseUrl = (isOriginValidRedirect ? originUrl : productionUrl).replace(/\/+$/, '');
 
     // Validate redirect URL if provided (prevent open redirect attacks)
+    // Breaking change (v1.7.0): URL params changed from `quickbooks=connected` to `qb_connected=true`
+    // and default redirect path changed from `/settings/integrations` to `/dashboard/organization`
     let successUrl: string;
     const defaultRedirectPath = '/dashboard/organization';
     if (redirectUrl) {
@@ -390,9 +393,12 @@ serve(async (req) => {
         // Fall back to default redirect on invalid URL
         successUrl = `${finalBaseUrl}${defaultRedirectPath}?qb_connected=true&realm_id=${realmId}`;
       } else {
-        // Append success params to the provided redirect URL
-        const separator = redirectUrl.includes('?') ? '&' : '?';
-        successUrl = `${finalBaseUrl}${redirectUrl}${separator}qb_connected=true&realm_id=${realmId}`;
+        // Handle both absolute URLs and relative paths
+        // For absolute URLs (validated by isValidRedirectUrl), use directly without prepending finalBaseUrl
+        const isAbsoluteRedirectUrl = /^https?:\/\//i.test(redirectUrl);
+        const baseSuccessUrl = isAbsoluteRedirectUrl ? redirectUrl : `${finalBaseUrl}${redirectUrl}`;
+        const separator = baseSuccessUrl.includes('?') ? '&' : '?';
+        successUrl = `${baseSuccessUrl}${separator}qb_connected=true&realm_id=${realmId}`;
       }
     } else {
       successUrl = `${finalBaseUrl}${defaultRedirectPath}?qb_connected=true&realm_id=${realmId}`;
