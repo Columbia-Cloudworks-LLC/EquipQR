@@ -507,7 +507,7 @@ async function generateWorkOrderPDF(
       }
     }
 
-    if (workOrder.equipment?.team) {
+    if (workOrder.equipment?.team?.name) {
       addText(`Customer: ${workOrder.equipment.team.name}`, fontSize);
     }
 
@@ -855,7 +855,7 @@ serve(async (req) => {
     if (!equipmentTeamId) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: "Work order's equipment must be assigned to a team to export to QuickBooks" 
+        error: `Work order's equipment must be assigned to a team to export to QuickBooks (Work Order ID: ${work_order_id})` 
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

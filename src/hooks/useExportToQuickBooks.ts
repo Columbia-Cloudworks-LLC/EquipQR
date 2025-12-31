@@ -119,11 +119,11 @@ export function useExportToQuickBooks() {
     onSettled: (
       _data: InvoiceExportResult | undefined,
       _error: Error | null,
-      workOrderId: string
+      variables: string
     ) => {
       // Keep export status/logs fresh after either success or failure
-      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export', workOrderId] });
-      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export-logs', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export', variables] });
+      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export-logs', variables] });
     },
   });
 

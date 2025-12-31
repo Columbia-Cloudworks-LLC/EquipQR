@@ -60,7 +60,17 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
 
         if (equipmentError) {
           console.error('Error fetching equipment:', equipmentError);
-          throw equipmentError;
+          
+          // Normalize Supabase/PostgREST errors into clearer domain errors
+          const errorCode = (equipmentError as { code?: string }).code;
+
+          // Common PostgREST "no rows" codes (PGRST116 = no rows found)
+          if (errorCode === 'PGRST116') {
+            throw new Error('Equipment not found for this organization');
+          }
+
+          // For RLS/permission errors or unexpected issues, surface a generic but clearer message
+          throw new Error('Permission denied or error fetching equipment');
         }
 
         teamId = equipment?.team_id;
