@@ -22,7 +22,6 @@ import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useEquipment, useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { useCreateWorkOrder, CreateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderCreation';
-import { useWorkOrderAssignment } from '@/features/work-orders/hooks/useWorkOrderAssignment';
 
 const requestFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
@@ -64,27 +63,20 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
 
   const form = useFormValidation(requestFormSchema, initialValues);
 
-  // Get assignment data for auto-assignment to equipment team
-  const assignmentData = useWorkOrderAssignment(
-    currentOrganization?.id || '', 
-    form.values.equipmentId as string || equipmentId
-  );
-
   const { execute: submitForm, isLoading: isSubmitting } = useAsyncOperation(
     async (data: RequestFormData) => {
       if (onSubmit) {
         await onSubmit(data);
       } else {
-        // Use the createWorkOrder hook with automatic team assignment
+        // Use the createWorkOrder hook (work order starts unassigned)
         const workOrderData: CreateWorkOrderData = {
           title: data.title,
           description: data.description,
           equipmentId: data.equipmentId,
           priority: 'medium', // Default priority for requests
           dueDate: data.dueDate || undefined,
-          // Auto-assign will be handled by the backend based on equipment
-          assignmentType: undefined,
-          assignmentId: undefined,
+          // Work order starts unassigned; can be assigned to team members later
+          assigneeId: undefined,
         };
         
         await createWorkOrderMutation.mutateAsync(workOrderData);
@@ -178,15 +170,9 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Your request will be submitted for review and will be automatically assigned to an appropriate admin for processing.
+            Your request will be submitted for review. Once the equipment has a team assigned, work orders can be assigned to team members.
           </AlertDescription>
         </Alert>
-
-        {assignmentData.organizationAdmins.length > 0 && (
-          <div className="text-xs text-muted-foreground">
-            Notifications will be sent to: {assignmentData.organizationAdmins.map(admin => admin.name).join(', ')}
-          </div>
-        )}
 
         <div className="space-y-6">
           <Card>

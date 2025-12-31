@@ -57,8 +57,8 @@ export const workOrderFormSchema = z.object({
   equipmentWorkingHours: z.number().optional().nullable(),
   hasPM: z.boolean().default(false),
   pmTemplateId: z.string().optional().nullable(),
-  assignmentType: z.enum(['unassigned', 'user']).optional(),
-  assignmentId: z.string().optional().nullable().transform(val => val === '' ? null : val),
+  // Simplified assignment: just an assignee ID (null = unassigned)
+  assigneeId: z.string().optional().nullable().transform(val => val === '' ? null : val),
   isHistorical: z.boolean().default(false),
   // Historical fields - conditionally required based on isHistorical
   status: workOrderStatusSchema.optional(),
@@ -191,8 +191,8 @@ export const getDefaultWorkOrderFormValues = (
   estimatedHours: undefined,
   hasPM: false,
   pmTemplateId: null,
-  assignmentType: 'unassigned',
-  assignmentId: null,
+  // Simplified assignment: null = unassigned
+  assigneeId: null,
   isHistorical: options.isHistorical || false,
   status: options.isHistorical ? 'accepted' : undefined,
   historicalStartDate: undefined,

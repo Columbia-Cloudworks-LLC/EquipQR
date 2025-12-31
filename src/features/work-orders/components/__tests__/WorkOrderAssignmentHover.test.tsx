@@ -7,11 +7,11 @@ import { WorkOrderAssignmentHover } from '../WorkOrderAssignmentHover';
 vi.mock('@/features/work-orders/hooks/useWorkOrderContextualAssignment', () => ({
   useWorkOrderContextualAssignment: vi.fn(() => ({
     assignmentOptions: [
-      { id: 'user-1', name: 'John Doe', role: 'Technician' },
-      { id: 'user-2', name: 'Jane Smith', role: 'Manager' }
+      { id: 'user-1', name: 'John Doe', role: 'technician' },
+      { id: 'user-2', name: 'Jane Admin', role: 'admin' }
     ],
     isLoading: false,
-    hasTeamAssignment: false
+    equipmentHasNoTeam: false
   }))
 }));
 
@@ -32,6 +32,7 @@ vi.mock('@/hooks/use-toast', () => ({
 const mockWorkOrder = {
   id: 'wo-1',
   organization_id: 'org-1',
+  equipment_id: 'eq-1',
   assignee_id: 'user-1'
 };
 
@@ -72,13 +73,92 @@ describe('WorkOrderAssignmentHover', () => {
       fireEvent.click(trigger);
 
       await waitFor(() => {
-        expect(screen.getByText(/Quick Assign/i)).toBeInTheDocument();
+        expect(screen.getByText(/Quick Assignment/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows assignment rules description', async () => {
+      render(
+        <WorkOrderAssignmentHover workOrder={mockWorkOrder}>
+          <button data-testid="trigger">Trigger</button>
+        </WorkOrderAssignmentHover>
+      );
+
+      const trigger = screen.getByTestId('trigger');
+      fireEvent.click(trigger);
+
+      await waitFor(() => {
+        expect(screen.getByText(/team members \+ org admins/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Equipment Has No Team (Blocked State)', () => {
+    it('shows warning when equipment has no team', async () => {
+      const { useWorkOrderContextualAssignment } = await import('@/features/work-orders/hooks/useWorkOrderContextualAssignment');
+      
+      vi.mocked(useWorkOrderContextualAssignment).mockReturnValue({
+        assignmentOptions: [],
+        isLoading: false,
+        error: null,
+        equipmentHasNoTeam: true
+      });
+
+      render(
+        <WorkOrderAssignmentHover workOrder={mockWorkOrder}>
+          <button data-testid="trigger">Trigger</button>
+        </WorkOrderAssignmentHover>
+      );
+
+      const trigger = screen.getByTestId('trigger');
+      fireEvent.click(trigger);
+
+      await waitFor(() => {
+        expect(screen.getByText(/No team assigned to equipment/i)).toBeInTheDocument();
+      });
+    });
+
+    it('does not show assign options when equipment has no team', async () => {
+      const { useWorkOrderContextualAssignment } = await import('@/features/work-orders/hooks/useWorkOrderContextualAssignment');
+      
+      vi.mocked(useWorkOrderContextualAssignment).mockReturnValue({
+        assignmentOptions: [],
+        isLoading: false,
+        error: null,
+        equipmentHasNoTeam: true
+      });
+
+      render(
+        <WorkOrderAssignmentHover workOrder={mockWorkOrder}>
+          <button data-testid="trigger">Trigger</button>
+        </WorkOrderAssignmentHover>
+      );
+
+      const trigger = screen.getByTestId('trigger');
+      fireEvent.click(trigger);
+
+      await waitFor(() => {
+        expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+        expect(screen.queryByText(/Unassign/i)).not.toBeInTheDocument();
       });
     });
   });
 
   describe('Assignment Actions', () => {
     it('shows unassign option when work order is assigned', async () => {
+      // Reset the mock to provide valid options
+      const { useWorkOrderContextualAssignment } = await import('@/features/work-orders/hooks/useWorkOrderContextualAssignment');
+      
+      vi.mocked(useWorkOrderContextualAssignment).mockReturnValue({
+        assignmentOptions: [
+          { id: 'user-1', name: 'John Doe', role: 'technician' },
+          { id: 'user-2', name: 'Jane Admin', role: 'admin' }
+        ],
+        isLoading: false,
+        error: null,
+        equipmentHasNoTeam: false
+      });
+
       render(
         <WorkOrderAssignmentHover workOrder={mockWorkOrder}>
           <button data-testid="trigger">Trigger</button>
@@ -109,7 +189,41 @@ describe('WorkOrderAssignmentHover', () => {
       fireEvent.click(trigger);
 
       await waitFor(() => {
-        expect(screen.getByText(/Quick Assign/i)).toBeInTheDocument();
+        expect(screen.getByText(/Quick Assignment/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows both team members and admins in assignee list', async () => {
+      const { useWorkOrderContextualAssignment } = await import('@/features/work-orders/hooks/useWorkOrderContextualAssignment');
+      
+      vi.mocked(useWorkOrderContextualAssignment).mockReturnValue({
+        assignmentOptions: [
+          { id: 'user-1', name: 'John Technician', role: 'technician' },
+          { id: 'user-2', name: 'Jane Admin', role: 'admin' }
+        ],
+        isLoading: false,
+        error: null,
+        equipmentHasNoTeam: false
+      });
+
+      render(
+        <WorkOrderAssignmentHover workOrder={mockWorkOrder}>
+          <button data-testid="trigger">Trigger</button>
+        </WorkOrderAssignmentHover>
+      );
+
+      const trigger = screen.getByTestId('trigger');
+      fireEvent.click(trigger);
+
+      // Open the select dropdown
+      await waitFor(() => {
+        const select = screen.getByRole('combobox');
+        fireEvent.click(select);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/John Technician/i)).toBeInTheDocument();
+        expect(screen.getByText(/Jane Admin/i)).toBeInTheDocument();
       });
     });
   });
@@ -141,6 +255,53 @@ describe('WorkOrderAssignmentHover', () => {
       // Component should handle missing org gracefully
       expect(screen.getByTestId('trigger')).toBeInTheDocument();
     });
+
+    it('shows loading state when options are loading', async () => {
+      const { useWorkOrderContextualAssignment } = await import('@/features/work-orders/hooks/useWorkOrderContextualAssignment');
+      
+      vi.mocked(useWorkOrderContextualAssignment).mockReturnValue({
+        assignmentOptions: [],
+        isLoading: true,
+        error: null,
+        equipmentHasNoTeam: false
+      });
+
+      render(
+        <WorkOrderAssignmentHover workOrder={mockWorkOrder}>
+          <button data-testid="trigger">Trigger</button>
+        </WorkOrderAssignmentHover>
+      );
+
+      const trigger = screen.getByTestId('trigger');
+      fireEvent.click(trigger);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Loading options/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows no assignees message when options are empty', async () => {
+      const { useWorkOrderContextualAssignment } = await import('@/features/work-orders/hooks/useWorkOrderContextualAssignment');
+      
+      vi.mocked(useWorkOrderContextualAssignment).mockReturnValue({
+        assignmentOptions: [],
+        isLoading: false,
+        error: null,
+        equipmentHasNoTeam: false
+      });
+
+      render(
+        <WorkOrderAssignmentHover workOrder={mockWorkOrder}>
+          <button data-testid="trigger">Trigger</button>
+        </WorkOrderAssignmentHover>
+      );
+
+      const trigger = screen.getByTestId('trigger');
+      fireEvent.click(trigger);
+
+      await waitFor(() => {
+        expect(screen.getByText(/No assignees available/i)).toBeInTheDocument();
+      });
+    });
   });
 });
-

@@ -72,8 +72,8 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
           estimatedHours: initialValues.estimatedHours || undefined,
           hasPM: initialValues.hasPM || false,
           pmTemplateId: initialValues.pmTemplateId || null,
-          assignmentType: initialValues.assignmentType || 'unassigned',
-          assignmentId: null,
+          // Simplified assignment: null = unassigned
+          assigneeId: initialValues.assigneeId || null,
           isHistorical: initialValues.isHistorical || false,
           // Historical fields - only set if isHistorical is true
           ...(initialValues.isHistorical ? {

@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, UserX, Shield } from 'lucide-react';
+import { User, UserX, Shield, AlertTriangle } from 'lucide-react';
 import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 import { useToast } from '@/hooks/use-toast';
@@ -22,7 +22,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
   const { toast } = useToast();
   const [isAssigning, setIsAssigning] = useState(false);
   
-  const { assignmentOptions, isLoading, hasTeamAssignment } = useWorkOrderContextualAssignment(workOrder);
+  const { assignmentOptions, isLoading, equipmentHasNoTeam } = useWorkOrderContextualAssignment(workOrder);
   const assignmentMutation = useQuickWorkOrderAssignment();
 
   const handleAssignment = useCallback(async (assignmentData: { type: 'assign' | 'unassign'; id?: string }) => {
@@ -71,6 +71,9 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
 
   if (disabled) return <>{children}</>;
 
+  // Check if assignment is blocked due to no team
+  const isAssignmentBlocked = equipmentHasNoTeam;
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -80,15 +83,20 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
         <div className="space-y-3">
           <div className="text-sm font-medium">Quick Assignment</div>
           
-          {isLoading || assignmentOptions.length === 0 ? (
-            <div className="text-xs text-muted-foreground">
-              {isLoading ? 'Loading options...' : 'No assignees available'}
+          {isLoading ? (
+            <div className="text-xs text-muted-foreground">Loading options...</div>
+          ) : isAssignmentBlocked ? (
+            <div className="flex items-start gap-2 text-xs text-amber-600">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>No team assigned to equipment. Assign a team to enable assignments.</span>
             </div>
+          ) : assignmentOptions.length === 0 ? (
+            <div className="text-xs text-muted-foreground">No assignees available</div>
           ) : (
             <>
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">
-                  {hasTeamAssignment ? 'Assign to team members' : 'Assign to organization admins'}
+                  Assignable: team members + org admins
                 </div>
                 <Select 
                   onValueChange={(value) => {

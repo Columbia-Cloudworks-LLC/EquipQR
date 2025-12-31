@@ -1,12 +1,26 @@
+/**
+ * Work Order Contextual Assignment Hook
+ * 
+ * Used for quick assignment from work order list/details.
+ * 
+ * Assignment Rules:
+ * - If equipment has a team: team members (manager/technician) + org admins/owners
+ * - If equipment has NO team: assignment is BLOCKED (empty list returned)
+ */
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 
 interface AssignmentOption {
   id: string;
   name: string;
   email?: string;
   role?: string;
+}
+
+interface ContextualAssignmentResult {
+  assignees: AssignmentOption[];
+  equipmentHasNoTeam: boolean;
 }
 
 export interface AssignmentWorkOrderContext {
@@ -19,93 +33,23 @@ export interface AssignmentWorkOrderContext {
 }
 
 export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrderContext) {
-  const { user } = useAuth();
-  
-  const { data: assignmentOptions = [], isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['workOrderContextualAssignment', workOrder?.id, workOrder?.equipment_id || workOrder?.equipmentId],
-    queryFn: async (): Promise<AssignmentOption[]> => {
+    queryFn: async (): Promise<ContextualAssignmentResult> => {
       // Handle both snake_case and camelCase field names
       const equipmentId = workOrder?.equipment_id || workOrder?.equipmentId;
       const organizationId = workOrder?.organization_id || workOrder?.organizationId;
       const equipmentTeamId = workOrder?.equipmentTeamId;
 
       if (!equipmentId || !organizationId) {
-        return [];
+        return { assignees: [], equipmentHasNoTeam: false };
       }
 
-      // Helper function to ensure current user is included
-      const ensureCurrentUserIncluded = async (options: AssignmentOption[]): Promise<AssignmentOption[]> => {
-        if (!user?.id) return options;
-        
-        // Check if current user is already in the list
-        if (options.find(opt => opt.id === user.id)) {
-          return options;
-        }
-
-        // Fetch current user's org membership
-        const { data: currentUserMember } = await supabase
-          .from('organization_members')
-          .select(`
-            user_id,
-            role,
-            profiles!inner(
-              id,
-              name,
-              email
-            )
-          `)
-          .eq('organization_id', organizationId)
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .single();
-
-        if (currentUserMember) {
-          return [
-            ...options,
-            {
-              id: currentUserMember.user_id,
-              name: currentUserMember.profiles.name,
-              email: currentUserMember.profiles.email,
-              role: currentUserMember.role
-            }
-          ];
-        }
-
-        return options;
-      };
-
-      // If we already have team information from the enhanced work order, use it
-      if (equipmentTeamId) {
-        const { data: teamMembers, error: teamError } = await supabase
-          .from('team_members')
-          .select(`
-            user_id,
-            role,
-            profiles!inner(
-              id,
-              name,
-              email
-            )
-          `)
-          .eq('team_id', equipmentTeamId)
-          .in('role', ['manager', 'technician']);
-
-        if (teamError) {
-          console.error('Error fetching team members:', teamError);
-          throw teamError;
-        }
-
-        const options = teamMembers.map(member => ({
-          id: member.user_id,
-          name: member.profiles.name,
-          email: member.profiles.email,
-          role: member.role
-        }));
-
-        // Always include current user if they're an active org member, even if not in team
-        return ensureCurrentUserIncluded(options);
-      } else {
-        // First, get the equipment details to check if it has a team (fallback for older work orders)
+      // Determine the team ID - either from enhanced work order or by fetching equipment
+      let teamId = equipmentTeamId;
+      
+      if (!teamId) {
+        // Fetch equipment to get team_id
         const { data: equipment, error: equipmentError } = await supabase
           .from('equipment')
           .select('team_id')
@@ -117,77 +61,97 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
           throw equipmentError;
         }
 
-        // If equipment is assigned to a team, get team members
-        if (equipment.team_id) {
-          const { data: teamMembers, error: teamError } = await supabase
-            .from('team_members')
-            .select(`
-              user_id,
-              role,
-              profiles!inner(
-                id,
-                name,
-                email
-              )
-            `)
-            .eq('team_id', equipment.team_id)
-            .in('role', ['manager', 'technician']);
-
-          if (teamError) {
-            console.error('Error fetching team members:', teamError);
-            throw teamError;
-          }
-
-          const options = teamMembers.map(member => ({
-            id: member.user_id,
-            name: member.profiles.name,
-            email: member.profiles.email,
-            role: member.role
-          }));
-
-          // Always include current user if they're an active org member, even if not in team
-          return ensureCurrentUserIncluded(options);
-        } else {
-          // If equipment is not assigned to a team, get ALL active organization members
-          // (not just owners/admins, so regular members can also be assigned)
-          const { data: orgMembers, error: orgError } = await supabase
-            .from('organization_members')
-            .select(`
-              user_id,
-              role,
-              profiles!inner(
-                id,
-                name,
-                email
-              )
-            `)
-            .eq('organization_id', organizationId)
-            .eq('status', 'active')
-            .in('role', ['owner', 'admin', 'member']); // Include 'member' role
-
-          if (orgError) {
-            console.error('Error fetching organization members:', orgError);
-            throw orgError;
-          }
-
-          return orgMembers.map(member => ({
-            id: member.user_id,
-            name: member.profiles.name,
-            email: member.profiles.email,
-            role: member.role
-          }));
-        }
+        teamId = equipment?.team_id;
       }
+
+      // If equipment has NO team, assignment is BLOCKED
+      if (!teamId) {
+        return { assignees: [], equipmentHasNoTeam: true };
+      }
+
+      const assignees: AssignmentOption[] = [];
+
+      // Get org admins/owners
+      const { data: orgAdmins, error: orgAdminsError } = await supabase
+        .from('organization_members')
+        .select(`
+          user_id,
+          role,
+          profiles!inner(
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('organization_id', organizationId)
+        .eq('status', 'active')
+        .in('role', ['owner', 'admin']);
+
+      if (orgAdminsError) {
+        console.error('Error fetching org admins:', orgAdminsError);
+        throw orgAdminsError;
+      }
+
+      if (orgAdmins) {
+        assignees.push(...orgAdmins.map(member => ({
+          id: member.user_id,
+          name: member.profiles.name,
+          email: member.profiles.email,
+          role: member.role
+        })));
+      }
+
+      // Get team members (manager/technician)
+      const { data: teamMembers, error: teamError } = await supabase
+        .from('team_members')
+        .select(`
+          user_id,
+          role,
+          profiles!inner(
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('team_id', teamId)
+        .in('role', ['manager', 'technician']);
+
+      if (teamError) {
+        console.error('Error fetching team members:', teamError);
+        throw teamError;
+      }
+
+      if (teamMembers) {
+        assignees.push(...teamMembers.map(member => ({
+          id: member.user_id,
+          name: member.profiles.name,
+          email: member.profiles.email,
+          role: member.role
+        })));
+      }
+
+      // Remove duplicates based on user ID
+      const uniqueAssignees = assignees.filter((assignee, index, self) =>
+        index === self.findIndex(a => a.id === assignee.id)
+      );
+
+      return { 
+        assignees: uniqueAssignees.sort((a, b) => a.name.localeCompare(b.name)),
+        equipmentHasNoTeam: false
+      };
     },
     enabled: !!(workOrder?.equipment_id || workOrder?.equipmentId) && !!(workOrder?.organization_id || workOrder?.organizationId),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  const result = data || { assignees: [], equipmentHasNoTeam: false };
+
   return {
-    assignmentOptions,
+    assignmentOptions: result.assignees,
     isLoading,
     error,
-    hasTeamAssignment: !!(workOrder?.equipment_id || workOrder?.equipmentId) && assignmentOptions.length > 0
+    // Flag to indicate assignment is blocked because equipment has no team
+    equipmentHasNoTeam: result.equipmentHasNoTeam
   };
 }
 
