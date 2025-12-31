@@ -31,6 +31,11 @@ import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 
 interface QuickBooksExportButtonProps {
   workOrderId: string;
+  /**
+   * Team ID derived from the equipment assigned to this work order.
+   * QuickBooks customer mapping is done at the team level, and the team
+   * association comes from the equipment (not the work order directly).
+   */
   teamId: string | null;
   /**
    * Current status of the work order.
@@ -112,10 +117,10 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     tooltipMessage = 'QuickBooks is not connected. Connect in Organization Settings.';
     isDisabled = true;
   } else if (!hasTeam) {
-    tooltipMessage = 'Work order must be assigned to a team to export.';
+    tooltipMessage = 'Equipment must be assigned to a team to export.';
     isDisabled = true;
   } else if (!hasMapping) {
-    tooltipMessage = 'Team does not have a QuickBooks customer mapping. Set up mapping in Team Settings.';
+    tooltipMessage = 'Equipment\'s team does not have a QuickBooks customer mapping. Set up mapping in Team Settings.';
     isDisabled = true;
   } else if (isExporting) {
     tooltipMessage = 'Exporting...';

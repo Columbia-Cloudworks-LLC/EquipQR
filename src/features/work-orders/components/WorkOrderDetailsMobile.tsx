@@ -39,6 +39,7 @@ interface WorkOrderDetailsMobileProps {
     serial_number?: string;
     status: string;
     location?: string;
+    team_id?: string | null;
   };
   team?: {
     id: string;
@@ -100,7 +101,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
         <CardContent className="p-4">
           <WorkOrderQuickActions
             workOrder={workOrder}
-            teamId={team?.id}
+            equipmentTeamId={equipment?.team_id}
             equipment={equipment}
             onStatusChange={onStatusChange}
             onPriorityChange={onPriorityChange}

@@ -226,6 +226,7 @@ const WorkOrderDetails = () => {
         permissionLevels={permissionLevels}
         canEdit={canEdit}
         onEditClick={handleEditWorkOrder}
+        equipmentTeamId={equipment?.team_id}
       />
 
       {/* Status Lock Warning */}
@@ -290,7 +291,8 @@ const WorkOrderDetails = () => {
                   model: equipment.model,
                   serial_number: equipment.serialNumber,
                   status: equipment.status,
-                  location: equipment.location
+                  location: equipment.location,
+                  team_id: equipment.team_id
                 } : undefined}
                 team={workOrder.teamName ? { id: workOrder.team_id || '', name: workOrder.teamName } : undefined}
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}

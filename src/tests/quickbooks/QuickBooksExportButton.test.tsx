@@ -197,11 +197,12 @@ describe('QuickBooksExportButton Component', () => {
     });
   });
 
-  describe('No Team Assigned', () => {
-    it('should be disabled when work order has no team', async () => {
+  describe('No Team Assigned to Equipment', () => {
+    it('should be disabled when equipment has no team assigned', async () => {
       renderComponent({
         workOrderId: 'wo-123',
         teamId: null,
+        workOrderStatus: 'completed',
         asMenuItem: false,
       });
       

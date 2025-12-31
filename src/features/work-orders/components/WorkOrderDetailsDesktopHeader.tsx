@@ -20,6 +20,8 @@ interface WorkOrderDetailsDesktopHeaderProps {
   permissionLevels: PermissionLevels;
   canEdit: boolean;
   onEditClick: () => void;
+  /** Team ID derived from the equipment assigned to this work order */
+  equipmentTeamId?: string | null;
 }
 
 /** Format priority for display */
@@ -32,7 +34,8 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   formMode,
   permissionLevels,
   canEdit,
-  onEditClick
+  onEditClick,
+  equipmentTeamId
 }) => {
   return (
     <div className="hidden lg:block space-y-6 p-6">
@@ -77,7 +80,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
             />
             <QuickBooksExportButton
               workOrderId={workOrder.id}
-              teamId={workOrder.team_id ?? null}
+              teamId={equipmentTeamId ?? null}
               workOrderStatus={workOrder.status}
             />
           </div>

@@ -54,7 +54,6 @@ interface WorkOrderData {
   description: string;
   status: string;
   priority: string;
-  team_id: string | null;
   equipment_id: string;
   organization_id: string;
   created_date: string;
@@ -66,9 +65,10 @@ interface WorkOrderData {
     manufacturer: string;
     model: string;
     serial_number: string;
-  };
-  team?: {
-    name: string;
+    team_id: string | null;
+    team?: {
+      name: string;
+    };
   };
 }
 
@@ -507,8 +507,8 @@ async function generateWorkOrderPDF(
       }
     }
 
-    if (workOrder.team) {
-      addText(`Customer: ${workOrder.team.name}`, fontSize);
+    if (workOrder.equipment?.team) {
+      addText(`Customer: ${workOrder.equipment.team.name}`, fontSize);
     }
 
     addText(`Created: ${new Date(workOrder.created_date).toLocaleDateString()}`, fontSize);
@@ -765,13 +765,20 @@ serve(async (req) => {
 
     logStep("Loading work order", { workOrderId: work_order_id });
 
-    // Load work order with equipment and team
+    // Load work order with equipment (which contains team_id and team info)
+    // Note: Team association comes from the equipment, NOT directly from the work order
     const { data: workOrder, error: woError } = await supabaseClient
       .from('work_orders')
       .select(`
         *,
-        equipment:equipment_id (name, manufacturer, model, serial_number),
-        team:team_id (name)
+        equipment:equipment_id (
+          name, 
+          manufacturer, 
+          model, 
+          serial_number,
+          team_id,
+          team:team_id (name)
+        )
       `)
       .eq('id', work_order_id)
       .single();
@@ -806,11 +813,14 @@ serve(async (req) => {
       });
     }
 
-    // Check if team has a customer mapping
-    if (!workOrder.team_id) {
+    // Derive team_id from equipment (the correct source of truth for team association)
+    const equipmentTeamId = workOrder.equipment?.team_id;
+    
+    // Check if equipment has a team assigned
+    if (!equipmentTeamId) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: "Work order must be assigned to a team to export to QuickBooks" 
+        error: "Equipment must be assigned to a team to export to QuickBooks" 
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -821,7 +831,7 @@ serve(async (req) => {
       .from('quickbooks_team_customers')
       .select('quickbooks_customer_id, display_name')
       .eq('organization_id', workOrder.organization_id)
-      .eq('team_id', workOrder.team_id)
+      .eq('team_id', equipmentTeamId)
       .single();
 
     if (mappingError || !customerMapping) {

@@ -30,7 +30,8 @@ interface WorkOrderQuickActionsProps {
     pm_progress?: number;
     pm_total?: number;
   };
-  teamId?: string | null;
+  /** Team ID derived from the equipment assigned to this work order */
+  equipmentTeamId?: string | null;
   equipment?: {
     id: string;
     name: string;
@@ -47,7 +48,7 @@ interface WorkOrderQuickActionsProps {
 
 export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   workOrder,
-  teamId,
+  equipmentTeamId,
   equipment,
   onStatusChange,
   onPriorityChange,
@@ -206,7 +207,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
       <div className="flex items-center gap-2">
         <QuickBooksExportButton
           workOrderId={workOrder.id}
-          teamId={teamId ?? null}
+          teamId={equipmentTeamId ?? null}
           workOrderStatus={workOrder.status}
         />
       </div>
