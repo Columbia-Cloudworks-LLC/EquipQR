@@ -87,10 +87,11 @@ BEGIN
   THEN
     -- Skip validation if assignee is NULL (unassigned is always allowed)
     IF NEW.assignee_id IS NULL THEN
-      -- Also sync team_id from equipment
+      -- Also sync team_id from equipment (filter by organization_id for multi-tenancy)
       SELECT team_id INTO v_equipment_team_id
       FROM equipment
-      WHERE id = NEW.equipment_id;
+      WHERE id = NEW.equipment_id
+        AND organization_id = NEW.organization_id;
       
       NEW.team_id := v_equipment_team_id;
       RETURN NEW;
@@ -102,10 +103,11 @@ BEGIN
       NEW.organization_id,
       NEW.assignee_id
     ) THEN
-      -- Get equipment team_id for better error message
+      -- Get equipment team_id for better error message (filter by organization_id for multi-tenancy)
       SELECT team_id INTO v_equipment_team_id
       FROM equipment
-      WHERE id = NEW.equipment_id;
+      WHERE id = NEW.equipment_id
+        AND organization_id = NEW.organization_id;
 
       IF v_equipment_team_id IS NULL THEN
         RAISE EXCEPTION 'Cannot assign work order: Equipment has no team. Assign a team to the equipment first.'
@@ -117,9 +119,11 @@ BEGIN
     END IF;
 
     -- Sync team_id from equipment (denormalized for filtering/display)
+    -- Filter by organization_id for multi-tenancy security
     SELECT team_id INTO v_equipment_team_id
     FROM equipment
-    WHERE id = NEW.equipment_id;
+    WHERE id = NEW.equipment_id
+      AND organization_id = NEW.organization_id;
     
     NEW.team_id := v_equipment_team_id;
   END IF;
