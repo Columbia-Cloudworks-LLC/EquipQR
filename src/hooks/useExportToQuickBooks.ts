@@ -75,7 +75,7 @@ export function useQuickBooksLastExport(
 export function useExportToQuickBooks() {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation({
+  const mutation = useMutation<InvoiceExportResult, Error, string>({
     mutationFn: async (workOrderId: string): Promise<InvoiceExportResult> => {
       const request: QuickBooksExportInvoiceRequest = {
         work_order_id: workOrderId,
@@ -89,18 +89,12 @@ export function useExportToQuickBooks() {
 
       // Handle invoke errors (network, non-2xx responses)
       if (invokeError) {
-        return {
-          success: false,
-          error: invokeError.message || 'Failed to export invoice',
-        };
+        throw new Error(invokeError.message || 'Failed to export invoice');
       }
 
       // Handle function-level errors (success: false in response)
       if (!data || !data.success) {
-        return {
-          success: false,
-          error: data?.error || 'Failed to export invoice',
-        };
+        throw new Error(data?.error || 'Failed to export invoice');
       }
 
       // Map snake_case response to camelCase result
@@ -111,22 +105,19 @@ export function useExportToQuickBooks() {
         isUpdate: data.is_update,
       };
     },
-    onSuccess: (result, workOrderId) => {
-      if (result.success) {
-        const message = result.isUpdate
-          ? `Invoice ${result.invoiceNumber} updated in QuickBooks`
-          : `Invoice ${result.invoiceNumber} created in QuickBooks`;
-        toast.success(message);
-      } else {
-        toast.error(result.error || 'Failed to export to QuickBooks');
-      }
-
-      // Invalidate export queries
-      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export', workOrderId] });
-      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export-logs', workOrderId] });
+    onSuccess: (result) => {
+      const message = result.isUpdate
+        ? `Invoice ${result.invoiceNumber} updated in QuickBooks`
+        : `Invoice ${result.invoiceNumber} created in QuickBooks`;
+      toast.success(message);
     },
     onError: (error: Error) => {
       toast.error(`Export failed: ${error.message}`);
+    },
+    onSettled: (_data, _error, workOrderId) => {
+      // Keep export status/logs fresh after either success or failure
+      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export-logs', workOrderId] });
     },
   });
 
