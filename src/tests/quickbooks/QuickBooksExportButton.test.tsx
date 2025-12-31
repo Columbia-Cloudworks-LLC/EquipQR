@@ -297,9 +297,11 @@ describe('QuickBooksExportButton Component', () => {
       
       fireEvent.click(button);
       
-      // Wait for the mutation to be called
+      // Wait for the mutation to be called with correct parameters
       await waitFor(() => {
-        expect(mockMutate).toHaveBeenCalledWith('wo-123', expect.any(Object));
+        expect(mockMutate).toHaveBeenCalledWith('wo-123', expect.objectContaining({
+          onSuccess: expect.any(Function),
+        }));
       }, { timeout: 3000 });
     });
   });
@@ -330,7 +332,9 @@ describe('QuickBooksExportButton Component', () => {
       fireEvent.click(button);
       
       await waitFor(() => {
-        expect(mockMutate).toHaveBeenCalledWith('wo-123', expect.any(Object));
+        expect(mockMutate).toHaveBeenCalledWith('wo-123', expect.objectContaining({
+          onSuccess: expect.any(Function),
+        }));
       });
     });
   });

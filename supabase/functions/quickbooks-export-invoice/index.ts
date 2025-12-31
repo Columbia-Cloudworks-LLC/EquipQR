@@ -799,7 +799,8 @@ serve(async (req) => {
 
     // Load work order with equipment (which contains team_id and team info)
     // Note: Team association comes from the equipment, NOT directly from the work order
-    // Filter by organization_id as a multi-tenancy failsafe (per coding guidelines)
+    // Multi-tenancy failsafe: filter by user's admin/owner organization memberships
+    // This ensures users can only export work orders from organizations where they have admin rights
     const { data: workOrder, error: woError } = await supabaseClient
       .from('work_orders')
       .select(`
@@ -854,7 +855,7 @@ serve(async (req) => {
     if (!equipmentTeamId) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: "Equipment must be assigned to a team to export to QuickBooks" 
+        error: "Work order's equipment must be assigned to a team to export to QuickBooks" 
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

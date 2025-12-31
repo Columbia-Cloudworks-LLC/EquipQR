@@ -139,7 +139,9 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
         equipmentHasNoTeam: false
       };
     },
-    enabled: !!organizationId,
+    // Only run query when both organizationId and equipmentId are provided
+    // equipmentId is required for proper assignment filtering
+    enabled: !!organizationId && !!equipmentId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 

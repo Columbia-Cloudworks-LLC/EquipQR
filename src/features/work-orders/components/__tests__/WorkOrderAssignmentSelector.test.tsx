@@ -11,7 +11,7 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderContextualAssignment', () => (
       { id: 'user-2', name: 'Jane Smith', role: 'Manager' }
     ],
     isLoading: false,
-    hasTeamAssignment: false
+    equipmentHasNoTeam: false
   }))
 }));
 
@@ -163,7 +163,7 @@ describe('WorkOrderAssignmentSelector', () => {
         assignmentOptions: [],
         isLoading: true,
         error: null,
-        hasTeamAssignment: false
+        equipmentHasNoTeam: false
       });
 
       render(

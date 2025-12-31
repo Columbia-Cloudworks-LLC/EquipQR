@@ -70,7 +70,9 @@ export function useQuickBooksLastExport(
 /**
  * Hook to export a work order to QuickBooks
  * 
- * @returns Mutation for exporting work order to QuickBooks with isLoading state
+ * @returns TanStack Query mutation result for exporting a work order to QuickBooks,
+ *          including status flags (isPending, isSuccess, isError), data, error,
+ *          mutate/mutateAsync functions, and an `isLoading` alias for backward compatibility.
  */
 export function useExportToQuickBooks() {
   const queryClient = useQueryClient();
@@ -114,7 +116,11 @@ export function useExportToQuickBooks() {
     onError: (error: Error) => {
       toast.error(`Export failed: ${error.message}`);
     },
-    onSettled: (_data, _error, workOrderId) => {
+    onSettled: (
+      _data: InvoiceExportResult | undefined,
+      _error: Error | null,
+      workOrderId: string
+    ) => {
       // Keep export status/logs fresh after either success or failure
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export', workOrderId] });
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export-logs', workOrderId] });

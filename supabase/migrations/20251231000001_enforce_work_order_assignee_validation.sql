@@ -6,7 +6,9 @@
 --   1. A team member with role 'manager' or 'technician'
 --   2. An org admin/owner
 --
--- Existing invalid data is preserved (trigger only fires on assignee_id/equipment_id changes)
+-- Data Migration: Syncs team_id from equipment to all existing work orders
+-- Note: Existing invalid assignee data is preserved (trigger only fires on future changes)
+--       to avoid breaking existing workflows. Invalid assignments will be caught on next update.
 
 -- Helper function to validate work order assignee
 CREATE OR REPLACE FUNCTION public.is_valid_work_order_assignee(
@@ -143,3 +145,11 @@ COMMENT ON FUNCTION public.validate_work_order_assignee() IS
 
 COMMENT ON TRIGGER trg_validate_work_order_assignee ON public.work_orders IS 
   'Enforces that work order assignees are valid (team members or org admins) and syncs team_id from equipment.';
+
+-- Data migration: Sync team_id from equipment to all existing work orders
+-- This ensures existing work orders have accurate team_id values for filtering and display
+UPDATE public.work_orders wo
+SET team_id = e.team_id
+FROM public.equipment e
+WHERE wo.equipment_id = e.id
+  AND (wo.team_id IS DISTINCT FROM e.team_id);

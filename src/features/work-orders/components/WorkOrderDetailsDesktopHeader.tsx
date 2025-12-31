@@ -75,7 +75,8 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           <div className="flex items-center gap-2">
             <PrintExportDropdown
               onDownloadPDF={() => {
-                // TODO: Implement PDF download functionality
+                // Use browser's print functionality - allows "Save as PDF"
+                window.print();
               }}
             />
             <QuickBooksExportButton

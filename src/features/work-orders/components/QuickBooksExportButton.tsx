@@ -120,7 +120,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     tooltipMessage = 'Equipment must be assigned to a team to export.';
     isDisabled = true;
   } else if (!hasMapping) {
-    tooltipMessage = 'Equipment\'s team does not have a QuickBooks customer mapping. Set up mapping in Team Settings.';
+    tooltipMessage = "Equipment's team does not have a QuickBooks customer mapping. Set up mapping in Team Settings.";
     isDisabled = true;
   } else if (isExporting) {
     tooltipMessage = 'Exporting...';
