@@ -765,8 +765,41 @@ serve(async (req) => {
 
     logStep("Loading work order", { workOrderId: work_order_id });
 
+    // Get user's organization memberships where they have admin/owner role
+    // This is used to filter the work order query for multi-tenancy enforcement
+    const { data: userMemberships, error: membershipQueryError } = await supabaseClient
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .in('role', ['owner', 'admin']);
+
+    if (membershipQueryError) {
+      logStep("Error fetching user memberships", { error: membershipQueryError.message });
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Failed to verify user permissions" 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userOrgIds = (userMemberships || []).map(m => m.organization_id);
+    
+    if (userOrgIds.length === 0) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "You must be an admin or owner to export invoices" 
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Load work order with equipment (which contains team_id and team info)
     // Note: Team association comes from the equipment, NOT directly from the work order
+    // Filter by organization_id as a multi-tenancy failsafe (per coding guidelines)
     const { data: workOrder, error: woError } = await supabaseClient
       .from('work_orders')
       .select(`
@@ -781,6 +814,7 @@ serve(async (req) => {
         )
       `)
       .eq('id', work_order_id)
+      .in('organization_id', userOrgIds)
       .single();
 
     if (woError || !workOrder) {

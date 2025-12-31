@@ -50,10 +50,12 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
       
       if (!teamId) {
         // Fetch equipment to get team_id
+        // Filter by organization_id as a multi-tenancy failsafe (per coding guidelines)
         const { data: equipment, error: equipmentError } = await supabase
           .from('equipment')
           .select('team_id')
           .eq('id', equipmentId)
+          .eq('organization_id', organizationId)
           .single();
 
         if (equipmentError) {
