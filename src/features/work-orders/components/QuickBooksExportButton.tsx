@@ -32,6 +32,13 @@ import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 interface QuickBooksExportButtonProps {
   workOrderId: string;
   teamId: string | null;
+  /**
+   * Current status of the work order.
+   *
+   * Exports to QuickBooks are only allowed when the work order status is
+   * `'completed'`. Other statuses will prevent the export action from
+   * being available/enabled in the UI.
+   */
   workOrderStatus: WorkOrderStatus;
   /** Render as a dropdown menu item instead of a button */
   asMenuItem?: boolean;
@@ -87,7 +94,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   }
 
   // Determine button state and tooltip
-  const isExporting = exportMutation.isPending || exportMutation.isLoading;
+  const isExporting = exportMutation.isPending;
   const isLoading = connectionLoading || mappingLoading || isExporting;
   const isConnected = connectionStatus?.isConnected;
   const hasMapping = !!teamMapping;
