@@ -26,6 +26,7 @@ import { WorkOrderNotesMobile } from '@/features/work-orders/components/WorkOrde
 import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useInitializePMChecklist';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
+import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -168,6 +169,43 @@ const WorkOrderDetails = () => {
     isUpdating,
   } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '', pmData);
 
+  // PDF generation hook for mobile
+  const { downloadPDF: downloadMobilePDF } = useWorkOrderPDF({
+    workOrder: workOrder ? {
+      id: workOrder.id,
+      title: workOrder.title,
+      description: workOrder.description,
+      status: workOrder.status,
+      priority: workOrder.priority,
+      created_date: workOrder.created_date,
+      due_date: workOrder.due_date,
+      completed_date: workOrder.completed_date,
+      estimated_hours: workOrder.estimated_hours,
+      assigneeName: workOrder.assigneeName,
+      teamName: workOrder.teamName,
+      has_pm: workOrder.has_pm
+    } : {
+      id: '',
+      title: '',
+      description: '',
+      status: 'submitted',
+      priority: 'medium',
+      created_date: ''
+    },
+    equipment: equipment ? {
+      id: equipment.id,
+      name: equipment.name,
+      manufacturer: equipment.manufacturer,
+      model: equipment.model,
+      serial_number: equipment.serialNumber,
+      status: equipment.status,
+      location: equipment.location
+    } : null,
+    pmData,
+    organizationName: currentOrganization?.name,
+    showPrivateNotes: permissionLevels.isManager
+  });
+
   // Only redirect if we definitely don't have the required data and aren't loading
   if (!workOrderId) {
     logNavigationEvent('REDIRECT_NO_WORK_ORDER_ID');
@@ -227,6 +265,17 @@ const WorkOrderDetails = () => {
         canEdit={canEdit}
         onEditClick={handleEditWorkOrder}
         equipmentTeamId={equipment?.team_id}
+        equipment={equipment ? {
+          id: equipment.id,
+          name: equipment.name,
+          manufacturer: equipment.manufacturer,
+          model: equipment.model,
+          serial_number: equipment.serialNumber,
+          status: equipment.status,
+          location: equipment.location
+        } : null}
+        pmData={pmData}
+        organizationName={currentOrganization.name}
       />
 
       {/* Status Lock Warning */}
@@ -315,10 +364,7 @@ const WorkOrderDetails = () => {
                   // TODO: Focus on images section
                   // Upload image functionality to be implemented
                 }}
-                onDownloadPDF={() => {
-                  // TODO: Implement PDF download
-                  // PDF download functionality to be implemented
-                }}
+                onDownloadPDF={downloadMobilePDF}
                 onViewPMDetails={() => {
                   // TODO: Expand PM details
                   // View PM details functionality to be implemented
