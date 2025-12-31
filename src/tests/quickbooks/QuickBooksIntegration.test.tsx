@@ -53,7 +53,6 @@ vi.mock('sonner', () => ({
 
 import { QuickBooksIntegration } from '@/features/organization/components/QuickBooksIntegration';
 import { isQuickBooksEnabled } from '@/lib/flags';
-import { toast } from 'sonner';
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {

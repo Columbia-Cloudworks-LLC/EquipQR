@@ -88,3 +88,37 @@ export interface TokenRefreshSummary {
   failed: number;
   results?: TokenRefreshResult[];
 }
+
+/**
+ * Request payload for quickbooks-export-invoice Edge Function
+ */
+export type QuickBooksExportInvoiceRequest = {
+  work_order_id: string;
+};
+
+/**
+ * Response from quickbooks-export-invoice Edge Function
+ */
+export type QuickBooksExportInvoiceResponse =
+  | {
+      success: true;
+      invoice_id: string;
+      invoice_number: string;
+      is_update: boolean;
+      message?: string;
+    }
+  | {
+      success: false;
+      error?: string;
+    };
+
+/**
+ * UI-facing invoice export result (camelCase)
+ */
+export interface InvoiceExportResult {
+  success: boolean;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  isUpdate?: boolean;
+  error?: string;
+}

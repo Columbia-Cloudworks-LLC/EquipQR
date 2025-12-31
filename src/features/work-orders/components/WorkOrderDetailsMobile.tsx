@@ -100,6 +100,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
         <CardContent className="p-4">
           <WorkOrderQuickActions
             workOrder={workOrder}
+            teamId={team?.id}
             equipment={equipment}
             onStatusChange={onStatusChange}
             onPriorityChange={onPriorityChange}

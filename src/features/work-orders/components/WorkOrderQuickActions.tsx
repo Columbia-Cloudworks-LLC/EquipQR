@@ -17,6 +17,7 @@ import {
   Clock,
   AlertTriangle
 } from 'lucide-react';
+import { QuickBooksExportButton } from './QuickBooksExportButton';
 
 interface WorkOrderQuickActionsProps {
   workOrder: {
@@ -29,6 +30,7 @@ interface WorkOrderQuickActionsProps {
     pm_progress?: number;
     pm_total?: number;
   };
+  teamId?: string | null;
   equipment?: {
     id: string;
     name: string;
@@ -45,6 +47,7 @@ interface WorkOrderQuickActionsProps {
 
 export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   workOrder,
+  teamId,
   equipment,
   onStatusChange,
   onPriorityChange,
@@ -197,6 +200,15 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
           <Download className="h-3 w-3 mr-1" />
           PDF
         </Button>
+      </div>
+
+      {/* Export Actions */}
+      <div className="flex items-center gap-2">
+        <QuickBooksExportButton
+          workOrderId={workOrder.id}
+          teamId={teamId ?? null}
+          workOrderStatus={workOrder.status}
+        />
       </div>
     </div>
   );

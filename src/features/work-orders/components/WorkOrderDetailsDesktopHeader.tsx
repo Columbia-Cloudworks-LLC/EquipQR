@@ -11,6 +11,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { QuickBooksExportButton } from './QuickBooksExportButton';
+import PrintExportDropdown from './PrintExportDropdown';
 
 interface WorkOrderDetailsDesktopHeaderProps {
   workOrder: WorkOrderData;
@@ -67,6 +69,18 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           <Badge className={getStatusColor(workOrder.status)}>
             {formatStatus(workOrder.status)}
           </Badge>
+          <div className="flex items-center gap-2">
+            <PrintExportDropdown
+              onDownloadPDF={() => {
+                // TODO: Implement PDF download functionality
+              }}
+            />
+            <QuickBooksExportButton
+              workOrderId={workOrder.id}
+              teamId={workOrder.team_id ?? null}
+              workOrderStatus={workOrder.status}
+            />
+          </div>
           {canEdit && (
             <Button variant="outline" onClick={onEditClick}>
               <Edit className="h-4 w-4 mr-2" />

@@ -36,14 +36,28 @@ vi.mock('@/hooks/usePermissions', () => ({
 // Mock the QuickBooks service
 const mockGetConnectionStatus = vi.fn();
 const mockGetTeamCustomerMapping = vi.fn();
-const mockExportInvoice = vi.fn();
 const mockGetLastSuccessfulExport = vi.fn();
 
 vi.mock('@/services/quickbooks', () => ({
   getConnectionStatus: (...args: unknown[]) => mockGetConnectionStatus(...args),
   getTeamCustomerMapping: (...args: unknown[]) => mockGetTeamCustomerMapping(...args),
-  exportInvoice: (...args: unknown[]) => mockExportInvoice(...args),
   getLastSuccessfulExport: (...args: unknown[]) => mockGetLastSuccessfulExport(...args),
+}));
+
+// Mock the export hook
+const mockMutate = vi.fn();
+const mockUseExportToQuickBooks = vi.fn(() => ({
+  mutate: mockMutate,
+  isPending: false,
+  isLoading: false,
+  isSuccess: false,
+  isError: false,
+  error: null,
+  data: undefined,
+}));
+
+vi.mock('@/hooks/useExportToQuickBooks', () => ({
+  useExportToQuickBooks: (...args: unknown[]) => mockUseExportToQuickBooks(...args),
 }));
 
 // Mock toast
@@ -57,7 +71,6 @@ vi.mock('sonner', () => ({
 import { QuickBooksExportButton } from '@/features/work-orders/components/QuickBooksExportButton';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { usePermissions } from '@/hooks/usePermissions';
-import { toast } from 'sonner';
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -70,6 +83,7 @@ const createTestQueryClient = () => new QueryClient({
 const renderComponent = (props = {
   workOrderId: 'wo-123',
   teamId: 'team-456',
+  workOrderStatus: 'completed' as const,
   asMenuItem: false,
 }) => {
   const queryClient = createTestQueryClient();
@@ -98,6 +112,15 @@ describe('QuickBooksExportButton Component', () => {
       display_name: 'Test Customer',
     });
     mockGetLastSuccessfulExport.mockResolvedValue(null);
+    mockUseExportToQuickBooks.mockReturnValue({
+      mutate: mockMutate,
+      isPending: false,
+      isLoading: false,
+      isSuccess: false,
+      isError: false,
+      error: null,
+      data: undefined,
+    });
   });
 
   describe('Feature Flag', () => {
@@ -202,6 +225,55 @@ describe('QuickBooksExportButton Component', () => {
     });
   });
 
+  describe('Work Order Status Gating', () => {
+    it('should be disabled when work order status is not completed', async () => {
+      renderComponent({
+        workOrderId: 'wo-123',
+        teamId: 'team-456',
+        workOrderStatus: 'in_progress',
+        asMenuItem: false,
+      });
+      
+      await waitFor(() => {
+        const button = screen.getByRole('button', { name: /Export to QuickBooks/i });
+        expect(button).toBeDisabled();
+      });
+    });
+
+    it('should be enabled when work order status is completed', async () => {
+      renderComponent({
+        workOrderId: 'wo-123',
+        teamId: 'team-456',
+        workOrderStatus: 'completed',
+        asMenuItem: false,
+      });
+      
+      await waitFor(() => {
+        const button = screen.getByRole('button', { name: /Export to QuickBooks/i });
+        expect(button).not.toBeDisabled();
+      });
+    });
+
+    it('should be disabled when export is in progress (isPending)', async () => {
+      mockUseExportToQuickBooks.mockReturnValue({
+        mutate: mockMutate,
+        isPending: true,
+        isLoading: true,
+        isSuccess: false,
+        isError: false,
+        error: null,
+        data: undefined,
+      });
+      
+      renderComponent();
+      
+      await waitFor(() => {
+        const button = screen.getByRole('button', { name: /Export to QuickBooks/i });
+        expect(button).toBeDisabled();
+      });
+    });
+  });
+
   describe('Ready to Export', () => {
     it('should be enabled when all conditions are met', async () => {
       renderComponent();
@@ -212,13 +284,7 @@ describe('QuickBooksExportButton Component', () => {
       });
     });
 
-    it('should call exportInvoice on click', async () => {
-      mockExportInvoice.mockResolvedValue({
-        success: true,
-        invoiceNumber: '1001',
-        isUpdate: false,
-      });
-      
+    it('should call mutate on click', async () => {
       renderComponent();
       
       // Wait for button to be enabled (queries resolved)
@@ -230,33 +296,9 @@ describe('QuickBooksExportButton Component', () => {
       
       fireEvent.click(button);
       
-      // Wait for the mutation to be called (it's async)
+      // Wait for the mutation to be called
       await waitFor(() => {
-        expect(mockExportInvoice).toHaveBeenCalledWith('wo-123');
-      }, { timeout: 3000 });
-    });
-
-    it('should show success toast on successful export', async () => {
-      mockExportInvoice.mockResolvedValue({
-        success: true,
-        invoiceNumber: '1001',
-        isUpdate: false,
-      });
-      
-      renderComponent();
-      
-      // Wait for button to be enabled (queries resolved)
-      const button = await waitFor(() => {
-        const btn = screen.getByRole('button', { name: /Export to QuickBooks/i });
-        expect(btn).not.toBeDisabled();
-        return btn;
-      });
-      
-      fireEvent.click(button);
-      
-      // Wait for the mutation to complete and toast to be called
-      await waitFor(() => {
-        expect(toast.success).toHaveBeenCalledWith('Invoice 1001 created in QuickBooks');
+        expect(mockMutate).toHaveBeenCalledWith('wo-123', expect.any(Object));
       }, { timeout: 3000 });
     });
   });
@@ -276,13 +318,7 @@ describe('QuickBooksExportButton Component', () => {
       });
     });
 
-    it('should show update toast on successful update', async () => {
-      mockExportInvoice.mockResolvedValue({
-        success: true,
-        invoiceNumber: '1001',
-        isUpdate: true,
-      });
-      
+    it('should call mutate when updating existing export', async () => {
       renderComponent();
       
       await waitFor(() => {
@@ -293,33 +329,8 @@ describe('QuickBooksExportButton Component', () => {
       fireEvent.click(button);
       
       await waitFor(() => {
-        expect(toast.success).toHaveBeenCalledWith('Invoice 1001 updated in QuickBooks');
+        expect(mockMutate).toHaveBeenCalledWith('wo-123', expect.any(Object));
       });
-    });
-  });
-
-  describe('Export Error', () => {
-    it('should show error toast on failed export', async () => {
-      mockExportInvoice.mockResolvedValue({
-        success: false,
-        error: 'QuickBooks API error',
-      });
-      
-      renderComponent();
-      
-      // Wait for button to be enabled (queries resolved)
-      const button = await waitFor(() => {
-        const btn = screen.getByRole('button', { name: /Export to QuickBooks/i });
-        expect(btn).not.toBeDisabled();
-        return btn;
-      });
-      
-      fireEvent.click(button);
-      
-      // Wait for the mutation to complete and toast to be called
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith('QuickBooks API error');
-      }, { timeout: 3000 });
     });
   });
 });

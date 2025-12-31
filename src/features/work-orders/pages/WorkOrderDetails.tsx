@@ -292,7 +292,7 @@ const WorkOrderDetails = () => {
                   status: equipment.status,
                   location: equipment.location
                 } : undefined}
-                team={workOrder.teamName ? { id: '', name: workOrder.teamName } : undefined}
+                team={workOrder.teamName ? { id: workOrder.team_id || '', name: workOrder.teamName } : undefined}
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
                 costs={undefined} // TODO: Add costs data
                 onStatusChange={handleStatusUpdate}

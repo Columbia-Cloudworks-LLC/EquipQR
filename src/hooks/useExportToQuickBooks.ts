@@ -3,7 +3,13 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { exportInvoice, getExportLogs, getLastSuccessfulExport } from '@/services/quickbooks';
+import { getExportLogs, getLastSuccessfulExport } from '@/services/quickbooks';
+import { supabase } from '@/integrations/supabase/client';
+import type {
+  QuickBooksExportInvoiceRequest,
+  QuickBooksExportInvoiceResponse,
+  InvoiceExportResult,
+} from '@/services/quickbooks/types';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { toast } from 'sonner';
 
@@ -64,13 +70,47 @@ export function useQuickBooksLastExport(
 /**
  * Hook to export a work order to QuickBooks
  * 
- * @returns Mutation for exporting work order to QuickBooks
+ * @returns Mutation for exporting work order to QuickBooks with isLoading state
  */
 export function useExportToQuickBooks() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (workOrderId: string) => exportInvoice(workOrderId),
+  const mutation = useMutation({
+    mutationFn: async (workOrderId: string): Promise<InvoiceExportResult> => {
+      const request: QuickBooksExportInvoiceRequest = {
+        work_order_id: workOrderId,
+      };
+
+      const { data, error: invokeError } = await supabase.functions.invoke<
+        QuickBooksExportInvoiceResponse
+      >('quickbooks-export-invoice', {
+        body: request,
+      });
+
+      // Handle invoke errors (network, non-2xx responses)
+      if (invokeError) {
+        return {
+          success: false,
+          error: invokeError.message || 'Failed to export invoice',
+        };
+      }
+
+      // Handle function-level errors (success: false in response)
+      if (!data || !data.success) {
+        return {
+          success: false,
+          error: data?.error || 'Failed to export invoice',
+        };
+      }
+
+      // Map snake_case response to camelCase result
+      return {
+        success: true,
+        invoiceId: data.invoice_id,
+        invoiceNumber: data.invoice_number,
+        isUpdate: data.is_update,
+      };
+    },
     onSuccess: (result, workOrderId) => {
       if (result.success) {
         const message = result.isUpdate
@@ -80,7 +120,7 @@ export function useExportToQuickBooks() {
       } else {
         toast.error(result.error || 'Failed to export to QuickBooks');
       }
-      
+
       // Invalidate export queries
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export', workOrderId] });
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export-logs', workOrderId] });
@@ -89,6 +129,12 @@ export function useExportToQuickBooks() {
       toast.error(`Export failed: ${error.message}`);
     },
   });
+
+  // Expose isLoading for backward compatibility (React Query v5 uses isPending)
+  return {
+    ...mutation,
+    isLoading: mutation.isPending,
+  };
 }
 
 export default useExportToQuickBooks;
