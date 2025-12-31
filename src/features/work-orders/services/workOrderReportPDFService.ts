@@ -159,7 +159,7 @@ export class WorkOrderReportPDFGenerator {
   /**
    * Generate the PDF header section
    */
-  private generateHeader(workOrder: WorkOrder, organizationName?: string): void {
+  private generateHeader(workOrder: WorkOrderForPDF, organizationName?: string): void {
     // Organization name (centered)
     if (organizationName) {
       this.doc.setFontSize(14);
@@ -191,7 +191,7 @@ export class WorkOrderReportPDFGenerator {
   /**
    * Generate work order details section
    */
-  private generateDetailsSection(workOrder: WorkOrder): void {
+  private generateDetailsSection(workOrder: WorkOrderForPDF): void {
     this.addSectionHeader('Details');
 
     // Priority and dates on same line
@@ -253,7 +253,7 @@ export class WorkOrderReportPDFGenerator {
   /**
    * Generate team and assignment section
    */
-  private generateAssignmentSection(workOrder: WorkOrder): void {
+  private generateAssignmentSection(workOrder: WorkOrderForPDF): void {
     const teamName = workOrder.teamName || 'Unassigned';
     const assigneeName = workOrder.assigneeName || workOrder.assignee_name || 'Unassigned';
 
