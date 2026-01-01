@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Info } from 'lucide-react';
+import { ArrowLeft, Edit, Info, Download } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
@@ -12,7 +12,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { QuickBooksExportButton } from './QuickBooksExportButton';
-import PrintExportDropdown from './PrintExportDropdown';
+import { WorkOrderPDFExportDialog } from './WorkOrderPDFExportDialog';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
@@ -48,6 +48,8 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   pmData,
   organizationName
 }) => {
+  const [showPDFDialog, setShowPDFDialog] = useState(false);
+
   // PDF generation hook
   const { downloadPDF, isGenerating } = useWorkOrderPDF({
     workOrder,
@@ -61,9 +63,18 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
       location: equipment.location
     } : null,
     pmData: pmData as PreventativeMaintenance | null,
-    organizationName,
-    showPrivateNotes: permissionLevels.isManager
+    organizationName
   });
+
+  // Handle PDF export with options from dialog
+  const handlePDFExport = async (options: { includeCosts: boolean }) => {
+    try {
+      await downloadPDF(options);
+    } catch {
+      // Error already logged and toast shown by useWorkOrderPDF hook
+      // Catch here to prevent unhandled promise rejection
+    }
+  };
 
   return (
     <div className="hidden lg:block space-y-6 p-6">
@@ -101,10 +112,15 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
             {formatStatus(workOrder.status)}
           </Badge>
           <div className="flex items-center gap-2">
-            <PrintExportDropdown
-              onDownloadPDF={downloadPDF}
+            <Button
+              variant="outline"
+              onClick={() => setShowPDFDialog(true)}
               disabled={isGenerating}
-            />
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              <span>Download PDF</span>
+            </Button>
             <QuickBooksExportButton
               workOrderId={workOrder.id}
               teamId={equipmentTeamId ?? null}
@@ -119,6 +135,15 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           )}
         </div>
       </div>
+
+      {/* PDF Export Dialog */}
+      <WorkOrderPDFExportDialog
+        open={showPDFDialog}
+        onOpenChange={setShowPDFDialog}
+        onExport={handlePDFExport}
+        isExporting={isGenerating}
+        showCostsOption={permissionLevels.isManager || permissionLevels.isTechnician}
+      />
     </div>
   );
 };
