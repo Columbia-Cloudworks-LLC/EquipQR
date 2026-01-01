@@ -6,7 +6,7 @@
 
 ### 🚜 Fleet Equipment Management Platform 🚧
 
-![Version](https://img.shields.io/badge/version-1.7.1-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.7.2-blue?style=for-the-badge)
 ![Build Status](https://img.shields.io/github/actions/workflow/status/Columbia-Cloudworks-LLC/EquipQR/ci.yml?branch=main&label=Build&style=for-the-badge)
 ![License](https://img.shields.io/badge/license-Proprietary-lightgrey?style=for-the-badge)
 
