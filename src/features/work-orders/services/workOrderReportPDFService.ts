@@ -44,7 +44,6 @@ export interface WorkOrderPDFData {
   notes?: WorkOrderNote[];
   costs?: WorkOrderCost[];
   pmData?: PreventativeMaintenance | null;
-  showPrivateNotes?: boolean;
   /** Include cost items in the PDF (default: false for customer-facing docs) */
   includeCosts?: boolean;
 }
@@ -295,10 +294,12 @@ export class WorkOrderReportPDFGenerator {
    * Generate notes section (customer-facing: public notes only, chronological order)
    * Notes with images get full-page treatment with the note text repeated on each photo page.
    * Notes without images can share pages.
+   * 
+   * Note: This method always filters to public notes only for customer-facing PDFs.
+   * Private notes are never included regardless of user permissions.
    */
-  private async generateNotesSection(notes: WorkOrderNote[], _showPrivateNotes: boolean): Promise<void> {
+  private async generateNotesSection(notes: WorkOrderNote[]): Promise<void> {
     // For customer-facing PDF, always filter to public notes only
-    // (_showPrivateNotes is kept for API compatibility but ignored for customer docs)
     const publicNotes = notes.filter(note => !note.is_private);
 
     if (publicNotes.length === 0) {
@@ -411,7 +412,8 @@ export class WorkOrderReportPDFGenerator {
   }
 
   /**
-   * Add an embedded image scaled to fit available page space
+   * Add an embedded image scaled to fit available page space.
+   * On any error (fetch, decode, or embed), falls back to a placeholder box.
    */
   private async addEmbeddedImage(imageUrl: string, fileName: string): Promise<void> {
     const availableHeight = this.pageHeight - this.yPosition - 20;
@@ -422,12 +424,16 @@ export class WorkOrderReportPDFGenerator {
     const imageData = await this.fetchImageAsBase64(imageUrl);
     
     if (imageData) {
+      // Wrap image loading and embedding in try-catch to ensure fallback on any error
+      // This catches: Image decode errors, dimension calculation issues, and jsPDF embed errors
       try {
         // Create a temporary image to get dimensions
         const img = new Image();
+        
+        // Load image and wait for dimensions - rejection caught by outer try-catch
         await new Promise<void>((resolve, reject) => {
           img.onload = () => resolve();
-          img.onerror = () => reject(new Error('Failed to load image'));
+          img.onerror = () => reject(new Error('Failed to decode image data'));
           img.src = imageData.data;
         });
         
@@ -458,8 +464,8 @@ export class WorkOrderReportPDFGenerator {
         
         return;
       } catch (error) {
-        logger.warn('Error embedding image in PDF:', error);
-        // Fall through to placeholder
+        // Any error in image loading/embedding falls through to placeholder
+        logger.warn('Error embedding image in PDF, using placeholder:', error);
       }
     }
     
@@ -644,7 +650,6 @@ export class WorkOrderReportPDFGenerator {
       notes = [],
       costs = [],
       pmData,
-      showPrivateNotes = false,
       includeCosts = false
     } = data;
 
@@ -668,7 +673,7 @@ export class WorkOrderReportPDFGenerator {
     // Next Page: Notes (always starts on a new page after PM or description)
     if (notes.length > 0) {
       this.addNewPage();
-      await this.generateNotesSection(notes, showPrivateNotes);
+      await this.generateNotesSection(notes);
     }
     
     // Costs section (only if explicitly included - not shown by default for customer-facing docs)

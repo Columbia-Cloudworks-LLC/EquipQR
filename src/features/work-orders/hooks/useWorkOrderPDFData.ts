@@ -83,7 +83,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
 
       const [notes, costs] = await Promise.all([notesPromise, costsPromise]);
 
-      // Prepare PDF data (customer-facing: always exclude private notes)
+      // Prepare PDF data (customer-facing: public notes only, costs optional)
       const pdfData: WorkOrderPDFData = {
         workOrder,
         equipment,
@@ -91,7 +91,6 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
         notes,
         costs,
         pmData,
-        showPrivateNotes: false, // Customer-facing PDF always shows public notes only
         includeCosts
       };
 
