@@ -48,6 +48,9 @@ export interface WorkOrderPDFData {
   includeCosts?: boolean;
 }
 
+/** Milliseconds in one day - used for date delta calculations */
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
 /**
  * Work Order Report PDF Generator
  * Generates comprehensive PDF reports for work orders including all details,
@@ -165,7 +168,7 @@ export class WorkOrderReportPDFGenerator {
       const from = new Date(fromDate);
       const to = new Date(toDate);
       const diffMs = to.getTime() - from.getTime();
-      return Math.round(diffMs / (1000 * 60 * 60 * 24));
+      return Math.round(diffMs / MS_PER_DAY);
     } catch {
       return null;
     }
@@ -268,14 +271,16 @@ export class WorkOrderReportPDFGenerator {
   }
 
   /**
-   * Generate customer and assignment section (customer-facing document)
+   * Generate service team and assignment section (customer-facing document)
+   * Note: teamName represents the internal service team responsible for the work order,
+   * not the customer. The customer is the organization that owns the equipment.
    */
   private generateAssignmentSection(workOrder: WorkOrderForPDF): void {
-    const customerName = workOrder.teamName || 'Unassigned';
+    const teamName = workOrder.teamName || 'Unassigned';
     const assigneeName = workOrder.assigneeName || workOrder.assignee_name || 'Unassigned';
 
-    // Customer-facing: use "Customer" instead of "Team"
-    this.addText(`Customer: ${customerName}`, this.margin, 10, 'bold');
+    // Service team label - this is the team performing the work, not the customer
+    this.addText(`Service Team: ${teamName}`, this.margin, 10, 'bold');
     this.addText(`Assigned To: ${assigneeName}`, this.margin, 10);
 
     this.addSeparator();
@@ -293,7 +298,8 @@ export class WorkOrderReportPDFGenerator {
   /**
    * Generate notes section (customer-facing: public notes only, chronological order)
    * Notes with images get full-page treatment with the note text repeated on each photo page.
-   * Notes without images can share pages.
+   * Notes without images are rendered in-flow within this section and can share pages with each other.
+   * (The notes section itself is started on a new page by the caller.)
    * 
    * Note: This method always filters to public notes only for customer-facing PDFs.
    * Private notes are never included regardless of user permissions.
@@ -364,8 +370,9 @@ export class WorkOrderReportPDFGenerator {
   /**
    * Fetch an image and convert to base64 for embedding in PDF.
    * 
-   * Note: jsPDF natively supports JPEG and PNG formats only.
-   * WebP, GIF, SVG, and other formats are not supported and will be skipped.
+   * Note: jsPDF natively supports only JPEG (including both .jpg and .jpeg file extensions,
+   * which are the same format) and PNG formats.
+   * Other formats such as WebP, GIF, SVG, BMP, and TIFF are not supported and will be skipped.
    */
   private async fetchImageAsBase64(imageUrl: string): Promise<{ data: string; format: 'JPEG' | 'PNG' } | null> {
     try {

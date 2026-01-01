@@ -16,8 +16,6 @@ export interface UseWorkOrderPDFOptions {
   equipment?: EquipmentForPDF | null;
   pmData?: PreventativeMaintenance | null;
   organizationName?: string;
-  /** @deprecated No longer used - customer-facing PDF always shows public notes only */
-  showPrivateNotes?: boolean;
 }
 
 /** Options passed to downloadPDF function */
@@ -52,12 +50,16 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
   } = options;
   
   const [isGenerating, setIsGenerating] = useState(false);
-  // Use ref for the re-entry guard to avoid stale closure issues
-  // The ref always has the current value, unlike state captured in callback closure
+  // Use ref for the re-entry guard to avoid stale closure issues.
+  // The ref always has the current value, unlike state captured in callback closure.
+  // Note: The ref is reset in the finally block after PDF generation completes/fails.
+  // If the dialog is closed and reopened while generation is in progress, the guard
+  // will correctly block new requests until the current generation finishes.
   const isGeneratingRef = useRef(false);
 
   const downloadPDF = useCallback(async (downloadOptions?: DownloadPDFOptions) => {
-    // Use ref for guard check to prevent race conditions from rapid clicks
+    // Use ref for guard check to prevent race conditions from rapid clicks.
+    // This blocks re-entry until the finally block resets the ref.
     if (isGeneratingRef.current) return;
     
     const { includeCosts = false } = downloadOptions || {};
@@ -67,7 +69,10 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     setIsGenerating(true);
     
     try {
-      // Always fetch notes (PDF generator filters to public only)
+      // Always fetch notes (PDF generator filters to public only).
+      // Note: Multi-tenancy is enforced via RLS policies on work_order_notes table.
+      // The work order ID inherently belongs to an organization, and RLS policies
+      // ensure users can only access notes for work orders within their organization.
       const notesPromise = getWorkOrderNotesWithImages(workOrder.id).catch(err => {
         logger.warn('Failed to fetch notes for PDF:', err);
         return [];
