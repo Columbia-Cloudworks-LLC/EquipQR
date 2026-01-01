@@ -46,6 +46,8 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
       hasPM: workOrder?.has_pm ?? defaults.hasPM,
       // Set PM template ID from PM data if editing
       pmTemplateId: pmData?.template_id || defaults.pmTemplateId,
+      // Preserve assignee when editing (snake_case from DB -> camelCase for form)
+      assigneeId: workOrder?.assignee_id ?? defaults.assigneeId,
     };
   }, [workOrder, equipmentId, initialIsHistorical, pmData]);
 
