@@ -18,6 +18,14 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[QUICKBOOKS-EXPORT-INVOICE] ${step}${detailsStr}`);
 };
 
+/**
+ * Extracts the intuit_tid from QuickBooks API response headers.
+ * This ID is useful for Intuit support troubleshooting.
+ */
+const getIntuitTid = (response: Response): string | null => {
+  return response.headers.get('intuit_tid') || null;
+};
+
 // QuickBooks API endpoints
 const QUICKBOOKS_API_BASE_SANDBOX = "https://sandbox-quickbooks.api.intuit.com";
 const QUICKBOOKS_API_BASE_PRODUCTION = "https://quickbooks.api.intuit.com";
@@ -982,6 +990,7 @@ serve(async (req) => {
     let invoiceId: string | undefined;
     let invoiceNumber: string | undefined;
     let isUpdate = false;
+    let intuitTid: string | null = null;
 
     // Create log entry (pending)
     const { data: logEntry } = await supabaseClient
@@ -1049,9 +1058,12 @@ serve(async (req) => {
           body: JSON.stringify(updatedInvoice),
         });
 
+        // Capture intuit_tid from response headers for troubleshooting
+        intuitTid = getIntuitTid(updateResponse);
+
         if (!updateResponse.ok) {
           const errorText = await updateResponse.text();
-          logStep("Invoice update failed", { error: errorText });
+          logStep("Invoice update failed", { error: errorText, intuit_tid: intuitTid });
           throw new Error("Failed to update invoice in QuickBooks");
         }
 
@@ -1059,6 +1071,8 @@ serve(async (req) => {
         invoiceId = updateResult.Invoice.Id;
         invoiceNumber = updateResult.Invoice.DocNumber;
         isUpdate = true;
+        
+        logStep("Invoice updated", { invoiceId, invoiceNumber, intuit_tid: intuitTid });
 
         // Handle PDF attachment if enabled
         if (ENABLE_PDF_ATTACHMENT) {
@@ -1172,15 +1186,20 @@ serve(async (req) => {
           body: JSON.stringify(newInvoice),
         });
 
+        // Capture intuit_tid from response headers for troubleshooting
+        intuitTid = getIntuitTid(createResponse);
+
         if (!createResponse.ok) {
           const errorText = await createResponse.text();
-          logStep("Invoice creation failed", { error: errorText });
+          logStep("Invoice creation failed", { error: errorText, intuit_tid: intuitTid });
           throw new Error("Failed to create invoice in QuickBooks");
         }
 
         const createResult = await createResponse.json();
         invoiceId = createResult.Invoice.Id;
         invoiceNumber = createResult.Invoice.DocNumber;
+        
+        logStep("Invoice created", { invoiceId, invoiceNumber, intuit_tid: intuitTid });
 
         // Handle PDF attachment if enabled
         if (ENABLE_PDF_ATTACHMENT) {
@@ -1215,7 +1234,7 @@ serve(async (req) => {
         }
       }
 
-      // Update log entry with success
+      // Update log entry with success (including intuit_tid for troubleshooting)
       if (logEntry?.id) {
         await supabaseClient
           .from('quickbooks_export_logs')
@@ -1223,11 +1242,12 @@ serve(async (req) => {
             quickbooks_invoice_id: invoiceId,
             status: 'success',
             exported_at: new Date().toISOString(),
+            intuit_tid: intuitTid,
           })
           .eq('id', logEntry.id);
       }
 
-      logStep("Invoice exported successfully", { invoiceId, invoiceNumber, isUpdate });
+      logStep("Invoice exported successfully", { invoiceId, invoiceNumber, isUpdate, intuit_tid: intuitTid });
 
       return new Response(JSON.stringify({ 
         success: true, 
@@ -1243,7 +1263,7 @@ serve(async (req) => {
       });
 
     } catch (exportError) {
-      // Update log entry with error
+      // Update log entry with error (including intuit_tid if available for troubleshooting)
       if (logEntry?.id) {
         const errorMessage = exportError instanceof Error ? exportError.message : String(exportError);
         await supabaseClient
@@ -1251,6 +1271,7 @@ serve(async (req) => {
           .update({
             status: 'error',
             error_message: errorMessage.substring(0, 1000),
+            intuit_tid: intuitTid,
           })
           .eq('id', logEntry.id);
       }
