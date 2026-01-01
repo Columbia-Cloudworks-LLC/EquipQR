@@ -211,12 +211,9 @@ const WorkOrderDetails = () => {
 
   // Handle mobile PDF export with options from dialog
   const handleMobilePDFExport = async (options: { includeCosts: boolean }) => {
-    try {
-      await downloadMobilePDF(options);
-    } catch {
-      // Error already logged and toast shown by useWorkOrderPDF hook
-      // Catch here to prevent unhandled promise rejection
-    }
+    // Let errors propagate so the dialog can detect failures and stay open for retry.
+    // The useWorkOrderPDF hook already logs and shows a toast on error.
+    await downloadMobilePDF(options);
   };
 
   // Only redirect if we definitely don't have the required data and aren't loading

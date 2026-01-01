@@ -68,12 +68,9 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
 
   // Handle PDF export with options from dialog
   const handlePDFExport = async (options: { includeCosts: boolean }) => {
-    try {
-      await downloadPDF(options);
-    } catch {
-      // Error already logged and toast shown by useWorkOrderPDF hook
-      // Catch here to prevent unhandled promise rejection
-    }
+    // Let errors propagate so the dialog can detect failures and stay open for retry.
+    // The useWorkOrderPDF hook already logs and shows a toast on error.
+    await downloadPDF(options);
   };
 
   return (
