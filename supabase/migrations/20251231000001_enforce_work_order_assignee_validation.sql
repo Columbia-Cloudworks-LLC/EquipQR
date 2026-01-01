@@ -152,8 +152,10 @@ COMMENT ON TRIGGER trg_validate_work_order_assignee ON public.work_orders IS
 
 -- Data migration: Sync team_id from equipment to all existing work orders
 -- This ensures existing work orders have accurate team_id values for filtering and display
+-- NOTE: Filters by organization_id to enforce multi-tenancy even in migration context
 UPDATE public.work_orders wo
 SET team_id = e.team_id
 FROM public.equipment e
 WHERE wo.equipment_id = e.id
+  AND wo.organization_id = e.organization_id
   AND (wo.team_id IS DISTINCT FROM e.team_id);

@@ -82,7 +82,11 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     } finally {
       setIsGenerating(false);
     }
-  }, [workOrder, equipment, pmData, organizationName, showPrivateNotes, isGenerating]);
+    // Note: isGenerating is intentionally omitted from deps - including it would cause
+    // unnecessary callback recreation on every state change. The early return check
+    // is just a re-entry guard, not a reactive dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workOrder, equipment, pmData, organizationName, showPrivateNotes]);
 
   return {
     downloadPDF,

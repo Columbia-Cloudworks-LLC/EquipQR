@@ -116,11 +116,7 @@ export function useExportToQuickBooks() {
     onError: (error: Error) => {
       toast.error(`Export failed: ${error.message}`);
     },
-    onSettled: (
-      _data: InvoiceExportResult | undefined,
-      _error: Error | null,
-      variables: string
-    ) => {
+    onSettled: (_data, _error, variables) => {
       // Keep export status/logs fresh after either success or failure
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export', variables] });
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export-logs', variables] });

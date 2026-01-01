@@ -10,6 +10,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 interface AssignmentOption {
   id: string;
@@ -59,7 +60,7 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
           .single();
 
         if (equipmentError) {
-          console.error('Error fetching equipment:', equipmentError);
+          logger.error('Error fetching equipment:', equipmentError);
           
           // Normalize Supabase/PostgREST errors into clearer domain errors
           const errorCode = (equipmentError as { code?: string }).code;
@@ -100,7 +101,7 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
         .in('role', ['owner', 'admin']);
 
       if (orgAdminsError) {
-        console.error('Error fetching org admins:', orgAdminsError);
+        logger.error('Error fetching org admins:', orgAdminsError);
         throw orgAdminsError;
       }
 
@@ -129,7 +130,7 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
         .in('role', ['manager', 'technician']);
 
       if (teamError) {
-        console.error('Error fetching team members:', teamError);
+        logger.error('Error fetching team members:', teamError);
         throw teamError;
       }
 
