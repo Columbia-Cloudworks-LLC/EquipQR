@@ -33,7 +33,6 @@ export interface EquipmentForPDF {
   manufacturer?: string | null;
   model?: string | null;
   serial_number?: string | null;
-  serialNumber?: string | null;
   status: string;
   location?: string | null;
 }
@@ -46,6 +45,8 @@ export interface WorkOrderPDFData {
   costs?: WorkOrderCost[];
   pmData?: PreventativeMaintenance | null;
   showPrivateNotes?: boolean;
+  /** Include cost items in the PDF (default: false for customer-facing docs) */
+  includeCosts?: boolean;
 }
 
 /**
@@ -157,6 +158,29 @@ export class WorkOrderReportPDFGenerator {
   }
 
   /**
+   * Calculate days difference between two dates
+   */
+  private calculateDaysDelta(fromDate: string, toDate: string | null | undefined): number | null {
+    if (!toDate) return null;
+    try {
+      const from = new Date(fromDate);
+      const to = new Date(toDate);
+      const diffMs = to.getTime() - from.getTime();
+      return Math.round(diffMs / (1000 * 60 * 60 * 24));
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Format ID as first4...last4
+   */
+  private formatWorkOrderId(id: string): string {
+    if (id.length <= 8) return id;
+    return `${id.slice(0, 4)}...${id.slice(-4)}`;
+  }
+
+  /**
    * Generate the PDF header section
    */
   private generateHeader(workOrder: WorkOrderForPDF, organizationName?: string): void {
@@ -177,10 +201,10 @@ export class WorkOrderReportPDFGenerator {
     this.doc.text(title, (this.pageWidth - titleWidth) / 2, this.yPosition);
     this.yPosition += 8;
 
-    // ID and Status line
+    // ID and Status line (first4...last4 format)
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
-    const statusLine = `ID: ${workOrder.id.slice(0, 8)}... | Status: ${formatStatus(workOrder.status)}`;
+    const statusLine = `ID: ${this.formatWorkOrderId(workOrder.id)} | Status: ${formatStatus(workOrder.status)}`;
     const statusWidth = this.doc.getTextWidth(statusLine);
     this.doc.text(statusLine, (this.pageWidth - statusWidth) / 2, this.yPosition);
     this.yPosition += 6;
@@ -190,35 +214,30 @@ export class WorkOrderReportPDFGenerator {
 
   /**
    * Generate work order details section
+   * Order: Created, Priority, Due (with delta), Completed (with delta)
    */
   private generateDetailsSection(workOrder: WorkOrderForPDF): void {
     this.addSectionHeader('Details');
 
-    // Priority and dates on same line
-    const priority = `Priority: ${formatPriority(workOrder.priority)}`;
-    const created = `Created: ${formatDate(workOrder.created_date)}`;
-    
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
-    this.doc.text(priority, this.margin, this.yPosition);
-    this.doc.text(created, this.margin + 70, this.yPosition);
-    this.yPosition += this.lineHeight;
 
-    // Due date and completed date
-    const due = `Due: ${formatDate(workOrder.due_date)}`;
-    const completed = workOrder.completed_date 
-      ? `Completed: ${formatDate(workOrder.completed_date)}`
-      : '';
-    
-    this.doc.text(due, this.margin, this.yPosition);
-    if (completed) {
-      this.doc.text(completed, this.margin + 70, this.yPosition);
-    }
-    this.yPosition += this.lineHeight;
+    // Created date
+    this.addText(`Created: ${formatDate(workOrder.created_date)}`, this.margin, 10);
 
-    // Estimated hours if available
-    if (workOrder.estimated_hours) {
-      this.addText(`Estimated Hours: ${workOrder.estimated_hours}`, this.margin, 10);
+    // Priority
+    this.addText(`Priority: ${formatPriority(workOrder.priority)}`, this.margin, 10);
+
+    // Due date with delta from created
+    const dueDelta = this.calculateDaysDelta(workOrder.created_date, workOrder.due_date);
+    const dueDeltaStr = dueDelta !== null ? ` (${dueDelta} days from created)` : '';
+    this.addText(`Due: ${formatDate(workOrder.due_date)}${dueDeltaStr}`, this.margin, 10);
+
+    // Completed date with delta from created (if completed)
+    if (workOrder.completed_date) {
+      const completedDelta = this.calculateDaysDelta(workOrder.created_date, workOrder.completed_date);
+      const completedDeltaStr = completedDelta !== null ? ` (${completedDelta} days from created)` : '';
+      this.addText(`Completed: ${formatDate(workOrder.completed_date)}${completedDeltaStr}`, this.margin, 10);
     }
 
     this.addSeparator();
@@ -235,8 +254,7 @@ export class WorkOrderReportPDFGenerator {
     const details: string[] = [];
     if (equipment.manufacturer) details.push(`Mfr: ${equipment.manufacturer}`);
     if (equipment.model) details.push(`Model: ${equipment.model}`);
-    // Handle both serial_number and serialNumber
-    const serialNumber = equipment.serial_number || equipment.serialNumber;
+    const serialNumber = equipment.serial_number;
     if (serialNumber) details.push(`S/N: ${serialNumber}`);
     
     if (details.length > 0) {
@@ -251,14 +269,14 @@ export class WorkOrderReportPDFGenerator {
   }
 
   /**
-   * Generate team and assignment section
+   * Generate customer and assignment section (customer-facing document)
    */
   private generateAssignmentSection(workOrder: WorkOrderForPDF): void {
-    const teamName = workOrder.teamName || 'Unassigned';
+    const customerName = workOrder.teamName || 'Unassigned';
     const assigneeName = workOrder.assigneeName || workOrder.assignee_name || 'Unassigned';
 
-    this.addSectionHeader('Team & Assignment');
-    this.addText(`Team: ${teamName}`, this.margin, 10);
+    // Customer-facing: use "Customer" instead of "Team"
+    this.addText(`Customer: ${customerName}`, this.margin, 10, 'bold');
     this.addText(`Assigned To: ${assigneeName}`, this.margin, 10);
 
     this.addSeparator();
@@ -274,42 +292,196 @@ export class WorkOrderReportPDFGenerator {
   }
 
   /**
-   * Generate notes section
+   * Generate notes section (customer-facing: public notes only, chronological order)
+   * Notes with images get full-page treatment with the note text repeated on each photo page.
+   * Notes without images can share pages.
    */
-  private generateNotesSection(notes: WorkOrderNote[], showPrivateNotes: boolean): void {
-    // Filter notes based on privacy settings
-    const visibleNotes = showPrivateNotes 
-      ? notes 
-      : notes.filter(note => !note.is_private);
+  private async generateNotesSection(notes: WorkOrderNote[], showPrivateNotes: boolean): Promise<void> {
+    // For customer-facing PDF, always filter to public notes only
+    // (showPrivateNotes is kept for API compatibility but ignored for customer docs)
+    const publicNotes = notes.filter(note => !note.is_private);
 
-    if (visibleNotes.length === 0) {
+    if (publicNotes.length === 0) {
       return;
     }
 
-    this.addSectionHeader('Notes');
+    // Sort chronologically (oldest first)
+    const sortedNotes = [...publicNotes].sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
 
-    for (const note of visibleNotes) {
-      this.checkPageBreak(20);
-      
-      // Note header: date and author
+    this.addSectionHeader('Public Work Order Notes');
+
+    for (const note of sortedNotes) {
       const dateStr = formatDateTime(note.created_at);
       const author = note.author_name || 'Unknown';
-      const privateTag = note.is_private ? ' [Private]' : '';
-      
-      this.addText(`${dateStr} - ${author}${privateTag}`, this.margin, 9, 'bold');
-      
-      // Note content
-      this.addMultilineText(note.content, this.margin + 5, 165, 9);
-      
-      // Hours worked if available
-      if (note.hours_worked && note.hours_worked > 0) {
-        this.addText(`Hours worked: ${note.hours_worked}`, this.margin + 5, 8);
+      const hasImages = note.images && note.images.length > 0;
+
+      if (hasImages && note.images) {
+        // Notes with images: each image gets its own full page with the note text
+        for (const image of note.images) {
+          this.addNewPage();
+          await this.generateNoteWithImagePage(note, image, dateStr, author);
+        }
+      } else {
+        // Notes without images: render in-flow (can share pages)
+        this.checkPageBreak(30);
+        this.generateNoteText(note, dateStr, author);
+        this.yPosition += 6;
       }
-      
-      this.yPosition += 3;
     }
 
     this.addSeparator();
+  }
+
+  /**
+   * Generate a full-page layout for a note with an image
+   */
+  private async generateNoteWithImagePage(
+    note: WorkOrderNote, 
+    image: { file_url: string; file_name: string }, 
+    dateStr: string, 
+    author: string
+  ): Promise<void> {
+    // Note header
+    this.addText(`${dateStr} - ${author}`, this.margin, 9, 'bold');
+    
+    // Note content
+    this.addMultilineText(note.content, this.margin, 170, 9);
+    
+    // Hours worked if available
+    if (note.hours_worked && note.hours_worked > 0) {
+      this.addText(`Hours worked: ${note.hours_worked}`, this.margin, 8);
+    }
+    
+    this.yPosition += 6;
+    
+    // Embed the actual image
+    await this.addEmbeddedImage(image.file_url, image.file_name);
+  }
+
+  /**
+   * Fetch an image and convert to base64 for embedding in PDF
+   */
+  private async fetchImageAsBase64(imageUrl: string): Promise<{ data: string; format: 'JPEG' | 'PNG' } | null> {
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        logger.warn(`Failed to fetch image: ${response.status} ${response.statusText}`);
+        return null;
+      }
+      
+      const blob = await response.blob();
+      const contentType = blob.type.toLowerCase();
+      
+      // Determine format
+      let format: 'JPEG' | 'PNG' = 'JPEG';
+      if (contentType.includes('png')) {
+        format = 'PNG';
+      }
+      
+      // Convert to base64
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          resolve({ data: base64, format });
+        };
+        reader.onerror = () => {
+          logger.warn('Failed to convert image to base64');
+          resolve(null);
+        };
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      logger.warn('Error fetching image for PDF:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Add an embedded image scaled to fit available page space
+   */
+  private async addEmbeddedImage(imageUrl: string, fileName: string): Promise<void> {
+    const availableHeight = this.pageHeight - this.yPosition - 20;
+    const availableWidth = this.pageWidth - (2 * this.margin);
+    const maxImageHeight = Math.min(availableHeight, 180);
+    
+    // Try to fetch and embed the actual image
+    const imageData = await this.fetchImageAsBase64(imageUrl);
+    
+    if (imageData) {
+      try {
+        // Create a temporary image to get dimensions
+        const img = new Image();
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('Failed to load image'));
+          img.src = imageData.data;
+        });
+        
+        // Calculate scaled dimensions to fit within available space
+        const aspectRatio = img.width / img.height;
+        let imgWidth = availableWidth;
+        let imgHeight = imgWidth / aspectRatio;
+        
+        if (imgHeight > maxImageHeight) {
+          imgHeight = maxImageHeight;
+          imgWidth = imgHeight * aspectRatio;
+        }
+        
+        // Center the image horizontally
+        const xOffset = this.margin + (availableWidth - imgWidth) / 2;
+        
+        // Add the image to the PDF
+        this.doc.addImage(imageData.data, imageData.format, xOffset, this.yPosition, imgWidth, imgHeight);
+        this.yPosition += imgHeight + 10;
+        
+        // Add filename caption below image
+        this.doc.setFontSize(8);
+        this.doc.setFont('helvetica', 'italic');
+        this.doc.setTextColor(100, 100, 100);
+        this.doc.text(fileName, this.margin, this.yPosition);
+        this.doc.setTextColor(0, 0, 0);
+        this.yPosition += 6;
+        
+        return;
+      } catch (error) {
+        logger.warn('Error embedding image in PDF:', error);
+        // Fall through to placeholder
+      }
+    }
+    
+    // Fallback: Draw a bordered box with image reference
+    this.doc.setDrawColor(150, 150, 150);
+    this.doc.setLineWidth(0.5);
+    this.doc.rect(this.margin, this.yPosition, availableWidth, 40);
+    
+    this.doc.setFontSize(10);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.text(`Photo: ${fileName}`, this.margin + 5, this.yPosition + 15);
+    this.doc.setFontSize(8);
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.text('(Image could not be loaded)', this.margin + 5, this.yPosition + 25);
+    this.doc.setTextColor(0, 0, 0);
+    
+    this.yPosition += 50;
+  }
+
+  /**
+   * Generate note text (without full-page image treatment)
+   */
+  private generateNoteText(note: WorkOrderNote, dateStr: string, author: string): void {
+    // Note header
+    this.addText(`${dateStr} - ${author}`, this.margin, 9, 'bold');
+    
+    // Note content
+    this.addMultilineText(note.content, this.margin + 5, 165, 9);
+    
+    // Hours worked if available
+    if (note.hours_worked && note.hours_worked > 0) {
+      this.addText(`Hours worked: ${note.hours_worked}`, this.margin + 5, 8);
+    }
   }
 
   /**
@@ -431,9 +603,29 @@ export class WorkOrderReportPDFGenerator {
   }
 
   /**
-   * Generate the complete PDF
+   * Force a new page
    */
-  public generatePDF(data: WorkOrderPDFData): jsPDF {
+  private addNewPage(): void {
+    this.doc.addPage();
+    this.yPosition = 20;
+  }
+
+  /**
+   * Generate the complete PDF
+   * 
+   * Section order (customer-facing):
+   * 1. Organization (header)
+   * 2. Work Order: Title
+   * 3. ID: {first4}...{last4} | Status
+   * 4. Details (Created, Priority, Due with delta, Completed with delta)
+   * 5. Equipment (if present)
+   * 6. Customer + Assigned To
+   * 7. Description
+   * 8. NEW PAGE: PM Checklist (if present)
+   * 9. NEW PAGE: Public Work Order Notes
+   * 10. Costs (only if includeCosts is true)
+   */
+  public async generatePDF(data: WorkOrderPDFData): Promise<jsPDF> {
     const {
       workOrder,
       equipment,
@@ -441,10 +633,11 @@ export class WorkOrderReportPDFGenerator {
       notes = [],
       costs = [],
       pmData,
-      showPrivateNotes = false
+      showPrivateNotes = false,
+      includeCosts = false
     } = data;
 
-    // Generate all sections
+    // Page 1: Header, Details, Equipment, Customer/Assignment, Description
     this.generateHeader(workOrder, organizationName);
     this.generateDetailsSection(workOrder);
     
@@ -455,16 +648,21 @@ export class WorkOrderReportPDFGenerator {
     this.generateAssignmentSection(workOrder);
     this.generateDescriptionSection(workOrder.description);
     
-    if (notes.length > 0) {
-      this.generateNotesSection(notes, showPrivateNotes);
-    }
-    
-    if (costs.length > 0) {
-      this.generateCostsSection(costs);
-    }
-    
+    // Page 2+: PM Checklist (always starts on a new page)
     if (pmData && workOrder.has_pm) {
+      this.addNewPage();
       this.generatePMChecklistSection(pmData);
+    }
+    
+    // Next Page: Notes (always starts on a new page after PM or description)
+    if (notes.length > 0) {
+      this.addNewPage();
+      await this.generateNotesSection(notes, showPrivateNotes);
+    }
+    
+    // Costs section (only if explicitly included - not shown by default for customer-facing docs)
+    if (includeCosts && costs.length > 0) {
+      this.generateCostsSection(costs);
     }
     
     this.generateFooter();
@@ -478,7 +676,7 @@ export class WorkOrderReportPDFGenerator {
   public static async generateAndDownload(data: WorkOrderPDFData): Promise<void> {
     try {
       const generator = new WorkOrderReportPDFGenerator();
-      const pdf = generator.generatePDF(data);
+      const pdf = await generator.generatePDF(data);
       
       // Create filename from work order title
       const safeTitle = data.workOrder.title
