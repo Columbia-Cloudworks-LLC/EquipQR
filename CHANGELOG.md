@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Work Order PDF Export Dialog**: New dialog for exporting work orders as customer-facing PDF documents
+  - Option to include or exclude cost items (excluded by default for customer-facing documents)
+  - PDFs now show only public notes; private notes are always excluded
+  - Available from both desktop and mobile work order detail views
+
 - **QuickBooks Integration**: Capture `intuit_tid` from API response headers for improved troubleshooting support
   - Added `intuit_tid` column to `quickbooks_export_logs` table
   - Updated `quickbooks-export-invoice` Edge Function to capture and log `intuit_tid`
@@ -19,6 +24,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Enhanced QuickBooks API error logging to include `intuit_tid` for Intuit support troubleshooting
+- Refactored QuickBooks export logic to derive team ID from equipment for more reliable exports
+
+### Fixed
+
+- **Work Order Editing**: Preserve assignee when editing work orders (previously assignee could be cleared on edit)
+
+### Security
+
+- Added `organization_id` filtering to equipment queries in database trigger for improved multi-tenancy enforcement
 
 ## [1.7.1] - Previous Release
 
