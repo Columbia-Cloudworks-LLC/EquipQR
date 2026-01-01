@@ -5,9 +5,8 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Info, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useWorkOrderAssignmentOptions } from '@/features/work-orders/hooks/useWorkOrderAssignment';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import { useWorkOrderForm, WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { useEquipmentSelection } from '@/features/equipment/components/hooks/useEquipmentSelection';
@@ -104,9 +103,6 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   });
 
   const isSubmitting = isLoading || isUpdating;
-
-  // Get assignment data for auto-assignment suggestions
-  const assignmentData = useWorkOrderAssignmentOptions(currentOrganization?.id || '');
 
   const handleSubmit = async () => {
     const formData = form.values;
@@ -221,12 +217,10 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
 
           <WorkOrderAssignment
             values={{
-              assignmentType: form.values.assignmentType || 'unassigned',
-              assignmentId: form.values.assignmentId
+              assigneeId: form.values.assigneeId
             }}
             errors={{
-              assignmentType: form.errors.assignmentType,
-              assignmentId: form.errors.assignmentId
+              assigneeId: form.errors.assigneeId
             }}
             setValue={form.setValue}
             organizationId={currentOrganization?.id || ''}
@@ -241,15 +235,6 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             setValue={form.setValue}
             selectedEquipment={selectedEquipmentForPM}
           />
-
-          {!isEditMode && assignmentData.members.length > 0 && (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                This work order will be automatically assigned to an appropriate admin based on the selected equipment.
-              </AlertDescription>
-            </Alert>
-          )}
 
           {form.errors.general && (
             <Alert variant="destructive">

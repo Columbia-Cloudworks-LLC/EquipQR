@@ -9,7 +9,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { QuickBooksConnectionStatus } from './types';
+import type { QuickBooksConnectionStatus, InvoiceExportResult } from './types';
 
 /**
  * QuickBooks customer from the API
@@ -61,16 +61,6 @@ export interface CustomerSearchResult {
   error?: string;
 }
 
-/**
- * Result of invoice export
- */
-export interface InvoiceExportResult {
-  success: boolean;
-  invoiceId?: string;
-  invoiceNumber?: string;
-  isUpdate?: boolean;
-  error?: string;
-}
 
 /**
  * Creates a new OAuth session for QuickBooks authorization

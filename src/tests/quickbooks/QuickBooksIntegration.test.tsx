@@ -43,17 +43,8 @@ vi.mock('@/services/quickbooks', () => ({
   manualTokenRefresh: (...args: unknown[]) => mockManualTokenRefresh(...args),
 }));
 
-// Mock toast
-vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-}));
-
 import { QuickBooksIntegration } from '@/features/organization/components/QuickBooksIntegration';
 import { isQuickBooksEnabled } from '@/lib/flags';
-import { toast } from 'sonner';
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {

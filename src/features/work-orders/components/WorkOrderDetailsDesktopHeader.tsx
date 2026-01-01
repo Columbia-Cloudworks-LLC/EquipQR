@@ -4,13 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, Info } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
-import { WorkOrderData, PermissionLevels } from '@/features/work-orders/types/workOrderDetails';
+import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { QuickBooksExportButton } from './QuickBooksExportButton';
+import PrintExportDropdown from './PrintExportDropdown';
+import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
+import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 interface WorkOrderDetailsDesktopHeaderProps {
   workOrder: WorkOrderData;
@@ -18,6 +22,14 @@ interface WorkOrderDetailsDesktopHeaderProps {
   permissionLevels: PermissionLevels;
   canEdit: boolean;
   onEditClick: () => void;
+  /** Team ID derived from the equipment assigned to this work order */
+  equipmentTeamId?: string | null;
+  /** Equipment data for PDF export */
+  equipment?: EquipmentData | null;
+  /** PM data for PDF export */
+  pmData?: PreventativeMaintenance | PMData | null;
+  /** Organization name for PDF header */
+  organizationName?: string;
 }
 
 /** Format priority for display */
@@ -30,8 +42,29 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   formMode,
   permissionLevels,
   canEdit,
-  onEditClick
+  onEditClick,
+  equipmentTeamId,
+  equipment,
+  pmData,
+  organizationName
 }) => {
+  // PDF generation hook
+  const { downloadPDF, isGenerating } = useWorkOrderPDF({
+    workOrder,
+    equipment: equipment ? {
+      id: equipment.id,
+      name: equipment.name,
+      manufacturer: equipment.manufacturer,
+      model: equipment.model,
+      serial_number: equipment.serial_number,
+      status: equipment.status,
+      location: equipment.location
+    } : null,
+    pmData: pmData as PreventativeMaintenance | null,
+    organizationName,
+    showPrivateNotes: permissionLevels.isManager
+  });
+
   return (
     <div className="hidden lg:block space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -67,6 +100,17 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           <Badge className={getStatusColor(workOrder.status)}>
             {formatStatus(workOrder.status)}
           </Badge>
+          <div className="flex items-center gap-2">
+            <PrintExportDropdown
+              onDownloadPDF={downloadPDF}
+              disabled={isGenerating}
+            />
+            <QuickBooksExportButton
+              workOrderId={workOrder.id}
+              teamId={equipmentTeamId ?? null}
+              workOrderStatus={workOrder.status}
+            />
+          </div>
           {canEdit && (
             <Button variant="outline" onClick={onEditClick}>
               <Edit className="h-4 w-4 mr-2" />

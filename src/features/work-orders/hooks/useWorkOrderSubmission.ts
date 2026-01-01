@@ -61,7 +61,8 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           status: data.status || 'accepted',
           historicalStartDate: dateToISOString(data.historicalStartDate) || '',
           historicalNotes: data.historicalNotes || '',
-          assigneeId: data.assignmentType === 'user' && data.assignmentId ? data.assignmentId : undefined,
+          // Simplified assignment: just pass the assigneeId (null = unassigned)
+          assigneeId: data.assigneeId || undefined,
           teamId: undefined, // Work orders are not assigned to teams
           dueDate: data.dueDate || undefined,
           completedDate: dateToISOString(data.completedDate) || undefined,
@@ -86,8 +87,8 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           equipmentWorkingHours: data.equipmentWorkingHours || undefined,
           hasPM: data.hasPM || false,
           pmTemplateId: data.pmTemplateId || undefined,
-          assignmentType: data.assignmentType === 'unassigned' ? undefined : data.assignmentType,
-          assignmentId: (data.assignmentType === 'unassigned' || !data.assignmentId) ? undefined : data.assignmentId,
+          // Simplified assignment: just pass the assigneeId (null = unassigned)
+          assigneeId: data.assigneeId || undefined,
         };
         
         await createWorkOrderMutation.mutateAsync(workOrderData);

@@ -16,8 +16,8 @@ export interface CreateWorkOrderData {
   equipmentWorkingHours?: number;
   hasPM?: boolean;
   pmTemplateId?: string;
-  assignmentType?: 'user' | 'team';
-  assignmentId?: string;
+  // Simplified assignment: just pass the assigneeId (null/undefined = unassigned)
+  assigneeId?: string;
 }
 
 export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: string; [key: string]: unknown }) => void }) => {
@@ -37,7 +37,7 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
       }
 
       // Auto-assign logic for single-user organizations
-      let assigneeId = data.assignmentType === 'user' ? data.assignmentId : undefined;
+      let assigneeId = data.assigneeId;
       let status: 'submitted' | 'assigned' = 'submitted';
 
       // If assignee is explicitly chosen, mark as assigned

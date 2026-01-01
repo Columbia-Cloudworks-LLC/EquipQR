@@ -18,20 +18,33 @@ import {
 } from '@/components/ui/tooltip';
 import { FileSpreadsheet, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { 
   getConnectionStatus,
   getTeamCustomerMapping,
-  exportInvoice,
   getLastSuccessfulExport
 } from '@/services/quickbooks';
+import { useExportToQuickBooks } from '@/hooks/useExportToQuickBooks';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { usePermissions } from '@/hooks/usePermissions';
-import { toast } from 'sonner';
+import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 
 interface QuickBooksExportButtonProps {
   workOrderId: string;
+  /**
+   * Team ID derived from the equipment assigned to this work order.
+   * QuickBooks customer mapping is done at the team level, and the team
+   * association comes from the equipment (not the work order directly).
+   */
   teamId: string | null;
+  /**
+   * Current status of the work order.
+   *
+   * Exports to QuickBooks are only allowed when the work order status is
+   * `'completed'`. Other statuses will prevent the export action from
+   * being available/enabled in the UI.
+   */
+  workOrderStatus: WorkOrderStatus;
   /** Render as a dropdown menu item instead of a button */
   asMenuItem?: boolean;
   /** Called after successful export */
@@ -41,11 +54,11 @@ interface QuickBooksExportButtonProps {
 export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   workOrderId,
   teamId,
+  workOrderStatus,
   asMenuItem = false,
   onExportSuccess
 }) => {
   const { currentOrganization } = useOrganization();
-  const queryClient = useQueryClient();
   const permissions = usePermissions();
 
   // Check permissions
@@ -77,25 +90,8 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     staleTime: 30 * 1000,
   });
 
-  // Export mutation
-  const exportMutation = useMutation({
-    mutationFn: () => exportInvoice(workOrderId),
-    onSuccess: (result) => {
-      if (result.success) {
-        const message = result.isUpdate 
-          ? `Invoice ${result.invoiceNumber} updated in QuickBooks`
-          : `Invoice ${result.invoiceNumber} created in QuickBooks`;
-        toast.success(message);
-        queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export', workOrderId] });
-        onExportSuccess?.();
-      } else {
-        toast.error(result.error || 'Failed to export to QuickBooks');
-      }
-    },
-    onError: (error: Error) => {
-      toast.error(`Export failed: ${error.message}`);
-    },
-  });
+  // Export mutation using the hook
+  const exportMutation = useExportToQuickBooks();
 
   // Don't render if feature is disabled or user doesn't have permission
   if (!featureEnabled || !canExport) {
@@ -103,23 +99,31 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   }
 
   // Determine button state and tooltip
-  const isLoading = connectionLoading || mappingLoading || exportMutation.isPending;
+  const isExporting = exportMutation.isPending;
+  const isLoading = connectionLoading || mappingLoading || isExporting;
   const isConnected = connectionStatus?.isConnected;
   const hasMapping = !!teamMapping;
   const hasTeam = !!teamId;
   const alreadyExported = !!existingExport;
+  const isCompleted = workOrderStatus === 'completed';
 
   let tooltipMessage = '';
   let isDisabled = false;
 
-  if (!isConnected) {
+  if (!isCompleted) {
+    tooltipMessage = 'Work order must be completed before exporting to QuickBooks.';
+    isDisabled = true;
+  } else if (!isConnected) {
     tooltipMessage = 'QuickBooks is not connected. Connect in Organization Settings.';
     isDisabled = true;
   } else if (!hasTeam) {
-    tooltipMessage = 'Work order must be assigned to a team to export.';
+    tooltipMessage = 'Equipment must be assigned to a team to export.';
     isDisabled = true;
   } else if (!hasMapping) {
-    tooltipMessage = 'Team does not have a QuickBooks customer mapping. Set up mapping in Team Settings.';
+    tooltipMessage = "Equipment's team does not have a QuickBooks customer mapping. Set up mapping in Team Settings.";
+    isDisabled = true;
+  } else if (isExporting) {
+    tooltipMessage = 'Exporting...';
     isDisabled = true;
   } else if (alreadyExported) {
     tooltipMessage = `Previously exported as Invoice ${existingExport.quickbooks_invoice_id}. Click to update.`;
@@ -129,7 +133,11 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
 
   const handleExport = () => {
     if (isDisabled) return;
-    exportMutation.mutate();
+    exportMutation.mutate(workOrderId, {
+      onSuccess: () => {
+        onExportSuccess?.();
+      },
+    });
   };
 
   const buttonContent = (

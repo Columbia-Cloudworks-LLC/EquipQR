@@ -23,8 +23,7 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderForm', () => ({
         estimatedHours: undefined,
         hasPM: false,
         pmTemplateId: null,
-        assignmentType: 'unassigned',
-        assignmentId: null,
+        assigneeId: null,
         isHistorical: false
       },
       errors: {},
@@ -61,13 +60,14 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderSubmission', () => ({
 
 vi.mock('@/features/work-orders/hooks/useWorkOrderAssignment', () => ({
   useWorkOrderAssignmentOptions: vi.fn(() => ({
-    members: [
-      { id: 'user-1', name: 'John Doe' },
-      { id: 'user-2', name: 'Jane Smith' }
+    assignmentOptions: [
+      { id: 'user-1', name: 'John Doe', role: 'technician', type: 'user' },
+      { id: 'user-2', name: 'Jane Smith', role: 'admin', type: 'user' }
     ],
-    teams: [
-      { id: 'team-1', name: 'Team 1' }
-    ]
+    members: [],
+    isLoading: false,
+    error: null,
+    equipmentHasNoTeam: false
   }))
 }));
 
@@ -261,17 +261,6 @@ describe('WorkOrderForm', () => {
       expect(screen.getByTestId('historical-fields')).toBeInTheDocument();
     });
 
-    it('shows auto-assignment alert when members are available', () => {
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
-
-      expect(screen.getByText(/automatically assigned/i)).toBeInTheDocument();
-    });
-
     it('calls onClose when cancel button is clicked', () => {
       render(
         <WorkOrderForm
@@ -352,8 +341,7 @@ describe('WorkOrderForm', () => {
             estimatedHours: 4,
             hasPM: false,
             pmTemplateId: null,
-            assignmentType: 'unassigned',
-            assignmentId: null,
+            assigneeId: null,
             isHistorical: false
           },
           errors: {},
@@ -394,8 +382,7 @@ describe('WorkOrderForm', () => {
             estimatedHours: 4,
             hasPM: false,
             pmTemplateId: null,
-            assignmentType: 'unassigned',
-            assignmentId: null,
+            assigneeId: null,
             isHistorical: false
           },
           errors: {},
@@ -438,8 +425,7 @@ describe('WorkOrderForm', () => {
           estimatedHours: 4,
           hasPM: false,
           pmTemplateId: null,
-          assignmentType: 'unassigned',
-          assignmentId: null,
+          assigneeId: null,
           isHistorical: false
         };
         fn(formValues);
@@ -457,8 +443,7 @@ describe('WorkOrderForm', () => {
             estimatedHours: 4,
             hasPM: false,
             pmTemplateId: null,
-            assignmentType: 'unassigned',
-            assignmentId: null,
+            assigneeId: null,
             isHistorical: false
           },
           errors: {},

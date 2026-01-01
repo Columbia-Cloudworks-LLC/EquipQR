@@ -27,7 +27,7 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
   const currentAssigneeId = workOrder.assignee_id ?? workOrder.assigneeId ?? '';
   
   // Use contextual assignment based on equipment team assignment
-  const { assignmentOptions, isLoading: optionsLoading, hasTeamAssignment } = useWorkOrderContextualAssignment(workOrder);
+  const { assignmentOptions, isLoading: optionsLoading, equipmentHasNoTeam } = useWorkOrderContextualAssignment(workOrder);
   const quickAssignmentMutation = useQuickWorkOrderAssignment();
 
   const handleAssign = () => {
@@ -93,7 +93,7 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
             {assignmentOptions.length > 0 && (
               <>
                 <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t">
-                  {hasTeamAssignment ? 'Team Members' : 'Organization Admins'}
+                  {!equipmentHasNoTeam ? 'Team Members' : 'Organization Admins'}
                 </div>
                 {assignmentOptions.map((option) => (
                   <SelectItem key={option.id} value={option.id}>

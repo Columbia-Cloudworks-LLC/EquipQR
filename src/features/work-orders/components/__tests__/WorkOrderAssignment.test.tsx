@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@/test/utils/test-utils';
+import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkOrderAssignment } from '../WorkOrderAssignment';
 
@@ -7,19 +7,19 @@ import { WorkOrderAssignment } from '../WorkOrderAssignment';
 vi.mock('@/features/work-orders/hooks/useWorkOrderAssignment', () => ({
   useWorkOrderAssignmentOptions: vi.fn(() => ({
     assignmentOptions: [
-      { id: 'user-1', name: 'John Doe', role: 'Technician' },
-      { id: 'user-2', name: 'Jane Smith', role: 'Manager' }
+      { id: 'user-1', name: 'John Doe', role: 'technician', type: 'user' },
+      { id: 'user-2', name: 'Jane Smith', role: 'admin', type: 'user' }
     ],
     isLoading: false,
-    error: null
+    error: null,
+    equipmentHasNoTeam: false
   }))
 }));
 
 describe('WorkOrderAssignment', () => {
   const mockSetValue = vi.fn();
   const mockValues = {
-    assignmentType: 'unassigned' as const,
-    assignmentId: null
+    assigneeId: null
   };
   const mockErrors = {};
 
@@ -28,126 +28,205 @@ describe('WorkOrderAssignment', () => {
   });
 
   describe('Rendering', () => {
-    it('renders assignment type select', () => {
+    it('renders assignee select with Unassigned option', () => {
       render(
         <WorkOrderAssignment
           values={mockValues}
           errors={mockErrors}
           setValue={mockSetValue}
           organizationId="org-1"
+          equipmentId="eq-1"
         />
       );
 
-      expect(screen.getByText(/Assignment Type/i)).toBeInTheDocument();
-    });
-
-    it('renders unassigned option by default', () => {
-      render(
-        <WorkOrderAssignment
-          values={mockValues}
-          errors={mockErrors}
-          setValue={mockSetValue}
-          organizationId="org-1"
-        />
-      );
-
+      expect(screen.getByText(/Assignee/i)).toBeInTheDocument();
       expect(screen.getByText(/Unassigned/i)).toBeInTheDocument();
     });
 
-    it('does not show assignee select when assignment type is unassigned', () => {
+    it('shows assignment rule description', () => {
       render(
         <WorkOrderAssignment
           values={mockValues}
           errors={mockErrors}
           setValue={mockSetValue}
           organizationId="org-1"
+          equipmentId="eq-1"
         />
       );
 
-      expect(screen.queryByText(/Assignee/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/equipment team members \+ organization admins/i)).toBeInTheDocument();
     });
 
-    it('shows assignee select when assignment type is user', () => {
-      const userAssignmentValues = {
-        assignmentType: 'user' as const,
-        assignmentId: null
+    it('shows currently selected assignee when set', async () => {
+      const valuesWithAssignee = {
+        assigneeId: 'user-1'
       };
 
       render(
         <WorkOrderAssignment
-          values={userAssignmentValues}
+          values={valuesWithAssignee}
           errors={mockErrors}
           setValue={mockSetValue}
           organizationId="org-1"
+          equipmentId="eq-1"
         />
       );
 
-      // Use exact match to avoid matching "Select assignee..." placeholder
-      expect(screen.getByText(/^Assignee$/)).toBeInTheDocument();
+      // The select should show the value
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
   });
 
-  describe('Assignment Type Changes', () => {
-    it('calls setValue when assignment type changes to user', () => {
+  describe('Equipment Has No Team (Blocked State)', () => {
+    it('shows warning when equipment has no team', async () => {
+      const { useWorkOrderAssignmentOptions } = await import('@/features/work-orders/hooks/useWorkOrderAssignment');
+      
+      vi.mocked(useWorkOrderAssignmentOptions).mockReturnValue({
+        assignmentOptions: [],
+        isLoading: false,
+        error: null,
+        members: [],
+        equipmentHasNoTeam: true
+      });
+
       render(
         <WorkOrderAssignment
           values={mockValues}
           errors={mockErrors}
           setValue={mockSetValue}
           organizationId="org-1"
+          equipmentId="eq-1"
         />
       );
 
-      // Simulate selecting "user" assignment type
-      // Note: This is a simplified test - actual Select component interaction may require more setup
-      const select = screen.getByRole('combobox');
-      fireEvent.click(select);
-
-      // The actual implementation would trigger onValueChange
-      // For now, we verify the component renders correctly
-      expect(screen.getByText(/Assignment Type/i)).toBeInTheDocument();
+      expect(screen.getByText(/no team assigned/i)).toBeInTheDocument();
+      expect(screen.getByText(/Assign a team to the equipment/i)).toBeInTheDocument();
     });
 
-    it('clears assignmentId when switching assignment types', () => {
-      const userAssignmentValues = {
-        assignmentType: 'user' as const,
-        assignmentId: 'user-1'
-      };
+    it('does not show assignee select when equipment has no team', async () => {
+      const { useWorkOrderAssignmentOptions } = await import('@/features/work-orders/hooks/useWorkOrderAssignment');
+      
+      vi.mocked(useWorkOrderAssignmentOptions).mockReturnValue({
+        assignmentOptions: [],
+        isLoading: false,
+        error: null,
+        members: [],
+        equipmentHasNoTeam: true
+      });
 
       render(
         <WorkOrderAssignment
-          values={userAssignmentValues}
+          values={mockValues}
           errors={mockErrors}
           setValue={mockSetValue}
           organizationId="org-1"
+          equipmentId="eq-1"
         />
       );
 
-      // When switching types, assignmentId should be cleared
-      // This is tested through the component's handleAssignmentTypeChange logic
-      // Use exact match to avoid matching "Select assignee..." placeholder
-      expect(screen.getByText(/^Assignee$/)).toBeInTheDocument();
+      // Should not have the combobox when blocked
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     });
   });
 
   describe('Assignee Selection', () => {
-    it('displays available assignees when assignment type is user', () => {
-      const userAssignmentValues = {
-        assignmentType: 'user' as const,
-        assignmentId: null
+    it('displays available assignees including admins', async () => {
+      const { useWorkOrderAssignmentOptions } = await import('@/features/work-orders/hooks/useWorkOrderAssignment');
+      
+      vi.mocked(useWorkOrderAssignmentOptions).mockReturnValue({
+        assignmentOptions: [
+          { id: 'user-1', name: 'John Technician', role: 'technician', type: 'user' as const },
+          { id: 'user-2', name: 'Jane Admin', role: 'admin', type: 'user' as const }
+        ],
+        isLoading: false,
+        error: null,
+        members: [],
+        equipmentHasNoTeam: false
+      });
+
+      render(
+        <WorkOrderAssignment
+          values={mockValues}
+          errors={mockErrors}
+          setValue={mockSetValue}
+          organizationId="org-1"
+          equipmentId="eq-1"
+        />
+      );
+
+      // Open the select dropdown
+      const select = screen.getByRole('combobox');
+      fireEvent.click(select);
+
+      // Check that both options appear
+      await waitFor(() => {
+        expect(screen.getByText(/John Technician/i)).toBeInTheDocument();
+        expect(screen.getByText(/Jane Admin/i)).toBeInTheDocument();
+      });
+    });
+
+    it('calls setValue with null when selecting Unassigned', async () => {
+      const valuesWithAssignee = {
+        assigneeId: 'user-1'
       };
 
       render(
         <WorkOrderAssignment
-          values={userAssignmentValues}
+          values={valuesWithAssignee}
           errors={mockErrors}
           setValue={mockSetValue}
           organizationId="org-1"
+          equipmentId="eq-1"
         />
       );
 
-      // Use exact match to avoid matching "Select assignee..." placeholder
-      expect(screen.getByText(/^Assignee$/)).toBeInTheDocument();
+      // Open the select dropdown
+      const select = screen.getByRole('combobox');
+      fireEvent.click(select);
+
+      // Click Unassigned option
+      await waitFor(() => {
+        const unassignedOption = screen.getByText(/Unassigned/i);
+        fireEvent.click(unassignedOption);
+      });
+
+      expect(mockSetValue).toHaveBeenCalledWith('assigneeId', null);
+    });
+
+    it('calls setValue with user ID when selecting an assignee', async () => {
+      const { useWorkOrderAssignmentOptions } = await import('@/features/work-orders/hooks/useWorkOrderAssignment');
+      
+      vi.mocked(useWorkOrderAssignmentOptions).mockReturnValue({
+        assignmentOptions: [
+          { id: 'user-1', name: 'John Doe', role: 'technician', type: 'user' as const }
+        ],
+        isLoading: false,
+        error: null,
+        members: [],
+        equipmentHasNoTeam: false
+      });
+
+      render(
+        <WorkOrderAssignment
+          values={mockValues}
+          errors={mockErrors}
+          setValue={mockSetValue}
+          organizationId="org-1"
+          equipmentId="eq-1"
+        />
+      );
+
+      // Open the select dropdown
+      const select = screen.getByRole('combobox');
+      fireEvent.click(select);
+
+      // Click John Doe option
+      await waitFor(() => {
+        const johnOption = screen.getByText(/John Doe/i);
+        fireEvent.click(johnOption);
+      });
+
+      expect(mockSetValue).toHaveBeenCalledWith('assigneeId', 'user-1');
     });
 
     it('shows loading state when assignees are loading', async () => {
@@ -156,24 +235,24 @@ describe('WorkOrderAssignment', () => {
       vi.mocked(useWorkOrderAssignmentOptions).mockReturnValue({
         assignmentOptions: [],
         isLoading: true,
-        error: null
+        error: null,
+        members: [],
+        equipmentHasNoTeam: false
       });
-
-      const userAssignmentValues = {
-        assignmentType: 'user' as const,
-        assignmentId: null
-      };
 
       render(
         <WorkOrderAssignment
-          values={userAssignmentValues}
+          values={mockValues}
           errors={mockErrors}
           setValue={mockSetValue}
           organizationId="org-1"
+          equipmentId="eq-1"
         />
       );
 
-      expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
+      // The select should be disabled when loading
+      const select = screen.getByRole('combobox');
+      expect(select).toBeDisabled();
     });
 
     it('shows error message when assignment options fail to load', async () => {
@@ -182,86 +261,38 @@ describe('WorkOrderAssignment', () => {
       vi.mocked(useWorkOrderAssignmentOptions).mockReturnValue({
         assignmentOptions: [],
         isLoading: false,
-        error: { message: 'Failed to load assignees' } as Error
+        error: { message: 'Failed to load assignees' } as Error,
+        members: [],
+        equipmentHasNoTeam: false
       });
-
-      const userAssignmentValues = {
-        assignmentType: 'user' as const,
-        assignmentId: null
-      };
 
       render(
         <WorkOrderAssignment
-          values={userAssignmentValues}
+          values={mockValues}
           errors={mockErrors}
           setValue={mockSetValue}
           organizationId="org-1"
+          equipmentId="eq-1"
         />
       );
 
       expect(screen.getByText(/Error loading assignees/i)).toBeInTheDocument();
     });
-
-    it('shows no assignees message when no assignees available', async () => {
-      const { useWorkOrderAssignmentOptions } = await import('@/features/work-orders/hooks/useWorkOrderAssignment');
-      
-      vi.mocked(useWorkOrderAssignmentOptions).mockReturnValue({
-        assignmentOptions: [],
-        isLoading: false,
-        error: null
-      });
-
-      const userAssignmentValues = {
-        assignmentType: 'user' as const,
-        assignmentId: null
-      };
-
-      render(
-        <WorkOrderAssignment
-          values={userAssignmentValues}
-          errors={mockErrors}
-          setValue={mockSetValue}
-          organizationId="org-1"
-        />
-      );
-
-      expect(screen.getByText(/No assignees available/i)).toBeInTheDocument();
-    });
   });
 
   describe('Error Display', () => {
-    it('displays assignment type error when present', () => {
-      const errorsWithType = {
-        assignmentType: 'Assignment type is required'
+    it('displays assignee error when present', () => {
+      const errorsWithId = {
+        assigneeId: 'Assignee is required'
       };
 
       render(
         <WorkOrderAssignment
           values={mockValues}
-          errors={errorsWithType}
-          setValue={mockSetValue}
-          organizationId="org-1"
-        />
-      );
-
-      expect(screen.getByText('Assignment type is required')).toBeInTheDocument();
-    });
-
-    it('displays assignment ID error when present', () => {
-      const errorsWithId = {
-        assignmentId: 'Assignee is required'
-      };
-      const userAssignmentValues = {
-        assignmentType: 'user' as const,
-        assignmentId: null
-      };
-
-      render(
-        <WorkOrderAssignment
-          values={userAssignmentValues}
           errors={errorsWithId}
           setValue={mockSetValue}
           organizationId="org-1"
+          equipmentId="eq-1"
         />
       );
 
@@ -270,7 +301,20 @@ describe('WorkOrderAssignment', () => {
   });
 
   describe('Equipment Context', () => {
-    it('passes equipmentId to assignment options hook', () => {
+    it('passes equipmentId to assignment options hook', async () => {
+      // Reset the mock to a clean state
+      const { useWorkOrderAssignmentOptions } = await import('@/features/work-orders/hooks/useWorkOrderAssignment');
+      
+      vi.mocked(useWorkOrderAssignmentOptions).mockReturnValue({
+        assignmentOptions: [
+          { id: 'user-1', name: 'John Doe', role: 'technician', type: 'user' as const }
+        ],
+        isLoading: false,
+        error: null,
+        members: [],
+        equipmentHasNoTeam: false
+      });
+
       render(
         <WorkOrderAssignment
           values={mockValues}
@@ -282,8 +326,7 @@ describe('WorkOrderAssignment', () => {
       );
 
       // Component should render successfully with equipmentId
-      expect(screen.getByText(/Assignment Type/i)).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
   });
 });
-
