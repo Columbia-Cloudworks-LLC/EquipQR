@@ -296,9 +296,9 @@ export class WorkOrderReportPDFGenerator {
    * Notes with images get full-page treatment with the note text repeated on each photo page.
    * Notes without images can share pages.
    */
-  private async generateNotesSection(notes: WorkOrderNote[], showPrivateNotes: boolean): Promise<void> {
+  private async generateNotesSection(notes: WorkOrderNote[], _showPrivateNotes: boolean): Promise<void> {
     // For customer-facing PDF, always filter to public notes only
-    // (showPrivateNotes is kept for API compatibility but ignored for customer docs)
+    // (_showPrivateNotes is kept for API compatibility but ignored for customer docs)
     const publicNotes = notes.filter(note => !note.is_private);
 
     if (publicNotes.length === 0) {
@@ -361,7 +361,10 @@ export class WorkOrderReportPDFGenerator {
   }
 
   /**
-   * Fetch an image and convert to base64 for embedding in PDF
+   * Fetch an image and convert to base64 for embedding in PDF.
+   * 
+   * Note: jsPDF natively supports JPEG and PNG formats only.
+   * WebP, GIF, SVG, and other formats are not supported and will be skipped.
    */
   private async fetchImageAsBase64(imageUrl: string): Promise<{ data: string; format: 'JPEG' | 'PNG' } | null> {
     try {
@@ -374,10 +377,18 @@ export class WorkOrderReportPDFGenerator {
       const blob = await response.blob();
       const contentType = blob.type.toLowerCase();
       
-      // Determine format
-      let format: 'JPEG' | 'PNG' = 'JPEG';
+      // Determine format - jsPDF only supports JPEG and PNG
+      let format: 'JPEG' | 'PNG';
       if (contentType.includes('png')) {
         format = 'PNG';
+      } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+        format = 'JPEG';
+      } else {
+        // Unsupported formats: WebP, GIF, SVG, BMP, TIFF, etc.
+        // Log warning and skip - jsPDF cannot embed these formats natively
+        const formatName = contentType.replace('image/', '').toUpperCase() || 'unknown';
+        logger.warn(`Skipping unsupported image format for PDF: ${formatName}. Only JPEG and PNG are supported.`);
+        return null;
       }
       
       // Convert to base64

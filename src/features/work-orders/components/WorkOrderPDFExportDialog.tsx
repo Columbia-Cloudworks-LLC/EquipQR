@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -34,13 +34,18 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
 }) => {
   const [includeCosts, setIncludeCosts] = useState(false);
 
+  // Reset state when dialog closes (via Cancel, backdrop click, or escape key)
+  useEffect(() => {
+    if (!open) {
+      setIncludeCosts(false);
+    }
+  }, [open]);
+
   const handleExport = async () => {
     try {
       await onExport({ includeCosts });
-      // Only close dialog on success
+      // Close dialog on success (state is reset by useEffect above)
       onOpenChange(false);
-      // Reset for next time
-      setIncludeCosts(false);
     } catch {
       // Keep dialog open on error so user can retry without re-selecting options
       // Error toast is already shown by the hook
