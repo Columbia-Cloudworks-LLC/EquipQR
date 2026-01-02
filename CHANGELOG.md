@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.3] - 2026-01-02
+
+### Removed
+
+- **Deprecated Multi-Equipment Support**: Removed `WorkOrderMultiEquipmentSelector` component and related documentation. Single equipment per work order is now the standard.
+- **Debug Artifacts**: Removed development-only debug navigation section from sidebar, mock organization data, and placeholder cost component.
+- **Automated Versioning Workflow**: Removed disabled versioning GitHub Action to allow fresh start with manual versioning.
+
 ## [1.7.2] - 2026-01-01
 
 ### Added
@@ -40,6 +48,7 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/your-org/equipqr/compare/v1.7.2...HEAD
+[Unreleased]: https://github.com/your-org/equipqr/compare/v1.7.3...HEAD
+[1.7.3]: https://github.com/your-org/equipqr/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/your-org/equipqr/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/your-org/equipqr/releases/tag/v1.7.1
