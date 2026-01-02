@@ -24,10 +24,8 @@ import {
   Lock
 } from 'lucide-react';
 import { SaveStatus } from '@/components/ui/SaveStatus';
-import PrintExportDropdown from '@/features/work-orders/components/PrintExportDropdown';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
-import { generateTemplatePreviewPDF } from '@/utils/templatePDF';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { useCreatePMTemplate, useUpdatePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { nanoid } from 'nanoid';
@@ -554,16 +552,6 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
             </div>
             <Button size="sm" variant="ghost" onClick={expandAll}>Expand all</Button>
             <Button size="sm" variant="ghost" onClick={collapseAll}>Collapse all</Button>
-            <PrintExportDropdown
-              onDownloadPDF={() => generateTemplatePreviewPDF({
-                name: templateName,
-                description: templateDescription || undefined,
-                sections: sections.map(s => ({ name: s, items: groupedItems[s] })),
-                createdAt: template?.created_at || new Date().toISOString(),
-                updatedAt: template?.updated_at || new Date().toISOString(),
-              })}
-              disabled={sections.length === 0}
-            />
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={openAddSection} size="sm">
