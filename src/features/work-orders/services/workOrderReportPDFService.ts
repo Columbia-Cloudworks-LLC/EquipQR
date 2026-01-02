@@ -279,8 +279,8 @@ export class WorkOrderReportPDFGenerator {
     const teamName = workOrder.teamName || 'Unassigned';
     const assigneeName = workOrder.assigneeName || workOrder.assignee_name || 'Unassigned';
 
-    // Service team label - this is the team performing the work, not the customer
-    this.addText(`Service Team: ${teamName}`, this.margin, 10, 'bold');
+    // "Serviced By" label - this is the team performing the work, not the customer
+    this.addText(`Serviced By: ${teamName}`, this.margin, 10, 'bold');
     this.addText(`Assigned To: ${assigneeName}`, this.margin, 10);
 
     this.addSeparator();
