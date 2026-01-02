@@ -169,7 +169,12 @@ export class WorkOrderReportPDFGenerator {
       const to = new Date(toDate);
       const diffMs = to.getTime() - from.getTime();
       return Math.round(diffMs / MS_PER_DAY);
-    } catch {
+    } catch (error) {
+      logger.warn('Failed to calculate days delta for work order dates', {
+        fromDate,
+        toDate,
+        error,
+      });
       return null;
     }
   }

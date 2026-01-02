@@ -11,8 +11,33 @@ import type {
 export type { WorkOrderCost, CreateWorkOrderCostData, UpdateWorkOrderCostData, CostSummaryByUser };
 
 // Get all costs for a work order
-export const getWorkOrderCosts = async (workOrderId: string): Promise<WorkOrderCost[]> => {
+export const getWorkOrderCosts = async (
+  workOrderId: string,
+  organizationId?: string
+): Promise<WorkOrderCost[]> => {
   try {
+    // If organization_id is provided, verify the work order belongs to that organization
+    // This provides explicit multi-tenancy filtering as a failsafe (per coding guidelines)
+    if (organizationId) {
+      const { data: workOrder, error: workOrderError } = await supabase
+        .from('work_orders')
+        .select('id, organization_id')
+        .eq('id', workOrderId)
+        .eq('organization_id', organizationId)
+        .single();
+
+      if (workOrderError || !workOrder) {
+        // Work order doesn't exist or doesn't belong to the specified organization
+        logger.warn('Work order not found or organization mismatch', {
+          workOrderId,
+          organizationId,
+          error: workOrderError,
+        });
+        return [];
+      }
+    }
+
+    // Get costs (RLS policies also enforce multi-tenancy)
     const { data, error } = await supabase
       .from('work_order_costs')
       .select('*')

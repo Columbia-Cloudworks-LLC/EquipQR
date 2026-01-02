@@ -8,7 +8,7 @@ responses for each GitHub pull-request comment.
 ## Steps
 
 1. **Sync and audit comments**
-    - Use the GitHub MCP tools like search_pull_requests and pull_request_read to view the PR conversations.
+    - Use the GitHub MCP tools like `get_me`, `list_pull_requests`, and `pull_request_read` to view the PR conversations.
     - Open the PR conversation view and read every unresolved comment
     - Group comments by affected files or themes
 2. **Plan resolutions**
@@ -23,7 +23,7 @@ responses for each GitHub pull-request comment.
     - Summarize the action taken or reasoning provided for each comment
     - Link to commits or lines when clarification helps reviewers verify
     - Highlight any remaining questions or follow-up needs
-    - Use the GitHub MCP tools like pull_request_review_write.
+    - Use the GitHub MCP tools like `add_comment_to_pending_review` and `add_issue_comment`.
 
 ## Response Checklist
 

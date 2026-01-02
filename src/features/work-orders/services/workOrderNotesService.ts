@@ -132,9 +132,33 @@ export const createWorkOrderNoteWithImages = async (
 };
 
 // Get notes with images for work order
-export const getWorkOrderNotesWithImages = async (workOrderId: string) => {
+export const getWorkOrderNotesWithImages = async (
+  workOrderId: string,
+  organizationId?: string
+) => {
   try {
-    // First get notes
+    // If organization_id is provided, verify the work order belongs to that organization
+    // This provides explicit multi-tenancy filtering as a failsafe (per coding guidelines)
+    if (organizationId) {
+      const { data: workOrder, error: workOrderError } = await supabase
+        .from('work_orders')
+        .select('id, organization_id')
+        .eq('id', workOrderId)
+        .eq('organization_id', organizationId)
+        .single();
+
+      if (workOrderError || !workOrder) {
+        // Work order doesn't exist or doesn't belong to the specified organization
+        logger.warn('Work order not found or organization mismatch', {
+          workOrderId,
+          organizationId,
+          error: workOrderError,
+        });
+        return [];
+      }
+    }
+
+    // Get notes (RLS policies also enforce multi-tenancy)
     const { data: notes, error: notesError } = await supabase
       .from('work_order_notes')
       .select('*')

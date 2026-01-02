@@ -1,6 +1,7 @@
 import { useCallback, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { getWorkOrderNotesWithImages } from '@/features/work-orders/services/workOrderNotesService';
 import { getWorkOrderCosts } from '@/features/work-orders/services/workOrderCostsService';
 import { 
@@ -49,6 +50,9 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     organizationName
   } = options;
   
+  const { organization } = useOrganization();
+  const organizationId = organization?.id;
+  
   const [isGenerating, setIsGenerating] = useState(false);
   // Use ref for the re-entry guard to avoid stale closure issues.
   // The ref always has the current value, unlike state captured in callback closure.
@@ -70,17 +74,17 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     
     try {
       // Always fetch notes (PDF generator filters to public only).
-      // Note: Multi-tenancy is enforced via RLS policies on work_order_notes table.
-      // The work order ID inherently belongs to an organization, and RLS policies
-      // ensure users can only access notes for work orders within their organization.
-      const notesPromise = getWorkOrderNotesWithImages(workOrder.id).catch(err => {
+      // Multi-tenancy: Explicit organization_id filtering is provided as a failsafe
+      // (per coding guidelines). RLS policies on work_order_notes table also enforce multi-tenancy.
+      const notesPromise = getWorkOrderNotesWithImages(workOrder.id, organizationId).catch(err => {
         logger.warn('Failed to fetch notes for PDF:', err);
         return [];
       });
       
       // Only fetch costs if explicitly requested
+      // Multi-tenancy: Explicit organization_id filtering is provided as a failsafe
       const costsPromise = includeCosts 
-        ? getWorkOrderCosts(workOrder.id).catch(err => {
+        ? getWorkOrderCosts(workOrder.id, organizationId).catch(err => {
             logger.warn('Failed to fetch costs for PDF:', err);
             return [];
           })
@@ -112,7 +116,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       isGeneratingRef.current = false;
       setIsGenerating(false);
     }
-  }, [workOrder, equipment, pmData, organizationName]);
+  }, [workOrder, equipment, pmData, organizationName, organizationId]);
 
   return {
     downloadPDF,
