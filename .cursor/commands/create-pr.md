@@ -21,6 +21,7 @@ Create a well-structured pull request with proper description, labels, and revie
    - Create PR with descriptive title
    - Add appropriate labels
    - Link related issues
+   - Assign reviewers (or confirm that reviewer assignment is handled automatically by the GitHub MCP tools)
    - Use the GitHub MCP tools like `create_pull_request`.
 
 ## PR Template
