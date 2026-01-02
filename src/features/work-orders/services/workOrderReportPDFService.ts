@@ -303,6 +303,9 @@ export class WorkOrderReportPDFGenerator {
    * 
    * Note: This method always filters to public notes only for customer-facing PDFs.
    * Private notes are never included regardless of user permissions.
+   * 
+   * Performance: Images are pre-fetched in parallel before sequential PDF rendering
+   * to improve performance for work orders with many images.
    */
   private async generateNotesSection(notes: WorkOrderNote[]): Promise<void> {
     // For customer-facing PDF, always filter to public notes only
@@ -317,6 +320,19 @@ export class WorkOrderReportPDFGenerator {
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
 
+    // Collect all image URLs from notes for parallel pre-fetching
+    const allImageUrls: string[] = [];
+    for (const note of sortedNotes) {
+      if (note.images && note.images.length > 0) {
+        for (const image of note.images) {
+          allImageUrls.push(image.file_url);
+        }
+      }
+    }
+
+    // Pre-fetch all images in parallel for better performance
+    const imageCache = await this.prefetchImages(allImageUrls);
+
     this.addSectionHeader('Public Work Order Notes');
 
     for (const note of sortedNotes) {
@@ -326,9 +342,10 @@ export class WorkOrderReportPDFGenerator {
 
       if (hasImages && note.images) {
         // Notes with images: each image gets its own full page with the note text
+        // Images are already cached from parallel pre-fetch
         for (const image of note.images) {
           this.addNewPage();
-          await this.generateNoteWithImagePage(note, image, dateStr, author);
+          await this.generateNoteWithImagePage(note, image, dateStr, author, imageCache);
         }
       } else {
         // Notes without images: render in-flow (can share pages)
@@ -342,13 +359,43 @@ export class WorkOrderReportPDFGenerator {
   }
 
   /**
+   * Pre-fetch all images in parallel and return a cache map.
+   * This improves performance for work orders with many images by
+   * fetching all images concurrently instead of sequentially.
+   */
+  private async prefetchImages(imageUrls: string[]): Promise<Map<string, { data: string; format: 'JPEG' | 'PNG' } | null>> {
+    const cache = new Map<string, { data: string; format: 'JPEG' | 'PNG' } | null>();
+    
+    if (imageUrls.length === 0) {
+      return cache;
+    }
+
+    // Fetch all images in parallel
+    const results = await Promise.all(
+      imageUrls.map(async (url) => {
+        const imageData = await this.fetchImageAsBase64(url);
+        return { url, imageData };
+      })
+    );
+
+    // Populate cache with results
+    for (const { url, imageData } of results) {
+      cache.set(url, imageData);
+    }
+
+    return cache;
+  }
+
+  /**
    * Generate a full-page layout for a note with an image
+   * @param imageCache Optional pre-fetched image cache for performance
    */
   private async generateNoteWithImagePage(
     note: WorkOrderNote, 
     image: { file_url: string; file_name: string }, 
     dateStr: string, 
-    author: string
+    author: string,
+    imageCache?: Map<string, { data: string; format: 'JPEG' | 'PNG' } | null>
   ): Promise<void> {
     // Note header
     this.addText(`${dateStr} - ${author}`, this.margin, 9, 'bold');
@@ -363,8 +410,8 @@ export class WorkOrderReportPDFGenerator {
     
     this.yPosition += 6;
     
-    // Embed the actual image
-    await this.addEmbeddedImage(image.file_url, image.file_name);
+    // Embed the actual image (using cache if available)
+    await this.addEmbeddedImage(image.file_url, image.file_name, imageCache);
   }
 
   /**
@@ -421,14 +468,24 @@ export class WorkOrderReportPDFGenerator {
   /**
    * Add an embedded image scaled to fit available page space.
    * On any error (fetch, decode, or embed), falls back to a placeholder box.
+   * @param imageCache Optional pre-fetched image cache for performance
    */
-  private async addEmbeddedImage(imageUrl: string, fileName: string): Promise<void> {
+  private async addEmbeddedImage(
+    imageUrl: string, 
+    fileName: string,
+    imageCache?: Map<string, { data: string; format: 'JPEG' | 'PNG' } | null>
+  ): Promise<void> {
     const availableHeight = this.pageHeight - this.yPosition - 20;
     const availableWidth = this.pageWidth - (2 * this.margin);
     const maxImageHeight = Math.min(availableHeight, 180);
     
-    // Try to fetch and embed the actual image
-    const imageData = await this.fetchImageAsBase64(imageUrl);
+    // Try to get image from cache first, otherwise fetch it
+    let imageData: { data: string; format: 'JPEG' | 'PNG' } | null | undefined;
+    if (imageCache && imageCache.has(imageUrl)) {
+      imageData = imageCache.get(imageUrl);
+    } else {
+      imageData = await this.fetchImageAsBase64(imageUrl);
+    }
     
     if (imageData) {
       // Wrap image loading and embedding in try-catch to ensure fallback on any error
