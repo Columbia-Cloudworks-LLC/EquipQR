@@ -16,15 +16,18 @@ interface WorkOrderNotesMobileProps {
   canAddNotes: boolean;
   showPrivateNotes: boolean;
   onAddNote?: (note: { content: string; hours: number; isPrivate: boolean; images?: File[] }) => void;
+  /** If true, auto-expand and show the note form on mount (used for quick action navigation) */
+  autoOpenForm?: boolean;
 }
 
 export const WorkOrderNotesMobile: React.FC<WorkOrderNotesMobileProps> = ({
   workOrderId,
   canAddNotes,
   showPrivateNotes,
-  onAddNote
+  onAddNote,
+  autoOpenForm = false
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(autoOpenForm);
   const [noteContent, setNoteContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, Navigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clipboard } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -31,7 +31,15 @@ import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFDat
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
+
+  // Handle quick action query params (from WorkOrderQuickActions dropdown)
+  const actionParam = searchParams.get('action');
+  const shouldAutoOpenNoteForm = actionParam === 'add-note';
+  const shouldAutoOpenPDFDialog = actionParam === 'download-pdf';
+  const notesSectionRef = useRef<HTMLDivElement>(null);
+  const actionHandledRef = useRef(false);
 
   // State for selected equipment (for multi-equipment work orders)
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
@@ -170,8 +178,38 @@ const WorkOrderDetails = () => {
     isUpdating,
   } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '', pmData);
 
-  // State for mobile PDF export dialog
+  // State for PDF export dialog (used for both mobile and quick action navigation)
   const [showMobilePDFDialog, setShowMobilePDFDialog] = useState(false);
+
+  // Handle quick action navigation (scroll to notes section and/or open PDF dialog)
+  useEffect(() => {
+    // Only handle once per navigation
+    if (actionHandledRef.current) return;
+    if (!workOrder || workOrderLoading) return;
+
+    if (shouldAutoOpenPDFDialog) {
+      // Open the PDF export dialog
+      setShowMobilePDFDialog(true);
+      actionHandledRef.current = true;
+      // Clear the action param from URL
+      setSearchParams({}, { replace: true });
+    } else if (shouldAutoOpenNoteForm) {
+      // Scroll to notes section after a short delay to ensure render is complete
+      setTimeout(() => {
+        notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      actionHandledRef.current = true;
+      // Clear the action param from URL
+      setSearchParams({}, { replace: true });
+    }
+  }, [shouldAutoOpenPDFDialog, shouldAutoOpenNoteForm, workOrder, workOrderLoading, setSearchParams]);
+
+  // Reset action handled ref when action param changes (new navigation)
+  useEffect(() => {
+    if (!actionParam) {
+      actionHandledRef.current = false;
+    }
+  }, [actionParam]);
 
   // PDF generation hook for mobile
   const { downloadPDF: downloadMobilePDF, isGenerating: isMobilePDFGenerating } = useWorkOrderPDF({
@@ -265,6 +303,7 @@ const WorkOrderDetails = () => {
         organizationId={currentOrganization.id}
         onEditClick={handleEditWorkOrder}
         onToggleSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
+        onDownloadPDF={() => setShowMobilePDFDialog(true)}
       />
 
       {/* Desktop Header */}
@@ -356,30 +395,6 @@ const WorkOrderDetails = () => {
                 team={workOrder.teamName ? { id: workOrder.team_id || '', name: workOrder.teamName } : undefined}
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
                 costs={undefined} // TODO: Add costs data
-                onStatusChange={handleStatusUpdate}
-                onPriorityChange={() => {
-                  // TODO: Implement priority change
-                  // Priority change functionality to be implemented
-                }}
-                onViewEquipment={() => {
-                  if (equipment) {
-                    window.location.href = `/dashboard/equipment/${equipment.id}`;
-                  }
-                }}
-                onAddNote={() => {
-                  // TODO: Focus on notes section
-                  // Add note functionality to be implemented
-                }}
-                onUploadImage={() => {
-                  // TODO: Focus on images section
-                  // Upload image functionality to be implemented
-                }}
-                onDownloadPDF={() => setShowMobilePDFDialog(true)}
-                onViewPMDetails={() => {
-                  // TODO: Expand PM details
-                  // View PM details functionality to be implemented
-                }}
-                canEdit={canEdit}
               />
 
               {/* PM Checklist - Responsive */}
@@ -423,15 +438,18 @@ const WorkOrderDetails = () => {
               />
 
               {/* Mobile Notes Section */}
-              <WorkOrderNotesMobile 
-                workOrderId={workOrder.id}
-                canAddNotes={canAddNotes}
-                showPrivateNotes={permissionLevels.isManager}
-                onAddNote={() => {
-                  // TODO: Implement note addition
-                  // Add note functionality to be implemented
-                }}
-              />
+              <div ref={notesSectionRef}>
+                <WorkOrderNotesMobile 
+                  workOrderId={workOrder.id}
+                  canAddNotes={canAddNotes}
+                  showPrivateNotes={permissionLevels.isManager}
+                  autoOpenForm={shouldAutoOpenNoteForm}
+                  onAddNote={() => {
+                    // TODO: Implement note addition
+                    // Add note functionality to be implemented
+                  }}
+                />
+              </div>
 
               {/* Mobile Images Section */}
               <WorkOrderImagesSection 
@@ -498,11 +516,14 @@ const WorkOrderDetails = () => {
               />
 
               {/* Notes Section */}
-              <WorkOrderNotesSection 
-                workOrderId={workOrder.id}
-                canAddNotes={canAddNotes}
-                showPrivateNotes={permissionLevels.isManager}
-              />
+              <div ref={notesSectionRef}>
+                <WorkOrderNotesSection 
+                  workOrderId={workOrder.id}
+                  canAddNotes={canAddNotes}
+                  showPrivateNotes={permissionLevels.isManager}
+                  autoOpenForm={shouldAutoOpenNoteForm}
+                />
+              </div>
 
               {/* Images Section */}
               <WorkOrderImagesSection 

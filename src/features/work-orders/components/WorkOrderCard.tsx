@@ -239,10 +239,9 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
           
           <div className="flex items-center gap-2">
             <WorkOrderQuickActions
-              workOrder={workOrder}
-              onAssignClick={onAssignClick}
-              onReopenClick={onReopenClick}
-              hideReassign
+              workOrderId={workOrder.id}
+              workOrderStatus={workOrder.status}
+              equipmentTeamId={workOrder.equipmentTeamId ?? workOrder.team_id}
             />
             <Button 
               variant="outline" 
@@ -470,13 +469,9 @@ const MobileCard: React.FC<WorkOrderCardProps> = memo(({
                 </Button>
               )}
               <WorkOrderQuickActions
-                workOrder={workOrder}
-                onAssignClick={onAssignClick}
-                onReopenClick={onReopenClick}
-                onStatusUpdate={onStatusUpdate}
-                onDeleteSuccess={() => {
-                  logger.info('Work order deleted');
-                }}
+                workOrderId={workOrder.id}
+                workOrderStatus={workOrder.status}
+                equipmentTeamId={workOrder.equipmentTeamId ?? workOrder.team_id}
               />
             </div>
           </div>

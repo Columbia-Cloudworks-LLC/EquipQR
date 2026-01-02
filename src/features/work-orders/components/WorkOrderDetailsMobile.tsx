@@ -57,14 +57,6 @@ interface WorkOrderDetailsMobileProps {
       amount: number;
     }>;
   };
-  onStatusChange?: (status: string) => void;
-  onPriorityChange?: (priority: string) => void;
-  onViewEquipment?: () => void;
-  onAddNote?: () => void;
-  onUploadImage?: () => void;
-  onDownloadPDF?: () => void;
-  onViewPMDetails?: () => void;
-  canEdit?: boolean;
 }
 
 export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
@@ -72,15 +64,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
   equipment,
   team,
   assignee,
-  costs,
-  onStatusChange,
-  onPriorityChange,
-  onViewEquipment,
-  onAddNote,
-  onUploadImage,
-  onDownloadPDF,
-  onViewPMDetails,
-  canEdit = false
+  costs
 }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   const [isEquipmentExpanded, setIsEquipmentExpanded] = useState(true);
@@ -100,17 +84,9 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
       <Card>
         <CardContent className="p-4">
           <WorkOrderQuickActions
-            workOrder={workOrder}
+            workOrderId={workOrder.id}
+            workOrderStatus={workOrder.status}
             equipmentTeamId={equipment?.team_id}
-            equipment={equipment}
-            onStatusChange={onStatusChange}
-            onPriorityChange={onPriorityChange}
-            onViewEquipment={onViewEquipment}
-            onAddNote={onAddNote}
-            onUploadImage={onUploadImage}
-            onDownloadPDF={onDownloadPDF}
-            onViewPMDetails={onViewPMDetails}
-            canEdit={canEdit}
           />
         </CardContent>
       </Card>
