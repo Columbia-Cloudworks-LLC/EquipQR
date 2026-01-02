@@ -18,6 +18,14 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[QUICKBOOKS-SEARCH-CUSTOMERS] ${step}${detailsStr}`);
 };
 
+/**
+ * Extracts the intuit_tid from QuickBooks API response headers.
+ * This ID is useful for Intuit support troubleshooting.
+ */
+const getIntuitTid = (response: Response): string | null => {
+  return response.headers.get('intuit_tid') || null;
+};
+
 // QuickBooks API endpoints
 const QUICKBOOKS_API_BASE_SANDBOX = "https://sandbox-quickbooks.api.intuit.com";
 const QUICKBOOKS_API_BASE_PRODUCTION = "https://quickbooks.api.intuit.com";
@@ -280,9 +288,13 @@ serve(async (req) => {
       }
     );
 
+    // Capture intuit_tid from response headers for troubleshooting
+    const intuitTid = getIntuitTid(qbResponse);
+
     if (!qbResponse.ok) {
       const errorText = await qbResponse.text();
       console.error("QuickBooks API error:", qbResponse.status, errorText);
+      logStep("QuickBooks API error", { status: qbResponse.status, intuit_tid: intuitTid });
       
       // Handle specific error cases
       if (qbResponse.status === 401) {
@@ -301,7 +313,7 @@ serve(async (req) => {
     const qbData: CustomerQueryResponse = await qbResponse.json();
     const customers = qbData.QueryResponse.Customer || [];
 
-    logStep("Customers fetched successfully", { count: customers.length });
+    logStep("Customers fetched successfully", { count: customers.length, intuit_tid: intuitTid });
 
     // Return simplified customer list
     const simplifiedCustomers = customers.map(c => ({

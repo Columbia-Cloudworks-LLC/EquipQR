@@ -23,6 +23,7 @@ import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChang
 import { WorkOrderDetailsSidebar } from '@/features/work-orders/components/WorkOrderDetailsSidebar';
 import { WorkOrderDetailsMobile } from '@/features/work-orders/components/WorkOrderDetailsMobile';
 import { WorkOrderNotesMobile } from '@/features/work-orders/components/WorkOrderNotesMobile';
+import { WorkOrderPDFExportDialog } from '@/features/work-orders/components/WorkOrderPDFExportDialog';
 import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useInitializePMChecklist';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
@@ -169,8 +170,11 @@ const WorkOrderDetails = () => {
     isUpdating,
   } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '', pmData);
 
+  // State for mobile PDF export dialog
+  const [showMobilePDFDialog, setShowMobilePDFDialog] = useState(false);
+
   // PDF generation hook for mobile
-  const { downloadPDF: downloadMobilePDF } = useWorkOrderPDF({
+  const { downloadPDF: downloadMobilePDF, isGenerating: isMobilePDFGenerating } = useWorkOrderPDF({
     workOrder: workOrder ? {
       id: workOrder.id,
       title: workOrder.title,
@@ -197,14 +201,20 @@ const WorkOrderDetails = () => {
       name: equipment.name,
       manufacturer: equipment.manufacturer,
       model: equipment.model,
-      serial_number: equipment.serialNumber,
+      serial_number: equipment.serial_number,
       status: equipment.status,
       location: equipment.location
     } : null,
     pmData,
-    organizationName: currentOrganization?.name,
-    showPrivateNotes: permissionLevels.isManager
+    organizationName: currentOrganization?.name
   });
+
+  // Handle mobile PDF export with options from dialog
+  const handleMobilePDFExport = async (options: { includeCosts: boolean }) => {
+    // Let errors propagate so the dialog can detect failures and stay open for retry.
+    // The useWorkOrderPDF hook already logs and shows a toast on error.
+    await downloadMobilePDF(options);
+  };
 
   // Only redirect if we definitely don't have the required data and aren't loading
   if (!workOrderId) {
@@ -270,7 +280,7 @@ const WorkOrderDetails = () => {
           name: equipment.name,
           manufacturer: equipment.manufacturer,
           model: equipment.model,
-          serial_number: equipment.serialNumber,
+          serial_number: equipment.serial_number,
           status: equipment.status,
           location: equipment.location
         } : null}
@@ -338,7 +348,7 @@ const WorkOrderDetails = () => {
                   name: equipment.name,
                   manufacturer: equipment.manufacturer,
                   model: equipment.model,
-                  serial_number: equipment.serialNumber,
+                  serial_number: equipment.serial_number,
                   status: equipment.status,
                   location: equipment.location,
                   team_id: equipment.team_id
@@ -364,7 +374,7 @@ const WorkOrderDetails = () => {
                   // TODO: Focus on images section
                   // Upload image functionality to be implemented
                 }}
-                onDownloadPDF={downloadMobilePDF}
+                onDownloadPDF={() => setShowMobilePDFDialog(true)}
                 onViewPMDetails={() => {
                   // TODO: Expand PM details
                   // View PM details functionality to be implemented
@@ -541,6 +551,15 @@ const WorkOrderDetails = () => {
         changeType={pmChangeType}
         hasExistingNotes={getPMDataDetails().hasNotes}
         hasCompletedItems={getPMDataDetails().hasCompletedItems}
+      />
+
+      {/* Mobile PDF Export Dialog */}
+      <WorkOrderPDFExportDialog
+        open={showMobilePDFDialog}
+        onOpenChange={setShowMobilePDFDialog}
+        onExport={handleMobilePDFExport}
+        isExporting={isMobilePDFGenerating}
+        showCostsOption={permissionLevels.isManager}
       />
     </div>
   );
