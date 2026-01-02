@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.4] - 2026-01-02
+
+### Removed
+
+- **PrintExportDropdown Component**: Removed PrintExportDropdown and related PDF generation functionality (pdfGenerator utility)
+- **PDFGenerator Test Files**: Cleaned up PDFGenerator and PrintExportDropdown test files
+
+### Security
+
+- **esbuild Vulnerability Fix**: Updated esbuild to fix moderate security vulnerability
+
+### Changed
+
+- **Documentation**: Updated create-pr command documentation for improved clarity
+
 ## [1.7.3] - 2026-01-02
 
 ### Removed
@@ -48,7 +63,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/your-org/equipqr/compare/v1.7.3...HEAD
-[1.7.3]: https://github.com/your-org/equipqr/compare/v1.7.2...v1.7.3
-[1.7.2]: https://github.com/your-org/equipqr/compare/v1.7.1...v1.7.2
-[1.7.1]: https://github.com/your-org/equipqr/releases/tag/v1.7.1
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.4...HEAD
+[1.7.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.3...v1.7.4
+[1.7.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.2...v1.7.3
+[1.7.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.1...v1.7.2
+[1.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/releases/tag/v1.7.1
