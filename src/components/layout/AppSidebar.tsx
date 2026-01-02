@@ -47,14 +47,12 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import Logo from "@/components/ui/Logo";
-import { useSuperAdminAccess } from "@/hooks/useSuperAdminAccess";
 
 interface NavigationItem {
   title: string;
   url: string;
   icon: LucideIcon;
   adminOnly?: boolean;
-  superAdminOnly?: boolean;
 }
 
 const mainNavigation: NavigationItem[] = [
@@ -75,12 +73,6 @@ const managementNavigation: NavigationItem[] = [
   { title: "Reports", url: "/dashboard/reports", icon: FileText },
 ];
 
-// Billing debug routes removed
-// const debugNavigation: NavigationItem[] = [
-//   { title: "Billing Debug", url: "/dashboard/debug/billing", icon: Bug },
-//   { title: "Exemptions Admin", url: "/dashboard/debug/exemptions-admin", icon: Shield, superAdminOnly: true },
-// ];
-const debugNavigation: NavigationItem[] = [];
 
 const AppSidebar = () => {
   const location = useLocation();
@@ -89,7 +81,6 @@ const AppSidebar = () => {
   const { currentOrganization } = useOrganization();
   const isMobile = useIsMobile();
   const { setOpenMobile } = useSidebar();
-  const { isSuperAdmin } = useSuperAdminAccess();
 
   const handleSignOut = async () => {
     await signOut();
@@ -219,48 +210,6 @@ const AppSidebar = () => {
             </SidebarGroupContent>
           </SidebarGroup>
           
-          {/* Debug section - only shown in development */}
-          {import.meta.env.DEV && (
-            <SidebarGroup>
-              <SidebarGroupLabel className={cn("text-xs", mutedTextColorClass)}>
-                Debug
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {debugNavigation.map((item) => {
-                    const isActive = location.pathname === item.url;
-                    
-                    // Hide super admin only items if user is not a super admin
-                    if (item.superAdminOnly && !isSuperAdmin) {
-                      return null;
-                    }
-                    
-                    return (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton 
-                          asChild
-                          className={cn(
-                            "text-sm transition-colors",
-                            textColorClass,
-                            hasCustomBranding ? '' : 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                            hoverBackgroundClass,
-                            isActive && hasCustomBranding ? activeBackgroundClass : '',
-                            isActive && hasCustomBranding ? 'font-medium' : '',
-                            isActive && !hasCustomBranding ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground' : ''
-                          )}
-                        >
-                          <Link to={item.url} onClick={handleNavClick}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
         </SidebarContent>
         
         <SidebarFooter className="p-2 sm:p-3">
