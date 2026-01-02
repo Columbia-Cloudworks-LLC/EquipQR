@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Menu, Clipboard, MapPin, Calendar, User } from 'lucide-react';
+import { ArrowLeft, Edit, Menu, Clipboard, MapPin, Calendar, User, Download } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 
@@ -29,6 +29,8 @@ interface WorkOrderDetailsMobileHeaderProps {
   organizationId: string;
   onEditClick: () => void;
   onToggleSidebar: () => void;
+  /** Callback to open the PDF export dialog */
+  onDownloadPDF: () => void;
 }
 
 export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeaderProps> = ({
@@ -36,7 +38,8 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
   canEdit,
   organizationId,
   onEditClick,
-  onToggleSidebar
+  onToggleSidebar,
+  onDownloadPDF
 }) => {
   return (
     <div className="sticky top-0 z-10 bg-background border-b lg:hidden">
@@ -50,6 +53,15 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
           </Button>
           
           <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={onDownloadPDF}
+              className="p-2"
+              aria-label="Download PDF"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
             {canEdit && (
               <Button variant="outline" size="sm" onClick={onEditClick} className="px-3">
                 <Edit className="h-4 w-4" />

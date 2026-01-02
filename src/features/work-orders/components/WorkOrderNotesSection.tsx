@@ -19,16 +19,19 @@ interface WorkOrderNotesSectionProps {
   workOrderId: string;
   canAddNotes: boolean;
   showPrivateNotes: boolean;
+  /** If true, auto-open the note form on mount (used for quick action navigation) */
+  autoOpenForm?: boolean;
 }
 
 const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   workOrderId,
   canAddNotes,
-  showPrivateNotes
+  showPrivateNotes,
+  autoOpenForm = false
 }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(autoOpenForm);
   const [noteContent, setNoteContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
 

@@ -57,13 +57,13 @@ vi.mock('../PMProgressIndicator', () => ({
 }));
 
 vi.mock('../WorkOrderQuickActions', () => ({
-  WorkOrderQuickActions: ({ workOrder }: { workOrder: WorkOrder }) => (
-    <div data-testid={`quick-actions-${workOrder.id}`}>Quick Actions</div>
+  WorkOrderQuickActions: ({ workOrderId }: { workOrderId: string }) => (
+    <div data-testid={`quick-actions-${workOrderId}`}>Quick Actions</div>
   )
 }));
 
 vi.mock('../WorkOrderAssignmentHover', () => ({
-  WorkOrderAssignmentHover: ({ children, workOrder }: { children: React.ReactNode; workOrder: WorkOrder }) => (
+  WorkOrderAssignmentHover: ({ children, workOrder }: { children: React.ReactNode; workOrder: { id: string } }) => (
     <div data-testid={`assignment-hover-${workOrder.id}`}>{children}</div>
   )
 }));

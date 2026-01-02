@@ -218,10 +218,9 @@ const DesktopWorkOrderCard: React.FC<DesktopWorkOrderCardProps> = ({
           
           <div className="flex items-center gap-2">
             <WorkOrderQuickActions
-              workOrder={workOrder}
-              onAssignClick={onAssignClick}
-              onReopenClick={onReopenClick}
-              hideReassign
+              workOrderId={workOrder.id}
+              workOrderStatus={workOrder.status}
+              equipmentTeamId={workOrder.equipmentTeamId ?? workOrder.team_id}
             />
             <Button 
               variant="outline" 

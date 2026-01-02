@@ -20,8 +20,6 @@ import { SaveStatus } from '@/components/ui/SaveStatus';
 import { toast } from 'sonner';
 import { useUpdatePM } from '@/features/pm-templates/hooks/usePMData';
 import { useQueryClient } from '@tanstack/react-query';
-import PrintExportDropdown from './PrintExportDropdown';
-import { PMChecklistPDFGenerator } from '@/utils/pdfGenerator';
 import { workOrderRevertService } from '@/features/work-orders/services/workOrderRevertService';
 import { WorkOrderData, EquipmentData, TeamMemberData, OrganizationData } from '@/features/work-orders/types/workOrderDetails';
 import { logger } from '@/utils/logger';
@@ -478,28 +476,6 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   }, [checklist, notes, pm, updatePMMutation, storageKey, queryClient, workOrder, equipment, organization?.id]);
 
-  // Print/Export handlers
-
-  const handleDownloadPDF = useCallback(() => {
-    try {
-      PMChecklistPDFGenerator.generateAndDownload(pm, checklist, {
-        includeProgress: false,
-        includeNotes: true,
-        includeTimestamps: true,
-        workOrder,
-        equipment,
-        team,
-        organization,
-        assignee
-      });
-      toast.success('PDF downloaded successfully');
-    } catch (error) {
-      logger.error('Error downloading PM checklist PDF', error);
-      toast.error('Failed to download PDF');
-    }
-  }, [pm, checklist, workOrder, equipment, team, organization, assignee]);
-
-
   const getStatusIcon = () => {
     switch (pm.status) {
       case 'completed':
@@ -686,23 +662,17 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         {isMobile ? (
           // Mobile: Multi-row layout with stacked elements
           <div className="space-y-4">
-            {/* Title and Print Action Row */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                {getStatusIcon()}
-                <CardTitle className="text-lg leading-tight">
-                  {templateName 
-                    ? `${templateName} - Preventative Maintenance Checklist`
-                    : pm.template_id 
-                      ? 'Preventative Maintenance Checklist' 
-                      : 'Forklift Preventative Maintenance Checklist'
-                  }
-                </CardTitle>
-              </div>
-              <PrintExportDropdown
-                onDownloadPDF={handleDownloadPDF}
-                disabled={isUpdating}
-              />
+            {/* Title Row */}
+            <div className="flex items-center gap-3">
+              {getStatusIcon()}
+              <CardTitle className="text-lg leading-tight">
+                {templateName 
+                  ? `${templateName} - Preventative Maintenance Checklist`
+                  : pm.template_id 
+                    ? 'Preventative Maintenance Checklist' 
+                    : 'Forklift Preventative Maintenance Checklist'
+                }
+              </CardTitle>
             </div>
             
             {/* Status and Progress Row */}
@@ -728,42 +698,36 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           </div>
         ) : (
           // Desktop: Horizontal layout
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {getStatusIcon()}
-              <div>
-                <CardTitle>
-                  {templateName 
-                    ? `${templateName} - Preventative Maintenance Checklist`
-                    : pm.template_id 
-                      ? 'Preventative Maintenance Checklist' 
-                      : 'Forklift Preventative Maintenance Checklist'
-                  }
-                </CardTitle>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge className={getStatusColor()}>
-                    {pm.status.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                  {hasUnsavedChanges && (
-                    <Badge variant="outline" className="text-xs">Unsaved changes</Badge>
-                  )}
-                  <span className="text-sm text-muted-foreground">
-                    Progress: {completedItems.length}/{totalItems} items completed
-                  </span>
-                  {!readOnly && (
-                    <SaveStatus 
-                      status={saveStatus} 
-                      lastSaved={lastSaved}
-                      className="ml-2"
-                    />
-                  )}
-                </div>
+          <div className="flex items-center gap-3">
+            {getStatusIcon()}
+            <div>
+              <CardTitle>
+                {templateName 
+                  ? `${templateName} - Preventative Maintenance Checklist`
+                  : pm.template_id 
+                    ? 'Preventative Maintenance Checklist' 
+                    : 'Forklift Preventative Maintenance Checklist'
+                }
+              </CardTitle>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge className={getStatusColor()}>
+                  {pm.status.replace('_', ' ').toUpperCase()}
+                </Badge>
+                {hasUnsavedChanges && (
+                  <Badge variant="outline" className="text-xs">Unsaved changes</Badge>
+                )}
+                <span className="text-sm text-muted-foreground">
+                  Progress: {completedItems.length}/{totalItems} items completed
+                </span>
+                {!readOnly && (
+                  <SaveStatus 
+                    status={saveStatus} 
+                    lastSaved={lastSaved}
+                    className="ml-2"
+                  />
+                )}
               </div>
             </div>
-            <PrintExportDropdown
-              onDownloadPDF={handleDownloadPDF}
-              disabled={isUpdating}
-            />
           </div>
         )}
       </CardHeader>
