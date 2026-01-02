@@ -444,10 +444,6 @@ const WorkOrderDetails = () => {
                   canAddNotes={canAddNotes}
                   showPrivateNotes={permissionLevels.isManager}
                   autoOpenForm={shouldAutoOpenNoteForm}
-                  onAddNote={() => {
-                    // TODO: Implement note addition
-                    // Add note functionality to be implemented
-                  }}
                 />
               </div>
 
