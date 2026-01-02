@@ -559,7 +559,7 @@ const WorkOrderDetails = () => {
         onOpenChange={setShowMobilePDFDialog}
         onExport={handleMobilePDFExport}
         isExporting={isMobilePDFGenerating}
-        showCostsOption={permissionLevels.isManager || permissionLevels.isTechnician}
+        showCostsOption={permissionLevels.isManager}
       />
     </div>
   );

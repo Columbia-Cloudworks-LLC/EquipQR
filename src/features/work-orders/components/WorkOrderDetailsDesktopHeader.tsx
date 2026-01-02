@@ -139,7 +139,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
         onOpenChange={setShowPDFDialog}
         onExport={handlePDFExport}
         isExporting={isGenerating}
-        showCostsOption={permissionLevels.isManager || permissionLevels.isTechnician}
+        showCostsOption={permissionLevels.isManager}
       />
     </div>
   );

@@ -432,6 +432,12 @@ export class WorkOrderReportPDFGenerator {
       const blob = await response.blob();
       const contentType = blob.type.toLowerCase();
       
+      // Check for empty or malformed content type first
+      if (!contentType || contentType.trim() === '') {
+        logger.warn('Skipping image with empty or missing content type. Only JPEG and PNG are supported.');
+        return null;
+      }
+      
       // Determine format - jsPDF only supports JPEG and PNG
       let format: 'JPEG' | 'PNG';
       if (contentType.includes('png')) {
@@ -700,7 +706,7 @@ export class WorkOrderReportPDFGenerator {
    * 3. ID: {first4}...{last4} | Status
    * 4. Details (Created, Priority, Due with delta, Completed with delta)
    * 5. Equipment (if present)
-   * 6. Customer + Assigned To
+   * 6. Service Team + Assignment
    * 7. Description
    * 8. NEW PAGE: PM Checklist (if present)
    * 9. NEW PAGE: Public Work Order Notes
