@@ -678,8 +678,8 @@ async function attachPDFToInvoice(
     }
     const base64Pdf = btoa(binaryString);
 
-    // Create a unique boundary for multipart
-    const boundary = `----EquipQRBoundary${Date.now()}${Math.random().toString(36).slice(2)}`;
+    // Create a unique boundary for multipart using crypto.randomUUID() for robust uniqueness
+    const boundary = `----EquipQRBoundary${crypto.randomUUID()}`;
 
     // Build the metadata JSON for the attachment
     const metadata = {

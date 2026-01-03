@@ -55,6 +55,7 @@ export interface QuickBooksExportLog {
   intuit_tid: string | null;
   pdf_attachment_status: 'success' | 'failed' | 'skipped' | 'disabled' | null;
   pdf_attachment_error: string | null;
+  pdf_attachment_intuit_tid: string | null;
 }
 
 /**

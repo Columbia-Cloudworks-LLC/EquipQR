@@ -34,7 +34,6 @@ interface UnifiedMember {
   name: string;
   email: string;
   organizationRole: 'owner' | 'admin' | 'member';
-  teamCount: number;
   status: 'active' | 'pending_invite';
   joinedDate?: string;
   invitedDate?: string;
@@ -83,7 +82,6 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
       name: member.name || 'Unknown',
       email: member.email || '',
       organizationRole: member.role as 'owner' | 'admin' | 'member',
-      teamCount: 0, // Team count not available - would require separate query
       status: 'active' as const,
       joinedDate: member.joinedDate,
       type: 'member' as const,
@@ -97,7 +95,6 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
         name: 'Pending Invite',
         email: invitation.email,
         organizationRole: invitation.role as 'owner' | 'admin' | 'member',
-        teamCount: 0,
         status: 'pending_invite' as const,
         invitedDate: invitation.createdAt,
         type: 'invitation' as const
@@ -228,7 +225,6 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                 <TableHead>Member</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Teams</TableHead>
                 <TableHead>Status</TableHead>
                 {isOwner && quickBooksEnabled && (
                   <TableHead>
@@ -295,11 +291,6 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {member.teamCount} {member.teamCount === 1 ? 'team' : 'teams'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize">
                       <div className="flex items-center gap-1">
                         {getStatusIcon(member.status)}
@@ -316,7 +307,12 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                               <div>
                                 <Switch
                                   checked={member.canManageQuickBooks ?? false}
-                                  onCheckedChange={(checked) => handleQuickBooksToggle(member.userId!, checked)}
+                                  onCheckedChange={(checked) => {
+                                    if (!member.userId) {
+                                      return;
+                                    }
+                                    handleQuickBooksToggle(member.userId, checked);
+                                  }}
                                   disabled={updateQuickBooksPermission.isPending}
                                   aria-label="Toggle QuickBooks management permission"
                                 />

@@ -107,6 +107,11 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   const alreadyExported = !!existingExport;
   const isCompleted = workOrderStatus === 'completed';
 
+  // Calculate invoice display once for reuse in tooltip and button content
+  const invoiceDisplay = alreadyExported 
+    ? (existingExport.quickbooks_invoice_number || existingExport.quickbooks_invoice_id || '(Draft)')
+    : null;
+
   let tooltipMessage = '';
   let isDisabled = false;
 
@@ -126,7 +131,6 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     tooltipMessage = 'Exporting...';
     isDisabled = true;
   } else if (alreadyExported) {
-    const invoiceDisplay = existingExport.quickbooks_invoice_number || existingExport.quickbooks_invoice_id || '(Draft)';
     tooltipMessage = `Previously exported as Invoice ${invoiceDisplay}. Click to update.`;
   } else {
     tooltipMessage = 'Export work order as a draft invoice in QuickBooks';
@@ -145,11 +149,6 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
       },
     });
   };
-
-  // Get invoice display number with fallback for edge cases
-  const invoiceDisplay = alreadyExported 
-    ? (existingExport.quickbooks_invoice_number || existingExport.quickbooks_invoice_id || '(Draft)')
-    : null;
 
   const buttonContent = (
     <>
