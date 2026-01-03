@@ -45,11 +45,16 @@ export interface QuickBooksExportLog {
   work_order_id: string;
   realm_id: string;
   quickbooks_invoice_id: string | null;
+  quickbooks_invoice_number: string | null;
+  quickbooks_environment: 'sandbox' | 'production' | null;
   status: 'success' | 'error' | 'pending';
   error_message: string | null;
   exported_at: string | null;
   created_at: string;
   updated_at: string;
+  intuit_tid: string | null;
+  pdf_attachment_status: 'success' | 'failed' | 'skipped' | 'disabled' | null;
+  pdf_attachment_error: string | null;
 }
 
 /**

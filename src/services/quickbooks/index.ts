@@ -18,6 +18,8 @@ export {
 export {
   type QuickBooksCredentials,
   type QuickBooksConnectionStatus,
+  type QuickBooksEnvironment,
+  getQuickBooksInvoiceUrl,
 } from './types';
 
 export {

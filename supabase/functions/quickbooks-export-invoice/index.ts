@@ -38,6 +38,9 @@ const QUICKBOOKS_API_BASE = Deno.env.get("QUICKBOOKS_SANDBOX") === "false"
 // Feature flag for PDF attachments
 const ENABLE_PDF_ATTACHMENT = Deno.env.get("ENABLE_QB_PDF_ATTACHMENT") === "true";
 
+// Determine environment (sandbox or production)
+const QUICKBOOKS_ENVIRONMENT = Deno.env.get("QUICKBOOKS_SANDBOX") === "false" ? "production" : "sandbox";
+
 interface QuickBooksCredential {
   id: string;
   organization_id: string;
@@ -643,7 +646,20 @@ async function deleteAttachment(
 }
 
 /**
- * Upload PDF as attachment to QuickBooks invoice
+ * Result of PDF attachment operation
+ */
+interface PdfAttachmentResult {
+  success: boolean;
+  attachmentId?: string;
+  intuitTid?: string | null;
+  error?: string;
+}
+
+/**
+ * Upload PDF as attachment to QuickBooks invoice using multipart/form-data
+ * 
+ * QuickBooks requires file uploads to use the /upload endpoint with multipart/form-data.
+ * The JSON-based /attachable endpoint doesn't support FileData for actual file content.
  */
 async function attachPDFToInvoice(
   accessToken: string,
@@ -651,23 +667,24 @@ async function attachPDFToInvoice(
   invoiceId: string,
   pdfBytes: Uint8Array,
   fileName: string
-): Promise<void> {
+): Promise<PdfAttachmentResult> {
   try {
-    logStep("Uploading PDF attachment", { invoiceId, fileName, size: pdfBytes.length });
+    logStep("Uploading PDF attachment via multipart upload", { invoiceId, fileName, size: pdfBytes.length });
 
     // Convert PDF bytes to base64 (Deno-compatible)
-    // Use Uint8Array to string conversion that works in Deno
     let binaryString = '';
     for (let i = 0; i < pdfBytes.length; i++) {
       binaryString += String.fromCharCode(pdfBytes[i]);
     }
     const base64Pdf = btoa(binaryString);
 
-    // Create attachment object - QuickBooks Attachable API format
-    const attachment = {
+    // Create a unique boundary for multipart
+    const boundary = `----EquipQRBoundary${Date.now()}${Math.random().toString(36).slice(2)}`;
+
+    // Build the metadata JSON for the attachment
+    const metadata = {
       FileName: fileName,
       ContentType: "application/pdf",
-      FileData: base64Pdf, // Base64 encoded PDF content
       AttachableRef: [
         {
           EntityRef: {
@@ -679,30 +696,70 @@ async function attachPDFToInvoice(
       IncludeOnSend: true,
     };
 
-    const attachUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/attachable`;
-    const response = await fetch(attachUrl, {
+    // Build multipart body
+    // Part 1: JSON metadata
+    // Part 2: File content (base64)
+    const metadataJson = JSON.stringify(metadata);
+    
+    const body = [
+      `--${boundary}`,
+      `Content-Disposition: form-data; name="file_metadata_01"; filename="metadata.json"`,
+      `Content-Type: application/json; charset=UTF-8`,
+      `Content-Transfer-Encoding: 8bit`,
+      ``,
+      metadataJson,
+      `--${boundary}`,
+      `Content-Disposition: form-data; name="file_content_01"; filename="${fileName}"`,
+      `Content-Type: application/pdf`,
+      `Content-Transfer-Encoding: base64`,
+      ``,
+      base64Pdf,
+      `--${boundary}--`,
+    ].join('\r\n');
+
+    // Use the /upload endpoint which properly handles file uploads
+    const uploadUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/upload?minorversion=65`;
+    
+    const response = await fetch(uploadUrl, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${accessToken}`,
         "Accept": "application/json",
-        "Content-Type": "application/json",
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
       },
-      body: JSON.stringify(attachment),
+      body: body,
     });
+
+    const intuitTid = getIntuitTid(response);
 
     if (!response.ok) {
       const errorText = await response.text();
-      logStep("Attachment upload failed", { error: errorText });
-      throw new Error(`Failed to upload PDF attachment: ${errorText}`);
+      logStep("Attachment upload failed", { error: errorText, intuit_tid: intuitTid, status: response.status });
+      return {
+        success: false,
+        intuitTid,
+        error: `Upload failed (${response.status}): ${errorText.substring(0, 200)}`,
+      };
     }
 
     const result = await response.json();
-    logStep("PDF attachment uploaded successfully", { attachmentId: result.Attachable?.Id });
+    const attachmentId = result.AttachableResponse?.[0]?.Attachable?.Id;
+    
+    logStep("PDF attachment uploaded successfully", { attachmentId, intuit_tid: intuitTid });
+    
+    return {
+      success: true,
+      attachmentId,
+      intuitTid,
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR uploading PDF attachment", { error: errorMessage });
     console.error("Attachment upload error:", error);
-    throw new Error(`Failed to attach PDF to invoice: ${errorMessage}`);
+    return {
+      success: false,
+      error: errorMessage,
+    };
   }
 }
 
@@ -837,19 +894,28 @@ serve(async (req) => {
       });
     }
 
-    // Verify user is admin/owner of the organization
-    const { data: membership, error: membershipError } = await supabaseClient
-      .from('organization_members')
-      .select('role')
-      .eq('organization_id', workOrder.organization_id)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single();
+    // Verify user has QuickBooks management permission
+    const { data: qbPermission, error: qbPermError } = await supabaseClient
+      .rpc('can_user_manage_quickbooks', {
+        p_user_id: user.id,
+        p_organization_id: workOrder.organization_id
+      });
 
-    if (membershipError || !membership || !['owner', 'admin'].includes(membership.role)) {
+    if (qbPermError) {
+      logStep("Error checking QuickBooks permission", { error: qbPermError.message });
       return new Response(JSON.stringify({ 
         success: false, 
-        error: "You must be an admin or owner to export invoices" 
+        error: "Failed to verify user permissions" 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!qbPermission) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "You do not have permission to export invoices to QuickBooks" 
       }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -991,6 +1057,11 @@ serve(async (req) => {
     let invoiceNumber: string | undefined;
     let isUpdate = false;
     let intuitTid: string | null = null;
+    let pdfAttachmentStatus: 'success' | 'failed' | 'skipped' | 'disabled' = ENABLE_PDF_ATTACHMENT ? 'skipped' : 'disabled';
+    let pdfAttachmentError: string | null = null;
+    let pdfAttachmentIntuitTid: string | null = null;
+
+    logStep("PDF attachment feature", { enabled: ENABLE_PDF_ATTACHMENT, environment: QUICKBOOKS_ENVIRONMENT });
 
     // Create log entry (pending)
     const { data: logEntry } = await supabaseClient
@@ -1132,17 +1203,30 @@ serve(async (req) => {
 
             // Upload new PDF attachment
             const pdfFileName = `Work-Order-${workOrder.title.replace(/[^a-z0-9]/gi, '-')}-${invoiceNumber || 'Draft'}.pdf`;
-            await attachPDFToInvoice(
+            const attachResult = await attachPDFToInvoice(
               accessToken,
               credentials.realm_id,
               invoiceId,
               pdfBytes,
               pdfFileName
             );
+
+            // Track attachment result
+            if (attachResult.success) {
+              pdfAttachmentStatus = 'success';
+              pdfAttachmentIntuitTid = attachResult.intuitTid || null;
+            } else {
+              pdfAttachmentStatus = 'failed';
+              pdfAttachmentError = attachResult.error || 'Unknown error';
+              pdfAttachmentIntuitTid = attachResult.intuitTid || null;
+              logStep("PDF attachment failed (invoice still updated)", { error: pdfAttachmentError });
+            }
           } catch (pdfError) {
             // Log error but don't fail the entire export
             const errorMessage = pdfError instanceof Error ? pdfError.message : String(pdfError);
-            logStep("ERROR: PDF attachment failed (invoice still created)", { error: errorMessage });
+            pdfAttachmentStatus = 'failed';
+            pdfAttachmentError = errorMessage;
+            logStep("ERROR: PDF attachment failed (invoice still updated)", { error: errorMessage });
             console.error("PDF attachment error:", pdfError);
             // Continue - invoice export succeeded even if PDF attachment failed
           }
@@ -1217,16 +1301,29 @@ serve(async (req) => {
 
             // Upload PDF attachment
             const pdfFileName = `Work-Order-${workOrder.title.replace(/[^a-z0-9]/gi, '-')}-${invoiceNumber}.pdf`;
-            await attachPDFToInvoice(
+            const attachResult = await attachPDFToInvoice(
               accessToken,
               credentials.realm_id,
               invoiceId,
               pdfBytes,
               pdfFileName
             );
+
+            // Track attachment result
+            if (attachResult.success) {
+              pdfAttachmentStatus = 'success';
+              pdfAttachmentIntuitTid = attachResult.intuitTid || null;
+            } else {
+              pdfAttachmentStatus = 'failed';
+              pdfAttachmentError = attachResult.error || 'Unknown error';
+              pdfAttachmentIntuitTid = attachResult.intuitTid || null;
+              logStep("PDF attachment failed (invoice still created)", { error: pdfAttachmentError });
+            }
           } catch (pdfError) {
             // Log error but don't fail the entire export
             const errorMessage = pdfError instanceof Error ? pdfError.message : String(pdfError);
+            pdfAttachmentStatus = 'failed';
+            pdfAttachmentError = errorMessage;
             logStep("ERROR: PDF attachment failed (invoice still created)", { error: errorMessage });
             console.error("PDF attachment error:", pdfError);
             // Continue - invoice export succeeded even if PDF attachment failed
@@ -1234,26 +1331,40 @@ serve(async (req) => {
         }
       }
 
-      // Update log entry with success (including intuit_tid for troubleshooting)
+      // Update log entry with success (including all tracking fields)
       if (logEntry?.id) {
         await supabaseClient
           .from('quickbooks_export_logs')
           .update({
             quickbooks_invoice_id: invoiceId,
+            quickbooks_invoice_number: invoiceNumber,
+            quickbooks_environment: QUICKBOOKS_ENVIRONMENT,
             status: 'success',
             exported_at: new Date().toISOString(),
             intuit_tid: intuitTid,
+            pdf_attachment_status: pdfAttachmentStatus,
+            pdf_attachment_error: pdfAttachmentError,
+            pdf_attachment_intuit_tid: pdfAttachmentIntuitTid,
           })
           .eq('id', logEntry.id);
       }
 
-      logStep("Invoice exported successfully", { invoiceId, invoiceNumber, isUpdate, intuit_tid: intuitTid });
+      logStep("Invoice exported successfully", { 
+        invoiceId, 
+        invoiceNumber, 
+        isUpdate, 
+        intuit_tid: intuitTid,
+        pdfAttachmentStatus,
+        environment: QUICKBOOKS_ENVIRONMENT
+      });
 
       return new Response(JSON.stringify({ 
         success: true, 
         invoice_id: invoiceId,
         invoice_number: invoiceNumber,
         is_update: isUpdate,
+        environment: QUICKBOOKS_ENVIRONMENT,
+        pdf_attached: pdfAttachmentStatus === 'success',
         message: isUpdate 
           ? `Invoice ${invoiceNumber} updated successfully` 
           : `Invoice ${invoiceNumber} created successfully`
@@ -1263,7 +1374,7 @@ serve(async (req) => {
       });
 
     } catch (exportError) {
-      // Update log entry with error (including intuit_tid if available for troubleshooting)
+      // Update log entry with error (including all tracking fields)
       if (logEntry?.id) {
         const errorMessage = exportError instanceof Error ? exportError.message : String(exportError);
         await supabaseClient
@@ -1272,6 +1383,10 @@ serve(async (req) => {
             status: 'error',
             error_message: errorMessage.substring(0, 1000),
             intuit_tid: intuitTid,
+            quickbooks_environment: QUICKBOOKS_ENVIRONMENT,
+            pdf_attachment_status: pdfAttachmentStatus,
+            pdf_attachment_error: pdfAttachmentError,
+            pdf_attachment_intuit_tid: pdfAttachmentIntuitTid,
           })
           .eq('id', logEntry.id);
       }

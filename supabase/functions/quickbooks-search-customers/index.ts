@@ -218,20 +218,29 @@ serve(async (req) => {
 
     logStep("Request validated", { organizationId: organization_id, hasQuery: !!query });
 
-    // Verify user is admin/owner of the organization
-    const { data: membership, error: membershipError } = await supabaseClient
-      .from('organization_members')
-      .select('role')
-      .eq('organization_id', organization_id)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single();
+    // Verify user has QuickBooks management permission
+    const { data: qbPermission, error: qbPermError } = await supabaseClient
+      .rpc('can_user_manage_quickbooks', {
+        p_user_id: user.id,
+        p_organization_id: organization_id
+      });
 
-    if (membershipError || !membership || !['owner', 'admin'].includes(membership.role)) {
+    if (qbPermError) {
+      logStep("Error checking QuickBooks permission", { error: qbPermError.message });
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Failed to verify user permissions" 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!qbPermission) {
       logStep("Permission denied", { userId: user.id, organizationId: organization_id });
       return new Response(JSON.stringify({ 
         success: false, 
-        error: "You must be an admin or owner to access QuickBooks integration" 
+        error: "You do not have permission to access QuickBooks integration" 
       }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -19,7 +19,12 @@ export type RealOrganizationMember = OrganizationMember;
 type OrganizationMemberRow = Database['public']['Tables']['organization_members']['Row'];
 type ProfileRow = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'name' | 'email'>;
 
-type OrganizationMemberRecord = OrganizationMemberRow & {
+// Extended row type to include can_manage_quickbooks if it exists
+type ExtendedOrganizationMemberRow = OrganizationMemberRow & {
+  can_manage_quickbooks?: boolean;
+};
+
+type OrganizationMemberRecord = ExtendedOrganizationMemberRow & {
   profiles: ProfileRow | null;
 };
 
@@ -33,14 +38,16 @@ export const useOrganizationMembersQuery = (organizationId: string) => {
       if (!organizationId) return [];
 
       // Single optimized query with join instead of separate calls
+      // Include can_manage_quickbooks for QuickBooks permission management
       const { data, error } = await supabase
         .from('organization_members')
-        .select<OrganizationMemberRecord>(`
+        .select<string, OrganizationMemberRecord>(`
           id,
           role,
           status,
           joined_date,
           user_id,
+          can_manage_quickbooks,
           profiles:user_id!inner (
             id,
             name,
@@ -57,12 +64,14 @@ export const useOrganizationMembersQuery = (organizationId: string) => {
 
       return (data || []).map((member) => ({
         id: member.user_id,
+        userId: member.user_id,
         name: member.profiles?.name ?? 'Unknown',
         email: member.profiles?.email ?? '',
         role: member.role as 'owner' | 'admin' | 'member',
         status: member.status as 'active' | 'pending' | 'inactive',
         joinedDate: member.joined_date,
-        avatar: undefined
+        avatar: undefined,
+        canManageQuickBooks: member.can_manage_quickbooks ?? false,
       }));
     },
     enabled: !!organizationId,

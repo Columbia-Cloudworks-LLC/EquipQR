@@ -97,6 +97,11 @@ export type QuickBooksExportInvoiceRequest = {
 };
 
 /**
+ * QuickBooks environment type
+ */
+export type QuickBooksEnvironment = 'sandbox' | 'production';
+
+/**
  * Response from quickbooks-export-invoice Edge Function
  */
 export type QuickBooksExportInvoiceResponse =
@@ -105,6 +110,8 @@ export type QuickBooksExportInvoiceResponse =
       invoice_id: string;
       invoice_number: string;
       is_update: boolean;
+      environment: QuickBooksEnvironment;
+      pdf_attached: boolean;
       message?: string;
     }
   | {
@@ -120,5 +127,17 @@ export interface InvoiceExportResult {
   invoiceId?: string;
   invoiceNumber?: string;
   isUpdate?: boolean;
+  environment?: QuickBooksEnvironment;
+  pdfAttached?: boolean;
   error?: string;
+}
+
+/**
+ * Constructs a QuickBooks Online URL to view an invoice
+ */
+export function getQuickBooksInvoiceUrl(invoiceId: string, environment: QuickBooksEnvironment): string {
+  const baseUrl = environment === 'production' 
+    ? 'https://app.qbo.intuit.com'
+    : 'https://app.sandbox.qbo.intuit.com';
+  return `${baseUrl}/app/invoice?txnId=${invoiceId}`;
 }
