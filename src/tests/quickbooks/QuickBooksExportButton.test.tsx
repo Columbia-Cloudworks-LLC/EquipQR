@@ -26,11 +26,14 @@ vi.mock('@/contexts/OrganizationContext', () => ({
   })),
 }));
 
-// Mock the permissions hook
-vi.mock('@/hooks/usePermissions', () => ({
-  usePermissions: vi.fn(() => ({
-    hasRole: vi.fn((roles: string[]) => roles.includes('admin')),
-  })),
+// Mock the QuickBooks access hook (replaces usePermissions for QB access)
+const mockUseQuickBooksAccess = vi.fn(() => ({
+  data: true, // canExport = true by default
+  isLoading: false,
+}));
+
+vi.mock('@/hooks/useQuickBooksAccess', () => ({
+  useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
 }));
 
 // Mock the QuickBooks service
@@ -70,7 +73,6 @@ vi.mock('sonner', () => ({
 
 import { QuickBooksExportButton } from '@/features/work-orders/components/QuickBooksExportButton';
 import { isQuickBooksEnabled } from '@/lib/flags';
-import { usePermissions } from '@/hooks/usePermissions';
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -101,9 +103,11 @@ describe('QuickBooksExportButton Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(isQuickBooksEnabled).mockReturnValue(true);
-    vi.mocked(usePermissions).mockReturnValue({
-      hasRole: (roles: string[]) => roles.includes('admin'),
-    } as ReturnType<typeof usePermissions>);
+    // Mock QuickBooks access permission (replaces usePermissions for QB)
+    mockUseQuickBooksAccess.mockReturnValue({
+      data: true, // canExport = true
+      isLoading: false,
+    });
     mockGetConnectionStatus.mockResolvedValue({
       isConnected: true,
     });
@@ -142,37 +146,22 @@ describe('QuickBooksExportButton Component', () => {
   });
 
   describe('Permission Checks', () => {
-    it('should not render for non-admin users', () => {
-      vi.mocked(usePermissions).mockReturnValue({
-        hasRole: () => false,
-      } as ReturnType<typeof usePermissions>);
+    it('should not render for users without QuickBooks access', () => {
+      mockUseQuickBooksAccess.mockReturnValue({
+        data: false, // canExport = false
+        isLoading: false,
+      });
       
       const { container } = renderComponent();
       
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('should render for admin users', async () => {
-      vi.mocked(usePermissions).mockReturnValue({
-        hasRole: (roles: string[]) => roles.includes('admin'),
-        canManageTeam: () => true,
-        canViewTeam: () => true,
-        canCreateTeam: () => true,
-        canManageEquipment: () => true,
-        canViewEquipment: () => true,
-        canCreateEquipment: () => true,
-        canManageWorkOrder: () => true,
-        canViewWorkOrder: () => true,
-        canCreateWorkOrder: () => true,
-        canManageInventory: () => true,
-        canViewInventory: () => true,
-        canCreateInventory: () => true,
-        canManageOrganization: () => true,
-        canViewOrganization: () => true,
-        canManagePMTemplates: () => true,
-        canViewPMTemplates: () => true,
-        canCreatePMTemplates: () => true
-      } as ReturnType<typeof usePermissions>);
+    it('should render for users with QuickBooks access', async () => {
+      mockUseQuickBooksAccess.mockReturnValue({
+        data: true, // canExport = true
+        isLoading: false,
+      });
       
       renderComponent();
       
@@ -310,14 +299,17 @@ describe('QuickBooksExportButton Component', () => {
     beforeEach(() => {
       mockGetLastSuccessfulExport.mockResolvedValue({
         quickbooks_invoice_id: 'inv-123',
+        quickbooks_invoice_number: '1001',
+        quickbooks_environment: 'sandbox',
       });
     });
 
-    it('should show update button when already exported', async () => {
+    it('should show update button with invoice number when already exported', async () => {
       renderComponent();
       
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Update QuickBooks Invoice/i })).toBeInTheDocument();
+        // Button text is now "Update Invoice {invoiceNumber}"
+        expect(screen.getByRole('button', { name: /Update Invoice 1001/i })).toBeInTheDocument();
       });
     });
 
@@ -325,16 +317,25 @@ describe('QuickBooksExportButton Component', () => {
       renderComponent();
       
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Update QuickBooks Invoice/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Update Invoice 1001/i })).toBeInTheDocument();
       });
       
-      const button = screen.getByRole('button', { name: /Update QuickBooks Invoice/i });
+      const button = screen.getByRole('button', { name: /Update Invoice 1001/i });
       fireEvent.click(button);
       
       await waitFor(() => {
         expect(mockMutate).toHaveBeenCalledWith('wo-123', expect.objectContaining({
           onSuccess: expect.any(Function),
         }));
+      });
+    });
+
+    it('should show external link to view invoice in QuickBooks', async () => {
+      renderComponent();
+      
+      await waitFor(() => {
+        // Should have external link button
+        expect(screen.getByRole('button', { name: /View invoice in QuickBooks/i })).toBeInTheDocument();
       });
     });
   });
