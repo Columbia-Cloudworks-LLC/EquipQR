@@ -108,15 +108,14 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   const isCompleted = workOrderStatus === 'completed';
 
   // Calculate invoice display once for reuse in tooltip and button content
-  // Use 'Unknown' as fallback to indicate data inconsistency (export exists but no invoice identifiers)
+  // Only show invoice label when we have valid identifiers; otherwise treat as no export for display
+  // This avoids confusing "Update Invoice Unknown" text for malformed/incomplete export records
   const hasInvoiceIdentifiers = Boolean(
     existingExport?.quickbooks_invoice_number || existingExport?.quickbooks_invoice_id
   );
   const invoiceDisplay = alreadyExported && hasInvoiceIdentifiers
     ? (existingExport.quickbooks_invoice_number || existingExport.quickbooks_invoice_id)
-    : alreadyExported
-      ? 'Unknown'
-      : null;
+    : null;
 
   let tooltipMessage = '';
   let isDisabled = false;
@@ -136,7 +135,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   } else if (isExporting) {
     tooltipMessage = 'Exporting...';
     isDisabled = true;
-  } else if (alreadyExported) {
+  } else if (alreadyExported && hasInvoiceIdentifiers) {
     tooltipMessage = `Previously exported as Invoice ${invoiceDisplay}. Click to update.`;
   } else {
     tooltipMessage = 'Export work order as a draft invoice in QuickBooks';
@@ -156,18 +155,21 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     });
   };
 
+  // Use hasInvoiceIdentifiers for display consistency - malformed exports show as new export
+  const showAsUpdate = alreadyExported && hasInvoiceIdentifiers;
+  
   const buttonContent = (
     <>
       {isLoading ? (
         <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-      ) : alreadyExported ? (
+      ) : showAsUpdate ? (
         <CheckCircle className="h-4 w-4 mr-2" />
       ) : isDisabled ? (
         <AlertTriangle className="h-4 w-4 mr-2" />
       ) : (
         <FileSpreadsheet className="h-4 w-4 mr-2" />
       )}
-      {alreadyExported ? `Update Invoice ${invoiceDisplay}` : 'Export to QuickBooks'}
+      {showAsUpdate ? `Update Invoice ${invoiceDisplay}` : 'Export to QuickBooks'}
     </>
   );
 
