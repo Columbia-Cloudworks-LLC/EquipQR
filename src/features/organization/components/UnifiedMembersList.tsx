@@ -72,10 +72,10 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
 
   // Combine members and pending invitations into unified list
   const unifiedMembers: UnifiedMember[] = useMemo(() => {
-    // Note: teamMemberships only contains the current user's teams (from useTeamMembership hook).
-    // We cannot accurately count other users' team memberships here without a separate query.
-    // For now, we don't display team counts since we don't have the data.
-    // TODO: Add a query to fetch team counts per organization member if this feature is needed.
+    // Note: we currently do not have per-user team membership data available in this component.
+    // We cannot accurately count or display team memberships for organization members.
+    // For now, we don't display team counts since we don't have the necessary data.
+    // TODO: If team counts are reintroduced, add a query to fetch team counts per organization member.
     const activeMembers: UnifiedMember[] = members.map(member => ({
       id: member.id,
       userId: member.userId || member.id,
