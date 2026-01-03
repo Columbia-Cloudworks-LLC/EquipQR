@@ -79,8 +79,12 @@ USING (
     public.can_user_manage_quickbooks((SELECT auth.uid()), organization_id)
 );
 
--- INSERT policy: Still requires permission check even though edge functions use service role
--- This provides defense-in-depth in case of misconfiguration
+-- INSERT policy: Defense-in-depth for authenticated user operations
+-- NOTE: Edge functions use service_role which BYPASSES RLS entirely.
+-- For service_role operations, auth.uid() returns NULL, but this is irrelevant
+-- since RLS policies are not evaluated. This policy only applies to direct
+-- authenticated user operations (e.g., if RLS were ever misconfigured to apply
+-- to a client-side operation). Intentionally kept as additional security layer.
 CREATE POLICY "quickbooks_export_logs_insert_policy"
 ON public.quickbooks_export_logs
 FOR INSERT
@@ -88,7 +92,10 @@ WITH CHECK (
     public.can_user_manage_quickbooks((SELECT auth.uid()), organization_id)
 );
 
--- UPDATE policy: Same defense-in-depth approach
+-- UPDATE policy: Defense-in-depth for authenticated user operations
+-- NOTE: Same as INSERT - service_role bypasses RLS, so auth.uid() being NULL
+-- for service_role is not a concern. This policy protects against any direct
+-- authenticated user updates, providing an additional security layer.
 CREATE POLICY "quickbooks_export_logs_update_policy"
 ON public.quickbooks_export_logs
 FOR UPDATE
