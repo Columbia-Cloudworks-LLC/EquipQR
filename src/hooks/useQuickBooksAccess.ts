@@ -83,8 +83,8 @@ export function useUpdateQuickBooksPermission(organizationId: string) {
     },
     onSuccess: (result) => {
       toast.success(result.message);
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'access'] });
+      // Invalidate relevant queries - use specific organizationId to avoid unnecessary refetches
+      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'access', organizationId] });
       queryClient.invalidateQueries({ queryKey: ['organization-members', organizationId] });
     },
     onError: (error: Error) => {

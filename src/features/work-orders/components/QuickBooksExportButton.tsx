@@ -108,9 +108,15 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   const isCompleted = workOrderStatus === 'completed';
 
   // Calculate invoice display once for reuse in tooltip and button content
-  const invoiceDisplay = alreadyExported 
-    ? (existingExport.quickbooks_invoice_number || existingExport.quickbooks_invoice_id || '(Draft)')
-    : null;
+  // Use 'Unknown' as fallback to indicate data inconsistency (export exists but no invoice identifiers)
+  const hasInvoiceIdentifiers = Boolean(
+    existingExport?.quickbooks_invoice_number || existingExport?.quickbooks_invoice_id
+  );
+  const invoiceDisplay = alreadyExported && hasInvoiceIdentifiers
+    ? (existingExport.quickbooks_invoice_number || existingExport.quickbooks_invoice_id)
+    : alreadyExported
+      ? 'Unknown'
+      : null;
 
   let tooltipMessage = '';
   let isDisabled = false;
