@@ -491,7 +491,7 @@ const OnboardingGuide: React.FC = () => {
                     Once connected and mapped, exporting a work order as an invoice takes just a few clicks.
                   </p>
                   <ol className="list-decimal list-inside space-y-2 text-sm">
-                    <li>Open the <strong>Work Order</strong> you want to invoice.</li>
+                    <li>Open the <strong>work order</strong> you want to invoice.</li>
                     <li>Click the <strong>"Take Action"</strong> dropdown button.</li>
                     <li>Select <strong>"Export to QuickBooks"</strong>.</li>
                     <li>The invoice is created as a <strong>draft</strong> in QuickBooks.</li>
