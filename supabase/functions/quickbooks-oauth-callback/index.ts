@@ -297,11 +297,8 @@ serve(async (req) => {
     });
 
     if (!tokenResponse.ok) {
-      // Log error details server-side only (not exposed to client)
-      logStep("Token exchange failed", { 
-        status: tokenResponse.status, 
-        statusText: tokenResponse.statusText
-      });
+      // Log only the HTTP status code - statusText may contain sensitive info from API provider
+      logStep("Token exchange failed", { status: tokenResponse.status });
       // Throw generic error - do not expose Intuit error details to client
       throw new Error("Failed to exchange authorization code. Please try again.");
     }
