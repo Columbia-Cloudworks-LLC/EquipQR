@@ -112,7 +112,7 @@ const FAQSection: React.FC = () => {
                   <li>Sign in to your QuickBooks account and authorize access</li>
                 </ol>
                 <p className="text-sm text-muted-foreground mt-2">
-                  <strong>Note:</strong> Only organization Admins and Owners can connect QuickBooks. See the Guide tab for detailed setup instructions.
+                  <strong>Note:</strong> Only organization Admins and Owners can connect QuickBooks. See the Guide tab for additional information about customer mapping and invoice exports.
                 </p>
               </div>
             </AccordionContent>
