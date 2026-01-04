@@ -171,7 +171,8 @@ serve(async (req) => {
         : error === 'invalid_request'
         ? 'Invalid OAuth request'
         : 'QuickBooks connection failed';
-      const errorUrl = `${productionUrl}/dashboard/organization?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(userFriendlyError)}`;
+      // Use qb_error params to avoid conflicting with Supabase auth error parsing
+      const errorUrl = `${productionUrl}/dashboard/organization?qb_error=${encodeURIComponent(error)}&qb_error_description=${encodeURIComponent(userFriendlyError)}`;
       return Response.redirect(errorUrl, 302);
     }
 
@@ -416,7 +417,8 @@ serve(async (req) => {
     // Get production URL for error redirect
     // Use generic error message to prevent information exposure
     const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
-    const errorUrl = `${productionUrl}/dashboard/organization?error=oauth_failed&error_description=${encodeURIComponent("Failed to connect QuickBooks. Please try again.")}`;
+    // Use qb_error params to avoid conflicting with Supabase auth error parsing
+    const errorUrl = `${productionUrl}/dashboard/organization?qb_error=oauth_failed&qb_error_description=${encodeURIComponent("Failed to connect QuickBooks. Please try again.")}`;
     
     return Response.redirect(errorUrl, 302);
   }

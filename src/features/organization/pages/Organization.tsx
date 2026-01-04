@@ -19,16 +19,16 @@ const Organization = () => {
   // Handle QuickBooks OAuth callback results at the page level
   // This ensures the toast is shown even if the Settings tab isn't active
   useEffect(() => {
-    const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
+    const error = searchParams.get('qb_error');
+    const errorDescription = searchParams.get('qb_error_description');
     const success = searchParams.get('qb_connected');
 
     if (error) {
       toast.error(errorDescription || 'Failed to connect QuickBooks');
       // Clear the error params
       const newParams = new URLSearchParams(searchParams);
-      newParams.delete('error');
-      newParams.delete('error_description');
+      newParams.delete('qb_error');
+      newParams.delete('qb_error_description');
       setSearchParams(newParams, { replace: true });
     } else if (success) {
       toast.success('QuickBooks connected successfully!');
