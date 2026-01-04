@@ -97,7 +97,7 @@ describe('Support Page', () => {
       render(<Support />);
 
       expect(screen.getByText('Ready to Get Started?')).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /start free trial/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /get started/i })).toBeInTheDocument();
     });
   });
 });

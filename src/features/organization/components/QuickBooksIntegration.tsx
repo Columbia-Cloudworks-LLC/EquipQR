@@ -17,8 +17,7 @@ import {
   RefreshCw, 
   CheckCircle, 
   AlertTriangle,
-  Clock,
-  Wrench
+  Clock
 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -128,18 +127,12 @@ export const QuickBooksIntegration = ({
   // Show configuration warning if not configured
   if (!isConfigured) {
     return (
-      <Card className="border-construction">
+      <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Link2 className="h-5 w-5" />
-              QuickBooks Online Integration
-            </CardTitle>
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Wrench className="h-3 w-3" />
-              In Development
-            </Badge>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-5 w-5" />
+            QuickBooks Online Integration
+          </CardTitle>
           <CardDescription>
             Connect your QuickBooks Online account to export invoices
           </CardDescription>
@@ -161,18 +154,12 @@ export const QuickBooksIntegration = ({
   const isRefreshTokenExpired = connectionStatus?.isRefreshTokenValid === false;
 
   return (
-    <Card className="border-construction">
+    <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Link2 className="h-5 w-5" />
-            QuickBooks Online Integration
-          </CardTitle>
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <Wrench className="h-3 w-3" />
-            In Development
-          </Badge>
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <Link2 className="h-5 w-5" />
+          QuickBooks Online Integration
+        </CardTitle>
         <CardDescription>
           Connect your QuickBooks Online account to export work orders as invoices
         </CardDescription>
