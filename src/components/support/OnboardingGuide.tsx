@@ -508,7 +508,7 @@ const OnboardingGuide: React.FC = () => {
                   </div>
                   <div className="rounded-md border border-info/30 bg-info/10 p-3 text-sm mt-4">
                     <p className="text-muted-foreground">
-                      <strong>Re-exporting:</strong> If you update a work order after exporting, you can export again. EquipQR™ will update the existing draft invoice in QuickBooks rather than creating a duplicate.
+                      <strong>Re-exporting:</strong> If you update a work order after exporting, you can export again. EquipQR™ will update the existing draft invoice in QuickBooks rather than creating a duplicate. Note: This behavior only applies while the invoice remains in draft status in QuickBooks. If you've already sent or finalized the invoice in QuickBooks, a new invoice will be created on re-export.
                     </p>
                   </div>
                 </div>
