@@ -418,10 +418,11 @@ serve(async (req) => {
     logStep("ERROR", { message: errorMessage, stack: errorStack });
 
     // Get production URL for error redirect
-    // Use generic error message to prevent information exposure
     const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
     // Use qb_error params to avoid conflicting with Supabase auth error parsing
-    const errorUrl = `${productionUrl}/dashboard/organization?qb_error=oauth_failed&qb_error_description=${encodeURIComponent("Failed to connect QuickBooks. Please try again.")}`;
+    // Include actual error message for debugging (truncate if too long)
+    const debugMessage = errorMessage.length > 200 ? errorMessage.substring(0, 200) : errorMessage;
+    const errorUrl = `${productionUrl}/dashboard/organization?qb_error=oauth_failed&qb_error_description=${encodeURIComponent(debugMessage)}`;
     
     return Response.redirect(errorUrl, 302);
   }
