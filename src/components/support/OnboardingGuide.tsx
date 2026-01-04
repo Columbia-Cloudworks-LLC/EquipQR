@@ -488,7 +488,7 @@ const OnboardingGuide: React.FC = () => {
               <AccordionContent>
                 <div className="space-y-4 pl-6">
                   <p className="text-muted-foreground">
-                    Once connected and mapped, exporting a work order as an invoice takes just a few clicks.
+                    Once connected and mapped, you can export a work order as an invoice by following these steps.
                   </p>
                   <ol className="list-decimal list-inside space-y-2 text-sm">
                     <li>Open the <strong>work order</strong> you want to invoice.</li>
