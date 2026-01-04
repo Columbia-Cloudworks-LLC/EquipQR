@@ -105,6 +105,8 @@ export function useExportToQuickBooks() {
         invoiceId: data.invoice_id,
         invoiceNumber: data.invoice_number,
         isUpdate: data.is_update,
+        environment: data.environment,
+        pdfAttached: data.pdf_attached,
       };
     },
     onSuccess: (result) => {

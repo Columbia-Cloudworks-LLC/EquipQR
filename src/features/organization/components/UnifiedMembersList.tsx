@@ -13,28 +13,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Mail, UserMinus, UserPlus, Users, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/features/organization/hooks/useOrganizationInvitations';
-import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { useUpdateMemberRole, useRemoveMember } from '@/features/organization/hooks/useOrganizationMembers';
+import { useUpdateQuickBooksPermission } from '@/hooks/useQuickBooksAccess';
 import type { OrganizationMember } from '@/features/organization/types/organization';
 import { getRoleBadgeVariant } from '@/utils/badgeVariants';
 import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
 import { toast } from 'sonner';
+import { isQuickBooksEnabled } from '@/lib/flags';
 
 // Re-export type for backward compatibility
 export type RealOrganizationMember = OrganizationMember;
 
 interface UnifiedMember {
   id: string;
+  userId?: string;
   name: string;
   email: string;
   organizationRole: 'owner' | 'admin' | 'member';
-  teamCount: number;
   status: 'active' | 'pending_invite';
   joinedDate?: string;
   invitedDate?: string;
   type: 'member' | 'invitation';
+  canManageQuickBooks?: boolean;
 }
 
 interface UnifiedMembersListProps {
@@ -56,29 +60,32 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   
   const { data: invitations = [] } = useOrganizationInvitations(organizationId);
-  const { teamMemberships } = useTeamMembership();
   const resendInvitation = useResendInvitation(organizationId);
   const cancelInvitation = useCancelInvitation(organizationId);
   const updateMemberRole = useUpdateMemberRole(organizationId);
   const removeMember = useRemoveMember(organizationId);
+  const updateQuickBooksPermission = useUpdateQuickBooksPermission(organizationId);
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin';
+  const isOwner = currentUserRole === 'owner';
+  const quickBooksEnabled = isQuickBooksEnabled();
 
   // Combine members and pending invitations into unified list
   const unifiedMembers: UnifiedMember[] = useMemo(() => {
-    // Get team count for a user
-    const getTeamCount = (userId: string) => {
-      return teamMemberships.filter(tm => tm.team_id && userId).length;
-    };
+    // Note: we currently do not have per-user team membership data available in this component.
+    // We cannot accurately count or display team memberships for organization members.
+    // For now, we don't display team counts since we don't have the necessary data.
+    // TODO: If team counts are reintroduced, add a query to fetch team counts per organization member.
     const activeMembers: UnifiedMember[] = members.map(member => ({
       id: member.id,
+      userId: member.userId || member.id,
       name: member.name || 'Unknown',
       email: member.email || '',
       organizationRole: member.role as 'owner' | 'admin' | 'member',
-      teamCount: getTeamCount(member.id),
       status: 'active' as const,
       joinedDate: member.joinedDate,
-      type: 'member' as const
+      type: 'member' as const,
+      canManageQuickBooks: member.canManageQuickBooks,
     }));
 
     const pendingInvitations: UnifiedMember[] = invitations
@@ -88,7 +95,6 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
         name: 'Pending Invite',
         email: invitation.email,
         organizationRole: invitation.role as 'owner' | 'admin' | 'member',
-        teamCount: 0,
         status: 'pending_invite' as const,
         invitedDate: invitation.createdAt,
         type: 'invitation' as const
@@ -103,7 +109,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
       if (a.name !== 'Pending Invite' && b.name === 'Pending Invite') return -1;
       return a.name.localeCompare(b.name);
     });
-  }, [members, invitations, teamMemberships]);
+  }, [members, invitations]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -163,6 +169,13 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
     }
   };
 
+  const handleQuickBooksToggle = async (userId: string, canManage: boolean) => {
+    await updateQuickBooksPermission.mutateAsync({
+      targetUserId: userId,
+      canManageQuickBooks: canManage,
+    });
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -212,8 +225,19 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                 <TableHead>Member</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Teams</TableHead>
                 <TableHead>Status</TableHead>
+                {isOwner && quickBooksEnabled && (
+                  <TableHead>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="cursor-help">QuickBooks</TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">Allow admin to manage QuickBooks integration (connect, disconnect, export invoices)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableHead>
+                )}
                 {canManageMembers && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
@@ -267,11 +291,6 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {member.teamCount} {member.teamCount === 1 ? 'team' : 'teams'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize">
                       <div className="flex items-center gap-1">
                         {getStatusIcon(member.status)}
@@ -279,6 +298,47 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                       </div>
                     </Badge>
                   </TableCell>
+                  {isOwner && quickBooksEnabled && (
+                    <TableCell>
+                      {member.type === 'member' && member.organizationRole === 'admin' ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <Switch
+                                  checked={member.canManageQuickBooks ?? false}
+                                  onCheckedChange={(checked) => {
+                                    if (!member.userId) {
+                                      return;
+                                    }
+                                    handleQuickBooksToggle(member.userId, checked);
+                                  }}
+                                  disabled={updateQuickBooksPermission.isPending}
+                                  aria-label="Toggle QuickBooks management permission"
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{member.canManageQuickBooks ? 'Revoke QuickBooks access' : 'Grant QuickBooks access'}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : member.organizationRole === 'owner' ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="text-xs text-muted-foreground italic">Always</div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Owners always have QuickBooks management permission</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  )}
                   {canManageMembers && (
                     <TableCell className="text-right">
                       {member.organizationRole !== 'owner' && (

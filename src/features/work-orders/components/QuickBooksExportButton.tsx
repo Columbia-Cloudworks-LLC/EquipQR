@@ -16,7 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { FileSpreadsheet, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react';
+import { FileSpreadsheet, RefreshCw, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -24,9 +24,10 @@ import {
   getTeamCustomerMapping,
   getLastSuccessfulExport
 } from '@/services/quickbooks';
+import { getQuickBooksInvoiceUrl } from '@/services/quickbooks/types';
 import { useExportToQuickBooks } from '@/hooks/useExportToQuickBooks';
+import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { isQuickBooksEnabled } from '@/lib/flags';
-import { usePermissions } from '@/hooks/usePermissions';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 
 interface QuickBooksExportButtonProps {
@@ -59,13 +60,12 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   onExportSuccess
 }) => {
   const { currentOrganization } = useOrganization();
-  const permissions = usePermissions();
-
-  // Check permissions
-  const canExport = permissions.hasRole(['owner', 'admin']);
 
   // Check if feature is enabled
   const featureEnabled = isQuickBooksEnabled();
+
+  // Check QuickBooks management permission
+  const { data: canExport = false, isLoading: permissionLoading } = useQuickBooksAccess();
 
   // Query for connection status
   const { data: connectionStatus, isLoading: connectionLoading } = useQuery({
@@ -100,12 +100,22 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
 
   // Determine button state and tooltip
   const isExporting = exportMutation.isPending;
-  const isLoading = connectionLoading || mappingLoading || isExporting;
+  const isLoading = connectionLoading || mappingLoading || isExporting || permissionLoading;
   const isConnected = connectionStatus?.isConnected;
   const hasMapping = !!teamMapping;
   const hasTeam = !!teamId;
   const alreadyExported = !!existingExport;
   const isCompleted = workOrderStatus === 'completed';
+
+  // Calculate invoice display once for reuse in tooltip and button content
+  // Only show invoice label when we have valid identifiers; otherwise treat as no export for display
+  // This avoids confusing "Update Invoice Unknown" text for malformed/incomplete export records
+  const hasInvoiceIdentifiers = Boolean(
+    existingExport?.quickbooks_invoice_number || existingExport?.quickbooks_invoice_id
+  );
+  const invoiceDisplay = alreadyExported && hasInvoiceIdentifiers
+    ? (existingExport.quickbooks_invoice_number || existingExport.quickbooks_invoice_id)
+    : null;
 
   let tooltipMessage = '';
   let isDisabled = false;
@@ -125,11 +135,16 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   } else if (isExporting) {
     tooltipMessage = 'Exporting...';
     isDisabled = true;
-  } else if (alreadyExported) {
-    tooltipMessage = `Previously exported as Invoice ${existingExport.quickbooks_invoice_id}. Click to update.`;
+  } else if (alreadyExported && hasInvoiceIdentifiers) {
+    tooltipMessage = `Previously exported as Invoice ${invoiceDisplay}. Click to update.`;
   } else {
     tooltipMessage = 'Export work order as a draft invoice in QuickBooks';
   }
+
+  // Build invoice URL if we have the data
+  const invoiceUrl = alreadyExported && existingExport.quickbooks_invoice_id && existingExport.quickbooks_environment
+    ? getQuickBooksInvoiceUrl(existingExport.quickbooks_invoice_id, existingExport.quickbooks_environment)
+    : null;
 
   const handleExport = () => {
     if (isDisabled) return;
@@ -140,20 +155,31 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     });
   };
 
+  // Use hasInvoiceIdentifiers for display consistency - malformed exports show as new export
+  const showAsUpdate = alreadyExported && hasInvoiceIdentifiers;
+  
   const buttonContent = (
     <>
       {isLoading ? (
         <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-      ) : alreadyExported ? (
+      ) : showAsUpdate ? (
         <CheckCircle className="h-4 w-4 mr-2" />
       ) : isDisabled ? (
         <AlertTriangle className="h-4 w-4 mr-2" />
       ) : (
         <FileSpreadsheet className="h-4 w-4 mr-2" />
       )}
-      {alreadyExported ? 'Update QuickBooks Invoice' : 'Export to QuickBooks'}
+      {showAsUpdate ? `Update Invoice ${invoiceDisplay}` : 'Export to QuickBooks'}
     </>
   );
+
+  // Handle opening the invoice in QuickBooks
+  const handleViewInvoice = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (invoiceUrl) {
+      window.open(invoiceUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   if (asMenuItem) {
     return (
@@ -173,6 +199,51 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+    );
+  }
+
+  // When already exported, show both update and view buttons
+  if (alreadyExported && invoiceUrl) {
+    return (
+      <div className="flex items-center gap-1">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExport}
+                  disabled={isDisabled || isLoading}
+                >
+                  {buttonContent}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs">{tooltipMessage}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleViewInvoice}
+                aria-label="View invoice in QuickBooks"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Open Invoice {invoiceDisplay} in QuickBooks</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     );
   }
 

@@ -18,12 +18,15 @@ export type OrganizationMemberStatus = 'active' | 'pending' | 'inactive';
  */
 export interface OrganizationMember {
   id: string;
+  userId: string;
   name: string;
   email: string;
   role: OrganizationMemberRole;
   joinedDate: string;
   avatar?: string;
   status: OrganizationMemberStatus;
+  /** Whether this member can manage QuickBooks integration (admins only, owners always can) */
+  canManageQuickBooks?: boolean;
 }
 
 /**
