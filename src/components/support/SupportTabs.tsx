@@ -130,7 +130,7 @@ const FAQSection: React.FC = () => {
                   <li>The invoice is created as a draft in QuickBooks</li>
                 </ol>
                 <p className="text-sm text-muted-foreground mt-2">
-                  <strong>Requirements:</strong> QuickBooks must be connected, the work order must be assigned to a team, and that team must be mapped to a QuickBooks customer.
+                  <strong>Requirements:</strong> QuickBooks must be connected, the work order's equipment must belong to a team, and that team must be mapped to a QuickBooks customer.
                 </p>
               </div>
             </AccordionContent>
@@ -143,8 +143,8 @@ const FAQSection: React.FC = () => {
                 <p>If the export option is disabled or you see an error, check these common issues:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li><strong>QuickBooks not connected:</strong> Go to Organization Settings → Integrations to connect</li>
-                  <li><strong>Missing customer mapping:</strong> The work order's team must be mapped to a QuickBooks customer</li>
-                  <li><strong>Work order not assigned to a team:</strong> Assign the work order to a team first</li>
+                  <li><strong>Missing customer mapping:</strong> The equipment's team must be mapped to a QuickBooks customer</li>
+                  <li><strong>Equipment not assigned to a team:</strong> The work order's equipment must belong to a team</li>
                   <li><strong>Insufficient permissions:</strong> Only Admins and Owners can export invoices</li>
                   <li><strong>Connection expired:</strong> Click "Reconnect QuickBooks" in Organization Settings</li>
                 </ul>
