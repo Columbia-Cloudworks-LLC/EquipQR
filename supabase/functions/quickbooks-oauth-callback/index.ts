@@ -273,7 +273,10 @@ serve(async (req) => {
     const redirectUri = `${redirectBaseUrl}/functions/v1/quickbooks-oauth-callback`;
 
     // Exchange authorization code for tokens
-    logStep("Exchanging code for tokens");
+    logStep("Exchanging code for tokens", {
+      redirect_uri: redirectUri,
+      token_url: INTUIT_TOKEN_URL
+    });
     
     const tokenRequestBody = new URLSearchParams({
       grant_type: "authorization_code",
