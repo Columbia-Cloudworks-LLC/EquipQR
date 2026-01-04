@@ -445,7 +445,7 @@ const OnboardingGuide: React.FC = () => {
                     <li>You'll be redirected back to EquipQR™ with a success message.</li>
                   </ol>
                   <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                    <strong>Note:</strong> Your QuickBooks connection stays active for 100 days. EquipQR™ automatically refreshes the connection in the background, so you typically won't need to reconnect.
+                    <strong>Note:</strong> QuickBooks connections require renewal every 100 days, but EquipQR™ automatically refreshes the connection in the background, so you typically won't need to reconnect manually.
                   </div>
                 </div>
               </AccordionContent>
