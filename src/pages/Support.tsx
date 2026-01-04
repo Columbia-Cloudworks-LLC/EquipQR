@@ -93,7 +93,7 @@ const Support: React.FC = () => {
               </p>
               <Button asChild>
                 <a href="/auth" className="inline-flex items-center gap-2">
-                  Start Free Trial
+                  Get Started
                   <ArrowRight className="h-4 w-4" />
                 </a>
               </Button>
