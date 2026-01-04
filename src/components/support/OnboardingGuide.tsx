@@ -14,7 +14,11 @@ import {
   QrCode,
   Clock,
   CheckCircle2,
-  Package
+  Package,
+  Link2,
+  Building2,
+  FileText,
+  AlertCircle
 } from "lucide-react";
 import type React from "react";
 
@@ -382,6 +386,135 @@ const OnboardingGuide: React.FC = () => {
               <span className="font-medium">You're all set! Your repair shop is now fully operational.</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Phase 6: QuickBooks Integration */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                Phase 6: QuickBooks Integration
+                <Badge variant="secondary">Billing & Invoicing</Badge>
+              </CardTitle>
+              <CardDescription>
+                Export work orders as draft invoices directly to QuickBooks Online
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-muted-foreground">
+              Streamline your billing process by connecting EquipQR™ to QuickBooks Online. Once connected, you can export completed work orders as draft invoices with all the relevant details.
+            </p>
+            <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 text-warning" />
+                <div>
+                  <p className="font-medium text-warning">Admin/Owner Access Required</p>
+                  <p className="text-muted-foreground">Only organization Admins and Owners can connect QuickBooks and export invoices.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <Accordion type="single" collapsible className="w-full mt-4">
+            <AccordionItem value="connect-quickbooks">
+              <AccordionTrigger className="text-left">
+                <div className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4" />
+                  1. Connecting QuickBooks
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4 pl-6">
+                  <p className="text-muted-foreground">
+                    Connect your QuickBooks Online account to enable invoice exports. This is a one-time setup.
+                  </p>
+                  <ol className="list-decimal list-inside space-y-2 text-sm">
+                    <li>Navigate to <strong>Organization</strong> in the main sidebar.</li>
+                    <li>Select the <strong>Settings</strong> tab.</li>
+                    <li>Scroll down to find the <strong>Integrations</strong> section.</li>
+                    <li>Click <strong>"Connect to QuickBooks Online"</strong>.</li>
+                    <li>You will be redirected to Intuit (QuickBooks) to authorize the connection.</li>
+                    <li>Sign in with your QuickBooks credentials and grant access.</li>
+                    <li>You'll be redirected back to EquipQR™ with a success message.</li>
+                  </ol>
+                  <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                    <strong>Note:</strong> Your QuickBooks connection stays active for 100 days. EquipQR™ automatically refreshes the connection in the background, so you typically won't need to reconnect.
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="map-customers">
+              <AccordionTrigger className="text-left">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  2. Mapping Teams to Customers
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4 pl-6">
+                  <p className="text-muted-foreground">
+                    Before you can export invoices, you need to tell EquipQR™ which QuickBooks customer corresponds to each Team. This mapping ensures invoices are created for the correct customer.
+                  </p>
+                  <ol className="list-decimal list-inside space-y-2 text-sm">
+                    <li>Navigate to <strong>Teams</strong> in the main sidebar.</li>
+                    <li>Select the team you want to configure.</li>
+                    <li>Look for the <strong>QuickBooks Customer</strong> card on the team page.</li>
+                    <li>Click <strong>"Select Customer"</strong> to search your QuickBooks customers.</li>
+                    <li>Select the matching customer from the search results.</li>
+                    <li>The mapping is saved automatically.</li>
+                  </ol>
+                  <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                    <strong>Tip:</strong> Set up all your team-customer mappings before you start exporting. This ensures a smooth billing workflow from day one.
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="export-invoices">
+              <AccordionTrigger className="text-left">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  3. Exporting Invoices
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4 pl-6">
+                  <p className="text-muted-foreground">
+                    Once connected and mapped, exporting a work order as an invoice takes just a few clicks.
+                  </p>
+                  <ol className="list-decimal list-inside space-y-2 text-sm">
+                    <li>Open the <strong>Work Order</strong> you want to invoice.</li>
+                    <li>Click the <strong>"Take Action"</strong> dropdown button.</li>
+                    <li>Select <strong>"Export to QuickBooks"</strong>.</li>
+                    <li>The invoice is created as a <strong>draft</strong> in QuickBooks.</li>
+                    <li>Review and send the invoice from within QuickBooks.</li>
+                  </ol>
+                  <div className="mt-4 space-y-2">
+                    <p className="text-sm font-medium">What's included in the invoice:</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      <li><strong>Line Item:</strong> Work order costs as a single service line</li>
+                      <li><strong>Description:</strong> Work order details, equipment info, and public notes</li>
+                      <li><strong>Private Note:</strong> Internal details like dates and cost breakdown</li>
+                      <li><strong>PDF Attachment:</strong> Work order summary document (if enabled)</li>
+                    </ul>
+                  </div>
+                  <div className="rounded-md border border-info/30 bg-info/10 p-3 text-sm mt-4">
+                    <p className="text-muted-foreground">
+                      <strong>Re-exporting:</strong> If you update a work order after exporting, you can export again. EquipQR™ will update the existing draft invoice in QuickBooks rather than creating a duplicate.
+                    </p>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </CardContent>
       </Card>
     </div>

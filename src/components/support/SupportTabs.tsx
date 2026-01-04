@@ -98,6 +98,78 @@ const FAQSection: React.FC = () => {
               </div>
             </AccordionContent>
           </AccordionItem>
+
+          <AccordionItem value="quickbooks-connect">
+            <AccordionTrigger>How do I connect QuickBooks to EquipQR™?</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-3">
+                <p>Connect your QuickBooks Online account to export invoices:</p>
+                <ol className="list-decimal list-inside space-y-2 ml-4">
+                  <li>Navigate to <strong>Organization</strong> in the sidebar</li>
+                  <li>Select the <strong>Settings</strong> tab</li>
+                  <li>Find the <strong>Integrations</strong> section</li>
+                  <li>Click <strong>"Connect to QuickBooks Online"</strong></li>
+                  <li>Sign in to your QuickBooks account and authorize access</li>
+                </ol>
+                <p className="text-sm text-muted-foreground mt-2">
+                  <strong>Note:</strong> Only organization Admins and Owners can connect QuickBooks. See the Guide tab for detailed setup instructions.
+                </p>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="quickbooks-export">
+            <AccordionTrigger>How do I export work orders as invoices?</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-3">
+                <p>To export a work order as a draft invoice to QuickBooks:</p>
+                <ol className="list-decimal list-inside space-y-2 ml-4">
+                  <li>Open the work order you want to invoice</li>
+                  <li>Click the <strong>"Take Action"</strong> dropdown</li>
+                  <li>Select <strong>"Export to QuickBooks"</strong></li>
+                  <li>The invoice is created as a draft in QuickBooks</li>
+                </ol>
+                <p className="text-sm text-muted-foreground mt-2">
+                  <strong>Requirements:</strong> QuickBooks must be connected, the work order must be assigned to a team, and that team must be mapped to a QuickBooks customer.
+                </p>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="quickbooks-troubleshoot">
+            <AccordionTrigger>Why can't I export a work order to QuickBooks?</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-3">
+                <p>If the export option is disabled or you see an error, check these common issues:</p>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>QuickBooks not connected:</strong> Go to Organization Settings → Integrations to connect</li>
+                  <li><strong>Missing customer mapping:</strong> The work order's team must be mapped to a QuickBooks customer</li>
+                  <li><strong>Work order not assigned to a team:</strong> Assign the work order to a team first</li>
+                  <li><strong>Insufficient permissions:</strong> Only Admins and Owners can export invoices</li>
+                  <li><strong>Connection expired:</strong> Click "Reconnect QuickBooks" in Organization Settings</li>
+                </ul>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="quickbooks-invoice-details">
+            <AccordionTrigger>What information is included in exported invoices?</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-3">
+                <p>Exported invoices include comprehensive work order details:</p>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Line item:</strong> Total cost as a single service line ("EquipQR Services")</li>
+                  <li><strong>Description:</strong> Work order details, equipment information, and public notes</li>
+                  <li><strong>Private note:</strong> Internal details like work order ID, dates, and cost breakdown</li>
+                  <li><strong>Customer memo:</strong> Work order title for customer reference</li>
+                  <li><strong>PDF attachment:</strong> Summary document with work order details (if enabled)</li>
+                </ul>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Invoices are created as <strong>drafts</strong> in QuickBooks, allowing you to review and edit before sending to customers.
+                </p>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
       </CardContent>
     </Card>
@@ -458,6 +530,17 @@ const BestPracticesSection: React.FC = () => {
               <li>Assign work orders to teams based on expertise and availability</li>
               <li>Communicate progress updates regularly</li>
               <li>Share knowledge and best practices within teams</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-medium mb-2">QuickBooks Integration</h4>
+            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+              <li>Set up team-customer mappings before starting work orders</li>
+              <li>Keep work order costs up-to-date before exporting invoices</li>
+              <li>Use clear work order descriptions (they appear in invoice descriptions)</li>
+              <li>Review exported invoices in QuickBooks before sending to customers</li>
+              <li>Map all active teams to QuickBooks customers proactively</li>
+              <li>Check QuickBooks connection status periodically in Organization Settings</li>
             </ul>
           </div>
         </div>
