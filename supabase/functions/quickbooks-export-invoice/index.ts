@@ -1238,7 +1238,8 @@ serve(async (req) => {
         // Format: WO-XXXXXXXX (first 8 chars of work order UUID, uppercase)
         // This ensures uniqueness since work order IDs are UUIDs
         // QuickBooks requires this when "Custom transaction numbers" is enabled in company settings
-        const generatedDocNumber = `WO-${work_order_id.substring(0, 8).toUpperCase()}`;
+        const workOrderIdStr = typeof work_order_id === "string" ? work_order_id : String(work_order_id ?? "");
+        const generatedDocNumber = `WO-${workOrderIdStr.substring(0, 8).toUpperCase()}`;
         logStep("Creating new invoice", { docNumber: generatedDocNumber });
 
         const newInvoice: QuickBooksInvoice = {
