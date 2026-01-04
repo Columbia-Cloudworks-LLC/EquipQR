@@ -220,13 +220,14 @@ function buildInvoiceDescription(
     lines.push(workOrder.description);
   }
   
-  // Add public notes
+  // Add public notes (customer-facing: date only, no author attribution)
   const publicNotes = notes.filter(n => !n.is_private);
   if (publicNotes.length > 0) {
     lines.push('');
     lines.push('Notes:');
     publicNotes.forEach(note => {
-      lines.push(`- ${note.content} (${note.author_name || 'Unknown'} - ${new Date(note.created_at).toLocaleDateString()})`);
+      const noteDate = new Date(note.created_at).toLocaleDateString('en-US');
+      lines.push(`- ${note.content} (${noteDate})`);
     });
   }
   
@@ -244,12 +245,12 @@ function buildPrivateNote(
   const lines: string[] = [];
   
   lines.push(`EquipQR Work Order ID: ${workOrder.id}`);
-  lines.push(`Created: ${new Date(workOrder.created_date).toLocaleDateString()}`);
+  lines.push(`Created: ${new Date(workOrder.created_date).toLocaleDateString('en-US')}`);
   if (workOrder.due_date) {
-    lines.push(`Due: ${new Date(workOrder.due_date).toLocaleDateString()}`);
+    lines.push(`Due: ${new Date(workOrder.due_date).toLocaleDateString('en-US')}`);
   }
   if (workOrder.completed_date) {
-    lines.push(`Completed: ${new Date(workOrder.completed_date).toLocaleDateString()}`);
+    lines.push(`Completed: ${new Date(workOrder.completed_date).toLocaleDateString('en-US')}`);
   }
   
   // Add private notes
@@ -522,9 +523,9 @@ async function generateWorkOrderPDF(
       addText(`Customer: ${workOrder.equipment.team.name}`, fontSize);
     }
 
-    addText(`Created: ${new Date(workOrder.created_date).toLocaleDateString()}`, fontSize);
+    addText(`Created: ${new Date(workOrder.created_date).toLocaleDateString('en-US')}`, fontSize);
     if (workOrder.completed_date) {
-      addText(`Completed: ${new Date(workOrder.completed_date).toLocaleDateString()}`, fontSize);
+      addText(`Completed: ${new Date(workOrder.completed_date).toLocaleDateString('en-US')}`, fontSize);
     }
 
     yPosition -= 5;
@@ -536,13 +537,12 @@ async function generateWorkOrderPDF(
       yPosition -= 5;
     }
 
-    // Public Notes
+    // Public Notes (customer-facing: date only, no author attribution)
     if (publicNotes.length > 0) {
       addText('Notes:', fontSize, true);
       publicNotes.forEach(note => {
-        const noteDate = new Date(note.created_at).toLocaleDateString();
-        const author = note.author_name || 'Unknown';
-        addText(`- ${note.content} (${author} - ${noteDate})`, fontSize);
+        const noteDate = new Date(note.created_at).toLocaleDateString('en-US');
+        addText(`- ${note.content} (${noteDate})`, fontSize);
       });
       yPosition -= 5;
     }
