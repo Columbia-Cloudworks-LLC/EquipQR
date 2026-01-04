@@ -500,10 +500,10 @@ const OnboardingGuide: React.FC = () => {
                   <div className="mt-4 space-y-2">
                     <p className="text-sm font-medium">What's included in the invoice:</p>
                     <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                      <li><strong>Line Item:</strong> Work order costs as a single service line</li>
+                      <li><strong>Line item:</strong> Work order costs as a single service line</li>
                       <li><strong>Description:</strong> Work order details, equipment info, and public notes</li>
-                      <li><strong>Private Note:</strong> Internal details like dates and cost breakdown</li>
-                      <li><strong>PDF Attachment:</strong> Work order summary document (if enabled)</li>
+                      <li><strong>Private note:</strong> Internal details like dates and cost breakdown</li>
+                      <li><strong>PDF attachment:</strong> Work order summary document (if enabled)</li>
                     </ul>
                   </div>
                   <div className="rounded-md border border-info/30 bg-info/10 p-3 text-sm mt-4">
