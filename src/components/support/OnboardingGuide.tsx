@@ -440,7 +440,7 @@ const OnboardingGuide: React.FC = () => {
                     <li>Select the <strong>Settings</strong> tab.</li>
                     <li>Scroll down to find the <strong>Integrations</strong> section.</li>
                     <li>Click <strong>"Connect to QuickBooks Online"</strong>.</li>
-                    <li>You will be redirected to Intuit (QuickBooks) to authorize the connection.</li>
+                    <li>You will be redirected to QuickBooks to authorize the connection.</li>
                     <li>Sign in with your QuickBooks credentials and grant access.</li>
                     <li>You'll be redirected back to EquipQR™ with a success message.</li>
                   </ol>
