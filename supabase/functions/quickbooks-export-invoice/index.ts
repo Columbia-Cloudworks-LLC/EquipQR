@@ -1234,9 +1234,15 @@ serve(async (req) => {
 
       } else {
         // Create new invoice
-        logStep("Creating new invoice");
+        // Generate invoice number from work order ID
+        // Format: WO-XXXXXXXX (uses the first 8 characters of the work order UUID, uppercase)
+        // This ensures uniqueness since work order IDs are UUIDs
+        // QuickBooks requires this when "Custom transaction numbers" is enabled in company settings
+        const generatedDocNumber = `WO-${work_order_id.substring(0, 8).toUpperCase()}`;
+        logStep("Creating new invoice", { docNumber: generatedDocNumber });
 
         const newInvoice: QuickBooksInvoice = {
+          DocNumber: generatedDocNumber,
           CustomerRef: { value: customerMapping.quickbooks_customer_id },
           Line: [
             {

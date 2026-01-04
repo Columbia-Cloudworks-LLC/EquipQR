@@ -297,18 +297,10 @@ serve(async (req) => {
     });
 
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      // Sanitize error text for logging - truncate and remove potential sensitive data
-      const sanitizedError = errorText.length > 200 
-        ? errorText.substring(0, 200) + '...' 
-        : errorText;
-      logStep("Token exchange failed", { 
-        status: tokenResponse.status, 
-        statusText: tokenResponse.statusText,
-        error: sanitizedError 
-      });
-      // Don't include errorText in thrown error to prevent information exposure
-      throw new Error(`Token exchange failed: ${tokenResponse.status} ${tokenResponse.statusText}`);
+      // Log only the HTTP status code - statusText may contain sensitive info from API provider
+      logStep("Token exchange failed", { status: tokenResponse.status });
+      // Throw generic error - do not expose Intuit error details to client
+      throw new Error("Failed to exchange authorization code. Please try again.");
     }
 
     const tokenData: IntuitTokenResponse = await tokenResponse.json();
@@ -414,15 +406,14 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    logStep("ERROR", { message: errorMessage, stack: errorStack });
+    logStep("ERROR", { message: errorMessage });
 
     // Get production URL for error redirect
     const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
     // Use qb_error params to avoid conflicting with Supabase auth error parsing
-    // Include actual error message for debugging (truncate if too long)
-    const debugMessage = errorMessage.length > 200 ? errorMessage.substring(0, 200) : errorMessage;
-    const errorUrl = `${productionUrl}/dashboard/organization?qb_error=oauth_failed&qb_error_description=${encodeURIComponent(debugMessage)}`;
+    // Use generic user-friendly message - do not expose internal error details
+    const userMessage = "Failed to connect QuickBooks. Please try again.";
+    const errorUrl = `${productionUrl}/dashboard/organization?qb_error=oauth_failed&qb_error_description=${encodeURIComponent(userMessage)}`;
     
     return Response.redirect(errorUrl, 302);
   }
