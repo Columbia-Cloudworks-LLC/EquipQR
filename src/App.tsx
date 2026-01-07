@@ -77,8 +77,8 @@ function App() {
         <Route path="/solutions/repair-shops" element={<Suspense fallback={<div>Loading...</div>}><RepairShops /></Suspense>} />
         <Route path="/support" element={<Suspense fallback={<div>Loading...</div>}><Support /></Suspense>} />
         <Route path="/invitation/:token" element={<Suspense fallback={<div>Loading...</div>}><InvitationAccept /></Suspense>} />
-        <Route path="/qr/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><QRRedirect /></Suspense>} />
         <Route path="/qr/inventory/:itemId" element={<Suspense fallback={<div>Loading...</div>}><InventoryQRRedirect /></Suspense>} />
+        <Route path="/qr/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><QRRedirect /></Suspense>} />
         <Route path="/terms-of-service" element={<Suspense fallback={<div>Loading...</div>}><TermsOfService /></Suspense>} />
         <Route path="/privacy-policy" element={<Suspense fallback={<div>Loading...</div>}><PrivacyPolicy /></Suspense>} />
 
