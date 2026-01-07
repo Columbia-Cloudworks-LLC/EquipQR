@@ -58,6 +58,12 @@ const RedirectToEquipment = () => {
   return <Navigate to={`/dashboard/equipment/${equipmentId}`} replace />;
 };
 
+// Legacy QR route redirect: /qr/:equipmentId -> /qr/equipment/:equipmentId
+const RedirectLegacyQRToEquipmentQR = () => {
+  const { equipmentId } = useParams<{ equipmentId: string }>();
+  return <Navigate to={`/qr/equipment/${equipmentId}`} replace />;
+};
+
 const RedirectToWorkOrder = () => {
   const { workOrderId } = useParams();
   return <Navigate to={`/dashboard/work-orders/${workOrderId}`} replace />;
@@ -78,7 +84,8 @@ function App() {
         <Route path="/support" element={<Suspense fallback={<div>Loading...</div>}><Support /></Suspense>} />
         <Route path="/invitation/:token" element={<Suspense fallback={<div>Loading...</div>}><InvitationAccept /></Suspense>} />
         <Route path="/qr/inventory/:itemId" element={<Suspense fallback={<div>Loading...</div>}><InventoryQRRedirect /></Suspense>} />
-        <Route path="/qr/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><QRRedirect /></Suspense>} />
+        <Route path="/qr/equipment/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><QRRedirect /></Suspense>} />
+        <Route path="/qr/:equipmentId" element={<RedirectLegacyQRToEquipmentQR />} />
         <Route path="/terms-of-service" element={<Suspense fallback={<div>Loading...</div>}><TermsOfService /></Suspense>} />
         <Route path="/privacy-policy" element={<Suspense fallback={<div>Loading...</div>}><PrivacyPolicy /></Suspense>} />
 

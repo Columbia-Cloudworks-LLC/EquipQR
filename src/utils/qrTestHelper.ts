@@ -11,7 +11,7 @@ export const QRTestHelper = {
    */
   simulateQRScan: (equipmentId: string) => {
     logger.debug('Simulating QR scan for equipment', { equipmentId });
-    window.location.href = `/qr/${equipmentId}`;
+    window.location.href = `/qr/equipment/${equipmentId}`;
   },
 
   /**

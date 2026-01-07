@@ -21,8 +21,8 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
   const [selectedFormat, setSelectedFormat] = React.useState<'png' | 'jpg'>('png');
   const isMobile = useIsMobile();
 
-  // Generate QR code URL - using the new /qr/ route for seamless authentication
-  const qrCodeUrl = `${window.location.origin}/qr/${equipmentId}`;
+  // Generate QR code URL - use explicit route to avoid collisions with other QR types
+  const qrCodeUrl = `${window.location.origin}/qr/equipment/${equipmentId}`;
 
   const generateQRCode = React.useCallback(async () => {
     try {
