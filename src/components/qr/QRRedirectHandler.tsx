@@ -73,7 +73,7 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
               <span>Organization Switch Required</span>
             </CardTitle>
             <CardDescription>
-              This equipment belongs to a different organization
+              This {state.equipmentInfo ? 'equipment' : 'item'} belongs to a different organization
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
