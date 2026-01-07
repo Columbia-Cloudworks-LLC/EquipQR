@@ -88,7 +88,7 @@ describe('QRCodeDisplay', () => {
       
       await waitFor(() => {
         expect(mockQRCode.default.toDataURL).toHaveBeenCalledWith(
-          'https://test.com/qr/test-equipment-id',
+          'https://test.com/qr/equipment/test-equipment-id',
           expect.objectContaining({
             width: 256,
             margin: 2,
@@ -134,7 +134,7 @@ describe('QRCodeDisplay', () => {
     it('displays the correct QR code URL', () => {
       render(<QRCodeDisplay {...defaultProps} />);
       
-      expect(screen.getByText('https://test.com/qr/test-equipment-id')).toBeInTheDocument();
+      expect(screen.getByText('https://test.com/qr/equipment/test-equipment-id')).toBeInTheDocument();
     });
 
     it('shows copy button for URL', () => {
@@ -153,7 +153,7 @@ describe('QRCodeDisplay', () => {
       fireEvent.click(copyButton);
       
       await waitFor(() => {
-        expect(navigator.clipboard.writeText).toHaveBeenCalledWith('https://test.com/qr/test-equipment-id');
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith('https://test.com/qr/equipment/test-equipment-id');
         expect(mockToast.toast.success).toHaveBeenCalledWith('QR code URL copied to clipboard');
       });
     });
@@ -301,7 +301,7 @@ describe('QRCodeDisplay', () => {
     it('generates URL with correct equipment ID', () => {
       render(<QRCodeDisplay {...defaultProps} equipmentId="different-id" />);
       
-      expect(screen.getByText('https://test.com/qr/different-id')).toBeInTheDocument();
+      expect(screen.getByText('https://test.com/qr/equipment/different-id')).toBeInTheDocument();
     });
   });
 });
