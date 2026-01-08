@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.8] - 2026-01-07
+
+### Changed
+
+- **Work Order Card Consolidation**: Refactored legacy `DesktopWorkOrderCard` and `MobileWorkOrderCard` components to use the unified `WorkOrderCard` component
+  - Reduced code duplication by routing both legacy wrappers through a single implementation
+  - Maintains backward compatibility while eliminating hundreds of lines of duplicated code
+  - Improved maintainability and consistency across desktop and mobile views
+
+### Fixed
+
+- Fixed ESLint unused variable warnings across multiple components
+- Added `.cursor/` directory to `.gitignore` to prevent committing local development artifacts
+
+## [1.7.7] - 2026-01-07
+
+_Changes for this version were not documented in the changelog._
+
 ## [1.7.4] - 2026-01-02
 
 ### Removed
@@ -63,7 +81,9 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.4...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.8...HEAD
+[1.7.8]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.7...v1.7.8
+[1.7.7]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.4...v1.7.7
 [1.7.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.3...v1.7.4
 [1.7.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.1...v1.7.2
