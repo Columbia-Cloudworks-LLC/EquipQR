@@ -16,17 +16,13 @@
  */
 
 import React, { memo, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Clock, User, Users, UserX, AlertTriangle, Loader2 } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Calendar, Clock, User, Users, UserX, AlertTriangle, Cog } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
-import { useWorkOrderStatusUpdate } from '@/features/work-orders/hooks/useWorkOrderStatusUpdate';
-import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
-import { useWorkOrderContextualAssignment } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
-import { ensureWorkOrderData } from '@/features/work-orders/utils/workOrderTypeConversion';
 import { 
   getStatusColor, 
   formatStatus, 
@@ -38,7 +34,6 @@ import PMProgressIndicator from './PMProgressIndicator';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
 import type { WorkOrder, WorkOrderData } from '@/features/work-orders/types/workOrder';
-import type { Database } from '@/integrations/supabase/types';
 import type { AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 
 // ============================================
@@ -260,215 +255,108 @@ DesktopCard.displayName = 'DesktopCard';
 // Mobile Card Component
 // ============================================
 
-const MobileCard: React.FC<WorkOrderCardProps> = memo(({
+type MobileCardProps = Pick<WorkOrderCardProps, 'workOrder' | 'onNavigate'>;
+
+const MobileCard: React.FC<MobileCardProps> = memo(({
   workOrder,
-  onAcceptClick,
-  onStatusUpdate,
-  isUpdating,
-  isAccepting
+  onNavigate,
 }) => {
-  const permissions = useUnifiedPermissions();
-  const statusUpdateMutation = useWorkOrderStatusUpdate();
-  const assignmentMutation = useQuickWorkOrderAssignment();
-  const { assignmentOptions, isLoading: isLoadingAssignees } = useWorkOrderContextualAssignment(workOrder);
+  const dueDateValue = workOrder.dueDate ?? workOrder.due_date;
+  const createdDateValue = workOrder.createdDate ?? workOrder.created_date;
+  const assigneeName =
+    workOrder.assigneeName ??
+    workOrder.assignee_name ??
+    workOrder.assignedTo?.name ??
+    undefined;
 
-  const workOrderPermissions = permissions.workOrders.getDetailedPermissions(ensureWorkOrderData(workOrder));
-  const canChangeStatus = workOrderPermissions.canChangeStatus;
+  const initials = useMemo(() => {
+    if (!assigneeName) return '?';
+    const chars = assigneeName
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase();
+    return chars.slice(0, 2) || '?';
+  }, [assigneeName]);
 
-  const handleStatusUpdate = (newStatus: Database["public"]["Enums"]["work_order_status"]) => {
-    statusUpdateMutation.mutate({
-      workOrderId: workOrder.id,
-      newStatus
-    }, {
-      onSuccess: () => {
-        onStatusUpdate?.(workOrder.id, newStatus);
-      }
-    });
-  };
-
-  const handleAssignmentChange = async (assigneeId: string | null) => {
-    try {
-      await assignmentMutation.mutateAsync({
-        workOrderId: workOrder.id,
-        assigneeId,
-        organizationId: workOrder.organizationId
-      });
-    } catch {
-      // Error is handled in the mutation
-    }
-  };
+  const isInteractive = Boolean(onNavigate);
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card
+      className={cn(
+        "transition-shadow",
+        isInteractive && "hover:shadow-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      )}
+      role={isInteractive ? "button" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      onClick={isInteractive ? () => onNavigate(workOrder.id) : undefined}
+      onKeyDown={isInteractive ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          onNavigate(workOrder.id);
+        }
+      } : undefined}
+    >
       <CardHeader className="pb-3">
-        <div className="space-y-3">
-          <div>
-            <CardTitle className="text-base leading-tight">{workOrder.title}</CardTitle>
-            {workOrder.equipmentName && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Equipment: {workOrder.equipmentName}
-              </p>
-            )}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base leading-tight truncate">
+              {workOrder.title}
+            </CardTitle>
           </div>
-
-          <CardDescription className="text-sm line-clamp-2">
-            {workOrder.description}
-          </CardDescription>
+          <Badge
+            className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs flex-shrink-0")}
+            variant="outline"
+          >
+            {formatStatus(workOrder.status)}
+          </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
-        <div className="space-y-4">
-          {/* PM Progress Indicator */}
-          {workOrder.has_pm && (
-            <div className="pb-2 border-b">
-              <PMProgressIndicator 
-                workOrderId={workOrder.id} 
-                hasPM={workOrder.has_pm} 
-              />
-            </div>
-          )}
+      <CardContent className="pt-0 space-y-3">
+        {workOrder.equipmentName && (
+          <div className="rounded-md bg-muted/50 p-2.5 flex items-center gap-2.5">
+            <Cog className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+            <span className="font-semibold text-sm truncate">
+              {workOrder.equipmentName}
+            </span>
+          </div>
+        )}
 
-          <div className="space-y-2 text-sm">
-            {/* Status - Editable Field */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Status:</span>
-              {canChangeStatus ? (
-                <Select
-                  value={workOrder.status}
-                  onValueChange={(value) => handleStatusUpdate(value as Database["public"]["Enums"]["work_order_status"])}
-                  disabled={statusUpdateMutation.isPending}
-                >
-                  <SelectTrigger className={`h-8 w-full max-w-[180px] ${getStatusColor(workOrder.status)} border`}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="submitted">{formatStatus('submitted')}</SelectItem>
-                    <SelectItem value="accepted">{formatStatus('accepted')}</SelectItem>
-                    <SelectItem value="assigned">{formatStatus('assigned')}</SelectItem>
-                    <SelectItem value="in_progress">{formatStatus('in_progress')}</SelectItem>
-                    <SelectItem value="on_hold">{formatStatus('on_hold')}</SelectItem>
-                    <SelectItem value="completed">{formatStatus('completed')}</SelectItem>
-                    <SelectItem value="cancelled">{formatStatus('cancelled')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Badge className={getStatusColor(workOrder.status)} variant="outline">
-                  {formatStatus(workOrder.status)}
-                </Badge>
-              )}
-            </div>
+        {/* PM indicator: add top padding when no equipment section above to prevent flush layout */}
+        {workOrder.has_pm && (
+          <div className={workOrder.equipmentName ? "" : "pt-1"}>
+            <PMProgressIndicator
+              workOrderId={workOrder.id}
+              hasPM={workOrder.has_pm}
+            />
+          </div>
+        )}
 
-            {workOrder.equipmentTeamName && (
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-muted-foreground">Team: {workOrder.equipmentTeamName}</span>
-              </div>
-            )}
-
-            {/* Assigned User - Interactive */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Assigned:</span>
-              <Select
-                value={workOrder.assignedTo?.id || 'unassigned'}
-                onValueChange={(value) => handleAssignmentChange(value === 'unassigned' ? null : value)}
-                disabled={isUpdating || isLoadingAssignees || assignmentMutation.isPending}
-              >
-                <SelectTrigger className="w-full">
-                  <div className="flex items-center gap-2">
-                    {workOrder.assignedTo?.name ? (
-                      <span className="truncate text-left">{workOrder.assignedTo.name}</span>
-                    ) : (
-                      <span className="text-muted-foreground">Unassigned</span>
-                    )}
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">
-                    <div className="flex items-center gap-2">
-                      <UserX className="h-3 w-3" />
-                      <span>Unassigned</span>
-                    </div>
-                  </SelectItem>
-                  {assignmentOptions.map((assignee) => (
-                    <SelectItem key={assignee.id} value={assignee.id}>
-                      <div className="flex items-center gap-2">
-                        <User className="h-3 w-3" />
-                        <span>{assignee.name}</span>
-                        {assignee.role && (
-                          <span className="text-xs text-muted-foreground">({assignee.role})</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Date Info */}
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <span className="text-muted-foreground">
-                Created: {formatDate(workOrder.createdDate)}
-                {workOrder.dueDate && ` • Due: ${formatDate(workOrder.dueDate)}`}
-              </span>
-            </div>
-
-            {/* Time and Cost Info */}
-            <div className="flex items-center justify-between">
-              {workOrder.estimatedHours && (
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">{workOrder.estimatedHours}h est.</span>
-                </div>
-              )}
-              <WorkOrderCostSubtotal 
-                workOrderId={workOrder.id}
-                className="flex-shrink-0"
-              />
-            </div>
-
-            {workOrder.completedDate && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-muted-foreground text-xs">
-                  Completed: {formatDate(workOrder.completedDate)}
-                </span>
-              </div>
-            )}
+        <div className="flex items-center justify-between gap-3 pt-3 border-t">
+          <div className="flex items-center gap-2 min-w-0">
+            <Avatar className="h-6 w-6">
+              <AvatarFallback className="text-[10px]">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm text-muted-foreground truncate">
+              {assigneeName || 'Unassigned'}
+            </span>
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-2 pt-2 border-t">
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" asChild className="flex-1 justify-center">
-                <Link to={`/dashboard/work-orders/${workOrder.id}`}>
-                  View Details
-                </Link>
-              </Button>
-              {workOrder.status === 'submitted' && onAcceptClick && (
-                <Button
-                  size="sm"
-                  className="flex-1 justify-center"
-                  onClick={() => onAcceptClick(workOrder)}
-                  disabled={isAccepting}
-                >
-                  {isAccepting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Accepting...
-                    </>
-                  ) : (
-                    'Accept'
-                  )}
-                </Button>
-              )}
-              <WorkOrderQuickActions
-                workOrderId={workOrder.id}
-                workOrderStatus={workOrder.status}
-                equipmentTeamId={workOrder.equipmentTeamId ?? workOrder.team_id}
-              />
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
+            <div className="flex items-center gap-1">
+              <Calendar className="h-3.5 w-3.5" />
+              <span className={dueDateValue && isOverdue(dueDateValue, workOrder.status) ? 'text-destructive' : ''}>
+                {dueDateValue ? `Due: ${formatDate(dueDateValue)}` : `Created: ${formatDate(createdDateValue)}`}
+              </span>
             </div>
+            <span>•</span>
+            <WorkOrderCostSubtotal workOrderId={workOrder.id} className="flex-shrink-0" />
           </div>
         </div>
       </CardContent>

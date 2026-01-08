@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.10] - 2026-01-08
+
+### Changed
+
+- **Work Order Card (Mobile UX)**: Simplified mobile work order card for faster scanning and navigation
+  - Cards are now fully tappable for quick navigation to work order details
+  - Removed inline status and assignment editing in favor of detail page actions
+  - Streamlined layout showing equipment, assignee avatar, and due date at a glance
+  - Reduced component complexity by ~60% for improved maintainability
+
 ## [1.7.9] - 2026-01-08
 
 ### Changed

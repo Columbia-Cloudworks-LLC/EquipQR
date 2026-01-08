@@ -48,6 +48,8 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
           size="icon"
           className="h-8 w-8"
           aria-label="Quick actions"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           <MoreHorizontal className="h-4 w-4" />
         </Button>
