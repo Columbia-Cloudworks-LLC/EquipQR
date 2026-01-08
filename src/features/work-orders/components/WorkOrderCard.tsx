@@ -279,19 +279,24 @@ const MobileCard: React.FC<WorkOrderCardProps> = memo(({
     return chars.slice(0, 2) || '?';
   }, [assigneeName]);
 
+  const isInteractive = Boolean(onNavigate);
+
   return (
     <Card
-      className="hover:shadow-lg transition-shadow cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      role="button"
-      tabIndex={0}
-      onClick={() => onNavigate?.(workOrder.id)}
-      onKeyDown={(e) => {
+      className={cn(
+        "transition-shadow",
+        isInteractive && "hover:shadow-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      )}
+      role={isInteractive ? "button" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      onClick={isInteractive ? () => onNavigate(workOrder.id) : undefined}
+      onKeyDown={isInteractive ? (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           e.stopPropagation();
-          onNavigate?.(workOrder.id);
+          onNavigate(workOrder.id);
         }
-      }}
+      } : undefined}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
@@ -319,6 +324,7 @@ const MobileCard: React.FC<WorkOrderCardProps> = memo(({
           </div>
         )}
 
+        {/* PM indicator: add top padding when no equipment section above to prevent flush layout */}
         {workOrder.has_pm && (
           <div className={workOrder.equipmentName ? "" : "pt-1"}>
             <PMProgressIndicator
