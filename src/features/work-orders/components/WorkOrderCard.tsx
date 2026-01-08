@@ -255,7 +255,9 @@ DesktopCard.displayName = 'DesktopCard';
 // Mobile Card Component
 // ============================================
 
-const MobileCard: React.FC<WorkOrderCardProps> = memo(({
+type MobileCardProps = Pick<WorkOrderCardProps, 'workOrder' | 'onNavigate'>;
+
+const MobileCard: React.FC<MobileCardProps> = memo(({
   workOrder,
   onNavigate,
 }) => {

@@ -367,6 +367,21 @@ describe('WorkOrderCard', () => {
       expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
     });
 
+    it('renders without interactive features when onNavigate is undefined', () => {
+      render(
+        <WorkOrderCard
+          workOrder={mockWorkOrder}
+          variant="mobile"
+        />
+      );
+
+      // Card should still render with title
+      expect(screen.getByText('Test Work Order')).toBeInTheDocument();
+      
+      // Should not have button role when not interactive
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+
     it('displays PM progress indicator on mobile when has_pm is true', () => {
       const pmOrder = {
         ...mockWorkOrder,
