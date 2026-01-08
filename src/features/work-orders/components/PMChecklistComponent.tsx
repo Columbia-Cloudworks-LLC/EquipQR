@@ -44,9 +44,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   isAdmin = false,
   workOrder,
   equipment,
-  team,
   organization,
-  assignee
 }) => {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();

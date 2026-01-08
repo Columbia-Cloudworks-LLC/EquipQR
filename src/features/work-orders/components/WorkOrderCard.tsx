@@ -40,7 +40,6 @@ import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
 import type { WorkOrder, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import type { Database } from '@/integrations/supabase/types';
 import type { AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
-import { logger } from '@/utils/logger';
 
 // ============================================
 // Types
@@ -107,9 +106,7 @@ const getAssignmentContext = (workOrder: WorkOrder): AssignmentWorkOrderContext 
 
 const DesktopCard: React.FC<WorkOrderCardProps> = memo(({ 
   workOrder, 
-  onNavigate,
-  onAssignClick,
-  onReopenClick
+  onNavigate
 }) => {
   const permissions = useUnifiedPermissions();
   const workOrderData = mapToWorkOrderData(workOrder);
@@ -268,9 +265,7 @@ const MobileCard: React.FC<WorkOrderCardProps> = memo(({
   onAcceptClick,
   onStatusUpdate,
   isUpdating,
-  isAccepting,
-  onAssignClick,
-  onReopenClick
+  isAccepting
 }) => {
   const permissions = useUnifiedPermissions();
   const statusUpdateMutation = useWorkOrderStatusUpdate();
