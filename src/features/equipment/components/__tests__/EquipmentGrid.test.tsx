@@ -72,7 +72,7 @@ describe('EquipmentGrid', () => {
       
       const grid = container.querySelector('[class*="grid"]');
       expect(grid).toHaveClass('grid');
-      expect(grid).toHaveClass('gap-4');
+      expect(grid).toHaveClass('gap-2');
       expect(grid).toHaveClass('md:gap-6');
       expect(grid).toHaveClass('md:grid-cols-2');
       expect(grid).toHaveClass('lg:grid-cols-3');

@@ -58,7 +58,7 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
   }
 
   return (
-    <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-2 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
       {equipment.map((item) => (
         <EquipmentCard
           key={item.id}

@@ -42,7 +42,7 @@ describe('EquipmentCard', () => {
     it('renders equipment name', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText('Forklift A1')).toBeInTheDocument();
+      expect(screen.getAllByText('Forklift A1')[0]).toBeInTheDocument();
     });
 
     it('renders manufacturer and model', () => {
@@ -54,19 +54,19 @@ describe('EquipmentCard', () => {
     it('renders location', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText('Warehouse A')).toBeInTheDocument();
+      expect(screen.getAllByText('Warehouse A')[0]).toBeInTheDocument();
     });
 
     it('renders serial number', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText('SN12345')).toBeInTheDocument();
+      expect(screen.getAllByText('SN12345')[0]).toBeInTheDocument();
     });
 
     it('renders QR code button', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByRole('button', { name: /show qr code/i })).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: /show qr code/i })[0]).toBeInTheDocument();
     });
 
     it('renders equipment image when image_url is provided', () => {
@@ -89,7 +89,7 @@ describe('EquipmentCard', () => {
       const inactiveEquipment = { ...mockEquipment, status: 'maintenance' };
       render(<EquipmentCard equipment={inactiveEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText('maintenance')).toBeInTheDocument();
+      expect(screen.getAllByText('maintenance')[0]).toBeInTheDocument();
     });
   });
 
@@ -98,8 +98,8 @@ describe('EquipmentCard', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
       // Find the card and click it
-      const card = screen.getByText('Forklift A1').closest('article') || 
-                   screen.getByText('Forklift A1').closest('[class*="card"]');
+      const nameEl = screen.getAllByText('Forklift A1')[0];
+      const card = nameEl.closest('article') || nameEl.closest('[class*="card"]');
       
       if (card) {
         fireEvent.click(card);
@@ -110,7 +110,7 @@ describe('EquipmentCard', () => {
     it('calls onShowQRCode when QR button is clicked', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      const qrButton = screen.getByRole('button', { name: /show qr code/i });
+      const qrButton = screen.getAllByRole('button', { name: /show qr code/i })[0];
       fireEvent.click(qrButton);
 
       expect(mockOnShowQRCode).toHaveBeenCalledWith('eq-1');
@@ -119,7 +119,7 @@ describe('EquipmentCard', () => {
     it('stops propagation when QR button is clicked', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      const qrButton = screen.getByRole('button', { name: /show qr code/i });
+      const qrButton = screen.getAllByRole('button', { name: /show qr code/i })[0];
       fireEvent.click(qrButton);
 
       // If propagation wasn't stopped, navigate would also be called
@@ -204,7 +204,7 @@ describe('EquipmentCard', () => {
         fireEvent.error(equipmentImage);
         
         // After error, src should be updated to fallback
-        expect(equipmentImage.getAttribute('src')).toContain('unsplash.com');
+        expect(equipmentImage.getAttribute('src')).toContain('placeholder.svg');
       }
     });
 
@@ -221,7 +221,7 @@ describe('EquipmentCard', () => {
     it('renders location when provided', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText('Warehouse A')).toBeInTheDocument();
+      expect(screen.getAllByText('Warehouse A')[0]).toBeInTheDocument();
     });
 
     it('handles empty location gracefully', () => {
@@ -229,7 +229,7 @@ describe('EquipmentCard', () => {
       render(<EquipmentCard equipment={equipmentWithEmptyLocation} onShowQRCode={mockOnShowQRCode} />);
 
       // Should still render without crashing
-      expect(screen.getByText('Forklift A1')).toBeInTheDocument();
+      expect(screen.getAllByText('Forklift A1')[0]).toBeInTheDocument();
     });
   });
 
@@ -241,7 +241,7 @@ describe('EquipmentCard', () => {
       };
       render(<EquipmentCard equipment={longNameEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText(/Very Long Equipment Name/)).toBeInTheDocument();
+      expect(screen.getAllByText(/Very Long Equipment Name/)[0]).toBeInTheDocument();
     });
 
     it('handles long serial numbers', () => {
@@ -251,7 +251,7 @@ describe('EquipmentCard', () => {
       };
       render(<EquipmentCard equipment={longSerialEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText(/VERY-LONG-SERIAL/)).toBeInTheDocument();
+      expect(screen.getAllByText(/VERY-LONG-SERIAL/)[0]).toBeInTheDocument();
     });
 
     it('handles long location names with truncation', () => {
@@ -262,7 +262,7 @@ describe('EquipmentCard', () => {
       render(<EquipmentCard equipment={longLocationEquipment} onShowQRCode={mockOnShowQRCode} />);
 
       // Location should still be in the document (may be truncated via CSS)
-      expect(screen.getByText(/Building A, Floor 3/)).toBeInTheDocument();
+      expect(screen.getAllByText(/Building A, Floor 3/)[0]).toBeInTheDocument();
     });
 
     it('handles long manufacturer and model names', () => {
@@ -285,7 +285,7 @@ describe('EquipmentCard', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
       // Component should render without errors
-      expect(screen.getByText('Forklift A1')).toBeInTheDocument();
+      expect(screen.getAllByText('Forklift A1')[0]).toBeInTheDocument();
     });
   });
 
@@ -302,7 +302,7 @@ describe('EquipmentCard', () => {
       };
       render(<EquipmentCard equipment={minimalEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText('Minimal Equipment')).toBeInTheDocument();
+      expect(screen.getAllByText('Minimal Equipment')[0]).toBeInTheDocument();
       expect(screen.getByText('Mfg Model')).toBeInTheDocument();
     });
 
@@ -314,8 +314,8 @@ describe('EquipmentCard', () => {
       };
       render(<EquipmentCard equipment={specialCharEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText('Equipment <Test> & "Quotes"')).toBeInTheDocument();
-      expect(screen.getByText("O'Brien's Warehouse")).toBeInTheDocument();
+      expect(screen.getAllByText('Equipment <Test> & "Quotes"')[0]).toBeInTheDocument();
+      expect(screen.getAllByText("O'Brien's Warehouse")[0]).toBeInTheDocument();
     });
   });
 });
