@@ -139,7 +139,7 @@ const Equipment = () => {
                 <Button 
                   variant="outline"
                   onClick={() => setShowImportCsv(true)}
-                  className="w-full sm:w-auto"
+                  className="hidden md:inline-flex w-full sm:w-auto"
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Import CSV

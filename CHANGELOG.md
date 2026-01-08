@@ -1,11 +1,27 @@
 # Changelog
 
+<!-- markdownlint-disable MD024 -->
+
 All notable changes to EquipQR will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.7.9] - 2026-01-08
+
+### Changed
+
+- **Equipment List (Mobile UX)**: Improved mobile layout and interactions on the equipment list
+  - Equipment cards use a compact list-style layout on mobile for faster scanning
+  - Mobile search + filters are condensed into a single row with an icon-only filters button and count badge
+  - Mobile sort controls are simplified while keeping full controls on desktop
+  - Reduced spacing in the equipment grid for better information density on small screens
+
+### Fixed
+
+- **Accessibility**: Improved accessible labeling and test reliability for equipment filters and actions
 
 ## [1.7.8] - 2026-01-07
 
@@ -81,7 +97,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.8...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.9...HEAD
+[1.7.9]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.8...v1.7.9
 [1.7.8]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.7...v1.7.8
 [1.7.7]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.4...v1.7.7
 [1.7.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.3...v1.7.4

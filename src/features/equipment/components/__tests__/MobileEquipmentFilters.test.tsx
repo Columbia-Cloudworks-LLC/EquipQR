@@ -67,7 +67,7 @@ describe('MobileEquipmentFilters', () => {
     it('renders filters button', () => {
       render(<MobileEquipmentFilters {...defaultProps} />);
       
-      expect(screen.getByText('Filters')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /open filters/i })).toBeInTheDocument();
     });
   });
 
@@ -123,7 +123,7 @@ describe('MobileEquipmentFilters', () => {
     it('opens filter sheet when filters button is clicked', async () => {
       render(<MobileEquipmentFilters {...defaultProps} />);
       
-      const filtersButton = screen.getByText('Filters');
+      const filtersButton = screen.getByRole('button', { name: /open filters/i });
       fireEvent.click(filtersButton);
       
       // Sheet should open
@@ -148,7 +148,7 @@ describe('MobileEquipmentFilters', () => {
     it('calls onShowMobileFiltersChange when sheet opens', () => {
       render(<MobileEquipmentFilters {...defaultProps} />);
       
-      const filtersButton = screen.getByText('Filters');
+      const filtersButton = screen.getByRole('button', { name: /open filters/i });
       fireEvent.click(filtersButton);
       
       expect(mockOnShowMobileFiltersChange).toHaveBeenCalled();

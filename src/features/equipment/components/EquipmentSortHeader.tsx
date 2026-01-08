@@ -49,42 +49,73 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
   };
 
   return (
-    <div className={`${isMobile ? 'flex flex-col gap-4' : 'flex items-center justify-between'} mb-4 md:mb-6`}>
-      <div className={`${isMobile ? 'flex flex-col gap-3' : 'flex items-center gap-4'}`}>
-        <div className="text-sm text-muted-foreground">
+    <div className={`${isMobile ? 'flex flex-col gap-3' : 'flex items-center justify-between'} mb-4 md:mb-6`}>
+      <div className={`${isMobile ? 'flex items-center justify-between gap-2' : 'flex items-center gap-4'}`}>
+        <div className={`${isMobile ? 'min-w-0 truncate' : ''} text-sm text-muted-foreground`}>
           Showing <span className="font-medium text-foreground">{resultCount}</span> of{' '}
           <span className="font-medium text-foreground">{totalCount}</span> equipment items
         </div>
+
         {canExport && onExportCSV && (
           <Button
             variant="outline"
-            size={isMobile ? "default" : "sm"}
+            size="sm"
             onClick={onExportCSV}
             disabled={isExporting || resultCount === 0}
-            className={`gap-2 ${isMobile ? 'w-full h-11' : ''}`}
+            className="hidden md:inline-flex gap-2"
           >
             <Download className="h-4 w-4" />
             {isExporting ? 'Exporting...' : 'Export CSV'}
           </Button>
         )}
-      </div>
-      
-      <div className={`${isMobile ? 'flex flex-col gap-3 w-full' : 'flex items-center gap-2'}`}>
+
         {isMobile && (
-          <span className="text-sm font-medium text-foreground">Sort by:</span>
+          <div className="flex shrink-0 items-center gap-2">
+            <Select value={sortConfig.field} onValueChange={onSortChange}>
+              <SelectTrigger className="h-9 w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {sortOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex w-full items-center justify-between">
+                      {option.label}
+                      {sortConfig.field === option.value && (
+                        <div className="ml-2">
+                          {getSortIcon(option.value)}
+                        </div>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => onSortChange(sortConfig.field)}
+              className="h-9 w-9"
+              aria-label="Toggle sort direction"
+            >
+              {getSortIcon(sortConfig.field)}
+            </Button>
+          </div>
         )}
-        <div className={`${isMobile ? 'flex items-center gap-2 w-full' : 'flex items-center gap-2'}`}>
-          {!isMobile && (
-            <span className="text-sm text-muted-foreground">Sort by:</span>
-          )}
+      </div>
+
+      {!isMobile && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Sort by:</span>
+
           <Select value={sortConfig.field} onValueChange={onSortChange}>
-            <SelectTrigger className={isMobile ? "w-full h-11" : "w-[180px]"}>
+            <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {sortOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  <div className="flex items-center justify-between w-full">
+                  <div className="flex w-full items-center justify-between">
                     {option.label}
                     {sortConfig.field === option.value && (
                       <div className="ml-2">
@@ -96,17 +127,18 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
               ))}
             </SelectContent>
           </Select>
-          
+
           <Button
             variant="outline"
-            size={isMobile ? "default" : "sm"}
+            size="sm"
             onClick={() => onSortChange(sortConfig.field)}
-            className={isMobile ? "h-11 px-4" : "px-3"}
+            className="px-3"
+            aria-label="Toggle sort direction"
           >
             {getSortIcon(sortConfig.field)}
           </Button>
         </div>
-      </div>
+      )}
     </div>
   );
 };

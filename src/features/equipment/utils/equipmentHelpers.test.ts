@@ -24,14 +24,14 @@ describe('equipmentHelpers', () => {
   ];
 
   describe('getStatusColor', () => {
-    it('should return correct colors for each status', () => {
-      expect(getStatusColor('active')).toBe('bg-green-100 text-green-800 border-green-200');
-      expect(getStatusColor('maintenance')).toBe('bg-yellow-100 text-yellow-800 border-yellow-200');
-      expect(getStatusColor('inactive')).toBe('bg-gray-100 text-gray-800 border-gray-200');
+    it('should return CSS variable-based colors for each status', () => {
+      expect(getStatusColor('active')).toBe('bg-success/10 text-success border-success/20');
+      expect(getStatusColor('maintenance')).toBe('bg-warning/10 text-warning border-warning/20');
+      expect(getStatusColor('inactive')).toBe('bg-muted text-muted-foreground border-border');
     });
 
-    it('should handle unknown status', () => {
-      expect(getStatusColor('unknown')).toBe('bg-gray-100 text-gray-800 border-gray-200');
+    it('should handle unknown status with muted colors', () => {
+      expect(getStatusColor('unknown')).toBe('bg-muted text-muted-foreground border-border');
     });
   });
 
