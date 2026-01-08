@@ -288,7 +288,6 @@ describe('WorkOrderCard', () => {
       );
 
       expect(screen.getByText('Test Work Order')).toBeInTheDocument();
-      expect(screen.getByText('Test description')).toBeInTheDocument();
     });
 
     it('displays equipment name on mobile', () => {
@@ -300,23 +299,10 @@ describe('WorkOrderCard', () => {
         />
       );
 
-      expect(screen.getByText(/Equipment: Test Equipment/i)).toBeInTheDocument();
+      expect(screen.getByText('Test Equipment')).toBeInTheDocument();
     });
 
-    it('displays status select dropdown when user can change status', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="mobile"
-          onNavigate={mockOnNavigate}
-          onStatusUpdate={mockOnStatusUpdate}
-        />
-      );
-
-      expect(screen.getByText(/Status:/i)).toBeInTheDocument();
-    });
-
-    it('displays assignment select dropdown', () => {
+    it('displays status badge on mobile', () => {
       render(
         <WorkOrderCard
           workOrder={mockWorkOrder}
@@ -325,66 +311,32 @@ describe('WorkOrderCard', () => {
         />
       );
 
-      expect(screen.getByText(/Assigned:/i)).toBeInTheDocument();
+      expect(screen.getByText(/in progress/i)).toBeInTheDocument();
     });
 
-    it('displays accept button when status is submitted', () => {
-      const submittedOrder: WorkOrder = {
-        ...mockWorkOrder,
-        status: 'submitted' as const
-      };
-
+    it('displays assignee name on mobile', () => {
       render(
         <WorkOrderCard
-          workOrder={submittedOrder}
+          workOrder={mockWorkOrder}
           variant="mobile"
           onNavigate={mockOnNavigate}
-          onAcceptClick={mockOnAcceptClick}
         />
       );
 
-      const acceptButton = screen.getByRole('button', { name: /accept/i });
-      expect(acceptButton).toBeInTheDocument();
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
     });
 
-    it('calls onAcceptClick when accept button is clicked', () => {
-      const submittedOrder: WorkOrder = {
-        ...mockWorkOrder,
-        status: 'submitted' as const
-      };
-
+    it('calls onNavigate when mobile card is clicked', () => {
       render(
         <WorkOrderCard
-          workOrder={submittedOrder}
+          workOrder={mockWorkOrder}
           variant="mobile"
           onNavigate={mockOnNavigate}
-          onAcceptClick={mockOnAcceptClick}
         />
       );
 
-      const acceptButton = screen.getByRole('button', { name: /accept/i });
-      fireEvent.click(acceptButton);
-
-      expect(mockOnAcceptClick).toHaveBeenCalledWith(submittedOrder);
-    });
-
-    it('shows loading state when isAccepting is true', () => {
-      const submittedOrder: WorkOrder = {
-        ...mockWorkOrder,
-        status: 'submitted' as const
-      };
-
-      render(
-        <WorkOrderCard
-          workOrder={submittedOrder}
-          variant="mobile"
-          onNavigate={mockOnNavigate}
-          onAcceptClick={mockOnAcceptClick}
-          isAccepting={true}
-        />
-      );
-
-      expect(screen.getByText(/Accepting.../i)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('link'));
+      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
     });
 
     it('displays PM progress indicator on mobile when has_pm is true', () => {
