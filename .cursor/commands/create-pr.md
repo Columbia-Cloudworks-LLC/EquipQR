@@ -2,11 +2,12 @@
 
 ## Overview
 
-Create a well-structured pull request with proper description, labels, and reviewers.
+Create a well-structured pull request with proper description, labels, and reviewers. The PR should merge the preview branch into the main branch. If we are not on the preview branch, then merge the current branch into the preview branch instead.
 
 ## Steps
 
 1. **Prepare branch**
+   - Ensure that packages, package-lock, README.md and CHANGELOG.md are up-to-date. If the appropriate major, minor, or revision number for this PR has not been incremented, so so first.
    - Ensure all changes are committed
    - Push branch to remote
    - Verify branch is up to date with main
