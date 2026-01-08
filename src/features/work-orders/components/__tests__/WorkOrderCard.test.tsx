@@ -335,7 +335,35 @@ describe('WorkOrderCard', () => {
         />
       );
 
-      fireEvent.click(screen.getByRole('link'));
+      fireEvent.click(screen.getByRole('button'));
+      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
+    });
+
+    it('calls onNavigate when Enter key is pressed on mobile card', () => {
+      render(
+        <WorkOrderCard
+          workOrder={mockWorkOrder}
+          variant="mobile"
+          onNavigate={mockOnNavigate}
+        />
+      );
+
+      const card = screen.getByRole('button');
+      fireEvent.keyDown(card, { key: 'Enter' });
+      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
+    });
+
+    it('calls onNavigate when Space key is pressed on mobile card', () => {
+      render(
+        <WorkOrderCard
+          workOrder={mockWorkOrder}
+          variant="mobile"
+          onNavigate={mockOnNavigate}
+        />
+      );
+
+      const card = screen.getByRole('button');
+      fireEvent.keyDown(card, { key: ' ' });
       expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
     });
 

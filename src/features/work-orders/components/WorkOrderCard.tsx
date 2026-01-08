@@ -16,13 +16,13 @@
  */
 
 import React, { memo, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Calendar, Clock, User, Users, UserX, AlertTriangle, Cog } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
-import { ensureWorkOrderData } from '@/features/work-orders/utils/workOrderTypeConversion';
 import { 
   getStatusColor, 
   formatStatus, 
@@ -281,13 +281,14 @@ const MobileCard: React.FC<WorkOrderCardProps> = memo(({
 
   return (
     <Card
-      className="hover:shadow-lg transition-shadow cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      role="link"
+      className="hover:shadow-lg transition-shadow cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      role="button"
       tabIndex={0}
       onClick={() => onNavigate?.(workOrder.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+          e.stopPropagation();
           onNavigate?.(workOrder.id);
         }
       }}
@@ -300,7 +301,7 @@ const MobileCard: React.FC<WorkOrderCardProps> = memo(({
             </CardTitle>
           </div>
           <Badge
-            className={`${getStatusColor(workOrder.status)} rounded-full px-2 py-0.5 text-xs flex-shrink-0`}
+            className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs flex-shrink-0")}
             variant="outline"
           >
             {formatStatus(workOrder.status)}
