@@ -19,11 +19,10 @@ Create a well-structured pull request with proper description, labels, and revie
    - Add screenshots if UI changes
 
 3. **Set up PR**
+   - Use the GitHub MCP tools like `list_pull_requests` and `create_pull_request`
    - Create PR with descriptive title
    - Add appropriate labels
-   - Link related issues
-   - Do NOT request reviewers, they will be assigned automatically
-   - Use the GitHub MCP tools like `create_pull_request`
+   - Link related issues using GitHub MCP tools like `list_issues` and `issue_read`
 
 ## PR Template
 
