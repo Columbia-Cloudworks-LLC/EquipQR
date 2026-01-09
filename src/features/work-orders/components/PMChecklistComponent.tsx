@@ -937,11 +937,11 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                       {!readOnly && pm.status !== 'completed' && (
                         <div
                           className={cn(
-                            "grid transition-all duration-200 ease-out",
+                            "grid min-h-0 transition-all duration-200 ease-out",
                             shouldShowNotes(item) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                           )}
                         >
-                          <div className="overflow-hidden">
+                          <div className="overflow-hidden min-h-0">
                             <Textarea
                               placeholder="Add notes for this item..."
                               value={item.notes || ''}
