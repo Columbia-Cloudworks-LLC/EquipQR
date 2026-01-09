@@ -298,8 +298,20 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         return updated;
       });
       setExpandedNotes(prev => ({ ...prev, [itemId]: true }));
+    } else {
+      // When switching back to OK (condition 1), collapse notes if there are no existing notes
+      const item = checklist.find(checklistItem => checklistItem.id === itemId);
+      const hasExistingNotes = !!item?.notes?.trim();
+
+      if (!hasExistingNotes) {
+        setExpandedNotes(prev => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { [itemId]: _, ...rest } = prev;
+          return rest;
+        });
+      }
     }
-  }, [triggerAutoSave]);
+  }, [checklist, triggerAutoSave]);
 
   const handleNotesItemChange = useCallback((itemId: string, notes: string) => {
     setChecklist(prev => prev.map(item => 
@@ -904,7 +916,13 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                             size="icon"
                             className="h-9 w-9 mt-6 shrink-0"
                             onClick={() => toggleNotesVisibility(item.id)}
-                            aria-label={shouldShowNotes(item) ? "Hide notes" : "Add notes"}
+                            aria-label={
+                              shouldShowNotes(item) 
+                                ? "Hide notes" 
+                                : item.notes 
+                                  ? "Show notes" 
+                                  : "Add notes"
+                            }
                           >
                             {item.notes ? (
                               <MessageSquareText className="h-4 w-4 text-primary" />
