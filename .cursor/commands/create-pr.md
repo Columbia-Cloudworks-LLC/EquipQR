@@ -7,7 +7,7 @@ Create a well-structured pull request with proper description, labels, and revie
 ## Steps
 
 1. **Prepare branch**
-   - Ensure that /packages.json, /package-lock.json, /README.md and /CHANGELOG.md are up-to-date
+   - Ensure that /package.json, /package-lock.json, /README.md and /CHANGELOG.md are up-to-date
    - Ensure all changes are committed
    - Push branch to remote
    - Verify branch is up to date with main
