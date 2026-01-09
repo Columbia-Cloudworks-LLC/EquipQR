@@ -7,7 +7,7 @@ Create a well-structured pull request with proper description, labels, and revie
 ## Steps
 
 1. **Prepare branch**
-   - Ensure that packages, package-lock, README.md and CHANGELOG.md are up-to-date. If the appropriate major, minor, or revision number for this PR has not been incremented, so so first.
+   - Ensure that /packages.json, /package-lock.json, /README.md and /CHANGELOG.md are up-to-date
    - Ensure all changes are committed
    - Push branch to remote
    - Verify branch is up to date with main
@@ -22,8 +22,8 @@ Create a well-structured pull request with proper description, labels, and revie
    - Create PR with descriptive title
    - Add appropriate labels
    - Link related issues
-   - GitHub Copilot will automatically review the new pull request upon creation, do not assign reviewers.
-   - Use the GitHub MCP tools like `create_pull_request`.
+   - Do NOT request reviewers, they will be assigned automatically
+   - Use the GitHub MCP tools like `create_pull_request`
 
 ## PR Template
 
