@@ -843,7 +843,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             return (
               <Collapsible key={section} open={openSections[section]} onOpenChange={() => toggleSection(section)}>
                 <CollapsibleTrigger asChild>
-                  <div className="sticky top-0 z-10 overflow-hidden rounded-lg border bg-background shadow-sm">
+                  <div className="relative overflow-hidden rounded-lg border bg-background shadow-sm">
                     <SegmentedProgress 
                       segments={segments}
                       className="absolute inset-0 h-full opacity-30"
