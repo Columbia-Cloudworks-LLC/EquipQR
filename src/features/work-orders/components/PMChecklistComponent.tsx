@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { CheckCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Circle, RotateCcw } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Circle, RotateCcw, MessageSquare, MessageSquareText } from 'lucide-react';
 
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
 import { createSegmentsForSection } from '@/utils/pmChecklistHelpers';
@@ -24,6 +24,7 @@ import { workOrderRevertService } from '@/features/work-orders/services/workOrde
 import { WorkOrderData, EquipmentData, TeamMemberData, OrganizationData } from '@/features/work-orders/types/workOrderDetails';
 import { logger } from '@/utils/logger';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
+import { cn } from '@/lib/utils';
 
 interface PMChecklistComponentProps {
   pm: PreventativeMaintenance;
@@ -60,6 +61,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isReverting, setIsReverting] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
   const [isInitialized, setIsInitialized] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error' | 'offline'>('saved');
   const [lastSaved, setLastSaved] = useState<Date>();
@@ -284,6 +286,11 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     ));
     setHasUnsavedChanges(true);
     triggerAutoSave('selection'); // Use selection trigger for immediate UI changes
+    
+    // Auto-expand notes for negative conditions (2-5)
+    if (condition >= 2) {
+      setExpandedNotes(prev => ({ ...prev, [itemId]: true }));
+    }
   }, [triggerAutoSave]);
 
   const handleNotesItemChange = useCallback((itemId: string, notes: string) => {
@@ -555,6 +562,27 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }));
   }, []);
 
+  const toggleNotesVisibility = useCallback((itemId: string) => {
+    setExpandedNotes(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
+  }, []);
+
+  // Helper to determine if notes should be shown for an item
+  const shouldShowNotes = useCallback((item: PMChecklistItem) => {
+    // Always show if notes exist
+    if (item.notes && item.notes.trim() !== '') return true;
+    
+    // Show if manually expanded
+    if (expandedNotes[item.id]) return true;
+    
+    // Auto-expand for negative statuses (2-5)
+    if (item.condition !== null && item.condition >= 2) return true;
+    
+    return false;
+  }, [expandedNotes]);
+
   // Helper function to get border styling based on item state
   const getItemBorderClass = useCallback((item: PMChecklistItem) => {
     const isComplete = isItemComplete(item);
@@ -769,12 +797,12 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             return (
               <Collapsible key={section} open={openSections[section]} onOpenChange={() => toggleSection(section)}>
                 <CollapsibleTrigger asChild>
-                  <div className="relative overflow-hidden rounded-lg border">
+                  <div className="sticky top-0 z-10 overflow-hidden rounded-lg border bg-background shadow-sm">
                     <SegmentedProgress 
                       segments={segments}
                       className="absolute inset-0 h-full opacity-30"
                     />
-                    <Button variant="ghost" className="relative w-full justify-between p-4 h-auto bg-transparent hover:bg-white/50">
+                    <Button variant="ghost" className="relative w-full justify-between p-4 h-auto hover:bg-accent/50">
                       <div className="flex flex-col items-start gap-1">
                         <span className="font-semibold text-left">{section}</span>
                         <span className="text-xs text-muted-foreground">
@@ -807,44 +835,70 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                       )}
                       
                       {!readOnly && pm.status !== 'completed' && (
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Maintenance Assessment:</Label>
-                          <Select
-                            value={item.condition?.toString() || ''}
-                            onValueChange={(value) => handleChecklistItemChange(item.id, parseInt(value) as 1 | 2 | 3 | 4 | 5)}
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 space-y-2">
+                            <Label className="text-sm font-medium">Maintenance Assessment:</Label>
+                            <Select
+                              value={item.condition?.toString() || ''}
+                              onValueChange={(value) => handleChecklistItemChange(item.id, parseInt(value) as 1 | 2 | 3 | 4 | 5)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select assessment..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[
+                                  { value: 1, label: 'OK', color: 'text-green-600' },
+                                  { value: 2, label: 'Adjusted', color: 'text-yellow-600' },
+                                  { value: 3, label: 'Recommend Repairs', color: 'text-orange-600' },
+                                  { value: 4, label: 'Requires Immediate Repairs', color: 'text-red-600' },
+                                  { value: 5, label: 'Unsafe Condition Present', color: 'text-red-800' }
+                                ].map((rating) => (
+                                  <SelectItem 
+                                    key={rating.value} 
+                                    value={rating.value.toString()}
+                                    className={rating.color}
+                                  >
+                                    {rating.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 mt-6 shrink-0"
+                            onClick={() => toggleNotesVisibility(item.id)}
+                            aria-label={shouldShowNotes(item) ? "Hide notes" : "Add notes"}
                           >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select assessment..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[
-                                { value: 1, label: 'OK', color: 'text-green-600' },
-                                { value: 2, label: 'Adjusted', color: 'text-yellow-600' },
-                                { value: 3, label: 'Recommend Repairs', color: 'text-orange-600' },
-                                { value: 4, label: 'Requires Immediate Repairs', color: 'text-red-600' },
-                                { value: 5, label: 'Unsafe Condition Present', color: 'text-red-800' }
-                              ].map((rating) => (
-                                <SelectItem 
-                                  key={rating.value} 
-                                  value={rating.value.toString()}
-                                  className={rating.color}
-                                >
-                                  {rating.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            {item.notes ? (
+                              <MessageSquareText className="h-4 w-4 text-primary" />
+                            ) : (
+                              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
                         </div>
                       )}
 
+                      {/* Animated notes container */}
                       {!readOnly && pm.status !== 'completed' && (
-                        <Textarea
-                          placeholder="Add notes for this item..."
-                          value={item.notes || ''}
-                          onChange={(e) => handleNotesItemChange(item.id, e.target.value)}
-                          className="mt-2"
-                          rows={2}
-                        />
+                        <div
+                          className={cn(
+                            "grid transition-all duration-200 ease-out",
+                            shouldShowNotes(item) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                          )}
+                        >
+                          <div className="overflow-hidden">
+                            <Textarea
+                              placeholder="Add notes for this item..."
+                              value={item.notes || ''}
+                              onChange={(e) => handleNotesItemChange(item.id, e.target.value)}
+                              className="mt-2"
+                              rows={2}
+                            />
+                          </div>
+                        </div>
                       )}
                       {item.notes && (readOnly || pm.status === 'completed') && (
                         <div className="mt-2 p-2 bg-muted rounded text-sm">
