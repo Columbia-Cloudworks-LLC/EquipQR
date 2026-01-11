@@ -7,6 +7,20 @@
 -- All test users have password: password123
 -- =====================================================
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- IMPORTANT: Disable the handle_new_user trigger during seeding
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- The handle_new_user trigger normally fires on auth.users INSERT and creates:
+--   1. A profile record
+--   2. A NEW organization (with random UUID)
+--   3. An organization_member record
+--
+-- We disable it because we want to use the specific UUIDs defined in our seed
+-- files for organizations and memberships, not auto-generated ones.
+-- The trigger is re-enabled at the end of this file.
+-- ═══════════════════════════════════════════════════════════════════════════════
+ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;
+
 -- User 1: owner@apex.test - Owner of Apex, member of Metro
 INSERT INTO auth.users (
   id,
@@ -302,3 +316,11 @@ INSERT INTO auth.users (
   '',
   ''
 ) ON CONFLICT (id) DO NOTHING;
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- Re-enable the handle_new_user trigger after seeding
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- This ensures normal registration behavior works after seeding is complete.
+-- Any new users created through the app will get proper profile/org setup.
+-- ═══════════════════════════════════════════════════════════════════════════════
+ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created;

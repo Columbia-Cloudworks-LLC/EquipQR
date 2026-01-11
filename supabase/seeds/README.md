@@ -113,6 +113,22 @@ After running `npx supabase db reset`, you can login as any test user with passw
 | OUT OF STOCK | Scissor Lift Cylinder Seal | 0 | 2 |
 | No SKU | LED Panel | 2 | 3 |
 
+## Trigger Handling
+
+The `handle_new_user` trigger normally fires on `auth.users` INSERT and creates:
+1. A profile record
+2. A new organization (with random UUID)
+3. An organization_member record
+
+**For seeding, this trigger is disabled** in `01_auth_users.sql` before user inserts and re-enabled after. This ensures:
+- Users get the specific UUIDs defined in our seed files
+- Organizations use the planned UUIDs from `03_organizations.sql`
+- Memberships are the controlled matrix from `04_organization_members.sql`
+
+If you're seeing duplicate organizations or unexpected default org selection, ensure:
+1. The trigger disable/enable statements are in `01_auth_users.sql`
+2. You're running `npx supabase db reset` (not just `db seed`)
+
 ## Adding New Seed Data
 
 1. Create a new numbered file (e.g., `17_new_table.sql`)
