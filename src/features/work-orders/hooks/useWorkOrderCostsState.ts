@@ -33,6 +33,29 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
     setCosts(prev => [...prev, newCost]);
   }, []);
 
+  /**
+   * Add a pre-filled cost item (e.g., from inventory selection).
+   * This allows immediate UI feedback when adding items from external sources.
+   */
+  const addFilledCost = useCallback((data: {
+    id: string;
+    work_order_id: string;
+    description: string;
+    quantity: number;
+    unit_price_cents: number;
+  }) => {
+    const newCost: WorkOrderCostItem = {
+      id: data.id,
+      work_order_id: data.work_order_id,
+      description: data.description,
+      quantity: data.quantity,
+      unit_price_cents: data.unit_price_cents,
+      total_price_cents: data.quantity * data.unit_price_cents,
+      isNew: false // Already saved to database
+    };
+    setCosts(prev => [...prev, newCost]);
+  }, []);
+
   const removeCost = useCallback((id: string) => {
     setCosts(prev => prev.flatMap((cost) => {
       if (cost.id !== id) return cost;
@@ -108,6 +131,7 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
   return {
     costs: costs.filter(cost => !cost.isDeleted),
     addCost,
+    addFilledCost,
     removeCost,
     updateCost,
     getCleanCosts,

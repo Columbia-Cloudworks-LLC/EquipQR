@@ -43,6 +43,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   const {
     costs: editCosts,
     addCost,
+    addFilledCost,
     removeCost,
     updateCost,
     getNewCosts,
@@ -181,13 +182,26 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
       // Only create work order cost if inventory adjustment succeeded
       // Use the name we already fetched, or fallback to querying again
       const itemName = currentItem.name || `Inventory item (ID: ${itemId.substring(0, 8)}...)`;
+      const unitPriceCents = Math.round(unitCost * 100);
 
-      await createCostMutation.mutateAsync({
+      const createdCost = await createCostMutation.mutateAsync({
         work_order_id: workOrderId,
         description: itemName,
         quantity: quantity,
-        unit_price_cents: Math.round(unitCost * 100)
+        unit_price_cents: unitPriceCents
       });
+
+      // Update local editing state so user sees the new cost immediately
+      // (the mutation invalidates the query, but we're in edit mode showing local state)
+      if (isEditing) {
+        addFilledCost({
+          id: createdCost.id,
+          work_order_id: workOrderId,
+          description: itemName,
+          quantity: quantity,
+          unit_price_cents: unitPriceCents
+        });
+      }
 
       toast({
         title: 'Part added',
