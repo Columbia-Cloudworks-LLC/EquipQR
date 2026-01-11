@@ -6,11 +6,9 @@
  */
 
 import React from 'react';
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderAsPersona, renderHookAsPersona } from '@/test/utils/test-utils';
-import { personas } from '@/test/fixtures/personas';
 import { equipment, pmTemplates, workOrders, organizations } from '@/test/fixtures/entities';
 
 // Mock hooks
@@ -578,7 +576,8 @@ describe('PM Template Journey', () => {
 
   describe('Template Compatibility', () => {
     it('suggests templates based on equipment manufacturer', () => {
-      const equipmentData = equipment.forklift1;
+      // Verify forklift equipment has manufacturer for matching
+      expect(equipment.forklift1.manufacturer).toBeDefined();
       
       // Toyota forklift should match Forklift PM template
       const matchingTemplates = [
@@ -589,7 +588,8 @@ describe('PM Template Journey', () => {
     });
 
     it('suggests templates based on equipment model', () => {
-      const equipmentData = equipment.crane;
+      // Verify crane equipment exists for model matching
+      expect(equipment.crane).toBeDefined();
       
       // Crane should match Crane Inspection template
       const matchingTemplates = [
@@ -615,10 +615,11 @@ describe('PM Template Journey', () => {
     describe('as an Admin', () => {
       it('can apply template to create PM work orders for selected equipment', () => {
         const selectedEquipment = [equipment.forklift1, equipment.forklift2];
-        const templateId = pmTemplates.forklift.id;
 
         // Admin can select multiple equipment
         expect(selectedEquipment.length).toBe(2);
+        // Verify template exists
+        expect(pmTemplates.forklift.id).toBeDefined();
         
         // Work orders will be created for each selected equipment
         const workOrdersToCreate = selectedEquipment.map(eq => ({

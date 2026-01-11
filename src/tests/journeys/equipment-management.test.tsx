@@ -12,12 +12,11 @@
  */
 
 import React from 'react';
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderAsPersona, renderHookAsPersona } from '@/test/utils/test-utils';
 import { personas } from '@/test/fixtures/personas';
-import { equipment, teams, organizations, pmTemplates } from '@/test/fixtures/entities';
+import { equipment, teams, pmTemplates } from '@/test/fixtures/entities';
 
 // Mock the equipment hooks
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
@@ -567,7 +566,8 @@ describe('Equipment Management', () => {
 
   describe('Equipment Status Transitions', () => {
     it('allows valid status transition: active → maintenance', () => {
-      const eq = { ...equipment.forklift1 };
+      // Verify forklift1 is active before transition test
+      expect(equipment.forklift1.status).toBe('active');
       const newStatus = 'maintenance';
       
       // Valid statuses
@@ -576,7 +576,8 @@ describe('Equipment Management', () => {
     });
 
     it('allows valid status transition: maintenance → active', () => {
-      const eq = { ...equipment.forklift2 };
+      // Verify forklift2 exists for transition test
+      expect(equipment.forklift2).toBeDefined();
       const newStatus = 'active';
       
       const validStatuses = ['active', 'maintenance', 'inactive'];
@@ -584,7 +585,8 @@ describe('Equipment Management', () => {
     });
 
     it('allows deactivating equipment: active → inactive', () => {
-      const eq = { ...equipment.forklift1 };
+      // Verify forklift1 is active before deactivation test
+      expect(equipment.forklift1.status).toBe('active');
       const newStatus = 'inactive';
       
       const validStatuses = ['active', 'maintenance', 'inactive'];
@@ -857,15 +859,15 @@ describe('Equipment Management', () => {
 
     describe('QR scanning redirects', () => {
       it('redirects legacy QR codes to new format', () => {
-        const legacyPath = '/eq/ABC123';
         const equipmentId = 'ABC123';
         const newPath = `/dashboard/equipment/${equipmentId}`;
 
+        // Verify new path contains equipment ID and not legacy format
         expect(newPath).toContain(equipmentId);
+        expect(newPath).not.toContain('/eq/');
       });
 
       it('handles invalid QR codes gracefully', () => {
-        const invalidEquipmentId = 'invalid-id-12345';
         const errorMessage = 'Equipment not found';
 
         expect(errorMessage).toBe('Equipment not found');
@@ -1154,7 +1156,8 @@ describe('Equipment Management', () => {
 
   describe('Equipment Working Hours', () => {
     it('displays formatted working hours', () => {
-      const eq = equipment.forklift1;
+      // Verify equipment exists for working hours test
+      expect(equipment.forklift1).toBeDefined();
       // Assuming working hours are stored as a number
       const workingHours = 1500;
       const formattedHours = workingHours.toLocaleString();

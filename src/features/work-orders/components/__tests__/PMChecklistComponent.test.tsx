@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PMChecklistComponent from '../PMChecklistComponent';
-import type { PreventativeMaintenance, PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 // Mock hooks
 vi.mock('@/features/pm-templates/hooks/usePMData', () => ({

@@ -13,7 +13,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { useUnifiedPermissions } from '../useUnifiedPermissions';
 import { personas } from '@/test/fixtures/personas';
 import { teams, workOrders, organizations } from '@/test/fixtures/entities';
-import type { Role, TeamRole } from '@/types/permissions';
 
 // Mock the session and auth hooks
 vi.mock('@/hooks/useSession', () => ({

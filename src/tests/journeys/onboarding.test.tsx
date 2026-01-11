@@ -5,14 +5,7 @@
  * organization creation, and invitation acceptance.
  */
 
-import React from 'react';
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { personas } from '@/test/fixtures/personas';
 import { organizations } from '@/test/fixtures/entities';
 
 // Mock Supabase auth
@@ -39,21 +32,6 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 import { supabase } from '@/integrations/supabase/client';
-
-// Simple test wrapper without full provider stack
-const TestWrapper = ({ children }: { children: React.ReactNode }) => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
-  });
-  
-  return (
-    <MemoryRouter>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    </MemoryRouter>
-  );
-};
 
 describe('Onboarding Journey', () => {
   beforeEach(() => {

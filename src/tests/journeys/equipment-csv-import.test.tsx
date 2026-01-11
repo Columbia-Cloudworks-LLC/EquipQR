@@ -10,13 +10,9 @@
  * - As any authorized user, I want clear feedback on import progress and errors
  */
 
-import React from 'react';
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderAsPersona, renderHookAsPersona } from '@/test/utils/test-utils';
-import { personas } from '@/test/fixtures/personas';
-import { organizations, teams } from '@/test/fixtures/entities';
+import { renderHookAsPersona } from '@/test/utils/test-utils';
+import { teams } from '@/test/fixtures/entities';
 
 // Mock the unified permissions hook
 vi.mock('@/hooks/useUnifiedPermissions', () => ({
@@ -484,7 +480,7 @@ Forklift A2,Toyota,8FGU25,SN002,active,Warehouse A`;
     });
 
     it('cannot skip preview step', () => {
-      const currentStep = 'upload';
+      // Current step is 'upload', allowed next steps are only 'preview'
       const allowedNextSteps = ['preview'];
 
       expect(allowedNextSteps).not.toContain('complete');

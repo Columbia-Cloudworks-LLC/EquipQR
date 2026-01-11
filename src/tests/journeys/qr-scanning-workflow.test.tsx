@@ -10,11 +10,8 @@
  * - As a mobile user, I want a seamless scanning experience
  */
 
-import React from 'react';
-import { screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderAsPersona, renderHookAsPersona } from '@/test/utils/test-utils';
-import { personas } from '@/test/fixtures/personas';
+import { renderHookAsPersona } from '@/test/utils/test-utils';
 import { equipment, teams, organizations } from '@/test/fixtures/entities';
 
 // Mock the unified permissions hook
@@ -139,7 +136,6 @@ describe('QR Scanning Workflow', () => {
 
       it('preserves organization context during redirect', () => {
         const organizationId = organizations.acme.id;
-        const equipmentId = equipment.forklift1.id;
 
         // Equipment should be filtered by organization
         expect(equipment.forklift1.organization_id).toBe(organizationId);
@@ -148,7 +144,6 @@ describe('QR Scanning Workflow', () => {
 
     describe('invalid QR codes', () => {
       it('shows error for non-existent equipment ID', () => {
-        const invalidEquipmentId = 'non-existent-id-12345';
         const errorMessage = 'Equipment not found';
 
         expect(errorMessage).toBe('Equipment not found');
@@ -176,7 +171,6 @@ describe('QR Scanning Workflow', () => {
 
     describe('legacy QR code format support', () => {
       it('redirects legacy /eq/:id format to new format', () => {
-        const legacyPath = '/eq/ABC123';
         const equipmentId = 'ABC123';
         const newPath = `/dashboard/equipment/${equipmentId}`;
 
@@ -185,11 +179,11 @@ describe('QR Scanning Workflow', () => {
       });
 
       it('handles legacy inventory QR codes', () => {
-        const legacyInventoryPath = '/inv/INV001';
         const inventoryId = 'INV001';
         const newPath = `/dashboard/inventory/${inventoryId}`;
 
         expect(newPath).toContain(inventoryId);
+        expect(newPath).not.toContain('/inv/');
       });
 
       it('preserves equipment ID during redirect', () => {
@@ -236,11 +230,11 @@ describe('QR Scanning Workflow', () => {
 
     describe('scan result handling', () => {
       it('navigates to equipment on successful scan', () => {
-        const scanResult = `https://app.equipqr.com/qr/${equipment.forklift1.id}`;
         const extractedId = equipment.forklift1.id;
         const targetPath = `/dashboard/equipment/${extractedId}`;
 
-        expect(targetPath).toBeDefined();
+        // Verify target path is constructed correctly from extracted ID
+        expect(targetPath).toContain(extractedId);
       });
 
       it('handles URL format QR codes', () => {
@@ -258,7 +252,6 @@ describe('QR Scanning Workflow', () => {
       });
 
       it('shows error toast for invalid scan', () => {
-        const invalidScanResult = 'not-a-valid-qr-code';
         const errorMessage = 'Invalid QR code format';
 
         expect(errorMessage).toContain('Invalid');
@@ -434,7 +427,8 @@ describe('QR Scanning Workflow', () => {
         const encodedId = encodeURIComponent(specialId);
 
         expect(encodedId).not.toContain(' ');
-        expect(encodedId).toContain('%20').toBeFalsy; // spaces become %20 or +
+        // spaces become %20 with encodeURIComponent
+        expect(encodedId).toContain('%20');
       });
 
       it('uses HTTPS for security', () => {

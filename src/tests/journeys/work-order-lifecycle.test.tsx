@@ -12,12 +12,11 @@
  */
 
 import React from 'react';
-import { screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderAsPersona, renderHookAsPersona } from '@/test/utils/test-utils';
 import { personas } from '@/test/fixtures/personas';
-import { workOrders, equipment, teams, organizations } from '@/test/fixtures/entities';
+import { workOrders, equipment, teams } from '@/test/fixtures/entities';
 
 // Mock the work order hooks
 vi.mock('@/features/work-orders/hooks/useWorkOrders', () => ({
@@ -55,7 +54,6 @@ import { useWorkOrders } from '@/features/work-orders/hooks/useWorkOrders';
 import { useWorkOrderStatusUpdate } from '@/features/work-orders/hooks/useWorkOrderStatusUpdate';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useCreateWorkOrderCost, useUpdateWorkOrderCost, useWorkOrderCosts } from '@/features/work-orders/hooks/useWorkOrderCosts';
-import { useWorkOrderFilters } from '@/features/work-orders/hooks/useWorkOrderFilters';
 
 // Test component that exercises the work order list
 const WorkOrderTestComponent = () => {
@@ -741,7 +739,8 @@ describe('Work Order Lifecycle', () => {
     });
 
     it('allows valid status transitions: submitted → assigned', () => {
-      const workOrder = { ...workOrders.submitted };
+      // Using submitted work order for status transition test
+      expect(workOrders.submitted.status).toBe('submitted');
       
       // Simulate manager assigning the work order
       const newStatus = 'assigned';
@@ -751,7 +750,8 @@ describe('Work Order Lifecycle', () => {
     });
 
     it('allows technician to mark in_progress → completed', () => {
-      const workOrder = { ...workOrders.inProgress };
+      // Using in_progress work order for status transition test
+      expect(workOrders.inProgress.status).toBe('in_progress');
       
       // Simulate technician completing the work order
       const newStatus = 'completed';
@@ -761,7 +761,8 @@ describe('Work Order Lifecycle', () => {
     });
 
     it('prevents invalid status transitions', () => {
-      const workOrder = { ...workOrders.submitted };
+      // Using submitted work order for invalid transition test
+      expect(workOrders.submitted.status).toBe('submitted');
       
       // Cannot skip directly from submitted to completed
       const invalidTransition = 'completed';
