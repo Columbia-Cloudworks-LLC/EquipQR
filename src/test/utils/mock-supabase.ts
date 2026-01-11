@@ -33,7 +33,6 @@ export const createMockSupabaseClient = () => {
       order: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       offset: vi.fn().mockReturnThis(),
-      range: vi.fn().mockReturnThis(),
       nullsFirst: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       single: vi.fn().mockResolvedValue({ data: null, error: null }),

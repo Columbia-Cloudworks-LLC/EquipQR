@@ -256,7 +256,7 @@ RETURNS TABLE (
   template_name TEXT,
   template_description TEXT,
   is_protected BOOLEAN,
-  template_organization_id UUID,
+  template_organization_id UUID,  -- owning organization for the template; aliased to avoid conflict with p_organization_id parameter
   match_type TEXT,  -- 'model' (specific match) or 'manufacturer' (any model match)
   matched_manufacturer TEXT,
   matched_model TEXT

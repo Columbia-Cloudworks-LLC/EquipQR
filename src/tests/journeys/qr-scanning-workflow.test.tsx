@@ -239,9 +239,12 @@ describe('QR Scanning Workflow', () => {
 
       it('handles URL format QR codes', () => {
         const urlQrCode = 'https://app.equipqr.com/qr/eq-forklift-1';
-        const containsBaseUrl = urlQrCode.includes('equipqr.com');
+        // Use URL parsing for proper hostname validation instead of substring matching
+        // This prevents attacks like 'evil.com/equipqr.com' from being accepted
+        const url = new URL(urlQrCode);
+        const isValidHost = url.hostname === 'app.equipqr.com' || url.hostname.endsWith('.equipqr.com');
 
-        expect(containsBaseUrl).toBe(true);
+        expect(isValidHost).toBe(true);
       });
 
       it('handles plain ID format QR codes', () => {
