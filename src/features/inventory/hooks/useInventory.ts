@@ -693,33 +693,32 @@ export const useEquipmentMatchCount = (
 ) => {
   const staleTime = options?.staleTime ?? 30 * 1000; // 30 seconds for count
 
+  // Memoize a stable rules array based on its content.
+  // react-hook-form recreates the rules array reference on every render,
+  // so we use JSON.stringify for content-based equality comparison.
+  // This ensures the query only refetches when rules content actually changes.
+  const stableRules = useMemo(
+    () => rules,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- content-based comparison
+    [JSON.stringify(rules)]
+  );
+
   // Create a stable string key from rules for React Query cache.
-  // 
-  // IMPORTANT: Why we use JSON.stringify for dependency tracking:
-  // - react-hook-form recreates the rules array reference on every render
-  // - Using [rules] directly would cause useMemo to recompute on every render
-  // - JSON.stringify provides content-based comparison: same content = same string = no recompute
-  // - This is more efficient than the alternative of computing rulesKey on every render
-  //
-  // The eslint-disable is required because ESLint can't statically analyze that
-  // rulesContent is derived from rules. This is a known pattern for content-based dependencies.
-  const rulesContent = JSON.stringify(rules);
   const rulesKey = useMemo(() => {
-    if (rules.length === 0) return '';
-    return rules
+    if (stableRules.length === 0) return '';
+    return stableRules
       .map(r => `${r.manufacturer.toLowerCase().trim()}|${r.model?.toLowerCase().trim() ?? ''}`)
       .sort()
       .join(',');
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- rulesContent captures rules by value
-  }, [rulesContent]);
+  }, [stableRules]);
 
   return useQuery({
     queryKey: ['equipment-match-count', organizationId, rulesKey],
     queryFn: async () => {
-      if (!organizationId || rules.length === 0) return 0;
-      return await countEquipmentMatchingRules(organizationId, rules);
+      if (!organizationId || stableRules.length === 0) return 0;
+      return await countEquipmentMatchingRules(organizationId, stableRules);
     },
-    enabled: !!organizationId && rules.length > 0,
+    enabled: !!organizationId && stableRules.length > 0,
     staleTime
   });
 };
