@@ -98,11 +98,13 @@ const DevQuickLogin: React.FC = () => {
         setError(signInError.message);
       }
     } catch (err) {
-      // Log detailed error for developers, show generic message in UI
-      console.error(
-        'DevQuickLogin sign-in failed. Make sure you have run `npx supabase db reset` to seed the database.',
-        err
-      );
+      // Log detailed error for developers in development only, show generic message in UI
+      if (import.meta.env.DEV) {
+        console.error(
+          'DevQuickLogin sign-in failed. Make sure you have run `npx supabase db reset` to seed the database.',
+          err
+        );
+      }
       setError('Authentication failed. Please try again.');
     } finally {
       setIsLoading(false);

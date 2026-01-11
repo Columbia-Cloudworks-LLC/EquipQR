@@ -1,7 +1,7 @@
 -- Migration: Add Organization Membership Validation to Compatibility RPC
 -- Description: Security enhancement to verify caller is member of the organization
 -- Date: 2026-01-10
--- Review: Addresses PR #491 feedback - prevents unauthorized organization_id access
+-- Review: Addresses GitHub PR #491 Copilot review feedback - prevents unauthorized organization_id access
 
 BEGIN;
 

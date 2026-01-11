@@ -454,15 +454,15 @@ export const useEquipmentManufacturersAndModels = (
       }
 
       // Convert to sorted array
-      const result2: ManufacturerWithModels[] = [];
+      const manufacturersList: ManufacturerWithModels[] = [];
       for (const [manufacturer, modelsSet] of manufacturerMap) {
-        result2.push({
+        manufacturersList.push({
           manufacturer,
           models: Array.from(modelsSet).sort((a, b) => a.localeCompare(b))
         });
       }
 
-      return result2.sort((a, b) => a.manufacturer.localeCompare(b.manufacturer));
+      return manufacturersList.sort((a, b) => a.manufacturer.localeCompare(b.manufacturer));
     },
     enabled: !!organizationId,
     staleTime,

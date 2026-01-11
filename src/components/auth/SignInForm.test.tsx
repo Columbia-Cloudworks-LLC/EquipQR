@@ -145,7 +145,11 @@ describe('SignInForm', () => {
   it('should disable submit button when loading', () => {
     render(<SignInForm {...defaultProps} isLoading={true} />);
 
-    const submitButton = screen.getByRole('button', { name: /Sign In/i });
+    // Find submit button by type to avoid ambiguity with DevQuickLogin button
+    const submitButton = screen.getAllByRole('button').find(
+      (button) => (button as HTMLButtonElement).type === 'submit'
+    );
+    expect(submitButton).toBeDefined();
     expect(submitButton).toBeDisabled();
   });
 
