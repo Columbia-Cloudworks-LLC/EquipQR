@@ -135,9 +135,10 @@ export const getPersona = (key: PersonaKey): UserPersona => personas[key];
 export const createCustomPersona = (
   overrides: Partial<UserPersona> & { id: string }
 ): UserPersona => ({
-  email: `${overrides.id}@test.com`,
   name: 'Custom User',
   organizationRole: 'member',
   teamMemberships: [],
-  ...overrides
+  ...overrides,
+  // Use provided email or generate from id; placed after spread to ensure it's set correctly
+  email: overrides.email ?? `${overrides.id}@test.com`
 });

@@ -101,13 +101,18 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     }
   }, [isOpen, workOrder?.id, equipmentId, form, initialValues]);
 
+  /**
+   * Checks if the form has unsaved changes compared to initial values.
+   * 
+   * Empty value normalization: We intentionally treat undefined, null, and empty string 
+   * as equivalent for form state comparison. This is appropriate because:
+   * 1. Database optional fields may be null/undefined, but form clears to empty string
+   * 2. For "unsaved changes" detection, all empty states mean "no value" semantically
+   * 3. Users clearing a field (→ '') should match an initially null/undefined field
+   * 
+   * @returns true if any field has changed from its initial value
+   */
   const checkForUnsavedChanges = (): boolean => {
-    // Helper to normalize "empty" values for comparison.
-    // INTENTIONAL: We treat undefined, null, and empty string as equivalent for form state.
-    // This is appropriate because:
-    // 1. Database optional fields may be null/undefined, but form clears to empty string
-    // 2. For "unsaved changes" detection, all empty states mean "no value" semantically
-    // 3. Users clearing a field (→ '') should match an initially null/undefined field
     const isEmpty = (value: unknown): boolean => {
       return value === undefined || value === null || value === '';
     };

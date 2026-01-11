@@ -1208,12 +1208,14 @@ describe('PM Template Journey', () => {
       });
 
       it('model resets when manufacturer changes', () => {
-        let rule = { manufacturer: 'Toyota', model: '8FGU25' };
+        // Simulate the initial state with a selected manufacturer and model
+        const initialRule = { manufacturer: 'Toyota', model: '8FGU25' };
+        expect(initialRule.model).toBe('8FGU25');
         
-        // Simulate manufacturer change
-        rule = { manufacturer: 'Konecranes', model: null };
+        // Simulate manufacturer change - model should be reset to null
+        const updatedRule = { manufacturer: 'Konecranes', model: null };
         
-        expect(rule.model).toBeNull();
+        expect(updatedRule.model).toBeNull();
       });
     });
 

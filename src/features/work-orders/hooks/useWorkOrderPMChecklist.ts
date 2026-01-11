@@ -57,11 +57,11 @@ export const useWorkOrderPMChecklist = ({
       return [];
     }
     
-    // Get IDs of templates that match the equipment's manufacturer/model
-    const matchedIds = new Set(matchingTemplates.map(m => m.template_id));
+    // Get IDs of templates that match the equipment's manufacturer/model via compatibility rules
+    const compatibleTemplateIds = new Set(matchingTemplates.map(m => m.template_id));
     
     // Filter allTemplates to only include those with matching compatibility rules
-    let filtered = allTemplates.filter(t => matchedIds.has(t.id));
+    let filtered = allTemplates.filter(t => compatibleTemplateIds.has(t.id));
     
     // Apply user restrictions (free users can only see global templates)
     if (!restrictions.canCreateCustomPMTemplates) {
