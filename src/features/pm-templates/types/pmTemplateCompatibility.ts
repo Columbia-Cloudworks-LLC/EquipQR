@@ -1,0 +1,73 @@
+/**
+ * PM Template Compatibility Types
+ * 
+ * Types for rule-based matching of PM templates to equipment by manufacturer/model.
+ * Similar to inventory part compatibility rules.
+ */
+
+// ============================================
+// Base Rule Types
+// ============================================
+
+/**
+ * PMTemplateCompatibilityRule - Rule-based matching of PM templates to equipment.
+ * 
+ * Allows defining compatibility patterns like "fits all Caterpillar D6T equipment"
+ * instead of manually linking to specific equipment records.
+ */
+export interface PMTemplateCompatibilityRule {
+  id: string;
+  pm_template_id: string;
+  manufacturer: string;
+  model: string | null;  // null = "any model from this manufacturer"
+  manufacturer_norm: string;
+  model_norm: string | null;
+  created_at: string;
+}
+
+/**
+ * PMTemplateCompatibilityRuleFormData - Form input for creating/editing compatibility rules.
+ * 
+ * Uses raw values; normalization happens on save.
+ */
+export interface PMTemplateCompatibilityRuleFormData {
+  manufacturer: string;
+  model: string | null;  // null or empty string = "Any Model"
+}
+
+// ============================================
+// RPC Result Types
+// ============================================
+
+/**
+ * MatchingPMTemplateResult - Result from get_matching_pm_templates RPC.
+ * 
+ * Includes match_type to indicate how the template was matched:
+ * - 'model': Specific model match (highest priority)
+ * - 'manufacturer': Any model from manufacturer match
+ */
+export interface MatchingPMTemplateResult {
+  template_id: string;
+  template_name: string;
+  template_description: string | null;
+  is_protected: boolean;
+  organization_id: string | null;
+  match_type: 'model' | 'manufacturer';
+  matched_manufacturer: string;
+  matched_model: string | null;
+}
+
+/**
+ * PMTemplateWithMatchInfo - Extended template info with match context.
+ * 
+ * Used in UI to display matching templates with their match reason.
+ */
+export interface PMTemplateWithMatchInfo {
+  id: string;
+  name: string;
+  description: string | null;
+  isProtected: boolean;
+  organizationId: string | null;
+  matchType: 'model' | 'manufacturer' | 'direct' | 'none';
+  matchReason?: string;  // Human-readable match reason
+}
