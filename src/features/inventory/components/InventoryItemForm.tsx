@@ -261,9 +261,10 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   };
 
   const isMutating = createMutation.isPending || updateMutation.isPending;
-  // Disable form while mutating, while async editing data is loading, or if loading failed
+  // Loading state: either a mutation is in progress or async editing data is still loading
   const isEditingDataPending = !!editingItem && !isEditingDataLoaded;
-  const isLoading = isMutating || isEditingDataPending || editingDataLoadError;
+  // Form should be disabled while mutating, while async editing data is loading, or if loading failed
+  const isFormDisabled = isMutating || isEditingDataPending || editingDataLoadError;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -457,7 +458,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                     <CompatibilityRulesEditor
                       rules={field.value || []}
                       onChange={field.onChange}
-                      disabled={isLoading}
+                      disabled={isFormDisabled}
                     />
                   </FormControl>
                   <FormMessage />
@@ -612,10 +613,10 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
 
             {/* Actions */}
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isFormDisabled}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isFormDisabled}>
                 {isMutating
                   ? 'Saving...'
                   : editingDataLoadError

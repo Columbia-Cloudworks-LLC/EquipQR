@@ -16,6 +16,15 @@ import { useAuth } from '@/hooks/useAuth';
 /**
  * Test users from supabase/seed.sql
  * All use password: password123
+ * 
+ * ⚠️ SECURITY WARNING ⚠️
+ * This file contains hardcoded test credentials for local development ONLY.
+ * These credentials only work with locally seeded test databases.
+ * This component is rendered only when `import.meta.env.DEV === true`.
+ * In production builds (Vite), import.meta.env.DEV is statically replaced with `false`,
+ * causing the entire component to tree-shake out of the bundle.
+ * 
+ * @see https://vitejs.dev/guide/env-and-mode.html#production-replacement
  */
 const DEV_USERS = [
   // Apex Construction Company

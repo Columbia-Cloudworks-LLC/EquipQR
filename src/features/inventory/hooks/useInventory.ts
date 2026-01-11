@@ -604,15 +604,12 @@ export const useRemoveCompatibilityRule = () => {
   return useMutation({
     mutationFn: async ({
       organizationId,
-      itemId,
       ruleId
     }: {
       organizationId: string;
       itemId: string;
       ruleId: string;
     }) => {
-      // itemId is passed through to onSuccess for cache invalidation
-      void itemId;
       return await removeCompatibilityRule(organizationId, ruleId);
     },
     onSuccess: (_, variables) => {
