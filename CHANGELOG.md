@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **User Journey Testing Framework**: Migrated from component-oriented to user journey-oriented testing
+  - New `src/tests/journeys/` directory with workflow-based tests organized by user story
+  - Journey tests for: Equipment Management, Work Order Lifecycle, QR Scanning, CSV Import, PM Templates, Onboarding
+  - Tests structured by user persona (Owner, Admin, Team Manager, Technician, Viewer)
+  - Each journey test file documents covered user stories in header comments
+
+- **Persona-Based Test Fixtures**: Role-based testing infrastructure in `src/test/fixtures/`
+  - `personas.ts`: Pre-defined user personas (owner, admin, teamManager, technician, multiTeamTechnician, readOnlyMember, viewer)
+  - `entities.ts`: Comprehensive test data for organizations, teams, equipment, work orders, and PM templates
+  - Helper functions: `getWorkOrdersForTeam()`, `getEquipmentForTeam()`, `createCustomWorkOrder()`
+
+- **Persona-Aware Render Utilities**: New test utilities in `src/test/utils/`
+  - `renderAsPersona(ui, personaKey)`: Render components with persona context
+  - `renderHookAsPersona(hook, personaKey)`: Test hooks with persona permissions
+  - `TestProviders`: Unified provider wrapper with persona support
+  - `createPersonaWrapper()`: Create custom wrappers for edge case testing
+
 - **PM Template Compatibility Rules Management**: New UI for managing equipment compatibility rules on PM templates
   - `PMTemplateCompatibilityRulesEditor` component integrated into `PMTemplateView` for managing rules
   - New `PMTemplateRulesDialog` accessible from the PMTemplates page for configuring rules
@@ -30,6 +47,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Vitest Configuration**: Optimized for CI reliability and to prevent hanging
+  - Switched from `threads` to `forks` pool for better process isolation
+  - Single worker in CI (`maxForks: 1`) to minimize memory usage and OOM errors
+  - Sequential file execution in CI (`fileParallelism: false`)
+  - Istanbul coverage provider in CI for stability (v8 can hang on large codebases)
+  - Reduced reporters in CI to save memory (skip HTML report)
+  - Increased timeouts: `testTimeout: 10000`, `hookTimeout: 30000`, `teardownTimeout: 10000`
+
+- **Test Runner Scripts**: New wrapper scripts to prevent Vitest hanging on Windows
+  - `scripts/test-runner.mjs`: Monitors test output for completion patterns and forces exit
+  - `scripts/test-ci.mjs`: CI-specific execution with 5-minute hard timeout and coverage ratchet
+  - Both scripts handle Windows process tree termination via `taskkill`
+
+- **Test Setup**: Enhanced global mocks in `src/test/setup.ts`
+  - Mock Supabase client globally to prevent real client initialization and timer leaks
+  - Proper cleanup: `afterAll` clears timers and restores real timers
+  - Suppress expected error messages to reduce test output noise
+  - Mock IntersectionObserver, ResizeObserver, matchMedia, clipboard for browser API compatibility
+
+- **CI Workflow**: Updated `.github/workflows/ci.yml` for test reliability
+  - Test Suite job timeout increased to 15 minutes
+  - Tests run via `node scripts/test-ci.mjs` instead of direct `npm test`
+  - Coverage baseline set to 70%
+
 - **Build Performance**: Enhanced Vite configuration for improved loading
   - Implemented manual chunking for better code splitting
   - Organized vendor libraries into logical groups (React, UI, utilities)
@@ -39,6 +80,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `organization_id` to `template_organization_id` in `MatchingPMTemplateResult` to prevent variable conflicts
 
 ### Fixed
+
+- **GitHub Actions Timeouts**: Resolved CI hanging issues caused by Vitest workers not exiting cleanly
+  - Open handles from jsdom, React Query cache, and Supabase WebSocket connections prevented process exit
+  - Test runner now detects completion patterns and forces exit after 3 seconds of inactivity
+  - Hard timeout of 5 minutes (8 minutes with coverage) ensures CI never hangs indefinitely
+
+- **Test Suite ESLint Compliance**: Cleaned up ESLint errors and warnings across 8 journey test files
+  - Fixed invalid assertion in `qr-scanning-workflow.test.tsx`
+  - Removed 52 unused import warnings
+  - Refactored test assertions to use fixture data directly
 
 - Added SQL migrations with performance indexes for organization-specific compatibility rules
 
