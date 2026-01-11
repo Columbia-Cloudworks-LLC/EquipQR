@@ -8,7 +8,7 @@ responses for each GitHub pull-request comment.
 ## Steps
 
 1. **Sync and audit comments**
-    - Use the GitHub MCP tools like `get_me`, `list_pull_requests`, and `pull_request_read` to view the PR conversations.
+    - Use the GitHub MCP tools like `get_me`, `list_pull_requests`, and `pull_request_read` to view the PR conversations. The repository url is https://github.com/Columbia-Cloudworks-LLC/EquipQR
     - Open the PR conversation view and read every unresolved comment
     - Group comments by affected files or themes
 2. **Plan resolutions**
