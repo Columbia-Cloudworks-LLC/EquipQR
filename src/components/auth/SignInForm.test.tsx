@@ -13,6 +13,12 @@ vi.mock('@/hooks/useAuth', () => ({
   }),
 }));
 
+// Helper to fill form fields quickly using fireEvent.change
+const fillFormFast = (email = 'test@example.com', password = 'password123') => {
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: email } });
+  fireEvent.change(screen.getByLabelText('Password'), { target: { value: password } });
+};
+
 describe('SignInForm', () => {
   const mockOnError = vi.fn();
   const mockSetIsLoading = vi.fn();
@@ -56,63 +62,52 @@ describe('SignInForm', () => {
     expect(passwordInput).toHaveAttribute('required');
   });
 
-  it('should update form data when typing in inputs', async () => {
-    const user = userEvent.setup();
+  it('should update form data when typing in inputs', () => {
     render(<SignInForm {...defaultProps} />);
 
     const emailInput = screen.getByLabelText('Email');
     const passwordInput = screen.getByLabelText('Password');
 
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'password123');
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'password123' } });
 
     expect(emailInput).toHaveValue('test@example.com');
     expect(passwordInput).toHaveValue('password123');
   });
 
   it('should call signIn with correct data on form submission', async () => {
-    const user = userEvent.setup();
     render(<SignInForm {...defaultProps} />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
+    // Fill form using fast helper
+    fillFormFast();
+    
     const submitButton = screen.getByRole('button', { name: 'Sign In' });
+    fireEvent.click(submitButton);
 
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'password123');
-    await user.click(submitButton);
-
-    expect(mockSetIsLoading).toHaveBeenCalledWith(true);
-    expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
-    expect(mockSetIsLoading).toHaveBeenCalledWith(false);
+    await waitFor(() => {
+      expect(mockSetIsLoading).toHaveBeenCalledWith(true);
+      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
+      expect(mockSetIsLoading).toHaveBeenCalledWith(false);
+    });
   });
 
-  it('should prevent form submission if fields are empty', async () => {
-    const user = userEvent.setup();
+  it('should prevent form submission if fields are empty', () => {
     render(<SignInForm {...defaultProps} />);
 
     const submitButton = screen.getByRole('button', { name: 'Sign In' });
-
-    await user.click(submitButton);
+    fireEvent.click(submitButton);
 
     // Form validation should prevent submission
     expect(mockSignIn).not.toHaveBeenCalled();
   });
 
-  it('should validate email format and prevent submission with invalid email', async () => {
-    const user = userEvent.setup();
+  it('should validate email format and prevent submission with invalid email', () => {
     render(<SignInForm {...defaultProps} />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByRole('button', { name: 'Sign In' });
-
     // Enter invalid email - native HTML5 validation will prevent submission
-    await user.type(emailInput, 'invalid-email');
-    await user.type(passwordInput, 'password123');
+    fillFormFast('invalid-email', 'password123');
     
-    // Try to submit - should be blocked by native validation
-    // The form won't submit with invalid email format
+    const submitButton = screen.getByRole('button', { name: 'Sign In' });
     fireEvent.click(submitButton);
     
     // signIn should not be called due to HTML5 validation
@@ -123,16 +118,12 @@ describe('SignInForm', () => {
     const mockError = new Error('Invalid credentials');
     mockSignIn.mockResolvedValue({ error: mockError });
 
-    const user = userEvent.setup();
     render(<SignInForm {...defaultProps} />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
+    fillFormFast('test@example.com', 'wrongpassword');
+    
     const submitButton = screen.getByRole('button', { name: 'Sign In' });
-
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'wrongpassword');
-    await user.click(submitButton);
+    fireEvent.click(submitButton);
 
     await waitFor(() => {
       expect(mockOnError).toHaveBeenCalledWith('Invalid credentials');
@@ -166,28 +157,29 @@ describe('SignInForm', () => {
   });
 
   it('should handle form submission with Enter key', async () => {
-    const user = userEvent.setup();
+    // Keep userEvent for keyboard testing but with delay: null
+    const user = userEvent.setup({ delay: null });
     render(<SignInForm {...defaultProps} />);
 
-    const emailInput = screen.getByLabelText('Email');
+    fillFormFast();
+    
+    // Focus on password field and press Enter to submit
     const passwordInput = screen.getByLabelText('Password');
-
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'password123');
+    passwordInput.focus();
     await user.keyboard('{Enter}');
 
-    expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
+    await waitFor(() => {
+      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
+    });
   });
 
   it('should prevent multiple rapid submissions', async () => {
-    const user = userEvent.setup();
-    
-    // Mock signIn with delay to simulate real network conditions
-    // This delay allows us to verify the guard mechanism works before the request completes
+    // Use a controlled promise instead of setTimeout for faster tests
+    let resolveSignIn!: (value: { error: null }) => void;
     mockSignIn.mockImplementation(() => 
-      new Promise(resolve => 
-        setTimeout(() => resolve({ error: null }), 100)
-      )
+      new Promise(resolve => {
+        resolveSignIn = resolve;
+      })
     );
     
     // Create a wrapper that manages loading state internally to test the actual guard behavior
@@ -204,12 +196,9 @@ describe('SignInForm', () => {
     
     render(<TestWrapper />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
+    fillFormFast();
+    
     const submitButton = screen.getByRole('button', { name: 'Sign In' });
-
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'password123');
     
     // Button should be enabled initially
     expect(submitButton).not.toBeDisabled();
@@ -218,10 +207,9 @@ describe('SignInForm', () => {
     fireEvent.click(submitButton);
     
     // Wait for React to process the state update and re-render with disabled button
-    // This confirms the isLoading guard is active after the first submission
     await waitFor(() => {
       expect(submitButton).toBeDisabled();
-    }, { timeout: 500 });
+    });
     
     // Now that loading is active, fire additional clicks
     // These should be blocked by the isLoading guard in handleSubmit
@@ -229,35 +217,35 @@ describe('SignInForm', () => {
     fireEvent.click(submitButton);
     
     // Verify signIn was called only once (first click) before the guard was active
-    // Additional clicks should be prevented by the isLoading check
     expect(mockSignIn).toHaveBeenCalledTimes(1);
+    
+    // Resolve the promise to clean up
+    resolveSignIn({ error: null });
     
     // Wait for submission to complete and button to re-enable
     await waitFor(() => {
       expect(submitButton).not.toBeDisabled();
-    }, { timeout: 500 });
+    });
     
     // Final verification: signIn was still only called once despite multiple clicks
     expect(mockSignIn).toHaveBeenCalledTimes(1);
     expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
   });
 
-  it('should handle form reset correctly', async () => {
-    const user = userEvent.setup();
+  it('should handle form reset correctly', () => {
     render(<SignInForm {...defaultProps} />);
 
     const emailInput = screen.getByLabelText('Email');
     const passwordInput = screen.getByLabelText('Password');
 
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'password123');
+    fillFormFast();
 
     expect(emailInput).toHaveValue('test@example.com');
     expect(passwordInput).toHaveValue('password123');
 
-    // Clear inputs manually (simulating form reset)
-    await user.clear(emailInput);
-    await user.clear(passwordInput);
+    // Clear inputs using fireEvent
+    fireEvent.change(emailInput, { target: { value: '' } });
+    fireEvent.change(passwordInput, { target: { value: '' } });
 
     expect(emailInput).toHaveValue('');
     expect(passwordInput).toHaveValue('');

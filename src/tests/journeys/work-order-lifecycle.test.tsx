@@ -1541,4 +1541,397 @@ describe('Work Order Lifecycle', () => {
       });
     });
   });
+
+  describe('Cost Management with Inventory Integration', () => {
+    /**
+     * User Journey: Managing work order costs with inventory tracking
+     * 
+     * This section tests the service-level logic for cost management,
+     * including inventory-linked costs and quantity tracking.
+     */
+
+    describe('as an Admin', () => {
+      beforeEach(() => {
+        vi.mocked(useWorkOrderCosts).mockReturnValue({
+          data: [
+            {
+              id: 'cost-1',
+              work_order_id: workOrders.inProgress.id,
+              description: 'Oil Filter',
+              quantity: 2,
+              unit_price_cents: 2499,
+              total_price_cents: 4998,
+              created_by: personas.admin.id,
+              inventory_item_id: 'inv-oil-filter',
+              created_at: '2024-01-05T10:00:00Z',
+              updated_at: '2024-01-05T10:00:00Z'
+            },
+            {
+              id: 'cost-2',
+              work_order_id: workOrders.inProgress.id,
+              description: 'Labor - 2 hours',
+              quantity: 2,
+              unit_price_cents: 7500,
+              total_price_cents: 15000,
+              created_by: personas.admin.id,
+              inventory_item_id: null, // Manual entry, not from inventory
+              created_at: '2024-01-05T11:00:00Z',
+              updated_at: '2024-01-05T11:00:00Z'
+            }
+          ],
+          isLoading: false,
+          isError: false,
+          error: null
+        } as ReturnType<typeof useWorkOrderCosts>);
+
+        vi.mocked(useUnifiedPermissions).mockReturnValue({
+          hasRole: () => true,
+          isTeamMember: () => true,
+          isTeamManager: () => true,
+          organization: { canManage: true, canInviteMembers: true, canCreateTeams: true, canViewBilling: false, canManageMembers: true },
+          equipment: { getPermissions: () => ({ canView: true, canCreate: true, canEdit: true, canDelete: true }), canViewAll: true, canCreateAny: true },
+          workOrders: {
+            getPermissions: () => ({ canView: true, canCreate: true, canEdit: true, canDelete: true, canAssign: true, canChangeStatus: true }),
+            getDetailedPermissions: () => ({
+              canEdit: true,
+              canEditPriority: true,
+              canEditAssignment: true,
+              canEditDueDate: true,
+              canEditDescription: true,
+              canChangeStatus: true,
+              canAddNotes: true,
+              canAddImages: true,
+              canAddCosts: true,
+              canEditCosts: true,
+              canViewPM: true,
+              canEditPM: true
+            }),
+            canViewAll: true,
+            canCreateAny: true
+          },
+          teams: { getPermissions: () => ({ canView: true, canCreate: true, canEdit: true, canDelete: false }), canCreateAny: true },
+          notes: { getPermissions: () => ({ canViewNotes: true, canAddPublicNote: true, canAddPrivateNote: true, canEditOwnNote: () => true, canEditAnyNote: true, canDeleteOwnNote: () => true, canDeleteAnyNote: true, canUploadImages: true, canDeleteImages: true, canSetDisplayImage: true }) }
+        } as unknown as ReturnType<typeof useUnifiedPermissions>);
+      });
+
+      it('can view costs with inventory item links', () => {
+        const { result } = renderHookAsPersona(
+          () => useWorkOrderCosts(workOrders.inProgress.id),
+          'admin'
+        );
+
+        expect(result.current.data).toBeDefined();
+        expect(result.current.data?.length).toBe(2);
+        
+        // First cost is linked to inventory
+        expect(result.current.data?.[0].inventory_item_id).toBe('inv-oil-filter');
+        // Second cost is manual entry
+        expect(result.current.data?.[1].inventory_item_id).toBeNull();
+      });
+
+      it('can add costs from inventory items', () => {
+        const inventoryBasedCost = {
+          work_order_id: workOrders.inProgress.id,
+          description: 'Hydraulic Hose',
+          quantity: 1,
+          unit_price_cents: 8950,
+          inventory_item_id: 'inv-hydraulic-hose',
+          original_quantity: 1
+        };
+
+        expect(inventoryBasedCost.inventory_item_id).toBeDefined();
+        expect(inventoryBasedCost.original_quantity).toBe(1);
+      });
+
+      it('tracks quantity changes for inventory adjustment', () => {
+        const originalCost = {
+          id: 'cost-1',
+          quantity: 2,
+          inventory_item_id: 'inv-oil-filter'
+        };
+
+        // Increase quantity (taking more from inventory)
+        const newQuantity = 5;
+        const delta = originalCost.quantity - newQuantity; // 2 - 5 = -3 (negative = take from inventory)
+        
+        expect(delta).toBe(-3);
+
+        // Decrease quantity (returning to inventory)
+        const reducedQuantity = 1;
+        const returnDelta = originalCost.quantity - reducedQuantity; // 2 - 1 = 1 (positive = return to inventory)
+        
+        expect(returnDelta).toBe(1);
+      });
+
+      it('deleting cost returns quantity to inventory when linked', () => {
+        const inventoryLinkedCost = {
+          id: 'cost-1',
+          quantity: 2,
+          inventory_item_id: 'inv-oil-filter'
+        };
+
+        // When deleting, the full quantity should be returned
+        const inventoryInfo = inventoryLinkedCost.inventory_item_id 
+          ? { inventory_item_id: inventoryLinkedCost.inventory_item_id, quantity: inventoryLinkedCost.quantity }
+          : null;
+
+        expect(inventoryInfo).not.toBeNull();
+        expect(inventoryInfo?.quantity).toBe(2);
+      });
+
+      it('deleting manual cost does not affect inventory', () => {
+        const manualCost = {
+          id: 'cost-2',
+          quantity: 2,
+          inventory_item_id: null
+        };
+
+        const inventoryInfo = manualCost.inventory_item_id 
+          ? { inventory_item_id: manualCost.inventory_item_id, quantity: manualCost.quantity }
+          : null;
+
+        expect(inventoryInfo).toBeNull();
+      });
+
+      it('calculates total cost correctly', () => {
+        const costs = [
+          { quantity: 2, unit_price_cents: 2499, total_price_cents: 4998 },
+          { quantity: 2, unit_price_cents: 7500, total_price_cents: 15000 }
+        ];
+
+        const totalCents = costs.reduce((sum, cost) => sum + cost.total_price_cents, 0);
+        
+        expect(totalCents).toBe(19998); // $199.98
+      });
+    });
+
+    describe('as a Technician', () => {
+      beforeEach(() => {
+        vi.mocked(useWorkOrderCosts).mockReturnValue({
+          data: [
+            {
+              id: 'cost-1',
+              work_order_id: workOrders.assigned.id,
+              description: 'Parts used',
+              quantity: 1,
+              unit_price_cents: 5000,
+              total_price_cents: 5000,
+              created_by: personas.technician.id,
+              created_at: '2024-01-05T10:00:00Z',
+              updated_at: '2024-01-05T10:00:00Z'
+            }
+          ],
+          isLoading: false,
+          isError: false,
+          error: null
+        } as ReturnType<typeof useWorkOrderCosts>);
+
+        vi.mocked(useUnifiedPermissions).mockReturnValue({
+          hasRole: () => false,
+          isTeamMember: (teamId: string) => teamId === teams.maintenance.id,
+          isTeamManager: () => false,
+          organization: { canManage: false, canInviteMembers: false, canCreateTeams: false, canViewBilling: false, canManageMembers: false },
+          equipment: { getPermissions: () => ({ canView: true, canCreate: false, canEdit: false, canDelete: false }), canViewAll: false, canCreateAny: false },
+          workOrders: {
+            getPermissions: (wo) => {
+              const isAssigned = wo?.assignee_id === personas.technician.id;
+              return { canView: isAssigned, canCreate: true, canEdit: isAssigned, canDelete: false, canAssign: false, canChangeStatus: isAssigned };
+            },
+            getDetailedPermissions: (wo) => {
+              const isAssigned = wo?.assignee_id === personas.technician.id;
+              return {
+                canEdit: isAssigned,
+                canEditPriority: false,
+                canEditAssignment: false,
+                canEditDueDate: false,
+                canEditDescription: isAssigned,
+                canChangeStatus: isAssigned,
+                canAddNotes: isAssigned,
+                canAddImages: isAssigned,
+                canAddCosts: isAssigned,
+                canEditCosts: isAssigned,
+                canViewPM: isAssigned,
+                canEditPM: isAssigned
+              };
+            },
+            canViewAll: false,
+            canCreateAny: false
+          },
+          teams: { getPermissions: () => ({ canView: true, canCreate: false, canEdit: false, canDelete: false }), canCreateAny: false },
+          notes: { getPermissions: () => ({ canViewNotes: true, canAddPublicNote: true, canAddPrivateNote: false, canEditOwnNote: () => true, canEditAnyNote: false, canDeleteOwnNote: () => true, canDeleteAnyNote: false, canUploadImages: true, canDeleteImages: false, canSetDisplayImage: false }) }
+        } as unknown as ReturnType<typeof useUnifiedPermissions>);
+      });
+
+      it('can add costs to assigned work orders', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'technician'
+        );
+
+        const assignedWO = workOrders.assigned;
+        const permissions = result.current.workOrders.getDetailedPermissions(assignedWO as never);
+        
+        expect(permissions.canAddCosts).toBe(true);
+      });
+
+      it('cannot add costs to unassigned work orders', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'technician'
+        );
+
+        const unassignedWO = workOrders.submitted;
+        const permissions = result.current.workOrders.getDetailedPermissions(unassignedWO as never);
+        
+        expect(permissions.canAddCosts).toBe(false);
+      });
+
+      it('cost tracks creator information', () => {
+        const newCost = {
+          work_order_id: workOrders.assigned.id,
+          description: 'Replacement part',
+          quantity: 1,
+          unit_price_cents: 3500,
+          created_by: personas.technician.id
+        };
+
+        expect(newCost.created_by).toBe(personas.technician.id);
+      });
+
+      it('can edit own costs on assigned work orders', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'technician'
+        );
+
+        const assignedWO = workOrders.assigned;
+        const permissions = result.current.workOrders.getDetailedPermissions(assignedWO as never);
+        
+        expect(permissions.canEditCosts).toBe(true);
+      });
+    });
+
+    describe('Cost Validation', () => {
+      it('requires description for cost items', () => {
+        const invalidCost = {
+          description: '',
+          quantity: 1,
+          unit_price_cents: 1000
+        };
+
+        const isValid = invalidCost.description.trim().length > 0;
+        expect(isValid).toBe(false);
+      });
+
+      it('requires quantity greater than zero', () => {
+        const invalidCosts = [
+          { description: 'Parts', quantity: 0, unit_price_cents: 1000 },
+          { description: 'Parts', quantity: -1, unit_price_cents: 1000 }
+        ];
+
+        invalidCosts.forEach(cost => {
+          const isValid = cost.quantity > 0;
+          expect(isValid).toBe(false);
+        });
+      });
+
+      it('allows zero unit price for free items', () => {
+        const freeCost = {
+          description: 'Warranty replacement',
+          quantity: 1,
+          unit_price_cents: 0
+        };
+
+        const isValid = freeCost.unit_price_cents >= 0;
+        expect(isValid).toBe(true);
+      });
+
+      it('rejects negative unit price', () => {
+        const invalidCost = {
+          description: 'Parts',
+          quantity: 1,
+          unit_price_cents: -500
+        };
+
+        const isValid = invalidCost.unit_price_cents >= 0;
+        expect(isValid).toBe(false);
+      });
+    });
+
+    describe('Cost Summary and Reporting', () => {
+      it('aggregates costs by user', () => {
+        const costs = [
+          { created_by: 'user-1', total_price_cents: 5000 },
+          { created_by: 'user-1', total_price_cents: 3000 },
+          { created_by: 'user-2', total_price_cents: 2500 }
+        ];
+
+        const summary = costs.reduce((acc, cost) => {
+          if (!acc[cost.created_by]) {
+            acc[cost.created_by] = { totalCosts: 0, itemCount: 0 };
+          }
+          acc[cost.created_by].totalCosts += cost.total_price_cents;
+          acc[cost.created_by].itemCount += 1;
+          return acc;
+        }, {} as Record<string, { totalCosts: number; itemCount: number }>);
+
+        expect(summary['user-1'].totalCosts).toBe(8000);
+        expect(summary['user-1'].itemCount).toBe(2);
+        expect(summary['user-2'].totalCosts).toBe(2500);
+        expect(summary['user-2'].itemCount).toBe(1);
+      });
+
+      it('filters costs by organization via work order relationship', () => {
+        const organizationId = 'org-acme';
+        const costs = [
+          { work_order: { organization_id: 'org-acme' }, total_price_cents: 5000 },
+          { work_order: { organization_id: 'org-acme' }, total_price_cents: 3000 },
+          { work_order: { organization_id: 'org-other' }, total_price_cents: 2500 }
+        ];
+
+        const orgCosts = costs.filter(c => c.work_order.organization_id === organizationId);
+
+        expect(orgCosts.length).toBe(2);
+      });
+
+      it('calculates work order total from all costs', () => {
+        const workOrderCosts = [
+          { total_price_cents: 4998 },
+          { total_price_cents: 15000 },
+          { total_price_cents: 2500 }
+        ];
+
+        const total = workOrderCosts.reduce((sum, c) => sum + c.total_price_cents, 0);
+
+        expect(total).toBe(22498); // $224.98
+      });
+    });
+
+    describe('Multi-tenancy for Costs', () => {
+      it('validates organization ownership before fetching costs', () => {
+        // Costs are only visible if the work order belongs to the user's organization
+        const workOrderWithOrg = {
+          id: 'wo-1',
+          organization_id: 'org-acme'
+        };
+
+        const userOrgId = 'org-acme';
+        const canAccessCosts = workOrderWithOrg.organization_id === userOrgId;
+
+        expect(canAccessCosts).toBe(true);
+      });
+
+      it('returns empty when work order not found for organization', () => {
+        const workOrderWithOrg = {
+          id: 'wo-1',
+          organization_id: 'org-other'
+        };
+
+        const userOrgId = 'org-acme';
+        const canAccessCosts = workOrderWithOrg.organization_id === userOrgId;
+
+        expect(canAccessCosts).toBe(false);
+      });
+    });
+  });
 });

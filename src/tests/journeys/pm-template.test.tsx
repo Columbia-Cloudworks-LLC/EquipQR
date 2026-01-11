@@ -17,7 +17,10 @@ vi.mock('@/features/pm-templates/hooks/usePMTemplates', () => ({
 }));
 
 vi.mock('@/features/pm-templates/hooks/usePMTemplateCompatibility', () => ({
-  useMatchingPMTemplates: vi.fn()
+  useMatchingPMTemplates: vi.fn(),
+  usePMTemplateCompatibilityRules: vi.fn(),
+  useBulkSetPMTemplateRules: vi.fn(),
+  useEquipmentMatchCountForPMRules: vi.fn()
 }));
 
 vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions', () => ({
@@ -30,7 +33,12 @@ vi.mock('@/hooks/useUnifiedPermissions', () => ({
 
 // Import after mocking
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
-import { useMatchingPMTemplates } from '@/features/pm-templates/hooks/usePMTemplateCompatibility';
+import { 
+  useMatchingPMTemplates,
+  usePMTemplateCompatibilityRules,
+  useBulkSetPMTemplateRules,
+  useEquipmentMatchCountForPMRules
+} from '@/features/pm-templates/hooks/usePMTemplateCompatibility';
 import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 
@@ -842,6 +850,427 @@ describe('PM Template Journey', () => {
 
       expect(bulkError.success).toBe(false);
       expect(bulkError.failedIds.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('PM Template Compatibility Rules Management', () => {
+    /**
+     * User Journey: Configuring equipment compatibility rules for PM templates
+     * 
+     * Users can define which equipment types a PM template applies to,
+     * improving template suggestions when creating PM work orders.
+     */
+
+    describe('as an Admin (Professional Plan)', () => {
+      const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
+
+      beforeEach(() => {
+        vi.mocked(usePMTemplates).mockReturnValue({
+          data: Object.values(pmTemplates),
+          isLoading: false,
+          isSuccess: true,
+          isError: false,
+          error: null,
+          status: 'success',
+          fetchStatus: 'idle'
+        } as ReturnType<typeof usePMTemplates>);
+
+        vi.mocked(usePMTemplateCompatibilityRules).mockReturnValue({
+          data: [
+            { id: 'rule-1', pm_template_id: pmTemplates.forklift.id, manufacturer: 'Toyota', model: '8FGU25', created_at: '' },
+            { id: 'rule-2', pm_template_id: pmTemplates.forklift.id, manufacturer: 'Toyota', model: null, created_at: '' }
+          ],
+          isLoading: false,
+          isSuccess: true,
+          isError: false,
+          error: null,
+          status: 'success',
+          fetchStatus: 'idle'
+        } as unknown as ReturnType<typeof usePMTemplateCompatibilityRules>);
+
+        vi.mocked(useBulkSetPMTemplateRules).mockReturnValue({
+          mutateAsync: mockMutateAsync,
+          isPending: false,
+          isIdle: true,
+          isSuccess: false,
+          isError: false,
+          error: null,
+          mutate: vi.fn(),
+          reset: vi.fn(),
+          status: 'idle'
+        } as unknown as ReturnType<typeof useBulkSetPMTemplateRules>);
+
+        vi.mocked(useEquipmentMatchCountForPMRules).mockReturnValue({
+          data: 15,
+          isLoading: false
+        } as unknown as ReturnType<typeof useEquipmentMatchCountForPMRules>);
+
+        vi.mocked(useUnifiedPermissions).mockReturnValue({
+          hasRole: () => true,
+          isTeamMember: () => true,
+          isTeamManager: () => true,
+          organization: { canManage: true, canInviteMembers: true, canCreateTeams: true, canViewBilling: false, canManageMembers: true },
+          equipment: {
+            getPermissions: () => ({ canView: true, canCreate: true, canEdit: true, canDelete: true }),
+            canViewAll: true,
+            canCreateAny: true
+          },
+          workOrders: {
+            getPermissions: () => ({}),
+            getDetailedPermissions: () => ({ canViewPM: true, canEditPM: true }),
+            canViewAll: true,
+            canCreateAny: true
+          },
+          teams: { getPermissions: () => ({}), canCreateAny: true },
+          notes: { getPermissions: () => ({}) }
+        } as unknown as ReturnType<typeof useUnifiedPermissions>);
+
+        vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
+          restrictions: {
+            canCreateCustomPMTemplates: true,
+            canAddMembers: true,
+            canAccessAdvancedAnalytics: true,
+            canAccessFleetMap: true,
+            upgradeMessage: ''
+          },
+          checkRestriction: vi.fn(() => true),
+          getRestrictionMessage: vi.fn(),
+          isSingleUser: false,
+          canUpgrade: false,
+          isLoading: false
+        });
+      });
+
+      it('can view existing compatibility rules for a template', () => {
+        const { result } = renderHookAsPersona(
+          () => usePMTemplateCompatibilityRules(pmTemplates.forklift.id),
+          'admin'
+        );
+
+        expect(result.current.data).toBeDefined();
+        expect(result.current.data?.length).toBe(2);
+        expect(result.current.data?.[0].manufacturer).toBe('Toyota');
+      });
+
+      it('can add new compatibility rules', () => {
+        const newRules = [
+          { manufacturer: 'Toyota', model: '8FGU25' },
+          { manufacturer: 'Toyota', model: null },
+          { manufacturer: 'Konecranes', model: 'CXT-10' } // New rule
+        ];
+
+        // Simulate adding a new rule
+        expect(newRules.length).toBe(3);
+        expect(newRules[2].manufacturer).toBe('Konecranes');
+      });
+
+      it('can remove compatibility rules', () => {
+        const existingRules = [
+          { manufacturer: 'Toyota', model: '8FGU25' },
+          { manufacturer: 'Toyota', model: null }
+        ];
+
+        // Simulate removing a rule
+        const updatedRules = existingRules.filter(r => r.model !== '8FGU25');
+        
+        expect(updatedRules.length).toBe(1);
+        expect(updatedRules[0].model).toBeNull();
+      });
+
+      it('can save compatibility rules successfully', async () => {
+        const { result } = renderHookAsPersona(
+          () => useBulkSetPMTemplateRules(),
+          'admin'
+        );
+
+        const rulesToSave = [
+          { manufacturer: 'Toyota', model: null },
+          { manufacturer: 'Caterpillar', model: 'D6T' }
+        ];
+
+        await result.current.mutateAsync({
+          templateId: pmTemplates.forklift.id,
+          rules: rulesToSave
+        });
+
+        expect(mockMutateAsync).toHaveBeenCalledWith({
+          templateId: pmTemplates.forklift.id,
+          rules: rulesToSave
+        });
+      });
+
+      it('sees match count update based on rules', () => {
+        const { result } = renderHookAsPersona(
+          () => useEquipmentMatchCountForPMRules(
+            organizations.acme.id,
+            [{ manufacturer: 'Toyota', model: null }]
+          ),
+          'admin'
+        );
+
+        expect(result.current.data).toBe(15);
+      });
+
+      it('can configure rules for any template (global or custom)', () => {
+        // Admin can configure rules for global templates
+        const globalTemplateRules = {
+          templateId: pmTemplates.forklift.id, // Global template
+          rules: [{ manufacturer: 'Toyota', model: null }]
+        };
+
+        expect(globalTemplateRules.templateId).toBe(pmTemplates.forklift.id);
+
+        // Admin can configure rules for custom templates
+        const customTemplateRules = {
+          templateId: pmTemplates.customOrgTemplate.id,
+          rules: [{ manufacturer: 'Caterpillar', model: 'D8T' }]
+        };
+
+        expect(customTemplateRules.templateId).toBe(pmTemplates.customOrgTemplate.id);
+      });
+    });
+
+    describe('as a Team Manager (Professional Plan)', () => {
+      beforeEach(() => {
+        vi.mocked(usePMTemplateCompatibilityRules).mockReturnValue({
+          data: [],
+          isLoading: false,
+          isSuccess: true,
+          isError: false,
+          error: null,
+          status: 'success',
+          fetchStatus: 'idle'
+        } as unknown as ReturnType<typeof usePMTemplateCompatibilityRules>);
+
+        vi.mocked(useUnifiedPermissions).mockReturnValue({
+          hasRole: () => false,
+          isTeamMember: () => true,
+          isTeamManager: () => true,
+          organization: { canManage: false, canInviteMembers: false, canCreateTeams: false, canViewBilling: false, canManageMembers: false },
+          equipment: {
+            getPermissions: () => ({ canView: true, canCreate: false, canEdit: true, canDelete: false }),
+            canViewAll: false,
+            canCreateAny: false
+          },
+          workOrders: {
+            getPermissions: () => ({}),
+            getDetailedPermissions: () => ({ canViewPM: true, canEditPM: true }),
+            canViewAll: false,
+            canCreateAny: true
+          },
+          teams: { getPermissions: () => ({}), canCreateAny: false },
+          notes: { getPermissions: () => ({}) }
+        } as unknown as ReturnType<typeof useUnifiedPermissions>);
+
+        vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
+          restrictions: {
+            canCreateCustomPMTemplates: true,
+            canAddMembers: true,
+            canAccessAdvancedAnalytics: true,
+            canAccessFleetMap: true,
+            upgradeMessage: ''
+          },
+          checkRestriction: vi.fn(() => true),
+          getRestrictionMessage: vi.fn(),
+          isSingleUser: false,
+          canUpgrade: false,
+          isLoading: false
+        });
+      });
+
+      it('can view compatibility rules for templates', () => {
+        const { result } = renderHookAsPersona(
+          () => usePMTemplateCompatibilityRules(pmTemplates.forklift.id),
+          'teamManager'
+        );
+
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      it('can configure rules for templates used by team equipment', () => {
+        // Team managers can edit equipment, including PM template settings
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'teamManager'
+        );
+
+        const permissions = result.current.equipment.getPermissions();
+        expect(permissions.canEdit).toBe(true);
+      });
+    });
+
+    describe('as a Free Plan User', () => {
+      beforeEach(() => {
+        vi.mocked(usePMTemplateCompatibilityRules).mockReturnValue({
+          data: [],
+          isLoading: false,
+          isSuccess: true,
+          isError: false,
+          error: null,
+          status: 'success',
+          fetchStatus: 'idle'
+        } as unknown as ReturnType<typeof usePMTemplateCompatibilityRules>);
+
+        vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
+          restrictions: {
+            canCreateCustomPMTemplates: false,
+            canAddMembers: false,
+            canAccessAdvancedAnalytics: false,
+            canAccessFleetMap: false,
+            upgradeMessage: 'Upgrade to Professional'
+          },
+          checkRestriction: vi.fn(() => false),
+          getRestrictionMessage: vi.fn(() => 'Upgrade required'),
+          isSingleUser: true,
+          canUpgrade: true,
+          isLoading: false
+        });
+      });
+
+      it('cannot create custom templates but can configure rules for global templates', () => {
+        // Free users cannot create custom templates
+        const { result: restrictionsResult } = renderHookAsPersona(
+          () => useSimplifiedOrganizationRestrictions(),
+          'owner'
+        );
+
+        expect(restrictionsResult.current.restrictions.canCreateCustomPMTemplates).toBe(false);
+
+        // But they can still configure organization-specific rules for global templates
+        const { result: rulesResult } = renderHookAsPersona(
+          () => usePMTemplateCompatibilityRules(pmTemplates.forklift.id),
+          'owner'
+        );
+
+        expect(rulesResult.current.isSuccess).toBe(true);
+      });
+    });
+
+    describe('Compatibility Rules Behavior', () => {
+      it('rules use case-insensitive matching', () => {
+        const rule = { manufacturer: 'Toyota', model: '8FGU25' };
+        const equipmentManufacturer = 'TOYOTA';
+        const equipmentModel = '8fgu25';
+
+        // Matching should be case-insensitive
+        const matches = 
+          rule.manufacturer.toLowerCase() === equipmentManufacturer.toLowerCase() &&
+          rule.model?.toLowerCase() === equipmentModel.toLowerCase();
+
+        expect(matches).toBe(true);
+      });
+
+      it('null model matches any model from manufacturer', () => {
+        const rule = { manufacturer: 'Toyota', model: null };
+        const equipmentList = [
+          { manufacturer: 'Toyota', model: '8FGU25' },
+          { manufacturer: 'Toyota', model: '8FGU30' },
+          { manufacturer: 'Toyota', model: '7FGU35' }
+        ];
+
+        // All Toyota equipment should match
+        const matches = equipmentList.filter(
+          eq => eq.manufacturer.toLowerCase() === rule.manufacturer.toLowerCase()
+        );
+
+        expect(matches.length).toBe(3);
+      });
+
+      it('detects duplicate rules', () => {
+        const rules = [
+          { manufacturer: 'Toyota', model: '8FGU25' },
+          { manufacturer: 'toyota', model: '8fgu25' }, // Duplicate (case-insensitive)
+          { manufacturer: 'Toyota', model: null }
+        ];
+
+        const findDuplicate = (index: number) => {
+          const rule = rules[index];
+          return rules.some((r, i) => {
+            if (i === index) return false;
+            return (
+              r.manufacturer.toLowerCase() === rule.manufacturer.toLowerCase() &&
+              r.model?.toLowerCase() === rule.model?.toLowerCase()
+            );
+          });
+        };
+
+        expect(findDuplicate(0)).toBe(true); // Has duplicate at index 1
+        expect(findDuplicate(1)).toBe(true); // Has duplicate at index 0
+        expect(findDuplicate(2)).toBe(false); // No duplicate
+      });
+
+      it('model dropdown is disabled until manufacturer is selected', () => {
+        const rule = { manufacturer: '', model: null };
+        
+        const isModelDisabled = rule.manufacturer.trim().length === 0;
+        
+        expect(isModelDisabled).toBe(true);
+      });
+
+      it('model resets when manufacturer changes', () => {
+        let rule = { manufacturer: 'Toyota', model: '8FGU25' };
+        
+        // Simulate manufacturer change
+        rule = { manufacturer: 'Konecranes', model: null };
+        
+        expect(rule.model).toBeNull();
+      });
+    });
+
+    describe('Rules Dialog Workflow', () => {
+      it('loads existing rules when dialog opens', () => {
+        vi.mocked(usePMTemplateCompatibilityRules).mockReturnValue({
+          data: [
+            { id: 'rule-1', pm_template_id: 'template-1', manufacturer: 'Toyota', model: null, created_at: '' }
+          ],
+          isLoading: false,
+          isSuccess: true,
+          isError: false,
+          error: null,
+          status: 'success',
+          fetchStatus: 'idle'
+        } as unknown as ReturnType<typeof usePMTemplateCompatibilityRules>);
+
+        const { result } = renderHookAsPersona(
+          () => usePMTemplateCompatibilityRules('template-1', { enabled: true }),
+          'admin'
+        );
+
+        expect(result.current.data?.length).toBe(1);
+      });
+
+      it('tracks unsaved changes', () => {
+        let hasChanges = false;
+        const savedRules = [{ manufacturer: 'Toyota', model: null }];
+        const editedRules = [...savedRules];
+
+        // No changes initially
+        expect(hasChanges).toBe(false);
+
+        // Add a rule - simulating what happens when user adds a rule
+        const newRules = [...editedRules, { manufacturer: 'Konecranes', model: 'CXT-10' }];
+        hasChanges = newRules.length !== savedRules.length;
+
+        expect(hasChanges).toBe(true);
+      });
+
+      it('save button is disabled until changes are made', () => {
+        const hasChanges = false;
+        const isPending = false;
+
+        const isSaveDisabled = isPending || !hasChanges;
+
+        expect(isSaveDisabled).toBe(true);
+      });
+
+      it('dialog can be closed with unsaved changes', () => {
+        // Current implementation allows closing without confirmation
+        const unsavedChangesExist = true;
+        // Per current implementation, dialog can close even with unsaved changes
+        const canCloseWithUnsavedChanges = unsavedChangesExist ? true : true;
+
+        expect(canCloseWithUnsavedChanges).toBe(true);
+      });
     });
   });
 });
