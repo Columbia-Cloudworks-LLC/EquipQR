@@ -200,6 +200,83 @@ describe('EquipmentForm', () => {
       expect(dialogContent).toBeInTheDocument();
     });
   });
+
+  // ============================================
+  // Persona-Based Tests
+  // These tests validate user workflows by role
+  // ============================================
+
+  describe('Persona-Based Scenarios', () => {
+    describe('as an Admin creating new equipment', () => {
+      it('displays all required form sections for complete equipment setup', () => {
+        render(<EquipmentForm open={true} onClose={mockOnClose} />);
+        
+        // Admin needs access to all sections
+        expect(screen.getByTestId('basic-info-section')).toBeInTheDocument();
+        expect(screen.getByTestId('status-location-section')).toBeInTheDocument();
+        expect(screen.getByTestId('team-selection-section')).toBeInTheDocument();
+        expect(screen.getByTestId('notes-section')).toBeInTheDocument();
+        expect(screen.getByTestId('custom-attributes-section')).toBeInTheDocument();
+      });
+
+      it('shows create button with appropriate label', () => {
+        render(<EquipmentForm open={true} onClose={mockOnClose} />);
+        
+        expect(screen.getByText('Create')).toBeInTheDocument();
+      });
+    });
+
+    describe('as an Admin editing existing equipment', () => {
+      beforeEach(() => {
+        vi.mocked(useEquipmentFormModule.useEquipmentForm).mockReturnValue({
+          form: mockForm,
+          onSubmit: mockOnSubmit,
+          isEdit: true,
+          isPending: false
+        });
+      });
+
+      it('displays edit mode with pre-filled equipment data', () => {
+        render(<EquipmentForm open={true} onClose={mockOnClose} equipment={mockEquipment} />);
+        
+        expect(screen.getByText('Edit Equipment')).toBeInTheDocument();
+        expect(screen.getByText('Update equipment information')).toBeInTheDocument();
+      });
+
+      it('shows update button instead of create', () => {
+        render(<EquipmentForm open={true} onClose={mockOnClose} equipment={mockEquipment} />);
+        
+        expect(screen.getByText('Update')).toBeInTheDocument();
+      });
+
+      it('passes equipment data to form hook for pre-population', () => {
+        render(<EquipmentForm open={true} onClose={mockOnClose} equipment={mockEquipment} />);
+        
+        expect(useEquipmentFormModule.useEquipmentForm).toHaveBeenCalledWith(mockEquipment, mockOnClose);
+      });
+    });
+
+    describe('as a Manager assigning equipment to team', () => {
+      it('displays team selection section for assignment', () => {
+        render(<EquipmentForm open={true} onClose={mockOnClose} />);
+        
+        expect(screen.getByTestId('team-selection-section')).toBeInTheDocument();
+      });
+    });
+
+    describe('form submission feedback', () => {
+      it('shows saving state during submission', () => {
+        vi.mocked(useEquipmentFormModule.useEquipmentForm).mockReturnValue({
+          form: mockForm,
+          onSubmit: mockOnSubmit,
+          isEdit: false,
+          isPending: true
+        });
+
+        render(<EquipmentForm open={true} onClose={mockOnClose} />);
+        
+        expect(screen.getByText('Saving...')).toBeInTheDocument();
+      });
+    });
+  });
 });
-
-

@@ -368,4 +368,99 @@ describe('Dashboard', () => {
     expect(screen.getByText('Welcome back to Test Organization')).toBeInTheDocument();
     expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('0');
   });
+
+  // ============================================
+  // Persona-Based Tests
+  // These tests validate dashboard views by user role
+  // ============================================
+
+  describe('Persona-Based Scenarios', () => {
+    describe('as an Owner logging in for daily overview', () => {
+      it('displays organization-wide statistics', () => {
+        render(<Dashboard />);
+        
+        // Owner should see overall organization stats
+        expect(screen.getByText('Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Total Equipment')).toBeInTheDocument();
+        expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('10');
+      });
+
+      it('shows welcome message with organization name', () => {
+        render(<Dashboard />);
+        
+        expect(screen.getByText('Welcome back to Test Organization')).toBeInTheDocument();
+      });
+    });
+
+    describe('as a Manager checking team performance', () => {
+      it('displays equipment statistics for tracking assets', () => {
+        render(<Dashboard />);
+        
+        expect(screen.getByText('Total Equipment')).toBeInTheDocument();
+      });
+
+      it('shows recent equipment activity', () => {
+        vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
+          data: [
+            { id: '1', name: 'Equipment 1', status: 'active', manufacturer: 'Test Mfg', model: 'Model 1' }
+          ],
+          isLoading: false,
+          error: null,
+          isError: false,
+          isPending: false,
+          isSuccess: true,
+          refetch: vi.fn(),
+          fetchStatus: 'idle'
+        } as MockQueryResult);
+
+        render(<Dashboard />);
+        
+        expect(screen.getByText('Recent Equipment')).toBeInTheDocument();
+        expect(screen.getByText('Equipment 1')).toBeInTheDocument();
+      });
+    });
+
+    describe('when user has no organization selected', () => {
+      it('prompts user to select an organization', () => {
+        vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+          organizations: [],
+          userOrganizations: [],
+          currentOrganization: null,
+          setCurrentOrganization: vi.fn(),
+          switchOrganization: vi.fn(),
+          isLoading: false,
+          error: null,
+          refetch: vi.fn()
+        });
+
+        render(<Dashboard />);
+        
+        expect(screen.getByText(/please select an organization/i)).toBeInTheDocument();
+      });
+    });
+
+    describe('during data loading', () => {
+      it('shows loading skeleton for better perceived performance', () => {
+        vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardStats).mockReturnValue({
+          data: null,
+          isLoading: true,
+          error: null,
+          isError: false,
+          isPending: true,
+          isSuccess: false,
+          refetch: vi.fn(),
+          fetchStatus: 'fetching'
+        } as MockQueryResult);
+
+        render(<Dashboard />);
+        
+        // Should show loading cards with animation
+        const cards = screen.getAllByRole('generic');
+        const loadingCards = cards.filter(card => 
+          card.className?.includes('animate-pulse')
+        );
+        expect(loadingCards.length).toBeGreaterThan(0);
+      });
+    });
+  });
 });

@@ -26,6 +26,9 @@ vi.mock('@/integrations/supabase/client', () => ({
 // Mock dependencies
 vi.mock('@/features/pm-templates/hooks/usePMTemplates');
 vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
+vi.mock('@/features/pm-templates/hooks/usePMTemplateCompatibility', () => ({
+  useMatchingPMTemplates: vi.fn()
+}));
 
 const mockTemplates = [
   {
@@ -73,6 +76,7 @@ describe('useWorkOrderPMChecklist', () => {
     
     const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
     const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
+    const { useMatchingPMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplateCompatibility');
     
     vi.mocked(usePMTemplates).mockReturnValue({
       data: mockTemplates,
@@ -83,6 +87,34 @@ describe('useWorkOrderPMChecklist', () => {
       status: 'success',
       fetchStatus: 'idle'
     } as ReturnType<typeof usePMTemplates>);
+    
+    // Mock useMatchingPMTemplates to return all templates as matching by default
+    vi.mocked(useMatchingPMTemplates).mockReturnValue({
+      data: mockTemplates.map(t => ({ template_id: t.id, match_type: 'manufacturer' as const })),
+      isLoading: false,
+      isSuccess: true,
+      isError: false,
+      error: null,
+      status: 'success',
+      fetchStatus: 'idle',
+      refetch: vi.fn(),
+      isFetching: false,
+      isPending: false,
+      isRefetching: false,
+      isStale: false,
+      dataUpdatedAt: Date.now(),
+      errorUpdatedAt: 0,
+      failureCount: 0,
+      failureReason: null,
+      errorUpdateCount: 0,
+      isFetched: true,
+      isFetchedAfterMount: true,
+      isInitialLoading: false,
+      isLoadingError: false,
+      isPlaceholderData: false,
+      isRefetchError: false,
+      promise: Promise.resolve([])
+    } as unknown as ReturnType<typeof useMatchingPMTemplates>);
     
     vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
       restrictions: {
@@ -329,7 +361,7 @@ describe('useWorkOrderPMChecklist', () => {
       );
 
       expect(result.current.templates).toHaveLength(0);
-      expect(result.current.selectedTemplate).toBeUndefined();
+      expect(result.current.selectedTemplate).toBeNull();
     });
 
     it('handles invalid template ID in values gracefully', async () => {

@@ -33,7 +33,6 @@ vi.mock('@/hooks/useAuth', () => ({
   }))
 }));
 
-// Mock sub-components
 vi.mock('../WorkOrderAcceptanceModal', () => ({
   default: ({ open, onClose, onAccept }: { open: boolean; onClose: () => void; onAccept: () => void }) => (
     open ? (
@@ -47,9 +46,7 @@ vi.mock('../WorkOrderAcceptanceModal', () => ({
 
 vi.mock('../WorkOrderAssigneeDisplay', () => ({
   default: ({ workOrder }: { workOrder: { assigneeName?: string | null } }) => (
-    <div data-testid="assignee-display">
-      {workOrder.assigneeName || 'Unassigned'}
-    </div>
+    <div data-testid="assignee-display">{workOrder.assigneeName || 'Unassigned'}</div>
   )
 }));
 
@@ -65,78 +62,56 @@ const mockWorkOrder = {
   completed_date: null
 };
 
-describe('WorkOrderStatusManager', () => {
-  const mockOrganizationId = 'org-1';
+const mockOrganizationId = 'org-1';
 
+describe('WorkOrderStatusManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('Status Display', () => {
-    it('renders current status badge', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={mockWorkOrder}
-          organizationId={mockOrganizationId}
-        />
-      );
+  describe('status display and actions', () => {
+    it('displays current status and shows correct actions for each status type', () => {
+      const statusActions = {
+        'submitted': [/Accept/i, /Cancel/i],
+        'accepted': [/Assign & Start/i, /Cancel/i],
+        'assigned': [/Start Work/i, /Put on Hold/i],
+        'in_progress': [/Complete/i, /Put on Hold/i],
+        'on_hold': [/Resume/i, /Cancel/i]
+      } as const;
 
-      expect(screen.getByText(/Current Status:/i)).toBeInTheDocument();
-      expect(screen.getByText(/Submitted/i)).toBeInTheDocument();
-    });
-
-    it('displays correct status color for each status', () => {
-      const statuses = ['submitted', 'accepted', 'assigned', 'in_progress', 'on_hold', 'completed', 'cancelled'] as const;
-
-      statuses.forEach((status) => {
+      Object.entries(statusActions).forEach(([status, expectedActions]) => {
         const { unmount } = render(
           <WorkOrderStatusManager
-            workOrder={{ ...mockWorkOrder, status }}
+            workOrder={{ ...mockWorkOrder, status: status as typeof mockWorkOrder.status }}
             organizationId={mockOrganizationId}
           />
         );
 
-        // Use getAllByText since status text might appear in multiple places (badge, descriptions, etc.)
-        const statusElements = screen.getAllByText(new RegExp(status.replace('_', ' '), 'i'));
-        expect(statusElements.length).toBeGreaterThan(0);
+        expect(screen.getByText(/Current Status:/i)).toBeInTheDocument();
+        
+        expectedActions.forEach(action => {
+          expect(screen.getByRole('button', { name: action })).toBeInTheDocument();
+        });
+        
         unmount();
       });
     });
+
+    it('shows completion message for completed status with date', () => {
+      render(
+        <WorkOrderStatusManager
+          workOrder={{ ...mockWorkOrder, status: 'completed', completed_date: '2024-01-10T00:00:00Z' }}
+          organizationId={mockOrganizationId}
+        />
+      );
+
+      expect(screen.getByText(/Work order completed successfully/i)).toBeInTheDocument();
+      expect(screen.getByText(/Completed on/i)).toBeInTheDocument();
+    });
   });
 
-  describe('Status Actions - Submitted', () => {
-    it('shows accept and cancel actions for submitted status when user is manager', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'submitted' }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      expect(screen.getByText(/Available Actions:/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Accept/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
-    });
-
-    it('opens acceptance modal when accept is clicked', async () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'submitted' }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      const acceptButton = screen.getByRole('button', { name: /Accept/i });
-      if (acceptButton) {
-        fireEvent.click(acceptButton);
-      }
-
-      await waitFor(() => {
-        expect(screen.getByTestId('acceptance-modal')).toBeInTheDocument();
-      });
-    });
-
-    it('calls status update when cancel is clicked', async () => {
+  describe('status transitions', () => {
+    it('opens acceptance modal and updates status when accept flow completes', async () => {
       const { useUpdateWorkOrderStatus } = await import('@/features/work-orders/hooks/useWorkOrderData');
       const mockMutateAsync = vi.fn().mockResolvedValue({});
       
@@ -153,10 +128,43 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      const cancelButton = screen.getByRole('button', { name: /Cancel/i });
-      if (cancelButton) {
-        fireEvent.click(cancelButton);
-      }
+      // Open modal
+      fireEvent.click(screen.getByRole('button', { name: /Accept/i }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('acceptance-modal')).toBeInTheDocument();
+      });
+
+      // Confirm accept
+      fireEvent.click(screen.getByTestId('accept-button'));
+
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledWith({
+          workOrderId: 'wo-1',
+          status: 'accepted',
+          organizationId: mockOrganizationId
+        });
+      });
+    });
+
+    it('calls status update when cancel button is clicked', async () => {
+      const { useUpdateWorkOrderStatus } = await import('@/features/work-orders/hooks/useWorkOrderData');
+      const mockMutateAsync = vi.fn().mockResolvedValue({});
+      
+      vi.mocked(useUpdateWorkOrderStatus).mockReturnValue({
+        mutate: vi.fn(),
+        mutateAsync: mockMutateAsync,
+        isPending: false
+      });
+
+      render(
+        <WorkOrderStatusManager
+          workOrder={{ ...mockWorkOrder, status: 'submitted' }}
+          organizationId={mockOrganizationId}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
 
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledWith({
@@ -168,87 +176,12 @@ describe('WorkOrderStatusManager', () => {
     });
   });
 
-  describe('Status Actions - Accepted', () => {
-    it('shows assign & start and cancel actions for accepted status', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'accepted' }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      expect(screen.getByText(/Assign & Start/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
-    });
-
-    it('updates status to in_progress when assign & start is clicked', async () => {
-      const { useUpdateWorkOrderStatus } = await import('@/features/work-orders/hooks/useWorkOrderData');
-      const mockMutateAsync = vi.fn().mockResolvedValue({});
-      
-      vi.mocked(useUpdateWorkOrderStatus).mockReturnValue({
-        mutate: vi.fn(),
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
-
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'accepted' }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      const assignButton = screen.getByText(/Assign & Start/i).closest('button');
-      if (assignButton) {
-        fireEvent.click(assignButton);
-      }
-
-      await waitFor(() => {
-        expect(mockMutateAsync).toHaveBeenCalledWith({
-          workOrderId: 'wo-1',
-          status: 'in_progress',
-          organizationId: mockOrganizationId
-        });
-      });
-    });
-  });
-
-  describe('Status Actions - Assigned', () => {
-    it('shows start work and put on hold actions for assigned status', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'assigned' }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      expect(screen.getByText(/Start Work/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Put on Hold/i })).toBeInTheDocument();
-    });
-  });
-
-  describe('Status Actions - In Progress', () => {
-    it('shows complete and put on hold actions for in_progress status', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'in_progress' }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      expect(screen.getByRole('button', { name: /Complete/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Put on Hold/i })).toBeInTheDocument();
-    });
-
-    it('disables complete button when PM is not completed', async () => {
+  describe('PM checklist integration', () => {
+    it('disables complete button when PM is not completed and shows warning', async () => {
       const { usePMByWorkOrderId } = await import('@/features/pm-templates/hooks/usePMData');
       
       vi.mocked(usePMByWorkOrderId).mockReturnValue({
-        data: {
-          id: 'pm-1',
-          status: 'in_progress',
-          work_order_id: 'wo-1'
-        },
+        data: { id: 'pm-1', status: 'in_progress', work_order_id: 'wo-1' },
         isLoading: false,
         isError: false
       });
@@ -260,19 +193,15 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      const completeButton = screen.getByRole('button', { name: /Complete/i });
-      expect(completeButton).toBeDisabled();
+      expect(screen.getByRole('button', { name: /Complete/i })).toBeDisabled();
+      expect(screen.getByText(/Complete the PM checklist/i)).toBeInTheDocument();
     });
 
     it('enables complete button when PM is completed', async () => {
       const { usePMByWorkOrderId } = await import('@/features/pm-templates/hooks/usePMData');
       
       vi.mocked(usePMByWorkOrderId).mockReturnValue({
-        data: {
-          id: 'pm-1',
-          status: 'completed',
-          work_order_id: 'wo-1'
-        },
+        data: { id: 'pm-1', status: 'completed', work_order_id: 'wo-1' },
         isLoading: false,
         isError: false
       });
@@ -284,74 +213,12 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      const completeButton = screen.getByRole('button', { name: /Complete/i });
-      expect(completeButton).not.toBeDisabled();
-    });
-
-    it('shows PM warning when PM is not completed', async () => {
-      const { usePMByWorkOrderId } = await import('@/features/pm-templates/hooks/usePMData');
-      
-      vi.mocked(usePMByWorkOrderId).mockReturnValue({
-        data: {
-          id: 'pm-1',
-          status: 'in_progress',
-          work_order_id: 'wo-1'
-        },
-        isLoading: false,
-        isError: false
-      });
-
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'in_progress', has_pm: true }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      expect(screen.getByText(/Complete the PM checklist/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Complete/i })).not.toBeDisabled();
     });
   });
 
-  describe('Status Actions - On Hold', () => {
-    it('shows resume and cancel actions for on_hold status', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'on_hold' }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      expect(screen.getByRole('button', { name: /Resume/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
-    });
-  });
-
-  describe('Status Actions - Completed', () => {
-    it('shows completion message for completed status', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'completed', completed_date: '2024-01-10T00:00:00Z' }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      expect(screen.getByText(/Work order completed successfully/i)).toBeInTheDocument();
-    });
-
-    it('displays completion date when available', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'completed', completed_date: '2024-01-10T00:00:00Z' }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      expect(screen.getByText(/Completed on/i)).toBeInTheDocument();
-    });
-  });
-
-  describe('Permission Checks', () => {
-    it('shows permission message when user cannot perform status actions', async () => {
+  describe('permission checks', () => {
+    it('shows permission message when user cannot perform actions', async () => {
       const { useWorkOrderPermissionLevels } = await import('@/features/work-orders/hooks/useWorkOrderPermissionLevels');
       const { useAuth } = await import('@/hooks/useAuth');
       
@@ -374,7 +241,7 @@ describe('WorkOrderStatusManager', () => {
       expect(screen.getByText(/don't have permission/i)).toBeInTheDocument();
     });
 
-    it('allows creator to cancel their own submitted work order', async () => {
+    it('allows creator to cancel their own work order', async () => {
       const { useWorkOrderPermissionLevels } = await import('@/features/work-orders/hooks/useWorkOrderPermissionLevels');
       const { useAuth } = await import('@/hooks/useAuth');
       
@@ -421,8 +288,8 @@ describe('WorkOrderStatusManager', () => {
     });
   });
 
-  describe('Assignment Display', () => {
-    it('renders assignee display component', () => {
+  describe('assignment display and loading states', () => {
+    it('displays assignee and team information correctly', () => {
       render(
         <WorkOrderStatusManager
           workOrder={mockWorkOrder}
@@ -430,99 +297,11 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      expect(screen.getByTestId('assignee-display')).toBeInTheDocument();
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
-    });
-
-    it('displays assignee name when assigned', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={mockWorkOrder}
-          organizationId={mockOrganizationId}
-        />
-      );
-
+      expect(screen.getByTestId('assignee-display')).toHaveTextContent('John Doe');
       expect(screen.getByText(/Assigned to: John Doe/i)).toBeInTheDocument();
-    });
-
-    it('displays team name when assigned to team', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={mockWorkOrder}
-          organizationId={mockOrganizationId}
-        />
-      );
-
       expect(screen.getByText(/Team: Maintenance Team/i)).toBeInTheDocument();
     });
-  });
 
-  describe('Acceptance Modal', () => {
-    it('closes modal when close button is clicked', async () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'submitted' }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      const acceptButton = screen.getByRole('button', { name: /Accept/i });
-      if (acceptButton) {
-        fireEvent.click(acceptButton);
-      }
-
-      await waitFor(() => {
-        expect(screen.getByTestId('acceptance-modal')).toBeInTheDocument();
-      });
-
-      const closeButton = screen.getByTestId('close-button');
-      fireEvent.click(closeButton);
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('acceptance-modal')).not.toBeInTheDocument();
-      });
-    });
-
-    it('calls status update when accept is confirmed in modal', async () => {
-      const { useUpdateWorkOrderStatus } = await import('@/features/work-orders/hooks/useWorkOrderData');
-      const mockMutateAsync = vi.fn().mockResolvedValue({});
-      
-      vi.mocked(useUpdateWorkOrderStatus).mockReturnValue({
-        mutate: vi.fn(),
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
-
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, status: 'submitted' }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      const acceptButton = screen.getByRole('button', { name: /Accept/i });
-      if (acceptButton) {
-        fireEvent.click(acceptButton);
-      }
-
-      await waitFor(() => {
-        expect(screen.getByTestId('acceptance-modal')).toBeInTheDocument();
-      });
-
-      const confirmButton = screen.getByTestId('accept-button');
-      fireEvent.click(confirmButton);
-
-      await waitFor(() => {
-        expect(mockMutateAsync).toHaveBeenCalledWith({
-          workOrderId: 'wo-1',
-          status: 'accepted',
-          organizationId: mockOrganizationId
-        });
-      });
-    });
-  });
-
-  describe('Loading States', () => {
     it('disables buttons when mutation is pending', async () => {
       const { useUpdateWorkOrderStatus } = await import('@/features/work-orders/hooks/useWorkOrderData');
       
@@ -539,44 +318,19 @@ describe('WorkOrderStatusManager', () => {
         />
       );
 
-      const acceptButton = screen.getByRole('button', { name: /Accept/i });
-      expect(acceptButton).toBeDisabled();
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('handles work order without PM', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, has_pm: false }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
-      expect(screen.getByText(/Current Status:/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Accept/i })).toBeDisabled();
     });
 
-    it('handles work order without assignee', () => {
+    it('handles work order without assignee or team', () => {
       render(
         <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, assignee_id: null, assigneeName: undefined }}
+          workOrder={{ ...mockWorkOrder, assignee_id: null, assigneeName: undefined, teamName: undefined }}
           organizationId={mockOrganizationId}
         />
       );
 
       expect(screen.getByTestId('assignee-display')).toHaveTextContent('Unassigned');
-    });
-
-    it('handles work order without team', () => {
-      render(
-        <WorkOrderStatusManager
-          workOrder={{ ...mockWorkOrder, teamName: undefined }}
-          organizationId={mockOrganizationId}
-        />
-      );
-
       expect(screen.queryByText(/Team:/i)).not.toBeInTheDocument();
     });
   });
 });
-

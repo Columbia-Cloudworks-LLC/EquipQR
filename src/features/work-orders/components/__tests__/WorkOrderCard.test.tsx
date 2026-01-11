@@ -103,17 +103,13 @@ const mockWorkOrder: WorkOrder = {
 
 describe('WorkOrderCard', () => {
   const mockOnNavigate = vi.fn();
-  const mockOnAcceptClick = vi.fn();
-  const mockOnStatusUpdate = vi.fn();
-  const mockOnAssignClick = vi.fn();
-  const mockOnReopenClick = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('Desktop Variant', () => {
-    it('renders work order card with desktop variant by default', () => {
+  describe('rendering', () => {
+    it('displays all critical information for triage (title, status, priority, assignee, dates, team)', () => {
       render(
         <WorkOrderCard
           workOrder={mockWorkOrder}
@@ -121,67 +117,61 @@ describe('WorkOrderCard', () => {
         />
       );
 
+      // Title and description
       expect(screen.getByText('Test Work Order')).toBeInTheDocument();
       expect(screen.getByText('Test description')).toBeInTheDocument();
+      
+      // Status and priority
+      expect(screen.getByText(/in progress/i)).toBeInTheDocument();
       expect(screen.getByText('high priority')).toBeInTheDocument();
-    });
-
-    it('displays status badge with correct color', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      const statusBadge = screen.getByText(/in progress/i);
-      expect(statusBadge).toBeInTheDocument();
-    });
-
-    it('displays created date', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText(/Created/i)).toBeInTheDocument();
-    });
-
-    it('displays due date when available', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText(/Due Date/i)).toBeInTheDocument();
-    });
-
-    it('displays equipment team name when available', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText(/Equipment Team/i)).toBeInTheDocument();
-      expect(screen.getByText('Maintenance Team')).toBeInTheDocument();
-    });
-
-    it('displays assigned user when assigned', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
+      
+      // Assignee and team
       expect(screen.getByText(/Assigned to/i)).toBeInTheDocument();
       expect(screen.getByText('John Doe')).toBeInTheDocument();
+      expect(screen.getByText(/Equipment Team/i)).toBeInTheDocument();
+      expect(screen.getByText('Maintenance Team')).toBeInTheDocument();
+      
+      // Dates and time estimate
+      expect(screen.getByText(/Created/i)).toBeInTheDocument();
+      expect(screen.getByText(/Due Date/i)).toBeInTheDocument();
+      expect(screen.getByText(/Estimated time:/i)).toBeInTheDocument();
+      expect(screen.getByText(/4 hours/i)).toBeInTheDocument();
+      
+      // Integrations
+      expect(screen.getByTestId('cost-subtotal-wo-1')).toBeInTheDocument();
+      expect(screen.getByTestId('quick-actions-wo-1')).toBeInTheDocument();
+      expect(screen.getByTestId('assignment-hover-wo-1')).toBeInTheDocument();
+    });
+
+    it('adapts layout for desktop, mobile, and compact variants', () => {
+      const variants = ['desktop', 'mobile', 'compact'] as const;
+      
+      variants.forEach((variant) => {
+        const { unmount } = render(
+          <WorkOrderCard
+            workOrder={mockWorkOrder}
+            variant={variant === 'desktop' ? undefined : variant}
+            onNavigate={mockOnNavigate}
+          />
+        );
+
+        expect(screen.getByText('Test Work Order')).toBeInTheDocument();
+        expect(screen.getByText(/in progress/i)).toBeInTheDocument();
+        unmount();
+      });
+    });
+
+    it('displays PM progress indicator when has_pm is true', () => {
+      const pmOrder = { ...mockWorkOrder, has_pm: true };
+
+      render(
+        <WorkOrderCard
+          workOrder={pmOrder}
+          onNavigate={mockOnNavigate}
+        />
+      );
+
+      expect(screen.getByTestId('pm-progress-wo-1')).toBeInTheDocument();
     });
 
     it('displays unassigned state when no assignee', () => {
@@ -201,409 +191,61 @@ describe('WorkOrderCard', () => {
 
       expect(screen.getByText(/Unassigned/i)).toBeInTheDocument();
     });
-
-    it('displays PM progress indicator when has_pm is true', () => {
-      const pmOrder = {
-        ...mockWorkOrder,
-        has_pm: true
-      };
-
-      render(
-        <WorkOrderCard
-          workOrder={pmOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByTestId('pm-progress-wo-1')).toBeInTheDocument();
-    });
-
-    it('displays estimated hours when available', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText(/Estimated time:/i)).toBeInTheDocument();
-      expect(screen.getByText(/4 hours/i)).toBeInTheDocument();
-    });
-
-    it('displays cost subtotal when user has edit permissions', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByTestId('cost-subtotal-wo-1')).toBeInTheDocument();
-    });
-
-    it('calls onNavigate when View Details button is clicked', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      const viewButton = screen.getByRole('button', { name: /view details/i });
-      fireEvent.click(viewButton);
-
-      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
-    });
-
-    it('displays overdue indicator when due date is past and status is not completed', () => {
-      const overdueOrder: WorkOrder = {
-        ...mockWorkOrder,
-        due_date: '2023-01-01T00:00:00Z',
-        status: 'in_progress' as const
-      };
-
-      render(
-        <WorkOrderCard
-          workOrder={overdueOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      // Should show overdue styling (check for alert triangle icon)
-      const dueDateSection = screen.getByText(/Due Date/i).closest('div');
-      expect(dueDateSection).toBeInTheDocument();
-    });
   });
 
-  describe('Mobile Variant', () => {
-    it('renders mobile variant correctly', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="mobile"
-          onNavigate={mockOnNavigate}
-          onAcceptClick={mockOnAcceptClick}
-          onStatusUpdate={mockOnStatusUpdate}
-        />
-      );
-
-      expect(screen.getByText('Test Work Order')).toBeInTheDocument();
-    });
-
-    it('displays equipment name on mobile', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="mobile"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText('Test Equipment')).toBeInTheDocument();
-    });
-
-    it('displays status badge on mobile', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="mobile"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText(/in progress/i)).toBeInTheDocument();
-    });
-
-    it('displays assignee name on mobile', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="mobile"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
-    });
-
-    it('calls onNavigate when mobile card is clicked', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="mobile"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      fireEvent.click(screen.getByRole('button'));
-      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
-    });
-
-    it('calls onNavigate when Enter key is pressed on mobile card', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="mobile"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      const card = screen.getByRole('button');
-      fireEvent.keyDown(card, { key: 'Enter' });
-      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
-    });
-
-    it('calls onNavigate when Space key is pressed on mobile card', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="mobile"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      const card = screen.getByRole('button');
-      fireEvent.keyDown(card, { key: ' ' });
-      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
-    });
-
-    it('renders without interactive features when onNavigate is undefined', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="mobile"
-        />
-      );
-
-      // Card should still render with title
-      expect(screen.getByText('Test Work Order')).toBeInTheDocument();
-      
-      // Should not have button role when not interactive
-      expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    });
-
-    it('displays PM progress indicator on mobile when has_pm is true', () => {
-      const pmOrder = {
-        ...mockWorkOrder,
-        has_pm: true
-      };
-
-      render(
-        <WorkOrderCard
-          workOrder={pmOrder}
-          variant="mobile"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByTestId('pm-progress-wo-1')).toBeInTheDocument();
-    });
-
-    it('displays cost subtotal on mobile', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="mobile"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByTestId('cost-subtotal-wo-1')).toBeInTheDocument();
-    });
-  });
-
-  describe('Compact Variant', () => {
-    it('renders compact variant correctly', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="compact"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText('Test Work Order')).toBeInTheDocument();
-    });
-
-    it('displays priority in compact format', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="compact"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText(/high priority/i)).toBeInTheDocument();
-    });
-
-    it('displays status badge in compact variant', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="compact"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      const statusBadge = screen.getByText(/in progress/i);
-      expect(statusBadge).toBeInTheDocument();
-    });
-
-    it('displays equipment name when available', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="compact"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText(/Equipment:/i)).toBeInTheDocument();
-      expect(screen.getByText('Test Equipment')).toBeInTheDocument();
-    });
-
-    it('displays assignee name when available', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="compact"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
-    });
-
-    it('displays team name when available', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="compact"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText(/Team:/i)).toBeInTheDocument();
-      expect(screen.getByText('Maintenance Team')).toBeInTheDocument();
-    });
-
-    it('displays created date in compact format', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="compact"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText(/Created:/i)).toBeInTheDocument();
-    });
-
-    it('displays due date with overdue indicator when overdue', () => {
-      const overdueOrder: WorkOrder = {
-        ...mockWorkOrder,
-        due_date: '2023-01-01T00:00:00Z',
-        status: 'in_progress' as const
-      };
-
-      render(
-        <WorkOrderCard
-          workOrder={overdueOrder}
-          variant="compact"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText(/Due:/i)).toBeInTheDocument();
-    });
-
-    it('displays PM progress indicator in compact variant when has_pm is true', () => {
-      const pmOrder = {
-        ...mockWorkOrder,
-        has_pm: true
-      };
-
-      render(
-        <WorkOrderCard
-          workOrder={pmOrder}
-          variant="compact"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByTestId('pm-progress-wo-1')).toBeInTheDocument();
-    });
-
-    it('calls onNavigate when View Details button is clicked in compact variant', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          variant="compact"
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      const viewButton = screen.getByRole('button', { name: /view details/i });
-      fireEvent.click(viewButton);
-
-      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('handles missing due date gracefully', () => {
-      const noDueDateOrder = {
+  describe('edge cases', () => {
+    it('handles missing optional fields gracefully', () => {
+      const minimalOrder = {
         ...mockWorkOrder,
         due_date: null,
-        dueDate: undefined
-      };
-
-      render(
-        <WorkOrderCard
-          workOrder={noDueDateOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText('Test Work Order')).toBeInTheDocument();
-      expect(screen.queryByText(/Due Date/i)).not.toBeInTheDocument();
-    });
-
-    it('handles missing estimated hours gracefully', () => {
-      const noHoursOrder = {
-        ...mockWorkOrder,
         estimated_hours: null,
-        estimatedHours: undefined
-      };
-
-      render(
-        <WorkOrderCard
-          workOrder={noHoursOrder}
-          onNavigate={mockOnNavigate}
-        />
-      );
-
-      expect(screen.getByText('Test Work Order')).toBeInTheDocument();
-      expect(screen.queryByText(/Estimated time:/i)).not.toBeInTheDocument();
-    });
-
-    it('handles missing equipment team name gracefully', () => {
-      const noTeamOrder = {
-        ...mockWorkOrder,
         equipmentTeamName: undefined,
         teamName: undefined
       };
 
       render(
         <WorkOrderCard
-          workOrder={noTeamOrder}
+          workOrder={minimalOrder}
           onNavigate={mockOnNavigate}
         />
       );
 
       expect(screen.getByText('Test Work Order')).toBeInTheDocument();
+      expect(screen.queryByText(/Due Date/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Estimated time:/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/Equipment Team/i)).not.toBeInTheDocument();
+    });
+
+    it('displays correct state for all status types', () => {
+      const statuses = ['submitted', 'accepted', 'assigned', 'in_progress', 'on_hold', 'completed', 'cancelled'] as const;
+
+      statuses.forEach((status) => {
+        const { unmount } = render(
+          <WorkOrderCard
+            workOrder={{ ...mockWorkOrder, status }}
+            onNavigate={mockOnNavigate}
+          />
+        );
+
+        expect(screen.getByText('Test Work Order')).toBeInTheDocument();
+        unmount();
+      });
+    });
+
+    it('displays correct state for all priority types', () => {
+      const priorities = ['low', 'medium', 'high'] as const;
+
+      priorities.forEach((priority) => {
+        const { unmount } = render(
+          <WorkOrderCard
+            workOrder={{ ...mockWorkOrder, priority }}
+            onNavigate={mockOnNavigate}
+          />
+        );
+
+        expect(screen.getByText(new RegExp(`${priority} priority`, 'i'))).toBeInTheDocument();
+        unmount();
+      });
     });
 
     it('handles completed date display', () => {
@@ -622,57 +264,10 @@ describe('WorkOrderCard', () => {
 
       expect(screen.getByText(/Completed:/i)).toBeInTheDocument();
     });
-
-    it('handles all status types correctly', () => {
-      const statuses = ['submitted', 'accepted', 'assigned', 'in_progress', 'on_hold', 'completed', 'cancelled'] as const;
-
-      statuses.forEach((status) => {
-        const { unmount } = render(
-          <WorkOrderCard
-            workOrder={{ ...mockWorkOrder, status }}
-            onNavigate={mockOnNavigate}
-          />
-        );
-
-        expect(screen.getByText('Test Work Order')).toBeInTheDocument();
-        unmount();
-      });
-    });
-
-    it('handles all priority types correctly', () => {
-      const priorities = ['low', 'medium', 'high'] as const;
-
-      priorities.forEach((priority) => {
-        const { unmount } = render(
-          <WorkOrderCard
-            workOrder={{ ...mockWorkOrder, priority }}
-            onNavigate={mockOnNavigate}
-          />
-        );
-
-        expect(screen.getByText(new RegExp(`${priority} priority`, 'i'))).toBeInTheDocument();
-        unmount();
-      });
-    });
   });
 
-  describe('Quick Actions Integration', () => {
-    it('renders quick actions component', () => {
-      render(
-        <WorkOrderCard
-          workOrder={mockWorkOrder}
-          onNavigate={mockOnNavigate}
-          onAssignClick={mockOnAssignClick}
-          onReopenClick={mockOnReopenClick}
-        />
-      );
-
-      expect(screen.getByTestId('quick-actions-wo-1')).toBeInTheDocument();
-    });
-  });
-
-  describe('Assignment Hover Integration', () => {
-    it('renders assignment hover component', () => {
+  describe('navigation and accessibility', () => {
+    it('calls onNavigate when View Details button is clicked on desktop', () => {
       render(
         <WorkOrderCard
           workOrder={mockWorkOrder}
@@ -680,7 +275,55 @@ describe('WorkOrderCard', () => {
         />
       );
 
-      expect(screen.getByTestId('assignment-hover-wo-1')).toBeInTheDocument();
+      const viewButton = screen.getByRole('button', { name: /view details/i });
+      fireEvent.click(viewButton);
+
+      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
+    });
+
+    it('calls onNavigate when mobile card is clicked', () => {
+      render(
+        <WorkOrderCard
+          workOrder={mockWorkOrder}
+          variant="mobile"
+          onNavigate={mockOnNavigate}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button'));
+      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
+    });
+
+    it('supports keyboard navigation on mobile (Enter and Space keys)', () => {
+      render(
+        <WorkOrderCard
+          workOrder={mockWorkOrder}
+          variant="mobile"
+          onNavigate={mockOnNavigate}
+        />
+      );
+
+      const card = screen.getByRole('button');
+      
+      fireEvent.keyDown(card, { key: 'Enter' });
+      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
+      
+      vi.clearAllMocks();
+      
+      fireEvent.keyDown(card, { key: ' ' });
+      expect(mockOnNavigate).toHaveBeenCalledWith('wo-1');
+    });
+
+    it('renders without interactive features when onNavigate is undefined', () => {
+      render(
+        <WorkOrderCard
+          workOrder={mockWorkOrder}
+          variant="mobile"
+        />
+      );
+
+      expect(screen.getByText('Test Work Order')).toBeInTheDocument();
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
   });
 });

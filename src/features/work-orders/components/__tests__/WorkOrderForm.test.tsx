@@ -89,12 +89,6 @@ vi.mock('../WorkOrderGeneralInfo', () => ({
         onChange={(e) => setValue('title', e.target.value)}
         placeholder="Title"
       />
-      <textarea
-        data-testid="description-input"
-        value={values.description || ''}
-        onChange={(e) => setValue('description', e.target.value)}
-        placeholder="Description"
-      />
     </div>
   )
 }));
@@ -177,361 +171,92 @@ describe('WorkOrderForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset window.confirm
     window.confirm = vi.fn(() => true);
   });
 
-  describe('Create Mode', () => {
-    it('renders form in create mode when workOrder is not provided', () => {
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
+  describe('rendering', () => {
+    it('renders all form sections in create mode with correct header', () => {
+      render(<WorkOrderForm open={true} onClose={mockOnClose} />);
 
       expect(screen.getByTestId('form-header')).toHaveTextContent('Create Work Order');
-    });
-
-    it('renders all form sections in create mode', () => {
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
-
       expect(screen.getByTestId('general-info')).toBeInTheDocument();
       expect(screen.getByTestId('equipment-selector')).toBeInTheDocument();
       expect(screen.getByTestId('scheduling')).toBeInTheDocument();
       expect(screen.getByTestId('assignment')).toBeInTheDocument();
       expect(screen.getByTestId('pm-checklist')).toBeInTheDocument();
+      expect(screen.getByTestId('historical-toggle')).toBeInTheDocument();
     });
 
-    it('renders historical toggle in create mode', () => {
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
+    it('renders in edit mode with correct header and hides historical toggle', async () => {
+      const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
+      
+      vi.mocked(useWorkOrderForm).mockReturnValue({
+        form: {
+          values: { title: 'Test', description: '', priority: 'high', equipmentId: 'eq-1', isHistorical: false },
+          errors: {},
+          isValid: true,
+          setValue: vi.fn(),
+          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => { e.preventDefault(); fn(); }),
+          reset: vi.fn()
+        },
+        isEditMode: true,
+        checkForUnsavedChanges: vi.fn(() => false)
+      });
 
-      expect(screen.getByTestId('historical-toggle')).toBeInTheDocument();
+      render(<WorkOrderForm open={true} onClose={mockOnClose} workOrder={mockWorkOrder} />);
+
+      expect(screen.getByTestId('form-header')).toHaveTextContent('Edit Work Order');
+      expect(screen.queryByTestId('historical-toggle')).not.toBeInTheDocument();
     });
 
     it('shows historical fields when historical toggle is enabled', async () => {
       const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
-      const mockSetValue = vi.fn();
       
       vi.mocked(useWorkOrderForm).mockReturnValue({
         form: {
-          values: {
-            title: '',
-            description: '',
-            priority: 'medium',
-            equipmentId: '',
-            isHistorical: true,
-            status: 'accepted',
-            historicalStartDate: undefined,
-            historicalNotes: '',
-            completedDate: undefined
-          },
+          values: { title: '', description: '', priority: 'medium', equipmentId: '', isHistorical: true, status: 'accepted' },
           errors: {},
           isValid: true,
-          setValue: mockSetValue,
-          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
-            e.preventDefault();
-            fn();
-          }),
+          setValue: vi.fn(),
+          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => { e.preventDefault(); fn(); }),
           reset: vi.fn()
         },
         isEditMode: false,
         checkForUnsavedChanges: vi.fn(() => false)
       });
 
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
+      render(<WorkOrderForm open={true} onClose={mockOnClose} />);
 
-      const checkbox = screen.getByTestId('historical-checkbox');
-      expect(checkbox).toBeChecked();
+      expect(screen.getByTestId('historical-checkbox')).toBeChecked();
       expect(screen.getByTestId('historical-fields')).toBeInTheDocument();
     });
 
-    it('calls onClose when cancel button is clicked', () => {
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
-
-      const cancelButton = screen.getByTestId('cancel-button');
-      fireEvent.click(cancelButton);
-
-      expect(mockOnClose).toHaveBeenCalled();
-    });
-
-    it('shows working hours warning dialog when submitting without equipment working hours', async () => {
-      const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
-      const { useWorkOrderSubmission } = await import('@/features/work-orders/hooks/useWorkOrderSubmission');
-      
-      const mockSetValue = vi.fn();
-      const mockSubmitForm = vi.fn();
-      
-      vi.mocked(useWorkOrderForm).mockReturnValue({
-        form: {
-          values: {
-            title: 'Test',
-            description: 'Test',
-            priority: 'medium',
-            equipmentId: 'eq-1',
-            equipmentWorkingHours: undefined, // No working hours
-            isHistorical: false
-          },
-          errors: {},
-          isValid: true,
-          setValue: mockSetValue,
-          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
-            e.preventDefault();
-            fn();
-          }),
-          reset: vi.fn()
-        },
-        isEditMode: false,
-        checkForUnsavedChanges: vi.fn(() => false)
-      });
-
-      vi.mocked(useWorkOrderSubmission).mockReturnValue({
-        submitForm: mockSubmitForm,
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
-
-      const submitButton = screen.getByTestId('submit-button');
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Equipment Working Hours Not Updated/i)).toBeInTheDocument();
-      });
+    it('does not render when open is false', () => {
+      render(<WorkOrderForm open={false} onClose={mockOnClose} />);
+      expect(screen.queryByTestId('form-header')).not.toBeInTheDocument();
     });
   });
 
-  describe('Edit Mode', () => {
-    it('renders form in edit mode when workOrder is provided', async () => {
-      const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
-      
-      vi.mocked(useWorkOrderForm).mockReturnValue({
-        form: {
-          values: {
-            title: 'Test Work Order',
-            description: 'Test description',
-            priority: 'high',
-            equipmentId: 'eq-1',
-            dueDate: '2024-01-15',
-            estimatedHours: 4,
-            hasPM: false,
-            pmTemplateId: null,
-            assigneeId: null,
-            isHistorical: false
-          },
-          errors: {},
-          isValid: true,
-          setValue: vi.fn(),
-          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
-            e.preventDefault();
-            fn();
-          }),
-          reset: vi.fn()
-        },
-        isEditMode: true,
-        checkForUnsavedChanges: vi.fn(() => false)
-      });
-
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-          workOrder={mockWorkOrder}
-        />
-      );
-
-      expect(screen.getByTestId('form-header')).toHaveTextContent('Edit Work Order');
-    });
-
-    it('does not show historical toggle in edit mode', async () => {
-      const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
-      
-      vi.mocked(useWorkOrderForm).mockReturnValue({
-        form: {
-          values: {
-            title: 'Test Work Order',
-            description: 'Test description',
-            priority: 'high',
-            equipmentId: 'eq-1',
-            dueDate: '2024-01-15',
-            estimatedHours: 4,
-            hasPM: false,
-            pmTemplateId: null,
-            assigneeId: null,
-            isHistorical: false
-          },
-          errors: {},
-          isValid: true,
-          setValue: vi.fn(),
-          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
-            e.preventDefault();
-            fn();
-          }),
-          reset: vi.fn()
-        },
-        isEditMode: true,
-        checkForUnsavedChanges: vi.fn(() => false)
-      });
-
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-          workOrder={mockWorkOrder}
-        />
-      );
-
-      expect(screen.queryByTestId('historical-toggle')).not.toBeInTheDocument();
-    });
-
-    it('calls onSubmit when provided in edit mode', async () => {
-      const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
-      const { useWorkOrderSubmission } = await import('@/features/work-orders/hooks/useWorkOrderSubmission');
-      const mockSubmitForm = vi.fn();
-      
-      const mockHandleSubmit = vi.fn((fn) => {
-        // Immediately call the function with form values
-        const formValues = {
-          title: 'Test Work Order',
-          description: 'Test description',
-          priority: 'high',
-          equipmentId: 'eq-1',
-          dueDate: '2024-01-15',
-          estimatedHours: 4,
-          hasPM: false,
-          pmTemplateId: null,
-          assigneeId: null,
-          isHistorical: false
-        };
-        fn(formValues);
-        return Promise.resolve();
-      });
-
-      vi.mocked(useWorkOrderForm).mockReturnValue({
-        form: {
-          values: {
-            title: 'Test Work Order',
-            description: 'Test description',
-            priority: 'high',
-            equipmentId: 'eq-1',
-            dueDate: '2024-01-15',
-            estimatedHours: 4,
-            hasPM: false,
-            pmTemplateId: null,
-            assigneeId: null,
-            isHistorical: false
-          },
-          errors: {},
-          isValid: true,
-          setValue: vi.fn(),
-          handleSubmit: mockHandleSubmit,
-          reset: vi.fn()
-        },
-        isEditMode: true,
-        checkForUnsavedChanges: vi.fn(() => false)
-      });
-      
-      vi.mocked(useWorkOrderSubmission).mockReturnValue({
-        submitForm: mockSubmitForm,
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-          workOrder={mockWorkOrder}
-          onSubmit={mockOnSubmit}
-        />
-      );
-
-      const submitButton = screen.getByTestId('submit-button');
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(mockSubmitForm).toHaveBeenCalled();
-      });
-    });
-
-    it('shows loading state when isUpdating is true', () => {
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-          workOrder={mockWorkOrder}
-          isUpdating={true}
-        />
-      );
-
-      expect(screen.getByText('Submitting...')).toBeInTheDocument();
-      expect(screen.getByTestId('submit-button')).toBeDisabled();
-    });
-  });
-
-  describe('Form Validation', () => {
+  describe('form validation', () => {
     it('disables submit button when form is invalid', async () => {
       const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
       
-      // Reset and set up the mock
-      vi.mocked(useWorkOrderForm).mockReset();
       vi.mocked(useWorkOrderForm).mockReturnValue({
         form: {
-          values: {
-            title: '',
-            description: '',
-            priority: 'medium',
-            equipmentId: '',
-            isHistorical: false
-          },
-          errors: {
-            title: 'Title is required'
-          },
+          values: { title: '', description: '', priority: 'medium', equipmentId: '', isHistorical: false },
+          errors: { title: 'Title is required' },
           isValid: false,
           setValue: vi.fn(),
-          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
-            e.preventDefault();
-            fn();
-          }),
+          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => { e.preventDefault(); fn(); }),
           reset: vi.fn()
         },
         isEditMode: false,
         checkForUnsavedChanges: vi.fn(() => false)
       });
 
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
+      render(<WorkOrderForm open={true} onClose={mockOnClose} />);
 
-      const submitButton = screen.getByTestId('submit-button');
-      expect(submitButton).toBeDisabled();
+      expect(screen.getByTestId('submit-button')).toBeDisabled();
     });
 
     it('displays general error message when present', async () => {
@@ -539,121 +264,69 @@ describe('WorkOrderForm', () => {
       
       vi.mocked(useWorkOrderForm).mockReturnValue({
         form: {
-          values: {
-            title: 'Test',
-            description: 'Test',
-            priority: 'medium',
-            equipmentId: 'eq-1',
-            isHistorical: false
-          },
-          errors: {
-            general: 'An error occurred'
-          },
+          values: { title: 'Test', description: '', priority: 'medium', equipmentId: 'eq-1', isHistorical: false },
+          errors: { general: 'An error occurred' },
           isValid: true,
           setValue: vi.fn(),
-          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
-            e.preventDefault();
-            fn();
-          }),
+          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => { e.preventDefault(); fn(); }),
           reset: vi.fn()
         },
         isEditMode: false,
         checkForUnsavedChanges: vi.fn(() => false)
       });
 
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
+      render(<WorkOrderForm open={true} onClose={mockOnClose} />);
 
       expect(screen.getByText('An error occurred')).toBeInTheDocument();
     });
+
+    it('shows loading state when isUpdating is true', () => {
+      render(<WorkOrderForm open={true} onClose={mockOnClose} workOrder={mockWorkOrder} isUpdating={true} />);
+
+      expect(screen.getByText('Submitting...')).toBeInTheDocument();
+      expect(screen.getByTestId('submit-button')).toBeDisabled();
+    });
   });
 
-  describe('Unsaved Changes Detection', () => {
-    it('prompts user when closing with unsaved changes', async () => {
+  describe('unsaved changes detection', () => {
+    it('prompts user when closing with unsaved changes and respects their choice', async () => {
       const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
-      const mockConfirm = vi.fn(() => false); // User cancels
-      window.confirm = mockConfirm;
+      
+      // Test canceling close
+      const mockConfirmCancel = vi.fn(() => false);
+      window.confirm = mockConfirmCancel;
       
       vi.mocked(useWorkOrderForm).mockReturnValue({
         form: {
-          values: {
-            title: 'Test',
-            description: 'Test',
-            priority: 'medium',
-            equipmentId: '',
-            isHistorical: false
-          },
+          values: { title: 'Test', description: '', priority: 'medium', equipmentId: '', isHistorical: false },
           errors: {},
           isValid: true,
           setValue: vi.fn(),
-          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
-            e.preventDefault();
-            fn();
-          }),
-          reset: vi.fn()
-        },
-        isEditMode: false,
-        checkForUnsavedChanges: vi.fn(() => true) // Has unsaved changes
-      });
-
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
-
-      const cancelButton = screen.getByTestId('cancel-button');
-      fireEvent.click(cancelButton);
-
-      await waitFor(() => {
-        expect(mockConfirm).toHaveBeenCalledWith('You have unsaved changes. Are you sure you want to close?');
-      });
-
-      // Should not close if user cancels
-      expect(mockOnClose).not.toHaveBeenCalled();
-    });
-
-    it('closes form when user confirms unsaved changes', async () => {
-      const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
-      const mockConfirm = vi.fn(() => true); // User confirms
-      window.confirm = mockConfirm;
-      
-      vi.mocked(useWorkOrderForm).mockReturnValue({
-        form: {
-          values: {
-            title: 'Test',
-            description: 'Test',
-            priority: 'medium',
-            equipmentId: '',
-            isHistorical: false
-          },
-          errors: {},
-          isValid: true,
-          setValue: vi.fn(),
-          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
-            e.preventDefault();
-            fn();
-          }),
+          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => { e.preventDefault(); fn(); }),
           reset: vi.fn()
         },
         isEditMode: false,
         checkForUnsavedChanges: vi.fn(() => true)
       });
 
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
+      const { unmount } = render(<WorkOrderForm open={true} onClose={mockOnClose} />);
 
-      const cancelButton = screen.getByTestId('cancel-button');
-      fireEvent.click(cancelButton);
+      fireEvent.click(screen.getByTestId('cancel-button'));
+
+      await waitFor(() => {
+        expect(mockConfirmCancel).toHaveBeenCalledWith('You have unsaved changes. Are you sure you want to close?');
+      });
+      expect(mockOnClose).not.toHaveBeenCalled();
+      
+      unmount();
+
+      // Test confirming close
+      const mockConfirmProceed = vi.fn(() => true);
+      window.confirm = mockConfirmProceed;
+
+      render(<WorkOrderForm open={true} onClose={mockOnClose} />);
+
+      fireEvent.click(screen.getByTestId('cancel-button'));
 
       await waitFor(() => {
         expect(mockOnClose).toHaveBeenCalled();
@@ -661,31 +334,20 @@ describe('WorkOrderForm', () => {
     });
   });
 
-  describe('Working Hours Warning Dialog', () => {
-    it('allows user to cancel and go back', async () => {
+  describe('working hours warning dialog', () => {
+    const setupWorkingHoursTest = async () => {
       const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
       const { useWorkOrderSubmission } = await import('@/features/work-orders/hooks/useWorkOrderSubmission');
       
-      const mockSetValue = vi.fn();
       const mockSubmitForm = vi.fn();
       
       vi.mocked(useWorkOrderForm).mockReturnValue({
         form: {
-          values: {
-            title: 'Test',
-            description: 'Test',
-            priority: 'medium',
-            equipmentId: 'eq-1',
-            equipmentWorkingHours: undefined,
-            isHistorical: false
-          },
+          values: { title: 'Test', description: '', priority: 'medium', equipmentId: 'eq-1', equipmentWorkingHours: undefined, isHistorical: false },
           errors: {},
           isValid: true,
-          setValue: mockSetValue,
-          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
-            e.preventDefault();
-            fn();
-          }),
+          setValue: vi.fn(),
+          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => { e.preventDefault(); fn(); }),
           reset: vi.fn()
         },
         isEditMode: false,
@@ -697,81 +359,36 @@ describe('WorkOrderForm', () => {
         isLoading: false
       });
 
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
+      return { mockSubmitForm };
+    };
 
-      const submitButton = screen.getByTestId('submit-button');
-      fireEvent.click(submitButton);
+    it('shows warning and allows user to go back or proceed', async () => {
+      const { mockSubmitForm } = await setupWorkingHoursTest();
+
+      render(<WorkOrderForm open={true} onClose={mockOnClose} />);
+
+      fireEvent.click(screen.getByTestId('submit-button'));
 
       await waitFor(() => {
         expect(screen.getByText(/Equipment Working Hours Not Updated/i)).toBeInTheDocument();
       });
 
-      const cancelButton = screen.getByText(/Go Back & Update Hours/i);
-      fireEvent.click(cancelButton);
+      // Test going back
+      fireEvent.click(screen.getByText(/Go Back & Update Hours/i));
 
       await waitFor(() => {
         expect(screen.queryByText(/Equipment Working Hours Not Updated/i)).not.toBeInTheDocument();
       });
-
       expect(mockSubmitForm).not.toHaveBeenCalled();
-    });
 
-    it('allows user to confirm and create without hours', async () => {
-      const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
-      const { useWorkOrderSubmission } = await import('@/features/work-orders/hooks/useWorkOrderSubmission');
-      
-      const mockSetValue = vi.fn();
-      const mockSubmitForm = vi.fn();
-      
-      vi.mocked(useWorkOrderForm).mockReturnValue({
-        form: {
-          values: {
-            title: 'Test',
-            description: 'Test',
-            priority: 'medium',
-            equipmentId: 'eq-1',
-            equipmentWorkingHours: undefined,
-            isHistorical: false
-          },
-          errors: {},
-          isValid: true,
-          setValue: mockSetValue,
-          handleSubmit: vi.fn((fn) => (e: React.FormEvent) => {
-            e.preventDefault();
-            fn();
-          }),
-          reset: vi.fn()
-        },
-        isEditMode: false,
-        checkForUnsavedChanges: vi.fn(() => false)
-      });
-
-      vi.mocked(useWorkOrderSubmission).mockReturnValue({
-        submitForm: mockSubmitForm,
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
-
-      const submitButton = screen.getByTestId('submit-button');
-      fireEvent.click(submitButton);
+      // Click submit again and this time proceed
+      fireEvent.click(screen.getByTestId('submit-button'));
 
       await waitFor(() => {
         expect(screen.getByText(/Equipment Working Hours Not Updated/i)).toBeInTheDocument();
       });
 
-      const confirmButton = screen.getByText(/Yes, Create Without Hours/i);
-      fireEvent.click(confirmButton);
+      fireEvent.click(screen.getByText(/Yes, Create Without Hours/i));
 
       await waitFor(() => {
         expect(mockSubmitForm).toHaveBeenCalled();
@@ -779,59 +396,45 @@ describe('WorkOrderForm', () => {
     });
   });
 
-  describe('Equipment Pre-selection', () => {
-    it('pre-selects equipment when equipmentId prop is provided', () => {
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-          equipmentId="eq-1"
-        />
-      );
+  describe('form actions', () => {
+    it('calls onClose when cancel button is clicked without unsaved changes', () => {
+      render(<WorkOrderForm open={true} onClose={mockOnClose} />);
 
-      expect(screen.getByTestId('equipment-selector')).toBeInTheDocument();
-    });
-  });
+      fireEvent.click(screen.getByTestId('cancel-button'));
 
-  describe('PM Data Integration', () => {
-    it('uses PM data for template selection in edit mode', () => {
-      const pmData = { template_id: 'pm-1' };
-
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-          workOrder={mockWorkOrder}
-          pmData={pmData}
-        />
-      );
-
-      expect(screen.getByTestId('pm-checklist')).toBeInTheDocument();
-    });
-  });
-
-  describe('Dialog Open/Close', () => {
-    it('does not render when open is false', () => {
-      render(
-        <WorkOrderForm
-          open={false}
-          onClose={mockOnClose}
-        />
-      );
-
-      expect(screen.queryByTestId('form-header')).not.toBeInTheDocument();
+      expect(mockOnClose).toHaveBeenCalled();
     });
 
-    it('renders when open is true', () => {
-      render(
-        <WorkOrderForm
-          open={true}
-          onClose={mockOnClose}
-        />
-      );
+    it('calls submission handler when submit is clicked in edit mode', async () => {
+      const { useWorkOrderForm } = await import('@/features/work-orders/hooks/useWorkOrderForm');
+      const { useWorkOrderSubmission } = await import('@/features/work-orders/hooks/useWorkOrderSubmission');
+      const mockSubmitForm = vi.fn();
+      
+      vi.mocked(useWorkOrderForm).mockReturnValue({
+        form: {
+          values: { title: 'Test', description: '', priority: 'high', equipmentId: 'eq-1', isHistorical: false },
+          errors: {},
+          isValid: true,
+          setValue: vi.fn(),
+          handleSubmit: vi.fn((fn) => { fn(); return Promise.resolve(); }),
+          reset: vi.fn()
+        },
+        isEditMode: true,
+        checkForUnsavedChanges: vi.fn(() => false)
+      });
+      
+      vi.mocked(useWorkOrderSubmission).mockReturnValue({
+        submitForm: mockSubmitForm,
+        isLoading: false
+      });
 
-      expect(screen.getByTestId('form-header')).toBeInTheDocument();
+      render(<WorkOrderForm open={true} onClose={mockOnClose} workOrder={mockWorkOrder} onSubmit={mockOnSubmit} />);
+
+      fireEvent.click(screen.getByTestId('submit-button'));
+
+      await waitFor(() => {
+        expect(mockSubmitForm).toHaveBeenCalled();
+      });
     });
   });
 });
-

@@ -9,9 +9,30 @@ import {
   MockSimpleOrganizationProvider,
   MockSessionProvider2 
 } from './mock-providers';
+import type { UserPersona } from '@/test/fixtures/personas';
+import {
+  createMockSessionForPersona,
+  createMockAuthForPersona,
+  createMockSimpleOrgForPersona
+} from './mock-provider-values';
+
+export interface TestProvidersProps {
+  children: React.ReactNode;
+  initialEntries?: string[];
+  /** 
+   * Optional persona for persona-based testing.
+   * When provided, all mock providers will be configured for this persona's
+   * role, permissions, and team memberships.
+   */
+  persona?: UserPersona;
+}
 
 // Test providers wrapper component
-export const TestProviders = ({ children, initialEntries }: { children: React.ReactNode; initialEntries?: string[] }) => {
+export const TestProviders = ({ 
+  children, 
+  initialEntries,
+  persona 
+}: TestProvidersProps) => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -20,15 +41,20 @@ export const TestProviders = ({ children, initialEntries }: { children: React.Re
     },
   });
 
+  // Create persona-aware mock values if persona is provided
+  const sessionValue = persona ? createMockSessionForPersona(persona) : undefined;
+  const authValue = persona ? createMockAuthForPersona(persona) : undefined;
+  const orgValue = persona ? createMockSimpleOrgForPersona(persona) : undefined;
+
   return (
     <MemoryRouter initialEntries={initialEntries || ['/']}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <MockAuthProvider>
-            <MockSessionProvider>
+          <MockAuthProvider value={authValue}>
+            <MockSessionProvider value={sessionValue}>
               <MockSessionProvider2>
                 <MockUserProvider>
-                  <MockSimpleOrganizationProvider>
+                  <MockSimpleOrganizationProvider value={orgValue}>
                     {children}
                   </MockSimpleOrganizationProvider>
                 </MockUserProvider>
@@ -38,5 +64,17 @@ export const TestProviders = ({ children, initialEntries }: { children: React.Re
         </TooltipProvider>
       </QueryClientProvider>
     </MemoryRouter>
+  );
+};
+
+/**
+ * Create a wrapper component pre-configured for a specific persona.
+ * Useful for renderHook and other testing scenarios.
+ */
+export const createPersonaWrapper = (persona: UserPersona, initialEntries?: string[]) => {
+  return ({ children }: { children: React.ReactNode }) => (
+    <TestProviders persona={persona} initialEntries={initialEntries}>
+      {children}
+    </TestProviders>
   );
 };

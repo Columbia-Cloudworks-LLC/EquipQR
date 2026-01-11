@@ -9,14 +9,35 @@ import {
 } from '@/test/utils/mock-provider-values';
 import { SimpleOrganizationContext } from '@/contexts/SimpleOrganizationContext';
 
-export const MockAuthProvider = ({ children }: { children: React.ReactNode }) => (
-  <AuthContext.Provider value={mockAuthContextValue}>
+// Type for auth context value - matches AuthContext shape
+type AuthContextValue = typeof mockAuthContextValue;
+
+// Type for session context value - matches SessionContext shape  
+type SessionContextValue = typeof mockSessionContextValue;
+
+// Type for simple org context value
+type SimpleOrgContextValue = ReturnType<typeof createMockSimpleOrgValue>;
+
+export const MockAuthProvider = ({ 
+  children,
+  value
+}: { 
+  children: React.ReactNode;
+  value?: AuthContextValue;
+}) => (
+  <AuthContext.Provider value={value ?? mockAuthContextValue}>
     <div data-testid="mock-auth-provider">{children}</div>
   </AuthContext.Provider>
 );
 
-export const MockSessionProvider = ({ children }: { children: React.ReactNode }) => (
-  <SessionContext.Provider value={mockSessionContextValue}>
+export const MockSessionProvider = ({ 
+  children,
+  value 
+}: { 
+  children: React.ReactNode;
+  value?: SessionContextValue;
+}) => (
+  <SessionContext.Provider value={value ?? mockSessionContextValue}>
     <div data-testid="mock-session-provider">{children}</div>
   </SessionContext.Provider>
 );
@@ -30,7 +51,7 @@ export const MockSimpleOrganizationProvider = ({
   value 
 }: { 
   children: React.ReactNode;
-  value?: ReturnType<typeof createMockSimpleOrgValue>;
+  value?: SimpleOrgContextValue;
 }) => (
   <SimpleOrganizationContext.Provider value={value ?? createMockSimpleOrgValue()}>
     <div data-testid="mock-organization-provider">{children}</div>
