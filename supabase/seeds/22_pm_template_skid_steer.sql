@@ -1,0 +1,117 @@
+-- =====================================================
+-- EquipQR Seed Data - Skid Steer PM Template (Global)
+-- =====================================================
+-- This seed creates the global Skid Steer PM checklist template.
+-- Global templates have organization_id = NULL and is_protected = true.
+--
+-- Template: Skid Steer PM
+-- Items: 80 checklist items across 11 sections
+-- =====================================================
+
+INSERT INTO "public"."pm_checklist_templates" (
+  "id",
+  "organization_id",
+  "name",
+  "description",
+  "template_data",
+  "is_protected",
+  "created_by",
+  "created_at",
+  "updated_at"
+)
+SELECT
+  'cc0e8400-e29b-41d4-a716-446655440006'::uuid,
+  NULL,
+  'Skid Steer PM',
+  'Comprehensive preventative maintenance checklist for skid steer loaders. Covers visual inspection, engine compartment, electrical system, hydraulic system, loader arms & attachment, undercarriage & drive, cooling system, fuel system, cab & controls, and final inspection.',
+  '[
+    {"id": "visual-inspection-1", "title": "Walk-Around and Leak Check", "description": "Perform a full walk-around of the skid steer. Look underneath and around the machine for any oil, hydraulic fluid, or coolant leaks on the ground or dripping from the machine.", "required": true, "section": "Visual Inspection"},
+    {"id": "visual-inspection-2", "title": "Safety Decals and Labels", "description": "Ensure all safety and instructional decals are present and legible.", "required": true, "section": "Visual Inspection"},
+    {"id": "visual-inspection-3", "title": "Loader Arms, Pivot Points, and Attachment", "description": "Inspect loader arm structure and welds for cracks. Check quick-attach plate and coupler condition.", "required": true, "section": "Visual Inspection"},
+    {"id": "visual-inspection-4", "title": "Cylinders and Hoses (External)", "description": "Inspect lift and tilt cylinders for leaks. Check hoses along the arms for wear or damage.", "required": true, "section": "Visual Inspection"},
+    {"id": "visual-inspection-5", "title": "Wheels/Tracks Condition", "description": "Inspect tires for cuts and check inflation, or inspect tracks for tension, wear, and damage.", "required": true, "section": "Visual Inspection"},
+    {"id": "visual-inspection-6", "title": "ROPS Canopy/Cab Enclosure", "description": "Ensure ROPS is secure with no cracks. Check door/entry bar hinges and latches.", "required": true, "section": "Visual Inspection"},
+    {"id": "visual-inspection-7", "title": "Grab Handles and Steps", "description": "Verify grab handles and steps are secure and anti-slip surfaces intact.", "required": true, "section": "Visual Inspection"},
+    {"id": "engine-compartment-8", "title": "Clear Debris from Engine Bay", "description": "Open tailgate and clear debris from engine compartment, especially around air filter and coolers.", "required": true, "section": "Engine Compartment"},
+    {"id": "engine-compartment-9", "title": "Engine Oil Level and Condition", "description": "Check oil with dipstick, top off if needed, or perform scheduled oil change.", "required": true, "section": "Engine Compartment"},
+    {"id": "engine-compartment-10", "title": "Engine Oil Filter", "description": "Replace oil filter during oil change intervals.", "required": true, "section": "Engine Compartment"},
+    {"id": "engine-compartment-11", "title": "Air Filter", "description": "Inspect and clean or replace air filter element.", "required": true, "section": "Engine Compartment"},
+    {"id": "engine-compartment-12", "title": "Engine Coolant Level", "description": "Check coolant level and inspect for leaks. Top off if necessary.", "required": true, "section": "Engine Compartment"},
+    {"id": "engine-compartment-13", "title": "Fuel Filter and Water Separator", "description": "Drain water separator and replace fuel filter if due.", "required": true, "section": "Engine Compartment"},
+    {"id": "engine-compartment-14", "title": "Belt Condition and Tension", "description": "Inspect serpentine/fan belt for wear and proper tension.", "required": true, "section": "Engine Compartment"},
+    {"id": "engine-compartment-15", "title": "Exhaust System and Muffler", "description": "Check exhaust for leaks, soot, or loose components.", "required": true, "section": "Engine Compartment"},
+    {"id": "engine-compartment-16", "title": "Engine Mount Bolts and Leaks", "description": "Verify engine mounts are secure. Look for any fluid leaks around engine.", "required": true, "section": "Engine Compartment"},
+    {"id": "electrical-system-17", "title": "Battery and Terminals", "description": "Inspect battery for damage and corrosion. Clean terminals if needed.", "required": true, "section": "Electrical System"},
+    {"id": "electrical-system-18", "title": "Battery Load Test", "description": "Perform load or voltage test to ensure adequate starting power.", "required": true, "section": "Electrical System"},
+    {"id": "electrical-system-19", "title": "Alternator and Starter", "description": "Check alternator output and inspect starter motor condition.", "required": true, "section": "Electrical System"},
+    {"id": "electrical-system-20", "title": "Fuses and Control Panel", "description": "Inspect fuse panel for correct fuses and tight connections.", "required": true, "section": "Electrical System"},
+    {"id": "electrical-system-21", "title": "Lights and Warning Devices", "description": "Test all lights, horn, and backup alarm.", "required": true, "section": "Electrical System"},
+    {"id": "electrical-system-22", "title": "Display and Gauges", "description": "Verify display, warning lights, and gauges function correctly.", "required": true, "section": "Electrical System"},
+    {"id": "electrical-system-23", "title": "Wiring Harness", "description": "Inspect visible wiring for chafing, loose connections, or damage.", "required": true, "section": "Electrical System"},
+    {"id": "hydraulic-system-24", "title": "Hydraulic Oil Level", "description": "Check hydraulic fluid level via sight glass or dipstick with arms down.", "required": true, "section": "Hydraulic System"},
+    {"id": "hydraulic-system-25", "title": "Hydraulic Oil and Filters", "description": "Replace hydraulic oil and filters if due or if oil is contaminated.", "required": true, "section": "Hydraulic System"},
+    {"id": "hydraulic-system-26", "title": "Hydraulic Pump and Motors", "description": "Inspect main pump and drive motors for leaks and abnormal noise.", "required": true, "section": "Hydraulic System"},
+    {"id": "hydraulic-system-27", "title": "Control Valve", "description": "Inspect control valve block for leaks and proper linkage connection.", "required": true, "section": "Hydraulic System"},
+    {"id": "hydraulic-system-28", "title": "Lift and Tilt Cylinders", "description": "Inspect cylinder rods and seals for damage or leaks.", "required": true, "section": "Hydraulic System"},
+    {"id": "hydraulic-system-29", "title": "Hoses and Fittings", "description": "Trace all hoses for cracks, abrasion, or loose fittings.", "required": true, "section": "Hydraulic System"},
+    {"id": "hydraulic-system-30", "title": "Auxiliary Hydraulics", "description": "Check auxiliary quick couplers and flow controls.", "required": true, "section": "Hydraulic System"},
+    {"id": "hydraulic-system-31", "title": "Hydraulic Tank Breather", "description": "Inspect and clean tank breather element.", "required": true, "section": "Hydraulic System"},
+    {"id": "loader-arms-attachment-32", "title": "Loader Arm Structure", "description": "Inspect loader arms, welds, and pivot points for cracks or damage.", "required": true, "section": "Loader Arms & Attachment"},
+    {"id": "loader-arms-attachment-33", "title": "Arm Pivot Pins and Bushings", "description": "Check pins and bushings for excessive play or wear.", "required": true, "section": "Loader Arms & Attachment"},
+    {"id": "loader-arms-attachment-34", "title": "Quick-Attach Coupler", "description": "Inspect locking mechanism for proper engagement and wear.", "required": true, "section": "Loader Arms & Attachment"},
+    {"id": "loader-arms-attachment-35", "title": "Bucket or Attachment Condition", "description": "Inspect bucket edges, mounting points, and structural integrity.", "required": true, "section": "Loader Arms & Attachment"},
+    {"id": "loader-arms-attachment-36", "title": "Attachment Hoses (if applicable)", "description": "Check auxiliary attachment hoses for wear, routing, and connections.", "required": true, "section": "Loader Arms & Attachment"},
+    {"id": "loader-arms-attachment-37", "title": "Grease Loader Arm Fittings", "description": "Grease all fittings until clean grease is visible.", "required": true, "section": "Loader Arms & Attachment"},
+    {"id": "undercarriage-drive-38", "title": "Tire/Track Condition", "description": "Measure tire tread or inspect track links for wear or damage.", "required": true, "section": "Undercarriage & Drive"},
+    {"id": "undercarriage-drive-39", "title": "Tire Pressure / Track Tension", "description": "Inflate tires or adjust track tension per specs.", "required": true, "section": "Undercarriage & Drive"},
+    {"id": "undercarriage-drive-40", "title": "Wheel Lug Nuts (Wheeled Models)", "description": "Check lug nuts are torqued to spec.", "required": true, "section": "Undercarriage & Drive"},
+    {"id": "undercarriage-drive-41", "title": "Wheel Hub / Bearing Play (Wheeled Models)", "description": "Check for wheel bearing play.", "required": true, "section": "Undercarriage & Drive"},
+    {"id": "undercarriage-drive-42", "title": "Track Idlers and Rollers (Track Models)", "description": "Inspect idlers and rollers for wear or leaks.", "required": true, "section": "Undercarriage & Drive"},
+    {"id": "undercarriage-drive-43", "title": "Sprockets (Track Models)", "description": "Inspect drive sprockets for tooth wear.", "required": true, "section": "Undercarriage & Drive"},
+    {"id": "undercarriage-drive-44", "title": "Drive Motors (Chain Case) Oil", "description": "Check chain case or drive motor oil level.", "required": true, "section": "Undercarriage & Drive"},
+    {"id": "undercarriage-drive-45", "title": "Drive Chain Tension (if applicable)", "description": "Inspect and adjust drive chain tension if required.", "required": true, "section": "Undercarriage & Drive"},
+    {"id": "undercarriage-drive-46", "title": "Undercarriage Frame", "description": "Inspect frame rails and welds for cracks or damage.", "required": true, "section": "Undercarriage & Drive"},
+    {"id": "cooling-system-47", "title": "Radiator and Coolers", "description": "Clean radiator fins, oil cooler, and charge air cooler of debris.", "required": true, "section": "Cooling System"},
+    {"id": "cooling-system-48", "title": "Coolant Quality and Level", "description": "Check antifreeze strength and verify coolant level.", "required": true, "section": "Cooling System"},
+    {"id": "cooling-system-49", "title": "Coolant Hoses and Clamps", "description": "Inspect all coolant hoses for cracks, bulges, or leaks.", "required": true, "section": "Cooling System"},
+    {"id": "cooling-system-50", "title": "Fan and Belt", "description": "Inspect fan blades, belt tension, and routing.", "required": true, "section": "Cooling System"},
+    {"id": "cooling-system-51", "title": "Thermostat and Water Pump", "description": "Verify engine reaches normal temp; inspect pump weep hole.", "required": true, "section": "Cooling System"},
+    {"id": "cooling-system-52", "title": "Heater Core (if applicable)", "description": "Check cab heater operation and hoses for leaks.", "required": true, "section": "Cooling System"},
+    {"id": "fuel-system-53", "title": "Fuel Tank and Cap", "description": "Inspect tank for damage and verify cap seals properly.", "required": true, "section": "Fuel System"},
+    {"id": "fuel-system-54", "title": "Fuel Lines and Injectors", "description": "Check lines for cracks or chafing. Inspect injector area for leaks.", "required": true, "section": "Fuel System"},
+    {"id": "fuel-system-55", "title": "Water Separator Operation", "description": "Drain separator and verify sensor function if equipped.", "required": true, "section": "Fuel System"},
+    {"id": "fuel-system-56", "title": "Fuel Filter Change (if due)", "description": "Replace fuel filters and bleed system if necessary.", "required": true, "section": "Fuel System"},
+    {"id": "fuel-system-57", "title": "Throttle Cable/Linkage", "description": "Inspect throttle linkage for smooth operation.", "required": true, "section": "Fuel System"},
+    {"id": "fuel-system-58", "title": "Aftertreatment (if applicable)", "description": "Check DEF level, DPF status, and related components.", "required": true, "section": "Fuel System"},
+    {"id": "cab-controls-59", "title": "Operator Seat and Seat Belt", "description": "Inspect seat, adjustment, and seat belt functionality.", "required": true, "section": "Cab & Controls"},
+    {"id": "cab-controls-60", "title": "Seat Bar / Safety Interlock", "description": "Verify seat bar or door interlock prevents operation when open.", "required": true, "section": "Cab & Controls"},
+    {"id": "cab-controls-61", "title": "Control Levers / Joysticks", "description": "Confirm controls move freely and return to neutral.", "required": true, "section": "Cab & Controls"},
+    {"id": "cab-controls-62", "title": "Foot Pedals (if applicable)", "description": "Clean pedals; verify smooth travel and adjustment.", "required": true, "section": "Cab & Controls"},
+    {"id": "cab-controls-63", "title": "Instrument Panel and Warnings", "description": "Check gauges, warning lights, and display messages.", "required": true, "section": "Cab & Controls"},
+    {"id": "cab-controls-64", "title": "HVAC and Cab Air Filter", "description": "Test AC/heater and replace cab air filter if needed.", "required": true, "section": "Cab & Controls"},
+    {"id": "cab-controls-65", "title": "Wipers, Washers, and Mirrors", "description": "Test wiper/washer operation. Check and adjust mirrors.", "required": true, "section": "Cab & Controls"},
+    {"id": "cab-controls-66", "title": "Fire Extinguisher and First Aid", "description": "Ensure fire extinguisher is charged and accessible.", "required": true, "section": "Cab & Controls"},
+    {"id": "cab-controls-67", "title": "Cleanliness and Debris Removal", "description": "Clean cab interior and remove loose debris.", "required": true, "section": "Cab & Controls"},
+    {"id": "final-inspection-68", "title": "Engine Start and Warm-Up", "description": "Start engine and verify smooth idle and no warning lights.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-69", "title": "Loader Function Test", "description": "Operate lift and tilt for smooth, responsive action.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-70", "title": "Auxiliary Function Test", "description": "Test auxiliary hydraulics in both directions.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-71", "title": "Drive Test (Forward/Reverse)", "description": "Test forward and reverse travel for smooth response.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-72", "title": "Turning and Steering", "description": "Test pivot steering and verify no binding.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-73", "title": "Speed Range (High/Low)", "description": "If equipped, test both speed ranges for smooth shifting.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-74", "title": "Brake Function", "description": "Test service and parking brakes for proper stopping.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-75", "title": "Warning Device Test", "description": "Verify horn and backup alarm work properly.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-76", "title": "Monitor Gauges During Operation", "description": "Watch temps and pressures for abnormalities.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-77", "title": "Post-Operation Leak Check", "description": "Inspect for any new leaks after operation.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-78", "title": "Clean Machine Exterior", "description": "Wipe down exterior surfaces and remove grease smudges.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-79", "title": "Secure Machine", "description": "Lower bucket, shut off engine, set parking brake, remove key.", "required": true, "section": "Final Inspection"},
+    {"id": "final-inspection-80", "title": "Documentation and PM Sticker", "description": "Record service, apply PM sticker, and note follow-up items.", "required": true, "section": "Final Inspection"}
+  ]'::jsonb,
+  true,
+  'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
+  NOW(),
+  NOW()
+WHERE NOT EXISTS (
+  SELECT 1 FROM "public"."pm_checklist_templates"
+  WHERE "id" = 'cc0e8400-e29b-41d4-a716-446655440006'::uuid
+)
+ON CONFLICT (id) DO NOTHING;

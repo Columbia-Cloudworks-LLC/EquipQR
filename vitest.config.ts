@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
+const isCI = process.env.CI === 'true';
+
 export default defineConfig({
   plugins: [react()],
   test: {
@@ -12,9 +14,32 @@ export default defineConfig({
     testTimeout: 10000,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['supabase/**', 'node_modules/**'],
+    // CI optimizations: use forks pool for memory isolation and sequential execution
+    pool: isCI ? 'forks' : 'threads',
+    poolOptions: {
+      forks: {
+        // Single worker in CI to minimize memory usage
+        maxForks: isCI ? 1 : undefined,
+        minForks: isCI ? 1 : undefined,
+        // Isolate each test file
+        isolate: true,
+      },
+      threads: {
+        isolate: true,
+      },
+    },
+    // Completely sequential in CI to prevent OOM
+    fileParallelism: !isCI,
+    // Ensure hooks don't hang
+    hookTimeout: 30000,
+    teardownTimeout: 10000,
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov', 'json-summary'],
+      // Use istanbul in CI for stability; v8 can hang on large codebases
+      provider: isCI ? 'istanbul' : 'v8',
+      // Reduce reporters in CI to save memory (skip html)
+      reporter: isCI 
+        ? ['text', 'lcov', 'json-summary'] 
+        : ['text', 'json', 'html', 'lcov', 'json-summary'],
       all: false, // Only include files touched by tests
       include: ['src/**/*.{ts,tsx}'],
       exclude: [

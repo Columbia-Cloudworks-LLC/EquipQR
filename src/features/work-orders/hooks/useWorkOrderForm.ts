@@ -102,9 +102,26 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
   }, [isOpen, workOrder?.id, equipmentId, form, initialValues]);
 
   const checkForUnsavedChanges = (): boolean => {
-    return Object.keys(form.values).some(
-      key => form.values[key as keyof WorkOrderFormData] !== initialValues[key as keyof WorkOrderFormData]
-    );
+    // Helper to normalize "empty" values for comparison
+    const isEmpty = (value: unknown): boolean => {
+      return value === undefined || value === null || value === '';
+    };
+
+    // Helper to compare values, treating all "empty" values as equivalent
+    const hasChanged = (current: unknown, initial: unknown): boolean => {
+      // If both are "empty", no change
+      if (isEmpty(current) && isEmpty(initial)) return false;
+      // If only one is empty, there's a change
+      if (isEmpty(current) !== isEmpty(initial)) return true;
+      // Otherwise compare directly
+      return current !== initial;
+    };
+
+    return Object.keys(form.values).some(key => {
+      const currentValue = form.values[key as keyof WorkOrderFormData];
+      const initialValue = initialValues[key as keyof WorkOrderFormData];
+      return hasChanged(currentValue, initialValue);
+    });
   };
 
   return {

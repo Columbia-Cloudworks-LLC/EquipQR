@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, 
   Trash2, 
@@ -21,13 +22,20 @@ import {
   X,
   Globe,
   Shield,
-  Lock
+  Lock,
+  Loader2
 } from 'lucide-react';
 import { SaveStatus } from '@/components/ui/SaveStatus';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { useCreatePMTemplate, useUpdatePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
+import { PMTemplateCompatibilityRulesEditor } from '@/features/pm-templates/components/PMTemplateCompatibilityRulesEditor';
+import {
+  usePMTemplateCompatibilityRules,
+  useBulkSetPMTemplateRules,
+} from '@/features/pm-templates/hooks/usePMTemplateCompatibility';
+import type { PMTemplateCompatibilityRuleFormData } from '@/features/pm-templates/types/pmTemplateCompatibility';
 import { nanoid } from 'nanoid';
 
 type SaveTrigger = 'text' | 'selection' | 'manual';
@@ -208,6 +216,37 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
 
   const createMutation = useCreatePMTemplate();
   const updateMutation = useUpdatePMTemplate();
+
+  // Compatibility rules state (only for existing templates)
+  const { data: savedRules = [], isLoading: isLoadingRules } = usePMTemplateCompatibilityRules(
+    template?.id,
+    { enabled: !!template?.id }
+  );
+  const bulkSetRules = useBulkSetPMTemplateRules();
+  const [editedRules, setEditedRules] = useState<PMTemplateCompatibilityRuleFormData[]>([]);
+  const [hasRulesChanges, setHasRulesChanges] = useState(false);
+
+  // Sync saved rules to local state
+  useEffect(() => {
+    if (savedRules.length > 0) {
+      setEditedRules(savedRules.map(r => ({ manufacturer: r.manufacturer, model: r.model })));
+      setHasRulesChanges(false);
+    } else if (!isLoadingRules && template?.id) {
+      setEditedRules([]);
+      setHasRulesChanges(false);
+    }
+  }, [savedRules, isLoadingRules, template?.id]);
+
+  const handleRulesChange = (newRules: PMTemplateCompatibilityRuleFormData[]) => {
+    setEditedRules(newRules);
+    setHasRulesChanges(true);
+  };
+
+  const handleSaveRules = async () => {
+    if (!template?.id) return;
+    await bulkSetRules.mutateAsync({ templateId: template.id, rules: editedRules });
+    setHasRulesChanges(false);
+  };
 
   useEffect(() => {
     if (template) {
@@ -502,63 +541,22 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
     triggerAutoSave('text', JSON.stringify({ templateName, templateDescription: value, checklistItems }));
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 space-y-3">
-          <div>
-            <Label htmlFor="templateName">Template Name</Label>
-            <Input
-              id="templateName"
-              value={templateName}
-              onChange={(e) => onNameChange(e.target.value)}
-              placeholder="Enter template name"
-            />
-          </div>
-          <div>
-            <Label htmlFor="templateDescription">Description (Optional)</Label>
-            <Textarea
-              id="templateDescription"
-              value={templateDescription}
-              onChange={(e) => onDescriptionChange(e.target.value)}
-              placeholder="Enter template description"
-              rows={2}
-            />
-          </div>
-          {template && (
-            <div className="flex items-center gap-2">
-              {!template.organization_id && (
-                <Badge variant="secondary"><Globe className="w-3 h-3 mr-1" />Global</Badge>
-              )}
-              {template.organization_id && (
-                <Badge variant="secondary">Organization</Badge>
-              )}
-              {template.is_protected && (
-                <Badge variant="outline"><Shield className="w-3 h-3 mr-1" />Protected</Badge>
-              )}
-              {!template.is_protected && !template.organization_id && (
-                <Badge variant="outline"><Lock className="w-3 h-3 mr-1" />Read-only</Badge>
-              )}
-              <SaveStatus status={autoSaveStatus} lastSaved={lastSaved} />
-            </div>
-          )}
+  // Checklist editor content - shared between new and existing templates
+  const checklistEditorContent = (
+    <>
+      {/* Header controls */}
+      <div className="flex items-end justify-between gap-4 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Preview</span>
+          <Switch checked={previewMode} onCheckedChange={setPreviewMode} />
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Preview</span>
-              <Switch checked={previewMode} onCheckedChange={setPreviewMode} />
-            </div>
-            <Button size="sm" variant="ghost" onClick={expandAll}>Expand all</Button>
-            <Button size="sm" variant="ghost" onClick={collapseAll}>Collapse all</Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={openAddSection} size="sm">
-              <Plus className="mr-1 h-3 w-3" />
-              Add Section
-            </Button>
-          </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="ghost" onClick={expandAll}>Expand all</Button>
+          <Button size="sm" variant="ghost" onClick={collapseAll}>Collapse all</Button>
+          <Button onClick={openAddSection} size="sm">
+            <Plus className="mr-1 h-3 w-3" />
+            Add Section
+          </Button>
         </div>
       </div>
 
@@ -673,6 +671,105 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
           )}
         </div>
       </div>
+    </>
+  );
+
+  // Compatibility rules content - only for existing templates
+  const compatibilityRulesContent = (
+    <div className="space-y-4">
+      {isLoadingRules ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <>
+          <PMTemplateCompatibilityRulesEditor
+            rules={editedRules}
+            onChange={handleRulesChange}
+            disabled={bulkSetRules.isPending}
+          />
+          {hasRulesChanges && (
+            <div className="flex justify-end">
+              <Button onClick={handleSaveRules} disabled={bulkSetRules.isPending}>
+                {bulkSetRules.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Save Compatibility Rules
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header - always visible */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 space-y-3">
+          <div>
+            <Label htmlFor="templateName">Template Name</Label>
+            <Input
+              id="templateName"
+              value={templateName}
+              onChange={(e) => onNameChange(e.target.value)}
+              placeholder="Enter template name"
+            />
+          </div>
+          <div>
+            <Label htmlFor="templateDescription">Description (Optional)</Label>
+            <Textarea
+              id="templateDescription"
+              value={templateDescription}
+              onChange={(e) => onDescriptionChange(e.target.value)}
+              placeholder="Enter template description"
+              rows={2}
+            />
+          </div>
+          {template && (
+            <div className="flex items-center gap-2">
+              {!template.organization_id && (
+                <Badge variant="secondary"><Globe className="w-3 h-3 mr-1" />Global</Badge>
+              )}
+              {template.organization_id && (
+                <Badge variant="secondary">Organization</Badge>
+              )}
+              {template.is_protected && (
+                <Badge variant="outline"><Shield className="w-3 h-3 mr-1" />Protected</Badge>
+              )}
+              {!template.is_protected && !template.organization_id && (
+                <Badge variant="outline"><Lock className="w-3 h-3 mr-1" />Read-only</Badge>
+              )}
+              <SaveStatus status={autoSaveStatus} lastSaved={lastSaved} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main content - with or without tabs depending on whether editing existing template */}
+      {template?.id ? (
+        // Existing template: show tabs
+        <Tabs defaultValue="checklist" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="checklist">Checklist Items</TabsTrigger>
+            <TabsTrigger value="compatibility">Compatibility Rules</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="checklist" className="space-y-4">
+            {checklistEditorContent}
+          </TabsContent>
+
+          <TabsContent value="compatibility">
+            {compatibilityRulesContent}
+          </TabsContent>
+        </Tabs>
+      ) : (
+        // New template: no tabs, just show checklist editor
+        checklistEditorContent
+      )}
 
       {/* Footer actions */}
       <div className="flex justify-end gap-2 pt-4 border-t">

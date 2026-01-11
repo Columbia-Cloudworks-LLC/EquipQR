@@ -8,8 +8,9 @@ import PageHeader from '@/components/layout/PageHeader';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TemplateAssignmentDialog } from '@/features/pm-templates/components/TemplateAssignmentDialog';
+import { PMTemplateCompatibilityRulesEditor } from '@/features/pm-templates/components/PMTemplateCompatibilityRulesEditor';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
-import { Copy, Download, Edit, Globe, ListTree, Lock, Shield, Wrench } from 'lucide-react';
+import { Copy, Download, Edit, Globe, ListTree, Lock, Loader2, Save, Shield, Wrench } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
@@ -17,6 +18,11 @@ import { generateTemplatePreviewPDF } from '@/utils/templatePDF';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { 
+  usePMTemplateCompatibilityRules, 
+  useBulkSetPMTemplateRules 
+} from '@/features/pm-templates/hooks/usePMTemplateCompatibility';
+import type { PMTemplateCompatibilityRuleFormData } from '@/features/pm-templates/types/pmTemplateCompatibility';
 
 const groupBySection = (items: PMChecklistItem[]) => {
   const groups = items.reduce((acc, item) => {
@@ -45,6 +51,34 @@ const PMTemplateView: React.FC = () => {
   const [expanded, setExpanded] = useState<string[]>([]);
   const [includeHandwriting, setIncludeHandwriting] = useState(false);
   const [linesPerItem, setLinesPerItem] = useState(5);
+
+  // Compatibility rules state
+  const { data: savedRules = [], isLoading: isLoadingRules } = usePMTemplateCompatibilityRules(templateId);
+  const bulkSetRules = useBulkSetPMTemplateRules();
+  const [editedRules, setEditedRules] = useState<PMTemplateCompatibilityRuleFormData[]>([]);
+  const [hasRulesChanges, setHasRulesChanges] = useState(false);
+
+  // Initialize edited rules from saved rules
+  useEffect(() => {
+    if (savedRules.length > 0) {
+      setEditedRules(savedRules.map(r => ({ manufacturer: r.manufacturer, model: r.model })));
+      setHasRulesChanges(false);
+    } else {
+      setEditedRules([]);
+      setHasRulesChanges(false);
+    }
+  }, [savedRules]);
+
+  const handleRulesChange = (newRules: PMTemplateCompatibilityRuleFormData[]) => {
+    setEditedRules(newRules);
+    setHasRulesChanges(true);
+  };
+
+  const handleSaveRules = async () => {
+    if (!templateId) return;
+    await bulkSetRules.mutateAsync({ templateId, rules: editedRules });
+    setHasRulesChanges(false);
+  };
 
   const sections = useMemo(() => {
     const data = Array.isArray(template?.template_data) ? (template?.template_data as PMChecklistItem[]) : [];
@@ -259,6 +293,33 @@ const PMTemplateView: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Equipment Compatibility Rules - available for admins on all templates */}
+            {/* Rules are organization-scoped, so each org can set their own rules for any template */}
+            {isAdmin && !isLoadingRules && (
+              <div className="space-y-3">
+                <PMTemplateCompatibilityRulesEditor
+                  rules={editedRules}
+                  onChange={handleRulesChange}
+                  disabled={bulkSetRules.isPending}
+                />
+                {hasRulesChanges && (
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleSaveRules} 
+                      disabled={bulkSetRules.isPending}
+                    >
+                      {bulkSetRules.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="mr-2 h-4 w-4" />
+                      )}
+                      Save Compatibility Rules
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
 
             <Accordion type="multiple" value={expanded} onValueChange={(v) => setExpanded(v as string[])}>
               {sections.map((section) => (

@@ -6,6 +6,9 @@ import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMa
 import { queryKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
 
+// Re-export types for convenience
+export type { PMTemplateSummary };
+
 // Query hook for fetching PM templates
 export const usePMTemplates = () => {
   const { currentOrganization } = useOrganization();

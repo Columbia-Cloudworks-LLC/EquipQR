@@ -445,12 +445,8 @@ jobs:
         path: dist
         key: ${{ runner.os }}-build-${{ github.sha }}
         
-    - name: Check test coverage threshold
-      run: node scripts/test-ci.mjs
-      env:
-        COVERAGE_BASELINE: 70
-        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+    # Note: Test coverage is already validated in the Test Suite job.
+    # Quality Gates validates build artifacts and bundle sizes only.
         
     - name: Check bundle size limits (Windows)
       if: runner.os == 'Windows'
