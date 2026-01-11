@@ -78,7 +78,7 @@ export const useWorkOrderPMChecklist = ({
     }
 
     return filtered;
-  }, [hasAssignedTemplate, allTemplates, matchingTemplates, restrictions.canCreateCustomPMTemplates, values.pmTemplateId, selectedEquipment]);
+  }, [hasAssignedTemplate, allTemplates, matchingTemplates, restrictions.canCreateCustomPMTemplates, values.pmTemplateId]);
   
   // Find the selected template - prioritize assigned, then form value, then first matched
   const selectedTemplate = useMemo(() => {

@@ -13,6 +13,7 @@ function httpLogger(): PluginOption {
         const start = Date.now();
         res.on('finish', () => {
           const duration = Date.now() - start;
+          // eslint-disable-next-line no-console -- intentional dev-only HTTP logging
           console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} ${res.statusCode} - ${duration}ms`);
         });
         next();
