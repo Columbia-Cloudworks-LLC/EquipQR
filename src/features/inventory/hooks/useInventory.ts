@@ -22,9 +22,18 @@ import {
   getCompatibleEquipmentForItem,
   bulkLinkEquipmentToItem
 } from '@/features/inventory/services/inventoryCompatibilityService';
+import {
+  getCompatibilityRulesForItem,
+  addCompatibilityRule,
+  removeCompatibilityRule,
+  bulkSetCompatibilityRules,
+  countEquipmentMatchingRules
+} from '@/features/inventory/services/inventoryCompatibilityRulesService';
 import type {
   InventoryQuantityAdjustment,
-  InventoryFilters
+  InventoryFilters,
+  PartCompatibilityRule,
+  PartCompatibilityRuleFormData
 } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { useAppToast } from '@/hooks/useAppToast';
@@ -512,5 +521,197 @@ export const useBulkLinkEquipmentToItem = () => {
         variant: 'error'
       });
     }
+  });
+};
+
+// ============================================
+// Compatibility Rules Hooks
+// ============================================
+
+/**
+ * Hook to fetch compatibility rules for an inventory item.
+ */
+export const useCompatibilityRulesForItem = (
+  organizationId: string | undefined,
+  itemId: string | undefined,
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+
+  return useQuery({
+    queryKey: ['compatibility-rules', organizationId, itemId],
+    queryFn: async (): Promise<PartCompatibilityRule[]> => {
+      if (!organizationId || !itemId) return [];
+      return await getCompatibilityRulesForItem(organizationId, itemId);
+    },
+    enabled: !!organizationId && !!itemId,
+    staleTime
+  });
+};
+
+/**
+ * Hook to add a single compatibility rule.
+ */
+export const useAddCompatibilityRule = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      itemId,
+      rule
+    }: {
+      organizationId: string;
+      itemId: string;
+      rule: PartCompatibilityRuleFormData;
+    }) => {
+      return await addCompatibilityRule(organizationId, itemId, rule);
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate rules query
+      queryClient.invalidateQueries({
+        queryKey: ['compatibility-rules', variables.organizationId, variables.itemId]
+      });
+      // Invalidate compatible items queries (rules affect what's compatible)
+      queryClient.invalidateQueries({
+        queryKey: ['compatible-inventory-items', variables.organizationId]
+      });
+      toast({
+        title: 'Compatibility rule added',
+        description: 'The manufacturer/model rule has been added.'
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error adding compatibility rule',
+        description: error instanceof Error ? error.message : 'Failed to add rule',
+        variant: 'error'
+      });
+    }
+  });
+};
+
+/**
+ * Hook to remove a compatibility rule.
+ */
+export const useRemoveCompatibilityRule = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      itemId,
+      ruleId
+    }: {
+      organizationId: string;
+      itemId: string;
+      ruleId: string;
+    }) => {
+      // itemId is passed through to onSuccess for cache invalidation
+      void itemId;
+      return await removeCompatibilityRule(organizationId, ruleId);
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate rules query
+      queryClient.invalidateQueries({
+        queryKey: ['compatibility-rules', variables.organizationId, variables.itemId]
+      });
+      // Invalidate compatible items queries
+      queryClient.invalidateQueries({
+        queryKey: ['compatible-inventory-items', variables.organizationId]
+      });
+      toast({
+        title: 'Compatibility rule removed',
+        description: 'The manufacturer/model rule has been removed.'
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error removing compatibility rule',
+        description: error instanceof Error ? error.message : 'Failed to remove rule',
+        variant: 'error'
+      });
+    }
+  });
+};
+
+/**
+ * Hook to bulk set (replace) all compatibility rules for an item.
+ */
+export const useBulkSetCompatibilityRules = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useAppToast();
+
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      itemId,
+      rules
+    }: {
+      organizationId: string;
+      itemId: string;
+      rules: PartCompatibilityRuleFormData[];
+    }) => {
+      return await bulkSetCompatibilityRules(organizationId, itemId, rules);
+    },
+    onSuccess: (result, variables) => {
+      // Invalidate rules query
+      queryClient.invalidateQueries({
+        queryKey: ['compatibility-rules', variables.organizationId, variables.itemId]
+      });
+      // Invalidate compatible items queries
+      queryClient.invalidateQueries({
+        queryKey: ['compatible-inventory-items', variables.organizationId]
+      });
+      
+      toast({
+        title: 'Compatibility rules updated',
+        description: `${result.rulesSet} rule${result.rulesSet !== 1 ? 's' : ''} set`
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error updating compatibility rules',
+        description: error instanceof Error ? error.message : 'Failed to update rules',
+        variant: 'error'
+      });
+    }
+  });
+};
+
+/**
+ * Hook to count equipment matching a set of rules.
+ * Used for displaying match count in the UI.
+ */
+export const useEquipmentMatchCount = (
+  organizationId: string | undefined,
+  rules: PartCompatibilityRuleFormData[],
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? 30 * 1000; // 30 seconds for count
+
+  // Create a stable key from rules
+  const rulesKey = useMemo(() => {
+    if (rules.length === 0) return '';
+    return rules
+      .map(r => `${r.manufacturer.toLowerCase().trim()}|${r.model?.toLowerCase().trim() ?? ''}`)
+      .sort()
+      .join(',');
+  }, [rules]);
+
+  return useQuery({
+    queryKey: ['equipment-match-count', organizationId, rulesKey],
+    queryFn: async () => {
+      if (!organizationId || rules.length === 0) return 0;
+      return await countEquipmentMatchingRules(organizationId, rules);
+    },
+    enabled: !!organizationId && rules.length > 0,
+    staleTime
   });
 };

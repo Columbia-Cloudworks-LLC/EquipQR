@@ -30,8 +30,10 @@ import { useEquipment } from '@/features/equipment/hooks/useEquipment';
 import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
 import { supabase } from '@/integrations/supabase/client';
 import { inventoryItemFormSchema } from '@/features/inventory/schemas/inventorySchema';
-import type { InventoryItem } from '@/features/inventory/types/inventory';
+import type { InventoryItem, PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
+import { CompatibilityRulesEditor } from '@/features/inventory/components/CompatibilityRulesEditor';
+import { useAppToast } from '@/hooks/useAppToast';
 import { logger } from '@/utils/logger';
 
 interface InventoryItemFormProps {
@@ -46,8 +48,13 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   editingItem
 }) => {
   const { currentOrganization } = useOrganization();
+  const { toast } = useAppToast();
   const [equipmentSearch, setEquipmentSearch] = useState('');
   const [managerSearch, setManagerSearch] = useState('');
+  // Track whether async editing data (compatibility rules, equipment links, managers) has loaded
+  const [isEditingDataLoaded, setIsEditingDataLoaded] = useState(false);
+  // Track if loading failed - prevents form submission with stale/empty data
+  const [editingDataLoadError, setEditingDataLoadError] = useState(false);
 
   const createMutation = useCreateInventoryItem();
   const updateMutation = useUpdateInventoryItem();
@@ -68,13 +75,17 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
       location: '',
       default_unit_cost: null,
       compatibleEquipmentIds: [],
-      managerIds: []
+      managerIds: [],
+      compatibilityRules: []
     }
   });
 
   // Load editing data
   useEffect(() => {
     if (open && editingItem) {
+      // Reset loading/error state - async data will be loaded separately
+      setIsEditingDataLoaded(false);
+      setEditingDataLoadError(false);
       form.reset({
         name: editingItem.name,
         description: editingItem.description || '',
@@ -86,9 +97,13 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         location: editingItem.location || '',
         default_unit_cost: editingItem.default_unit_cost ? Number(editingItem.default_unit_cost) : null,
         compatibleEquipmentIds: [], // Will be loaded separately
-        managerIds: [] // Will be loaded separately
+        managerIds: [], // Will be loaded separately
+        compatibilityRules: [] // Will be loaded separately
       });
     } else if (open && !editingItem) {
+      // Creating new item - no async data to load
+      setIsEditingDataLoaded(true);
+      setEditingDataLoadError(false);
       form.reset({
         name: '',
         description: '',
@@ -100,37 +115,86 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         location: '',
         default_unit_cost: null,
         compatibleEquipmentIds: [],
-        managerIds: []
+        managerIds: [],
+        compatibilityRules: []
       });
     }
   }, [open, editingItem, form]);
 
-  // Load compatible equipment and managers when editing
+  // Load compatible equipment, managers, and compatibility rules when editing
   useEffect(() => {
     if (editingItem && currentOrganization?.id) {
       const loadEditingData = async () => {
         try {
+          // SECURITY: Verify item belongs to organization (failsafe even with RLS)
+          if (editingItem.organization_id !== currentOrganization.id) {
+            logger.error('Security: editingItem organization mismatch', {
+              itemOrgId: editingItem.organization_id,
+              currentOrgId: currentOrganization.id
+            });
+            return;
+          }
+
           // Load compatible equipment IDs
+          // Filter via join to inventory_items for organization isolation
           const { data: compatibilityData } = await supabase
             .from('equipment_part_compatibility')
-            .select('equipment_id')
-            .eq('inventory_item_id', editingItem.id);
+            .select(`
+              equipment_id,
+              inventory_items!inner(organization_id)
+            `)
+            .eq('inventory_item_id', editingItem.id)
+            .eq('inventory_items.organization_id', currentOrganization.id);
           
           const equipmentIds = (compatibilityData || []).map(row => row.equipment_id);
           
           // Load manager IDs
+          // Filter via join to inventory_items for organization isolation
           const { data: managersData } = await supabase
             .from('inventory_item_managers')
-            .select('user_id')
-            .eq('inventory_item_id', editingItem.id);
+            .select(`
+              user_id,
+              inventory_items!inner(organization_id)
+            `)
+            .eq('inventory_item_id', editingItem.id)
+            .eq('inventory_items.organization_id', currentOrganization.id);
           
           const managerIds = (managersData || []).map(row => row.user_id);
+
+          // Load compatibility rules
+          // Filter via join to inventory_items for organization isolation
+          const { data: rulesData } = await supabase
+            .from('part_compatibility_rules')
+            .select(`
+              manufacturer,
+              model,
+              inventory_items!inner(organization_id)
+            `)
+            .eq('inventory_item_id', editingItem.id)
+            .eq('inventory_items.organization_id', currentOrganization.id);
+
+          const rules: PartCompatibilityRuleFormData[] = (rulesData || []).map(row => ({
+            manufacturer: row.manufacturer,
+            model: row.model
+          }));
           
           // Update form with loaded data
           form.setValue('compatibleEquipmentIds', equipmentIds);
           form.setValue('managerIds', managerIds);
+          form.setValue('compatibilityRules', rules);
+          
+          // Mark async data as loaded - form can now be safely submitted
+          setIsEditingDataLoaded(true);
         } catch (error) {
-          console.error('Error loading editing data:', error);
+          logger.error('Error loading editing data:', error);
+          // Mark as error - do NOT unblock form to prevent data loss
+          // Empty arrays would overwrite existing rules/equipment/managers
+          setEditingDataLoadError(true);
+          toast({
+            title: 'Failed to load item data',
+            description: 'Could not load compatibility rules and settings. Please close and try again.',
+            variant: 'error'
+          });
         }
       };
       
@@ -196,7 +260,10 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     }
   };
 
-  const isLoading = createMutation.isPending || updateMutation.isPending;
+  const isMutating = createMutation.isPending || updateMutation.isPending;
+  // Disable form while mutating, while async editing data is loading, or if loading failed
+  const isEditingDataPending = !!editingItem && !isEditingDataLoaded;
+  const isLoading = isMutating || isEditingDataPending || editingDataLoadError;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -380,13 +447,34 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
               )}
             />
 
-            {/* Compatible Equipment */}
+            {/* Compatibility Rules (manufacturer/model patterns) */}
+            <FormField
+              control={form.control}
+              name="compatibilityRules"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <CompatibilityRulesEditor
+                      rules={field.value || []}
+                      onChange={field.onChange}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Compatible Equipment (direct links) */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Forklift className="h-4 w-4" />
-                  Compatible Equipment
+                  Compatible Equipment (Direct Links)
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Link specific equipment directly. Use rules above for pattern-based matching.
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="relative">
@@ -528,8 +616,12 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading
+                {isMutating
                   ? 'Saving...'
+                  : editingDataLoadError
+                  ? 'Load Failed'
+                  : isEditingDataPending
+                  ? 'Loading...'
                   : editingItem
                   ? 'Update Item'
                   : 'Create Item'}

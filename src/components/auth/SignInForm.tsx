@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import DevQuickLogin from './DevQuickLogin';
 
 interface SignInFormProps {
   onError: (error: string) => void;
@@ -49,6 +50,8 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Dev-only quick login - tree-shaken out of production builds */}
+      <DevQuickLogin />
       <div className="space-y-2">
         <Label htmlFor="signin-email">Email</Label>
         <Input

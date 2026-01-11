@@ -16,6 +16,9 @@ export type InventoryTransactionRow = Tables<'inventory_transactions'>;
 export type EquipmentPartCompatibilityRow = Tables<'equipment_part_compatibility'>;
 export type InventoryItemManagerRow = Tables<'inventory_item_managers'>;
 
+// Note: part_compatibility_rules table type will be available after regenerating Supabase types
+// For now, define the interface manually to unblock development
+
 // ============================================
 // Primary Inventory Types
 // ============================================
@@ -65,6 +68,50 @@ export interface InventoryItemManager extends InventoryItemManagerRow {
   // Computed fields from joins
   userName?: string;
   userEmail?: string;
+}
+
+/**
+ * PartCompatibilityRule - Rule-based matching of parts to equipment by manufacturer/model.
+ * 
+ * Allows defining compatibility patterns like "fits all Caterpillar D6T equipment"
+ * instead of linking to specific equipment records.
+ */
+export interface PartCompatibilityRule {
+  id: string;
+  inventory_item_id: string;
+  manufacturer: string;
+  model: string | null;  // null = "any model from this manufacturer"
+  manufacturer_norm: string;
+  model_norm: string | null;
+  created_at: string;
+}
+
+/**
+ * PartCompatibilityRuleFormData - Form input for creating/editing compatibility rules.
+ * 
+ * Uses raw values; normalization happens on save.
+ */
+export interface PartCompatibilityRuleFormData {
+  manufacturer: string;
+  model: string | null;  // null or empty string = "Any Model"
+}
+
+/**
+ * CompatibleInventoryItemResult - Result from get_compatible_parts_for_equipment RPC.
+ * 
+ * Includes match_type to indicate how the part was matched (direct link vs rule).
+ */
+export interface CompatibleInventoryItemResult {
+  inventory_item_id: string;
+  name: string;
+  sku: string | null;
+  external_id: string | null;
+  quantity_on_hand: number;
+  low_stock_threshold: number;
+  default_unit_cost: number | null;
+  location: string | null;
+  image_url: string | null;
+  match_type: 'direct' | 'rule';
 }
 
 // ============================================

@@ -7,6 +7,7 @@ import type {
   InventoryFilters
 } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
+import { bulkSetCompatibilityRules } from '@/features/inventory/services/inventoryCompatibilityRulesService';
 
 // ============================================
 // Get Inventory Items
@@ -162,6 +163,11 @@ export const createInventoryItem = async (
         );
     }
 
+    // Save compatibility rules (manufacturer/model patterns)
+    if (formData.compatibilityRules && formData.compatibilityRules.length > 0) {
+      await bulkSetCompatibilityRules(organizationId, itemData.id, formData.compatibilityRules);
+    }
+
     return {
       ...itemData,
       isLowStock: itemData.quantity_on_hand < itemData.low_stock_threshold
@@ -239,6 +245,11 @@ export const updateInventoryItem = async (
             }))
           );
       }
+    }
+
+    // Update compatibility rules if provided
+    if (formData.compatibilityRules !== undefined) {
+      await bulkSetCompatibilityRules(organizationId, itemId, formData.compatibilityRules);
     }
 
     return {
@@ -396,6 +407,15 @@ export const getInventoryTransactions = async (
 // Compatible Items
 // ============================================
 
+/**
+ * Get inventory items compatible with given equipment IDs.
+ * 
+ * Uses the get_compatible_parts_for_equipment RPC function which combines:
+ * - Direct links (equipment_part_compatibility table)
+ * - Rule-based matches (part_compatibility_rules by manufacturer/model)
+ * 
+ * Results are deduplicated by inventory_item_id.
+ */
 export const getCompatibleInventoryItems = async (
   organizationId: string,
   equipmentIds: string[]
@@ -405,29 +425,39 @@ export const getCompatibleInventoryItems = async (
       return [];
     }
 
-    // Get all inventory items compatible with any of the equipment
-    const { data, error } = await supabase
-      .from('equipment_part_compatibility')
-      .select(`
-        inventory_item_id,
-        inventory_items!inner(*)
-      `)
-      .in('equipment_id', equipmentIds)
-      .eq('inventory_items.organization_id', organizationId);
+    // Call the RPC function that combines direct links + rule-based matches
+    const { data, error } = await supabase.rpc('get_compatible_parts_for_equipment', {
+      p_organization_id: organizationId,
+      p_equipment_ids: equipmentIds
+    });
 
     if (error) throw error;
 
-    // Extract unique inventory items
+    // The RPC returns rows with inventory item fields + match_type
+    // Deduplicate by inventory_item_id and map to InventoryItem type
     const itemMap = new Map<string, InventoryItem>();
-    (data || []).forEach((row: { inventory_items: InventoryItem }) => {
-      const item = row.inventory_items as unknown as InventoryItem;
-      if (!itemMap.has(item.id)) {
-        itemMap.set(item.id, {
-          ...item,
-          isLowStock: item.quantity_on_hand < item.low_stock_threshold
+    
+    for (const row of (data || [])) {
+      if (!itemMap.has(row.inventory_item_id)) {
+        itemMap.set(row.inventory_item_id, {
+          id: row.inventory_item_id,
+          organization_id: organizationId,
+          name: row.name,
+          description: null, // Not returned by RPC for performance
+          sku: row.sku,
+          external_id: row.external_id,
+          quantity_on_hand: row.quantity_on_hand,
+          low_stock_threshold: row.low_stock_threshold,
+          image_url: row.image_url,
+          location: row.location,
+          default_unit_cost: row.default_unit_cost,
+          created_by: '', // Not needed for display
+          created_at: '', // Not needed for display
+          updated_at: '', // Not needed for display
+          isLowStock: row.quantity_on_hand < row.low_stock_threshold
         });
       }
-    });
+    }
 
     return Array.from(itemMap.values());
   } catch (error) {
