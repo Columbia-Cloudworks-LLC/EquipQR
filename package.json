@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.7.12",
   "type": "module",
+  "engines": {
+    "node": "^20.17.0 || >=22.9.0"
+  },
   "overrides": {
     "vite": "^5.4.21",
     "esbuild": "^0.25.0"
