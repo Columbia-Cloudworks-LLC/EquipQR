@@ -145,7 +145,7 @@ describe('SignInForm', () => {
   it('should disable submit button when loading', () => {
     render(<SignInForm {...defaultProps} isLoading={true} />);
 
-    const submitButton = screen.getByRole('button');
+    const submitButton = screen.getByRole('button', { name: /Sign In/i });
     expect(submitButton).toBeDisabled();
   });
 

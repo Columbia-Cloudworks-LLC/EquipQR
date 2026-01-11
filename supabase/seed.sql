@@ -2,7 +2,7 @@
 -- EquipQR Comprehensive Seed Data for Local Development
 -- =====================================================
 -- This seed file creates a complete test environment with:
--- - 4 Organizations (2 premium, 1 free, 1 premium rental business)
+-- - 8 Organizations (4 business orgs + 4 personal orgs, every user owns one)
 -- - 8 Test Users with cross-organizational memberships
 -- - 6 Teams distributed across organizations
 -- - 14 Equipment items with GPS coordinates for map testing
@@ -341,7 +341,7 @@ ON CONFLICT (id) DO NOTHING;
 -- =====================================================
 -- SECTION 3: ORGANIZATIONS
 -- =====================================================
--- 4 Organizations with different plans and use cases
+-- 8 Organizations: 4 business orgs + 4 personal orgs (every user owns one org)
 
 INSERT INTO public.organizations (
   id, 
@@ -396,6 +396,53 @@ INSERT INTO public.organizations (
     ARRAY['Equipment Management', 'Work Orders', 'Team Management', 'Fleet Tracking', 'Rental Tracking'],
     '2024-02-15 00:00:00+00',
     '2024-02-15 00:00:00+00'
+  ),
+  -- =====================================================
+  -- Personal Organizations (every user owns one org per business rules)
+  -- =====================================================
+  -- Amanda's Equipment Services (Free) - Personal org for admin@apex.test
+  (
+    '660e8400-e29b-41d4-a716-446655440004'::uuid,
+    'Amanda''s Equipment Services',
+    'free'::organization_plan,
+    1,
+    5,
+    ARRAY['Equipment Management', 'Work Orders', 'Team Management'],
+    '2023-12-01 00:00:00+00',
+    '2023-12-01 00:00:00+00'
+  ),
+  -- Tom's Field Services (Free) - Personal org for tech@apex.test
+  (
+    '660e8400-e29b-41d4-a716-446655440005'::uuid,
+    'Tom''s Field Services',
+    'free'::organization_plan,
+    1,
+    5,
+    ARRAY['Equipment Management', 'Work Orders', 'Team Management'],
+    '2023-12-15 00:00:00+00',
+    '2023-12-15 00:00:00+00'
+  ),
+  -- Mike's Repair Shop (Free) - Personal org for tech@metro.test
+  (
+    '660e8400-e29b-41d4-a716-446655440006'::uuid,
+    'Mike''s Repair Shop',
+    'free'::organization_plan,
+    1,
+    5,
+    ARRAY['Equipment Management', 'Work Orders', 'Team Management'],
+    '2024-01-01 00:00:00+00',
+    '2024-01-01 00:00:00+00'
+  ),
+  -- Multi Org Consulting (Free) - Personal org for multi@equipqr.test
+  (
+    '660e8400-e29b-41d4-a716-446655440007'::uuid,
+    'Multi Org Consulting',
+    'free'::organization_plan,
+    1,
+    5,
+    ARRAY['Equipment Management', 'Work Orders', 'Team Management'],
+    '2023-11-01 00:00:00+00',
+    '2023-11-01 00:00:00+00'
   )
 ON CONFLICT (id) DO NOTHING;
 
@@ -403,8 +450,21 @@ ON CONFLICT (id) DO NOTHING;
 -- SECTION 4: ORGANIZATION MEMBERS (Cross-Org Matrix)
 -- =====================================================
 -- Creates the complex web of memberships for testing RBAC scenarios
+-- BUSINESS RULE: Every user owns exactly ONE organization (created at signup)
 --
--- Membership Matrix:
+-- Ownership Matrix (each user owns their personal org):
+-- | User                    | Owns (Personal Org)       |
+-- |-------------------------|---------------------------|
+-- | owner@apex.test         | Apex Construction         |
+-- | admin@apex.test         | Amanda's Equipment        |
+-- | tech@apex.test          | Tom's Field Services      |
+-- | owner@metro.test        | Metro Equipment           |
+-- | tech@metro.test         | Mike's Repair Shop        |
+-- | owner@valley.test       | Valley Landscaping        |
+-- | owner@industrial.test   | Industrial Rentals        |
+-- | multi@equipqr.test      | Multi Org Consulting      |
+--
+-- Cross-Org Membership Matrix (invitations to other orgs):
 -- | User                    | Apex   | Metro  | Valley | Industrial |
 -- |-------------------------|--------|--------|--------|------------|
 -- | owner@apex.test         | owner  | member | -      | -          |
@@ -445,7 +505,17 @@ INSERT INTO public.organization_members (
   -- Industrial Rentals Corp members
   ('cc0e8400-e29b-41d4-a716-446655440030'::uuid, '660e8400-e29b-41d4-a716-446655440003'::uuid, 'bb0e8400-e29b-41d4-a716-446655440007'::uuid, 'owner', 'active', '2024-02-15 00:00:00+00'),
   ('cc0e8400-e29b-41d4-a716-446655440031'::uuid, '660e8400-e29b-41d4-a716-446655440003'::uuid, 'bb0e8400-e29b-41d4-a716-446655440004'::uuid, 'admin', 'active', '2024-02-20 00:00:00+00'),
-  ('cc0e8400-e29b-41d4-a716-446655440032'::uuid, '660e8400-e29b-41d4-a716-446655440003'::uuid, 'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'member', 'active', '2024-02-25 00:00:00+00')
+  ('cc0e8400-e29b-41d4-a716-446655440032'::uuid, '660e8400-e29b-41d4-a716-446655440003'::uuid, 'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'member', 'active', '2024-02-25 00:00:00+00'),
+  
+  -- Personal Organizations (each user owns their own org created at signup)
+  -- Amanda's Equipment Services - owned by admin@apex.test
+  ('cc0e8400-e29b-41d4-a716-446655440040'::uuid, '660e8400-e29b-41d4-a716-446655440004'::uuid, 'bb0e8400-e29b-41d4-a716-446655440002'::uuid, 'owner', 'active', '2023-12-01 00:00:00+00'),
+  -- Tom's Field Services - owned by tech@apex.test
+  ('cc0e8400-e29b-41d4-a716-446655440041'::uuid, '660e8400-e29b-41d4-a716-446655440005'::uuid, 'bb0e8400-e29b-41d4-a716-446655440003'::uuid, 'owner', 'active', '2023-12-15 00:00:00+00'),
+  -- Mike's Repair Shop - owned by tech@metro.test
+  ('cc0e8400-e29b-41d4-a716-446655440042'::uuid, '660e8400-e29b-41d4-a716-446655440006'::uuid, 'bb0e8400-e29b-41d4-a716-446655440005'::uuid, 'owner', 'active', '2024-01-01 00:00:00+00'),
+  -- Multi Org Consulting - owned by multi@equipqr.test
+  ('cc0e8400-e29b-41d4-a716-446655440043'::uuid, '660e8400-e29b-41d4-a716-446655440007'::uuid, 'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'owner', 'active', '2023-11-01 00:00:00+00')
 ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
@@ -1962,28 +2032,44 @@ ON CONFLICT (id) DO NOTHING;
 -- =====================================================
 -- After running 'npx supabase db reset', you can login as any test user:
 --
--- | Email                   | Password    | Primary Role           |
--- |-------------------------|-------------|------------------------|
--- | owner@apex.test         | password123 | Owner at Apex          |
--- | admin@apex.test         | password123 | Admin at Apex          |
--- | tech@apex.test          | password123 | Member at Apex         |
--- | owner@metro.test        | password123 | Owner at Metro         |
--- | tech@metro.test         | password123 | Member at Metro        |
--- | owner@valley.test       | password123 | Owner at Valley        |
--- | owner@industrial.test   | password123 | Owner at Industrial    |
--- | multi@equipqr.test      | password123 | Member in ALL orgs     |
+-- BUSINESS RULE: Every user owns exactly ONE organization (created at signup)
+--
+-- | Email                   | Password    | Owns (Personal Org)        | Also Member At           |
+-- |-------------------------|-------------|----------------------------|--------------------------|
+-- | owner@apex.test         | password123 | Apex Construction          | Metro (member)           |
+-- | admin@apex.test         | password123 | Amanda's Equipment         | Apex (admin), Valley     |
+-- | tech@apex.test          | password123 | Tom's Field Services       | Apex (member)            |
+-- | owner@metro.test        | password123 | Metro Equipment            | Industrial (admin)       |
+-- | tech@metro.test         | password123 | Mike's Repair Shop         | Metro (member)           |
+-- | owner@valley.test       | password123 | Valley Landscaping         | -                        |
+-- | owner@industrial.test   | password123 | Industrial Rentals         | Apex (member)            |
+-- | multi@equipqr.test      | password123 | Multi Org Consulting       | All 4 business orgs      |
+--
+-- Organizations (8 total):
+-- Business Orgs (4):
+-- - Apex Construction Company (premium) - primary test org
+-- - Metro Equipment Services (premium) - cross-membership testing
+-- - Valley Landscaping (free) - free tier testing
+-- - Industrial Rentals Corp (premium) - rental business scenario
+-- Personal Orgs (4):
+-- - Amanda's Equipment Services (free) - admin@apex.test's org
+-- - Tom's Field Services (free) - tech@apex.test's org
+-- - Mike's Repair Shop (free) - tech@metro.test's org
+-- - Multi Org Consulting (free) - multi@equipqr.test's org
 --
 -- Test Scenarios:
--- 1. Cross-org membership: owner@apex.test is also member at Metro
--- 2. Multi-org admin: owner@metro.test is admin at Industrial
--- 3. Free tier: Valley Landscaping tests feature limitations
--- 4. Multi-org user: multi@equipqr.test tests org switching
+-- 1. Ownership: Every user owns exactly one org (business rule compliance)
+-- 2. Cross-org membership: owner@apex.test is also member at Metro
+-- 3. Multi-org admin: owner@metro.test is admin at Industrial
+-- 4. Free tier: Valley Landscaping and personal orgs test feature limitations
+-- 5. Multi-org user: multi@equipqr.test tests org switching (owns 1, member of 4)
 --
 -- Equipment Locations (Map Testing):
 -- - Apex: Texas region (Dallas, Fort Worth, Houston) - clustered
 -- - Metro: California (LA, SF, San Diego) - spread out
 -- - Valley: Colorado (Denver, Boulder, Colorado Springs)
 -- - Industrial: Nationwide (Chicago, Detroit, Atlanta, NYC)
+-- - Personal orgs have no equipment (minimal orgs)
 -- - One equipment (Light Tower) has NULL location for empty state testing
 -- - One equipment (Kubota Tractor) has stale 45-day-old location
 --
