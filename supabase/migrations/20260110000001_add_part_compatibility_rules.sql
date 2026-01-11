@@ -71,7 +71,9 @@ FOR ALL USING (
 
 -- Function returns compatible inventory items for given equipment IDs
 -- Uses UNION of direct links (equipment_part_compatibility) and rule-based matches
--- Security: Uses SECURITY INVOKER (default) so RLS applies; org isolation enforced in both branches
+-- Security: Explicitly sets SECURITY INVOKER (which is the PostgreSQL default) for documentation clarity.
+--           This ensures RLS policies apply when the function queries tables, and org isolation is
+--           enforced in both the direct-link and rule-based matching branches.
 
 CREATE OR REPLACE FUNCTION public.get_compatible_parts_for_equipment(
   p_organization_id UUID,

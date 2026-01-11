@@ -188,6 +188,7 @@ export const removeCompatibilityRule = async (
  * ║                                                                            ║
  * ║  FOR MISSION-CRITICAL DEPLOYMENTS:                                         ║
  * ║  Migrate to an RPC function with PostgreSQL transactions for atomicity.    ║
+ * ║  See: supabase/migrations/ for RPC function examples.                      ║
  * ╚════════════════════════════════════════════════════════════════════════════╝
  * 
  * ## Recovery Guidance
@@ -196,6 +197,20 @@ export const removeCompatibilityRule = async (
  * - Consider implementing client-side localStorage backup for additional safety.
  * - For mission-critical deployments, migrate to an RPC function that uses
  *   PostgreSQL transactions for guaranteed atomicity.
+ * 
+ * ## Recommended RPC Migration
+ * Create a PostgreSQL function that wraps the delete-insert in a transaction:
+ * ```sql
+ * CREATE OR REPLACE FUNCTION bulk_set_compatibility_rules(
+ *   p_item_id UUID, p_rules JSONB
+ * ) RETURNS INTEGER AS $$
+ * BEGIN
+ *   DELETE FROM part_compatibility_rules WHERE inventory_item_id = p_item_id;
+ *   INSERT INTO part_compatibility_rules SELECT ... FROM jsonb_array_elements(p_rules);
+ *   RETURN array_length(p_rules, 1);
+ * END; $$ LANGUAGE plpgsql;
+ * ```
+ * This ensures delete and insert are atomic within a single transaction.
  * 
  * @param organizationId - Organization ID for access control
  * @param itemId - Inventory item ID

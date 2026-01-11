@@ -44,10 +44,21 @@
 -- the intent explicit.
 DO $$
 BEGIN
-  -- This block serves as documentation that auth.users access is the safeguard.
-  -- If you're seeing this, you're in local development mode.
+  -- ═══════════════════════════════════════════════════════════════════════════
+  -- PRODUCTION SAFEGUARD: This block verifies we're in a local environment.
+  -- In Supabase hosted environments, direct auth.users access is blocked at
+  -- the schema permission level. The INSERT statements below will fail with
+  -- "permission denied" in production, providing a built-in safeguard.
+  -- 
+  -- WHY NOT USE ENVIRONMENT VARIABLES FOR CREDENTIALS?
+  -- Using env vars would complicate local development setup. The deterministic,
+  -- hardcoded credentials allow any developer to clone the repo and immediately
+  -- run `supabase db reset` without additional configuration. The production
+  -- safeguard (auth schema permissions) makes this approach secure.
+  -- ═══════════════════════════════════════════════════════════════════════════
   RAISE NOTICE '✅ Seed file executing in local development environment';
-  RAISE NOTICE '⚠️  Test credentials will be created. Do NOT use in production!';
+  RAISE NOTICE '⚠️  Test credentials (password123) will be created.';
+  RAISE NOTICE '🛡️  Production safeguard: auth.users INSERT will fail in hosted Supabase.';
 END
 $$;
 

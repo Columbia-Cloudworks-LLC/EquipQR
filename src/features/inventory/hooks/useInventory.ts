@@ -693,22 +693,25 @@ export const useEquipmentMatchCount = (
 ) => {
   const staleTime = options?.staleTime ?? 30 * 1000; // 30 seconds for count
 
-  // Serialize rules for stable dependency checking.
-  // Extract to variable so ESLint can statically verify the dependency.
-  const rulesJson = JSON.stringify(rules);
-
   // Create a stable string key from rules for React Query cache.
-  // Use rulesJson in the dependency array to ensure recomputation is driven
-  // by rules content, not by the array reference identity (which may change every render
-  // since form field values in react-hook-form are recreated on each render).
+  // 
+  // IMPORTANT: Why we use JSON.stringify for dependency tracking:
+  // - react-hook-form recreates the rules array reference on every render
+  // - Using [rules] directly would cause useMemo to recompute on every render
+  // - JSON.stringify provides content-based comparison: same content = same string = no recompute
+  // - This is more efficient than the alternative of computing rulesKey on every render
+  //
+  // The eslint-disable is required because ESLint can't statically analyze that
+  // rulesContent is derived from rules. This is a known pattern for content-based dependencies.
+  const rulesContent = JSON.stringify(rules);
   const rulesKey = useMemo(() => {
     if (rules.length === 0) return '';
     return rules
       .map(r => `${r.manufacturer.toLowerCase().trim()}|${r.model?.toLowerCase().trim() ?? ''}`)
       .sort()
       .join(',');
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- rulesJson captures rules content
-  }, [rulesJson]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- rulesContent captures rules by value
+  }, [rulesContent]);
 
   return useQuery({
     queryKey: ['equipment-match-count', organizationId, rulesKey],

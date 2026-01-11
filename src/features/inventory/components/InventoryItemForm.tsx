@@ -216,22 +216,30 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
           form.setValue('managerIds', managerIds);
           form.setValue('compatibilityRules', rules);
           
-          // Mark async data as loaded - form can now be safely submitted
-          setIsEditingDataLoaded(true);
+          // Final abort check before setState to prevent React warnings about
+          // updating state on unmounted components
+          if (!abortController.signal.aborted) {
+            // Mark async data as loaded - form can now be safely submitted
+            setIsEditingDataLoaded(true);
+          }
         } catch (error) {
-          // Ignore errors from aborted/stale requests
+          // Ignore errors from aborted/stale requests - check signal BEFORE any setState
+          // to prevent memory leaks and React warnings about updating unmounted components
           if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
             return;
           }
           logger.error('Error loading editing data:', error);
           // Mark as error - do NOT unblock form to prevent data loss
           // Empty arrays would overwrite existing rules/equipment/managers
-          setEditingDataLoadError(true);
-          toast({
-            title: 'Failed to load item data',
-            description: 'Could not load compatibility rules and settings. Please close and try again.',
-            variant: 'error'
-          });
+          // Double-check abort signal before setState to handle race with unmount
+          if (!abortController.signal.aborted) {
+            setEditingDataLoadError(true);
+            toast({
+              title: 'Failed to load item data',
+              description: 'Could not load compatibility rules and settings. Please close and try again.',
+              variant: 'error'
+            });
+          }
         }
       };
       

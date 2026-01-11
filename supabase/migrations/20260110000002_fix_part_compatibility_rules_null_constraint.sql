@@ -11,10 +11,24 @@ BEGIN;
 -- PART 1: Drop the existing constraint that doesn't handle NULLs properly
 -- ============================================================================
 
--- Note: We use DROP CONSTRAINT without IF EXISTS to ensure this migration fails
--- if run against a database where the constraint doesn't exist (which would indicate
--- migration 20260110000001 wasn't applied or the schema is in an unexpected state).
--- Migrations are meant to be applied once in sequence, not re-run.
+-- ┌─────────────────────────────────────────────────────────────────────────────┐
+-- │ DESIGN DECISION: Why we DON'T use IF EXISTS                                 │
+-- ├─────────────────────────────────────────────────────────────────────────────┤
+-- │ Using IF EXISTS would make this migration "idempotent" but would HIDE       │
+-- │ schema inconsistencies. We intentionally fail if the constraint doesn't     │
+-- │ exist because:                                                              │
+-- │                                                                             │
+-- │ 1. It indicates migration 20260110000001 wasn't applied (broken sequence)  │
+-- │ 2. It could indicate a manual schema change (drift from migrations)        │
+-- │ 3. It could indicate a partial rollback (inconsistent state)               │
+-- │                                                                             │
+-- │ Migrations should be applied ONCE in sequence. If you need to re-run:      │
+-- │ - In development: use `supabase db reset` to start fresh                   │
+-- │ - In production: fix the schema inconsistency manually first               │
+-- │                                                                             │
+-- │ This strict approach catches issues early rather than silently proceeding  │
+-- │ with a potentially inconsistent schema.                                    │
+-- └─────────────────────────────────────────────────────────────────────────────┘
 ALTER TABLE public.part_compatibility_rules
   DROP CONSTRAINT part_compatibility_rules_unique;
 
