@@ -470,6 +470,7 @@ const WorkOrderDetails = () => {
                   workOrderId={workOrder.id}
                   canAddCosts={canAddCosts && !isWorkOrderLocked}
                   canEditCosts={canEditCosts && !isWorkOrderLocked}
+                  primaryEquipmentId={workOrder.equipment_id}
                 />
               )}
 
