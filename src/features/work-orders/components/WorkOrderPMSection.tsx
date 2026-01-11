@@ -41,14 +41,6 @@ export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({
     { enabled: !!selectedEquipment?.id && !selectedEquipment?.default_pm_template_id }
   );
 
-  // #region agent log
-  React.useEffect(() => {
-    if (values.hasPM) {
-      fetch('http://127.0.0.1:7243/ingest/dece0c0f-f48c-4b45-82b0-a159d2db0b86',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'WorkOrderPMSection.tsx:43',message:'PM Section Debug - Equipment & Hook State',data:{selectedEquipmentId:selectedEquipment?.id,selectedEquipmentName:selectedEquipment?.name,defaultPmTemplateId:selectedEquipment?.default_pm_template_id,hookEnabled:!!selectedEquipment?.id && !selectedEquipment?.default_pm_template_id,matchingTemplatesCount:matchingTemplates.length,matchingTemplatesData:matchingTemplates,allTemplatesCount:allTemplates.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,B'})}).catch(()=>{});
-    }
-  }, [values.hasPM, selectedEquipment, matchingTemplates, allTemplates]);
-  // #endregion
-  
   // Check if equipment has an assigned template (direct assignment takes priority as override)
   const hasAssignedTemplate = selectedEquipment?.default_pm_template_id;
   const assignedTemplate = hasAssignedTemplate 
@@ -102,10 +94,6 @@ export const WorkOrderPMSection: React.FC<WorkOrderPMSectionProps> = ({
       }
     }
     
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/dece0c0f-f48c-4b45-82b0-a159d2db0b86',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'WorkOrderPMSection.tsx:105',message:'Template Split Result',data:{matchedCount:matched.length,matchedNames:matched.map(t=>t.name),otherCount:other.length,otherNames:other.map(t=>t.name),matchedIds:Array.from(matchedIds),canCreateCustom:restrictions.canCreateCustomPMTemplates},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B,E'})}).catch(()=>{});
-    // #endregion
-
     return { 
       matchedTemplates: matched, 
       otherTemplates: other,

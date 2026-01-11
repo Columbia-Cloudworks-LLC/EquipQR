@@ -27,8 +27,11 @@ SET organization_id = (
 )
 WHERE pcr.organization_id IS NULL;
 
--- Delete any orphaned rules where we couldn't determine the organization
--- (This shouldn't happen, but safety first)
+-- Delete any rules where organization_id is still NULL after migration.
+-- This is intentional: in the new design, rules are organization-scoped.
+-- Rules for global templates (organization_id IS NULL on template) cannot be 
+-- auto-migrated because they don't belong to any specific organization.
+-- Organizations can recreate their rules for global templates after migration.
 DELETE FROM public.pm_template_compatibility_rules 
 WHERE organization_id IS NULL;
 
