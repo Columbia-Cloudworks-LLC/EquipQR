@@ -14,8 +14,9 @@ export default defineConfig({
     testTimeout: 10000,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['supabase/**', 'node_modules/**'],
-    // CI optimizations: use forks pool for memory isolation and sequential execution
-    pool: isCI ? 'forks' : 'threads',
+    // Use forks pool for better process isolation and to prevent hanging on open handles
+    // Threads pool can leave open handles that prevent process exit
+    pool: 'forks',
     poolOptions: {
       forks: {
         // Single worker in CI to minimize memory usage
@@ -37,8 +38,9 @@ export default defineConfig({
       // Use istanbul in CI for stability; v8 can hang on large codebases
       provider: isCI ? 'istanbul' : 'v8',
       // Reduce reporters in CI to save memory (skip html)
+      // json reporter generates coverage-final.json for detailed PR comments
       reporter: isCI 
-        ? ['text', 'lcov', 'json-summary'] 
+        ? ['text', 'lcov', 'json-summary', 'json'] 
         : ['text', 'json', 'html', 'lcov', 'json-summary'],
       all: false, // Only include files touched by tests
       include: ['src/**/*.{ts,tsx}'],
