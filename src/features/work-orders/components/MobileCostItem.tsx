@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Package } from 'lucide-react';
 import { WorkOrderCostItem } from '@/features/work-orders/hooks/useWorkOrderCostsState';
 
 interface MobileCostItemProps {
@@ -26,10 +26,19 @@ const MobileCostItem: React.FC<MobileCostItemProps> = React.memo(({
     }).format(cents / 100);
   };
 
+  const isFromInventory = !!cost.inventory_item_id;
+
   return (
-    <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+    <div className={`rounded-lg p-4 space-y-3 ${isFromInventory ? 'bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800' : 'bg-muted/50'}`}>
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">Description</span>
+        <div className="flex items-center gap-2">
+          {isFromInventory && (
+            <Package className="h-4 w-4 text-blue-500" title="From inventory - removing will restore stock" />
+          )}
+          <span className="text-sm font-medium text-muted-foreground">
+            Description {isFromInventory && <span className="text-blue-500">(Inventory)</span>}
+          </span>
+        </div>
         <Button
           type="button"
           variant="ghost"
@@ -47,6 +56,7 @@ const MobileCostItem: React.FC<MobileCostItemProps> = React.memo(({
         onChange={(e) => onUpdateCost(cost.id, 'description', e.target.value)}
         placeholder="Enter description..."
         className="h-9"
+        readOnly={isFromInventory}
       />
       
       <div className="grid grid-cols-2 gap-3">

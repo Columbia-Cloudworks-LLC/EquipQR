@@ -2,8 +2,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Package } from 'lucide-react';
 import { WorkOrderCostItem } from '@/features/work-orders/hooks/useWorkOrderCostsState';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DesktopCostItemProps {
   cost: WorkOrderCostItem;
@@ -26,15 +27,28 @@ const DesktopCostItem: React.FC<DesktopCostItemProps> = React.memo(({
     }).format(cents / 100);
   };
 
+  const isFromInventory = !!cost.inventory_item_id;
+
   return (
-    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+    <div className={`flex items-center justify-between p-3 rounded-lg ${isFromInventory ? 'bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800' : 'bg-muted/50'}`}>
       <div className="flex-1 grid grid-cols-4 gap-4 items-center">
-        <Input
-          value={cost.description}
-          onChange={(e) => onUpdateCost(cost.id, 'description', e.target.value)}
-          placeholder="Enter description..."
-          className="h-8"
-        />
+        <div className="flex items-center gap-2">
+          {isFromInventory && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Package className="h-4 w-4 text-blue-500 flex-shrink-0" />
+              </TooltipTrigger>
+              <TooltipContent>From inventory - removing will restore stock</TooltipContent>
+            </Tooltip>
+          )}
+          <Input
+            value={cost.description}
+            onChange={(e) => onUpdateCost(cost.id, 'description', e.target.value)}
+            placeholder="Enter description..."
+            className="h-8"
+            readOnly={isFromInventory}
+          />
+        </div>
         <Input
           type="number"
           step="0.01"
