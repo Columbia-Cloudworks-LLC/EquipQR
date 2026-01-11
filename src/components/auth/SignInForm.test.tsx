@@ -145,8 +145,9 @@ describe('SignInForm', () => {
   it('should disable submit button when loading', () => {
     render(<SignInForm {...defaultProps} isLoading={true} />);
 
-    // Find submit button by accessible name to avoid ambiguity with DevQuickLogin button
-    const submitButton = screen.getByRole('button', { name: 'Sign In' });
+    // When loading, the button's accessible name includes the loading spinner's aria-label
+    // So it becomes "Loading Sign In" instead of just "Sign In"
+    const submitButton = screen.getByRole('button', { name: /Sign In/i });
     expect(submitButton).toBeDisabled();
   });
 
