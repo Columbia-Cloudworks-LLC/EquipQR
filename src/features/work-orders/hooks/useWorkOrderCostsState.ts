@@ -42,6 +42,9 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
   /**
    * Add a pre-filled cost item (e.g., from inventory selection).
    * This allows immediate UI feedback when adding items from external sources.
+   * 
+   * Note: This also removes any empty placeholder rows (new items with empty description)
+   * to ensure validation passes when the filled cost is the only real item.
    */
   const addFilledCost = useCallback((data: {
     id: string;
@@ -63,7 +66,14 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
       inventory_item_id: data.inventory_item_id,
       original_quantity: data.original_quantity
     };
-    setCosts(prev => [...prev, newCost]);
+    setCosts(prev => {
+      // Remove empty placeholder rows (new items with empty description)
+      // before adding the filled cost - this ensures validation passes
+      const filtered = prev.filter(cost => 
+        !(cost.isNew && cost.description.trim() === '')
+      );
+      return [...filtered, newCost];
+    });
   }, []);
 
   const removeCost = useCallback((id: string) => {
