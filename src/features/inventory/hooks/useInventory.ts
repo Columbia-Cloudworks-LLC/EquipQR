@@ -694,12 +694,23 @@ export const useEquipmentMatchCount = (
   const staleTime = options?.staleTime ?? 30 * 1000; // 30 seconds for count
 
   // Memoize a stable rules array based on its content.
-  // react-hook-form recreates the rules array reference on every render,
-  // so we use JSON.stringify for content-based equality comparison.
-  // This ensures the query only refetches when rules content actually changes.
+  // 
+  // Why JSON.stringify in dependencies?
+  // - react-hook-form recreates the rules array reference on every render
+  // - Using [rules] directly would cause useMemo to recompute every render
+  // - JSON.stringify creates a content-based comparison: same content = same string
+  // - The stringify runs once per render (unavoidable), but useMemo only returns
+  //   a new array reference when the content actually changes
+  //
+  // Alternative approaches considered:
+  // - [rules]: Would defeat memoization entirely (new reference every render)
+  // - useDeepCompareEffect: Adds a dependency for minimal benefit
+  // - Custom hook: Over-engineering for this use case
+  //
+  // This is the standard pattern for content-based memoization in React.
   const stableRules = useMemo(
     () => rules,
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- content-based comparison
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- content-based comparison via JSON.stringify
     [JSON.stringify(rules)]
   );
 

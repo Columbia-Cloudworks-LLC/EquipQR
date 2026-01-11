@@ -246,10 +246,13 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
       loadEditingData();
     }
 
-    // Cleanup: abort pending requests and clear ref when effect re-runs or unmounts
+    // Cleanup: abort pending requests when effect re-runs or component unmounts.
+    // Note: We only abort the controller - the ref is left as-is since each effect instance
+    // captures its own `itemId` variable. The AbortController pattern ensures proper cancellation
+    // regardless of ref state, and leaving the ref set allows subsequent effects for the same
+    // item to proceed without interference from cleanup timing.
     return () => {
       abortController.abort();
-      currentEditingItemIdRef.current = null;
     };
   }, [editingItem, currentOrganization?.id, form, toast]);
 

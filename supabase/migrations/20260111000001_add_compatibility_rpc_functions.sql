@@ -33,6 +33,12 @@ DECLARE
   v_manufacturer_norm TEXT;
   v_model_norm TEXT;
 BEGIN
+  -- Security check: Verify authenticated context exists
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required: no authenticated user context'
+      USING ERRCODE = '42501';
+  END IF;
+
   -- Security check: Verify the calling user is an active member of the organization
   IF NOT EXISTS (
     SELECT 1 FROM public.organization_members
@@ -132,6 +138,12 @@ AS $$
 DECLARE
   v_count INTEGER := 0;
 BEGIN
+  -- Security check: Verify authenticated context exists
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required: no authenticated user context'
+      USING ERRCODE = '42501';
+  END IF;
+
   -- Security check: Verify the calling user is an active member of the organization
   IF NOT EXISTS (
     SELECT 1 FROM public.organization_members
