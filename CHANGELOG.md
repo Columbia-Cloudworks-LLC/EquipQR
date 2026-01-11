@@ -9,6 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.13] - 2026-01-11
+
+### Added
+
+- **PM Template Compatibility Rules Management**: New UI for managing equipment compatibility rules on PM templates
+  - `PMTemplateCompatibilityRulesEditor` component integrated into `PMTemplateView` for managing rules
+  - New `PMTemplateRulesDialog` accessible from the PMTemplates page for configuring rules
+  - Organization-scoped rules allowing each organization to set their own compatibility rules
+  - Admins can now view and manage compatibility rules directly in template views
+
+- **PM Template Auto-Matching**: Automatic template selection based on equipment compatibility
+  - Integrated `useMatchingPMTemplates` hook in `useWorkOrderPMChecklist` for filtering templates by equipment
+  - Auto-select matching templates when equipment is selected in work orders
+  - Improved UX for selecting compatible PM templates in `WorkOrderPMSection`
+
+- **Global PM Template Seeds**: Added seed data for common equipment PM checklists
+  - Forklift, Pull Trailer, Compressor, Scissor Lift, Excavator, and Skid Steer templates
+  - Documentation explaining template characteristics (global, protected)
+
+### Changed
+
+- **Build Performance**: Enhanced Vite configuration for improved loading
+  - Implemented manual chunking for better code splitting
+  - Organized vendor libraries into logical groups (React, UI, utilities)
+  - Reduced bundled asset size limit from 600 kB to 200 kB
+- **Node.js Version**: Updated from Node.js 20 to 22 in `.nvmrc` and `package.json`
+- Added `node-domexception` dependency for DOM exception handling
+- Renamed `organization_id` to `template_organization_id` in `MatchingPMTemplateResult` to prevent variable conflicts
+
+### Fixed
+
+- Added SQL migrations with performance indexes for organization-specific compatibility rules
+
 ## [1.7.12] - 2026-01-10
 
 ### Added
@@ -145,7 +178,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.12...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.13...HEAD
+[1.7.13]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.12...v1.7.13
 [1.7.12]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.11...v1.7.12
 [1.7.11]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.10...v1.7.11
 [1.7.10]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.9...v1.7.10
