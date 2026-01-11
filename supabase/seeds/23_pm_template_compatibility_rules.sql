@@ -98,5 +98,99 @@ INSERT INTO public.pm_template_compatibility_rules (
     NULL,
     'ingersoll rand',
     NULL
+  ),
+
+  -- =====================================================
+  -- EXPANDED PM COMPATIBILITY RULES
+  -- =====================================================
+
+  -- Forklift PM for Hyster forklifts (Industrial)
+  (
+    'cc0e8400-e29b-41d4-a716-446655440001'::uuid,
+    '660e8400-e29b-41d4-a716-446655440003'::uuid,
+    'Hyster',
+    NULL,
+    'hyster',
+    NULL
+  ),
+
+  -- Forklift PM for Crown forklifts (Industrial)
+  (
+    'cc0e8400-e29b-41d4-a716-446655440001'::uuid,
+    '660e8400-e29b-41d4-a716-446655440003'::uuid,
+    'Crown',
+    NULL,
+    'crown',
+    NULL
+  ),
+
+  -- Scissor Lift PM for Genie scissor lifts (Metro)
+  (
+    'cc0e8400-e29b-41d4-a716-446655440004'::uuid,
+    '660e8400-e29b-41d4-a716-446655440001'::uuid,
+    'Genie',
+    NULL,
+    'genie',
+    NULL
+  ),
+
+  -- Scissor Lift PM for Snorkel boom lifts (Metro) - aerial equipment
+  (
+    'cc0e8400-e29b-41d4-a716-446655440004'::uuid,
+    '660e8400-e29b-41d4-a716-446655440001'::uuid,
+    'Snorkel',
+    NULL,
+    'snorkel',
+    NULL
+  ),
+
+  -- Skid Steer PM for Vermeer mini skid steers (Tom's Field Services)
+  (
+    'cc0e8400-e29b-41d4-a716-446655440006'::uuid,
+    '660e8400-e29b-41d4-a716-446655440005'::uuid,
+    'Vermeer',
+    NULL,
+    'vermeer',
+    NULL
+  ),
+
+  -- Compressor PM for Sullair compressors (Mike's Repair Shop)
+  (
+    'cc0e8400-e29b-41d4-a716-446655440003'::uuid,
+    '660e8400-e29b-41d4-a716-446655440006'::uuid,
+    'Sullair',
+    NULL,
+    'sullair',
+    NULL
+  ),
+
+  -- Compressor PM for Doosan compressors (Tom's Field Services)
+  (
+    'cc0e8400-e29b-41d4-a716-446655440003'::uuid,
+    '660e8400-e29b-41d4-a716-446655440005'::uuid,
+    'Doosan',
+    NULL,
+    'doosan',
+    NULL
+  ),
+
+  -- Excavator PM for Komatsu excavators (also add for Metro in case they get one)
+  (
+    'cc0e8400-e29b-41d4-a716-446655440005'::uuid,
+    '660e8400-e29b-41d4-a716-446655440001'::uuid,
+    'Komatsu',
+    NULL,
+    'komatsu',
+    NULL
+  ),
+
+  -- Excavator PM for Caterpillar (also add for Industrial)
+  (
+    'cc0e8400-e29b-41d4-a716-446655440005'::uuid,
+    '660e8400-e29b-41d4-a716-446655440003'::uuid,
+    'Caterpillar',
+    NULL,
+    'caterpillar',
+    NULL
   )
 ON CONFLICT DO NOTHING;
