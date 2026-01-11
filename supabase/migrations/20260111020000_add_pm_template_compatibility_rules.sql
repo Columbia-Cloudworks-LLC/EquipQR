@@ -15,6 +15,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS public.pm_template_compatibility_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pm_template_id UUID NOT NULL REFERENCES public.pm_checklist_templates(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   
   -- Raw values (for display in UI)
   manufacturer TEXT NOT NULL,
@@ -26,8 +27,8 @@ CREATE TABLE IF NOT EXISTS public.pm_template_compatibility_rules (
   
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   
-  -- Prevent duplicate rules (same manufacturer/model after normalization)
-  CONSTRAINT pm_template_compat_rules_unique UNIQUE (pm_template_id, manufacturer_norm, model_norm)
+  -- Prevent duplicate rules per organization (same manufacturer/model after normalization)
+  CONSTRAINT pm_template_compat_rules_unique UNIQUE (pm_template_id, organization_id, manufacturer_norm, model_norm)
 );
 
 -- Add comment for documentation
@@ -44,13 +45,17 @@ COMMENT ON TABLE public.pm_template_compatibility_rules IS
 CREATE INDEX IF NOT EXISTS idx_pm_template_compat_rules_template 
   ON public.pm_template_compatibility_rules(pm_template_id);
 
+-- Index for looking up rules by organization
+CREATE INDEX IF NOT EXISTS idx_pm_template_compat_rules_org 
+  ON public.pm_template_compatibility_rules(organization_id);
+
 -- Index for matching equipment to rules (work order template picker)
 CREATE INDEX IF NOT EXISTS idx_pm_template_compat_rules_mfr_model_norm 
-  ON public.pm_template_compatibility_rules(manufacturer_norm, model_norm);
+  ON public.pm_template_compatibility_rules(organization_id, manufacturer_norm, model_norm);
 
 -- Partial index for "any model" rules (WHERE model_norm IS NULL)
 CREATE INDEX IF NOT EXISTS idx_pm_template_compat_rules_mfr_any_model 
-  ON public.pm_template_compatibility_rules(manufacturer_norm) 
+  ON public.pm_template_compatibility_rules(organization_id, manufacturer_norm) 
   WHERE model_norm IS NULL;
 
 -- ============================================================================
@@ -59,58 +64,44 @@ CREATE INDEX IF NOT EXISTS idx_pm_template_compat_rules_mfr_any_model
 
 ALTER TABLE public.pm_template_compatibility_rules ENABLE ROW LEVEL SECURITY;
 
--- Policy: Users can view rules for templates they can access
--- (global templates with organization_id = NULL, or templates owned by their org)
+-- Policy: Users can view rules belonging to their organization
+-- Rules are organization-scoped, so check the rule's organization_id directly
 CREATE POLICY "pm_template_compat_rules_select" ON public.pm_template_compatibility_rules
 FOR SELECT USING (
-  pm_template_id IN (
-    SELECT id FROM public.pm_checklist_templates 
-    WHERE organization_id IS NULL  -- Global templates visible to all
-       OR organization_id IN (
-         SELECT organization_id FROM public.organization_members
-         WHERE user_id = auth.uid()
-         AND status = 'active'
-       )
+  organization_id IN (
+    SELECT organization_id FROM public.organization_members
+    WHERE user_id = auth.uid()
+    AND status = 'active'
   )
 );
 
--- Policy: Users can only insert/update/delete rules for org-owned, non-protected templates
+-- Policy: Users can insert rules for their own organization
 CREATE POLICY "pm_template_compat_rules_insert" ON public.pm_template_compatibility_rules
 FOR INSERT WITH CHECK (
-  pm_template_id IN (
-    SELECT id FROM public.pm_checklist_templates 
-    WHERE is_protected = false
-      AND organization_id IN (
-        SELECT organization_id FROM public.organization_members
-        WHERE user_id = auth.uid()
-        AND status = 'active'
-      )
+  organization_id IN (
+    SELECT organization_id FROM public.organization_members
+    WHERE user_id = auth.uid()
+    AND status = 'active'
   )
 );
 
+-- Policy: Users can update rules belonging to their organization
 CREATE POLICY "pm_template_compat_rules_update" ON public.pm_template_compatibility_rules
 FOR UPDATE USING (
-  pm_template_id IN (
-    SELECT id FROM public.pm_checklist_templates 
-    WHERE is_protected = false
-      AND organization_id IN (
-        SELECT organization_id FROM public.organization_members
-        WHERE user_id = auth.uid()
-        AND status = 'active'
-      )
+  organization_id IN (
+    SELECT organization_id FROM public.organization_members
+    WHERE user_id = auth.uid()
+    AND status = 'active'
   )
 );
 
+-- Policy: Users can delete rules belonging to their organization
 CREATE POLICY "pm_template_compat_rules_delete" ON public.pm_template_compatibility_rules
 FOR DELETE USING (
-  pm_template_id IN (
-    SELECT id FROM public.pm_checklist_templates 
-    WHERE is_protected = false
-      AND organization_id IN (
-        SELECT organization_id FROM public.organization_members
-        WHERE user_id = auth.uid()
-        AND status = 'active'
-      )
+  organization_id IN (
+    SELECT organization_id FROM public.organization_members
+    WHERE user_id = auth.uid()
+    AND status = 'active'
   )
 );
 
@@ -164,9 +155,10 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
-  -- Delete all existing rules for this template (within the transaction)
+  -- Delete all existing rules for this template AND organization (within the transaction)
   DELETE FROM public.pm_template_compatibility_rules
-  WHERE pm_template_id = p_template_id;
+  WHERE pm_template_id = p_template_id
+    AND organization_id = p_organization_id;
 
   -- Insert new rules from the JSONB array
   -- If this fails, the entire transaction (including the delete) rolls back
@@ -187,18 +179,20 @@ BEGIN
         -- Insert with ON CONFLICT DO NOTHING to handle duplicates silently
         INSERT INTO public.pm_template_compatibility_rules (
           pm_template_id,
+          organization_id,
           manufacturer,
           model,
           manufacturer_norm,
           model_norm
         ) VALUES (
           p_template_id,
+          p_organization_id,
           trim(v_manufacturer),
           CASE WHEN v_model IS NOT NULL AND trim(v_model) <> '' THEN trim(v_model) ELSE NULL END,
           v_manufacturer_norm,
           v_model_norm
         )
-        ON CONFLICT (pm_template_id, manufacturer_norm, model_norm) DO NOTHING;
+        ON CONFLICT (pm_template_id, organization_id, manufacturer_norm, model_norm) DO NOTHING;
         
         -- Only count if actually inserted (no conflict)
         IF FOUND THEN
@@ -297,7 +291,7 @@ RETURNS TABLE (
   template_name TEXT,
   template_description TEXT,
   is_protected BOOLEAN,
-  organization_id UUID,
+  template_organization_id UUID,
   match_type TEXT,  -- 'model' (specific match) or 'manufacturer' (any model match)
   matched_manufacturer TEXT,
   matched_model TEXT
@@ -344,13 +338,13 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  -- Get templates with matching rules
+  -- Get templates with matching rules for this organization
   SELECT DISTINCT ON (t.id)
     t.id AS template_id,
     t.name AS template_name,
     t.description AS template_description,
     t.is_protected,
-    t.organization_id,
+    t.organization_id AS template_organization_id,
     CASE 
       WHEN pcr.model_norm IS NOT NULL THEN 'model'::TEXT
       ELSE 'manufacturer'::TEXT
@@ -362,7 +356,9 @@ BEGIN
   WHERE 
     -- Template must be accessible (global or org-owned)
     (t.organization_id IS NULL OR t.organization_id = p_organization_id)
-    -- Rule must match the equipment
+    -- Rule must belong to requesting organization
+    AND pcr.organization_id = p_organization_id
+    -- Rule must match the equipment's manufacturer/model
     AND pcr.manufacturer_norm = v_equipment_manufacturer_norm
     AND (pcr.model_norm IS NULL OR pcr.model_norm = v_equipment_model_norm)
   -- Order by match specificity (model match first, then manufacturer-only)

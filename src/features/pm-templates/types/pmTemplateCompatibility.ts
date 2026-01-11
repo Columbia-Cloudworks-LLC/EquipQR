@@ -55,7 +55,7 @@ export interface MatchingPMTemplateResult {
   template_name: string;
   template_description: string | null;
   is_protected: boolean;
-  organization_id: string | null;
+  template_organization_id: string | null;  // Renamed to avoid PL/pgSQL variable conflict
   match_type: 'model' | 'manufacturer';
   matched_manufacturer: string;
   matched_model: string | null;

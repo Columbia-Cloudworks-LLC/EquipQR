@@ -241,7 +241,7 @@ RETURNS TABLE (
   template_name TEXT,
   template_description TEXT,
   is_protected BOOLEAN,
-  organization_id UUID,
+  template_organization_id UUID,
   match_type TEXT,  -- 'model' (specific match) or 'manufacturer' (any model match)
   matched_manufacturer TEXT,
   matched_model TEXT
@@ -294,7 +294,7 @@ BEGIN
     t.name AS template_name,
     t.description AS template_description,
     t.is_protected,
-    t.organization_id,
+    t.organization_id AS template_organization_id,
     CASE 
       WHEN pcr.model_norm IS NOT NULL THEN 'model'::TEXT
       ELSE 'manufacturer'::TEXT
