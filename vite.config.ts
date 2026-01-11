@@ -57,4 +57,46 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React ecosystem - cached long-term, rarely changes
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // TanStack Query - server state management
+          'vendor-query': ['@tanstack/react-query'],
+          // Form handling
+          'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          // Radix UI primitives - split into logical groups
+          'vendor-radix-core': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tooltip',
+          ],
+          'vendor-radix-form': [
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-radio-group',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-slider',
+            '@radix-ui/react-label',
+          ],
+          'vendor-radix-layout': [
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-collapsible',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-scroll-area',
+            '@radix-ui/react-separator',
+          ],
+          // Supabase client
+          'vendor-supabase': ['@supabase/supabase-js'],
+          // Date utilities
+          'vendor-date': ['date-fns', 'date-fns-tz'],
+          // Charting - heavy, only loaded on Reports page
+          'vendor-charts': ['recharts'],
+        },
+      },
+    },
+  },
 }));
