@@ -234,5 +234,3 @@ export const CompatibilityRulesEditor: React.FC<CompatibilityRulesEditorProps> =
     </Card>
   );
 };
-
-export default CompatibilityRulesEditor;

@@ -42,7 +42,9 @@ const DEV_USERS = [
   { email: 'multi@equipqr.test', name: 'Multi Org User', role: 'Member', org: 'ALL Organizations' },
 ] as const;
 
-const DEV_PASSWORD = 'password123';
+// Use env var if available, fallback to default for convenience
+// In .env.local: VITE_DEV_TEST_PASSWORD=password123
+const DEV_PASSWORD = import.meta.env.VITE_DEV_TEST_PASSWORD ?? 'password123';
 
 // Group users by organization for the dropdown
 const USER_GROUPS = [
@@ -96,7 +98,12 @@ const DevQuickLogin: React.FC = () => {
         setError(signInError.message);
       }
     } catch (err) {
-      setError('Failed to sign in. Make sure you have run `npx supabase db reset` to seed the database.');
+      // Log detailed error for developers, show generic message in UI
+      console.error(
+        'DevQuickLogin sign-in failed. Make sure you have run `npx supabase db reset` to seed the database.',
+        err
+      );
+      setError('Authentication failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

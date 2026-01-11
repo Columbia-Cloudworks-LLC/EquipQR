@@ -36,6 +36,8 @@ BEGIN
       AND user_id = auth.uid()
       AND status = 'active'
   ) THEN
+    -- Log unauthorized access attempt for security monitoring (visible in Supabase logs)
+    RAISE NOTICE 'Unauthorized access attempt to get_compatible_parts_for_equipment: user % is not an active member of organization %', auth.uid(), p_organization_id;
     -- Return empty result set for unauthorized access (fail securely without leaking info)
     RETURN;
   END IF;
@@ -88,7 +90,10 @@ BEGIN
 END;
 $$;
 
--- Update function comment
+-- Update function comment (security enhancement based on PR #491 feedback)
 COMMENT ON FUNCTION public.get_compatible_parts_for_equipment IS 'Returns compatible inventory items for given equipment IDs. Validates caller is an active member of the organization before processing. Combines direct links (equipment_part_compatibility) with rule-based matches (part_compatibility_rules by manufacturer/model).';
+
+-- Maintain execute permissions (function replaces the original from 20260110000001)
+GRANT EXECUTE ON FUNCTION public.get_compatible_parts_for_equipment TO authenticated;
 
 COMMIT;

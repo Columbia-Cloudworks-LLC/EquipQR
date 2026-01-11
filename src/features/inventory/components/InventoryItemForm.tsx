@@ -132,7 +132,8 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
               itemOrgId: editingItem.organization_id,
               currentOrgId: currentOrganization.id
             });
-            return;
+            // Throw to trigger catch block and prevent form submission with empty related data
+            throw new Error('Security: editingItem organization mismatch');
           }
 
           // Load compatible equipment IDs
