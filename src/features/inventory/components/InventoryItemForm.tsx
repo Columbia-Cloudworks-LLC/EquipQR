@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -30,8 +30,10 @@ import { useEquipment } from '@/features/equipment/hooks/useEquipment';
 import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
 import { supabase } from '@/integrations/supabase/client';
 import { inventoryItemFormSchema } from '@/features/inventory/schemas/inventorySchema';
-import type { InventoryItem } from '@/features/inventory/types/inventory';
+import type { InventoryItem, PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
+import { CompatibilityRulesEditor } from '@/features/inventory/components/CompatibilityRulesEditor';
+import { useAppToast } from '@/hooks/useAppToast';
 import { logger } from '@/utils/logger';
 
 interface InventoryItemFormProps {
@@ -46,8 +48,15 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   editingItem
 }) => {
   const { currentOrganization } = useOrganization();
+  const { toast } = useAppToast();
   const [equipmentSearch, setEquipmentSearch] = useState('');
   const [managerSearch, setManagerSearch] = useState('');
+  // Track whether async editing data (compatibility rules, equipment links, managers) has loaded
+  const [isEditingDataLoaded, setIsEditingDataLoaded] = useState(false);
+  // Track if loading failed - prevents form submission with stale/empty data
+  const [editingDataLoadError, setEditingDataLoadError] = useState(false);
+  // Ref to track current item ID to prevent race conditions when rapidly opening/closing form
+  const currentEditingItemIdRef = useRef<string | null>(null);
 
   const createMutation = useCreateInventoryItem();
   const updateMutation = useUpdateInventoryItem();
@@ -68,13 +77,17 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
       location: '',
       default_unit_cost: null,
       compatibleEquipmentIds: [],
-      managerIds: []
+      managerIds: [],
+      compatibilityRules: []
     }
   });
 
   // Load editing data
   useEffect(() => {
     if (open && editingItem) {
+      // Reset loading/error state - async data will be loaded separately
+      setIsEditingDataLoaded(false);
+      setEditingDataLoadError(false);
       form.reset({
         name: editingItem.name,
         description: editingItem.description || '',
@@ -86,9 +99,13 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         location: editingItem.location || '',
         default_unit_cost: editingItem.default_unit_cost ? Number(editingItem.default_unit_cost) : null,
         compatibleEquipmentIds: [], // Will be loaded separately
-        managerIds: [] // Will be loaded separately
+        managerIds: [], // Will be loaded separately
+        compatibilityRules: [] // Will be loaded separately
       });
     } else if (open && !editingItem) {
+      // Creating new item - no async data to load
+      setIsEditingDataLoaded(true);
+      setEditingDataLoadError(false);
       form.reset({
         name: '',
         description: '',
@@ -100,43 +117,144 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         location: '',
         default_unit_cost: null,
         compatibleEquipmentIds: [],
-        managerIds: []
+        managerIds: [],
+        compatibilityRules: []
       });
     }
   }, [open, editingItem, form]);
 
-  // Load compatible equipment and managers when editing
+  // Load compatible equipment, managers, and compatibility rules when editing.
+  // Uses AbortController to properly cancel in-flight requests on unmount/re-render,
+  // plus a ref to track the current item ID for additional race condition prevention.
   useEffect(() => {
+    // Create AbortController for this effect instance
+    const abortController = new AbortController();
+    
     if (editingItem && currentOrganization?.id) {
+      // Track which item we're loading data for
+      const itemId = editingItem.id;
+      currentEditingItemIdRef.current = itemId;
+
       const loadEditingData = async () => {
         try {
+          // SECURITY: Verify item belongs to organization (failsafe even with RLS)
+          if (editingItem.organization_id !== currentOrganization.id) {
+            logger.error('Security: editingItem organization mismatch', {
+              itemOrgId: editingItem.organization_id,
+              currentOrgId: currentOrganization.id
+            });
+            // Throw to trigger catch block and prevent form submission with empty related data
+            throw new Error('Security: editingItem organization mismatch');
+          }
+
+          // Check for abort before each async operation
+          if (abortController.signal.aborted) return;
+
           // Load compatible equipment IDs
+          // Filter via join to inventory_items for organization isolation
           const { data: compatibilityData } = await supabase
             .from('equipment_part_compatibility')
-            .select('equipment_id')
-            .eq('inventory_item_id', editingItem.id);
+            .select(`
+              equipment_id,
+              inventory_items!inner(organization_id)
+            `)
+            .eq('inventory_item_id', editingItem.id)
+            .eq('inventory_items.organization_id', currentOrganization.id);
           
+          // Check for abort and stale item ID after async operation
+          if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
+            logger.debug('Ignoring stale/aborted editing data load for item:', itemId);
+            return;
+          }
+
           const equipmentIds = (compatibilityData || []).map(row => row.equipment_id);
           
           // Load manager IDs
+          // Filter via join to inventory_items for organization isolation
           const { data: managersData } = await supabase
             .from('inventory_item_managers')
-            .select('user_id')
-            .eq('inventory_item_id', editingItem.id);
+            .select(`
+              user_id,
+              inventory_items!inner(organization_id)
+            `)
+            .eq('inventory_item_id', editingItem.id)
+            .eq('inventory_items.organization_id', currentOrganization.id);
           
+          // Check again after second async operation
+          if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
+            logger.debug('Ignoring stale/aborted editing data load for item:', itemId);
+            return;
+          }
+
           const managerIds = (managersData || []).map(row => row.user_id);
+
+          // Load compatibility rules
+          // Filter via join to inventory_items for organization isolation
+          const { data: rulesData } = await supabase
+            .from('part_compatibility_rules')
+            .select(`
+              manufacturer,
+              model,
+              inventory_items!inner(organization_id)
+            `)
+            .eq('inventory_item_id', editingItem.id)
+            .eq('inventory_items.organization_id', currentOrganization.id);
+
+          // Final check before updating form state
+          if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
+            logger.debug('Ignoring stale/aborted editing data load for item:', itemId);
+            return;
+          }
+
+          const rules: PartCompatibilityRuleFormData[] = (rulesData || []).map(row => ({
+            manufacturer: row.manufacturer,
+            model: row.model
+          }));
           
           // Update form with loaded data
           form.setValue('compatibleEquipmentIds', equipmentIds);
           form.setValue('managerIds', managerIds);
+          form.setValue('compatibilityRules', rules);
+          
+          // Final abort check before setState to prevent React warnings about
+          // updating state on unmounted components
+          if (!abortController.signal.aborted) {
+            // Mark async data as loaded - form can now be safely submitted
+            setIsEditingDataLoaded(true);
+          }
         } catch (error) {
-          console.error('Error loading editing data:', error);
+          // Ignore errors from aborted/stale requests - check signal BEFORE any setState
+          // to prevent memory leaks and React warnings about updating unmounted components
+          if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
+            return;
+          }
+          logger.error('Error loading editing data:', error);
+          // Mark as error - do NOT unblock form to prevent data loss
+          // Empty arrays would overwrite existing rules/equipment/managers
+          // Double-check abort signal before setState to handle race with unmount
+          if (!abortController.signal.aborted) {
+            setEditingDataLoadError(true);
+            toast({
+              title: 'Failed to load item data',
+              description: 'Could not load compatibility rules and settings. Please close and try again.',
+              variant: 'error'
+            });
+          }
         }
       };
       
       loadEditingData();
     }
-  }, [editingItem, currentOrganization?.id, form]);
+
+    // Cleanup: abort pending requests when effect re-runs or component unmounts.
+    // Note: We only abort the controller - the ref is left as-is since each effect instance
+    // captures its own `itemId` variable. The AbortController pattern ensures proper cancellation
+    // regardless of ref state, and leaving the ref set allows subsequent effects for the same
+    // item to proceed without interference from cleanup timing.
+    return () => {
+      abortController.abort();
+    };
+  }, [editingItem, currentOrganization?.id, form, toast]);
 
   const onSubmit = async (data: InventoryItemFormData) => {
     if (!currentOrganization) {
@@ -196,7 +314,11 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     }
   };
 
-  const isLoading = createMutation.isPending || updateMutation.isPending;
+  const isMutating = createMutation.isPending || updateMutation.isPending;
+  // Loading state: either a mutation is in progress or async editing data is still loading
+  const isEditingDataPending = !!editingItem && !isEditingDataLoaded;
+  // Form should be disabled while mutating, while async editing data is loading, or if loading failed
+  const isFormDisabled = isMutating || isEditingDataPending || editingDataLoadError;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -380,13 +502,34 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
               )}
             />
 
-            {/* Compatible Equipment */}
+            {/* Compatibility Rules (manufacturer/model patterns) */}
+            <FormField
+              control={form.control}
+              name="compatibilityRules"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <CompatibilityRulesEditor
+                      rules={field.value || []}
+                      onChange={field.onChange}
+                      disabled={isFormDisabled}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Compatible Equipment (direct links) */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Forklift className="h-4 w-4" />
-                  Compatible Equipment
+                  Compatible Equipment (Direct Links)
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Link specific equipment directly. Use rules above for pattern-based matching.
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="relative">
@@ -524,12 +667,16 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
 
             {/* Actions */}
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isFormDisabled}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading
+              <Button type="submit" disabled={isFormDisabled}>
+                {isMutating
                   ? 'Saving...'
+                  : editingDataLoadError
+                  ? 'Load Failed'
+                  : isEditingDataPending
+                  ? 'Loading...'
                   : editingItem
                   ? 'Update Item'
                   : 'Create Item'}

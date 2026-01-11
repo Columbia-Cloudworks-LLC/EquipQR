@@ -59,6 +59,10 @@ verify_jwt = true
 verify_jwt = true
 # Exports work order to QuickBooks as a draft invoice. Requires authenticated admin/owner.
 
+[db.seed]
+enabled = true
+sql_paths = ['./seeds/*.sql']
+
 # Staging/Preview Branch Configuration
 # This configuration allows Supabase CLI to deploy to the preview branch project
 # when working with the staging environment. The preview branch is a persistent

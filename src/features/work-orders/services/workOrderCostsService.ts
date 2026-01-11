@@ -156,6 +156,143 @@ export const deleteWorkOrderCost = async (costId: string): Promise<void> => {
   }
 };
 
+/**
+ * Get a single cost by ID.
+ * Used to check for inventory_item_id before deletion.
+ */
+export const getWorkOrderCostById = async (costId: string): Promise<WorkOrderCost | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('work_order_costs')
+      .select('*')
+      .eq('id', costId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows found
+        return null;
+      }
+      throw error;
+    }
+
+    return data as WorkOrderCost;
+  } catch (error) {
+    logger.error('Error fetching work order cost by ID:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a cost item and optionally restore inventory.
+ * Returns the deleted cost's inventory info for the caller to handle restoration.
+ * 
+ * @param costId - The cost item ID to delete
+ * @returns Object with inventory_item_id and quantity if cost was from inventory, null otherwise
+ */
+export const deleteWorkOrderCostWithInventoryInfo = async (
+  costId: string
+): Promise<{ inventory_item_id: string; quantity: number } | null> => {
+  try {
+    // First, fetch the cost to check for inventory link
+    const cost = await getWorkOrderCostById(costId);
+    
+    if (!cost) {
+      throw new Error('Cost item not found');
+    }
+
+    // Store inventory info before deletion
+    const inventoryInfo = cost.inventory_item_id 
+      ? { inventory_item_id: cost.inventory_item_id, quantity: cost.quantity }
+      : null;
+
+    // Delete the cost
+    const { error } = await supabase
+      .from('work_order_costs')
+      .delete()
+      .eq('id', costId);
+
+    if (error) throw error;
+
+    // Return inventory info so caller can handle restoration
+    return inventoryInfo;
+  } catch (error) {
+    logger.error('Error deleting work order cost with inventory info:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update a cost item and return old/new quantity info for inventory adjustment.
+ * Used when updating quantity of an inventory-sourced cost.
+ * 
+ * @param costId - The cost item ID to update
+ * @param updateData - Fields to update
+ * @returns The updated cost and quantity delta info if applicable
+ */
+export const updateWorkOrderCostWithQuantityTracking = async (
+  costId: string,
+  updateData: UpdateWorkOrderCostData
+): Promise<{ 
+  cost: WorkOrderCost; 
+  inventoryAdjustment: { inventory_item_id: string; delta: number } | null 
+}> => {
+  try {
+    // Fetch current cost to get original values and inventory link
+    const currentCost = await getWorkOrderCostById(costId);
+    
+    if (!currentCost) {
+      throw new Error('Cost item not found');
+    }
+
+    // Calculate quantity delta if this is an inventory-sourced cost and quantity is changing
+    let inventoryAdjustment: { inventory_item_id: string; delta: number } | null = null;
+    
+    if (
+      currentCost.inventory_item_id && 
+      updateData.quantity !== undefined && 
+      updateData.quantity !== currentCost.quantity
+    ) {
+      // Delta: positive means returning to inventory, negative means taking more
+      // If current=3 and new=2, delta=1 (returning 1 to inventory)
+      // If current=2 and new=3, delta=-1 (taking 1 more from inventory)
+      const delta = currentCost.quantity - updateData.quantity;
+      inventoryAdjustment = {
+        inventory_item_id: currentCost.inventory_item_id,
+        delta
+      };
+    }
+
+    // Perform the update
+    const { data, error } = await supabase
+      .from('work_order_costs')
+      .update(updateData)
+      .eq('id', costId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Get creator name
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', data.created_by)
+      .single();
+
+    return {
+      cost: {
+        ...data,
+        created_by_name: profile?.name || 'Unknown'
+      },
+      inventoryAdjustment
+    };
+  } catch (error) {
+    logger.error('Error updating work order cost with quantity tracking:', error);
+    throw error;
+  }
+};
+
 // ============================================
 // Optimized Query Functions (merged from workOrderCostsOptimizedService)
 // ============================================

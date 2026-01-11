@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.12] - 2026-01-10
+
+### Added
+
+- **Part Compatibility Rules**: New rule-based matching system for inventory parts to equipment
+  - Define compatibility by manufacturer/model patterns (e.g., "fits all Caterpillar D6T equipment")
+  - "Any Model" option to match all equipment from a manufacturer
+  - Rules work alongside direct equipment links for flexible compatibility management
+  - New `CompatibilityRulesEditor` component in inventory item forms
+  - Combined matching via new `get_compatible_parts_for_equipment` RPC function
+
+### Fixed
+
+- **Inventory Item Form (Race Condition)**: Fixed issue where submitting the form before async data loads could delete existing compatibility rules, equipment links, and managers
+  - Form now displays "Loading..." and blocks submission until data is fully loaded
+  - Failed data loads now block submission with "Load Failed" state and error toast
+- **PostgreSQL NULL Unique Constraint**: Fixed duplicate "any model" rules being allowed in `part_compatibility_rules` table
+  - Replaced ineffective UNIQUE constraint with partial unique indexes that properly handle NULL values
+
+### Security
+
+- **Organization Isolation**: Added explicit `organization_id` filtering to compatibility data queries in `InventoryItemForm`
+  - Equipment compatibility links now filter via `inventory_items.organization_id`
+  - Manager assignments now filter via `inventory_items.organization_id`
+  - Compatibility rules now filter via `inventory_items.organization_id`
+  - Follows security-critical pattern of explicit org filtering even with RLS enabled
+
 ## [1.7.11] - 2026-01-08
 
 ### Changed
@@ -118,7 +145,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.11...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.12...HEAD
+[1.7.12]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.11...v1.7.12
 [1.7.11]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.10...v1.7.11
 [1.7.10]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.9...v1.7.10
 [1.7.9]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.8...v1.7.9

@@ -23,6 +23,9 @@ export interface WorkOrderCost {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Inventory tracking fields
+  inventory_item_id?: string | null;
+  original_quantity?: number | null;
   // Computed fields from joins
   created_by_name?: string;
   createdByName?: string;
@@ -54,6 +57,10 @@ export interface CreateWorkOrderCostData {
   description: string;
   quantity: number;
   unit_price_cents: number;
+  /** Optional reference to source inventory item */
+  inventory_item_id?: string;
+  /** Original quantity when created from inventory (for delta calculations) */
+  original_quantity?: number;
 }
 
 export interface UpdateWorkOrderCostData {

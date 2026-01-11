@@ -6,6 +6,10 @@ export interface WorkOrderCostItem extends Omit<WorkOrderCost, 'id' | 'created_a
   id: string;
   isNew?: boolean;
   isDeleted?: boolean;
+  /** Source inventory item ID (null if manually entered) */
+  inventory_item_id?: string | null;
+  /** Original quantity when created from inventory (for delta calculations) */
+  original_quantity?: number | null;
 }
 
 export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
@@ -16,7 +20,9 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
       description: cost.description,
       quantity: cost.quantity,
       unit_price_cents: cost.unit_price_cents,
-      total_price_cents: cost.total_price_cents
+      total_price_cents: cost.total_price_cents,
+      inventory_item_id: cost.inventory_item_id,
+      original_quantity: cost.original_quantity
     }))
   );
 
@@ -31,6 +37,43 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
       isNew: true
     };
     setCosts(prev => [...prev, newCost]);
+  }, []);
+
+  /**
+   * Add a pre-filled cost item (e.g., from inventory selection).
+   * This allows immediate UI feedback when adding items from external sources.
+   * 
+   * Note: This also removes any empty placeholder rows (new items with empty description)
+   * to ensure validation passes when the filled cost is the only real item.
+   */
+  const addFilledCost = useCallback((data: {
+    id: string;
+    work_order_id: string;
+    description: string;
+    quantity: number;
+    unit_price_cents: number;
+    inventory_item_id?: string;
+    original_quantity?: number;
+  }) => {
+    const newCost: WorkOrderCostItem = {
+      id: data.id,
+      work_order_id: data.work_order_id,
+      description: data.description,
+      quantity: data.quantity,
+      unit_price_cents: data.unit_price_cents,
+      total_price_cents: data.quantity * data.unit_price_cents,
+      isNew: false, // Already saved to database
+      inventory_item_id: data.inventory_item_id,
+      original_quantity: data.original_quantity
+    };
+    setCosts(prev => {
+      // Remove empty placeholder rows (new items with empty description)
+      // before adding the filled cost - this ensures validation passes
+      const filtered = prev.filter(cost => 
+        !(cost.isNew && cost.description.trim() === '')
+      );
+      return [...filtered, newCost];
+    });
   }, []);
 
   const removeCost = useCallback((id: string) => {
@@ -80,6 +123,13 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
     return costs.filter(cost => cost.isDeleted && !cost.isNew);
   }, [costs]);
 
+  /**
+   * Get costs that have an inventory source (for special handling on delete/edit)
+   */
+  const getInventorySourcedCosts = useCallback(() => {
+    return costs.filter(cost => !cost.isDeleted && cost.inventory_item_id);
+  }, [costs]);
+
   const validateCosts = useCallback(() => {
     return costs.every(cost => 
       cost.isDeleted || 
@@ -94,7 +144,9 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
       description: cost.description,
       quantity: cost.quantity,
       unit_price_cents: cost.unit_price_cents,
-      total_price_cents: cost.total_price_cents
+      total_price_cents: cost.total_price_cents,
+      inventory_item_id: cost.inventory_item_id,
+      original_quantity: cost.original_quantity
     })));
   }, []);
 
@@ -105,19 +157,42 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
     }
   }, [costs, addCost]);
 
+  /**
+   * Check if a specific cost has an inventory source
+   */
+  const hasInventorySource = useCallback((id: string) => {
+    const cost = costs.find(c => c.id === id);
+    return !!cost?.inventory_item_id;
+  }, [costs]);
+
+  /**
+   * Get inventory info for a cost (for confirmation dialogs)
+   */
+  const getInventoryInfo = useCallback((id: string) => {
+    const cost = costs.find(c => c.id === id);
+    if (!cost?.inventory_item_id) return null;
+    return {
+      inventory_item_id: cost.inventory_item_id,
+      quantity: cost.quantity,
+      original_quantity: cost.original_quantity
+    };
+  }, [costs]);
+
   return {
     costs: costs.filter(cost => !cost.isDeleted),
     addCost,
+    addFilledCost,
     removeCost,
     updateCost,
     getCleanCosts,
     getNewCosts,
     getUpdatedCosts,
     getDeletedCosts,
+    getInventorySourcedCosts,
+    hasInventorySource,
+    getInventoryInfo,
     validateCosts,
     resetCosts,
     ensureMinimumCosts
   };
 };
-
-

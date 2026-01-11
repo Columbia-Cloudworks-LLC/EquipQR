@@ -4,11 +4,9 @@
 
 <a href="https://equipqr.app"><img src="public/icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR™ Logo" width="150" /></a>
 
-### 🚜 Fleet Equipment Management Platform 🚧
+## 🚜 Fleet Equipment Management Platform 🚧
 
-![Version](https://img.shields.io/badge/version-1.7.11-blue?style=for-the-badge)
-![Build Status](https://img.shields.io/github/actions/workflow/status/Columbia-Cloudworks-LLC/EquipQR/ci.yml?branch=main&label=Build&style=for-the-badge)
-![License](https://img.shields.io/badge/license-Proprietary-lightgrey?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.7.12-blue?style=for-the-badge)
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
@@ -16,6 +14,8 @@
 ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![Vitest](https://img.shields.io/badge/Vitest-%2344a833.svg?style=for-the-badge&logo=vitest&logoColor=white)
+
+![License](https://img.shields.io/badge/license-Proprietary-lightgrey?style=for-the-badge)
 
 </div>
 

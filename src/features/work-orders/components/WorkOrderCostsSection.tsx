@@ -10,18 +10,29 @@ interface WorkOrderCostsSectionProps {
   workOrderId: string;
   canAddCosts: boolean;
   canEditCosts: boolean;
+  /** Primary equipment ID from the work order (legacy field) */
+  primaryEquipmentId?: string | null;
 }
 
 const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
   workOrderId,
   canAddCosts,
-  canEditCosts
+  canEditCosts,
+  primaryEquipmentId
 }) => {
   const { data: costs = [], isLoading } = useWorkOrderCosts(workOrderId);
   const { data: linkedEquipment = [] } = useWorkOrderEquipment(workOrderId);
   
   // Get all equipment IDs for this work order (for filtering compatible inventory items)
-  const equipmentIds = linkedEquipment.map(eq => eq.equipment_id).filter(Boolean) as string[];
+  // Combine junction table equipment with the primary equipment_id from work order
+  const junctionEquipmentIds = linkedEquipment.map(eq => eq.equipment_id).filter(Boolean) as string[];
+  const equipmentIds = React.useMemo(() => {
+    const ids = new Set(junctionEquipmentIds);
+    if (primaryEquipmentId) {
+      ids.add(primaryEquipmentId);
+    }
+    return Array.from(ids);
+  }, [junctionEquipmentIds, primaryEquipmentId]);
 
   if (isLoading) {
     return (

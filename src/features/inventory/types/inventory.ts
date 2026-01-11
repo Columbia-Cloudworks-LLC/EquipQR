@@ -16,6 +16,9 @@ export type InventoryTransactionRow = Tables<'inventory_transactions'>;
 export type EquipmentPartCompatibilityRow = Tables<'equipment_part_compatibility'>;
 export type InventoryItemManagerRow = Tables<'inventory_item_managers'>;
 
+// Note: part_compatibility_rules table type will be available after regenerating Supabase types
+// For now, define the interface manually to unblock development
+
 // ============================================
 // Primary Inventory Types
 // ============================================
@@ -65,6 +68,77 @@ export interface InventoryItemManager extends InventoryItemManagerRow {
   // Computed fields from joins
   userName?: string;
   userEmail?: string;
+}
+
+/**
+ * PartCompatibilityRule - Rule-based matching of parts to equipment by manufacturer/model.
+ * 
+ * Allows defining compatibility patterns like "fits all Caterpillar D6T equipment"
+ * instead of linking to specific equipment records.
+ */
+export interface PartCompatibilityRule {
+  id: string;
+  inventory_item_id: string;
+  manufacturer: string;
+  model: string | null;  // null = "any model from this manufacturer"
+  manufacturer_norm: string;
+  model_norm: string | null;
+  created_at: string;
+}
+
+/**
+ * PartCompatibilityRuleFormData - Form input for creating/editing compatibility rules.
+ * 
+ * Uses raw values; normalization happens on save.
+ */
+export interface PartCompatibilityRuleFormData {
+  manufacturer: string;
+  model: string | null;  // null or empty string = "Any Model"
+}
+
+/**
+ * CompatibleInventoryItemResult - Result from get_compatible_parts_for_equipment RPC.
+ * 
+ * Includes match_type to indicate how the part was matched (direct link vs rule).
+ */
+export interface CompatibleInventoryItemResult {
+  inventory_item_id: string;
+  name: string;
+  sku: string | null;
+  external_id: string | null;
+  quantity_on_hand: number;
+  low_stock_threshold: number;
+  default_unit_cost: number | null;
+  location: string | null;
+  image_url: string | null;
+  match_type: 'direct' | 'rule';
+}
+
+/**
+ * PartialInventoryItem - A subset of InventoryItem fields for display-only purposes.
+ * 
+ * Used by functions like getCompatibleInventoryItems that return items from RPC
+ * functions optimized for performance. Fields like description, created_by,
+ * created_at, and updated_at are not fetched to reduce payload size.
+ * 
+ * Consumers should NOT rely on metadata fields (created_by, created_at, updated_at)
+ * from this type. If those fields are needed, fetch the full item directly.
+ */
+export interface PartialInventoryItem {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;  // Often null in partial results
+  sku: string | null;
+  external_id: string | null;
+  quantity_on_hand: number;
+  low_stock_threshold: number;
+  image_url: string | null;
+  location: string | null;
+  default_unit_cost: number | null;
+  isLowStock?: boolean;
+  // Note: created_by, created_at, updated_at are intentionally omitted
+  // to avoid implying they have valid values
 }
 
 // ============================================

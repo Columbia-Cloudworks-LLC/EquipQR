@@ -5,8 +5,8 @@ import { WorkOrderCost } from '@/features/work-orders/services/workOrderCostsSer
 import { useWorkOrderCostsState } from '@/features/work-orders/hooks/useWorkOrderCostsState';
 import { 
   useCreateWorkOrderCost, 
-  useUpdateWorkOrderCost, 
-  useDeleteWorkOrderCost 
+  useUpdateWorkOrderCostWithInventory, 
+  useDeleteWorkOrderCostWithInventoryRestore 
 } from '@/features/work-orders/hooks/useWorkOrderCosts';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -16,6 +16,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { InventoryPartSelector } from './InventoryPartSelector';
 import WorkOrderCostsEditor from './WorkOrderCostsEditor';
 import { useAppToast } from '@/hooks/useAppToast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface InlineEditWorkOrderCostsProps {
   costs: WorkOrderCost[];
@@ -38,24 +48,30 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [showInventorySelector, setShowInventorySelector] = useState(false);
   
+  // Delete confirmation dialog state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [costToDelete, setCostToDelete] = useState<{ id: string; hasInventory: boolean; quantity: number } | null>(null);
+  
   const adjustInventoryMutation = useAdjustInventoryQuantity();
   
   const {
     costs: editCosts,
     addCost,
+    addFilledCost,
     removeCost,
     updateCost,
     getNewCosts,
     getUpdatedCosts,
     getDeletedCosts,
+    getInventoryInfo,
     validateCosts,
     resetCosts,
     ensureMinimumCosts
   } = useWorkOrderCostsState(costs);
 
   const createCostMutation = useCreateWorkOrderCost();
-  const updateCostMutation = useUpdateWorkOrderCost();
-  const deleteCostMutation = useDeleteWorkOrderCost();
+  const updateCostWithInventoryMutation = useUpdateWorkOrderCostWithInventory();
+  const deleteCostWithInventoryMutation = useDeleteWorkOrderCostWithInventoryRestore();
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -76,13 +92,13 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   };
 
   const handleSave = async () => {
-    if (!validateCosts()) {
+    if (!validateCosts() || !currentOrganization) {
       return;
     }
 
     setIsSaving(true);
     try {
-      // Handle new costs
+      // Handle new costs (manually added, not from inventory)
       const newCosts = getNewCosts();
       for (const cost of newCosts) {
         await createCostMutation.mutateAsync({
@@ -93,7 +109,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         });
       }
 
-      // Handle updated costs
+      // Handle updated costs - use inventory-aware mutation for quantity changes
       const updatedCosts = getUpdatedCosts();
       for (const cost of updatedCosts) {
         const originalCost = costs.find(c => c.id === cost.id);
@@ -102,21 +118,26 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
           originalCost.quantity !== cost.quantity ||
           originalCost.unit_price_cents !== cost.unit_price_cents
         )) {
-          await updateCostMutation.mutateAsync({
+          // Use inventory-aware update if this cost has an inventory source
+          await updateCostWithInventoryMutation.mutateAsync({
             costId: cost.id,
             updateData: {
               description: cost.description,
               quantity: cost.quantity,
               unit_price_cents: cost.unit_price_cents
-            }
+            },
+            organizationId: currentOrganization.id
           });
         }
       }
 
-      // Handle deleted costs
+      // Handle deleted costs - use inventory-aware delete
       const deletedCosts = getDeletedCosts();
       for (const cost of deletedCosts) {
-        await deleteCostMutation.mutateAsync(cost.id);
+        await deleteCostWithInventoryMutation.mutateAsync({
+          costId: cost.id,
+          organizationId: currentOrganization.id
+        });
       }
 
       setIsEditing(false);
@@ -181,13 +202,31 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
       // Only create work order cost if inventory adjustment succeeded
       // Use the name we already fetched, or fallback to querying again
       const itemName = currentItem.name || `Inventory item (ID: ${itemId.substring(0, 8)}...)`;
+      const unitPriceCents = Math.round(unitCost * 100);
 
-      await createCostMutation.mutateAsync({
+      const createdCost = await createCostMutation.mutateAsync({
         work_order_id: workOrderId,
         description: itemName,
         quantity: quantity,
-        unit_price_cents: Math.round(unitCost * 100)
+        unit_price_cents: unitPriceCents,
+        // Track the source inventory item for restoration on delete/edit
+        inventory_item_id: itemId,
+        original_quantity: quantity
       });
+
+      // Update local editing state so user sees the new cost immediately
+      // (the mutation invalidates the query, but we're in edit mode showing local state)
+      if (isEditing) {
+        addFilledCost({
+          id: createdCost.id,
+          work_order_id: workOrderId,
+          description: itemName,
+          quantity: quantity,
+          unit_price_cents: unitPriceCents,
+          inventory_item_id: itemId,
+          original_quantity: quantity
+        });
+      }
 
       toast({
         title: 'Part added',
@@ -239,9 +278,15 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     <div className="bg-muted/50 rounded-lg p-4 space-y-2">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="font-medium text-sm">{cost.description}</div>
+          <div className="font-medium text-sm flex items-center gap-1.5">
+            {cost.inventory_item_id && (
+              <Package className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" title="From inventory" />
+            )}
+            {cost.description}
+          </div>
           <div className="text-xs text-muted-foreground mt-1">
             Added by {cost.created_by_name} • {new Date(cost.created_at).toLocaleDateString()}
+            {cost.inventory_item_id && <span className="ml-1 text-blue-500">(Inventory)</span>}
           </div>
         </div>
         <div className="text-right ml-2">
@@ -262,10 +307,16 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     <div className="p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
       <div className="grid grid-cols-4 gap-4 items-center">
         <div>
-          <div className="font-medium">{cost.description}</div>
+          <div className="font-medium flex items-center gap-1.5">
+            {cost.inventory_item_id && (
+              <Package className="h-4 w-4 text-blue-500 flex-shrink-0" title="From inventory" />
+            )}
+            {cost.description}
+          </div>
           <div className="text-xs text-muted-foreground mt-1">
             Added by {cost.created_by_name} on{' '}
             {new Date(cost.created_at).toLocaleDateString()}
+            {cost.inventory_item_id && <span className="ml-1 text-blue-500">(Inventory)</span>}
           </div>
         </div>
         <div className="text-sm">{cost.quantity}</div>
@@ -276,6 +327,31 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
       </div>
     </div>
   );
+
+  // Handle delete with confirmation for inventory-sourced costs
+  const handleRemoveCost = (id: string) => {
+    const inventoryInfo = getInventoryInfo(id);
+    if (inventoryInfo) {
+      // Show confirmation dialog for inventory-sourced costs
+      setCostToDelete({
+        id,
+        hasInventory: true,
+        quantity: inventoryInfo.quantity
+      });
+      setDeleteConfirmOpen(true);
+    } else {
+      // Directly remove non-inventory costs
+      removeCost(id);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (costToDelete) {
+      removeCost(costToDelete.id);
+      setCostToDelete(null);
+    }
+    setDeleteConfirmOpen(false);
+  };
 
   if (!canEdit && costs.length === 0) {
     return (
@@ -426,7 +502,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
       <WorkOrderCostsEditor
         costs={editCosts}
         onAddCost={addCost}
-        onRemoveCost={removeCost}
+        onRemoveCost={handleRemoveCost}
         onUpdateCost={updateCost}
         hasError={!validateCosts()}
       />
@@ -440,6 +516,29 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
           onSelect={handleAddFromInventory}
         />
       )}
+
+      {/* Delete Confirmation Dialog for Inventory-Sourced Costs */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Inventory?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cost item was added from inventory. Deleting it will restore{' '}
+              <strong>{costToDelete?.quantity ?? 0} unit(s)</strong> back to the inventory.
+              <br /><br />
+              Are you sure you want to delete this cost and restore the inventory?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCostToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>
+              Delete & Restore Inventory
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

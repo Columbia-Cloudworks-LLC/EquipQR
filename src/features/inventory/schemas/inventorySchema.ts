@@ -1,5 +1,24 @@
 import { z } from 'zod';
 
+/**
+ * Schema for a single compatibility rule (manufacturer/model pattern).
+ * 
+ * - manufacturer: Required, non-empty string
+ * - model: Optional; null or empty string means "Any Model"
+ */
+export const compatibilityRuleSchema = z.object({
+  manufacturer: z.string()
+    .min(1, 'Manufacturer is required')
+    .max(255, 'Manufacturer must be less than 255 characters'),
+  model: z.string()
+    .max(255, 'Model must be less than 255 characters')
+    .nullable()
+    .optional()
+    .transform(val => val === '' ? null : val)  // Treat empty string as "Any Model"
+});
+
+export type CompatibilityRuleFormData = z.infer<typeof compatibilityRuleSchema>;
+
 export const inventoryItemFormSchema = z.object({
   name: z.string()
     .min(1, 'Name is required')
@@ -37,7 +56,9 @@ export const inventoryItemFormSchema = z.object({
     .optional()
     .nullable(),
   compatibleEquipmentIds: z.array(z.string().uuid()).default([]),
-  managerIds: z.array(z.string().uuid()).default([])
+  managerIds: z.array(z.string().uuid()).default([]),
+  // Compatibility rules (manufacturer/model patterns)
+  compatibilityRules: z.array(compatibilityRuleSchema).default([])
 });
 
 export type InventoryItemFormData = z.infer<typeof inventoryItemFormSchema>;

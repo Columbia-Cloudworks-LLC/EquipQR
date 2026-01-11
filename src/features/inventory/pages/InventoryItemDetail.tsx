@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode, Search, Check, X } from 'lucide-react';
+import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode, Search, Check, X, Settings2 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useAssignInventoryManagers, useBulkLinkEquipmentToItem } from '@/features/inventory/hooks/useInventory';
+import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useAssignInventoryManagers, useBulkLinkEquipmentToItem, useCompatibilityRulesForItem, useBulkSetCompatibilityRules } from '@/features/inventory/hooks/useInventory';
+import { CompatibilityRulesEditor } from '@/features/inventory/components/CompatibilityRulesEditor';
+import type { PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
@@ -51,6 +53,8 @@ const InventoryItemDetail = () => {
   const [showManageManagers, setShowManageManagers] = useState(false);
   const [managerSearch, setManagerSearch] = useState('');
   const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>([]);
+  const [showEditRules, setShowEditRules] = useState(false);
+  const [editingRules, setEditingRules] = useState<PartCompatibilityRuleFormData[]>([]);
 
   const { data: item, isLoading: itemLoading } = useInventoryItem(
     currentOrganization?.id,
@@ -72,12 +76,17 @@ const InventoryItemDetail = () => {
     currentOrganization?.id,
     itemId
   );
+  const { data: compatibilityRules = [], isLoading: rulesLoading } = useCompatibilityRulesForItem(
+    currentOrganization?.id,
+    itemId
+  );
   const deleteMutation = useDeleteInventoryItem();
   const adjustMutation = useAdjustInventoryQuantity();
   const updateMutation = useUpdateInventoryItem();
   const unlinkEquipmentMutation = useUnlinkItemFromEquipment();
   const bulkLinkEquipmentMutation = useBulkLinkEquipmentToItem();
   const assignManagersMutation = useAssignInventoryManagers();
+  const bulkSetRulesMutation = useBulkSetCompatibilityRules();
 
   const handleDelete = async () => {
     if (!currentOrganization || !itemId) return;
@@ -570,6 +579,68 @@ const InventoryItemDetail = () => {
                           </Button>
                         )}
                       </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Compatibility Rules Card */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <CardTitle>Compatibility Rules</CardTitle>
+                {canEdit && (
+                  <Button
+                    onClick={() => {
+                      // Initialize editing state with current rules
+                      setEditingRules(compatibilityRules.map(r => ({
+                        manufacturer: r.manufacturer,
+                        model: r.model
+                      })));
+                      setShowEditRules(true);
+                    }}
+                    size="sm"
+                  >
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    Edit Rules
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {rulesLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-3/4" />
+                  </div>
+                ) : compatibilityRules.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-2">
+                      No compatibility rules defined
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Rules automatically match parts to equipment by manufacturer and model.
+                    </p>
+                    {canEdit && (
+                      <Button
+                        onClick={() => {
+                          setEditingRules([]);
+                          setShowEditRules(true);
+                        }}
+                        variant="outline"
+                        className="mt-4"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Rules
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {compatibilityRules.map((rule) => (
+                      <Badge key={rule.id} variant="secondary" className="text-sm py-1.5 px-3">
+                        {rule.manufacturer}
+                        {rule.model ? ` - ${rule.model}` : ' - All Models'}
+                      </Badge>
                     ))}
                   </div>
                 )}
@@ -1068,6 +1139,53 @@ const InventoryItemDetail = () => {
                   {bulkLinkEquipmentMutation.isPending
                     ? 'Saving...'
                     : 'Save Changes'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Compatibility Rules Dialog */}
+        <Dialog open={showEditRules} onOpenChange={setShowEditRules}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Compatibility Rules</DialogTitle>
+              <DialogDescription>
+                Define manufacturer and model patterns to automatically match this part with compatible equipment.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <CompatibilityRulesEditor
+                rules={editingRules}
+                onChange={setEditingRules}
+                disabled={bulkSetRulesMutation.isPending}
+              />
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditRules(false)}
+                  disabled={bulkSetRulesMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!currentOrganization || !itemId) return;
+                    try {
+                      await bulkSetRulesMutation.mutateAsync({
+                        organizationId: currentOrganization.id,
+                        itemId,
+                        rules: editingRules
+                      });
+                      setShowEditRules(false);
+                    } catch (error) {
+                      // Error toast is handled by the mutation hook
+                      logger.error('Error saving compatibility rules', error);
+                    }
+                  }}
+                  disabled={bulkSetRulesMutation.isPending}
+                >
+                  {bulkSetRulesMutation.isPending ? 'Saving...' : 'Save Rules'}
                 </Button>
               </div>
             </div>

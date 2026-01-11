@@ -398,3 +398,74 @@ export const useEquipmentStatusCounts = (
   });
 };
 
+/**
+ * ManufacturerModel - Represents a unique manufacturer/model combination
+ */
+export interface ManufacturerModel {
+  manufacturer: string;
+  model: string;
+}
+
+/**
+ * ManufacturerWithModels - Grouped by manufacturer with their models
+ */
+export interface ManufacturerWithModels {
+  manufacturer: string;
+  models: string[];
+}
+
+/**
+ * Get distinct manufacturer/model combinations for equipment.
+ * Used for populating compatibility rule dropdowns.
+ */
+export const useEquipmentManufacturersAndModels = (
+  organizationId: string | undefined,
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? 10 * 60 * 1000; // 10 minutes - this data changes rarely
+
+  return useQuery({
+    queryKey: ['equipment-manufacturers-models', organizationId],
+    queryFn: async (): Promise<ManufacturerWithModels[]> => {
+      if (!organizationId) return [];
+      
+      // Get all equipment with just manufacturer and model fields
+      const result = await EquipmentService.getAll(organizationId, {}, {});
+      if (!result.success || !result.data) {
+        return [];
+      }
+
+      // Group by manufacturer and collect unique models
+      const manufacturerMap = new Map<string, Set<string>>();
+      
+      for (const equip of result.data) {
+        if (!equip.manufacturer) continue;
+        
+        const mfr = equip.manufacturer.trim();
+        if (!manufacturerMap.has(mfr)) {
+          manufacturerMap.set(mfr, new Set());
+        }
+        
+        if (equip.model) {
+          manufacturerMap.get(mfr)!.add(equip.model.trim());
+        }
+      }
+
+      // Convert to sorted array
+      const manufacturersList: ManufacturerWithModels[] = [];
+      for (const [manufacturer, modelsSet] of manufacturerMap) {
+        manufacturersList.push({
+          manufacturer,
+          models: Array.from(modelsSet).sort((a, b) => a.localeCompare(b))
+        });
+      }
+
+      return manufacturersList.sort((a, b) => a.manufacturer.localeCompare(b.manufacturer));
+    },
+    enabled: !!organizationId,
+    staleTime,
+  });
+};
+
