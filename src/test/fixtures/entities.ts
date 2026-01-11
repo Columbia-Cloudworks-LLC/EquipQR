@@ -369,6 +369,244 @@ export const pmTemplates = {
 } as const;
 
 // ============================================
+// Inventory Item Fixtures
+// ============================================
+
+export interface TestInventoryItem {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;
+  sku: string | null;
+  external_id: string | null;
+  quantity_on_hand: number;
+  low_stock_threshold: number;
+  image_url: string | null;
+  location: string | null;
+  default_unit_cost: number | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  isLowStock?: boolean;
+}
+
+export const inventoryItems = {
+  oilFilter: {
+    id: 'inv-oil-filter',
+    organization_id: 'org-acme',
+    name: 'Oil Filter - Toyota Forklift',
+    description: 'OEM oil filter for Toyota 8FGU25 forklifts',
+    sku: 'OF-TY-001',
+    external_id: 'VENDOR-12345',
+    quantity_on_hand: 50,
+    low_stock_threshold: 10,
+    image_url: null,
+    location: 'Warehouse A - Shelf B3',
+    default_unit_cost: 24.99,
+    created_by: personas.admin.id,
+    created_at: '2024-01-01T10:00:00Z',
+    updated_at: '2024-01-10T14:30:00Z',
+    isLowStock: false
+  },
+  hydraulicHose: {
+    id: 'inv-hydraulic-hose',
+    organization_id: 'org-acme',
+    name: 'Hydraulic Hose 6ft',
+    description: 'High-pressure hydraulic hose, 6 foot length',
+    sku: 'HH-6FT-HP',
+    external_id: null,
+    quantity_on_hand: 3,
+    low_stock_threshold: 5,
+    image_url: null,
+    location: 'Warehouse A - Shelf C1',
+    default_unit_cost: 89.50,
+    created_by: personas.admin.id,
+    created_at: '2024-01-02T09:00:00Z',
+    updated_at: '2024-01-08T11:00:00Z',
+    isLowStock: true // Below threshold
+  },
+  brakePads: {
+    id: 'inv-brake-pads',
+    organization_id: 'org-acme',
+    name: 'Forklift Brake Pads',
+    description: 'Universal brake pads for warehouse forklifts',
+    sku: 'BP-UNIV-001',
+    external_id: 'BP-SUPPLIER-789',
+    quantity_on_hand: 20,
+    low_stock_threshold: 8,
+    image_url: null,
+    location: 'Parts Room',
+    default_unit_cost: 45.00,
+    created_by: personas.teamManager.id,
+    created_at: '2024-01-03T08:30:00Z',
+    updated_at: '2024-01-09T16:00:00Z',
+    isLowStock: false
+  },
+  craneWireRope: {
+    id: 'inv-crane-wire-rope',
+    organization_id: 'org-acme',
+    name: 'Wire Rope - Crane',
+    description: 'Steel wire rope for overhead cranes, 50ft spool',
+    sku: 'WR-CR-50',
+    external_id: null,
+    quantity_on_hand: 0, // Out of stock
+    low_stock_threshold: 2,
+    image_url: null,
+    location: 'Bay 3 Storage',
+    default_unit_cost: 275.00,
+    created_by: personas.admin.id,
+    created_at: '2024-01-04T11:00:00Z',
+    updated_at: '2024-01-11T09:00:00Z',
+    isLowStock: true
+  },
+  airFilter: {
+    id: 'inv-air-filter',
+    organization_id: 'org-acme',
+    name: 'Air Filter - Compressor',
+    description: 'Replacement air filter for Ingersoll Rand R-Series',
+    sku: 'AF-IR-37',
+    external_id: 'IR-PART-AF001',
+    quantity_on_hand: 15,
+    low_stock_threshold: 5,
+    image_url: null,
+    location: 'Utility Room Cabinet',
+    default_unit_cost: 35.00,
+    created_by: personas.admin.id,
+    created_at: '2024-01-05T14:00:00Z',
+    updated_at: '2024-01-10T10:00:00Z',
+    isLowStock: false
+  }
+} as const;
+
+export interface TestInventoryTransaction {
+  id: string;
+  inventory_item_id: string;
+  organization_id: string;
+  user_id: string;
+  previous_quantity: number;
+  new_quantity: number;
+  change_amount: number;
+  transaction_type: 'usage' | 'restock' | 'adjustment' | 'initial' | 'work_order';
+  notes: string | null;
+  work_order_id: string | null;
+  created_at: string;
+  userName?: string;
+  inventoryItemName?: string;
+}
+
+export const inventoryTransactions = {
+  initialStock: {
+    id: 'txn-initial-1',
+    inventory_item_id: 'inv-oil-filter',
+    organization_id: 'org-acme',
+    user_id: personas.admin.id,
+    previous_quantity: 0,
+    new_quantity: 50,
+    change_amount: 50,
+    transaction_type: 'initial' as const,
+    notes: 'Initial stock',
+    work_order_id: null,
+    created_at: '2024-01-01T10:00:00Z',
+    userName: personas.admin.name,
+    inventoryItemName: 'Oil Filter - Toyota Forklift'
+  },
+  usageForWorkOrder: {
+    id: 'txn-usage-1',
+    inventory_item_id: 'inv-hydraulic-hose',
+    organization_id: 'org-acme',
+    user_id: personas.technician.id,
+    previous_quantity: 5,
+    new_quantity: 3,
+    change_amount: -2,
+    transaction_type: 'work_order' as const,
+    notes: 'Used for hydraulic repair',
+    work_order_id: 'wo-inprogress-1',
+    created_at: '2024-01-08T11:00:00Z',
+    userName: personas.technician.name,
+    inventoryItemName: 'Hydraulic Hose 6ft'
+  },
+  restock: {
+    id: 'txn-restock-1',
+    inventory_item_id: 'inv-brake-pads',
+    organization_id: 'org-acme',
+    user_id: personas.teamManager.id,
+    previous_quantity: 10,
+    new_quantity: 20,
+    change_amount: 10,
+    transaction_type: 'restock' as const,
+    notes: 'Restocked from supplier order #PO-2024-015',
+    work_order_id: null,
+    created_at: '2024-01-09T16:00:00Z',
+    userName: personas.teamManager.name,
+    inventoryItemName: 'Forklift Brake Pads'
+  },
+  adjustment: {
+    id: 'txn-adjust-1',
+    inventory_item_id: 'inv-crane-wire-rope',
+    organization_id: 'org-acme',
+    user_id: personas.admin.id,
+    previous_quantity: 2,
+    new_quantity: 0,
+    change_amount: -2,
+    transaction_type: 'adjustment' as const,
+    notes: 'Physical count correction - damaged inventory',
+    work_order_id: null,
+    created_at: '2024-01-11T09:00:00Z',
+    userName: personas.admin.name,
+    inventoryItemName: 'Wire Rope - Crane'
+  }
+} as const;
+
+export interface TestPartCompatibilityRule {
+  id: string;
+  inventory_item_id: string;
+  manufacturer: string;
+  model: string | null;
+  manufacturer_norm: string;
+  model_norm: string | null;
+  created_at: string;
+}
+
+export const partCompatibilityRules = {
+  oilFilterToyota: {
+    id: 'rule-oil-toyota',
+    inventory_item_id: 'inv-oil-filter',
+    manufacturer: 'Toyota',
+    model: '8FGU25',
+    manufacturer_norm: 'toyota',
+    model_norm: '8fgu25',
+    created_at: '2024-01-01T10:00:00Z'
+  },
+  brakePadsUniversal: {
+    id: 'rule-brake-universal',
+    inventory_item_id: 'inv-brake-pads',
+    manufacturer: 'Toyota',
+    model: null, // Any Toyota model
+    manufacturer_norm: 'toyota',
+    model_norm: null,
+    created_at: '2024-01-03T08:30:00Z'
+  },
+  wireRopeKonecranes: {
+    id: 'rule-wire-konecranes',
+    inventory_item_id: 'inv-crane-wire-rope',
+    manufacturer: 'Konecranes',
+    model: null, // Any Konecranes model
+    manufacturer_norm: 'konecranes',
+    model_norm: null,
+    created_at: '2024-01-04T11:00:00Z'
+  },
+  airFilterIngersoll: {
+    id: 'rule-air-ingersoll',
+    inventory_item_id: 'inv-air-filter',
+    manufacturer: 'Ingersoll Rand',
+    model: 'R-Series 37',
+    manufacturer_norm: 'ingersoll rand',
+    model_norm: 'r-series 37',
+    created_at: '2024-01-05T14:00:00Z'
+  }
+} as const;
+
+// ============================================
 // Utility Functions
 // ============================================
 
@@ -414,5 +652,48 @@ export const createCustomWorkOrder = (
   created_date: new Date().toISOString(),
   has_pm: false,
   pm_required: false,
+  ...overrides
+});
+
+/**
+ * Get all inventory items that are low on stock
+ */
+export const getLowStockInventoryItems = (): TestInventoryItem[] => {
+  return Object.values(inventoryItems).filter(item => item.isLowStock);
+};
+
+/**
+ * Get inventory transactions for a specific item
+ */
+export const getTransactionsForItem = (itemId: string): TestInventoryTransaction[] => {
+  return Object.values(inventoryTransactions).filter(txn => txn.inventory_item_id === itemId);
+};
+
+/**
+ * Get compatibility rules for a specific inventory item
+ */
+export const getCompatibilityRulesForItem = (itemId: string): TestPartCompatibilityRule[] => {
+  return Object.values(partCompatibilityRules).filter(rule => rule.inventory_item_id === itemId);
+};
+
+/**
+ * Create a custom inventory item for edge case testing
+ */
+export const createCustomInventoryItem = (
+  overrides: Partial<TestInventoryItem> & { id: string; name: string }
+): TestInventoryItem => ({
+  organization_id: organizations.acme.id,
+  description: null,
+  sku: null,
+  external_id: null,
+  quantity_on_hand: 0,
+  low_stock_threshold: 5,
+  image_url: null,
+  location: null,
+  default_unit_cost: null,
+  created_by: personas.admin.id,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  isLowStock: false,
   ...overrides
 });

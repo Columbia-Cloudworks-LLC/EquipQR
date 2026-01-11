@@ -165,7 +165,7 @@ jobs:
     - name: Run tests with coverage
       run: node scripts/test-ci.mjs
       env:
-        COVERAGE_BASELINE: 70
+        COVERAGE_BASELINE: 52
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         

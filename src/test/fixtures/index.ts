@@ -37,12 +37,28 @@ export {
   pmTemplates,
   type TestPMTemplate,
   
+  // Inventory Items
+  inventoryItems,
+  type TestInventoryItem,
+  
+  // Inventory Transactions
+  inventoryTransactions,
+  type TestInventoryTransaction,
+  
+  // Part Compatibility Rules
+  partCompatibilityRules,
+  type TestPartCompatibilityRule,
+  
   // Utility Functions
   getWorkOrdersForTeam,
   getWorkOrdersForAssignee,
   getEquipmentForTeam,
   getWorkOrdersByStatus,
-  createCustomWorkOrder
+  createCustomWorkOrder,
+  getLowStockInventoryItems,
+  getTransactionsForItem,
+  getCompatibilityRulesForItem,
+  createCustomInventoryItem
 } from './entities';
 
 // Convenience re-exports for common testing patterns

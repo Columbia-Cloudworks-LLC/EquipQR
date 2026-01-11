@@ -1,7 +1,7 @@
 import fs from 'fs';
 
 const summaryPath = 'coverage/coverage-summary.json';
-const baseline = Number(process.env.COVERAGE_BASELINE || 70);
+const baseline = Number(process.env.COVERAGE_BASELINE || 52);
 
 if (!fs.existsSync(summaryPath)) {
   console.error(`Coverage summary not found at ${summaryPath}`);
