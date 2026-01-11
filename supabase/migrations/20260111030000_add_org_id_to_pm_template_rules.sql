@@ -54,15 +54,27 @@ ADD CONSTRAINT pm_template_compat_rules_unique
 UNIQUE (pm_template_id, organization_id, manufacturer_norm, model_norm);
 
 -- ============================================================================
--- PART 3: Add index for organization_id lookups
+-- PART 3: Update indexes to include organization_id
 -- ============================================================================
 
+-- Add organization-only index
 CREATE INDEX IF NOT EXISTS idx_pm_template_compat_rules_org 
   ON public.pm_template_compatibility_rules(organization_id);
 
 -- Composite index for common query pattern (org + template)
 CREATE INDEX IF NOT EXISTS idx_pm_template_compat_rules_org_template 
   ON public.pm_template_compatibility_rules(organization_id, pm_template_id);
+
+-- Drop and recreate matching indexes to include organization_id for better query performance
+DROP INDEX IF EXISTS idx_pm_template_compat_rules_mfr_model_norm;
+CREATE INDEX idx_pm_template_compat_rules_mfr_model_norm 
+  ON public.pm_template_compatibility_rules(organization_id, manufacturer_norm, model_norm);
+
+-- Drop and recreate the "any model" partial index to include organization_id
+DROP INDEX IF EXISTS idx_pm_template_compat_rules_mfr_any_model;
+CREATE INDEX idx_pm_template_compat_rules_mfr_any_model 
+  ON public.pm_template_compatibility_rules(organization_id, manufacturer_norm) 
+  WHERE model_norm IS NULL;
 
 -- ============================================================================
 -- PART 4: Drop and recreate RLS policies
