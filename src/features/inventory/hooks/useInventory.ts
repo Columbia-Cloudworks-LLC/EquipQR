@@ -693,7 +693,12 @@ export const useEquipmentMatchCount = (
 ) => {
   const staleTime = options?.staleTime ?? 30 * 1000; // 30 seconds for count
 
-  // Create a stable key from rules
+  // Create a stable string key from rules for React Query cache
+  // NOTE: The dependency on `rules` array reference is intentional:
+  // - The computation is lightweight (string mapping/joining)
+  // - The result is a primitive string that useQuery compares by value
+  // - When rules content changes, the parent component creates a new array anyway
+  // - JSON.stringify(rules) would also run on every render with more overhead
   const rulesKey = useMemo(() => {
     if (rules.length === 0) return '';
     return rules

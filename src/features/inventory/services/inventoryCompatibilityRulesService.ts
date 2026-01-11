@@ -172,7 +172,12 @@ export const removeCompatibilityRule = async (
 
 /**
  * Replace all compatibility rules for an inventory item.
- * Uses delete-then-insert pattern for simplicity and atomicity.
+ * Uses delete-then-insert pattern with recovery attempt on insert failure.
+ * 
+ * Note: The Supabase JS client doesn't support multi-statement transactions,
+ * so this operation is not fully atomic. If insert fails after delete, we
+ * attempt to restore the original rules. For guaranteed atomicity, consider
+ * migrating to an RPC function in the future.
  * 
  * @param organizationId - Organization ID for access control
  * @param itemId - Inventory item ID
@@ -197,6 +202,17 @@ export const bulkSetCompatibilityRules = async (
       throw new Error('Inventory item not found or access denied');
     }
 
+    // Fetch existing rules as backup for recovery on insert failure
+    const { data: existingRules, error: fetchError } = await supabase
+      .from('part_compatibility_rules')
+      .select('manufacturer, model, manufacturer_norm, model_norm')
+      .eq('inventory_item_id', itemId);
+
+    if (fetchError) {
+      logger.warn('Could not fetch existing rules for backup:', fetchError);
+      // Continue anyway - recovery won't be possible but operation can proceed
+    }
+
     // Delete all existing rules for this item
     const { error: deleteError } = await supabase
       .from('part_compatibility_rules')
@@ -216,13 +232,16 @@ export const bulkSetCompatibilityRules = async (
     }
 
     // Deduplicate rules by normalized manufacturer/model
+    // Design choice: Keep the first occurrence of each unique manufacturer/model pair.
+    // This matches user expectation when adding rules in sequence - earlier entries take precedence.
+    // The database unique constraint would reject duplicates anyway, so we dedupe client-side
+    // to provide a clean user experience without validation errors.
     const uniqueRules = new Map<string, PartCompatibilityRuleFormData>();
     for (const rule of validRules) {
       const manufacturerNorm = normalizeValue(rule.manufacturer);
       const modelNorm = rule.model ? normalizeValue(rule.model) : '';
       const key = `${manufacturerNorm}|${modelNorm}`;
       
-      // Keep first occurrence (or could choose to keep last)
       if (!uniqueRules.has(key)) {
         uniqueRules.set(key, rule);
       }
@@ -242,6 +261,27 @@ export const bulkSetCompatibilityRules = async (
       .insert(insertData);
 
     if (insertError) {
+      // Attempt to restore original rules if we have a backup
+      if (existingRules && existingRules.length > 0) {
+        logger.warn('Insert failed, attempting to restore original rules...');
+        const restoreData = existingRules.map(rule => ({
+          inventory_item_id: itemId,
+          manufacturer: rule.manufacturer,
+          model: rule.model,
+          manufacturer_norm: rule.manufacturer_norm,
+          model_norm: rule.model_norm
+        }));
+        
+        const { error: restoreError } = await supabase
+          .from('part_compatibility_rules')
+          .insert(restoreData);
+        
+        if (restoreError) {
+          logger.error('Failed to restore original rules after insert failure:', restoreError);
+          throw new Error(`Insert failed and recovery failed: ${insertError.message}. Original rules may be lost.`);
+        }
+        logger.info('Successfully restored original rules after insert failure');
+      }
       throw insertError;
     }
 
@@ -260,6 +300,12 @@ export const bulkSetCompatibilityRules = async (
  * Count how many equipment items match a given set of rules.
  * Used for displaying match count in the UI.
  * 
+ * Performance note: This function fetches all equipment to the client and filters
+ * in JavaScript. For organizations with very large equipment fleets (1000+ items),
+ * consider migrating to a database RPC function for server-side counting.
+ * Current approach is acceptable for typical fleet sizes and provides real-time
+ * preview without additional database infrastructure.
+ * 
  * @param organizationId - Organization ID
  * @param rules - Array of rules to match against
  * @returns Count of matching equipment
@@ -276,8 +322,8 @@ export const countEquipmentMatchingRules = async (
       return 0;
     }
 
-    // Build OR conditions for each rule
-    // This is a simplified approach - for complex queries, consider an RPC
+    // Fetch equipment to client for matching
+    // TODO: For large fleets, consider an RPC function for server-side counting
     const { data: equipment, error } = await supabase
       .from('equipment')
       .select('id, manufacturer, model')
