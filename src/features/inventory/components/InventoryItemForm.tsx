@@ -124,9 +124,12 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   }, [open, editingItem, form]);
 
   // Load compatible equipment, managers, and compatibility rules when editing.
-  // Uses a ref to track the current item ID and prevent race conditions when
-  // the user rapidly closes and reopens the form for different items.
+  // Uses AbortController to properly cancel in-flight requests on unmount/re-render,
+  // plus a ref to track the current item ID for additional race condition prevention.
   useEffect(() => {
+    // Create AbortController for this effect instance
+    const abortController = new AbortController();
+    
     if (editingItem && currentOrganization?.id) {
       // Track which item we're loading data for
       const itemId = editingItem.id;
@@ -144,6 +147,9 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             throw new Error('Security: editingItem organization mismatch');
           }
 
+          // Check for abort before each async operation
+          if (abortController.signal.aborted) return;
+
           // Load compatible equipment IDs
           // Filter via join to inventory_items for organization isolation
           const { data: compatibilityData } = await supabase
@@ -155,9 +161,9 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             .eq('inventory_item_id', editingItem.id)
             .eq('inventory_items.organization_id', currentOrganization.id);
           
-          // Check if we're still editing the same item (prevent stale data overwrite)
-          if (currentEditingItemIdRef.current !== itemId) {
-            logger.debug('Ignoring stale editing data load for item:', itemId);
+          // Check for abort and stale item ID after async operation
+          if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
+            logger.debug('Ignoring stale/aborted editing data load for item:', itemId);
             return;
           }
 
@@ -175,8 +181,8 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             .eq('inventory_items.organization_id', currentOrganization.id);
           
           // Check again after second async operation
-          if (currentEditingItemIdRef.current !== itemId) {
-            logger.debug('Ignoring stale editing data load for item:', itemId);
+          if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
+            logger.debug('Ignoring stale/aborted editing data load for item:', itemId);
             return;
           }
 
@@ -195,8 +201,8 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             .eq('inventory_items.organization_id', currentOrganization.id);
 
           // Final check before updating form state
-          if (currentEditingItemIdRef.current !== itemId) {
-            logger.debug('Ignoring stale editing data load for item:', itemId);
+          if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
+            logger.debug('Ignoring stale/aborted editing data load for item:', itemId);
             return;
           }
 
@@ -213,8 +219,8 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
           // Mark async data as loaded - form can now be safely submitted
           setIsEditingDataLoaded(true);
         } catch (error) {
-          // Only show error if we're still editing the same item
-          if (currentEditingItemIdRef.current !== itemId) {
+          // Ignore errors from aborted/stale requests
+          if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
             return;
           }
           logger.error('Error loading editing data:', error);
@@ -232,8 +238,9 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
       loadEditingData();
     }
 
-    // Cleanup: clear the ref when effect re-runs or unmounts
+    // Cleanup: abort pending requests and clear ref when effect re-runs or unmounts
     return () => {
+      abortController.abort();
       currentEditingItemIdRef.current = null;
     };
   }, [editingItem, currentOrganization?.id, form, toast]);

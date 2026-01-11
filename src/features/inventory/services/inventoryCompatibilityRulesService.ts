@@ -174,11 +174,21 @@ export const removeCompatibilityRule = async (
  * Replace all compatibility rules for an inventory item.
  * Uses delete-then-insert pattern with recovery attempt on insert failure.
  * 
- * ## Atomicity Warning
- * The Supabase JS client doesn't support multi-statement transactions,
- * so this operation is not fully atomic. If insert fails after delete:
- * 1. We attempt to restore the original rules from a backup fetched before deletion.
- * 2. If recovery also fails, an error is thrown indicating data may be lost.
+ * ╔════════════════════════════════════════════════════════════════════════════╗
+ * ║  ⚠️  ATOMICITY WARNING - NOT TRANSACTIONAL  ⚠️                            ║
+ * ╠════════════════════════════════════════════════════════════════════════════╣
+ * ║  The Supabase JS client doesn't support multi-statement transactions.      ║
+ * ║  This function uses delete-then-insert which is NOT atomic.                ║
+ * ║                                                                            ║
+ * ║  FAILURE SCENARIO:                                                         ║
+ * ║  1. Delete succeeds (existing rules removed)                               ║
+ * ║  2. Insert fails (new rules not saved)                                     ║
+ * ║  3. Recovery is attempted from pre-delete backup                           ║
+ * ║  4. If recovery ALSO fails → DATA LOSS (rules are gone)                    ║
+ * ║                                                                            ║
+ * ║  FOR MISSION-CRITICAL DEPLOYMENTS:                                         ║
+ * ║  Migrate to an RPC function with PostgreSQL transactions for atomicity.    ║
+ * ╚════════════════════════════════════════════════════════════════════════════╝
  * 
  * ## Recovery Guidance
  * If a user encounters a "recovery failed" error:
