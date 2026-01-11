@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
+import { useMatchingPMTemplates } from '@/features/pm-templates/hooks/usePMTemplateCompatibility';
 import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
 import type { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { logger } from '@/utils/logger';
@@ -19,8 +20,16 @@ export const useWorkOrderPMChecklist = ({
   setValue,
   selectedEquipment
 }: UseWorkOrderPMChecklistProps) => {
-  const { data: allTemplates = [], isLoading, error: templatesError } = usePMTemplates();
+  const { data: allTemplates = [], isLoading: isLoadingTemplates, error: templatesError } = usePMTemplates();
   const { restrictions } = useSimplifiedOrganizationRestrictions();
+  
+  // Fetch matching templates based on equipment manufacturer/model compatibility rules
+  const { data: matchingTemplates = [], isLoading: isLoadingMatching } = useMatchingPMTemplates(
+    selectedEquipment?.id,
+    { enabled: !!selectedEquipment?.id && !selectedEquipment?.default_pm_template_id }
+  );
+  
+  const isLoading = isLoadingTemplates || isLoadingMatching;
   
   // Debug: Log template loading state
   React.useEffect(() => {
@@ -28,11 +37,12 @@ export const useWorkOrderPMChecklist = ({
       logger.debug('[useWorkOrderPMChecklist] Template query state:', {
         isLoading,
         allTemplatesCount: allTemplates.length,
+        matchingTemplatesCount: matchingTemplates.length,
         error: templatesError,
         orgId: selectedEquipment?.id ? 'equipment selected' : 'no equipment'
       });
     }
-  }, [values.hasPM, isLoading, allTemplates.length, templatesError, selectedEquipment]);
+  }, [values.hasPM, isLoading, allTemplates.length, matchingTemplates.length, templatesError, selectedEquipment]);
   
   // Check if equipment has an assigned template
   const hasAssignedTemplate = selectedEquipment?.default_pm_template_id;
@@ -40,49 +50,73 @@ export const useWorkOrderPMChecklist = ({
     ? allTemplates.find(t => t.id === selectedEquipment.default_pm_template_id)
     : null;
   
-  // Filter templates based on user restrictions (only if no assigned template)
-  // BUT: Always include the template from values.pmTemplateId if it exists (for edit mode)
+  // Filter templates to only show matching templates based on compatibility rules
+  // If no equipment is selected or no rules match, show no templates (user must select equipment first)
   const templates = useMemo(() => {
     if (hasAssignedTemplate) {
       return [];
     }
     
-    let filtered = restrictions.canCreateCustomPMTemplates 
-      ? allTemplates 
-      : allTemplates.filter(t => !t.organization_id); // Only global templates for free users
+    // Get IDs of templates that match the equipment's manufacturer/model via compatibility rules
+    const compatibleTemplateIds = new Set(matchingTemplates.map(m => m.template_id));
+    
+    // Filter allTemplates to only include those with matching compatibility rules
+    let filtered = allTemplates.filter(t => compatibleTemplateIds.has(t.id));
+    
+    // Apply user restrictions (free users can only see global templates)
+    if (!restrictions.canCreateCustomPMTemplates) {
+      filtered = filtered.filter(t => !t.organization_id);
+    }
     
     // If we're in edit mode and have a pmTemplateId, ensure that template is in the list
+    // (even if it wouldn't normally match - for backwards compatibility with existing work orders)
     if (values.pmTemplateId) {
       const currentTemplate = allTemplates.find(t => t.id === values.pmTemplateId);
       if (currentTemplate && !filtered.find(t => t.id === currentTemplate.id)) {
-        // Add the current template to the list even if it would normally be filtered out
         filtered = [...filtered, currentTemplate];
       }
     }
-    
+
     return filtered;
-  }, [hasAssignedTemplate, allTemplates, restrictions.canCreateCustomPMTemplates, values.pmTemplateId]);
+  }, [hasAssignedTemplate, allTemplates, matchingTemplates, restrictions.canCreateCustomPMTemplates, values.pmTemplateId]);
   
-  // Find the selected template - prioritize the one from form values
+  // Find the selected template - prioritize assigned, then form value, then first matched
   const selectedTemplate = useMemo(() => {
-    return assignedTemplate || 
-           (values.pmTemplateId && templates.find(t => t.id === values.pmTemplateId)) ||
-           templates.find(t => t.name === 'Forklift PM') || 
-           templates[0];
+    if (assignedTemplate) return assignedTemplate;
+    if (values.pmTemplateId) {
+      const found = templates.find(t => t.id === values.pmTemplateId);
+      if (found) return found;
+    }
+    // Auto-select first matching template if available
+    return templates[0] || null;
   }, [assignedTemplate, values.pmTemplateId, templates]);
   
-  // Auto-set assigned template when equipment is selected
+  // Auto-set template when equipment is selected or PM is enabled
   useEffect(() => {
-    if (hasAssignedTemplate && assignedTemplate && values.hasPM) {
+    if (!values.hasPM) return;
+    
+    if (hasAssignedTemplate && assignedTemplate) {
+      // Direct assignment - use assigned template
       setValue('pmTemplateId', assignedTemplate.id);
-    } else if (!hasAssignedTemplate && values.hasPM && !values.pmTemplateId && templates.length > 0) {
-      // Auto-select first available template when PM is enabled and no template is selected
-      const templateToSelect = selectedTemplate || templates[0];
-      if (templateToSelect) {
-        setValue('pmTemplateId', templateToSelect.id);
+    } else if (templates.length > 0 && !values.pmTemplateId) {
+      // Auto-select first matching template if no template selected yet
+      setValue('pmTemplateId', templates[0].id);
+    } else if (templates.length > 0 && values.pmTemplateId) {
+      // Verify current selection is still valid (in case equipment changed)
+      const isValid = templates.some(t => t.id === values.pmTemplateId);
+      if (!isValid) {
+        // Current template not compatible with new equipment, reset to first matching
+        setValue('pmTemplateId', templates[0].id);
+      }
+    } else if (templates.length === 0 && values.pmTemplateId && !hasAssignedTemplate) {
+      // No matching templates for this equipment, clear selection
+      // (unless we're in edit mode, which is handled by the filter logic above)
+      const isEditMode = allTemplates.some(t => t.id === values.pmTemplateId);
+      if (!isEditMode) {
+        setValue('pmTemplateId', undefined as unknown as string);
       }
     }
-  }, [hasAssignedTemplate, assignedTemplate, values.hasPM, values.pmTemplateId, templates, selectedTemplate, setValue]);
+  }, [hasAssignedTemplate, assignedTemplate, values.hasPM, values.pmTemplateId, templates, allTemplates, setValue]);
 
   const handleTemplateChange = (templateId: string) => {
     setValue('pmTemplateId', templateId);

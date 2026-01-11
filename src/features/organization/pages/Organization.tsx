@@ -66,9 +66,11 @@ const Organization = () => {
   // Restrict access for regular members
   if (currentUserRole === 'member') {
     return (
-      <RestrictedOrganizationAccess 
-        currentOrganizationName={currentOrganization.name}
-      />
+      <Page maxWidth="7xl" padding="responsive">
+        <RestrictedOrganizationAccess 
+          currentOrganizationName={currentOrganization.name}
+        />
+      </Page>
     );
   }
 

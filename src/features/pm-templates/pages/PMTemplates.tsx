@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock } from 'lucide-react';
+import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock, Settings2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { TemplateAssignmentDialog } from '@/features/pm-templates/components/TemplateAssignmentDialog';
+import { PMTemplateRulesDialog } from '@/features/pm-templates/components/PMTemplateRulesDialog';
 import { ChecklistTemplateEditor } from '@/features/organization/components/ChecklistTemplateEditor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -35,6 +36,7 @@ interface TemplateCardProps {
   onApply: (templateId: string) => void;
   onClone: (templateId: string) => void;
   onDelete: (templateId: string) => void;
+  onConfigureRules: (templateId: string) => void;
 }
 
 const TemplateCard: React.FC<TemplateCardProps> = ({ 
@@ -45,7 +47,8 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   onEdit, 
   onApply, 
   onClone, 
-  onDelete 
+  onDelete,
+  onConfigureRules
 }) => {
   // Use the already-processed summary data
   const sections = template.sections || [];
@@ -154,6 +157,18 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                 Edit
               </Button>
             )}
+
+            {/* Configure Rules button - for global templates (admins can set org-specific rules) */}
+            {!isOrgTemplate && isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onConfigureRules(template.id)}
+                title="Configure equipment compatibility rules for your organization"
+              >
+                <Settings2 className="h-3 w-3" />
+              </Button>
+            )}
             
             {canDelete && (
               <AlertDialog>
@@ -201,6 +216,7 @@ const PMTemplates = () => {
   const [templateToApply, setTemplateToApply] = useState<string | null>(null);
   const [cloneDialogOpen, setCloneDialogOpen] = useState<string | null>(null);
   const [cloneName, setCloneName] = useState('');
+  const [rulesDialogTemplate, setRulesDialogTemplate] = useState<{ id: string; name: string } | null>(null);
 
   // Fetch the template being edited
   const { data: templateToEdit } = usePMTemplate(editingTemplate || '');
@@ -291,6 +307,17 @@ const PMTemplates = () => {
     deleteTemplateMutation.mutate(templateId);
   };
 
+  const handleConfigureRules = (templateId: string) => {
+    const template = templates?.find(t => t.id === templateId);
+    if (template) {
+      setRulesDialogTemplate({ id: template.id, name: template.name });
+    }
+  };
+
+  const handleCloseRulesDialog = () => {
+    setRulesDialogTemplate(null);
+  };
+
   // Separate templates into global and organization-specific
   const globalTemplates = templates?.filter(t => !t.organization_id) || [];
   const orgTemplates = templates?.filter(t => t.organization_id === currentOrganization?.id) || [];
@@ -368,6 +395,7 @@ const PMTemplates = () => {
                     onApply={handleApplyTemplate}
                     onClone={handleCloneTemplate}
                     onDelete={handleDeleteTemplate}
+                    onConfigureRules={handleConfigureRules}
                   />
                 ))}
               </div>
@@ -393,6 +421,7 @@ const PMTemplates = () => {
                     onApply={handleApplyTemplate}
                     onClone={handleCloneTemplate}
                     onDelete={handleDeleteTemplate}
+                    onConfigureRules={handleConfigureRules}
                   />
                 ))}
               </div>
@@ -480,6 +509,16 @@ const PMTemplates = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Configure Rules Dialog */}
+      {rulesDialogTemplate && (
+        <PMTemplateRulesDialog
+          templateId={rulesDialogTemplate.id}
+          templateName={rulesDialogTemplate.name}
+          open={!!rulesDialogTemplate}
+          onClose={handleCloseRulesDialog}
+        />
+      )}
       </div>
     </Page>
   );

@@ -1,14 +1,15 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "1.7.12",
+  "version": "1.7.13",
   "type": "module",
   "engines": {
     "node": "^20.17.0 || >=22.9.0"
   },
   "overrides": {
     "vite": "^5.4.21",
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "node-domexception": "^1.0.0"
   },
   "scripts": {
     "dev": "vite",
@@ -16,8 +17,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test": "node scripts/test-runner.mjs",
+    "test:coverage": "node scripts/test-runner.mjs --coverage",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",
     "test:ci": "npm run test:coverage && node scripts/coverage-ratchet.mjs",
@@ -100,7 +101,7 @@
   "size-limit": [
     {
       "path": "dist/assets/index-*.js",
-      "limit": "600 kB"
+      "limit": "200 kB"
     }
   ],
   "devDependencies": {
@@ -115,6 +116,7 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
+    "@vitest/coverage-istanbul": "3.2.4",
     "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.20",
     "baseline-browser-mapping": "2.9.11",

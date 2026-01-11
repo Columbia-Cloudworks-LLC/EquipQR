@@ -34,6 +34,12 @@ This folder contains modular seed data files for local development. The files ar
 | `14_scans.sql` | QR scan history |
 | `15_geocoded_locations.sql` | Location cache |
 | `16_customers.sql` | Rental customers |
+| `17_pm_template_forklift.sql` | Global Forklift PM checklist template (103 items) |
+| `18_pm_template_pull_trailer.sql` | Global Pull Trailer PM checklist template (51 items) |
+| `19_pm_template_compressor.sql` | Global Compressor PM checklist template (53 items) |
+| `20_pm_template_scissor_lift.sql` | Global Scissor Lift PM checklist template (74 items) |
+| `21_pm_template_excavator.sql` | Global Excavator PM checklist template (84 items) |
+| `22_pm_template_skid_steer.sql` | Global Skid Steer PM checklist template (80 items) |
 
 ## Test Accounts
 
@@ -113,6 +119,23 @@ After running `npx supabase db reset`, you can login as any test user with passw
 | OUT OF STOCK | Scissor Lift Cylinder Seal | 0 | 2 |
 | No SKU | LED Panel | 2 | 3 |
 
+## PM Checklist Templates (Global)
+
+The PM template seed files (`17_*` through `22_*`) create global PM checklist templates that are available to all organizations. These templates:
+
+- Have `organization_id = NULL` (global, not org-specific)
+- Are `is_protected = true` (cannot be modified by organizations)
+- Use UUID prefix `cc0e8400` for template IDs
+
+| Template | Items | Sections |
+|----------|-------|----------|
+| Forklift PM | 103 | 12 |
+| Pull Trailer PM | 51 | 8 |
+| Compressor PM | 53 | 9 |
+| Scissor Lift PM | 74 | 10 |
+| Excavator PM | 84 | 12 |
+| Skid Steer PM | 80 | 11 |
+
 ## Trigger Handling
 
 The `handle_new_user` trigger fires on `auth.users` INSERT and creates:
@@ -135,7 +158,7 @@ If you're seeing duplicate organizations or unexpected default org selection:
 
 ## Adding New Seed Data
 
-1. Create a new numbered file (e.g., `17_new_table.sql`)
+1. Create a new numbered file (e.g., `23_new_table.sql`)
 2. Ensure the number reflects dependency order
 3. Use `ON CONFLICT DO NOTHING` for idempotent inserts
 4. Use consistent UUID patterns (see existing files for prefix conventions)

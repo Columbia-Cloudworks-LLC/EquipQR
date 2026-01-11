@@ -28,7 +28,7 @@ const RestrictedOrganizationAccess: React.FC<RestrictedOrganizationAccessProps> 
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
+    <div className="space-y-4 sm:space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Organization Management</h1>
         <p className="text-sm sm:text-base text-muted-foreground mt-1">

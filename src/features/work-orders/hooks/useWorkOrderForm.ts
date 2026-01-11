@@ -101,10 +101,37 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     }
   }, [isOpen, workOrder?.id, equipmentId, form, initialValues]);
 
+  /**
+   * Checks if the form has unsaved changes compared to initial values.
+   * 
+   * Empty value normalization: We intentionally treat undefined, null, and empty string 
+   * as equivalent for form state comparison. This is appropriate because:
+   * 1. Database optional fields may be null/undefined, but form clears to empty string
+   * 2. For "unsaved changes" detection, all empty states mean "no value" semantically
+   * 3. Users clearing a field (→ '') should match an initially null/undefined field
+   * 
+   * @returns true if any field has changed from its initial value
+   */
   const checkForUnsavedChanges = (): boolean => {
-    return Object.keys(form.values).some(
-      key => form.values[key as keyof WorkOrderFormData] !== initialValues[key as keyof WorkOrderFormData]
-    );
+    const isEmpty = (value: unknown): boolean => {
+      return value === undefined || value === null || value === '';
+    };
+
+    // Helper to compare values, treating all "empty" values as equivalent
+    const hasChanged = (current: unknown, initial: unknown): boolean => {
+      // If both are "empty", no change
+      if (isEmpty(current) && isEmpty(initial)) return false;
+      // If only one is empty, there's a change
+      if (isEmpty(current) !== isEmpty(initial)) return true;
+      // Otherwise compare directly
+      return current !== initial;
+    };
+
+    return Object.keys(form.values).some(key => {
+      const currentValue = form.values[key as keyof WorkOrderFormData];
+      const initialValue = initialValues[key as keyof WorkOrderFormData];
+      return hasChanged(currentValue, initialValue);
+    });
   };
 
   return {

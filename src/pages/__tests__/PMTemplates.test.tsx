@@ -13,7 +13,7 @@ import {
   useDeletePMTemplate, 
   useClonePMTemplate 
 } from '@/features/pm-templates/hooks/usePMTemplates';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
 
@@ -26,8 +26,8 @@ vi.mock('@/features/pm-templates/hooks/usePMTemplates', () => ({
   useClonePMTemplate: vi.fn(),
 }));
 
-vi.mock('@/hooks/useSimpleOrganization', () => ({
-  useSimpleOrganization: vi.fn(),
+vi.mock('@/contexts/OrganizationContext', () => ({
+  useOrganization: vi.fn(),
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
@@ -226,7 +226,7 @@ describe('PMTemplates Page', () => {
     vi.mocked(useDeletePMTemplate).mockReturnValue(mockHooks.useDeletePMTemplate as unknown as ReturnType<typeof useDeletePMTemplate>);
     vi.mocked(useClonePMTemplate).mockReturnValue(mockHooks.useClonePMTemplate as unknown as ReturnType<typeof useClonePMTemplate>);
 
-    vi.mocked(useSimpleOrganization).mockReturnValue({
+    vi.mocked(useOrganization).mockReturnValue({
       currentOrganization: { id: 'org-1', name: 'Test Org' },
       organizations: [],
       userOrganizations: [],
@@ -235,7 +235,7 @@ describe('PMTemplates Page', () => {
       error: null,
       switchToOrganization: vi.fn(),
       refreshOrganizations: vi.fn()
-    } as unknown as ReturnType<typeof useSimpleOrganization>);
+    } as unknown as ReturnType<typeof useOrganization>);
 
     vi.mocked(usePermissions).mockReturnValue({
       isAdmin: true,
@@ -287,7 +287,7 @@ describe('PMTemplates Page', () => {
     });
 
     it('shows no organization message when no organization selected', () => {
-      vi.mocked(useSimpleOrganization).mockReturnValue({
+      vi.mocked(useOrganization).mockReturnValue({
         currentOrganization: null,
         organizations: [],
         userOrganizations: [],
@@ -296,7 +296,7 @@ describe('PMTemplates Page', () => {
         error: null,
         switchToOrganization: vi.fn(),
         refreshOrganizations: vi.fn()
-      } as unknown as ReturnType<typeof useSimpleOrganization>);
+      } as unknown as ReturnType<typeof useOrganization>);
 
       render(
         <TestProviders>

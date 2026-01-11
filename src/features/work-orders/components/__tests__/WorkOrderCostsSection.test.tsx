@@ -18,7 +18,6 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderEquipment', () => ({
   }))
 }));
 
-// Mock InlineEditWorkOrderCosts
 vi.mock('../InlineEditWorkOrderCosts', () => ({
   default: ({ costs, workOrderId, canEdit }: { costs: unknown[]; workOrderId: string; canEdit: boolean }) => (
     <div data-testid="inline-edit-costs">
@@ -34,7 +33,7 @@ describe('WorkOrderCostsSection', () => {
     vi.clearAllMocks();
   });
 
-  describe('Loading State', () => {
+  describe('rendering and data display', () => {
     it('shows loading state when costs are loading', async () => {
       const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
       
@@ -44,57 +43,13 @@ describe('WorkOrderCostsSection', () => {
       });
 
       render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={true}
-          canEditCosts={true}
-        />
+        <WorkOrderCostsSection workOrderId="wo-1" canAddCosts={true} canEditCosts={true} />
       );
 
       expect(screen.getByText(/Loading Costs.../i)).toBeInTheDocument();
     });
-  });
 
-  describe('Rendering', () => {
-    it('renders costs section with title', async () => {
-      const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      
-      vi.mocked(useWorkOrderCosts).mockReturnValue({
-        data: [],
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={true}
-          canEditCosts={true}
-        />
-      );
-
-      expect(screen.getByText(/Itemized Costs/i)).toBeInTheDocument();
-    });
-
-    it('renders inline edit costs component', async () => {
-      const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      
-      vi.mocked(useWorkOrderCosts).mockReturnValue({
-        data: [],
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={true}
-          canEditCosts={true}
-        />
-      );
-
-      expect(screen.getByTestId('inline-edit-costs')).toBeInTheDocument();
-    });
-
-    it('passes costs to inline edit component', async () => {
+    it('renders costs section with title and passes data to inline edit component', async () => {
       const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
       const mockCosts = [
         { id: 'cost-1', description: 'Cost 1', quantity: 1, unit_price_cents: 1000 },
@@ -107,137 +62,42 @@ describe('WorkOrderCostsSection', () => {
       });
 
       render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={true}
-          canEditCosts={true}
-        />
+        <WorkOrderCostsSection workOrderId="wo-1" canAddCosts={true} canEditCosts={true} />
       );
 
+      expect(screen.getByText(/Itemized Costs/i)).toBeInTheDocument();
+      expect(screen.getByTestId('inline-edit-costs')).toBeInTheDocument();
       expect(screen.getByTestId('costs-count')).toHaveTextContent('2');
-    });
-
-    it('passes work order ID to inline edit component', async () => {
-      const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      
-      vi.mocked(useWorkOrderCosts).mockReturnValue({
-        data: [],
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={true}
-          canEditCosts={true}
-        />
-      );
-
       expect(screen.getByTestId('work-order-id')).toHaveTextContent('wo-1');
-    });
-
-    it('passes canEdit prop based on permissions', async () => {
-      const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      
-      vi.mocked(useWorkOrderCosts).mockReturnValue({
-        data: [],
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={true}
-          canEditCosts={true}
-        />
-      );
-
-      expect(screen.getByTestId('can-edit')).toHaveTextContent('true');
-    });
-
-    it('passes canEdit as false when neither permission is granted', async () => {
-      const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      
-      vi.mocked(useWorkOrderCosts).mockReturnValue({
-        data: [],
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={false}
-          canEditCosts={false}
-        />
-      );
-
-      expect(screen.getByTestId('can-edit')).toHaveTextContent('false');
-    });
-
-    it('passes canEdit as true when canAddCosts is true', async () => {
-      const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      
-      vi.mocked(useWorkOrderCosts).mockReturnValue({
-        data: [],
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={true}
-          canEditCosts={false}
-        />
-      );
-
-      expect(screen.getByTestId('can-edit')).toHaveTextContent('true');
-    });
-
-    it('passes canEdit as true when canEditCosts is true', async () => {
-      const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      
-      vi.mocked(useWorkOrderCosts).mockReturnValue({
-        data: [],
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={false}
-          canEditCosts={true}
-        />
-      );
-
-      expect(screen.getByTestId('can-edit')).toHaveTextContent('true');
     });
   });
 
-  describe('Equipment Integration', () => {
-    it('passes equipment IDs to inline edit component', async () => {
-      const { useWorkOrderEquipment } = await import('@/features/work-orders/hooks/useWorkOrderEquipment');
+  describe('permission handling', () => {
+    it('passes canEdit based on permission combinations', async () => {
+      const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
       
-      vi.mocked(useWorkOrderEquipment).mockReturnValue({
-        data: [
-          { equipment_id: 'eq-1' },
-          { equipment_id: 'eq-2' }
-        ],
-        isLoading: false
-      });
+      vi.mocked(useWorkOrderCosts).mockReturnValue({ data: [], isLoading: false });
 
-      render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={true}
-          canEditCosts={true}
-        />
-      );
+      const permissionCases = [
+        { canAddCosts: true, canEditCosts: true, expected: 'true' },
+        { canAddCosts: true, canEditCosts: false, expected: 'true' },
+        { canAddCosts: false, canEditCosts: true, expected: 'true' },
+        { canAddCosts: false, canEditCosts: false, expected: 'false' }
+      ];
 
-      // Equipment IDs are passed to inline edit component
-      expect(screen.getByTestId('inline-edit-costs')).toBeInTheDocument();
+      for (const { canAddCosts, canEditCosts, expected } of permissionCases) {
+        const { unmount } = render(
+          <WorkOrderCostsSection workOrderId="wo-1" canAddCosts={canAddCosts} canEditCosts={canEditCosts} />
+        );
+
+        expect(screen.getByTestId('can-edit')).toHaveTextContent(expected);
+        unmount();
+      }
     });
+  });
 
-    it('filters out null equipment IDs', async () => {
+  describe('equipment integration', () => {
+    it('handles equipment data including filtering null IDs', async () => {
       const { useWorkOrderEquipment } = await import('@/features/work-orders/hooks/useWorkOrderEquipment');
       
       vi.mocked(useWorkOrderEquipment).mockReturnValue({
@@ -250,56 +110,10 @@ describe('WorkOrderCostsSection', () => {
       });
 
       render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={true}
-          canEditCosts={true}
-        />
-      );
-
-      // Component should filter out null IDs
-      expect(screen.getByTestId('inline-edit-costs')).toBeInTheDocument();
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('handles empty costs array', async () => {
-      const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      
-      vi.mocked(useWorkOrderCosts).mockReturnValue({
-        data: [],
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={true}
-          canEditCosts={true}
-        />
-      );
-
-      expect(screen.getByTestId('costs-count')).toHaveTextContent('0');
-    });
-
-    it('handles missing equipment data', async () => {
-      const { useWorkOrderEquipment } = await import('@/features/work-orders/hooks/useWorkOrderEquipment');
-      
-      vi.mocked(useWorkOrderEquipment).mockReturnValue({
-        data: [],
-        isLoading: false
-      });
-
-      render(
-        <WorkOrderCostsSection
-          workOrderId="wo-1"
-          canAddCosts={true}
-          canEditCosts={true}
-        />
+        <WorkOrderCostsSection workOrderId="wo-1" canAddCosts={true} canEditCosts={true} />
       );
 
       expect(screen.getByTestId('inline-edit-costs')).toBeInTheDocument();
     });
   });
 });
-
