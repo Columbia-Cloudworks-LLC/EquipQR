@@ -4,7 +4,8 @@ import type {
   InventoryItem,
   InventoryTransaction,
   InventoryQuantityAdjustment,
-  InventoryFilters
+  InventoryFilters,
+  PartialInventoryItem
 } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { bulkSetCompatibilityRules } from '@/features/inventory/services/inventoryCompatibilityRulesService';
@@ -415,11 +416,15 @@ export const getInventoryTransactions = async (
  * - Rule-based matches (part_compatibility_rules by manufacturer/model)
  * 
  * Results are deduplicated by inventory_item_id.
+ * 
+ * @returns PartialInventoryItem[] - A subset of fields optimized for display.
+ *          Does NOT include created_by, created_at, or updated_at.
+ *          Use getInventoryItem() if you need the full item.
  */
 export const getCompatibleInventoryItems = async (
   organizationId: string,
   equipmentIds: string[]
-): Promise<InventoryItem[]> => {
+): Promise<PartialInventoryItem[]> => {
   try {
     if (equipmentIds.length === 0) {
       return [];
@@ -434,8 +439,8 @@ export const getCompatibleInventoryItems = async (
     if (error) throw error;
 
     // The RPC returns rows with inventory item fields + match_type
-    // Deduplicate by inventory_item_id and map to InventoryItem type
-    const itemMap = new Map<string, InventoryItem>();
+    // Deduplicate by inventory_item_id and map to PartialInventoryItem type
+    const itemMap = new Map<string, PartialInventoryItem>();
     
     for (const row of (data || [])) {
       if (!itemMap.has(row.inventory_item_id)) {
@@ -451,9 +456,6 @@ export const getCompatibleInventoryItems = async (
           image_url: row.image_url,
           location: row.location,
           default_unit_cost: row.default_unit_cost,
-          created_by: '', // Not needed for display
-          created_at: '', // Not needed for display
-          updated_at: '', // Not needed for display
           isLowStock: row.quantity_on_hand < row.low_stock_threshold
         });
       }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -55,6 +55,8 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   const [isEditingDataLoaded, setIsEditingDataLoaded] = useState(false);
   // Track if loading failed - prevents form submission with stale/empty data
   const [editingDataLoadError, setEditingDataLoadError] = useState(false);
+  // Ref to track current item ID to prevent race conditions when rapidly opening/closing form
+  const currentEditingItemIdRef = useRef<string | null>(null);
 
   const createMutation = useCreateInventoryItem();
   const updateMutation = useUpdateInventoryItem();
@@ -121,9 +123,15 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     }
   }, [open, editingItem, form]);
 
-  // Load compatible equipment, managers, and compatibility rules when editing
+  // Load compatible equipment, managers, and compatibility rules when editing.
+  // Uses a ref to track the current item ID and prevent race conditions when
+  // the user rapidly closes and reopens the form for different items.
   useEffect(() => {
     if (editingItem && currentOrganization?.id) {
+      // Track which item we're loading data for
+      const itemId = editingItem.id;
+      currentEditingItemIdRef.current = itemId;
+
       const loadEditingData = async () => {
         try {
           // SECURITY: Verify item belongs to organization (failsafe even with RLS)
@@ -147,6 +155,12 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             .eq('inventory_item_id', editingItem.id)
             .eq('inventory_items.organization_id', currentOrganization.id);
           
+          // Check if we're still editing the same item (prevent stale data overwrite)
+          if (currentEditingItemIdRef.current !== itemId) {
+            logger.debug('Ignoring stale editing data load for item:', itemId);
+            return;
+          }
+
           const equipmentIds = (compatibilityData || []).map(row => row.equipment_id);
           
           // Load manager IDs
@@ -160,6 +174,12 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             .eq('inventory_item_id', editingItem.id)
             .eq('inventory_items.organization_id', currentOrganization.id);
           
+          // Check again after second async operation
+          if (currentEditingItemIdRef.current !== itemId) {
+            logger.debug('Ignoring stale editing data load for item:', itemId);
+            return;
+          }
+
           const managerIds = (managersData || []).map(row => row.user_id);
 
           // Load compatibility rules
@@ -174,6 +194,12 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             .eq('inventory_item_id', editingItem.id)
             .eq('inventory_items.organization_id', currentOrganization.id);
 
+          // Final check before updating form state
+          if (currentEditingItemIdRef.current !== itemId) {
+            logger.debug('Ignoring stale editing data load for item:', itemId);
+            return;
+          }
+
           const rules: PartCompatibilityRuleFormData[] = (rulesData || []).map(row => ({
             manufacturer: row.manufacturer,
             model: row.model
@@ -187,6 +213,10 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
           // Mark async data as loaded - form can now be safely submitted
           setIsEditingDataLoaded(true);
         } catch (error) {
+          // Only show error if we're still editing the same item
+          if (currentEditingItemIdRef.current !== itemId) {
+            return;
+          }
           logger.error('Error loading editing data:', error);
           // Mark as error - do NOT unblock form to prevent data loss
           // Empty arrays would overwrite existing rules/equipment/managers
@@ -201,7 +231,12 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
       
       loadEditingData();
     }
-  }, [editingItem, currentOrganization?.id, form]);
+
+    // Cleanup: clear the ref when effect re-runs or unmounts
+    return () => {
+      currentEditingItemIdRef.current = null;
+    };
+  }, [editingItem, currentOrganization?.id, form, toast]);
 
   const onSubmit = async (data: InventoryItemFormData) => {
     if (!currentOrganization) {

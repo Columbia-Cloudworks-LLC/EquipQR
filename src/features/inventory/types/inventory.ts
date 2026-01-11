@@ -114,6 +114,33 @@ export interface CompatibleInventoryItemResult {
   match_type: 'direct' | 'rule';
 }
 
+/**
+ * PartialInventoryItem - A subset of InventoryItem fields for display-only purposes.
+ * 
+ * Used by functions like getCompatibleInventoryItems that return items from RPC
+ * functions optimized for performance. Fields like description, created_by,
+ * created_at, and updated_at are not fetched to reduce payload size.
+ * 
+ * Consumers should NOT rely on metadata fields (created_by, created_at, updated_at)
+ * from this type. If those fields are needed, fetch the full item directly.
+ */
+export interface PartialInventoryItem {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;  // Often null in partial results
+  sku: string | null;
+  external_id: string | null;
+  quantity_on_hand: number;
+  low_stock_threshold: number;
+  image_url: string | null;
+  location: string | null;
+  default_unit_cost: number | null;
+  isLowStock?: boolean;
+  // Note: created_by, created_at, updated_at are intentionally omitted
+  // to avoid implying they have valid values
+}
+
 // ============================================
 // Form & Input Types
 // ============================================

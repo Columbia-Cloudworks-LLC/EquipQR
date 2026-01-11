@@ -174,10 +174,18 @@ export const removeCompatibilityRule = async (
  * Replace all compatibility rules for an inventory item.
  * Uses delete-then-insert pattern with recovery attempt on insert failure.
  * 
- * Note: The Supabase JS client doesn't support multi-statement transactions,
- * so this operation is not fully atomic. If insert fails after delete, we
- * attempt to restore the original rules. For guaranteed atomicity, consider
- * migrating to an RPC function in the future.
+ * ## Atomicity Warning
+ * The Supabase JS client doesn't support multi-statement transactions,
+ * so this operation is not fully atomic. If insert fails after delete:
+ * 1. We attempt to restore the original rules from a backup fetched before deletion.
+ * 2. If recovery also fails, an error is thrown indicating data may be lost.
+ * 
+ * ## Recovery Guidance
+ * If a user encounters a "recovery failed" error:
+ * - The UI should prompt them to re-enter their compatibility rules.
+ * - Consider implementing client-side localStorage backup for additional safety.
+ * - For mission-critical deployments, migrate to an RPC function that uses
+ *   PostgreSQL transactions for guaranteed atomicity.
  * 
  * @param organizationId - Organization ID for access control
  * @param itemId - Inventory item ID
@@ -298,13 +306,29 @@ export const bulkSetCompatibilityRules = async (
 
 /**
  * Count how many equipment items match a given set of rules.
- * Used for displaying match count in the UI.
+ * Used for displaying match count in the UI as users edit compatibility rules.
  * 
- * Performance note: This function fetches all equipment to the client and filters
- * in JavaScript. For organizations with very large equipment fleets (1000+ items),
- * consider migrating to a database RPC function for server-side counting.
- * Current approach is acceptable for typical fleet sizes and provides real-time
- * preview without additional database infrastructure.
+ * ## Performance Characteristics
+ * 
+ * **Current implementation**: Fetches all equipment from the organization to the
+ * client and performs O(n*m) matching where n=equipment count and m=rules count.
+ * 
+ * **Acceptable for**:
+ * - Typical fleet sizes (< 500 items)
+ * - Real-time preview during rule editing
+ * - Organizations that don't require sub-100ms response times
+ * 
+ * **Consider RPC migration for**:
+ * - Large fleets (500+ items) where network transfer becomes significant
+ * - Performance-critical deployments
+ * - Organizations with many concurrent users editing rules
+ * 
+ * **Suggested RPC approach**: Create a PostgreSQL function that accepts the rules
+ * array as JSON/JSONB, performs server-side matching using the same normalized
+ * comparison logic, and returns just the count. This would:
+ * - Reduce network payload from O(n) equipment rows to O(1) integer
+ * - Leverage database indexes for faster matching
+ * - Scale better as fleet sizes grow
  * 
  * @param organizationId - Organization ID
  * @param rules - Array of rules to match against
@@ -323,7 +347,7 @@ export const countEquipmentMatchingRules = async (
     }
 
     // Fetch equipment to client for matching
-    // TODO: For large fleets, consider an RPC function for server-side counting
+    // See function docstring for performance considerations and RPC migration path
     const { data: equipment, error } = await supabase
       .from('equipment')
       .select('id, manufacturer, model')

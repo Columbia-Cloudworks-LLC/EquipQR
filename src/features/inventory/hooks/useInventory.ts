@@ -693,19 +693,22 @@ export const useEquipmentMatchCount = (
 ) => {
   const staleTime = options?.staleTime ?? 30 * 1000; // 30 seconds for count
 
-  // Create a stable string key from rules for React Query cache
-  // NOTE: The dependency on `rules` array reference is intentional:
-  // - The computation is lightweight (string mapping/joining)
-  // - The result is a primitive string that useQuery compares by value
-  // - When rules content changes, the parent component creates a new array anyway
-  // - JSON.stringify(rules) would also run on every render with more overhead
+  // Serialize rules for stable dependency checking.
+  // Extract to variable so ESLint can statically verify the dependency.
+  const rulesJson = JSON.stringify(rules);
+
+  // Create a stable string key from rules for React Query cache.
+  // Use rulesJson in the dependency array to ensure recomputation is driven
+  // by rules content, not by the array reference identity (which may change every render
+  // since form field values in react-hook-form are recreated on each render).
   const rulesKey = useMemo(() => {
     if (rules.length === 0) return '';
     return rules
       .map(r => `${r.manufacturer.toLowerCase().trim()}|${r.model?.toLowerCase().trim() ?? ''}`)
       .sort()
       .join(',');
-  }, [rules]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- rulesJson captures rules content
+  }, [rulesJson]);
 
   return useQuery({
     queryKey: ['equipment-match-count', organizationId, rulesKey],
