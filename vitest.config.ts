@@ -14,23 +14,28 @@ export default defineConfig({
     testTimeout: 10000,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['supabase/**', 'node_modules/**'],
-    // CI optimizations: use forks pool for better memory isolation
+    // CI optimizations: use forks pool for memory isolation and sequential execution
     pool: isCI ? 'forks' : 'threads',
     poolOptions: {
       forks: {
-        // Limit concurrent test files in CI to prevent OOM
-        maxForks: isCI ? 2 : undefined,
-        // Respawn workers periodically to prevent memory leaks
+        // Single worker in CI to minimize memory usage
+        maxForks: isCI ? 1 : undefined,
+        minForks: isCI ? 1 : undefined,
+        // Isolate each test file
         isolate: true,
       },
       threads: {
         isolate: true,
       },
     },
-    // Disable file parallelism in CI to reduce memory pressure
+    // Completely sequential in CI to prevent OOM
     fileParallelism: !isCI,
+    // Ensure hooks don't hang
+    hookTimeout: 30000,
+    teardownTimeout: 10000,
     coverage: {
-      provider: 'v8',
+      // Use istanbul in CI for stability; v8 can hang on large codebases
+      provider: isCI ? 'istanbul' : 'v8',
       // Reduce reporters in CI to save memory (skip html)
       reporter: isCI 
         ? ['text', 'lcov', 'json-summary'] 
