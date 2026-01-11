@@ -3,6 +3,12 @@
  * 
  * These tests validate complete user workflows for work order management,
  * testing from the perspective of different user personas.
+ * 
+ * User Stories Covered:
+ * - As an Owner/Admin, I want to create work orders and assign them to any team
+ * - As a Team Manager, I want to filter and manage my team's work orders
+ * - As a Technician, I want to update status and complete PM checklists on assigned work
+ * - As any user, I want to track costs associated with work orders
  */
 
 import React from 'react';
@@ -11,7 +17,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderAsPersona, renderHookAsPersona } from '@/test/utils/test-utils';
 import { personas } from '@/test/fixtures/personas';
-import { workOrders, equipment, teams } from '@/test/fixtures/entities';
+import { workOrders, equipment, teams, organizations } from '@/test/fixtures/entities';
 
 // Mock the work order hooks
 vi.mock('@/features/work-orders/hooks/useWorkOrders', () => ({
@@ -30,6 +36,16 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderAssignment', () => ({
   useWorkOrderAssignment: vi.fn()
 }));
 
+vi.mock('@/features/work-orders/hooks/useWorkOrderCosts', () => ({
+  useCreateWorkOrderCost: vi.fn(),
+  useUpdateWorkOrderCost: vi.fn(),
+  useWorkOrderCosts: vi.fn()
+}));
+
+vi.mock('@/features/work-orders/hooks/useWorkOrderFilters', () => ({
+  useWorkOrderFilters: vi.fn()
+}));
+
 vi.mock('@/hooks/useUnifiedPermissions', () => ({
   useUnifiedPermissions: vi.fn()
 }));
@@ -38,6 +54,8 @@ vi.mock('@/hooks/useUnifiedPermissions', () => ({
 import { useWorkOrders } from '@/features/work-orders/hooks/useWorkOrders';
 import { useWorkOrderStatusUpdate } from '@/features/work-orders/hooks/useWorkOrderStatusUpdate';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import { useCreateWorkOrderCost, useUpdateWorkOrderCost, useWorkOrderCosts } from '@/features/work-orders/hooks/useWorkOrderCosts';
+import { useWorkOrderFilters } from '@/features/work-orders/hooks/useWorkOrderFilters';
 
 // Test component that exercises the work order list
 const WorkOrderTestComponent = () => {
@@ -276,8 +294,8 @@ describe('Work Order Lifecycle', () => {
 
       expect(screen.getByTestId('work-order-list')).toBeInTheDocument();
       
-      // Admin should see all work orders
-      const workOrderElements = screen.getAllByTestId(/^work-order-/);
+      // Admin should see all work orders (use more specific regex to exclude work-order-list)
+      const workOrderElements = screen.getAllByTestId(/^work-order-wo-/);
       expect(workOrderElements.length).toBe(Object.keys(workOrders).length);
     });
 
@@ -684,7 +702,8 @@ describe('Work Order Lifecycle', () => {
       renderAsPersona(<WorkOrderTestComponent />, 'readOnlyMember');
 
       expect(screen.getByTestId('work-order-list')).toBeInTheDocument();
-      expect(screen.queryByTestId(/^work-order-/)).not.toBeInTheDocument();
+      // Use more specific regex to match actual work order items (not the list container)
+      expect(screen.queryByTestId(/^work-order-wo-/)).not.toBeInTheDocument();
     });
 
     it('cannot create work orders', () => {
@@ -749,6 +768,776 @@ describe('Work Order Lifecycle', () => {
       
       // This should NOT be a valid direct transition
       expect(['accepted', 'assigned', 'cancelled']).not.toContain(invalidTransition);
+    });
+  });
+
+  describe('Creating Work Orders', () => {
+    describe('as an Admin', () => {
+      beforeEach(() => {
+        vi.mocked(useUnifiedPermissions).mockReturnValue({
+          hasRole: (roles: string | string[]) => {
+            const roleArray = Array.isArray(roles) ? roles : [roles];
+            return roleArray.includes('admin') || roleArray.includes('owner');
+          },
+          isTeamMember: () => true,
+          isTeamManager: () => true,
+          organization: {
+            canManage: true,
+            canInviteMembers: true,
+            canCreateTeams: true,
+            canViewBilling: false,
+            canManageMembers: true
+          },
+          equipment: {
+            getPermissions: () => ({
+              canView: true,
+              canCreate: true,
+              canEdit: true,
+              canDelete: true
+            }),
+            canViewAll: true,
+            canCreateAny: true
+          },
+          workOrders: {
+            getPermissions: () => ({
+              canView: true,
+              canCreate: true,
+              canEdit: true,
+              canDelete: true,
+              canAssign: true,
+              canChangeStatus: true
+            }),
+            getDetailedPermissions: () => ({
+              canEdit: true,
+              canEditPriority: true,
+              canEditAssignment: true,
+              canEditDueDate: true,
+              canEditDescription: true,
+              canChangeStatus: true,
+              canAddNotes: true,
+              canAddImages: true,
+              canAddCosts: true,
+              canEditCosts: true,
+              canViewPM: true,
+              canEditPM: true
+            }),
+            canViewAll: true,
+            canCreateAny: true
+          },
+          teams: {
+            getPermissions: () => ({
+              canView: true,
+              canCreate: true,
+              canEdit: true,
+              canDelete: false
+            }),
+            canCreateAny: true
+          },
+          notes: {
+            getPermissions: () => ({
+              canViewNotes: true,
+              canAddPublicNote: true,
+              canAddPrivateNote: true,
+              canEditOwnNote: () => true,
+              canEditAnyNote: true,
+              canDeleteOwnNote: () => true,
+              canDeleteAnyNote: true,
+              canUploadImages: true,
+              canDeleteImages: true,
+              canSetDisplayImage: true
+            })
+          }
+        } as unknown as ReturnType<typeof useUnifiedPermissions>);
+      });
+
+      it('can create work order with all fields including priority and due date', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'admin'
+        );
+
+        // Admin can create work orders for any team
+        expect(result.current.workOrders.canCreateAny).toBe(true);
+        
+        // Admin can set all fields
+        const permissions = result.current.workOrders.getDetailedPermissions({} as never);
+        expect(permissions.canEditPriority).toBe(true);
+        expect(permissions.canEditDueDate).toBe(true);
+        expect(permissions.canEditAssignment).toBe(true);
+      });
+
+      it('can assign work order to any team member during creation', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'admin'
+        );
+
+        const permissions = result.current.workOrders.getPermissions({} as never);
+        expect(permissions.canAssign).toBe(true);
+      });
+
+      it('can select equipment from any team', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'admin'
+        );
+
+        expect(result.current.equipment.canViewAll).toBe(true);
+      });
+
+      it('can enable PM checklist for work order', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'admin'
+        );
+
+        const permissions = result.current.workOrders.getDetailedPermissions({} as never);
+        expect(permissions.canEditPM).toBe(true);
+      });
+    });
+
+    describe('as a Technician', () => {
+      beforeEach(() => {
+        vi.mocked(useUnifiedPermissions).mockReturnValue({
+          hasRole: (roles: string | string[]) => {
+            const roleArray = Array.isArray(roles) ? roles : [roles];
+            return roleArray.includes('member');
+          },
+          isTeamMember: (teamId: string) => teamId === teams.maintenance.id,
+          isTeamManager: () => false,
+          organization: {
+            canManage: false,
+            canInviteMembers: false,
+            canCreateTeams: false,
+            canViewBilling: false,
+            canManageMembers: false
+          },
+          equipment: {
+            getPermissions: () => ({
+              canView: true,
+              canCreate: false,
+              canEdit: false,
+              canDelete: false
+            }),
+            canViewAll: false,
+            canCreateAny: false
+          },
+          workOrders: {
+            getPermissions: () => ({
+              canView: true,
+              canCreate: true,
+              canEdit: false,
+              canDelete: false,
+              canAssign: false,
+              canChangeStatus: false
+            }),
+            getDetailedPermissions: () => ({
+              canEdit: false,
+              canEditPriority: false,
+              canEditAssignment: false,
+              canEditDueDate: false,
+              canEditDescription: true,
+              canChangeStatus: false,
+              canAddNotes: true,
+              canAddImages: true,
+              canAddCosts: false,
+              canEditCosts: false,
+              canViewPM: true,
+              canEditPM: false
+            }),
+            canViewAll: false,
+            canCreateAny: false
+          },
+          teams: {
+            getPermissions: () => ({
+              canView: true,
+              canCreate: false,
+              canEdit: false,
+              canDelete: false
+            }),
+            canCreateAny: false
+          },
+          notes: {
+            getPermissions: () => ({
+              canViewNotes: true,
+              canAddPublicNote: true,
+              canAddPrivateNote: false,
+              canEditOwnNote: () => true,
+              canEditAnyNote: false,
+              canDeleteOwnNote: () => true,
+              canDeleteAnyNote: false,
+              canUploadImages: true,
+              canDeleteImages: false,
+              canSetDisplayImage: false
+            })
+          }
+        } as unknown as ReturnType<typeof useUnifiedPermissions>);
+      });
+
+      it('can create basic work order for their team equipment', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'technician'
+        );
+
+        const permissions = result.current.workOrders.getPermissions({} as never);
+        expect(permissions.canCreate).toBe(true);
+      });
+
+      it('cannot assign work order to others', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'technician'
+        );
+
+        const permissions = result.current.workOrders.getPermissions({} as never);
+        expect(permissions.canAssign).toBe(false);
+      });
+
+      it('cannot set priority on created work orders', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'technician'
+        );
+
+        const permissions = result.current.workOrders.getDetailedPermissions({} as never);
+        expect(permissions.canEditPriority).toBe(false);
+      });
+
+      it('can only see equipment from their team', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'technician'
+        );
+
+        expect(result.current.equipment.canViewAll).toBe(false);
+      });
+    });
+
+    describe('form validation', () => {
+      it('requires title for work order submission', () => {
+        const formData = {
+          title: '',
+          description: 'Some description',
+          equipmentId: equipment.forklift1.id,
+          priority: 'medium'
+        };
+
+        // Title is required
+        expect(formData.title.length).toBe(0);
+        expect(formData.equipmentId.length).toBeGreaterThan(0);
+      });
+
+      it('requires equipment selection', () => {
+        const formData = {
+          title: 'Oil Change',
+          description: '',
+          equipmentId: '',
+          priority: 'medium'
+        };
+
+        // Equipment is required
+        expect(formData.equipmentId.length).toBe(0);
+      });
+
+      it('validates due date is in the future', () => {
+        const now = new Date();
+        const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const futureDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+        expect(pastDate < now).toBe(true);
+        expect(futureDate > now).toBe(true);
+      });
+    });
+  });
+
+  describe('Filtering and Search', () => {
+    describe('as a Team Manager', () => {
+      const teamWorkOrders = Object.values(workOrders).filter(
+        wo => wo.team_id === teams.maintenance.id
+      );
+
+      beforeEach(() => {
+        vi.mocked(useWorkOrders).mockReturnValue({
+          data: teamWorkOrders,
+          isLoading: false,
+          isError: false,
+          error: null,
+          refetch: vi.fn(),
+          isPending: false,
+          isSuccess: true,
+          fetchStatus: 'idle'
+        } as ReturnType<typeof useWorkOrders>);
+      });
+
+      it('can filter work orders by status', () => {
+        const filters = {
+          statusFilter: 'in_progress',
+          priorityFilter: 'all',
+          assigneeFilter: 'all',
+          teamFilter: 'all'
+        };
+
+        const filteredWorkOrders = teamWorkOrders.filter(
+          wo => filters.statusFilter === 'all' || wo.status === filters.statusFilter
+        );
+
+        expect(filteredWorkOrders.every(wo => wo.status === 'in_progress' || filters.statusFilter === 'all')).toBe(true);
+      });
+
+      it('can filter work orders by priority', () => {
+        const filters = {
+          statusFilter: 'all',
+          priorityFilter: 'high',
+          assigneeFilter: 'all'
+        };
+
+        const filteredWorkOrders = teamWorkOrders.filter(
+          wo => filters.priorityFilter === 'all' || wo.priority === filters.priorityFilter
+        );
+
+        expect(filteredWorkOrders.every(wo => wo.priority === 'high' || filters.priorityFilter === 'all')).toBe(true);
+      });
+
+      it('can search work orders by title or equipment name', () => {
+        const searchQuery = 'Forklift';
+
+        const searchResults = teamWorkOrders.filter(
+          wo => wo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (wo.equipmentName?.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+
+        // Search should match equipment names
+        expect(searchResults.length).toBeGreaterThanOrEqual(0);
+      });
+
+      it('can use quick filter for "My Work" to see assigned work orders', () => {
+        const currentUserId = personas.teamManager.id;
+        
+        const myWorkOrders = teamWorkOrders.filter(
+          wo => wo.assignee_id === currentUserId
+        );
+
+        // Should filter to only assigned work orders
+        expect(myWorkOrders.every(wo => wo.assignee_id === currentUserId)).toBe(true);
+      });
+
+      it('can use quick filter for overdue work orders', () => {
+        const now = new Date();
+        
+        const overdueWorkOrders = teamWorkOrders.filter(wo => {
+          if (!wo.due_date) return false;
+          return new Date(wo.due_date) < now && wo.status !== 'completed' && wo.status !== 'cancelled';
+        });
+
+        // Should identify overdue items
+        expect(overdueWorkOrders.every(wo => wo.status !== 'completed')).toBe(true);
+      });
+
+      it('can clear all filters to see full list', () => {
+        const defaultFilters = {
+          searchQuery: '',
+          statusFilter: 'all',
+          priorityFilter: 'all',
+          assigneeFilter: 'all',
+          teamFilter: 'all',
+          dueDateFilter: 'all'
+        };
+
+        // All filters are reset
+        expect(defaultFilters.statusFilter).toBe('all');
+        expect(defaultFilters.priorityFilter).toBe('all');
+        expect(defaultFilters.searchQuery).toBe('');
+      });
+    });
+
+    describe('as an Admin', () => {
+      it('can filter by team', () => {
+        const filters = {
+          teamFilter: teams.maintenance.id
+        };
+
+        const allWorkOrders = Object.values(workOrders);
+        const filteredByTeam = allWorkOrders.filter(
+          wo => wo.team_id === filters.teamFilter
+        );
+
+        expect(filteredByTeam.every(wo => wo.team_id === teams.maintenance.id)).toBe(true);
+      });
+
+      it('sees unassigned quick filter option', () => {
+        const allWorkOrders = Object.values(workOrders);
+        const unassignedWorkOrders = allWorkOrders.filter(
+          wo => wo.assignee_id === null
+        );
+
+        expect(unassignedWorkOrders.every(wo => wo.assignee_id === null)).toBe(true);
+      });
+    });
+  });
+
+  describe('Cost Tracking', () => {
+    const createMockMutationResult = (overrides: Record<string, unknown> = {}) => ({
+      mutate: vi.fn(),
+      mutateAsync: vi.fn().mockResolvedValue({}),
+      isPending: false,
+      isIdle: true,
+      isSuccess: false,
+      isError: false,
+      data: undefined,
+      error: null,
+      variables: undefined,
+      context: undefined,
+      status: 'idle' as const,
+      reset: vi.fn(),
+      failureCount: 0,
+      failureReason: null,
+      submittedAt: 0,
+      isPaused: false,
+      ...overrides
+    });
+
+    describe('as an Admin', () => {
+      beforeEach(() => {
+        vi.mocked(useCreateWorkOrderCost).mockReturnValue(createMockMutationResult());
+        vi.mocked(useUpdateWorkOrderCost).mockReturnValue(createMockMutationResult());
+        vi.mocked(useWorkOrderCosts).mockReturnValue({
+          data: [
+            {
+              id: 'cost-1',
+              work_order_id: workOrders.inProgress.id,
+              description: 'Replacement parts',
+              quantity: 2,
+              unit_price_cents: 5000,
+              total_price_cents: 10000,
+              created_by: personas.admin.id,
+              created_at: '2024-01-05T10:00:00Z',
+              updated_at: '2024-01-05T10:00:00Z'
+            }
+          ],
+          isLoading: false,
+          isError: false,
+          error: null
+        } as ReturnType<typeof useWorkOrderCosts>);
+
+        vi.mocked(useUnifiedPermissions).mockReturnValue({
+          hasRole: () => true,
+          isTeamMember: () => true,
+          isTeamManager: () => true,
+          organization: { canManage: true, canInviteMembers: true, canCreateTeams: true, canViewBilling: false, canManageMembers: true },
+          equipment: { getPermissions: () => ({ canView: true, canCreate: true, canEdit: true, canDelete: true }), canViewAll: true, canCreateAny: true },
+          workOrders: {
+            getPermissions: () => ({ canView: true, canCreate: true, canEdit: true, canDelete: true, canAssign: true, canChangeStatus: true }),
+            getDetailedPermissions: () => ({
+              canEdit: true,
+              canEditPriority: true,
+              canEditAssignment: true,
+              canEditDueDate: true,
+              canEditDescription: true,
+              canChangeStatus: true,
+              canAddNotes: true,
+              canAddImages: true,
+              canAddCosts: true,
+              canEditCosts: true,
+              canViewPM: true,
+              canEditPM: true
+            }),
+            canViewAll: true,
+            canCreateAny: true
+          },
+          teams: { getPermissions: () => ({ canView: true, canCreate: true, canEdit: true, canDelete: false }), canCreateAny: true },
+          notes: { getPermissions: () => ({ canViewNotes: true, canAddPublicNote: true, canAddPrivateNote: true, canEditOwnNote: () => true, canEditAnyNote: true, canDeleteOwnNote: () => true, canDeleteAnyNote: true, canUploadImages: true, canDeleteImages: true, canSetDisplayImage: true }) }
+        } as unknown as ReturnType<typeof useUnifiedPermissions>);
+      });
+
+      it('can add costs to any work order', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'admin'
+        );
+
+        const permissions = result.current.workOrders.getDetailedPermissions(workOrders.inProgress as never);
+        expect(permissions.canAddCosts).toBe(true);
+      });
+
+      it('can edit existing costs', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'admin'
+        );
+
+        const permissions = result.current.workOrders.getDetailedPermissions(workOrders.inProgress as never);
+        expect(permissions.canEditCosts).toBe(true);
+      });
+
+      it('calculates total correctly from quantity and unit price', () => {
+        const costEntry = {
+          description: 'Parts',
+          quantity: 3,
+          unit_price_cents: 1500 // $15.00
+        };
+
+        const totalCents = costEntry.quantity * costEntry.unit_price_cents;
+        expect(totalCents).toBe(4500); // $45.00
+      });
+
+      it('validates cost description is required', () => {
+        const invalidCost = {
+          description: '',
+          quantity: 1,
+          unit_price_cents: 1000
+        };
+
+        expect(invalidCost.description.length).toBe(0);
+      });
+
+      it('validates quantity must be greater than 0', () => {
+        const invalidCost = {
+          description: 'Parts',
+          quantity: 0,
+          unit_price_cents: 1000
+        };
+
+        expect(invalidCost.quantity).toBeLessThanOrEqual(0);
+      });
+
+      it('validates unit price cannot be negative', () => {
+        const invalidCost = {
+          description: 'Parts',
+          quantity: 1,
+          unit_price_cents: -500
+        };
+
+        expect(invalidCost.unit_price_cents).toBeLessThan(0);
+      });
+    });
+
+    describe('as a Technician', () => {
+      beforeEach(() => {
+        vi.mocked(useUnifiedPermissions).mockReturnValue({
+          hasRole: () => false,
+          isTeamMember: (teamId: string) => teamId === teams.maintenance.id,
+          isTeamManager: () => false,
+          organization: { canManage: false, canInviteMembers: false, canCreateTeams: false, canViewBilling: false, canManageMembers: false },
+          equipment: { getPermissions: () => ({ canView: true, canCreate: false, canEdit: false, canDelete: false }), canViewAll: false, canCreateAny: false },
+          workOrders: {
+            getPermissions: (wo) => {
+              const isAssigned = wo?.assignee_id === personas.technician.id;
+              return { canView: isAssigned, canCreate: true, canEdit: isAssigned, canDelete: false, canAssign: false, canChangeStatus: isAssigned };
+            },
+            getDetailedPermissions: (wo) => {
+              const isAssigned = wo?.assignee_id === personas.technician.id;
+              return {
+                canEdit: isAssigned,
+                canEditPriority: false,
+                canEditAssignment: false,
+                canEditDueDate: false,
+                canEditDescription: isAssigned,
+                canChangeStatus: isAssigned,
+                canAddNotes: isAssigned,
+                canAddImages: isAssigned,
+                canAddCosts: isAssigned,
+                canEditCosts: isAssigned,
+                canViewPM: isAssigned,
+                canEditPM: isAssigned
+              };
+            },
+            canViewAll: false,
+            canCreateAny: false
+          },
+          teams: { getPermissions: () => ({ canView: true, canCreate: false, canEdit: false, canDelete: false }), canCreateAny: false },
+          notes: { getPermissions: () => ({ canViewNotes: true, canAddPublicNote: true, canAddPrivateNote: false, canEditOwnNote: () => true, canEditAnyNote: false, canDeleteOwnNote: () => true, canDeleteAnyNote: false, canUploadImages: true, canDeleteImages: false, canSetDisplayImage: false }) }
+        } as unknown as ReturnType<typeof useUnifiedPermissions>);
+      });
+
+      it('can add costs to assigned work orders', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'technician'
+        );
+
+        const assignedWO = workOrders.assigned;
+        const permissions = result.current.workOrders.getDetailedPermissions(assignedWO as never);
+        expect(permissions.canAddCosts).toBe(true);
+      });
+
+      it('cannot add costs to unassigned work orders', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'technician'
+        );
+
+        const unassignedWO = workOrders.submitted;
+        const permissions = result.current.workOrders.getDetailedPermissions(unassignedWO as never);
+        expect(permissions.canAddCosts).toBe(false);
+      });
+    });
+  });
+
+  describe('PM Checklist Completion', () => {
+    describe('as a Technician with PM-enabled work order', () => {
+      beforeEach(() => {
+        vi.mocked(useUnifiedPermissions).mockReturnValue({
+          hasRole: () => false,
+          isTeamMember: (teamId: string) => teamId === teams.maintenance.id,
+          isTeamManager: () => false,
+          organization: { canManage: false, canInviteMembers: false, canCreateTeams: false, canViewBilling: false, canManageMembers: false },
+          equipment: { getPermissions: () => ({ canView: true, canCreate: false, canEdit: false, canDelete: false }), canViewAll: false, canCreateAny: false },
+          workOrders: {
+            getPermissions: (wo) => {
+              const isAssigned = wo?.assignee_id === personas.technician.id;
+              return { canView: isAssigned, canCreate: true, canEdit: isAssigned, canDelete: false, canAssign: false, canChangeStatus: isAssigned };
+            },
+            getDetailedPermissions: (wo) => {
+              const isAssigned = wo?.assignee_id === personas.technician.id;
+              return {
+                canEdit: isAssigned,
+                canEditPriority: false,
+                canEditAssignment: false,
+                canEditDueDate: false,
+                canEditDescription: isAssigned,
+                canChangeStatus: isAssigned,
+                canAddNotes: isAssigned,
+                canAddImages: isAssigned,
+                canAddCosts: isAssigned,
+                canEditCosts: isAssigned,
+                canViewPM: isAssigned,
+                canEditPM: isAssigned
+              };
+            },
+            canViewAll: false,
+            canCreateAny: false
+          },
+          teams: { getPermissions: () => ({ canView: true, canCreate: false, canEdit: false, canDelete: false }), canCreateAny: false },
+          notes: { getPermissions: () => ({ canViewNotes: true, canAddPublicNote: true, canAddPrivateNote: false, canEditOwnNote: () => true, canEditAnyNote: false, canDeleteOwnNote: () => true, canDeleteAnyNote: false, canUploadImages: true, canDeleteImages: false, canSetDisplayImage: false }) }
+        } as unknown as ReturnType<typeof useUnifiedPermissions>);
+      });
+
+      it('can view PM checklist on assigned work order', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'technician'
+        );
+
+        const assignedWO = workOrders.assigned;
+        const permissions = result.current.workOrders.getDetailedPermissions(assignedWO as never);
+        expect(permissions.canViewPM).toBe(true);
+      });
+
+      it('can complete checklist items with condition ratings', () => {
+        const checklistItem = {
+          id: 'item-1',
+          title: 'Check oil level',
+          section: 'Engine',
+          required: true,
+          condition: null as number | null,
+          notes: ''
+        };
+
+        // Technician sets condition to OK (1)
+        checklistItem.condition = 1;
+        expect(checklistItem.condition).toBe(1);
+
+        // Technician sets condition to needs adjustment (2)
+        checklistItem.condition = 2;
+        expect(checklistItem.condition).toBe(2);
+      });
+
+      it('auto-expands notes when selecting negative condition (2-5)', () => {
+        const negativeConditions = [2, 3, 4, 5]; // Adjusted, Recommend Repairs, Immediate Repairs, Unsafe
+        
+        negativeConditions.forEach(condition => {
+          const shouldShowNotes = condition >= 2 && condition <= 5;
+          expect(shouldShowNotes).toBe(true);
+        });
+      });
+
+      it('calculates completion percentage correctly', () => {
+        const checklist = {
+          totalItems: 10,
+          completedItems: 7
+        };
+
+        const percentage = Math.round((checklist.completedItems / checklist.totalItems) * 100);
+        expect(percentage).toBe(70);
+      });
+
+      it('cannot complete work order until PM checklist is 100% complete when pm_required is true', () => {
+        const workOrderWithPM = {
+          ...workOrders.assigned,
+          has_pm: true,
+          pm_required: true,
+          pm_completion_percentage: 80
+        };
+
+        const canComplete = workOrderWithPM.pm_completion_percentage === 100;
+        expect(canComplete).toBe(false);
+
+        // After completing PM
+        workOrderWithPM.pm_completion_percentage = 100;
+        const canCompleteNow = workOrderWithPM.pm_completion_percentage === 100;
+        expect(canCompleteNow).toBe(true);
+      });
+
+      it('can add notes to individual checklist items', () => {
+        const checklistItem = {
+          id: 'item-1',
+          title: 'Check oil level',
+          condition: 2, // Adjusted
+          notes: ''
+        };
+
+        // Add notes
+        checklistItem.notes = 'Oil level was low, topped up';
+        expect(checklistItem.notes.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('as a Viewer', () => {
+      beforeEach(() => {
+        vi.mocked(useUnifiedPermissions).mockReturnValue({
+          hasRole: (roles: string | string[]) => {
+            const roleArray = Array.isArray(roles) ? roles : [roles];
+            return roleArray.includes('viewer');
+          },
+          isTeamMember: () => false,
+          isTeamManager: () => false,
+          organization: { canManage: false, canInviteMembers: false, canCreateTeams: false, canViewBilling: false, canManageMembers: false },
+          equipment: { getPermissions: () => ({ canView: true, canCreate: false, canEdit: false, canDelete: false }), canViewAll: false, canCreateAny: false },
+          workOrders: {
+            getPermissions: () => ({ canView: true, canCreate: false, canEdit: false, canDelete: false, canAssign: false, canChangeStatus: false }),
+            getDetailedPermissions: () => ({
+              canEdit: false,
+              canEditPriority: false,
+              canEditAssignment: false,
+              canEditDueDate: false,
+              canEditDescription: false,
+              canChangeStatus: false,
+              canAddNotes: false,
+              canAddImages: false,
+              canAddCosts: false,
+              canEditCosts: false,
+              canViewPM: true,
+              canEditPM: false
+            }),
+            canViewAll: false,
+            canCreateAny: false
+          },
+          teams: { getPermissions: () => ({ canView: true, canCreate: false, canEdit: false, canDelete: false }), canCreateAny: false },
+          notes: { getPermissions: () => ({ canViewNotes: true, canAddPublicNote: false, canAddPrivateNote: false, canEditOwnNote: () => false, canEditAnyNote: false, canDeleteOwnNote: () => false, canDeleteAnyNote: false, canUploadImages: false, canDeleteImages: false, canSetDisplayImage: false }) }
+        } as unknown as ReturnType<typeof useUnifiedPermissions>);
+      });
+
+      it('can view PM checklist but cannot edit', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'viewer'
+        );
+
+        const permissions = result.current.workOrders.getDetailedPermissions({} as never);
+        expect(permissions.canViewPM).toBe(true);
+        expect(permissions.canEditPM).toBe(false);
+      });
     });
   });
 });

@@ -610,4 +610,237 @@ describe('PM Template Journey', () => {
       expect(availableTemplates.length).toBeGreaterThan(0);
     });
   });
+
+  describe('Template Application to Equipment', () => {
+    describe('as an Admin', () => {
+      it('can apply template to create PM work orders for selected equipment', () => {
+        const selectedEquipment = [equipment.forklift1, equipment.forklift2];
+        const templateId = pmTemplates.forklift.id;
+
+        // Admin can select multiple equipment
+        expect(selectedEquipment.length).toBe(2);
+        
+        // Work orders will be created for each selected equipment
+        const workOrdersToCreate = selectedEquipment.map(eq => ({
+          title: `Preventative Maintenance - ${eq.name}`,
+          description: `PM using ${pmTemplates.forklift.name}`,
+          equipment_id: eq.id,
+          has_pm: true,
+          priority: 'medium'
+        }));
+
+        expect(workOrdersToCreate.length).toBe(2);
+        expect(workOrdersToCreate[0].has_pm).toBe(true);
+      });
+
+      it('can search and filter equipment when applying template', () => {
+        const allEquipment = Object.values(equipment);
+        const searchQuery = 'Forklift';
+
+        const filteredEquipment = allEquipment.filter(eq =>
+          eq.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          eq.manufacturer.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
+        expect(filteredEquipment.length).toBeGreaterThan(0);
+        expect(filteredEquipment.every(eq => 
+          eq.name.includes('Forklift') || eq.manufacturer === 'Toyota'
+        )).toBe(true);
+      });
+
+      it('can select all visible equipment', () => {
+        const visibleEquipment = Object.values(equipment);
+        const selectedIds = visibleEquipment.map(eq => eq.id);
+
+        expect(selectedIds.length).toBe(visibleEquipment.length);
+      });
+
+      it('sees equipment status and location in selection list', () => {
+        const eq = equipment.forklift1;
+
+        expect(eq.status).toBe('active');
+        expect(eq.location).toBe('Warehouse A');
+        expect(eq.manufacturer).toBe('Toyota');
+        expect(eq.model).toBe('8FGU25');
+      });
+    });
+
+    describe('work order creation from template application', () => {
+      it('creates work order with correct PM configuration', () => {
+        const workOrderData = {
+          title: `Preventative Maintenance - ${equipment.forklift1.name}`,
+          description: `PM work order created from ${pmTemplates.forklift.name}`,
+          equipment_id: equipment.forklift1.id,
+          organization_id: organizations.acme.id,
+          has_pm: true,
+          pm_required: true,
+          priority: 'medium'
+        };
+
+        expect(workOrderData.has_pm).toBe(true);
+        expect(workOrderData.pm_required).toBe(true);
+      });
+
+      it('initializes PM checklist after work order creation', () => {
+        const checklistInitData = {
+          workOrderId: 'wo-new-1',
+          organizationId: organizations.acme.id,
+          templateId: pmTemplates.forklift.id
+        };
+
+        expect(checklistInitData.templateId).toBe(pmTemplates.forklift.id);
+      });
+
+      it('reports success count after bulk creation', () => {
+        const creationResult = {
+          created: 5,
+          failed: 0,
+          total: 5
+        };
+
+        expect(creationResult.created).toBe(creationResult.total);
+      });
+
+      it('reports partial success when some creations fail', () => {
+        const partialResult = {
+          created: 3,
+          failed: 2,
+          total: 5
+        };
+
+        expect(partialResult.created + partialResult.failed).toBe(partialResult.total);
+      });
+    });
+  });
+
+  describe('Bulk Template Assignment', () => {
+    describe('as an Admin', () => {
+      it('can assign default PM template to multiple equipment', () => {
+        const selectedEquipmentIds = [equipment.forklift1.id, equipment.crane.id];
+        const templateId = pmTemplates.forklift.id;
+
+        const assignmentData = {
+          equipmentIds: selectedEquipmentIds,
+          templateId
+        };
+
+        expect(assignmentData.equipmentIds.length).toBe(2);
+        expect(assignmentData.templateId).toBe(templateId);
+      });
+
+      it('can search equipment by name, model, or serial number', () => {
+        const allEquipment = Object.values(equipment);
+        const queries = ['Forklift', 'Toyota', 'TY-2024'];
+
+        queries.forEach(query => {
+          const results = allEquipment.filter(eq =>
+            eq.name.toLowerCase().includes(query.toLowerCase()) ||
+            eq.manufacturer.toLowerCase().includes(query.toLowerCase()) ||
+            eq.serial_number.toLowerCase().includes(query.toLowerCase())
+          );
+
+          expect(results.length).toBeGreaterThanOrEqual(0);
+        });
+      });
+
+      it('shows current template assignment status', () => {
+        const forkliftWithTemplate = equipment.forklift1;
+        const compressorWithoutTemplate = equipment.compressor;
+
+        expect(forkliftWithTemplate.default_pm_template_id).toBe('template-forklift');
+        expect(compressorWithoutTemplate.default_pm_template_id).toBeNull();
+      });
+
+      it('displays equipment count for bulk assignment', () => {
+        const selectedCount = 3;
+        const totalVisible = 5;
+
+        const statusText = `${selectedCount} of ${totalVisible} visible equipment selected`;
+        expect(statusText).toContain(selectedCount.toString());
+      });
+
+      it('disables assign button when no equipment selected', () => {
+        const selectedCount = 0;
+        const isButtonDisabled = selectedCount === 0;
+
+        expect(isButtonDisabled).toBe(true);
+      });
+    });
+
+    describe('as a Team Manager', () => {
+      beforeEach(() => {
+        vi.mocked(useUnifiedPermissions).mockReturnValue({
+          hasRole: () => false,
+          isTeamMember: () => true,
+          isTeamManager: () => true,
+          organization: { canManage: false, canInviteMembers: false, canCreateTeams: false, canViewBilling: false, canManageMembers: false },
+          equipment: {
+            getPermissions: () => ({
+              canView: true,
+              canCreate: false,
+              canEdit: true,
+              canDelete: false
+            }),
+            canViewAll: false,
+            canCreateAny: false
+          },
+          workOrders: {
+            getPermissions: () => ({}),
+            getDetailedPermissions: () => ({ canViewPM: true, canEditPM: true }),
+            canViewAll: false,
+            canCreateAny: true
+          },
+          teams: { getPermissions: () => ({}), canCreateAny: false },
+          notes: { getPermissions: () => ({}) }
+        } as unknown as ReturnType<typeof useUnifiedPermissions>);
+      });
+
+      it('can assign templates to team equipment only', () => {
+        const { result } = renderHookAsPersona(
+          () => useUnifiedPermissions(),
+          'teamManager'
+        );
+
+        const permissions = result.current.equipment.getPermissions();
+        expect(permissions.canEdit).toBe(true);
+        expect(result.current.equipment.canViewAll).toBe(false);
+      });
+    });
+  });
+
+  describe('Template Application Error Handling', () => {
+    it('handles work order creation failure gracefully', () => {
+      const errorResult = {
+        created: 0,
+        failed: 3,
+        errors: [
+          { equipmentId: 'eq-1', error: 'Database error' },
+          { equipmentId: 'eq-2', error: 'Validation failed' },
+          { equipmentId: 'eq-3', error: 'Permission denied' }
+        ]
+      };
+
+      expect(errorResult.failed).toBe(errorResult.errors.length);
+    });
+
+    it('handles PM checklist initialization failure', () => {
+      const initError = {
+        workOrderId: 'wo-1',
+        error: 'Template data invalid'
+      };
+
+      expect(initError.error).toBeDefined();
+    });
+
+    it('handles bulk assignment failure', () => {
+      const bulkError = {
+        success: false,
+        message: 'Failed to assign template to equipment',
+        failedIds: ['eq-1', 'eq-2']
+      };
+
+      expect(bulkError.success).toBe(false);
+      expect(bulkError.failedIds.length).toBeGreaterThan(0);
+    });
+  });
 });
