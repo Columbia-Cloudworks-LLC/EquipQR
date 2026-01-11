@@ -23,11 +23,14 @@ const normalizeValue = (value: string): string => {
 // ============================================
 
 /**
- * Get all compatibility rules for a PM template.
+ * Get all compatibility rules for a PM template within an organization.
  * 
- * @param organizationId - Organization ID for access control
+ * Rules are organization-scoped, so this returns only the rules set by
+ * the specified organization for the given template.
+ * 
+ * @param organizationId - Organization ID (rules are scoped to this org)
  * @param templateId - PM template ID
- * @returns Array of compatibility rules
+ * @returns Array of compatibility rules for this organization
  */
 export const getRulesForTemplate = async (
   organizationId: string,
@@ -50,10 +53,12 @@ export const getRulesForTemplate = async (
       throw new Error('PM template not found or access denied');
     }
 
+    // Get rules for this organization and template
     const { data, error } = await supabase
       .from('pm_template_compatibility_rules')
       .select('*')
       .eq('pm_template_id', templateId)
+      .eq('organization_id', organizationId)
       .order('manufacturer', { ascending: true })
       .order('model', { ascending: true, nullsFirst: false });
 
@@ -73,7 +78,10 @@ export const getRulesForTemplate = async (
 /**
  * Add a single compatibility rule for a PM template.
  * 
- * @param organizationId - Organization ID for access control
+ * Rules are organization-scoped, so this adds a rule for the specified
+ * organization. Works for both global and org-owned templates.
+ * 
+ * @param organizationId - Organization ID (rule is scoped to this org)
  * @param templateId - PM template ID
  * @param rule - Rule data (manufacturer, model)
  * @returns The created rule
@@ -84,10 +92,10 @@ export const addRule = async (
   rule: PMTemplateCompatibilityRuleFormData
 ): Promise<PMTemplateCompatibilityRule> => {
   try {
-    // Verify template belongs to organization and is not protected
+    // Verify template is accessible (global or org-owned)
     const { data: template, error: templateError } = await supabase
       .from('pm_checklist_templates')
-      .select('id, organization_id, is_protected')
+      .select('id, organization_id')
       .eq('id', templateId)
       .single();
 
@@ -95,12 +103,9 @@ export const addRule = async (
       throw new Error('PM template not found or access denied');
     }
 
-    if (template.organization_id !== organizationId) {
+    // Check access: template must be global or belong to the organization
+    if (template.organization_id !== null && template.organization_id !== organizationId) {
       throw new Error('PM template not found or access denied');
-    }
-
-    if (template.is_protected) {
-      throw new Error('Cannot modify rules for protected templates');
     }
 
     // Normalize values for matching
@@ -111,6 +116,7 @@ export const addRule = async (
       .from('pm_template_compatibility_rules')
       .insert({
         pm_template_id: templateId,
+        organization_id: organizationId,
         manufacturer: rule.manufacturer.trim(),
         model: rule.model?.trim() || null,
         manufacturer_norm: manufacturerNorm,
@@ -141,7 +147,10 @@ export const addRule = async (
 /**
  * Remove a compatibility rule by ID.
  * 
- * @param organizationId - Organization ID for access control
+ * Rules are organization-scoped, so this only allows removing rules
+ * that belong to the specified organization.
+ * 
+ * @param organizationId - Organization ID (must match rule's organization)
  * @param ruleId - Rule ID to remove
  */
 export const removeRule = async (
@@ -149,32 +158,20 @@ export const removeRule = async (
   ruleId: string
 ): Promise<void> => {
   try {
-    // Verify rule belongs to a template in the organization and is not protected
-    const { data: rule, error: ruleError } = await supabase
+    // Delete the rule only if it belongs to this organization
+    // RLS will also enforce this, but we check explicitly for a clear error message
+    const { data: rule, error: fetchError } = await supabase
       .from('pm_template_compatibility_rules')
-      .select(`
-        id,
-        pm_checklist_templates!inner(organization_id, is_protected)
-      `)
+      .select('id, organization_id')
       .eq('id', ruleId)
       .single();
 
-    if (ruleError || !rule) {
+    if (fetchError || !rule) {
       throw new Error('Compatibility rule not found or access denied');
     }
 
-    // Type assertion for the joined data
-    const ruleData = rule as { 
-      id: string; 
-      pm_checklist_templates: { organization_id: string | null; is_protected: boolean } 
-    };
-    
-    if (ruleData.pm_checklist_templates.organization_id !== organizationId) {
+    if (rule.organization_id !== organizationId) {
       throw new Error('Compatibility rule not found or access denied');
-    }
-
-    if (ruleData.pm_checklist_templates.is_protected) {
-      throw new Error('Cannot modify rules for protected templates');
     }
 
     const { error } = await supabase
@@ -194,12 +191,16 @@ export const removeRule = async (
 // ============================================
 
 /**
- * Replace all compatibility rules for a PM template.
+ * Replace all compatibility rules for a PM template within an organization.
  * Uses an atomic PostgreSQL RPC function for guaranteed transaction safety.
  * 
- * @param organizationId - Organization ID for access control
+ * Rules are organization-scoped, so this replaces only the rules for the
+ * specified organization. Other organizations' rules are not affected.
+ * Works for both global and org-owned templates.
+ * 
+ * @param organizationId - Organization ID (rules are scoped to this org)
  * @param templateId - PM template ID
- * @param rules - Array of rules to set (replaces existing)
+ * @param rules - Array of rules to set (replaces existing for this org)
  * @returns Object with counts of rules set
  */
 export const bulkSetRules = async (
@@ -227,7 +228,7 @@ export const bulkSetRules = async (
     if (error) {
       // Handle permission errors with user-friendly message
       if (error.code === '42501') {
-        throw new Error('PM template not found, access denied, or template is protected');
+        throw new Error('PM template not found or access denied');
       }
       throw error;
     }

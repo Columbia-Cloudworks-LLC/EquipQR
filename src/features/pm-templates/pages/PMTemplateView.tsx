@@ -294,8 +294,9 @@ const PMTemplateView: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Equipment Compatibility Rules - only for org-owned, non-protected templates */}
-            {canEdit && !isLoadingRules && (
+            {/* Equipment Compatibility Rules - available for admins on all templates */}
+            {/* Rules are organization-scoped, so each org can set their own rules for any template */}
+            {isAdmin && !isLoadingRules && (
               <div className="space-y-3">
                 <PMTemplateCompatibilityRulesEditor
                   rules={editedRules}

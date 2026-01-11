@@ -14,10 +14,14 @@
  * 
  * Allows defining compatibility patterns like "fits all Caterpillar D6T equipment"
  * instead of manually linking to specific equipment records.
+ * 
+ * Rules are organization-scoped, allowing each organization to set their own
+ * compatibility rules for any template (including global templates).
  */
 export interface PMTemplateCompatibilityRule {
   id: string;
   pm_template_id: string;
+  organization_id: string;  // Organization that owns this rule
   manufacturer: string;
   model: string | null;  // null = "any model from this manufacturer"
   manufacturer_norm: string;
