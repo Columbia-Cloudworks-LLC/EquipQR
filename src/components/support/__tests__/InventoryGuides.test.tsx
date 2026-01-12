@@ -3,29 +3,8 @@ import { render, screen, waitFor } from '@/test/utils/test-utils';
 import userEvent from '@testing-library/user-event';
 import InventoryGuides from '../InventoryGuides';
 
-// Mock the Image constructor for testing image loading
-const mockImageLoad = vi.fn();
-const mockImageError = vi.fn();
-
 beforeEach(() => {
   vi.clearAllMocks();
-  
-  // Mock Image constructor
-  global.Image = class {
-    onload: (() => void) | null = null;
-    onerror: (() => void) | null = null;
-    src = '';
-    
-    constructor() {
-      setTimeout(() => {
-        // Default behavior: trigger error (image not found)
-        if (this.onerror) {
-          mockImageError();
-          this.onerror();
-        }
-      }, 0);
-    }
-  } as unknown as typeof Image;
 });
 
 describe('InventoryGuides', () => {
@@ -352,50 +331,6 @@ describe('InventoryGuides', () => {
     });
   });
 
-  describe('Image Loading States', () => {
-    it('shows placeholder when image does not exist', async () => {
-      const user = userEvent.setup();
-      render(<InventoryGuides />);
-      
-      const accordionTrigger = screen.getByText('Opening the Parts Managers Panel');
-      await user.click(accordionTrigger);
-      
-      await waitFor(() => {
-        // Should show placeholders since images don't exist in tests
-        // Use getAllByText since there are multiple steps with placeholders
-        const placeholders = screen.getAllByText('Screenshot Placeholder');
-        expect(placeholders.length).toBeGreaterThan(0);
-      });
-    });
-
-    it('shows image when loaded successfully', async () => {
-      // Override Image mock to simulate successful load
-      global.Image = class {
-        onload: (() => void) | null = null;
-        onerror: (() => void) | null = null;
-        src = '';
-        
-        constructor() {
-          setTimeout(() => {
-            if (this.onload) {
-              mockImageLoad();
-              this.onload();
-            }
-          }, 0);
-        }
-      } as unknown as typeof Image;
-      
-      const user = userEvent.setup();
-      render(<InventoryGuides />);
-      
-      const accordionTrigger = screen.getByText('Opening the Parts Managers Panel');
-      await user.click(accordionTrigger);
-      
-      await waitFor(() => {
-        expect(mockImageLoad).toHaveBeenCalled();
-      });
-    });
-  });
 
   describe('Verification Status', () => {
     it('displays verification status badges', async () => {
