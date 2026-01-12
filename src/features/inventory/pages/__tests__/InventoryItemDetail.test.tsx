@@ -1,7 +1,16 @@
 import React from 'react';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import InventoryItemDetail from '../InventoryItemDetail';
+
+// Helper to setup userEvent
+const renderWithUser = (ui: React.ReactElement) => {
+  return {
+    user: userEvent.setup(),
+    ...render(ui)
+  };
+};
 import type { InventoryItem, PartCompatibilityRule } from '@/features/inventory/types/inventory';
 import * as useInventoryModule from '@/features/inventory/hooks/useInventory';
 
@@ -274,6 +283,358 @@ describe('InventoryItemDetail - Compatibility Rules', () => {
         const skeletons = document.querySelectorAll('.animate-pulse');
         expect(skeletons.length).toBeGreaterThan(0);
       });
+    });
+  });
+});
+
+describe('InventoryItemDetail - Item Information', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setupMocks();
+  });
+
+  describe('Overview Tab', () => {
+    it('displays item SKU', async () => {
+      render(<InventoryItemDetail />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('TEST-001')).toBeInTheDocument();
+      });
+    });
+
+    it('displays quantity on hand', async () => {
+      render(<InventoryItemDetail />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('100')).toBeInTheDocument();
+      });
+    });
+
+    it('displays location', async () => {
+      render(<InventoryItemDetail />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Warehouse A')).toBeInTheDocument();
+      });
+    });
+
+    it('displays description', async () => {
+      render(<InventoryItemDetail />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Test description')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Low Stock Indicator', () => {
+    it('does not show low stock badge when stock is sufficient', async () => {
+      render(<InventoryItemDetail />);
+      
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+      });
+      
+      // "Low Stock" badge should not be visible
+      expect(screen.queryByText('Low Stock')).not.toBeInTheDocument();
+    });
+
+    it('shows low stock badge when stock is low', async () => {
+      const lowStockItem = {
+        ...mockItem,
+        quantity_on_hand: 5,
+        isLowStock: true
+      };
+      
+      vi.mocked(useInventoryModule.useInventoryItem).mockReturnValue({
+        data: lowStockItem,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn()
+      } as unknown as ReturnType<typeof useInventoryModule.useInventoryItem>);
+      
+      render(<InventoryItemDetail />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Low Stock')).toBeInTheDocument();
+      });
+    });
+  });
+});
+
+describe('InventoryItemDetail - Action Buttons', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setupMocks();
+  });
+
+  describe('Back Button', () => {
+    it('navigates back to inventory list when back button is clicked', async () => {
+      const { user } = renderWithUser(<InventoryItemDetail />);
+      
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+      });
+      
+      // Find back button - it's the button with ArrowLeft icon
+      const backButton = screen.getByRole('button', { name: /back/i });
+      if (backButton) {
+        await user.click(backButton);
+        expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory');
+      }
+    });
+  });
+
+  describe('QR Code Button', () => {
+    it('shows QR code display when QR button is clicked', async () => {
+      const { user } = renderWithUser(<InventoryItemDetail />);
+      
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+      });
+      
+      const qrButton = screen.getByRole('button', { name: /qr/i });
+      if (qrButton) {
+        await user.click(qrButton);
+        
+        await waitFor(() => {
+          expect(screen.getByTestId('qr-code-display')).toBeInTheDocument();
+        });
+      }
+    });
+  });
+
+  describe('Edit Button', () => {
+    it('shows edit form when edit button is clicked', async () => {
+      const { user } = renderWithUser(<InventoryItemDetail />);
+      
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+      });
+      
+      const editButton = screen.getByRole('button', { name: /edit/i });
+      if (editButton) {
+        await user.click(editButton);
+        
+        await waitFor(() => {
+          expect(screen.getByTestId('inventory-item-form')).toBeInTheDocument();
+        });
+      }
+    });
+  });
+});
+
+describe('InventoryItemDetail - Quantity Adjustment', () => {
+  let mockAdjustMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdjustMutateAsync = vi.fn().mockResolvedValue({});
+    setupMocks();
+    
+    vi.mocked(useInventoryModule.useAdjustInventoryQuantity).mockReturnValue({
+      mutateAsync: mockAdjustMutateAsync,
+      isPending: false
+    } as unknown as ReturnType<typeof useInventoryModule.useAdjustInventoryQuantity>);
+  });
+
+  it('opens adjust dialog when adjust quantity button is clicked', async () => {
+    const { user } = renderWithUser(<InventoryItemDetail />);
+    
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+    });
+    
+    const adjustButton = screen.getByRole('button', { name: /adjust/i });
+    if (adjustButton) {
+      await user.click(adjustButton);
+      
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+    }
+  });
+});
+
+describe('InventoryItemDetail - Tab Navigation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setupMocks();
+  });
+
+  it('switches to Transactions tab when clicked', async () => {
+    const { user } = renderWithUser(<InventoryItemDetail />);
+    
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+    });
+    
+    const transactionsTab = screen.getByRole('tab', { name: /transaction/i });
+    await user.click(transactionsTab);
+    
+    expect(transactionsTab).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('switches to Compatibility tab when clicked', async () => {
+    const { user } = renderWithUser(<InventoryItemDetail />);
+    
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+    });
+    
+    const compatibilityTab = screen.getByRole('tab', { name: /compatibility/i });
+    await user.click(compatibilityTab);
+    
+    expect(compatibilityTab).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('shows compatibility rules editor in Compatibility tab', async () => {
+    const { user } = renderWithUser(<InventoryItemDetail />);
+    
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+    });
+    
+    const compatibilityTab = screen.getByRole('tab', { name: /compatibility/i });
+    await user.click(compatibilityTab);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('compatibility-rules-editor')).toBeInTheDocument();
+      expect(screen.getByTestId('rules-count')).toHaveTextContent('Rules: 2');
+    });
+  });
+});
+
+describe('InventoryItemDetail - Delete Functionality', () => {
+  let mockDeleteMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockDeleteMutateAsync = vi.fn().mockResolvedValue({});
+    setupMocks();
+    
+    vi.mocked(useInventoryModule.useDeleteInventoryItem).mockReturnValue({
+      mutateAsync: mockDeleteMutateAsync,
+      isPending: false
+    } as unknown as ReturnType<typeof useInventoryModule.useDeleteInventoryItem>);
+  });
+
+  it('shows delete confirmation dialog when delete button is clicked', async () => {
+    const { user } = renderWithUser(<InventoryItemDetail />);
+    
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+    });
+    
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
+    if (deleteButton) {
+      await user.click(deleteButton);
+      
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText(/are you sure/i)).toBeInTheDocument();
+      });
+    }
+  });
+});
+
+describe('InventoryItemDetail - Transactions Tab', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setupMocks();
+    
+    vi.mocked(useInventoryModule.useInventoryTransactions).mockReturnValue({
+      data: {
+        transactions: [
+          {
+            id: 'trans-1',
+            inventory_item_id: 'item-1',
+            transaction_type: 'adjustment',
+            quantity_change: 10,
+            quantity_after: 110,
+            notes: 'Received shipment',
+            created_at: '2024-01-15T10:00:00Z',
+            created_by: 'user-1',
+            user_email: 'test@example.com'
+          }
+        ],
+        totalCount: 1,
+        page: 1,
+        limit: 20,
+        hasMore: false
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn()
+    } as unknown as ReturnType<typeof useInventoryModule.useInventoryTransactions>);
+  });
+
+  it('displays transactions when navigating to Transactions tab', async () => {
+    const { user } = renderWithUser(<InventoryItemDetail />);
+    
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+    });
+    
+    const transactionsTab = screen.getByRole('tab', { name: /transaction/i });
+    await user.click(transactionsTab);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Received shipment')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('InventoryItemDetail - Equipment Links', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setupMocks();
+    
+    vi.mocked(useInventoryModule.useEquipmentMatchingItemRules).mockReturnValue({
+      data: [
+        { id: 'eq-1', name: 'Bulldozer 1', manufacturer: 'Caterpillar', model: 'D6T' },
+        { id: 'eq-2', name: 'Excavator 1', manufacturer: 'John Deere', model: '350G' }
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn()
+    } as unknown as ReturnType<typeof useInventoryModule.useEquipmentMatchingItemRules>);
+  });
+
+  it('displays compatible equipment in Compatibility tab', async () => {
+    const { user } = renderWithUser(<InventoryItemDetail />);
+    
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+    });
+    
+    const compatibilityTab = screen.getByRole('tab', { name: /compatibility/i });
+    await user.click(compatibilityTab);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Bulldozer 1')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('InventoryItemDetail - No Item Found', () => {
+  it('shows error state when item is not found', async () => {
+    vi.mocked(useInventoryModule.useInventoryItem).mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: true,
+      error: new Error('Item not found'),
+      refetch: vi.fn()
+    } as unknown as ReturnType<typeof useInventoryModule.useInventoryItem>);
+    
+    render(<InventoryItemDetail />);
+    
+    await waitFor(() => {
+      // Should not show the item heading since item is null
+      expect(screen.queryByRole('heading', { name: 'Test Part' })).not.toBeInTheDocument();
     });
   });
 });

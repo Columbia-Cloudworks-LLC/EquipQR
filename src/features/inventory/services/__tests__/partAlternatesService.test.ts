@@ -1,10 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock supabase before importing the service
+const mockSelect = vi.fn();
+const mockInsert = vi.fn();
+const mockUpdate = vi.fn();
+const mockDelete = vi.fn();
+const mockEq = vi.fn();
+const mockIlike = vi.fn();
+const mockOrder = vi.fn();
+const mockLimit = vi.fn();
+const mockSingle = vi.fn();
+
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     rpc: vi.fn(),
-    from: vi.fn(),
+    from: vi.fn(() => ({
+      select: mockSelect,
+      insert: mockInsert,
+      update: mockUpdate,
+      delete: mockDelete
+    })),
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } })
     }
@@ -24,7 +39,17 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   getAlternatesForPartNumber,
   getAlternatesForInventoryItem,
-  getCompatiblePartsForMakeModel
+  getCompatiblePartsForMakeModel,
+  createAlternateGroup,
+  getAlternateGroupById,
+  updateAlternateGroup,
+  deleteAlternateGroup,
+  removeGroupMember,
+  getAlternateGroups,
+  addIdentifierToGroup,
+  addInventoryItemToGroup,
+  createPartIdentifier,
+  searchPartIdentifiers
 } from '../partAlternatesService';
 
 describe('partAlternatesService', () => {
@@ -304,6 +329,598 @@ describe('Pattern Validation', () => {
         const hasNonWildcard = pattern.replace(/[*?-]/g, '').length >= 2;
         expect(asteriskCount <= 2 && hasNonWildcard).toBe(true);
       }
+    });
+  });
+});
+
+describe('Alternate Group Management', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset mock chain
+    mockSelect.mockReturnValue({ eq: mockEq });
+    mockInsert.mockReturnValue({ select: mockSelect });
+    mockUpdate.mockReturnValue({ eq: mockEq });
+    mockDelete.mockReturnValue({ eq: mockEq });
+    mockEq.mockReturnValue({ eq: mockEq, single: mockSingle, order: mockOrder });
+    mockOrder.mockReturnValue({ order: mockOrder, limit: mockLimit, data: [], error: null });
+    mockLimit.mockReturnValue({ data: [], error: null });
+    mockSingle.mockReturnValue({ data: null, error: null });
+    mockIlike.mockReturnValue({ order: mockOrder });
+  });
+
+  describe('createAlternateGroup', () => {
+    it('creates a group with required fields', async () => {
+      const mockGroup = {
+        id: 'group-1',
+        name: 'Test Group',
+        organization_id: 'org-1',
+        status: 'unverified',
+        created_at: new Date().toISOString()
+      };
+
+      mockSelect.mockReturnValueOnce({ single: vi.fn().mockResolvedValue({ data: mockGroup, error: null }) });
+      mockInsert.mockReturnValueOnce({ select: mockSelect });
+      vi.mocked(supabase.from).mockReturnValueOnce({ insert: mockInsert } as never);
+
+      const result = await createAlternateGroup('org-1', { name: 'Test Group' });
+
+      expect(result).toEqual(mockGroup);
+      expect(supabase.from).toHaveBeenCalledWith('part_alternate_groups');
+    });
+
+    it('creates a group with all optional fields', async () => {
+      const mockGroup = {
+        id: 'group-1',
+        name: 'Test Group',
+        description: 'A test description',
+        status: 'verified',
+        notes: 'Some notes',
+        evidence_url: 'https://example.com',
+        organization_id: 'org-1',
+        created_at: new Date().toISOString()
+      };
+
+      mockSelect.mockReturnValueOnce({ single: vi.fn().mockResolvedValue({ data: mockGroup, error: null }) });
+      mockInsert.mockReturnValueOnce({ select: mockSelect });
+      vi.mocked(supabase.from).mockReturnValueOnce({ insert: mockInsert } as never);
+
+      const result = await createAlternateGroup('org-1', {
+        name: 'Test Group',
+        description: 'A test description',
+        status: 'verified',
+        notes: 'Some notes',
+        evidence_url: 'https://example.com'
+      });
+
+      expect(result).toEqual(mockGroup);
+    });
+
+    it('throws error on database failure', async () => {
+      mockSelect.mockReturnValueOnce({ single: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB Error' } }) });
+      mockInsert.mockReturnValueOnce({ select: mockSelect });
+      vi.mocked(supabase.from).mockReturnValueOnce({ insert: mockInsert } as never);
+
+      await expect(createAlternateGroup('org-1', { name: 'Test' }))
+        .rejects.toEqual({ message: 'DB Error' });
+    });
+  });
+
+  describe('getAlternateGroupById', () => {
+    it('returns group with members', async () => {
+      const mockGroup = {
+        id: 'group-1',
+        name: 'Test Group',
+        organization_id: 'org-1',
+        status: 'verified'
+      };
+
+      const mockMembers = [
+        {
+          id: 'member-1',
+          group_id: 'group-1',
+          part_identifier_id: 'ident-1',
+          inventory_item_id: null,
+          is_primary: true,
+          notes: null,
+          created_at: new Date().toISOString(),
+          part_identifiers: { identifier_type: 'oem', raw_value: 'CAT-123', manufacturer: 'Caterpillar' },
+          inventory_items: null
+        }
+      ];
+
+      // Mock for group query
+      const groupMockChain = {
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: mockGroup, error: null })
+        })
+      };
+      mockSelect.mockReturnValueOnce(groupMockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+
+      // Mock for members query
+      const membersMockChain = {
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: mockMembers, error: null })
+          })
+        })
+      };
+      const memberSelect = vi.fn().mockReturnValue(membersMockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ select: memberSelect } as never);
+
+      const result = await getAlternateGroupById('org-1', 'group-1');
+
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe('Test Group');
+      expect(result?.members).toHaveLength(1);
+      expect(result?.members[0].identifier_value).toBe('CAT-123');
+    });
+
+    it('returns null for non-existent group', async () => {
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116', message: 'Not found' } })
+        })
+      };
+      mockSelect.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+
+      const result = await getAlternateGroupById('org-1', 'non-existent');
+
+      expect(result).toBeNull();
+    });
+
+    it('throws error on database failure', async () => {
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: null, error: { code: '500', message: 'Server error' } })
+        })
+      };
+      mockSelect.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+
+      await expect(getAlternateGroupById('org-1', 'group-1'))
+        .rejects.toEqual({ code: '500', message: 'Server error' });
+    });
+  });
+
+  describe('updateAlternateGroup', () => {
+    it('updates group name', async () => {
+      const mockUpdatedGroup = {
+        id: 'group-1',
+        name: 'Updated Name',
+        organization_id: 'org-1'
+      };
+
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockUpdatedGroup, error: null })
+            })
+          })
+        })
+      };
+      mockUpdate.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ update: mockUpdate } as never);
+
+      const result = await updateAlternateGroup('org-1', 'group-1', { name: 'Updated Name' });
+
+      expect(result.name).toBe('Updated Name');
+    });
+
+    it('sets verified_by when status changes to verified', async () => {
+      const mockUpdatedGroup = {
+        id: 'group-1',
+        name: 'Test Group',
+        status: 'verified',
+        verified_by: 'user-1',
+        verified_at: expect.any(String)
+      };
+
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockUpdatedGroup, error: null })
+            })
+          })
+        })
+      };
+      mockUpdate.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ update: mockUpdate } as never);
+
+      const result = await updateAlternateGroup('org-1', 'group-1', { status: 'verified' });
+
+      expect(result.status).toBe('verified');
+    });
+
+    it('throws error on database failure', async () => {
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } })
+            })
+          })
+        })
+      };
+      mockUpdate.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ update: mockUpdate } as never);
+
+      await expect(updateAlternateGroup('org-1', 'group-1', { name: 'Test' }))
+        .rejects.toEqual({ message: 'Update failed' });
+    });
+  });
+
+  describe('deleteAlternateGroup', () => {
+    it('deletes a group successfully', async () => {
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null })
+        })
+      };
+      mockDelete.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ delete: mockDelete } as never);
+
+      await expect(deleteAlternateGroup('org-1', 'group-1')).resolves.toBeUndefined();
+      expect(supabase.from).toHaveBeenCalledWith('part_alternate_groups');
+    });
+
+    it('throws error on database failure', async () => {
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: { message: 'Delete failed' } })
+        })
+      };
+      mockDelete.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ delete: mockDelete } as never);
+
+      await expect(deleteAlternateGroup('org-1', 'group-1'))
+        .rejects.toEqual({ message: 'Delete failed' });
+    });
+  });
+
+  describe('removeGroupMember', () => {
+    it('removes a member successfully', async () => {
+      const mockChain = {
+        eq: vi.fn().mockResolvedValue({ error: null })
+      };
+      mockDelete.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ delete: mockDelete } as never);
+
+      await expect(removeGroupMember('member-1')).resolves.toBeUndefined();
+      expect(supabase.from).toHaveBeenCalledWith('part_alternate_group_members');
+    });
+
+    it('throws error on database failure', async () => {
+      const mockChain = {
+        eq: vi.fn().mockResolvedValue({ error: { message: 'Remove failed' } })
+      };
+      mockDelete.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ delete: mockDelete } as never);
+
+      await expect(removeGroupMember('member-1'))
+        .rejects.toEqual({ message: 'Remove failed' });
+    });
+  });
+
+  describe('getAlternateGroups', () => {
+    it('returns all groups for organization', async () => {
+      const mockGroups = [
+        { id: 'group-1', name: 'Group A', organization_id: 'org-1' },
+        { id: 'group-2', name: 'Group B', organization_id: 'org-1' }
+      ];
+
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: mockGroups, error: null })
+        })
+      };
+      mockSelect.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+
+      const result = await getAlternateGroups('org-1');
+
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe('Group A');
+    });
+
+    it('returns empty array when no groups exist', async () => {
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: [], error: null })
+        })
+      };
+      mockSelect.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+
+      const result = await getAlternateGroups('org-1');
+
+      expect(result).toEqual([]);
+    });
+
+    it('throws error on database failure', async () => {
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: null, error: { message: 'Fetch failed' } })
+        })
+      };
+      mockSelect.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+
+      await expect(getAlternateGroups('org-1'))
+        .rejects.toEqual({ message: 'Fetch failed' });
+    });
+  });
+
+  describe('addIdentifierToGroup', () => {
+    it('adds identifier to group successfully', async () => {
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValue({ error: null })
+      } as never);
+
+      await expect(addIdentifierToGroup('group-1', 'ident-1')).resolves.toBeUndefined();
+      expect(supabase.from).toHaveBeenCalledWith('part_alternate_group_members');
+    });
+
+    it('ignores duplicate insert error', async () => {
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValue({ error: { code: '23505', message: 'Duplicate' } })
+      } as never);
+
+      await expect(addIdentifierToGroup('group-1', 'ident-1')).resolves.toBeUndefined();
+    });
+
+    it('throws error for other database errors', async () => {
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValue({ error: { code: '500', message: 'Server error' } })
+      } as never);
+
+      await expect(addIdentifierToGroup('group-1', 'ident-1'))
+        .rejects.toEqual({ code: '500', message: 'Server error' });
+    });
+  });
+
+  describe('addInventoryItemToGroup', () => {
+    it('adds inventory item to group successfully', async () => {
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValue({ error: null })
+      } as never);
+
+      await expect(addInventoryItemToGroup('group-1', 'item-1')).resolves.toBeUndefined();
+      expect(supabase.from).toHaveBeenCalledWith('part_alternate_group_members');
+    });
+
+    it('adds inventory item as primary', async () => {
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValue({ error: null })
+      } as never);
+
+      await expect(addInventoryItemToGroup('group-1', 'item-1', true)).resolves.toBeUndefined();
+    });
+
+    it('ignores duplicate insert error', async () => {
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValue({ error: { code: '23505', message: 'Duplicate' } })
+      } as never);
+
+      await expect(addInventoryItemToGroup('group-1', 'item-1')).resolves.toBeUndefined();
+    });
+
+    it('throws error for other database errors', async () => {
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValue({ error: { code: '500', message: 'Server error' } })
+      } as never);
+
+      await expect(addInventoryItemToGroup('group-1', 'item-1'))
+        .rejects.toEqual({ code: '500', message: 'Server error' });
+    });
+  });
+
+  describe('createPartIdentifier', () => {
+    it('creates a part identifier successfully', async () => {
+      const mockIdentifier = {
+        id: 'ident-1',
+        identifier_type: 'oem',
+        raw_value: 'CAT-123',
+        norm_value: 'cat-123',
+        organization_id: 'org-1'
+      };
+
+      const mockChain = {
+        single: vi.fn().mockResolvedValue({ data: mockIdentifier, error: null })
+      };
+      mockSelect.mockReturnValueOnce(mockChain);
+      mockInsert.mockReturnValueOnce({ select: mockSelect });
+      vi.mocked(supabase.from).mockReturnValueOnce({ insert: mockInsert } as never);
+
+      const result = await createPartIdentifier('org-1', {
+        identifier_type: 'oem',
+        raw_value: 'CAT-123'
+      });
+
+      expect(result).toEqual(mockIdentifier);
+      expect(supabase.from).toHaveBeenCalledWith('part_identifiers');
+    });
+
+    it('creates identifier with all optional fields', async () => {
+      const mockIdentifier = {
+        id: 'ident-1',
+        identifier_type: 'aftermarket',
+        raw_value: 'WIX-456',
+        norm_value: 'wix-456',
+        manufacturer: 'WIX',
+        inventory_item_id: 'item-1',
+        notes: 'Cross reference',
+        organization_id: 'org-1'
+      };
+
+      const mockChain = {
+        single: vi.fn().mockResolvedValue({ data: mockIdentifier, error: null })
+      };
+      mockSelect.mockReturnValueOnce(mockChain);
+      mockInsert.mockReturnValueOnce({ select: mockSelect });
+      vi.mocked(supabase.from).mockReturnValueOnce({ insert: mockInsert } as never);
+
+      const result = await createPartIdentifier('org-1', {
+        identifier_type: 'aftermarket',
+        raw_value: 'WIX-456',
+        manufacturer: 'WIX',
+        inventory_item_id: 'item-1',
+        notes: 'Cross reference'
+      });
+
+      expect(result.manufacturer).toBe('WIX');
+    });
+
+    it('throws error for duplicate part number', async () => {
+      const mockChain = {
+        single: vi.fn().mockResolvedValue({ data: null, error: { code: '23505', message: 'Duplicate' } })
+      };
+      mockSelect.mockReturnValueOnce(mockChain);
+      mockInsert.mockReturnValueOnce({ select: mockSelect });
+      vi.mocked(supabase.from).mockReturnValueOnce({ insert: mockInsert } as never);
+
+      await expect(createPartIdentifier('org-1', {
+        identifier_type: 'oem',
+        raw_value: 'CAT-123'
+      })).rejects.toThrow('This part number already exists');
+    });
+
+    it('throws error for other database errors', async () => {
+      const mockChain = {
+        single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Server error' } })
+      };
+      mockSelect.mockReturnValueOnce(mockChain);
+      mockInsert.mockReturnValueOnce({ select: mockSelect });
+      vi.mocked(supabase.from).mockReturnValueOnce({ insert: mockInsert } as never);
+
+      await expect(createPartIdentifier('org-1', {
+        identifier_type: 'oem',
+        raw_value: 'CAT-123'
+      })).rejects.toEqual({ message: 'Server error' });
+    });
+  });
+
+  describe('searchPartIdentifiers', () => {
+    it('returns matching identifiers', async () => {
+      const mockIdentifiers = [
+        { id: 'ident-1', raw_value: 'CAT-123', identifier_type: 'oem' },
+        { id: 'ident-2', raw_value: 'CAT-456', identifier_type: 'oem' }
+      ];
+
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          ilike: vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue({ data: mockIdentifiers, error: null })
+            })
+          })
+        })
+      };
+      mockSelect.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+
+      const result = await searchPartIdentifiers('org-1', 'CAT');
+
+      expect(result).toHaveLength(2);
+      expect(result[0].raw_value).toBe('CAT-123');
+    });
+
+    it('returns empty array for empty search term', async () => {
+      const result = await searchPartIdentifiers('org-1', '');
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array for whitespace-only search term', async () => {
+      const result = await searchPartIdentifiers('org-1', '   ');
+      expect(result).toEqual([]);
+    });
+
+    it('throws error on database failure', async () => {
+      const mockChain = {
+        eq: vi.fn().mockReturnValue({
+          ilike: vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue({ data: null, error: { message: 'Search failed' } })
+            })
+          })
+        })
+      };
+      mockSelect.mockReturnValueOnce(mockChain);
+      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+
+      await expect(searchPartIdentifiers('org-1', 'CAT'))
+        .rejects.toEqual({ message: 'Search failed' });
+    });
+  });
+});
+
+describe('Error Handling', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('getAlternatesForPartNumber throws on RPC error', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { code: 'other', message: 'Some error' }
+    });
+
+    await expect(getAlternatesForPartNumber('org-1', 'TEST'))
+      .rejects.toEqual({ code: 'other', message: 'Some error' });
+  });
+
+  it('getAlternatesForInventoryItem throws on access denied', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { code: '42501', message: 'Access denied' }
+    });
+
+    await expect(getAlternatesForInventoryItem('org-1', 'item-1'))
+      .rejects.toThrow('Access denied');
+  });
+
+  it('getAlternatesForInventoryItem throws on other errors', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { code: 'other', message: 'Some error' }
+    });
+
+    await expect(getAlternatesForInventoryItem('org-1', 'item-1'))
+      .rejects.toEqual({ code: 'other', message: 'Some error' });
+  });
+
+  it('getCompatiblePartsForMakeModel throws on access denied', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { code: '42501', message: 'Access denied' }
+    });
+
+    await expect(getCompatiblePartsForMakeModel('org-1', 'CAT'))
+      .rejects.toThrow('Access denied');
+  });
+
+  it('getCompatiblePartsForMakeModel throws on other errors', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { code: 'other', message: 'Some error' }
+    });
+
+    await expect(getCompatiblePartsForMakeModel('org-1', 'CAT'))
+      .rejects.toEqual({ code: 'other', message: 'Some error' });
+  });
+
+  it('getCompatiblePartsForMakeModel normalizes whitespace in inputs', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null });
+
+    await getCompatiblePartsForMakeModel('org-1', '  Caterpillar  ', '  D6T  ');
+
+    expect(supabase.rpc).toHaveBeenCalledWith('get_compatible_parts_for_make_model', {
+      p_organization_id: 'org-1',
+      p_manufacturer: 'Caterpillar',
+      p_model: 'D6T'
     });
   });
 });

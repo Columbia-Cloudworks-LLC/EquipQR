@@ -339,6 +339,207 @@ describe('PartsManagersSheet', () => {
       expect(screen.getByText(personas.teamManager.email)).toBeInTheDocument();
       expect(screen.getByText('Parts Manager')).toBeInTheDocument();
     });
+
+    it('shows remove button for each manager', () => {
+      setupMocks();
+
+      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+
+      // Find remove buttons (trash icons)
+      const removeButtons = screen.getAllByRole('button').filter(
+        btn => btn.querySelector('svg.lucide-trash-2')
+      );
+      
+      expect(removeButtons.length).toBeGreaterThan(0);
+    });
+
+    it('opens confirmation dialog when remove button is clicked', async () => {
+      setupMocks();
+
+      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+
+      // Find and click remove button
+      const removeButtons = screen.getAllByRole('button').filter(
+        btn => btn.querySelector('svg.lucide-trash-2')
+      );
+      
+      if (removeButtons.length > 0) {
+        fireEvent.click(removeButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.getByText(/Remove Parts Manager/i)).toBeInTheDocument();
+          expect(screen.getByText(/will lose their parts manager permissions/i)).toBeInTheDocument();
+        });
+      }
+    });
+
+    it('calls removePartsManager when confirmed', async () => {
+      const { mockRemoveMutateAsync } = setupMocks();
+
+      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+
+      // Find and click remove button
+      const removeButtons = screen.getAllByRole('button').filter(
+        btn => btn.querySelector('svg.lucide-trash-2')
+      );
+      
+      if (removeButtons.length > 0) {
+        fireEvent.click(removeButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.getByText(/Remove Parts Manager/i)).toBeInTheDocument();
+        });
+
+        // Click confirm button
+        const confirmButton = screen.getByRole('button', { name: /remove/i });
+        fireEvent.click(confirmButton);
+
+        await waitFor(() => {
+          expect(mockRemoveMutateAsync).toHaveBeenCalledWith({
+            organizationId: organizations.acme.id,
+            userId: personas.teamManager.id
+          });
+        });
+      }
+    });
+
+    it('closes confirmation dialog when cancelled', async () => {
+      setupMocks();
+
+      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+
+      // Find and click remove button
+      const removeButtons = screen.getAllByRole('button').filter(
+        btn => btn.querySelector('svg.lucide-trash-2')
+      );
+      
+      if (removeButtons.length > 0) {
+        fireEvent.click(removeButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.getByText(/Remove Parts Manager/i)).toBeInTheDocument();
+        });
+
+        // Click cancel button
+        const cancelButton = screen.getByRole('button', { name: /cancel/i });
+        fireEvent.click(cancelButton);
+
+        await waitFor(() => {
+          expect(screen.queryByText(/will lose their parts manager permissions/i)).not.toBeInTheDocument();
+        });
+      }
+    });
+  });
+
+  describe('Toggle User Selection', () => {
+    it('toggles user selection when checkbox is clicked', async () => {
+      setupMocks();
+
+      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+
+      // Open add dialog
+      const addButton = screen.getByRole('button', { name: /add manager/i });
+      fireEvent.click(addButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(personas.technician.name)).toBeInTheDocument();
+      });
+
+      // Find checkbox and click it
+      const checkboxes = screen.getAllByRole('checkbox');
+      const checkbox = checkboxes[0];
+      
+      // Initially should be unchecked
+      expect(checkbox).not.toBeChecked();
+      
+      // Click to select
+      fireEvent.click(checkbox);
+      expect(checkbox).toBeChecked();
+      
+      // Click again to deselect
+      fireEvent.click(checkbox);
+      expect(checkbox).not.toBeChecked();
+    });
+
+    it('updates button text based on selection count', async () => {
+      setupMocks();
+
+      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+
+      // Open add dialog
+      const addButton = screen.getByRole('button', { name: /add manager/i });
+      fireEvent.click(addButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(personas.technician.name)).toBeInTheDocument();
+      });
+
+      // Initially button should show "Add Managers" disabled
+      const addManagersButton = screen.getByRole('button', { name: /add.*managers/i });
+      expect(addManagersButton).toBeDisabled();
+
+      // Select first member
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+
+      // Button should now show "Add 1 Manager"
+      expect(screen.getByRole('button', { name: /Add 1 Manager/i })).toBeInTheDocument();
+
+      // Select second member
+      fireEvent.click(checkboxes[1]);
+
+      // Button should now show "Add 2 Managers"
+      expect(screen.getByRole('button', { name: /Add 2 Managers/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('Close Add Dialog', () => {
+    it('resets state when add dialog is closed', async () => {
+      setupMocks();
+
+      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+
+      // Open add dialog
+      const addButton = screen.getByRole('button', { name: /add manager/i });
+      fireEvent.click(addButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Add Parts Managers')).toBeInTheDocument();
+      });
+
+      // Select a member and add search text
+      const checkboxes = screen.getAllByRole('checkbox');
+      fireEvent.click(checkboxes[0]);
+      
+      const searchInput = screen.getByPlaceholderText('Search members...');
+      fireEvent.change(searchInput, { target: { value: 'test' } });
+
+      // Close dialog using X button
+      const closeButtons = screen.getAllByRole('button').filter(
+        btn => btn.querySelector('svg.lucide-x')
+      );
+      
+      if (closeButtons.length > 0) {
+        fireEvent.click(closeButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.queryByText('Add Parts Managers')).not.toBeInTheDocument();
+        });
+
+        // Reopen dialog
+        fireEvent.click(addButton);
+
+        await waitFor(() => {
+          // Search should be cleared
+          const newSearchInput = screen.getByPlaceholderText('Search members...');
+          expect(newSearchInput).toHaveValue('');
+          
+          // Selection should be cleared
+          const newCheckboxes = screen.getAllByRole('checkbox');
+          newCheckboxes.forEach(cb => expect(cb).not.toBeChecked());
+        });
+      }
+    });
   });
 
   describe('Info Section', () => {

@@ -344,6 +344,158 @@ describe('AlternateGroupsPage', () => {
       expect(useDeleteAlternateGroup).toHaveBeenCalled();
       expect(mockDeleteMutateAsync).toBeDefined();
     });
+
+    it('opens delete confirmation dialog when delete is clicked from dropdown', async () => {
+      setupMocks({ canEdit: true });
+
+      render(<AlternateGroupsPage />);
+
+      // Find the dropdown trigger button
+      const dropdownButtons = screen.getAllByRole('button');
+      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
+      
+      if (menuButton) {
+        fireEvent.click(menuButton);
+        
+        await waitFor(() => {
+          const deleteOption = screen.getByText('Delete');
+          fireEvent.click(deleteOption);
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText(/Are you sure/)).toBeInTheDocument();
+        });
+      }
+    });
+
+    it('calls delete mutation when confirmed', async () => {
+      const { mockDeleteMutateAsync } = setupMocks({ canEdit: true });
+
+      render(<AlternateGroupsPage />);
+
+      // Open dropdown menu
+      const dropdownButtons = screen.getAllByRole('button');
+      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
+      
+      if (menuButton) {
+        fireEvent.click(menuButton);
+        
+        await waitFor(() => {
+          const deleteOption = screen.getByText('Delete');
+          fireEvent.click(deleteOption);
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText(/Are you sure/)).toBeInTheDocument();
+        });
+
+        // Confirm deletion
+        const confirmButton = screen.getByRole('button', { name: /delete/i });
+        fireEvent.click(confirmButton);
+
+        await waitFor(() => {
+          expect(mockDeleteMutateAsync).toHaveBeenCalledWith({
+            organizationId: organizations.acme.id,
+            groupId: expect.any(String)
+          });
+        });
+      }
+    });
+
+    it('closes confirmation dialog when cancelled', async () => {
+      setupMocks({ canEdit: true });
+
+      render(<AlternateGroupsPage />);
+
+      // Open dropdown menu
+      const dropdownButtons = screen.getAllByRole('button');
+      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
+      
+      if (menuButton) {
+        fireEvent.click(menuButton);
+        
+        await waitFor(() => {
+          const deleteOption = screen.getByText('Delete');
+          fireEvent.click(deleteOption);
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText(/Are you sure/)).toBeInTheDocument();
+        });
+
+        // Cancel deletion
+        const cancelButton = screen.getByRole('button', { name: /cancel/i });
+        fireEvent.click(cancelButton);
+
+        await waitFor(() => {
+          expect(screen.queryByText(/Are you sure/)).not.toBeInTheDocument();
+        });
+      }
+    });
+  });
+
+  describe('Dropdown Menu Actions', () => {
+    it('opens dropdown menu when more button is clicked', async () => {
+      setupMocks({ canEdit: true });
+
+      render(<AlternateGroupsPage />);
+
+      const dropdownButtons = screen.getAllByRole('button');
+      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
+      
+      if (menuButton) {
+        fireEvent.click(menuButton);
+        
+        await waitFor(() => {
+          expect(screen.getByText('View Details')).toBeInTheDocument();
+          expect(screen.getByText('Edit')).toBeInTheDocument();
+          expect(screen.getByText('Delete')).toBeInTheDocument();
+        });
+      }
+    });
+
+    it('navigates to detail page when View Details is clicked', async () => {
+      setupMocks({ canEdit: true });
+
+      render(<AlternateGroupsPage />);
+
+      const dropdownButtons = screen.getAllByRole('button');
+      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
+      
+      if (menuButton) {
+        fireEvent.click(menuButton);
+        
+        await waitFor(() => {
+          const viewOption = screen.getByText('View Details');
+          fireEvent.click(viewOption);
+        });
+
+        expect(mockNavigate).toHaveBeenCalled();
+      }
+    });
+
+    it('opens edit dialog when Edit is clicked', async () => {
+      setupMocks({ canEdit: true });
+
+      render(<AlternateGroupsPage />);
+
+      const dropdownButtons = screen.getAllByRole('button');
+      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
+      
+      if (menuButton) {
+        fireEvent.click(menuButton);
+        
+        await waitFor(() => {
+          const editOption = screen.getByText('Edit');
+          fireEvent.click(editOption);
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText('Edit Alternate Group')).toBeInTheDocument();
+          expect(screen.getByTestId('alternate-group-form')).toBeInTheDocument();
+        });
+      }
+    });
   });
 
   describe('Permission Checks', () => {

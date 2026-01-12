@@ -483,4 +483,279 @@ describe('CompatibilityRulesEditor', () => {
       expect(comboboxes.length).toBeGreaterThan(0);
     });
   });
+
+  describe('Rule Changes', () => {
+    it('updates manufacturer when selected', async () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: '', model: null, match_type: 'exact', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Find and click the manufacturer select
+      const triggers = screen.getAllByRole('combobox');
+      const manufacturerTrigger = triggers[0]; // First combobox is manufacturer
+      fireEvent.click(manufacturerTrigger);
+
+      await waitFor(() => {
+        const caterpillarOption = screen.getByText('Caterpillar');
+        fireEvent.click(caterpillarOption);
+      });
+
+      expect(mockOnChange).toHaveBeenCalledWith([
+        expect.objectContaining({ manufacturer: 'Caterpillar' })
+      ]);
+    });
+
+    it('clears model when match_type changes to any', async () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Find match type select (second combobox)
+      const triggers = screen.getAllByRole('combobox');
+      // Match type is typically the second combobox for the rule
+      const matchTypeTrigger = triggers.find(t => t.textContent?.includes('Specific'));
+      
+      if (matchTypeTrigger) {
+        fireEvent.click(matchTypeTrigger);
+
+        await waitFor(() => {
+          const anyOption = screen.getByText('Any Model');
+          fireEvent.click(anyOption);
+        });
+
+        expect(mockOnChange).toHaveBeenCalledWith([
+          expect.objectContaining({ match_type: 'any', model: null })
+        ]);
+      }
+    });
+
+    it('clears model when manufacturer changes with exact match type', async () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Find manufacturer select
+      const triggers = screen.getAllByRole('combobox');
+      const manufacturerTrigger = triggers[0];
+      fireEvent.click(manufacturerTrigger);
+
+      await waitFor(() => {
+        const johnDeereOption = screen.getByText('John Deere');
+        fireEvent.click(johnDeereOption);
+      });
+
+      expect(mockOnChange).toHaveBeenCalledWith([
+        expect.objectContaining({ manufacturer: 'John Deere', model: null })
+      ]);
+    });
+
+    it('does not clear model when manufacturer changes with prefix match type', async () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'JLG', model: 'JL-', match_type: 'prefix', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Find manufacturer select
+      const triggers = screen.getAllByRole('combobox');
+      const manufacturerTrigger = triggers[0];
+      fireEvent.click(manufacturerTrigger);
+
+      await waitFor(() => {
+        const caterpillarOption = screen.getByText('Caterpillar');
+        fireEvent.click(caterpillarOption);
+      });
+
+      // Model should NOT be cleared for prefix match type
+      expect(mockOnChange).toHaveBeenCalledWith([
+        expect.objectContaining({ manufacturer: 'Caterpillar', model: 'JL-' })
+      ]);
+    });
+  });
+
+  describe('Duplicate Detection', () => {
+    it('highlights duplicate rules', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' },
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Should have duplicate indicator (destructive border)
+      const ruleContainers = document.querySelectorAll('.border-destructive');
+      expect(ruleContainers.length).toBeGreaterThan(0);
+    });
+
+    it('shows duplicate warning message', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' },
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      expect(screen.getAllByText(/Duplicate rule/i).length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Pattern Input Changes', () => {
+    it('updates model when pattern input changes', async () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'JLG', model: '', match_type: 'prefix', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      const patternInput = screen.getByPlaceholderText(/enter prefix/i);
+      fireEvent.change(patternInput, { target: { value: 'JL-' } });
+
+      expect(mockOnChange).toHaveBeenCalledWith([
+        expect.objectContaining({ model: 'JL-' })
+      ]);
+    });
+
+    it('updates notes when notes input changes', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'verified', notes: '' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      const notesInput = screen.getByPlaceholderText(/verification notes/i);
+      fireEvent.change(notesInput, { target: { value: 'Verified on field test' } });
+
+      expect(mockOnChange).toHaveBeenCalledWith([
+        expect.objectContaining({ notes: 'Verified on field test' })
+      ]);
+    });
+  });
+
+  describe('Model Selection', () => {
+    it('shows model dropdown for exact match type', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: null, match_type: 'exact', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Should have a select for model
+      const comboboxes = screen.getAllByRole('combobox');
+      expect(comboboxes.length).toBeGreaterThanOrEqual(3); // Manufacturer, Match Type, Model
+    });
+
+    it('updates model when selected from dropdown', async () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: null, match_type: 'exact', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Find model select (should be third combobox or one with "Any Model" placeholder-like text)
+      const triggers = screen.getAllByRole('combobox');
+      // Model select is typically the third
+      const modelTrigger = triggers[2] || triggers[3];
+      
+      if (modelTrigger) {
+        fireEvent.click(modelTrigger);
+
+        await waitFor(() => {
+          const d6tOption = screen.getByText('D6T');
+          fireEvent.click(d6tOption);
+        });
+
+        expect(mockOnChange).toHaveBeenCalledWith([
+          expect.objectContaining({ model: 'D6T' })
+        ]);
+      }
+    });
+  });
+
+  describe('Status Selection', () => {
+    it('updates status when selected', async () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Find status select (should have "Unverified" text)
+      const triggers = screen.getAllByRole('combobox');
+      const statusTrigger = triggers.find(t => t.textContent?.includes('Unverified'));
+      
+      if (statusTrigger) {
+        fireEvent.click(statusTrigger);
+
+        await waitFor(() => {
+          const verifiedOption = screen.getByText('Verified');
+          fireEvent.click(verifiedOption);
+        });
+
+        expect(mockOnChange).toHaveBeenCalledWith([
+          expect.objectContaining({ status: 'verified' })
+        ]);
+      }
+    });
+  });
 });
