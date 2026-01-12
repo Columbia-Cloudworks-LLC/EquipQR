@@ -40,7 +40,7 @@ describe('EquipmentBasicInfoSection', () => {
       render(<TestWrapper />);
       
       expect(screen.getByLabelText('Equipment Name *')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('e.g., Forklift FL-001')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Auto-generated from manufacturer + model')).toBeInTheDocument();
     });
 
     it('renders manufacturer field', () => {

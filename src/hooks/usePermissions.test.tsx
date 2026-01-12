@@ -52,7 +52,7 @@ import { useSession } from '@/hooks/useSession';
 // Mock the permission engine with comprehensive permission handling
 vi.mock('@/services/permissions/PermissionEngine', () => ({
   permissionEngine: {
-    hasPermission: vi.fn((permission: string, context: { userRole?: string; organizationId?: string; teamId?: string }, entityContext?: { teamId?: string; assigneeId?: string }) => {
+    hasPermission: vi.fn((permission: string, context: { userRole?: string; organizationId?: string; teamId?: string }) => {
       const role = context?.userRole;
       
       // Organization permissions
