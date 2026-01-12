@@ -52,6 +52,8 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
     const listId = React.useId()
     // Track if we just selected to prevent immediate reopen
     const justSelectedRef = React.useRef(false)
+    // Ref for list items to enable scrollIntoView
+    const listRef = React.useRef<HTMLDivElement>(null)
     
     // Combine refs
     React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement)
@@ -61,19 +63,49 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
       setInputValue(value)
     }, [value])
 
-    // Reset highlighted index when suggestions change
+    // Filter suggestions based on current input, prioritizing startsWith matches
+    const filteredSuggestions = React.useMemo(() => {
+      if (!inputValue) return suggestions
+      const lowerInput = inputValue.toLowerCase()
+      return suggestions
+        .filter(suggestion => suggestion.toLowerCase().includes(lowerInput))
+        .sort((a, b) => {
+          const aLower = a.toLowerCase()
+          const bLower = b.toLowerCase()
+          const aStarts = aLower.startsWith(lowerInput)
+          const bStarts = bLower.startsWith(lowerInput)
+          // Items that start with the input come first
+          if (aStarts && !bStarts) return -1
+          if (!aStarts && bStarts) return 1
+          return 0
+        })
+    }, [suggestions, inputValue])
+
+    // Reset highlighted index when input value changes
     React.useEffect(() => {
       setHighlightedIndex(-1)
     }, [inputValue])
 
-    // Filter suggestions based on current input
-    const filteredSuggestions = React.useMemo(() => {
-      if (!inputValue) return suggestions
-      const lowerInput = inputValue.toLowerCase()
-      return suggestions.filter(suggestion => 
-        suggestion.toLowerCase().includes(lowerInput)
-      )
-    }, [suggestions, inputValue])
+    // Also reset when the number of filtered suggestions changes (e.g., from async updates)
+    const prevFilteredLengthRef = React.useRef(filteredSuggestions.length)
+    React.useEffect(() => {
+      if (filteredSuggestions.length !== prevFilteredLengthRef.current) {
+        setHighlightedIndex(-1)
+        prevFilteredLengthRef.current = filteredSuggestions.length
+      }
+    }, [filteredSuggestions.length])
+
+    // Scroll highlighted item into view when keyboard navigating
+    React.useEffect(() => {
+      if (highlightedIndex >= 0 && listRef.current) {
+        const highlightedElement = listRef.current.querySelector(
+          `[id="${listId}-option-${highlightedIndex}"]`
+        )
+        if (highlightedElement) {
+          highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      }
+    }, [highlightedIndex, listId])
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value
@@ -161,7 +193,7 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
     }
 
     const SuggestionsList = (
-      <Command shouldFilter={false} data-autocomplete-list>
+      <Command shouldFilter={false} data-autocomplete-list ref={listRef}>
         <CommandList id={listId} className="max-h-[200px]" role="listbox">
           {filteredSuggestions.length === 0 ? (
             <CommandEmpty>{emptyMessage}</CommandEmpty>
@@ -234,23 +266,37 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
             {...props}
           />
           <Drawer open={open} onOpenChange={setOpen}>
-            <DrawerContent className="max-h-[50vh]" aria-label={placeholder || "Select an option"}>
+            <DrawerContent className="max-h-[50vh]" aria-label="Autocomplete options">
               {/* Visually hidden title for screen readers */}
               <VisuallyHidden>
-                <DrawerTitle>{placeholder || "Select an option"}</DrawerTitle>
+                <DrawerTitle>Autocomplete options</DrawerTitle>
               </VisuallyHidden>
               <div className="p-4">
                 {/* 
-                  Note: autoFocus may not work reliably on mobile browsers, 
-                  especially iOS, due to browser restrictions on programmatic 
-                  focus in modals/drawers. Users may need to tap to focus.
+                  Mobile UX Note: This drawer contains a duplicate input field intentionally.
+                  On mobile, when the main input is focused and the keyboard appears, tapping 
+                  directly into a dropdown is awkward. The drawer provides a better touch target
+                  and the inner input allows continued filtering. Both inputs share state via
+                  inputValue and handleInputChange, so they stay synchronized.
+                  
+                  Note: autoFocus may not work reliably on mobile browsers, especially iOS,
+                  due to browser restrictions on programmatic focus in modals/drawers.
                 */}
                 <Input
                   value={inputValue}
                   onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
                   placeholder={placeholder}
                   autoComplete="off"
                   className="mb-2"
+                  aria-autocomplete="list"
+                  aria-controls={listId}
+                  aria-activedescendant={
+                    highlightedIndex >= 0 
+                      ? `${listId}-option-${highlightedIndex}` 
+                      : undefined
+                  }
+                  role="combobox"
                 />
               </div>
               {SuggestionsList}
