@@ -1,7 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -261,9 +261,10 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
     }
 
     // Desktop: Use Popover with collision detection
+    // Using PopoverAnchor instead of PopoverTrigger so the input is not a click target
     return (
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
+        <PopoverAnchor asChild>
           <Input
             ref={inputRef}
             className={cn("w-full", className)}
@@ -286,17 +287,15 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
             role="combobox"
             {...props}
           />
-        </PopoverTrigger>
+        </PopoverAnchor>
         <PopoverContent 
-          className="p-0" 
+          className="w-[var(--radix-popper-anchor-width)] p-0" 
           align="start"
           side="bottom"
           sideOffset={4}
           // Ensure popover stays within viewport
           collisionPadding={16}
           avoidCollisions={true}
-          // Match input width
-          style={{ width: 'var(--radix-popover-trigger-width)' }}
           onOpenAutoFocus={(e) => {
             // Prevent popover from stealing focus from input
             e.preventDefault()
