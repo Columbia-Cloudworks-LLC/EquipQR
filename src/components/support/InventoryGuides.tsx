@@ -20,15 +20,12 @@ import {
 } from 'lucide-react';
 
 /**
- * Step component for consistent step formatting with optional screenshot
- * Displays actual screenshot if it exists, otherwise shows a placeholder
+ * Step component for consistent step formatting
  */
 interface GuideStepProps {
   step: number;
   title: string;
   description: React.ReactNode;
-  screenshotId?: string;
-  screenshotAlt?: string;
   highlight?: 'info' | 'warning' | 'success';
 }
 
@@ -36,29 +33,8 @@ const GuideStep: React.FC<GuideStepProps> = ({
   step,
   title,
   description,
-  screenshotId,
-  screenshotAlt,
   highlight,
 }) => {
-  const [imageExists, setImageExists] = React.useState(false);
-  const [imageLoaded, setImageLoaded] = React.useState(false);
-
-  const imagePath = screenshotId ? `/${screenshotId}.png` : null;
-
-  React.useEffect(() => {
-    if (!imagePath) return;
-    
-    const img = new Image();
-    img.onload = () => {
-      setImageExists(true);
-      setImageLoaded(true);
-    };
-    img.onerror = () => {
-      setImageExists(false);
-    };
-    img.src = imagePath;
-  }, [imagePath]);
-
   const bgClass = highlight === 'info' 
     ? 'bg-info/5 border-info/20' 
     : highlight === 'warning' 
@@ -73,35 +49,9 @@ const GuideStep: React.FC<GuideStepProps> = ({
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
           {step}
         </div>
-        <div className="flex-1 space-y-3">
-          <div>
-            <h4 className="font-medium">{title}</h4>
-            <div className="text-sm text-muted-foreground mt-1">{description}</div>
-          </div>
-          {screenshotId && (
-            <div className="rounded-lg border bg-muted/30 overflow-hidden">
-              {imageExists && imageLoaded ? (
-                <img
-                  src={imagePath!}
-                  alt={screenshotAlt || `Step ${step} screenshot`}
-                  className="w-full h-auto"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="p-4 text-center">
-                  <div className="flex items-center justify-center h-32 border-2 border-dashed border-muted-foreground/30 rounded-md">
-                    <div className="text-xs text-muted-foreground">
-                      <p className="font-medium">Screenshot Placeholder</p>
-                      <p className="mt-1">{screenshotAlt || `Step ${step} screenshot`}</p>
-                      <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded mt-2 block">
-                        {screenshotId}.png
-                      </code>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+        <div className="flex-1">
+          <h4 className="font-medium">{title}</h4>
+          <div className="text-sm text-muted-foreground mt-1">{description}</div>
         </div>
       </div>
     </div>
@@ -214,8 +164,6 @@ const InventoryGuides: React.FC = () => {
                           Click <strong>Inventory</strong> in the main sidebar to open the inventory list page.
                         </span>
                       }
-                      screenshotId="guides/inventory/01-nav-inventory"
-                      screenshotAlt="Sidebar with Inventory highlighted"
                     />
                     <GuideStep
                       step={2}
@@ -226,8 +174,6 @@ const InventoryGuides: React.FC = () => {
                           (next to "Add Item"). This opens the management panel.
                         </span>
                       }
-                      screenshotId="guides/inventory/02-parts-managers-button"
-                      screenshotAlt="Inventory page header with Parts Managers button"
                     />
                   </div>
                 </AccordionContent>
@@ -250,8 +196,6 @@ const InventoryGuides: React.FC = () => {
                           In the Parts Managers panel, click the <strong>"Add Manager"</strong> button.
                         </span>
                       }
-                      screenshotId="guides/inventory/03-managers-empty"
-                      screenshotAlt="Empty parts managers panel with Add Manager button"
                     />
                     <GuideStep
                       step={2}
@@ -263,8 +207,6 @@ const InventoryGuides: React.FC = () => {
                           You can select multiple members at once.
                         </span>
                       }
-                      screenshotId="guides/inventory/04-select-members"
-                      screenshotAlt="Member selection dialog with checkboxes"
                     />
                     <GuideStep
                       step={3}
@@ -275,8 +217,6 @@ const InventoryGuides: React.FC = () => {
                           The selected members will immediately be able to create and edit inventory items.
                         </span>
                       }
-                      screenshotId="guides/inventory/05-managers-added"
-                      screenshotAlt="Parts managers panel showing added members"
                       highlight="success"
                     />
                   </div>
@@ -357,8 +297,6 @@ const InventoryGuides: React.FC = () => {
                         From the Inventory page, click <strong>"Add Item"</strong> in the page header.
                       </span>
                     }
-                    screenshotId="guides/inventory/10-add-item-button"
-                    screenshotAlt="Inventory page with Add Item button highlighted"
                   />
                   <GuideStep
                     step={2}
@@ -374,8 +312,6 @@ const InventoryGuides: React.FC = () => {
                         </ul>
                       </div>
                     }
-                    screenshotId="guides/inventory/11-form-basic-info"
-                    screenshotAlt="Inventory form showing basic information fields"
                   />
                   <GuideStep
                     step={3}
@@ -391,8 +327,6 @@ const InventoryGuides: React.FC = () => {
                         </ul>
                       </div>
                     }
-                    screenshotId="guides/inventory/12-form-stock-info"
-                    screenshotAlt="Inventory form showing quantity and threshold fields"
                   />
                   <GuideStep
                     step={4}
@@ -403,8 +337,6 @@ const InventoryGuides: React.FC = () => {
                         inventory list with its current stock status.
                       </span>
                     }
-                    screenshotId="guides/inventory/13-item-created"
-                    screenshotAlt="Inventory list showing newly created item"
                     highlight="success"
                   />
                 </div>
@@ -440,15 +372,11 @@ const InventoryGuides: React.FC = () => {
                         Click <strong>"Add Rule"</strong> to create a new rule.
                       </span>
                     }
-                    screenshotId="guides/inventory/20-rules-empty"
-                    screenshotAlt="Empty compatibility rules section"
                   />
                   <GuideStep
                     step={2}
                     title="Select a Manufacturer"
                     description="Choose the equipment manufacturer from the dropdown (e.g., Caterpillar, John Deere)."
-                    screenshotId="guides/inventory/21-rules-manufacturer"
-                    screenshotAlt="Manufacturer dropdown selection"
                   />
                   <GuideStep
                     step={3}
@@ -476,8 +404,6 @@ const InventoryGuides: React.FC = () => {
                         </div>
                       </div>
                     }
-                    screenshotId="guides/inventory/22-rules-match-types"
-                    screenshotAlt="Match type selection dropdown"
                   />
                   <GuideStep
                     step={4}
@@ -492,8 +418,6 @@ const InventoryGuides: React.FC = () => {
                         </div>
                       </div>
                     }
-                    screenshotId="guides/inventory/23-rules-status"
-                    screenshotAlt="Rule status selection"
                   />
                   <GuideStep
                     step={5}
@@ -504,8 +428,6 @@ const InventoryGuides: React.FC = () => {
                         For example: <Badge variant="secondary">Matches 5 equipment</Badge>
                       </span>
                     }
-                    screenshotId="guides/inventory/24-rules-complete"
-                    screenshotAlt="Complete compatibility rule with match count"
                     highlight="success"
                   />
                 </div>
@@ -525,8 +447,6 @@ const InventoryGuides: React.FC = () => {
                     step={1}
                     title="Open the Item Detail Page"
                     description="Click on any inventory item in the list to view its details."
-                    screenshotId="guides/inventory/30-item-detail"
-                    screenshotAlt="Inventory item detail page overview"
                   />
                   <GuideStep
                     step={2}
@@ -537,8 +457,6 @@ const InventoryGuides: React.FC = () => {
                         adjustment dialog.
                       </span>
                     }
-                    screenshotId="guides/inventory/31-adjust-button"
-                    screenshotAlt="Item detail page with Adjust Quantity button"
                   />
                   <GuideStep
                     step={3}
@@ -553,8 +471,6 @@ const InventoryGuides: React.FC = () => {
                         </ul>
                       </div>
                     }
-                    screenshotId="guides/inventory/32-adjust-dialog"
-                    screenshotAlt="Quantity adjustment dialog"
                   />
                   <GuideStep
                     step={4}
@@ -565,8 +481,6 @@ const InventoryGuides: React.FC = () => {
                         changes with timestamps, users, and reasons.
                       </span>
                     }
-                    screenshotId="guides/inventory/33-transactions"
-                    screenshotAlt="Transaction history tab showing adjustments"
                   />
                 </div>
               </AccordionContent>
@@ -590,15 +504,11 @@ const InventoryGuides: React.FC = () => {
                         the item's unique QR code.
                       </span>
                     }
-                    screenshotId="guides/inventory/40-qr-button"
-                    screenshotAlt="QR code button on item detail page"
                   />
                   <GuideStep
                     step={2}
                     title="Print or Download"
                     description="Print the QR code and attach it to the storage location or bin for easy scanning."
-                    screenshotId="guides/inventory/41-qr-display"
-                    screenshotAlt="QR code display dialog"
                   />
                   <GuideStep
                     step={3}
@@ -681,8 +591,6 @@ const InventoryGuides: React.FC = () => {
                           Click <strong>Part Alternates</strong> in the sidebar under the Navigation section.
                         </span>
                       }
-                      screenshotId="guides/inventory/50-nav-groups"
-                      screenshotAlt="Sidebar showing Part Alternates link"
                     />
                     <GuideStep
                       step={2}
@@ -692,8 +600,6 @@ const InventoryGuides: React.FC = () => {
                           Click the <strong>"New Group"</strong> button in the page header.
                         </span>
                       }
-                      screenshotId="guides/inventory/51-groups-page"
-                      screenshotAlt="Alternate Groups page with New Group button"
                     />
                     <GuideStep
                       step={3}
@@ -710,15 +616,11 @@ const InventoryGuides: React.FC = () => {
                           </ul>
                         </div>
                       }
-                      screenshotId="guides/inventory/52-create-group-dialog"
-                      screenshotAlt="Create group dialog with form fields"
                     />
                     <GuideStep
                       step={4}
                       title="Save the Group"
                       description="Click Create to save the group. It will appear in the groups grid."
-                      screenshotId="guides/inventory/53-group-created"
-                      screenshotAlt="Groups page showing newly created group card"
                       highlight="success"
                     />
                   </div>
@@ -738,8 +640,6 @@ const InventoryGuides: React.FC = () => {
                       step={1}
                       title="Open the Group Detail Page"
                       description="Click on a group card to view its details."
-                      screenshotId="guides/inventory/60-group-detail-empty"
-                      screenshotAlt="Empty group detail page"
                     />
                     <GuideStep
                       step={2}
@@ -754,8 +654,6 @@ const InventoryGuides: React.FC = () => {
                       step={3}
                       title="Search and Select"
                       description="Search for the inventory item you want to add. Click to select it."
-                      screenshotId="guides/inventory/61-add-item-dialog"
-                      screenshotAlt="Add inventory item dialog with search"
                     />
                     <GuideStep
                       step={4}
@@ -771,8 +669,6 @@ const InventoryGuides: React.FC = () => {
                       step={5}
                       title="Confirm Addition"
                       description="Click Add Item. The item now appears in the group with its current stock level."
-                      screenshotId="guides/inventory/62-item-added"
-                      screenshotAlt="Group detail showing added inventory item"
                       highlight="success"
                     />
                   </div>
@@ -804,8 +700,6 @@ const InventoryGuides: React.FC = () => {
                           In the <strong>"Part Numbers"</strong> section, click <strong>"Add Part Number"</strong>.
                         </span>
                       }
-                      screenshotId="guides/inventory/70-add-part-number"
-                      screenshotAlt="Group detail with Add Part Number button"
                     />
                     <GuideStep
                       step={2}
@@ -822,8 +716,6 @@ const InventoryGuides: React.FC = () => {
                           </div>
                         </div>
                       }
-                      screenshotId="guides/inventory/71-part-number-type"
-                      screenshotAlt="Part number type selection dropdown"
                     />
                     <GuideStep
                       step={3}
@@ -837,15 +729,11 @@ const InventoryGuides: React.FC = () => {
                           </ul>
                         </div>
                       }
-                      screenshotId="guides/inventory/72-part-number-form"
-                      screenshotAlt="Part number form with value and manufacturer"
                     />
                     <GuideStep
                       step={4}
                       title="Save the Part Number"
                       description="Click Add Part Number. Technicians can now search for this code to find the group and its alternatives."
-                      screenshotId="guides/inventory/73-part-numbers-list"
-                      screenshotAlt="Group detail showing added part numbers"
                       highlight="success"
                     />
                   </div>
@@ -878,8 +766,6 @@ const InventoryGuides: React.FC = () => {
                           Set the status dropdown to <Badge className="bg-green-600">Verified</Badge>.
                         </span>
                       }
-                      screenshotId="guides/inventory/80-edit-group-status"
-                      screenshotAlt="Edit group dialog with status dropdown"
                     />
                     <GuideStep
                       step={3}
@@ -904,8 +790,6 @@ const InventoryGuides: React.FC = () => {
                           indicating technicians can trust the interchangeability.
                         </span>
                       }
-                      screenshotId="guides/inventory/81-group-verified"
-                      screenshotAlt="Group detail page with verified badge"
                       highlight="success"
                     />
                   </div>
