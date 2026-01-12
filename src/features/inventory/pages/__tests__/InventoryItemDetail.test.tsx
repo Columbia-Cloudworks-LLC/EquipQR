@@ -121,7 +121,8 @@ vi.mock('@/features/inventory/hooks/useInventory', () => ({
   useCompatibleEquipmentForItem: vi.fn(),
   useBulkLinkEquipmentToItem: vi.fn(),
   useCompatibilityRulesForItem: vi.fn(),
-  useBulkSetCompatibilityRules: vi.fn()
+  useBulkSetCompatibilityRules: vi.fn(),
+  useEquipmentMatchingItemRules: vi.fn()
 }));
 
 vi.mock('@/features/inventory/hooks/usePartsManagers', () => ({
@@ -199,6 +200,14 @@ const setupMocks = (options: { rules?: PartCompatibilityRule[]; itemLoading?: bo
     mutateAsync: mockBulkSetRulesMutateAsync,
     isPending: false
   } as unknown as ReturnType<typeof useInventoryModule.useBulkSetCompatibilityRules>);
+  
+  vi.mocked(useInventoryModule.useEquipmentMatchingItemRules).mockReturnValue({
+    data: [],
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn()
+  } as unknown as ReturnType<typeof useInventoryModule.useEquipmentMatchingItemRules>);
 };
 
 describe('InventoryItemDetail - Compatibility Rules', () => {

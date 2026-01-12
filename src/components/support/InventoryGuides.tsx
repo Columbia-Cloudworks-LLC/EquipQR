@@ -2,27 +2,21 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   Package,
   Users,
   Layers,
   Plus,
   Settings2,
-  Search,
   QrCode,
   CheckCircle2,
-  AlertTriangle,
   Tag,
   Link2,
   Star,
   Shield,
-  Pencil,
-  Eye,
   History,
   ArrowRight,
   MousePointer,
-  ClipboardList,
 } from 'lucide-react';
 
 /**

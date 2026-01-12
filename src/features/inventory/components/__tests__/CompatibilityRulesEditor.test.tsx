@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CompatibilityRulesEditor } from '../CompatibilityRulesEditor';
-import type { PartCompatibilityRuleFormData, ModelMatchType, VerificationStatus } from '@/features/inventory/types/inventory';
+import type { PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
 
 // Mock dependencies
 vi.mock('@/contexts/OrganizationContext', () => ({

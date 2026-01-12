@@ -291,7 +291,7 @@ describe('Pattern Validation', () => {
       const dangerousPatterns = ['*', '**', '*-*'];
       
       for (const pattern of dangerousPatterns) {
-        const isJustWildcards = /^[\*\-]+$/.test(pattern);
+        const isJustWildcards = /^[*-]+$/.test(pattern);
         expect(isJustWildcards).toBe(true);
       }
     });
@@ -301,7 +301,7 @@ describe('Pattern Validation', () => {
       
       for (const pattern of validPatterns) {
         const asteriskCount = (pattern.match(/\*/g) || []).length;
-        const hasNonWildcard = pattern.replace(/[\*\?\-]/g, '').length >= 2;
+        const hasNonWildcard = pattern.replace(/[*?-]/g, '').length >= 2;
         expect(asteriskCount <= 2 && hasNonWildcard).toBe(true);
       }
     });

@@ -9,7 +9,6 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AlternateGroupsPage from '../AlternateGroupsPage';
-import { personas } from '@/test/fixtures/personas';
 import { organizations, partAlternateGroups } from '@/test/fixtures/entities';
 
 // Mock react-router-dom
