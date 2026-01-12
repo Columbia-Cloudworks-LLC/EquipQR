@@ -56,10 +56,32 @@ export const inventoryItemFormSchema = z.object({
     .optional()
     .nullable(),
   compatibleEquipmentIds: z.array(z.string().uuid()).default([]),
-  managerIds: z.array(z.string().uuid()).default([]),
   // Compatibility rules (manufacturer/model patterns)
-  compatibilityRules: z.array(compatibilityRuleSchema).default([])
-});
+  compatibilityRules: z.array(compatibilityRuleSchema).default([]),
+  // Alternate parts group assignment (optional)
+  alternateGroupMode: z.enum(['none', 'existing', 'new']).default('none'),
+  alternateGroupId: z.string().uuid().optional().nullable(),
+  newAlternateGroupName: z.string()
+    .max(200, 'Group name must be less than 200 characters')
+    .optional()
+    .nullable()
+}).refine(
+  (data) => {
+    // If mode is 'existing', require a group ID
+    if (data.alternateGroupMode === 'existing') {
+      return !!data.alternateGroupId;
+    }
+    // If mode is 'new', require a group name
+    if (data.alternateGroupMode === 'new') {
+      return !!data.newAlternateGroupName && data.newAlternateGroupName.trim().length > 0;
+    }
+    return true;
+  },
+  {
+    message: 'Please select an existing group or provide a name for the new group',
+    path: ['alternateGroupId']
+  }
+);
 
 export type InventoryItemFormData = z.infer<typeof inventoryItemFormSchema>;
 

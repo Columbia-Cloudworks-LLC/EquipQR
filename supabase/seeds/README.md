@@ -40,6 +40,9 @@ This folder contains modular seed data files for local development. The files ar
 | `20_pm_template_scissor_lift.sql` | Global Scissor Lift PM checklist template (74 items) |
 | `21_pm_template_excavator.sql` | Global Excavator PM checklist template (84 items) |
 | `22_pm_template_skid_steer.sql` | Global Skid Steer PM checklist template (80 items) |
+| `23_pm_template_compatibility_rules.sql` | PM template equipment compatibility |
+| `24_part_compatibility_rules.sql` | Part-equipment compatibility rules (~40 rules) |
+| `25_part_alternate_groups.sql` | Part alternate/interchange groups (10 groups, 30+ identifiers) |
 
 ## Test Accounts
 
@@ -135,6 +138,35 @@ The PM template seed files (`17_*` through `22_*`) create global PM checklist te
 | Scissor Lift PM | 74 | 10 |
 | Excavator PM | 84 | 12 |
 | Skid Steer PM | 80 | 11 |
+
+## Part Alternate Groups
+
+The `25_part_alternate_groups.sql` file creates test data for the Part Alternates feature, which allows technicians to find interchangeable parts by searching part numbers.
+
+### Test Scenarios
+
+| Search This | Organization | Expected Result |
+|-------------|--------------|-----------------|
+| `CAT-1R-0750` | Apex | Find WIX, Baldwin alternatives + in-stock Hydraulic Oil |
+| `JLG-7024359` | Metro | Find Hercules aftermarket + in-stock seal kit |
+| `TROJ-T-105` | Metro | Find Genie OEM and US Battery alternatives |
+| `KUB-HH150-32094` | Valley | Find WIX, Fram alternatives + in-stock oil filter |
+
+### Groups by Organization
+
+| Organization | Groups | Verified | Unverified |
+|--------------|--------|----------|------------|
+| Apex Construction | 3 | 2 | 1 |
+| Metro Equipment | 3 | 2 | 1 |
+| Valley Landscaping | 2 | 1 | 1 |
+| Industrial Rentals | 2 | 2 | 0 |
+
+### Identifier Types Used
+
+- **OEM**: Original manufacturer part numbers (e.g., `CAT-1R-0750`)
+- **Aftermarket**: Third-party part numbers (e.g., `WIX-57090`)
+- **SKU**: Internal inventory SKUs linked to inventory items
+- **Cross-ref**: Cross-reference numbers from interchange guides
 
 ## Trigger Handling
 

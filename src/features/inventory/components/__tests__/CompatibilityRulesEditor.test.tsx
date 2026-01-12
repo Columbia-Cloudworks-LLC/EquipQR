@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CompatibilityRulesEditor } from '../CompatibilityRulesEditor';
-import type { PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
+import type { PartCompatibilityRuleFormData, ModelMatchType, VerificationStatus } from '@/features/inventory/types/inventory';
 
 // Mock dependencies
 vi.mock('@/contexts/OrganizationContext', () => ({
@@ -16,7 +16,8 @@ vi.mock('@/features/equipment/hooks/useEquipment', () => ({
     data: [
       { manufacturer: 'Caterpillar', models: ['D6T', 'D8T', '320'] },
       { manufacturer: 'John Deere', models: ['450J', '650K'] },
-      { manufacturer: 'Komatsu', models: ['PC200', 'PC300'] }
+      { manufacturer: 'Komatsu', models: ['PC200', 'PC300'] },
+      { manufacturer: 'JLG', models: ['JL-100', 'JL-200', 'JL-300A'] }
     ],
     isLoading: false
   }))
@@ -106,12 +107,14 @@ describe('CompatibilityRulesEditor', () => {
       const addButton = screen.getByRole('button', { name: /add rule/i });
       fireEvent.click(addButton);
 
-      expect(mockOnChange).toHaveBeenCalledWith([{ manufacturer: '', model: null }]);
+      expect(mockOnChange).toHaveBeenCalledWith([
+        expect.objectContaining({ manufacturer: '', model: null, match_type: 'exact', status: 'unverified' })
+      ]);
     });
 
     it('appends to existing rules when adding', () => {
       const existingRules: PartCompatibilityRuleFormData[] = [
-        { manufacturer: 'Caterpillar', model: 'D6T' }
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
       ];
 
       render(
@@ -125,8 +128,8 @@ describe('CompatibilityRulesEditor', () => {
       fireEvent.click(addButton);
 
       expect(mockOnChange).toHaveBeenCalledWith([
-        { manufacturer: 'Caterpillar', model: 'D6T' },
-        { manufacturer: '', model: null }
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' },
+        expect.objectContaining({ manufacturer: '', model: null, match_type: 'exact', status: 'unverified' })
       ]);
     });
   });
@@ -283,6 +286,201 @@ describe('CompatibilityRulesEditor', () => {
       );
 
       expect(screen.queryByText(/Rules use case-insensitive matching/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Match Type Support', () => {
+    it('adds rule with match_type and status when add button clicked', () => {
+      render(
+        <CompatibilityRulesEditor
+          rules={defaultRules}
+          onChange={mockOnChange}
+        />
+      );
+
+      const addButton = screen.getByRole('button', { name: /add rule/i });
+      fireEvent.click(addButton);
+
+      expect(mockOnChange).toHaveBeenCalledWith([
+        expect.objectContaining({
+          manufacturer: '',
+          model: null,
+          match_type: 'exact',
+          status: 'unverified'
+        })
+      ]);
+    });
+
+    it('displays rules with different match types', () => {
+      const rulesWithMatchTypes: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: null, match_type: 'any', status: 'verified' },
+        { manufacturer: 'John Deere', model: '450J', match_type: 'exact', status: 'unverified' },
+        { manufacturer: 'JLG', model: 'JL-', match_type: 'prefix', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rulesWithMatchTypes}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Should render all rules
+      const triggers = screen.getAllByRole('combobox');
+      expect(triggers.length).toBeGreaterThan(0);
+    });
+
+    it('shows pattern input for prefix match type', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'JLG', model: 'JL-', match_type: 'prefix', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Should have a text input for the pattern
+      const patternInput = screen.getByPlaceholderText(/enter prefix/i);
+      expect(patternInput).toBeInTheDocument();
+    });
+
+    it('shows pattern input for wildcard match type', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: 'D*T', match_type: 'wildcard', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Should have a text input for the pattern
+      const patternInput = screen.getByPlaceholderText(/enter pattern/i);
+      expect(patternInput).toBeInTheDocument();
+    });
+
+    it('shows notes input for verified rules', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'verified', notes: 'Tested on job #123' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Should show notes input for verified status
+      const notesInput = screen.getByPlaceholderText(/verification notes/i);
+      expect(notesInput).toBeInTheDocument();
+    });
+
+    it('does not show notes input for unverified rules', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Should NOT show notes input for unverified status
+      expect(screen.queryByPlaceholderText(/verification notes/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Pattern Validation Display', () => {
+    it('shows pattern preview for prefix patterns', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'JLG', model: 'jl-', match_type: 'prefix', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Should show the normalized pattern preview
+      expect(screen.getByText(/pattern:/i)).toBeInTheDocument();
+      expect(screen.getByText(/jl-\*/)).toBeInTheDocument();
+    });
+
+    it('shows error for invalid prefix patterns with wildcards', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'JLG', model: 'JL-*', match_type: 'prefix', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Should show error about wildcards
+      expect(screen.getByText(/cannot contain wildcards/i)).toBeInTheDocument();
+    });
+
+    it('shows error for wildcard patterns with too many asterisks', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'CAT', model: 'D*T*X*', match_type: 'wildcard', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Should show error about too many wildcards
+      expect(screen.getByText(/at most 2 wildcards/i)).toBeInTheDocument();
+    });
+
+    it('shows error for wildcard patterns that match everything', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'CAT', model: '*', match_type: 'wildcard', status: 'unverified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // Should show error about needing non-wildcard characters
+      expect(screen.getByText(/at least 2 non-wildcard/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Verification Status', () => {
+    it('shows verified badge for verified status', () => {
+      const rules: PartCompatibilityRuleFormData[] = [
+        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'verified' }
+      ];
+
+      render(
+        <CompatibilityRulesEditor
+          rules={rules}
+          onChange={mockOnChange}
+        />
+      );
+
+      // The status dropdown should be present
+      const comboboxes = screen.getAllByRole('combobox');
+      expect(comboboxes.length).toBeGreaterThan(0);
     });
   });
 });

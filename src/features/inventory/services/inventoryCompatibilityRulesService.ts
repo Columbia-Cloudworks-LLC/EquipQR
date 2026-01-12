@@ -1,6 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
-import type { PartCompatibilityRule, PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
+import type { PartCompatibilityRule, PartCompatibilityRuleFormData, EquipmentMatchedByRules, ModelMatchType, VerificationStatus } from '@/features/inventory/types/inventory';
 
 // ============================================
 // Normalization Helpers
@@ -178,6 +178,8 @@ export const removeCompatibilityRule = async (
  * PostgreSQL transaction. If insert fails after delete, the entire transaction
  * rolls back automatically - no data loss possible.
  * 
+ * Now supports match_type for pattern matching (any, exact, prefix, wildcard).
+ * 
  * @param organizationId - Organization ID for access control
  * @param itemId - Inventory item ID
  * @param rules - Array of rules to set (replaces existing)
@@ -193,9 +195,13 @@ export const bulkSetCompatibilityRules = async (
     const validRules = rules.filter(rule => rule.manufacturer.trim().length > 0);
 
     // Convert rules to JSONB format for the RPC function
+    // Now includes match_type, status, and notes
     const rulesJsonb = validRules.map(rule => ({
       manufacturer: rule.manufacturer.trim(),
-      model: rule.model?.trim() || null
+      model: rule.model?.trim() || null,
+      match_type: rule.match_type || 'exact',
+      status: rule.status || 'unverified',
+      notes: rule.notes || null
     }));
 
     // Call the atomic RPC function
@@ -235,7 +241,7 @@ export const bulkSetCompatibilityRules = async (
  * - Scales well for large fleets (500+ items)
  * 
  * @param organizationId - Organization ID
- * @param rules - Array of rules to match against
+ * @param rules - Array of rules to match against (now supports match_type)
  * @returns Count of matching equipment
  */
 export const countEquipmentMatchingRules = async (
@@ -251,10 +257,22 @@ export const countEquipmentMatchingRules = async (
     }
 
     // Convert rules to JSONB format for the RPC function
-    const rulesJsonb = validRules.map(rule => ({
-      manufacturer: rule.manufacturer.trim(),
-      model: rule.model?.trim() || null
-    }));
+    // Now includes match_type for pattern matching support
+    const rulesJsonb = validRules.map(rule => {
+      const matchType = rule.match_type || 'exact';
+      let model = rule.model?.trim() || null;
+      
+      // For wildcard patterns, convert client-side * to SQL % before sending
+      if (matchType === 'wildcard' && model) {
+        model = model.replace(/\*/g, '%').replace(/\?/g, '_');
+      }
+      
+      return {
+        manufacturer: rule.manufacturer.trim(),
+        model: model,
+        match_type: matchType
+      };
+    });
 
     // Call the server-side RPC function for efficient counting
     const { data, error } = await supabase.rpc('count_equipment_matching_rules', {
@@ -273,6 +291,72 @@ export const countEquipmentMatchingRules = async (
     return data ?? 0;
   } catch (error) {
     logger.error('Error counting equipment matching rules:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// Get Equipment Matching Item's Rules
+// ============================================
+
+/**
+ * Get equipment that matches an inventory item's compatibility rules.
+ * 
+ * This is the inverse of getCompatibleInventoryItems - instead of finding parts
+ * for equipment, it finds equipment that matches a part's compatibility rules.
+ * 
+ * @param organizationId - Organization ID for access control
+ * @param itemId - Inventory item ID
+ * @returns Array of equipment that matches the item's rules
+ */
+export const getEquipmentMatchingItemRules = async (
+  organizationId: string,
+  itemId: string
+): Promise<EquipmentMatchedByRules[]> => {
+  try {
+    const { data, error } = await supabase.rpc('get_equipment_for_inventory_item_rules', {
+      p_organization_id: organizationId,
+      p_item_id: itemId
+    });
+
+    if (error) {
+      // Handle permission errors with user-friendly message
+      if (error.code === '42501') {
+        throw new Error('Inventory item not found or access denied');
+      }
+      throw error;
+    }
+
+    // Map the RPC result to typed interface
+    return (data || []).map((row: {
+      equipment_id: string;
+      name: string;
+      manufacturer: string;
+      model: string;
+      serial_number: string | null;
+      status: string;
+      location: string | null;
+      matched_rule_id: string;
+      matched_rule_manufacturer: string;
+      matched_rule_model: string | null;
+      matched_rule_match_type: string;
+      matched_rule_status: string;
+    }) => ({
+      equipment_id: row.equipment_id,
+      name: row.name,
+      manufacturer: row.manufacturer,
+      model: row.model,
+      serial_number: row.serial_number,
+      status: row.status,
+      location: row.location,
+      matched_rule_id: row.matched_rule_id,
+      matched_rule_manufacturer: row.matched_rule_manufacturer,
+      matched_rule_model: row.matched_rule_model,
+      matched_rule_match_type: row.matched_rule_match_type as ModelMatchType,
+      matched_rule_status: row.matched_rule_status as VerificationStatus
+    }));
+  } catch (error) {
+    logger.error('Error fetching equipment matching item rules:', error);
     throw error;
   }
 };

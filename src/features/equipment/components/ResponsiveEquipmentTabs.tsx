@@ -20,7 +20,7 @@ const ResponsiveEquipmentTabs: React.FC<ResponsiveEquipmentTabsProps> = ({
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
       <div className={isMobile ? "px-4" : ""}>
         <ScrollArea className="w-full">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-5'} ${isMobile ? 'h-auto' : ''}`}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-6'} ${isMobile ? 'h-auto' : ''}`}>
             <TabsTrigger value="details" className={isMobile ? 'text-xs py-2' : ''}>
               Details
             </TabsTrigger>
@@ -36,6 +36,7 @@ const ResponsiveEquipmentTabs: React.FC<ResponsiveEquipmentTabsProps> = ({
             </TabsTrigger>
             {!isMobile && (
               <>
+                <TabsTrigger value="parts">Parts</TabsTrigger>
                 <TabsTrigger value="images">Images</TabsTrigger>
                 <TabsTrigger value="scans">Scans</TabsTrigger>
               </>
@@ -47,7 +48,10 @@ const ResponsiveEquipmentTabs: React.FC<ResponsiveEquipmentTabsProps> = ({
       {/* Mobile: Second row of tabs */}
       {isMobile && (
         <div className="px-4 mt-2">
-          <TabsList className="grid w-full grid-cols-2 h-auto">
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="parts" className="text-xs py-2">
+              Parts
+            </TabsTrigger>
             <TabsTrigger value="images" className="text-xs py-2">
               Images
             </TabsTrigger>

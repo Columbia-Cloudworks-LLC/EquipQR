@@ -152,18 +152,6 @@ export const createInventoryItem = async (
         );
     }
 
-    // Assign managers
-    if (formData.managerIds && formData.managerIds.length > 0) {
-      await supabase
-        .from('inventory_item_managers')
-        .insert(
-          formData.managerIds.map(managerId => ({
-            inventory_item_id: itemData.id,
-            user_id: managerId
-          }))
-        );
-    }
-
     // Save compatibility rules (manufacturer/model patterns)
     if (formData.compatibilityRules && formData.compatibilityRules.length > 0) {
       await bulkSetCompatibilityRules(organizationId, itemData.id, formData.compatibilityRules);
@@ -222,27 +210,6 @@ export const updateInventoryItem = async (
             formData.compatibleEquipmentIds.map(equipmentId => ({
               equipment_id: equipmentId,
               inventory_item_id: itemId
-            }))
-          );
-      }
-    }
-
-    // Update managers if provided
-    if (formData.managerIds !== undefined) {
-      // Delete existing assignments
-      await supabase
-        .from('inventory_item_managers')
-        .delete()
-        .eq('inventory_item_id', itemId);
-
-      // Insert new assignments
-      if (formData.managerIds.length > 0) {
-        await supabase
-          .from('inventory_item_managers')
-          .insert(
-            formData.managerIds.map(managerId => ({
-              inventory_item_id: itemId,
-              user_id: managerId
             }))
           );
       }
@@ -468,110 +435,6 @@ export const getCompatibleInventoryItems = async (
   }
 };
 
-// ============================================
-// Managers
-// ============================================
-
-export const getInventoryItemManagers = async (
-  organizationId: string,
-  itemId: string
-): Promise<Array<{ userId: string; userName: string; userEmail: string }>> => {
-  try {
-    // First, fetch manager user IDs and ensure the inventory item belongs to the org.
-    // Note: inventory_item_managers.user_id references profiles.id (via inventory_item_managers_user_id_fkey); we still resolve names/emails via organization_members + profiles below to enforce org scoping.
-    const { data: managerRows, error: managerError } = await supabase
-      .from('inventory_item_managers')
-      .select(`
-        user_id,
-        inventory_items!inner(organization_id)
-      `)
-      .eq('inventory_item_id', itemId)
-      .eq('inventory_items.organization_id', organizationId);
-
-    if (managerError) throw managerError;
-
-    const userIds = (managerRows || [])
-      .map((row: { user_id: string }) => row.user_id)
-      .filter(Boolean);
-
-    if (userIds.length === 0) return [];
-
-    // Then, resolve user names/emails via organization_members -> profiles join
-    // so we only return users in this organization.
-    const { data: memberRows, error: membersError } = await supabase
-      .from('organization_members')
-      .select(`
-        user_id,
-        profiles:user_id!inner(id, name, email)
-      `)
-      .eq('organization_id', organizationId)
-      .in('user_id', userIds);
-
-    if (membersError) throw membersError;
-
-    const byUserId = new Map<string, { userName: string; userEmail: string }>();
-    (memberRows || []).forEach((row: { user_id: string; profiles: { name: string; email: string | null } | null }) => {
-      byUserId.set(row.user_id, {
-        userName: row.profiles?.name || 'Unknown',
-        userEmail: row.profiles?.email || ''
-      });
-    });
-
-    return userIds
-      .map((userId) => ({
-        userId,
-        userName: byUserId.get(userId)?.userName ?? 'Unknown',
-        userEmail: byUserId.get(userId)?.userEmail ?? ''
-      }))
-      .sort((a, b) => a.userName.localeCompare(b.userName));
-  } catch (error) {
-    logger.error('Error fetching inventory item managers:', error);
-    throw error;
-  }
-};
-
-export const assignInventoryManagers = async (
-  organizationId: string,
-  itemId: string,
-  userIds: string[]
-): Promise<void> => {
-  try {
-    // Ensure the item belongs to this organization (extra safety beyond RLS).
-    const { error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError) throw itemError;
-
-    // Delete existing assignments
-    // NOTE: inventory_item_managers does not have an organization_id column, so we can't add an explicit
-    // org filter here. We instead do defense-in-depth by verifying the inventory item belongs to the
-    // provided organization above, and rely on RLS to prevent cross-org access.
-    const { error: deleteError } = await supabase
-      .from('inventory_item_managers')
-      .delete()
-      .eq('inventory_item_id', itemId);
-    if (deleteError) throw deleteError;
-
-    // Insert new assignments
-    if (userIds.length > 0) {
-      const { error } = await supabase
-        .from('inventory_item_managers')
-        .insert(
-          userIds.map(userId => ({
-            inventory_item_id: itemId,
-            user_id: userId
-          }))
-        );
-
-      if (error) throw error;
-    }
-  } catch (error) {
-    logger.error('Error assigning inventory managers:', error);
-    throw error;
-  }
-};
+// Note: Per-item inventory managers have been deprecated.
+// Use organization-level parts managers instead (see partsManagersService.ts).
 

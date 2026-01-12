@@ -31,7 +31,8 @@ vi.mock('@/hooks/useAuth', () => ({
 
 vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: vi.fn(() => ({
-    canCreateEquipment: () => true
+    canCreateEquipment: () => true,
+    canManageInventory: () => true
   }))
 }));
 
@@ -113,16 +114,24 @@ const mockBulkSetRulesMutateAsync = vi.fn();
 vi.mock('@/features/inventory/hooks/useInventory', () => ({
   useInventoryItem: vi.fn(),
   useInventoryTransactions: vi.fn(),
-  useInventoryItemManagers: vi.fn(),
   useDeleteInventoryItem: vi.fn(),
   useAdjustInventoryQuantity: vi.fn(),
   useUpdateInventoryItem: vi.fn(),
   useUnlinkItemFromEquipment: vi.fn(),
   useCompatibleEquipmentForItem: vi.fn(),
-  useAssignInventoryManagers: vi.fn(),
   useBulkLinkEquipmentToItem: vi.fn(),
   useCompatibilityRulesForItem: vi.fn(),
   useBulkSetCompatibilityRules: vi.fn()
+}));
+
+vi.mock('@/features/inventory/hooks/usePartsManagers', () => ({
+  useIsPartsManager: vi.fn(() => ({ data: false, isLoading: false }))
+}));
+
+vi.mock('@/features/inventory/hooks/useAlternateGroups', () => ({
+  useAlternateGroups: vi.fn(() => ({ data: [], isLoading: false })),
+  useCreateAlternateGroup: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+  useAddInventoryItemToGroup: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false }))
 }));
 
 const setupMocks = (options: { rules?: PartCompatibilityRule[]; itemLoading?: boolean } = {}) => {
@@ -144,14 +153,6 @@ const setupMocks = (options: { rules?: PartCompatibilityRule[]; itemLoading?: bo
     error: null,
     refetch: vi.fn()
   } as unknown as ReturnType<typeof useInventoryModule.useInventoryTransactions>);
-  
-  vi.mocked(useInventoryModule.useInventoryItemManagers).mockReturnValue({
-    data: [],
-    isLoading: false,
-    isError: false,
-    error: null,
-    refetch: vi.fn()
-  } as unknown as ReturnType<typeof useInventoryModule.useInventoryItemManagers>);
   
   vi.mocked(useInventoryModule.useDeleteInventoryItem).mockReturnValue({
     mutateAsync: vi.fn(),
@@ -180,11 +181,6 @@ const setupMocks = (options: { rules?: PartCompatibilityRule[]; itemLoading?: bo
     error: null,
     refetch: vi.fn()
   } as unknown as ReturnType<typeof useInventoryModule.useCompatibleEquipmentForItem>);
-  
-  vi.mocked(useInventoryModule.useAssignInventoryManagers).mockReturnValue({
-    mutateAsync: vi.fn(),
-    isPending: false
-  } as unknown as ReturnType<typeof useInventoryModule.useAssignInventoryManagers>);
   
   vi.mocked(useInventoryModule.useBulkLinkEquipmentToItem).mockReturnValue({
     mutateAsync: vi.fn(),
@@ -226,7 +222,7 @@ describe('InventoryItemDetail - Compatibility Rules', () => {
       
       await waitFor(() => {
         const tabs = screen.getAllByRole('tab');
-        expect(tabs.length).toBeGreaterThanOrEqual(4); // Overview, Transactions, Compatibility, Managers
+        expect(tabs.length).toBeGreaterThanOrEqual(3); // Overview, Transactions, Compatibility
         
         const tabTexts = tabs.map(t => t.textContent?.toLowerCase() || '');
         expect(tabTexts.some(t => t.includes('compatibility'))).toBe(true);

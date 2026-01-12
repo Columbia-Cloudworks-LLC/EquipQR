@@ -153,6 +153,21 @@ export const useUnifiedPermissions = () => {
     canManageAny: hasRole(['owner', 'admin'])
   };
 
+  // Inventory permissions
+  // Note: isPartsManager must be passed from the calling component using useIsPartsManager hook
+  const inventory = {
+    getPermissions: (isPartsManager: boolean = false): EntityPermissions => ({
+      canView: hasRole(['owner', 'admin', 'member']) || isPartsManager,
+      canCreate: hasRole(['owner', 'admin']) || isPartsManager,
+      canEdit: hasRole(['owner', 'admin']) || isPartsManager,
+      canDelete: hasRole(['owner', 'admin']),
+      canAddNotes: hasRole(['owner', 'admin', 'member']) || isPartsManager,
+      canAddImages: hasRole(['owner', 'admin', 'member']) || isPartsManager
+    }),
+    canManageAny: (isPartsManager: boolean = false) => hasRole(['owner', 'admin']) || isPartsManager,
+    canManagePartsManagers: hasRole(['owner', 'admin'])
+  };
+
   // Equipment notes permissions
   const getEquipmentNotesPermissions = (equipmentTeamId?: string): EquipmentNotesPermissions => {
     const hasTeamAccess = equipmentTeamId ? isTeamMember(equipmentTeamId) : true;
@@ -185,6 +200,7 @@ export const useUnifiedPermissions = () => {
     equipment,
     workOrders,
     teams,
+    inventory,
     
     // Utility functions
     hasRole,

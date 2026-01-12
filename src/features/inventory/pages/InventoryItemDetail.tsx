@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Package, History, Link2, Users, Plus, Minus, QrCode, Search, Check, X, Settings2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Package, History, Link2, Plus, Minus, QrCode, Search, Check, X, Settings2, CheckCircle2, AlertCircle, RefreshCw, Layers, Cpu, LinkIcon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useInventoryItem, useInventoryTransactions, useInventoryItemManagers, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useAssignInventoryManagers, useBulkLinkEquipmentToItem, useCompatibilityRulesForItem, useBulkSetCompatibilityRules } from '@/features/inventory/hooks/useInventory';
+import { useInventoryItem, useInventoryTransactions, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useBulkLinkEquipmentToItem, useCompatibilityRulesForItem, useBulkSetCompatibilityRules, useEquipmentMatchingItemRules } from '@/features/inventory/hooks/useInventory';
+import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
+import {
+  useAlternateGroups,
+  useCreateAlternateGroup,
+  useAddInventoryItemToGroup,
+} from '@/features/inventory/hooks/useAlternateGroups';
 import { CompatibilityRulesEditor } from '@/features/inventory/components/CompatibilityRulesEditor';
-import type { PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
+import type { PartCompatibilityRuleFormData, ModelMatchType, VerificationStatus, AlternatePartResult } from '@/features/inventory/types/inventory';
+import { getAlternatesForInventoryItem } from '@/features/inventory/services/partAlternatesService';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
@@ -26,16 +34,20 @@ import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
 import { logger } from '@/utils/logger';
+import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
-  const { canCreateEquipment } = usePermissions(); // Reuse equipment permissions
+  const { canManageInventory } = usePermissions();
   const isMobile = useIsMobile();
+
+  // Check if user is a parts manager for permission calculation
+  const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
+  const canEdit = canManageInventory(isPartsManager);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [showEditForm, setShowEditForm] = useState(false);
@@ -50,11 +62,15 @@ const InventoryItemDetail = () => {
   const [showAddEquipmentDialog, setShowAddEquipmentDialog] = useState(false);
   const [equipmentSearch, setEquipmentSearch] = useState('');
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([]);
-  const [showManageManagers, setShowManageManagers] = useState(false);
-  const [managerSearch, setManagerSearch] = useState('');
-  const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>([]);
   const [showEditRules, setShowEditRules] = useState(false);
   const [editingRules, setEditingRules] = useState<PartCompatibilityRuleFormData[]>([]);
+  
+  // Alternate group management state
+  const [showCreateGroupDialog, setShowCreateGroupDialog] = useState(false);
+  const [showAddToGroupDialog, setShowAddToGroupDialog] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [groupSearch, setGroupSearch] = useState('');
 
   const { data: item, isLoading: itemLoading } = useInventoryItem(
     currentOrganization?.id,
@@ -66,12 +82,10 @@ const InventoryItemDetail = () => {
   );
   const transactions = transactionsData?.transactions ?? [];
   
-  const { data: managers = [], isLoading: managersLoading, isError: managersIsError } = useInventoryItemManagers(
-    currentOrganization?.id,
-    itemId
-  );
-  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id ?? "");
   const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
+  
+  // Fetch all alternate groups for adding this item to existing groups
+  const { data: allGroups = [] } = useAlternateGroups(currentOrganization?.id);
   const { data: compatibleEquipment = [] } = useCompatibleEquipmentForItem(
     currentOrganization?.id,
     itemId
@@ -80,13 +94,39 @@ const InventoryItemDetail = () => {
     currentOrganization?.id,
     itemId
   );
+  
+  // Query for equipment that matches this item's compatibility rules
+  const { data: equipmentMatchedByRules = [], isLoading: matchedEquipmentLoading } = useEquipmentMatchingItemRules(
+    currentOrganization?.id,
+    itemId
+  );
+  
+  // Query for alternate parts (part-number based interchangeability)
+  const { data: alternates = [], isLoading: alternatesLoading, refetch: refetchAlternates } = useQuery({
+    queryKey: ['inventory-item-alternates', currentOrganization?.id, itemId],
+    queryFn: () => getAlternatesForInventoryItem(currentOrganization!.id, itemId!),
+    enabled: !!currentOrganization?.id && !!itemId
+  });
+  
+  // Group alternates by group for display
+  const groupedAlternates = useMemo(() => {
+    const groups = new Map<string, AlternatePartResult[]>();
+    for (const alt of alternates) {
+      const existing = groups.get(alt.group_id) || [];
+      existing.push(alt);
+      groups.set(alt.group_id, existing);
+    }
+    return Array.from(groups.entries());
+  }, [alternates]);
+  
   const deleteMutation = useDeleteInventoryItem();
   const adjustMutation = useAdjustInventoryQuantity();
   const updateMutation = useUpdateInventoryItem();
   const unlinkEquipmentMutation = useUnlinkItemFromEquipment();
   const bulkLinkEquipmentMutation = useBulkLinkEquipmentToItem();
-  const assignManagersMutation = useAssignInventoryManagers();
   const bulkSetRulesMutation = useBulkSetCompatibilityRules();
+  const createGroupMutation = useCreateAlternateGroup();
+  const addToGroupMutation = useAddInventoryItemToGroup();
 
   const handleDelete = async () => {
     if (!currentOrganization || !itemId) return;
@@ -203,36 +243,65 @@ const InventoryItemDetail = () => {
     }
   };
 
-  const canEdit = canCreateEquipment(); // Reuse equipment permission
+  // Filter groups for the "Add to Group" dialog - exclude groups this item is already in
+  const itemGroupIds = useMemo(() => {
+    return new Set(groupedAlternates.map(([groupId]) => groupId));
+  }, [groupedAlternates]);
 
-  const activeMembers = members.filter((m) => m.status === 'active');
-  const filteredMembers = activeMembers.filter((member) => {
-    const needle = managerSearch.toLowerCase();
-    return (
-      (member.name ?? '').toLowerCase().includes(needle) ||
-      (member.email ?? '').toLowerCase().includes(needle)
+  const availableGroups = useMemo(() => {
+    return allGroups.filter((g) => !itemGroupIds.has(g.id));
+  }, [allGroups, itemGroupIds]);
+
+  const filteredGroups = useMemo(() => {
+    if (!groupSearch.trim()) return availableGroups;
+    const needle = groupSearch.toLowerCase();
+    return availableGroups.filter(
+      (g) =>
+        g.name.toLowerCase().includes(needle) ||
+        g.description?.toLowerCase().includes(needle)
     );
-  });
+  }, [availableGroups, groupSearch]);
 
-  const handleToggleManager = (userId: string, checked: boolean) => {
-    setSelectedManagerIds((current) => {
-      if (checked) return current.includes(userId) ? current : [...current, userId];
-      return current.filter((id) => id !== userId);
-    });
+  // Handlers for alternate group management
+  const handleCreateGroupWithItem = async () => {
+    if (!currentOrganization || !itemId || !newGroupName.trim()) return;
+    try {
+      const newGroup = await createGroupMutation.mutateAsync({
+        organizationId: currentOrganization.id,
+        data: {
+          name: newGroupName.trim(),
+          status: 'unverified',
+        },
+      });
+      // Add this item to the new group
+      await addToGroupMutation.mutateAsync({
+        organizationId: currentOrganization.id,
+        groupId: newGroup.id,
+        inventoryItemId: itemId,
+        isPrimary: true,
+      });
+      setShowCreateGroupDialog(false);
+      setNewGroupName('');
+      refetchAlternates();
+    } catch (error) {
+      logger.error('Error creating group with item', error);
+    }
   };
 
-  const handleRemoveManager = async (userId: string) => {
-    if (!currentOrganization || !itemId) return;
-    const currentManagerIds = managers.map((m) => m.userId).filter((id) => id !== userId);
+  const handleAddToGroup = async () => {
+    if (!currentOrganization || !itemId || !selectedGroupId) return;
     try {
-      await assignManagersMutation.mutateAsync({
+      await addToGroupMutation.mutateAsync({
         organizationId: currentOrganization.id,
-        itemId,
-        userIds: currentManagerIds
+        groupId: selectedGroupId,
+        inventoryItemId: itemId,
       });
+      setShowAddToGroupDialog(false);
+      setSelectedGroupId(null);
+      setGroupSearch('');
+      refetchAlternates();
     } catch (error) {
-      // Error toast is handled by the mutation hook; we just log for diagnostics.
-      logger.error('Error removing inventory manager', error);
+      logger.error('Error adding item to group', error);
     }
   };
 
@@ -342,10 +411,6 @@ const InventoryItemDetail = () => {
             <TabsTrigger value="compatibility" className={isMobile ? "w-full justify-start" : ""}>
               <Link2 className="h-4 w-4 mr-2" />
               Compatibility
-            </TabsTrigger>
-            <TabsTrigger value="managers" className={isMobile ? "w-full justify-start" : ""}>
-              <Users className="h-4 w-4 mr-2" />
-              Managers
             </TabsTrigger>
           </TabsList>
 
@@ -529,73 +594,20 @@ const InventoryItemDetail = () => {
           </TabsContent>
 
           <TabsContent value="compatibility" className="space-y-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <CardTitle>Compatible Equipment</CardTitle>
-                {canEdit && (
-                  <Button
-                    onClick={handleOpenAddEquipmentDialog}
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Manage Equipment
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {compatibleEquipment.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4">
-                      No compatible equipment linked
-                    </p>
-                    {canEdit && (
-                      <Button onClick={handleOpenAddEquipmentDialog} variant="outline">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Equipment
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {compatibleEquipment.map((equipment) => (
-                      <div
-                        key={equipment.id}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <div>
-                          <p className="font-medium">{equipment.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {equipment.manufacturer} {equipment.model}
-                          </p>
-                        </div>
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveEquipment(equipment.id)}
-                            disabled={unlinkEquipmentMutation.isPending}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Compatibility Rules Card */}
+            {/* Compatibility Rules Card - First */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle>Compatibility Rules</CardTitle>
                 {canEdit && (
                   <Button
                     onClick={() => {
-                      // Initialize editing state with current rules
+                      // Initialize editing state with current rules (including new fields)
                       setEditingRules(compatibilityRules.map(r => ({
                         manufacturer: r.manufacturer,
-                        model: r.model
+                        model: r.model,
+                        match_type: r.match_type || 'exact',
+                        status: r.status || 'unverified',
+                        notes: r.notes || null
                       })));
                       setShowEditRules(true);
                     }}
@@ -623,7 +635,7 @@ const InventoryItemDetail = () => {
                     {canEdit && (
                       <Button
                         onClick={() => {
-                          setEditingRules([]);
+                          setEditingRules([{ manufacturer: '', model: null, match_type: 'exact', status: 'unverified' }]);
                           setShowEditRules(true);
                         }}
                         variant="outline"
@@ -635,69 +647,181 @@ const InventoryItemDetail = () => {
                     )}
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {compatibilityRules.map((rule) => (
-                      <Badge key={rule.id} variant="secondary" className="text-sm py-1.5 px-3">
-                        {rule.manufacturer}
-                        {rule.model ? ` - ${rule.model}` : ' - All Models'}
-                      </Badge>
-                    ))}
+                  <div className="space-y-2">
+                    {compatibilityRules.map((rule) => {
+                      const matchType = (rule.match_type || 'exact') as ModelMatchType;
+                      const status = (rule.status || 'unverified') as VerificationStatus;
+                      const matchTypeLabel = {
+                        any: 'Any model',
+                        exact: rule.model || 'Any model',
+                        prefix: `${rule.model}*`,
+                        wildcard: rule.model_pattern_raw || rule.model || '?'
+                      }[matchType];
+                      
+                      return (
+                        <div 
+                          key={rule.id} 
+                          className="flex items-center justify-between p-2 border rounded-md"
+                        >
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium">{rule.manufacturer}</span>
+                            <span className="text-muted-foreground">→</span>
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {matchType === 'any' ? 'Any' : matchType}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {matchTypeLabel}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {status === 'verified' && (
+                              <Badge className="bg-green-600 text-xs">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Verified
+                              </Badge>
+                            )}
+                            {status === 'deprecated' && (
+                              <Badge variant="secondary" className="text-xs">
+                                Deprecated
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="managers" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle>Managers</CardTitle>
-                  {canEdit && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedManagerIds(managers.map((m) => m.userId));
-                        setManagerSearch('');
-                        setShowManageManagers(true);
-                      }}
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Manage
-                    </Button>
+            {/* Equipment Matched by Rules - Shows equipment auto-discovered via rules */}
+            {compatibilityRules.length > 0 && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Cpu className="h-5 w-5 text-muted-foreground" />
+                      Equipment Matched by Rules
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Equipment auto-discovered via the compatibility rules above
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {matchedEquipmentLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-3/4" />
+                    </div>
+                  ) : equipmentMatchedByRules.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Cpu className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground mb-2">
+                        No equipment matches the current rules
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Equipment with matching manufacturer and model will appear here automatically.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {equipmentMatchedByRules.map((equipment) => (
+                        <div
+                          key={equipment.equipment_id}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                          onClick={() => navigate(`/dashboard/equipment/${equipment.equipment_id}`)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium">{equipment.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {equipment.manufacturer} {equipment.model}
+                              {equipment.serial_number && ` • S/N: ${equipment.serial_number}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <Badge variant="secondary" className="text-xs capitalize">
+                              {equipment.matched_rule_match_type}
+                            </Badge>
+                            {equipment.matched_rule_status === 'verified' && (
+                              <Badge className="bg-green-600 text-xs">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Verified
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <p className="text-xs text-muted-foreground text-center pt-2">
+                        {equipmentMatchedByRules.length} equipment {equipmentMatchedByRules.length === 1 ? 'item' : 'items'} matched
+                      </p>
+                    </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Direct Associations - Manually linked equipment (regardless of rules) */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <LinkIcon className="h-5 w-5 text-muted-foreground" />
+                    Direct Associations
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Equipment manually linked to this part (independent of rules)
+                  </p>
                 </div>
+                {canEdit && (
+                  <Button
+                    onClick={handleOpenAddEquipmentDialog}
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Manage
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
-                {managersLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
+                {compatibleEquipment.length === 0 ? (
+                  <div className="text-center py-8">
+                    <LinkIcon className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground mb-2">
+                      No equipment directly linked
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Direct associations are useful for special cases not covered by rules.
+                    </p>
+                    {canEdit && (
+                      <Button onClick={handleOpenAddEquipmentDialog} variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Equipment
+                      </Button>
+                    )}
                   </div>
-                ) : managersIsError ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    Failed to load managers for this item.
-                  </p>
-                ) : managers.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No managers assigned</p>
                 ) : (
                   <div className="space-y-2">
-                    {managers.map((manager) => (
+                    {compatibleEquipment.map((equipment) => (
                       <div
-                        key={manager.userId}
+                        key={equipment.id}
                         className="flex items-center justify-between p-3 border rounded-lg"
                       >
-                        <div>
-                          <p className="font-medium">{manager.userName}</p>
-                          <p className="text-sm text-muted-foreground">{manager.userEmail}</p>
+                        <div 
+                          className="flex-1 min-w-0 cursor-pointer hover:text-primary"
+                          onClick={() => navigate(`/dashboard/equipment/${equipment.id}`)}
+                        >
+                          <p className="font-medium">{equipment.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {equipment.manufacturer} {equipment.model}
+                          </p>
                         </div>
                         {canEdit && (
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
-                            onClick={() => void handleRemoveManager(manager.userId)}
-                            disabled={assignManagersMutation.isPending}
+                            onClick={() => handleRemoveEquipment(equipment.id)}
+                            disabled={unlinkEquipmentMutation.isPending}
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
@@ -709,110 +833,198 @@ const InventoryItemDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Manage Managers Dialog */}
-            <Dialog open={showManageManagers} onOpenChange={setShowManageManagers}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Manage Managers</DialogTitle>
-                  <DialogDescription>
-                    Choose which organization members are managers for this inventory item.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search members..."
-                      value={managerSearch}
-                      onChange={(e) => setManagerSearch(e.target.value)}
-                      className="pl-9"
-                    />
+            {/* Part Alternates / Interchange Groups */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle>Part Alternates</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Interchangeable parts based on part number equivalence groups
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {canEdit && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowAddToGroupDialog(true)}
+                        disabled={availableGroups.length === 0}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add to Group
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setShowCreateGroupDialog(true)}
+                      >
+                        <Layers className="h-4 w-4 mr-2" />
+                        Create Group
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => refetchAlternates()}
+                    disabled={alternatesLoading}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${alternatesLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {alternatesLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-3/4" />
                   </div>
-
-                  <div className="max-h-72 overflow-y-auto border rounded-md p-2 space-y-2">
-                    {filteredMembers.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-6">
-                        No members found
-                      </p>
-                    ) : (
-                      filteredMembers.map((member) => {
-                        const isSelected = selectedManagerIds.includes(member.id);
-                        return (
-                          <div
-                            key={member.id}
-                            className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded"
-                          >
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={(checked) =>
-                                handleToggleManager(member.id, checked as boolean)
-                              }
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium">{member.name || 'Unknown'}</div>
-                              <div className="text-sm text-muted-foreground">{member.email}</div>
-                            </div>
-                            {/* Selection is already indicated by the checkbox */}
-                          </div>
-                        );
-                      })
+                ) : groupedAlternates.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Layers className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground mb-2">
+                      No alternate part groups found
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Add this part to an existing group or create a new one to define interchangeable parts.
+                    </p>
+                    {canEdit && (
+                      <div className="flex justify-center gap-2">
+                        {availableGroups.length > 0 && (
+                          <Button variant="outline" onClick={() => setShowAddToGroupDialog(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add to Existing Group
+                          </Button>
+                        )}
+                        <Button onClick={() => setShowCreateGroupDialog(true)}>
+                          <Layers className="h-4 w-4 mr-2" />
+                          Create New Group
+                        </Button>
+                      </div>
                     )}
                   </div>
-
-                  {selectedManagerIds.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedManagerIds.map((id) => {
-                        const member = activeMembers.find((m) => m.id === id);
-                        return member ? (
-                          <Badge key={id} variant="secondary" className="gap-1">
-                            {member.name || member.email}
-                            <button
-                              type="button"
-                              className="inline-flex items-center"
-                              onClick={() => handleToggleManager(id, false)}
-                              aria-label={`Remove ${member.name || member.email}`}
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowManageManagers(false)}
-                      disabled={assignManagersMutation.isPending}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        if (!currentOrganization || !itemId) return;
-                        try {
-                          await assignManagersMutation.mutateAsync({
-                            organizationId: currentOrganization.id,
-                            itemId,
-                            userIds: selectedManagerIds
-                          });
-                          setShowManageManagers(false);
-                        } catch (error) {
-                          // Error toast is handled by the mutation hook; keep dialog open.
-                          logger.error('Error saving inventory managers', error);
-                        }
-                      }}
-                      disabled={assignManagersMutation.isPending}
-                    >
-                      {assignManagersMutation.isPending ? 'Saving...' : 'Save'}
-                    </Button>
+                ) : (
+                  <div className="space-y-4">
+                    {groupedAlternates.map(([groupId, parts]) => {
+                      const groupName = parts[0].group_name;
+                      const groupVerified = parts[0].group_verified;
+                      const groupNotes = parts[0].group_notes;
+                      const inventoryParts = parts.filter(p => p.inventory_item_id);
+                      const inStockParts = parts.filter(p => p.is_in_stock);
+                      
+                      return (
+                        <div key={groupId} className="border rounded-lg p-4 space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium">{groupName}</h4>
+                                {groupVerified && (
+                                  <Badge className="bg-green-600 text-xs">
+                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                    Verified
+                                  </Badge>
+                                )}
+                              </div>
+                              {groupNotes && (
+                                <p className="text-sm text-muted-foreground mt-1">{groupNotes}</p>
+                              )}
+                            </div>
+                            <div className="text-right text-sm text-muted-foreground">
+                              <div>{inventoryParts.length} in inventory</div>
+                              <div className={inStockParts.length > 0 ? 'text-green-600 font-medium' : ''}>
+                                {inStockParts.length} in stock
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {parts.map((part, idx) => {
+                              const isCurrentItem = part.inventory_item_id === itemId;
+                              
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`flex items-center justify-between p-2 rounded border ${
+                                    isCurrentItem 
+                                      ? 'border-primary bg-primary/5' 
+                                      : 'border-border hover:bg-muted/50'
+                                  } ${part.inventory_item_id && !isCurrentItem ? 'cursor-pointer' : ''}`}
+                                  onClick={() => {
+                                    if (part.inventory_item_id && !isCurrentItem) {
+                                      navigate(`/dashboard/inventory/${part.inventory_item_id}`);
+                                    }
+                                  }}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      {part.inventory_name ? (
+                                        <span className="font-medium">{part.inventory_name}</span>
+                                      ) : (
+                                        <span className="text-muted-foreground">
+                                          {part.identifier_manufacturer && `${part.identifier_manufacturer} `}
+                                          {part.identifier_value}
+                                        </span>
+                                      )}
+                                      
+                                      {isCurrentItem && (
+                                        <Badge variant="outline" className="text-xs">
+                                          This item
+                                        </Badge>
+                                      )}
+                                      
+                                      {part.is_primary && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          Primary
+                                        </Badge>
+                                      )}
+                                      
+                                      {part.identifier_type && (
+                                        <Badge variant="outline" className="text-xs uppercase">
+                                          {part.identifier_type}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    
+                                    {part.inventory_item_id && part.inventory_sku && (
+                                      <div className="text-sm text-muted-foreground mt-0.5">
+                                        SKU: {part.inventory_sku}
+                                        {part.location && ` • ${part.location}`}
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {part.inventory_item_id && (
+                                    <div className="text-right ml-4">
+                                      <div className={`font-medium ${
+                                        part.is_low_stock 
+                                          ? 'text-destructive' 
+                                          : part.is_in_stock 
+                                            ? 'text-green-600' 
+                                            : 'text-muted-foreground'
+                                      }`}>
+                                        {part.quantity_on_hand}
+                                      </div>
+                                      {part.is_low_stock && (
+                                        <div className="text-xs text-destructive flex items-center justify-end gap-1">
+                                          <AlertCircle className="h-3 w-3" />
+                                          Low
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
+
         </Tabs>
 
         {/* Edit Form */}
@@ -1186,6 +1398,131 @@ const InventoryItemDetail = () => {
                   disabled={bulkSetRulesMutation.isPending}
                 >
                   {bulkSetRulesMutation.isPending ? 'Saving...' : 'Save Rules'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Alternate Group Dialog */}
+        <Dialog open={showCreateGroupDialog} onOpenChange={setShowCreateGroupDialog}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Create Alternate Group</DialogTitle>
+              <DialogDescription>
+                Create a new alternate group with this item as the first member.
+                Other interchangeable parts can be added later.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="group-name">
+                  Group Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="group-name"
+                  placeholder="e.g., Oil Filter - CAT D6T Compatible"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  A descriptive name for this group of interchangeable parts.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowCreateGroupDialog(false);
+                    setNewGroupName('');
+                  }}
+                  disabled={createGroupMutation.isPending || addToGroupMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateGroupWithItem}
+                  disabled={!newGroupName.trim() || createGroupMutation.isPending || addToGroupMutation.isPending}
+                >
+                  {createGroupMutation.isPending || addToGroupMutation.isPending
+                    ? 'Creating...'
+                    : 'Create Group'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add to Existing Group Dialog */}
+        <Dialog open={showAddToGroupDialog} onOpenChange={setShowAddToGroupDialog}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Add to Alternate Group</DialogTitle>
+              <DialogDescription>
+                Select an existing alternate group to add this item to.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search groups..."
+                  value={groupSearch}
+                  onChange={(e) => setGroupSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="max-h-60 overflow-y-auto border rounded-md p-2 space-y-1">
+                {filteredGroups.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    {availableGroups.length === 0
+                      ? 'No available groups. Create a new one instead.'
+                      : 'No groups found matching your search'}
+                  </p>
+                ) : (
+                  filteredGroups.map((group: PartAlternateGroup) => (
+                    <div
+                      key={group.id}
+                      className={`p-3 rounded cursor-pointer hover:bg-muted/50 ${
+                        selectedGroupId === group.id ? 'bg-primary/10 border border-primary' : 'border border-transparent'
+                      }`}
+                      onClick={() => setSelectedGroupId(group.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{group.name}</p>
+                        {group.status === 'verified' && (
+                          <Badge className="bg-green-600 text-xs">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Verified
+                          </Badge>
+                        )}
+                      </div>
+                      {group.description && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {group.description}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddToGroupDialog(false);
+                    setSelectedGroupId(null);
+                    setGroupSearch('');
+                  }}
+                  disabled={addToGroupMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAddToGroup}
+                  disabled={!selectedGroupId || addToGroupMutation.isPending}
+                >
+                  {addToGroupMutation.isPending ? 'Adding...' : 'Add to Group'}
                 </Button>
               </div>
             </div>

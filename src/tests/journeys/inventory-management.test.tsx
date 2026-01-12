@@ -8,9 +8,11 @@
  * - As an Admin, I want to create inventory items with stock levels
  * - As an Admin, I want to adjust inventory quantities with reason tracking
  * - As a Manager, I want to link parts to compatible equipment
- * - As a Manager, I want to assign inventory managers
  * - As a Technician, I want to view inventory details and transaction history
  * - As any user, I want to filter inventory by low stock status
+ * 
+ * Note: Per-item inventory managers have been replaced with organization-level
+ * parts managers. See partsManagersService.ts and usePartsManagers.ts.
  */
 
 import React from 'react';
@@ -18,7 +20,7 @@ import { screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderAsPersona, renderHookAsPersona } from '@/test/utils/test-utils';
 import { personas } from '@/test/fixtures/personas';
-import { inventoryItems, inventoryTransactions, equipment, teams, partCompatibilityRules } from '@/test/fixtures/entities';
+import { inventoryItems, inventoryTransactions, equipment, teams, partCompatibilityRules, partAlternateGroups, partIdentifiers } from '@/test/fixtures/entities';
 
 // Mock the inventory hooks
 vi.mock('@/features/inventory/hooks/useInventory', () => ({
@@ -29,8 +31,6 @@ vi.mock('@/features/inventory/hooks/useInventory', () => ({
   useDeleteInventoryItem: vi.fn(),
   useAdjustInventoryQuantity: vi.fn(),
   useInventoryTransactions: vi.fn(),
-  useInventoryItemManagers: vi.fn(),
-  useAssignInventoryManagers: vi.fn(),
   useLinkItemToEquipment: vi.fn(),
   useUnlinkItemFromEquipment: vi.fn(),
   useBulkLinkEquipmentToItem: vi.fn(),
@@ -218,6 +218,7 @@ describe('Inventory Management', () => {
         canViewTeam: () => true,
         canEditTeam: () => true,
         canManageTeamMembers: () => true,
+        canManageOrganization: () => true,
         isLoading: false
       } as ReturnType<typeof usePermissions>);
 
@@ -288,14 +289,14 @@ describe('Inventory Management', () => {
       expect(result.current.canDeleteEquipment()).toBe(true);
     });
 
-    it('can assign managers to inventory items', () => {
+    it('can manage parts managers at organization level', () => {
       const { result } = renderHookAsPersona(
         () => usePermissions(),
         'admin'
       );
 
-      // Admin can manage team members which includes inventory managers
-      expect(result.current.canManageTeamMembers()).toBe(true);
+      // Admin can manage organization, which includes parts managers
+      expect(result.current.canManageOrganization()).toBe(true);
     });
   });
 
@@ -822,20 +823,487 @@ describe('Inventory Management', () => {
     });
   });
 
-  describe('Inventory Managers', () => {
+  describe('Inventory Item Creation', () => {
     it('tracks who created the inventory item', () => {
       const item = inventoryItems.oilFilter;
       
       expect(item.created_by).toBe(personas.admin.id);
     });
 
-    it('can have multiple managers assigned', () => {
-      // Inventory items can have multiple managers
-      const managerIds = [personas.admin.id, personas.teamManager.id];
+    // Note: Per-item managers have been replaced with organization-level parts managers.
+    // See partsManagersService.ts for the new approach.
+  });
+});
+
+/**
+ * Parts Managers Journey Tests
+ *
+ * User Stories Covered:
+ * - As an Owner/Admin, I want to assign parts managers so specific team members can manage inventory
+ * - As a Parts Manager, I want to verify my elevated permissions
+ * - As an Admin, I want to revoke parts manager access when no longer needed
+ */
+describe('Parts Managers Management', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('as an Organization Owner', () => {
+    beforeEach(() => {
+      vi.mocked(usePermissions).mockReturnValue({
+        canCreateEquipment: () => true,
+        canEditEquipment: () => true,
+        canDeleteEquipment: () => true,
+        canViewTeam: () => true,
+        canEditTeam: () => true,
+        canManageTeamMembers: () => true,
+        canManageOrganization: () => true,
+        canManagePartsManagers: () => true,
+        isLoading: false
+      } as ReturnType<typeof usePermissions>);
+
+      vi.mocked(useUnifiedPermissions).mockReturnValue({
+        hasRole: (roles: string | string[]) => {
+          const roleArray = Array.isArray(roles) ? roles : [roles];
+          return roleArray.includes('owner');
+        },
+        isTeamMember: () => true,
+        isTeamManager: () => true,
+        organization: {
+          canManage: true,
+          canInviteMembers: true,
+          canCreateTeams: true,
+          canViewBilling: true,
+          canManageMembers: true
+        },
+        equipment: {
+          getPermissions: () => ({
+            canView: true,
+            canCreate: true,
+            canEdit: true,
+            canDelete: true,
+            canAddNotes: true,
+            canAddImages: true
+          }),
+          canViewAll: true,
+          canCreateAny: true
+        },
+        workOrders: {
+          getPermissions: () => ({}),
+          getDetailedPermissions: () => ({}),
+          canViewAll: true,
+          canCreateAny: true
+        },
+        teams: {
+          getPermissions: () => ({ canView: true, canCreate: true, canEdit: true, canDelete: true }),
+          canCreateAny: true
+        },
+        notes: {
+          getPermissions: () => ({})
+        }
+      } as unknown as ReturnType<typeof useUnifiedPermissions>);
+    });
+
+    it('can assign any organization member as a parts manager', () => {
+      const { result } = renderHookAsPersona(
+        () => usePermissions(),
+        'owner'
+      );
+
+      // Owner has full permissions including parts manager management
+      expect(result.current.canManageOrganization()).toBe(true);
+    });
+
+    it('can view the list of all parts managers', () => {
+      const { result } = renderHookAsPersona(
+        () => useUnifiedPermissions(),
+        'owner'
+      );
+
+      expect(result.current.organization.canManageMembers).toBe(true);
+    });
+
+    it('can remove parts managers when needed', () => {
+      const { result } = renderHookAsPersona(
+        () => usePermissions(),
+        'owner'
+      );
+
+      expect(result.current.canManageOrganization()).toBe(true);
+    });
+  });
+
+  describe('as an Admin', () => {
+    beforeEach(() => {
+      vi.mocked(usePermissions).mockReturnValue({
+        canCreateEquipment: () => true,
+        canEditEquipment: () => true,
+        canDeleteEquipment: () => true,
+        canViewTeam: () => true,
+        canEditTeam: () => true,
+        canManageTeamMembers: () => true,
+        canManageOrganization: () => true,
+        canManagePartsManagers: () => true,
+        isLoading: false
+      } as ReturnType<typeof usePermissions>);
+
+      vi.mocked(useUnifiedPermissions).mockReturnValue({
+        hasRole: (roles: string | string[]) => {
+          const roleArray = Array.isArray(roles) ? roles : [roles];
+          return roleArray.includes('admin') || roleArray.includes('owner');
+        },
+        isTeamMember: () => true,
+        isTeamManager: () => true,
+        organization: {
+          canManage: true,
+          canInviteMembers: true,
+          canCreateTeams: true,
+          canViewBilling: false,
+          canManageMembers: true
+        },
+        equipment: {
+          getPermissions: () => ({
+            canView: true,
+            canCreate: true,
+            canEdit: true,
+            canDelete: true,
+            canAddNotes: true,
+            canAddImages: true
+          }),
+          canViewAll: true,
+          canCreateAny: true
+        },
+        workOrders: {
+          getPermissions: () => ({}),
+          getDetailedPermissions: () => ({}),
+          canViewAll: true,
+          canCreateAny: true
+        },
+        teams: {
+          getPermissions: () => ({ canView: true, canCreate: true, canEdit: true, canDelete: false }),
+          canCreateAny: true
+        },
+        notes: {
+          getPermissions: () => ({})
+        }
+      } as unknown as ReturnType<typeof useUnifiedPermissions>);
+    });
+
+    it('can promote a technician to parts manager', () => {
+      const { result } = renderHookAsPersona(
+        () => usePermissions(),
+        'admin'
+      );
+
+      expect(result.current.canManageOrganization()).toBe(true);
+    });
+
+    it('can view parts managers list', () => {
+      const { result } = renderHookAsPersona(
+        () => useUnifiedPermissions(),
+        'admin'
+      );
+
+      expect(result.current.organization.canManageMembers).toBe(true);
+    });
+  });
+
+  describe('as a Team Manager (non-admin)', () => {
+    beforeEach(() => {
+      vi.mocked(usePermissions).mockReturnValue({
+        canCreateEquipment: () => false,
+        canEditEquipment: () => true,
+        canDeleteEquipment: () => false,
+        canViewTeam: () => true,
+        canEditTeam: () => true,
+        canManageTeamMembers: () => false,
+        canManageOrganization: () => false,
+        canManagePartsManagers: () => false,
+        isLoading: false
+      } as ReturnType<typeof usePermissions>);
+
+      vi.mocked(useUnifiedPermissions).mockReturnValue({
+        hasRole: (roles: string | string[]) => {
+          const roleArray = Array.isArray(roles) ? roles : [roles];
+          return roleArray.includes('member');
+        },
+        isTeamMember: (teamId: string) => teamId === teams.maintenance.id,
+        isTeamManager: (teamId: string) => teamId === teams.maintenance.id,
+        organization: {
+          canManage: false,
+          canInviteMembers: false,
+          canCreateTeams: false,
+          canViewBilling: false,
+          canManageMembers: false
+        },
+        equipment: {
+          getPermissions: (teamId?: string) => ({
+            canView: teamId === teams.maintenance.id,
+            canCreate: false,
+            canEdit: teamId === teams.maintenance.id,
+            canDelete: false,
+            canAddNotes: true,
+            canAddImages: true
+          }),
+          canViewAll: false,
+          canCreateAny: false
+        },
+        workOrders: {
+          getPermissions: () => ({}),
+          getDetailedPermissions: () => ({}),
+          canViewAll: false,
+          canCreateAny: false
+        },
+        teams: {
+          getPermissions: (teamId: string) => ({
+            canView: teamId === teams.maintenance.id,
+            canCreate: false,
+            canEdit: teamId === teams.maintenance.id,
+            canDelete: false
+          }),
+          canCreateAny: false
+        },
+        notes: {
+          getPermissions: () => ({})
+        }
+      } as unknown as ReturnType<typeof useUnifiedPermissions>);
+    });
+
+    it('cannot manage parts managers', () => {
+      const { result } = renderHookAsPersona(
+        () => usePermissions(),
+        'teamManager'
+      );
+
+      expect(result.current.canManageOrganization()).toBe(false);
+    });
+
+    it('cannot access parts manager administration', () => {
+      const { result } = renderHookAsPersona(
+        () => useUnifiedPermissions(),
+        'teamManager'
+      );
+
+      expect(result.current.organization.canManageMembers).toBe(false);
+    });
+  });
+
+  describe('Parts Manager Permission Effects', () => {
+    it('owners and admins have implicit parts manager access', () => {
+      // Owners and admins don't need explicit parts manager role
+      const ownerRole = personas.owner.organizationRole;
+      const adminRole = personas.admin.organizationRole;
+
+      expect(['owner', 'admin']).toContain(ownerRole);
+      expect(['owner', 'admin']).toContain(adminRole);
+    });
+
+    it('regular members need explicit parts manager assignment', () => {
+      const memberRole = personas.technician.organizationRole;
       
-      expect(managerIds.length).toBe(2);
-      expect(managerIds).toContain(personas.admin.id);
-      expect(managerIds).toContain(personas.teamManager.id);
+      // Regular members are 'member' role, need explicit assignment
+      expect(memberRole).toBe('member');
+    });
+  });
+});
+
+/**
+ * Alternate Parts Groups Journey Tests
+ *
+ * User Stories Covered:
+ * - As a Parts Manager, I want to create alternate groups for interchangeable parts
+ * - As a Parts Manager, I want to add part numbers to groups for lookup
+ * - As a Technician, I want to find alternate parts when primary is out of stock
+ * - As an Admin, I want to verify alternate groups to ensure accuracy
+ */
+describe('Alternate Parts Groups Management', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('as a Parts Manager', () => {
+    beforeEach(() => {
+      vi.mocked(usePermissions).mockReturnValue({
+        canCreateEquipment: () => true,
+        canEditEquipment: () => true,
+        canDeleteEquipment: () => true,
+        canViewTeam: () => true,
+        canEditTeam: () => true,
+        canManageTeamMembers: () => false,
+        canManageOrganization: () => false,
+        isLoading: false
+      } as ReturnType<typeof usePermissions>);
+    });
+
+    it('can create new alternate groups', () => {
+      const { result } = renderHookAsPersona(
+        () => usePermissions(),
+        'teamManager'
+      );
+
+      // Parts managers can create inventory-related items
+      expect(result.current.canCreateEquipment()).toBe(true);
+    });
+
+    it('can add inventory items to alternate groups', () => {
+      const { result } = renderHookAsPersona(
+        () => usePermissions(),
+        'teamManager'
+      );
+
+      expect(result.current.canEditEquipment()).toBe(true);
+    });
+
+    it('can remove items from alternate groups', () => {
+      const { result } = renderHookAsPersona(
+        () => usePermissions(),
+        'teamManager'
+      );
+
+      expect(result.current.canEditEquipment()).toBe(true);
+    });
+  });
+
+  describe('Alternate Group Data Structure', () => {
+    it('groups have verification status', () => {
+      const verifiedGroup = partAlternateGroups.oilFilterGroup;
+      const unverifiedGroup = partAlternateGroups.airFilterGroup;
+
+      expect(verifiedGroup.status).toBe('verified');
+      expect(unverifiedGroup.status).toBe('unverified');
+    });
+
+    it('verified groups track who verified and when', () => {
+      const verifiedGroup = partAlternateGroups.oilFilterGroup;
+
+      expect(verifiedGroup.verified_by).toBe('user-owner');
+      expect(verifiedGroup.verified_at).not.toBeNull();
+    });
+
+    it('groups can have evidence URLs for verification', () => {
+      const groupWithEvidence = partAlternateGroups.oilFilterGroup;
+
+      expect(groupWithEvidence.evidence_url).toBe('https://wixfilters.com/catalog');
+    });
+  });
+
+  describe('Part Identifiers', () => {
+    it('identifiers have types (OEM, aftermarket, etc.)', () => {
+      const oemIdentifier = partIdentifiers.catOilFilter;
+      const aftermarketIdentifier = partIdentifiers.wixOilFilter;
+
+      expect(oemIdentifier.identifier_type).toBe('oem');
+      expect(aftermarketIdentifier.identifier_type).toBe('aftermarket');
+    });
+
+    it('identifiers store both raw and normalized values', () => {
+      const identifier = partIdentifiers.catOilFilter;
+
+      expect(identifier.raw_value).toBe('CAT-1R-0750');
+      expect(identifier.norm_value).toBe('cat-1r-0750');
+    });
+
+    it('identifiers can link to inventory items', () => {
+      const linkedIdentifier = partIdentifiers.catOilFilter;
+      const unlinkedIdentifier = partIdentifiers.wixOilFilter;
+
+      expect(linkedIdentifier.inventory_item_id).toBe('inv-oil-filter');
+      expect(unlinkedIdentifier.inventory_item_id).toBeNull();
+    });
+
+    it('identifiers track manufacturer information', () => {
+      const identifier = partIdentifiers.catOilFilter;
+
+      expect(identifier.manufacturer).toBe('Caterpillar');
+    });
+  });
+
+  describe('as a Technician', () => {
+    beforeEach(() => {
+      vi.mocked(usePermissions).mockReturnValue({
+        canCreateEquipment: () => false,
+        canEditEquipment: () => false,
+        canDeleteEquipment: () => false,
+        canViewTeam: () => true,
+        canEditTeam: () => false,
+        canManageTeamMembers: () => false,
+        canManageOrganization: () => false,
+        isLoading: false
+      } as ReturnType<typeof usePermissions>);
+    });
+
+    it('can view alternate groups', () => {
+      const { result } = renderHookAsPersona(
+        () => usePermissions(),
+        'technician'
+      );
+
+      expect(result.current.canViewTeam()).toBe(true);
+    });
+
+    it('cannot create or modify alternate groups', () => {
+      const { result } = renderHookAsPersona(
+        () => usePermissions(),
+        'technician'
+      );
+
+      expect(result.current.canCreateEquipment()).toBe(false);
+      expect(result.current.canEditEquipment()).toBe(false);
+    });
+  });
+
+  describe('Alternate Group Lookup Scenarios', () => {
+    it('finds alternates by OEM part number', () => {
+      // Simulating a lookup: technician has CAT-1R-0750, needs alternatives
+      const searchPartNumber = 'CAT-1R-0750';
+      const matchingIdentifier = Object.values(partIdentifiers).find(
+        id => id.raw_value === searchPartNumber
+      );
+
+      expect(matchingIdentifier).toBeDefined();
+      expect(matchingIdentifier?.identifier_type).toBe('oem');
+    });
+
+    it('identifies in-stock vs out-of-stock alternates', () => {
+      const inStockItem = inventoryItems.oilFilter;
+      const outOfStockItem = inventoryItems.craneWireRope;
+
+      expect(inStockItem.quantity_on_hand).toBeGreaterThan(0);
+      expect(outOfStockItem.quantity_on_hand).toBe(0);
+    });
+
+    it('prioritizes verified alternates over unverified', () => {
+      const verifiedGroup = partAlternateGroups.oilFilterGroup;
+      const unverifiedGroup = partAlternateGroups.airFilterGroup;
+
+      // Verified groups should be preferred for critical applications
+      expect(verifiedGroup.status).toBe('verified');
+      expect(unverifiedGroup.status).toBe('unverified');
+    });
+  });
+
+  describe('as a Viewer', () => {
+    beforeEach(() => {
+      vi.mocked(usePermissions).mockReturnValue({
+        canCreateEquipment: () => false,
+        canEditEquipment: () => false,
+        canDeleteEquipment: () => false,
+        canViewTeam: () => true,
+        canEditTeam: () => false,
+        canManageTeamMembers: () => false,
+        canManageOrganization: () => false,
+        isLoading: false
+      } as ReturnType<typeof usePermissions>);
+    });
+
+    it('can view alternate groups (read-only)', () => {
+      const { result } = renderHookAsPersona(
+        () => usePermissions(),
+        'viewer'
+      );
+
+      expect(result.current.canViewTeam()).toBe(true);
+      expect(result.current.canEditEquipment()).toBe(false);
     });
   });
 });

@@ -48,6 +48,15 @@ export {
   // Part Compatibility Rules
   partCompatibilityRules,
   type TestPartCompatibilityRule,
+  type ModelMatchType,
+  type VerificationStatus,
+  
+  // Part Alternate Groups
+  partAlternateGroups,
+  type TestPartAlternateGroup,
+  partIdentifiers,
+  type TestPartIdentifier,
+  type PartIdentifierType,
   
   // Utility Functions
   getWorkOrdersForTeam,

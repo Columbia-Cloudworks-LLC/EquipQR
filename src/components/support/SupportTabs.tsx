@@ -18,9 +18,11 @@ import {
   UserPlus,
   GitBranch,
   Building2,
-  HardHat
+  HardHat,
+  Map
 } from "lucide-react";
 import OnboardingGuide from './OnboardingGuide';
+import InventoryGuides from './InventoryGuides';
 
 // Shared FAQ Section Component
 const FAQSection: React.FC = () => {
@@ -556,10 +558,14 @@ const BestPracticesSection: React.FC = () => {
 const SupportTabs: React.FC = () => {
   return (
     <Tabs defaultValue="guide" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="guide" className="flex items-center gap-2">
           <BookOpen className="h-4 w-4 hidden sm:inline" />
           <span>Guide</span>
+        </TabsTrigger>
+        <TabsTrigger value="guides" className="flex items-center gap-2">
+          <Map className="h-4 w-4 hidden sm:inline" />
+          <span>Guides</span>
         </TabsTrigger>
         <TabsTrigger value="faq" className="flex items-center gap-2">
           <HelpCircle className="h-4 w-4 hidden sm:inline" />
@@ -577,6 +583,10 @@ const SupportTabs: React.FC = () => {
 
       <TabsContent value="guide" className="mt-6">
         <OnboardingGuide />
+      </TabsContent>
+
+      <TabsContent value="guides" className="mt-6">
+        <InventoryGuides />
       </TabsContent>
 
       <TabsContent value="faq" className="mt-6">

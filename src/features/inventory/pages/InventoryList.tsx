@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Package, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Package, AlertTriangle, Users } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useInventoryItems } from '@/features/inventory/hooks/useInventory';
+import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,15 +13,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { InventoryItemForm } from '@/features/inventory/components/InventoryItemForm';
+import { PartsManagersSheet } from '@/features/inventory/components/PartsManagersSheet';
 import type { InventoryItem, InventoryFilters } from '@/features/inventory/types/inventory';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const InventoryList = () => {
   const navigate = useNavigate();
   const { currentOrganization } = useOrganization();
-  const { canCreateEquipment } = usePermissions(); // Reuse equipment permissions for now
+  const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
+  const { canManageInventory, canManagePartsManagers } = usePermissions();
   const isMobile = useIsMobile();
   const [showForm, setShowForm] = useState(false);
+  const [showManagersSheet, setShowManagersSheet] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [filters, setFilters] = useState<InventoryFilters>({
     search: '',
@@ -47,7 +51,8 @@ const InventoryList = () => {
     setEditingItem(null);
   };
 
-  const canCreate = canCreateEquipment(); // Reuse equipment permission
+  const canCreate = canManageInventory(isPartsManager);
+  const canManage = canManagePartsManagers();
 
   if (!currentOrganization) {
     return (
@@ -85,12 +90,21 @@ const InventoryList = () => {
           title="Inventory"
           description={`Manage inventory items for ${currentOrganization.name}`}
           actions={
-            canCreate && (
-              <Button onClick={handleAddItem}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
-            )
+            <div className="flex gap-2">
+              {canManage && (
+                <Button variant="outline" onClick={() => setShowManagersSheet(true)}>
+                  <Users className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Parts Managers</span>
+                  <span className="sm:hidden">Managers</span>
+                </Button>
+              )}
+              {canCreate && (
+                <Button onClick={handleAddItem}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Item
+                </Button>
+              )}
+            </div>
           }
         />
 
@@ -249,6 +263,12 @@ const InventoryList = () => {
             editingItem={editingItem}
           />
         )}
+
+        {/* Parts Managers Sheet */}
+        <PartsManagersSheet
+          open={showManagersSheet}
+          onOpenChange={setShowManagersSheet}
+        />
       </div>
     </Page>
   );

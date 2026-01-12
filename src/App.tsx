@@ -47,6 +47,9 @@ const PMTemplateView = lazy(() => import('@/features/pm-templates/pages/PMTempla
 const PartPicker = lazy(() => import('@/features/part-picker/pages/PartPicker'));
 const InventoryList = lazy(() => import('@/features/inventory/pages/InventoryList'));
 const InventoryItemDetail = lazy(() => import('@/features/inventory/pages/InventoryItemDetail'));
+const PartLookup = lazy(() => import('@/features/inventory/pages/PartLookup'));
+const AlternateGroupsPage = lazy(() => import('@/features/inventory/pages/AlternateGroupsPage'));
+const AlternateGroupDetail = lazy(() => import('@/features/inventory/pages/AlternateGroupDetail'));
 
 
 const BrandedTopBar = () => {
@@ -164,6 +167,9 @@ function App() {
                                 <Route path="/part-picker" element={<PartPicker />} />
                                 <Route path="/inventory" element={<InventoryList />} />
                                 <Route path="/inventory/:itemId" element={<InventoryItemDetail />} />
+                                <Route path="/part-lookup" element={<PartLookup />} />
+                                <Route path="/alternate-groups" element={<AlternateGroupsPage />} />
+                                <Route path="/alternate-groups/:groupId" element={<AlternateGroupDetail />} />
                                 <Route path="/support" element={<DashboardSupport />} />
                                 {/* Billing debug routes removed */}
                                 {/* {import.meta.env.DEV && <Route path="/debug/billing" element={<DebugBilling />} />} */}

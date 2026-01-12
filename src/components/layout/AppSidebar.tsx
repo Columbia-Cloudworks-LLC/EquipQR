@@ -34,7 +34,9 @@ import {
   User,
   HelpCircle,
   ClipboardCheck,
-  Warehouse
+  Warehouse,
+  Search,
+  Layers
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -60,6 +62,8 @@ const mainNavigation: NavigationItem[] = [
   { title: "Equipment", url: "/dashboard/equipment", icon: Forklift },
   { title: "Work Orders", url: "/dashboard/work-orders", icon: ClipboardList },
   { title: "Inventory", url: "/dashboard/inventory", icon: Warehouse },
+  { title: "Part Lookup", url: "/dashboard/part-lookup", icon: Search },
+  { title: "Part Alternates", url: "/dashboard/alternate-groups", icon: Layers },
   { title: "Teams", url: "/dashboard/teams", icon: Users },
   { title: "Fleet Map", url: "/dashboard/fleet-map", icon: Map },
 ];
