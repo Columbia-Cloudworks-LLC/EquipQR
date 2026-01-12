@@ -170,6 +170,33 @@ export const createAlternateGroup = async (
 };
 
 /**
+ * Type definitions for joined data from Supabase queries
+ */
+interface PartIdentifierJoin {
+  identifier_type?: string;
+  raw_value?: string;
+  manufacturer?: string;
+}
+
+interface InventoryItemJoin {
+  name?: string;
+  sku?: string;
+  quantity_on_hand?: number;
+}
+
+interface PartGroupMemberRow {
+  id: string;
+  group_id: string;
+  part_identifier_id: string | null;
+  inventory_item_id: string | null;
+  is_primary: boolean;
+  notes: string | null;
+  created_at: string;
+  part_identifiers: PartIdentifierJoin | null;
+  inventory_items: InventoryItemJoin | null;
+}
+
+/**
  * Member of an alternate group with full details.
  */
 export interface AlternateGroupMember {
@@ -247,9 +274,9 @@ export const getAlternateGroupById = async (
     if (membersError) throw membersError;
 
     // Transform members to flat structure
-    const transformedMembers: AlternateGroupMember[] = (members || []).map((m) => {
-      const partIdent = m.part_identifiers as { identifier_type?: string; raw_value?: string; manufacturer?: string } | null;
-      const invItem = m.inventory_items as { name?: string; sku?: string; quantity_on_hand?: number } | null;
+    const transformedMembers: AlternateGroupMember[] = (members as PartGroupMemberRow[] || []).map((m) => {
+      const partIdent: PartIdentifierJoin | null = m.part_identifiers;
+      const invItem: InventoryItemJoin | null = m.inventory_items;
       
       return {
         id: m.id,
@@ -259,7 +286,7 @@ export const getAlternateGroupById = async (
         is_primary: m.is_primary,
         notes: m.notes,
         created_at: m.created_at,
-        identifier_type: partIdent?.identifier_type as PartIdentifierType | null,
+        identifier_type: (partIdent?.identifier_type as PartIdentifierType | undefined) || null,
         identifier_value: partIdent?.raw_value || null,
         identifier_manufacturer: partIdent?.manufacturer || null,
         inventory_name: invItem?.name || null,

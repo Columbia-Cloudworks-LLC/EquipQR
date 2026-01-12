@@ -36,6 +36,9 @@ import {
 import type { AlternatePartResult, MakeModelCompatiblePart } from '@/features/inventory/types/inventory';
 import { useDebounced } from '@/hooks/useDebounced';
 
+// Constant for "Any Model" option value
+const ANY_MODEL_VALUE = '__any__';
+
 const PartLookup: React.FC = () => {
   const navigate = useNavigate();
   const { currentOrganization } = useOrganization();
@@ -251,15 +254,15 @@ const PartLookup: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <Select 
-                      value={model || '__any__'} 
-                      onValueChange={(v) => setModel(v === '__any__' ? '' : v)}
+                      value={model || ANY_MODEL_VALUE} 
+                      onValueChange={(v) => setModel(v === ANY_MODEL_VALUE ? '' : v)}
                       disabled={!manufacturer}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder={manufacturer ? "Select model (optional)..." : "Select manufacturer first..."} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__any__">
+                        <SelectItem value={ANY_MODEL_VALUE}>
                           <span className="italic">Any Model</span>
                         </SelectItem>
                         {modelsForManufacturer.map((m) => (

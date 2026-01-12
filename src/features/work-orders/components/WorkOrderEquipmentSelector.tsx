@@ -37,6 +37,14 @@ interface WorkOrderEquipmentSelectorProps {
   canCreateEquipment?: boolean;
 }
 
+/**
+ * Utility function to get the display text for equipment location.
+ * Returns the last known location name, fallback location, or 'Unknown location'.
+ */
+const getEquipmentLocationDisplay = (equipment: EquipmentSelectorItem): string => {
+  return equipment.last_known_location?.name || equipment.location || 'Unknown location';
+};
+
 const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: (field: string, value: unknown) => void; }> = ({ equipmentId, setValue }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [newHours, setNewHours] = useState('');
@@ -142,7 +150,7 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
     const equipment = preSelectedEquipment;
     if (!equipment) return null;
 
-    const locationDisplay = equipment.last_known_location?.name || equipment.location || 'Unknown location';
+    const locationDisplay = getEquipmentLocationDisplay(equipment);
     
     return (
       <div className="space-y-2">
@@ -209,7 +217,7 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
                 </SelectItem>
               ) : (
                 allEquipment.map((equipment) => {
-                  const locationDisplay = equipment.last_known_location?.name || equipment.location || 'Unknown location';
+                  const locationDisplay = getEquipmentLocationDisplay(equipment);
                   return (
                     <SelectItem key={equipment.id} value={equipment.id}>
                       <div className="flex flex-col gap-0.5 py-1">
