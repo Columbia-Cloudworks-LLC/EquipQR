@@ -1,0 +1,365 @@
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { Check } from "lucide-react"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
+
+export interface AutocompleteInputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
+  /** 
+   * Array of suggestion strings to show in dropdown.
+   * For optimal performance, keep this under 1000 items.
+   * Larger lists may experience filtering delays.
+   */
+  suggestions: string[]
+  /** Current value of the input */
+  value: string
+  /** Callback when value changes */
+  onChange: (value: string) => void
+  /** Message to show when no suggestions match */
+  emptyMessage?: string
+  /** Whether the autocomplete is disabled */
+  disabled?: boolean
+}
+
+/**
+ * AutocompleteInput - A combobox-style input that allows free-form text input
+ * while also providing filterable suggestions from a list.
+ * 
+ * Uses Popover on desktop for proper collision detection and Drawer on mobile
+ * for better touch interaction.
+ */
+const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputProps>(
+  ({ 
+    className, 
+    suggestions, 
+    value, 
+    onChange, 
+    emptyMessage = "No suggestions found",
+    disabled,
+    placeholder,
+    ...props 
+  }, ref) => {
+    const [open, setOpen] = React.useState(false)
+    const [inputValue, setInputValue] = React.useState(value)
+    const [highlightedIndex, setHighlightedIndex] = React.useState(-1)
+    const isMobile = useIsMobile()
+    const inputRef = React.useRef<HTMLInputElement>(null)
+    const listId = React.useId()
+    // Track if we just selected to prevent immediate reopen
+    const justSelectedRef = React.useRef(false)
+    // Ref for list items to enable scrollIntoView
+    const listRef = React.useRef<HTMLDivElement>(null)
+    
+    // Combine refs
+    React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement)
+
+    // Sync internal state with external value
+    React.useEffect(() => {
+      setInputValue(value)
+    }, [value])
+
+    // Filter suggestions based on current input, prioritizing startsWith matches
+    const filteredSuggestions = React.useMemo(() => {
+      if (!inputValue) return suggestions
+      const lowerInput = inputValue.toLowerCase()
+      return suggestions
+        .filter(suggestion => suggestion.toLowerCase().includes(lowerInput))
+        .sort((a, b) => {
+          const aLower = a.toLowerCase()
+          const bLower = b.toLowerCase()
+          const aStarts = aLower.startsWith(lowerInput)
+          const bStarts = bLower.startsWith(lowerInput)
+          // Items that start with the input come first
+          if (aStarts && !bStarts) return -1
+          if (!aStarts && bStarts) return 1
+          return 0
+        })
+    }, [suggestions, inputValue])
+
+    // Reset highlighted index when input value changes
+    React.useEffect(() => {
+      setHighlightedIndex(-1)
+    }, [inputValue])
+
+    // Also reset when the number of filtered suggestions changes (e.g., from async updates)
+    const prevFilteredLengthRef = React.useRef(filteredSuggestions.length)
+    React.useEffect(() => {
+      if (filteredSuggestions.length !== prevFilteredLengthRef.current) {
+        setHighlightedIndex(-1)
+        prevFilteredLengthRef.current = filteredSuggestions.length
+      }
+    }, [filteredSuggestions.length])
+
+    // Scroll highlighted item into view when keyboard navigating
+    React.useEffect(() => {
+      if (highlightedIndex >= 0 && listRef.current) {
+        const highlightedElement = listRef.current.querySelector(
+          `[id="${listId}-option-${highlightedIndex}"]`
+        )
+        if (highlightedElement) {
+          highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      }
+    }, [highlightedIndex, listId])
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value
+      setInputValue(newValue)
+      onChange(newValue)
+      // Open dropdown when typing and there are suggestions
+      if (suggestions.length > 0 && !open) {
+        setOpen(true)
+      }
+    }
+
+    const handleSelect = (selectedValue: string) => {
+      setInputValue(selectedValue)
+      onChange(selectedValue)
+      setOpen(false)
+      setHighlightedIndex(-1)
+      // Mark that we just selected to prevent immediate reopen on focus
+      justSelectedRef.current = true
+      // Focus back to input after selection
+      inputRef.current?.focus()
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        justSelectedRef.current = false
+      }, 100)
+    }
+
+    const handleFocus = () => {
+      // Don't reopen if we just selected an item
+      if (justSelectedRef.current) {
+        return
+      }
+      if (suggestions.length > 0) {
+        setOpen(true)
+      }
+    }
+
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+      // If focus is moving into the suggestions list, keep the dropdown open
+      const relatedTarget = e.relatedTarget as HTMLElement | null
+      if (relatedTarget?.closest('[data-autocomplete-list]')) {
+        return
+      }
+      // Close when focus leaves the input and isn't moving to the list
+      setOpen(false)
+      setHighlightedIndex(-1)
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Handle Escape even when dropdown is closed
+      if (e.key === 'Escape' && open) {
+        e.preventDefault()
+        setOpen(false)
+        setHighlightedIndex(-1)
+        return
+      }
+
+      // Other keys only apply when dropdown is open with suggestions
+      if (!open || filteredSuggestions.length === 0) return
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault()
+          setHighlightedIndex(prev => 
+            prev < filteredSuggestions.length - 1 ? prev + 1 : 0
+          )
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          setHighlightedIndex(prev => 
+            prev > 0 ? prev - 1 : filteredSuggestions.length - 1
+          )
+          break
+        case 'Enter':
+          // Only prevent default and select if an item is highlighted
+          // Otherwise, allow normal form submission or manual text entry
+          if (highlightedIndex >= 0 && highlightedIndex < filteredSuggestions.length) {
+            e.preventDefault()
+            handleSelect(filteredSuggestions[highlightedIndex])
+          } else {
+            // Close dropdown but allow normal Enter behavior (form submit, etc.)
+            setOpen(false)
+          }
+          break
+      }
+    }
+
+    const SuggestionsList = (
+      <Command shouldFilter={false} data-autocomplete-list ref={listRef}>
+        <CommandList id={listId} className="max-h-[200px]" role="listbox">
+          {filteredSuggestions.length === 0 ? (
+            <CommandEmpty>{emptyMessage}</CommandEmpty>
+          ) : (
+            <CommandGroup>
+              {filteredSuggestions.map((suggestion, index) => (
+                <CommandItem
+                  key={suggestion}
+                  id={`${listId}-option-${index}`}
+                  value={suggestion}
+                  onSelect={handleSelect}
+                  className={cn(
+                    "cursor-pointer",
+                    highlightedIndex === index && "bg-accent"
+                  )}
+                  role="option"
+                  aria-selected={highlightedIndex === index}
+                >
+                  <span>{suggestion}</span>
+                  {value === suggestion && (
+                    <Check className="ml-auto h-4 w-4 text-primary" />
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </Command>
+    )
+
+    // Don't show dropdown if no suggestions
+    if (suggestions.length === 0) {
+      return (
+        <Input
+          ref={inputRef}
+          className={className}
+          value={inputValue}
+          onChange={handleInputChange}
+          disabled={disabled}
+          placeholder={placeholder}
+          autoComplete="off"
+          {...props}
+        />
+      )
+    }
+
+    // Mobile: Use Drawer for better touch experience
+    if (isMobile) {
+      return (
+        <>
+          <Input
+            ref={inputRef}
+            className={className}
+            value={inputValue}
+            onChange={handleInputChange}
+            onFocus={handleFocus}
+            disabled={disabled}
+            placeholder={placeholder}
+            autoComplete="off"
+            aria-autocomplete="list"
+            aria-expanded={open}
+            aria-controls={open ? listId : undefined}
+            aria-activedescendant={
+              open && highlightedIndex >= 0 
+                ? `${listId}-option-${highlightedIndex}` 
+                : undefined
+            }
+            role="combobox"
+            onKeyDown={handleKeyDown}
+            {...props}
+          />
+          <Drawer open={open} onOpenChange={setOpen}>
+            <DrawerContent className="max-h-[50vh]" aria-label="Autocomplete options">
+              {/* Visually hidden title for screen readers */}
+              <VisuallyHidden>
+                <DrawerTitle>Autocomplete options</DrawerTitle>
+              </VisuallyHidden>
+              <div className="p-4">
+                {/* 
+                  Mobile UX Note: This drawer contains a duplicate input field intentionally.
+                  On mobile, when the main input is focused and the keyboard appears, tapping 
+                  directly into a dropdown is awkward. The drawer provides a better touch target
+                  and the inner input allows continued filtering. Both inputs share state via
+                  inputValue and handleInputChange, so they stay synchronized.
+                  
+                  Note: autoFocus may not work reliably on mobile browsers, especially iOS,
+                  due to browser restrictions on programmatic focus in modals/drawers.
+                */}
+                <Input
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder={placeholder}
+                  autoComplete="off"
+                  className="mb-2"
+                  aria-autocomplete="list"
+                  aria-controls={listId}
+                  aria-activedescendant={
+                    highlightedIndex >= 0 
+                      ? `${listId}-option-${highlightedIndex}` 
+                      : undefined
+                  }
+                  role="combobox"
+                />
+              </div>
+              {SuggestionsList}
+            </DrawerContent>
+          </Drawer>
+        </>
+      )
+    }
+
+    // Desktop: Use Popover with collision detection
+    // Using PopoverAnchor instead of PopoverTrigger so the input is not a click target
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverAnchor asChild>
+          <Input
+            ref={inputRef}
+            className={cn("w-full", className)}
+            value={inputValue}
+            onChange={handleInputChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            disabled={disabled}
+            placeholder={placeholder}
+            autoComplete="off"
+            aria-autocomplete="list"
+            aria-expanded={open}
+            aria-controls={open ? listId : undefined}
+            aria-activedescendant={
+              open && highlightedIndex >= 0 
+                ? `${listId}-option-${highlightedIndex}` 
+                : undefined
+            }
+            role="combobox"
+            {...props}
+          />
+        </PopoverAnchor>
+        <PopoverContent 
+          className="w-[var(--radix-popper-anchor-width)] p-0" 
+          align="start"
+          side="bottom"
+          sideOffset={4}
+          // Ensure popover stays within viewport
+          collisionPadding={16}
+          avoidCollisions={true}
+          onOpenAutoFocus={(e) => {
+            // Prevent popover from stealing focus from input
+            e.preventDefault()
+          }}
+          onInteractOutside={(e) => {
+            // Allow clicking on the input without closing the popover
+            if (e.target === inputRef.current) {
+              e.preventDefault()
+            }
+          }}
+        >
+          {SuggestionsList}
+        </PopoverContent>
+      </Popover>
+    )
+  }
+)
+
+AutocompleteInput.displayName = "AutocompleteInput"
+
+export { AutocompleteInput }

@@ -5,6 +5,35 @@
 Process outstanding reviewer feedback, apply required fixes, and draft clear
 responses for each GitHub pull-request comment.
 
+### Read PR Review Comments (with specific method)
+
+```typescript
+// Get review threads (logically grouped comments on code)
+CallMcpTool({ server: "user-github", toolName: "pull_request_read", arguments: {
+  method: "get_review_comments",  // Gets threads with isResolved, isOutdated metadata
+  owner: "Columbia-Cloudworks-LLC",
+  repo: "EquipQR",
+  pullNumber: 42,
+  perPage: 50
+}})
+
+// Get files changed (to understand scope)
+CallMcpTool({ server: "user-github", toolName: "pull_request_read", arguments: {
+  method: "get_files",
+  owner: "Columbia-Cloudworks-LLC",
+  repo: "EquipQR",
+  pullNumber: 42
+}})
+
+// Get CI/check status
+CallMcpTool({ server: "user-github", toolName: "pull_request_read", arguments: {
+  method: "get_status",
+  owner: "Columbia-Cloudworks-LLC",
+  repo: "EquipQR",
+  pullNumber: 42
+}})
+```
+
 ## Steps
 
 1. **Sync and audit comments**

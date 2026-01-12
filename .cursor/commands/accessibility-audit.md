@@ -32,6 +32,34 @@ Perform comprehensive accessibility (a11y) audit of the current UI code to ensur
     - Suggest alternative approaches for complex interactions
     - Create accessible component patterns
 
+## MCP Tool Reference
+
+### Automated Accessibility Testing
+
+```typescript
+// Navigate to the page being audited
+CallMcpTool({ server: "cursor-ide-browser", toolName: "browser_navigate", arguments: { 
+  url: "http://localhost:5173/equipment", position: "side" 
+}})
+
+// Capture accessibility tree (better than screenshots for a11y)
+CallMcpTool({ server: "cursor-ide-browser", toolName: "browser_snapshot", arguments: {} })
+
+// Test keyboard navigation - Tab through elements
+CallMcpTool({ server: "cursor-ide-browser", toolName: "browser_press_key", arguments: { key: "Tab" } })
+CallMcpTool({ server: "cursor-ide-browser", toolName: "browser_snapshot", arguments: {} }) // Verify focus is visible
+
+// Test interactive elements
+CallMcpTool({ server: "cursor-ide-browser", toolName: "browser_click", arguments: { element: "Button 'Submit'" } })
+```
+
+The `browser_snapshot` tool returns an accessibility tree, which is ideal for:
+
+- Verifying ARIA labels exist
+- Checking heading hierarchy  
+- Validating interactive element roles
+- Detecting missing alt text
+
 ## Accessibility Audit Checklist
 
 - [ ] WCAG compliance verified

@@ -20,6 +20,25 @@ codebase.
     - Check access controls
     - Audit network security
 
+## MCP Tool Reference
+
+### Verify RLS Policies
+
+```typescript
+// List all tables
+CallMcpTool({ server: "user-Supabase (local)", toolName: "list_tables", arguments: { schemas: ["public"] } })
+
+// Check RLS policies on a table
+CallMcpTool({ server: "user-Supabase (local)", toolName: "execute_sql", arguments: {
+  query: "SELECT tablename, policyname, permissive, roles, cmd, qual FROM pg_policies WHERE schemaname = 'public'"
+}})
+
+// Check for tables WITHOUT RLS enabled
+CallMcpTool({ server: "user-Supabase (local)", toolName: "execute_sql", arguments: {
+  query: "SELECT relname FROM pg_class WHERE relrowsecurity = false AND relkind = 'r' AND relnamespace = 'public'::regnamespace"
+}})
+```
+
 ## Security Checklist
 
 - [ ] Dependencies updated and secure

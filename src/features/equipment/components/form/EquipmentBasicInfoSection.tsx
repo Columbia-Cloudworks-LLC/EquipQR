@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { UseFormReturn } from 'react-hook-form';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentManufacturersAndModels } from '@/features/equipment/hooks/useEquipment';
@@ -63,24 +64,6 @@ const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({ f
     fieldOnChange(e.target.value);
   }, []);
 
-  // Handle manufacturer change - reset manual edit flag if cleared
-  const handleManufacturerChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
-    const value = e.target.value;
-    fieldOnChange(value);
-    if (!value) {
-      setNameManuallyEdited(false);
-    }
-  }, []);
-
-  // Handle model change - reset manual edit flag if cleared
-  const handleModelChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
-    const value = e.target.value;
-    fieldOnChange(value);
-    if (!value) {
-      setNameManuallyEdited(false);
-    }
-  }, []);
-
   return (
     <Card>
       <CardContent className="pt-4 space-y-4">
@@ -88,7 +71,7 @@ const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({ f
           Basic Information
         </h3>
         
-        {/* Manufacturer - Input with datalist for autocomplete */}
+        {/* Manufacturer - AutocompleteInput with suggestions */}
         <FormField
           control={form.control}
           name="manufacturer"
@@ -96,19 +79,19 @@ const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({ f
             <FormItem>
               <FormLabel>Manufacturer *</FormLabel>
               <FormControl>
-                <Input 
-                  placeholder="e.g., Toyota" 
-                  list="equipment-manufacturer-suggestions"
-                  autoComplete="off"
-                  {...field}
-                  onChange={(e) => handleManufacturerChange(e, field.onChange)}
+                <AutocompleteInput
+                  placeholder="e.g., Toyota"
+                  suggestions={manufacturers}
+                  value={field.value || ''}
+                  onChange={(value) => {
+                    field.onChange(value);
+                    if (!value) {
+                      setNameManuallyEdited(false);
+                    }
+                  }}
+                  emptyMessage="No matching manufacturers"
                 />
               </FormControl>
-              <datalist id="equipment-manufacturer-suggestions">
-                {manufacturers.map((mfr) => (
-                  <option key={mfr} value={mfr} />
-                ))}
-              </datalist>
               {manufacturers.length > 0 && !manufacturer && (
                 <FormDescription>
                   {manufacturers.length} existing manufacturer{manufacturers.length !== 1 ? 's' : ''} available as suggestions
@@ -119,7 +102,7 @@ const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({ f
           )}
         />
 
-        {/* Model - Input with datalist for autocomplete */}
+        {/* Model - AutocompleteInput with suggestions */}
         <FormField
           control={form.control}
           name="model"
@@ -127,19 +110,19 @@ const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({ f
             <FormItem>
               <FormLabel>Model *</FormLabel>
               <FormControl>
-                <Input 
-                  placeholder="e.g., 8FBU25" 
-                  list="equipment-model-suggestions"
-                  autoComplete="off"
-                  {...field}
-                  onChange={(e) => handleModelChange(e, field.onChange)}
+                <AutocompleteInput
+                  placeholder="e.g., 8FBU25"
+                  suggestions={modelsForManufacturer}
+                  value={field.value || ''}
+                  onChange={(value) => {
+                    field.onChange(value);
+                    if (!value) {
+                      setNameManuallyEdited(false);
+                    }
+                  }}
+                  emptyMessage="No matching models"
                 />
               </FormControl>
-              <datalist id="equipment-model-suggestions">
-                {modelsForManufacturer.map((mdl) => (
-                  <option key={mdl} value={mdl} />
-                ))}
-              </datalist>
               {modelsForManufacturer.length > 0 && !model && (
                 <FormDescription>
                   {modelsForManufacturer.length} existing model{modelsForManufacturer.length !== 1 ? 's' : ''} for {manufacturer}

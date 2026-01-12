@@ -24,6 +24,46 @@ Create a well-structured pull request with proper description, labels, and revie
    - Add appropriate labels
    - Link related issues using GitHub MCP tools like `list_issues` and `issue_read`
 
+## MCP Tool Reference (Specific Parameters)
+
+### Check for existing PRs first
+
+```typescript
+CallMcpTool({ server: "user-github", toolName: "list_pull_requests", arguments: {
+  owner: "Columbia-Cloudworks-LLC",
+  repo: "EquipQR",
+  state: "OPEN",
+  perPage: 10
+}})
+```
+
+### Get related issues to link
+
+```typescript
+CallMcpTool({ server: "user-github", toolName: "list_issues", arguments: {
+  owner: "Columbia-Cloudworks-LLC",
+  repo: "EquipQR",
+  state: "OPEN",
+  labels: ["enhancement", "bug"],
+  perPage: 20
+}})
+```
+
+### Create the PR with full parameters
+
+```typescript
+CallMcpTool({ server: "user-github", toolName: "create_pull_request", arguments: {
+  owner: "Columbia-Cloudworks-LLC",
+  repo: "EquipQR",
+  title: "feat(equipment): Add status field to equipment model",
+  head: "feature/equipment-status",  // current branch
+  base: "preview",                    // or "main" if on preview branch
+  body: "## Summary\n- Added status field...\n\n## Test Plan\n- [ ] Unit tests pass",
+  draft: false,
+  maintainer_can_modify: true
+}})
+```
+
 ## PR Template
 
 - [ ] Feature A
