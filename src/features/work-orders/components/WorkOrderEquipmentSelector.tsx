@@ -23,13 +23,20 @@ interface WorkOrderEquipmentSelectorProps {
     model?: string | null; 
     serial_number?: string | null;
     location?: string | null;
+    last_known_location?: { name?: string } | null;
+    team?: { id: string; name: string } | null;
+    working_hours?: number | null;
   };
   allEquipment: Array<{ 
     id: string; 
     name: string; 
     manufacturer?: string | null; 
     model?: string | null; 
+    serial_number?: string | null;
     location?: string | null;
+    last_known_location?: { name?: string } | null;
+    team?: { id: string; name: string } | null;
+    working_hours?: number | null;
   }>;
   isEditMode: boolean;
   isEquipmentPreSelected: boolean;
@@ -154,18 +161,25 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
     const equipment = preSelectedEquipment;
     if (!equipment) return null;
 
+    const locationDisplay = equipment.last_known_location?.name || equipment.location || 'Unknown location';
+    
     return (
       <div className="space-y-2">
         <Label>Equipment</Label>
         <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border">
-          <Forklift className="h-4 w-4 text-muted-foreground" />
-          <div className="flex-1">
+          <Forklift className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className="flex-1 min-w-0">
             <div className="font-medium">{equipment.name}</div>
             <div className="text-sm text-muted-foreground">
-              {equipment.manufacturer || ''} {equipment.model || ''} • {equipment.serial_number || ''}
+              {[equipment.manufacturer, equipment.model].filter(Boolean).join(' ')}
+              {equipment.serial_number ? ` • S/N: ${equipment.serial_number}` : ''}
+              {equipment.working_hours != null ? ` • ${equipment.working_hours.toLocaleString()} hrs` : ''}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {equipment.team?.name || 'No team'} • {locationDisplay}
             </div>
           </div>
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="secondary" className="text-xs flex-shrink-0">
             {isEditMode ? 'Current' : 'Selected'}
           </Badge>
         </div>
@@ -213,16 +227,24 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
                   No equipment available
                 </SelectItem>
               ) : (
-                allEquipment.map((equipment) => (
-                  <SelectItem key={equipment.id} value={equipment.id}>
-                    <div className="flex flex-col">
-                      <span>{equipment.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {equipment.manufacturer || ''} {equipment.model || ''} • {equipment.location || ''}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))
+                allEquipment.map((equipment) => {
+                  const locationDisplay = equipment.last_known_location?.name || equipment.location || 'Unknown location';
+                  return (
+                    <SelectItem key={equipment.id} value={equipment.id}>
+                      <div className="flex flex-col gap-0.5 py-1">
+                        <span className="font-medium">{equipment.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {[equipment.manufacturer, equipment.model].filter(Boolean).join(' ')}
+                          {equipment.serial_number ? ` • S/N: ${equipment.serial_number}` : ''}
+                          {equipment.working_hours != null ? ` • ${equipment.working_hours.toLocaleString()} hrs` : ''}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {equipment.team?.name || 'No team'} • {locationDisplay}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  );
+                })
               )}
             </SelectContent>
           </Select>

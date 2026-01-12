@@ -9,6 +9,8 @@ quality and functionality.
 
 1. **Run test suite**
     - Execute all tests in the project
+      - lint & type checks
+      - `node scripts/test-ci.mjs`
     - Capture output and identify failures
     - Check both unit and integration tests
 2. **Analyze failures**

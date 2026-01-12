@@ -6,6 +6,11 @@ import { logger } from '@/utils/logger';
 // Use Supabase types for Equipment
 export type Equipment = Tables<'equipment'>;
 
+// Extended equipment type with team info for display purposes
+export interface EquipmentWithTeam extends Equipment {
+  team?: { id: string; name: string } | null;
+}
+
 export interface EquipmentFilters extends FilterParams {
   status?: Equipment['status'];
   location?: string;
@@ -87,11 +92,11 @@ export class EquipmentService {
     organizationId: string,
     filters: EquipmentFilters = {},
     pagination: PaginationParams = {}
-  ): Promise<ApiResponse<Equipment[]>> {
+  ): Promise<ApiResponse<EquipmentWithTeam[]>> {
     try {
       let query = supabase
         .from('equipment')
-        .select('*')
+        .select('*, team:team_id(id, name)')
         .eq('organization_id', organizationId);
 
       // Apply team-based filtering if user is not org admin
@@ -147,7 +152,7 @@ export class EquipmentService {
         return handleError(error);
       }
 
-      return handleSuccess(data || []);
+      return handleSuccess((data || []) as EquipmentWithTeam[]);
     } catch (error) {
       return handleError(error);
     }
@@ -159,11 +164,11 @@ export class EquipmentService {
   static async getById(
     organizationId: string,
     id: string
-  ): Promise<ApiResponse<Equipment>> {
+  ): Promise<ApiResponse<EquipmentWithTeam>> {
     try {
       const { data, error } = await supabase
         .from('equipment')
-        .select('*')
+        .select('*, team:team_id(id, name)')
         .eq('id', id)
         .eq('organization_id', organizationId)
         .single();
@@ -177,7 +182,7 @@ export class EquipmentService {
         return handleError(new Error('Equipment not found'));
       }
 
-      return handleSuccess(data);
+      return handleSuccess(data as EquipmentWithTeam);
     } catch (error) {
       return handleError(error);
     }
