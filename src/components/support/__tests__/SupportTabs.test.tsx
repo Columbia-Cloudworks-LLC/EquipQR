@@ -10,10 +10,11 @@ describe('SupportTabs', () => {
       expect(screen.getByRole('tablist')).toBeInTheDocument();
     });
 
-    it('displays all 4 tab triggers', () => {
+    it('displays all 5 tab triggers', () => {
       render(<SupportTabs />);
       
-      expect(screen.getByRole('tab', { name: /guide/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /^Guide$/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /^Guides$/i })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /faq/i })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /roles/i })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /tips/i })).toBeInTheDocument();
@@ -22,7 +23,7 @@ describe('SupportTabs', () => {
     it('has Guide tab selected by default', () => {
       render(<SupportTabs />);
       
-      const guideTab = screen.getByRole('tab', { name: /guide/i });
+      const guideTab = screen.getByRole('tab', { name: /^Guide$/i });
       expect(guideTab).toHaveAttribute('aria-selected', 'true');
     });
   });
@@ -184,14 +185,14 @@ describe('SupportTabs', () => {
       render(<SupportTabs />);
       
       expect(screen.getByRole('tablist')).toBeInTheDocument();
-      expect(screen.getAllByRole('tab')).toHaveLength(4);
+      expect(screen.getAllByRole('tab')).toHaveLength(5);
     });
 
     it('has proper aria-selected states', async () => {
       const user = userEvent.setup();
       render(<SupportTabs />);
       
-      const guideTab = screen.getByRole('tab', { name: /guide/i });
+      const guideTab = screen.getByRole('tab', { name: /^Guide$/i });
       const faqTab = screen.getByRole('tab', { name: /faq/i });
       
       // Initially Guide is selected
@@ -217,7 +218,7 @@ describe('SupportTabs', () => {
       const { container } = render(<SupportTabs />);
       
       const tabsList = container.querySelector('[role="tablist"]');
-      expect(tabsList).toHaveClass('grid', 'grid-cols-4');
+      expect(tabsList).toHaveClass('grid', 'grid-cols-5');
     });
   });
 });

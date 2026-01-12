@@ -24,6 +24,10 @@ export const usePermissions = () => {
     canManageOrganization: () => permissions.organization.canManage,
     canInviteMembers: () => permissions.organization.canInviteMembers,
     isOrganizationAdmin: () => permissions.organization.canManage, // Add missing method
+    // Inventory permissions
+    // Note: isPartsManager must be determined by the calling component using useIsPartsManager hook
+    canManageInventory: (isPartsManager: boolean = false) => permissions.inventory.canManageAny(isPartsManager),
+    canManagePartsManagers: () => permissions.inventory.canManagePartsManagers,
     // Utility functions
     hasRole: permissions.hasRole,
     isTeamMember: permissions.isTeamMember,

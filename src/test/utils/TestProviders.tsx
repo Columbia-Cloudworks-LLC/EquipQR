@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
+// Test utility file - Fast Refresh is not applicable here
+
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';

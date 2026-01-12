@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Package, AlertTriangle } from 'lucide-react';
+import { Search, Package, AlertTriangle, RefreshCw, ArrowUpDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -14,6 +21,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useCompatibleInventoryItems } from '@/features/inventory/hooks/useInventory';
+
+type SortOption = 'default' | 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc';
 
 interface InventoryPartSelectorProps {
   open: boolean;
@@ -32,21 +41,52 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [sortBy, setSortBy] = useState<SortOption>('default');
 
   const { data: compatibleItems = [], isLoading } = useCompatibleInventoryItems(
     currentOrganization?.id,
     equipmentIds
   );
 
-  const filteredItems = useMemo(() => {
-    if (!searchTerm.trim()) return compatibleItems;
-    const term = searchTerm.toLowerCase();
-    return compatibleItems.filter(item =>
-      item.name.toLowerCase().includes(term) ||
-      item.sku?.toLowerCase().includes(term) ||
-      item.external_id?.toLowerCase().includes(term)
-    );
-  }, [compatibleItems, searchTerm]);
+  const filteredAndSortedItems = useMemo(() => {
+    let items = compatibleItems;
+    
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      items = items.filter(item =>
+        item.name.toLowerCase().includes(term) ||
+        item.sku?.toLowerCase().includes(term) ||
+        item.external_id?.toLowerCase().includes(term)
+      );
+    }
+    
+    // Apply user sort (if not default, override RPC order)
+    if (sortBy !== 'default') {
+      items = [...items].sort((a, b) => {
+        switch (sortBy) {
+          case 'name-asc':
+            return a.name.localeCompare(b.name);
+          case 'name-desc':
+            return b.name.localeCompare(a.name);
+          case 'price-asc': {
+            const priceA = a.default_unit_cost ?? Infinity;
+            const priceB = b.default_unit_cost ?? Infinity;
+            return Number(priceA) - Number(priceB);
+          }
+          case 'price-desc': {
+            const priceA = a.default_unit_cost ?? 0;
+            const priceB = b.default_unit_cost ?? 0;
+            return Number(priceB) - Number(priceA);
+          }
+          default:
+            return 0;
+        }
+      });
+    }
+    
+    return items;
+  }, [compatibleItems, searchTerm, sortBy]);
 
   const selectedItem = selectedItemId
     ? compatibleItems.find(item => item.id === selectedItemId)
@@ -69,6 +109,7 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
     setSelectedItemId(null);
     setQuantity(1);
     setSearchTerm('');
+    setSortBy('default');
     onClose();
   };
 
@@ -83,15 +124,39 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search by name, SKU, or external ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
+          {/* Search and Sort Controls */}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search by name, SKU, or external ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue placeholder="Sort by..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default (Alternates, Cheapest)</SelectItem>
+                    <SelectItem value="name-asc">Name: A → Z</SelectItem>
+                    <SelectItem value="name-desc">Name: Z → A</SelectItem>
+                    <SelectItem value="price-asc">Price: Low → High</SelectItem>
+                    <SelectItem value="price-desc">Price: High → Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <p className="text-sm text-muted-foreground">
+                {filteredAndSortedItems.length} {filteredAndSortedItems.length === 1 ? 'part' : 'parts'} found
+              </p>
+            </div>
           </div>
 
           {/* Items List */}
@@ -106,7 +171,7 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
                 </Card>
               ))}
             </div>
-          ) : filteredItems.length === 0 ? (
+          ) : filteredAndSortedItems.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -120,7 +185,7 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
             </Card>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredItems.map((item) => {
+              {filteredAndSortedItems.map((item) => {
                 const isSelected = selectedItemId === item.id;
                 return (
                   <Card
@@ -133,8 +198,14 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <h3 className="font-semibold">{item.name}</h3>
+                            {item.hasAlternates && (
+                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                Alternates
+                              </Badge>
+                            )}
                             {item.isLowStock && (
                               <Badge variant="destructive" className="text-xs">
                                 <AlertTriangle className="h-3 w-3 mr-1" />

@@ -9,6 +9,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-01-12
+
+### Added
+
+- **Part Alternate Groups System**: New feature for managing interchangeable/equivalent parts
+  - Create groups of parts that can substitute for each other (OEM, aftermarket, cross-references)
+  - Add multiple part identifiers (OEM, aftermarket, SKU, MPN, UPC, cross-reference)
+  - Verification status tracking (unverified, verified, deprecated) per group
+  - Link inventory items to groups and set preferred/primary parts
+  - New `AlternateGroupsPage` for browsing and managing alternate groups
+  - New `AlternateGroupDetail` page for managing group members and identifiers
+
+- **Part Lookup Page**: New search interface for finding compatible parts
+  - Search by part number to find alternates and compatible inventory items
+  - Search by equipment make/model to find all compatible parts via rules and direct links
+  - Displays stock status, location, and pricing for each result
+  - Quick navigation to inventory item details
+
+- **Organization-Level Parts Managers**: Simplified parts management permissions
+  - New `PartsManagersSheet` component for managing who can edit inventory items
+  - Organization-wide parts managers replace per-item manager assignments
+  - Replaces `inventory_item_managers` table with `parts_managers` for better scalability
+  - Admins can assign any organization member as a parts manager
+
+- **Equipment Parts Tab**: New tab on equipment details showing compatible inventory parts
+  - Displays all parts compatible with the equipment via rules or direct links
+  - Shows stock status with low-stock and out-of-stock indicators
+  - Quick navigation to inventory item details
+
+- **Inventory User Guides**: Comprehensive step-by-step guides added to Support page
+  - Parts Managers guide: Assigning and managing parts managers
+  - Adding Inventory Items guide: Creating and configuring inventory items
+  - Compatibility Rules guide: Setting up equipment compatibility rules
+  - Stock Management guide: Adjusting quantities and viewing transactions
+  - QR Codes guide: Generating and using inventory QR codes
+  - Part Alternate Groups guide: Managing interchangeable parts
+
+- **New Database Migrations**:
+  - `part_alternate_groups` table with verification status enum
+  - `part_group_identifiers` table for storing part numbers per group
+  - `part_group_members` table linking inventory items to groups
+  - `parts_managers` table for organization-level parts management
+  - RPC functions: `lookup_alternates_by_part_number`, `get_compatible_parts_for_make_model`
+
+### Changed
+
+- **Version Bump**: Updated to version 1.8.0 for major inventory system enhancements
+- **Navigation**: Added Part Lookup and Part Alternates to main sidebar navigation
+- **Support Page**: Added new "Guides" tab with inventory system tutorials
+- **Inventory Types**: Extended type definitions for alternate groups, part identifiers, and parts managers
+- **Compatibility Rules**: Enhanced editor with improved UI and validation
+- **Test Coverage**: Extended inventory management journey tests for new features
+
+### Fixed
+
+- **Supabase Advisor Warnings**: Fixed schema issues identified by Supabase advisor
+- **Bulk Compatibility Rules**: Fixed partial index for bulk set compatibility rules
+
 ## [1.7.13] - 2026-01-11
 
 ### Added
@@ -229,7 +287,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.13...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.13...v1.8.0
 [1.7.13]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.12...v1.7.13
 [1.7.12]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.11...v1.7.12
 [1.7.11]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.10...v1.7.11

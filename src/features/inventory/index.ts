@@ -4,6 +4,7 @@
 // Components
 export { default as InventoryItemForm } from './components/InventoryItemForm';
 export { default as InventoryQRCodeDisplay } from './components/InventoryQRCodeDisplay';
+export { PartsManagersSheet } from './components/PartsManagersSheet';
 
 // Types
 export * from './types/inventory';
@@ -15,4 +16,6 @@ export * from './schemas/inventorySchema';
 export * from './services/inventoryService';
 export * from './services/inventoryOrganizationService';
 export * from './services/inventoryCompatibilityService';
+export * from './services/inventoryCompatibilityRulesService';
+export * from './services/partAlternatesService';
 

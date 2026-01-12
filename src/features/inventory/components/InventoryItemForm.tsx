@@ -23,11 +23,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Search, Forklift, Users, Check, X } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Search, Forklift, Check, X, ChevronDown, ChevronRight, Layers } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useCreateInventoryItem, useUpdateInventoryItem } from '@/features/inventory/hooks/useInventory';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
-import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
+import {
+  useAlternateGroups,
+  useCreateAlternateGroup,
+  useAddInventoryItemToGroup,
+} from '@/features/inventory/hooks/useAlternateGroups';
 import { supabase } from '@/integrations/supabase/client';
 import { inventoryItemFormSchema } from '@/features/inventory/schemas/inventorySchema';
 import type { InventoryItem, PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
@@ -50,19 +64,24 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   const { currentOrganization } = useOrganization();
   const { toast } = useAppToast();
   const [equipmentSearch, setEquipmentSearch] = useState('');
-  const [managerSearch, setManagerSearch] = useState('');
-  // Track whether async editing data (compatibility rules, equipment links, managers) has loaded
+  // Track whether async editing data (compatibility rules, equipment links) has loaded
   const [isEditingDataLoaded, setIsEditingDataLoaded] = useState(false);
   // Track if loading failed - prevents form submission with stale/empty data
   const [editingDataLoadError, setEditingDataLoadError] = useState(false);
   // Ref to track current item ID to prevent race conditions when rapidly opening/closing form
   const currentEditingItemIdRef = useRef<string | null>(null);
+  // Collapsible state for direct equipment links (collapsed by default to encourage rules-based approach)
+  const [directLinksOpen, setDirectLinksOpen] = useState(false);
+  // Collapsible state for alternate groups section
+  const [alternateGroupOpen, setAlternateGroupOpen] = useState(false);
 
   const createMutation = useCreateInventoryItem();
   const updateMutation = useUpdateInventoryItem();
+  const createAlternateGroupMutation = useCreateAlternateGroup();
+  const addToGroupMutation = useAddInventoryItemToGroup();
 
   const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
-  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id ?? '');
+  const { data: alternateGroups = [] } = useAlternateGroups(currentOrganization?.id);
 
   const form = useForm<InventoryItemFormData>({
     resolver: zodResolver(inventoryItemFormSchema),
@@ -77,8 +96,10 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
       location: '',
       default_unit_cost: null,
       compatibleEquipmentIds: [],
-      managerIds: [],
-      compatibilityRules: []
+      compatibilityRules: [],
+      alternateGroupMode: 'none',
+      alternateGroupId: null,
+      newAlternateGroupName: null
     }
   });
 
@@ -99,9 +120,14 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         location: editingItem.location || '',
         default_unit_cost: editingItem.default_unit_cost ? Number(editingItem.default_unit_cost) : null,
         compatibleEquipmentIds: [], // Will be loaded separately
-        managerIds: [], // Will be loaded separately
-        compatibilityRules: [] // Will be loaded separately
+        compatibilityRules: [], // Will be loaded separately
+        alternateGroupMode: 'none',
+        alternateGroupId: null,
+        newAlternateGroupName: null
       });
+      // Reset collapsible states when editing
+      setDirectLinksOpen(false);
+      setAlternateGroupOpen(false);
     } else if (open && !editingItem) {
       // Creating new item - no async data to load
       setIsEditingDataLoaded(true);
@@ -117,13 +143,18 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         location: '',
         default_unit_cost: null,
         compatibleEquipmentIds: [],
-        managerIds: [],
-        compatibilityRules: []
+        compatibilityRules: [],
+        alternateGroupMode: 'none',
+        alternateGroupId: null,
+        newAlternateGroupName: null
       });
+      // Reset collapsible states for new items
+      setDirectLinksOpen(false);
+      setAlternateGroupOpen(false);
     }
   }, [open, editingItem, form]);
 
-  // Load compatible equipment, managers, and compatibility rules when editing.
+  // Load compatible equipment and compatibility rules when editing.
   // Uses AbortController to properly cancel in-flight requests on unmount/re-render,
   // plus a ref to track the current item ID for additional race condition prevention.
   useEffect(() => {
@@ -168,25 +199,6 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
           }
 
           const equipmentIds = (compatibilityData || []).map(row => row.equipment_id);
-          
-          // Load manager IDs
-          // Filter via join to inventory_items for organization isolation
-          const { data: managersData } = await supabase
-            .from('inventory_item_managers')
-            .select(`
-              user_id,
-              inventory_items!inner(organization_id)
-            `)
-            .eq('inventory_item_id', editingItem.id)
-            .eq('inventory_items.organization_id', currentOrganization.id);
-          
-          // Check again after second async operation
-          if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
-            logger.debug('Ignoring stale/aborted editing data load for item:', itemId);
-            return;
-          }
-
-          const managerIds = (managersData || []).map(row => row.user_id);
 
           // Load compatibility rules
           // Filter via join to inventory_items for organization isolation
@@ -213,7 +225,6 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
           
           // Update form with loaded data
           form.setValue('compatibleEquipmentIds', equipmentIds);
-          form.setValue('managerIds', managerIds);
           form.setValue('compatibilityRules', rules);
           
           // Final abort check before setState to prevent React warnings about
@@ -230,7 +241,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
           }
           logger.error('Error loading editing data:', error);
           // Mark as error - do NOT unblock form to prevent data loss
-          // Empty arrays would overwrite existing rules/equipment/managers
+          // Empty arrays would overwrite existing rules/equipment
           // Double-check abort signal before setState to handle race with unmount
           if (!abortController.signal.aborted) {
             setEditingDataLoadError(true);
@@ -262,18 +273,60 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     }
 
     try {
+      let createdItemId: string | null = null;
+
       if (editingItem) {
         await updateMutation.mutateAsync({
           organizationId: currentOrganization.id,
           itemId: editingItem.id,
           formData: data
         });
+        createdItemId = editingItem.id;
       } else {
-        await createMutation.mutateAsync({
+        const createdItem = await createMutation.mutateAsync({
           organizationId: currentOrganization.id,
           formData: data
         });
+        createdItemId = createdItem.id;
       }
+
+      // Handle alternate group assignment (only for new items or if explicitly requested)
+      if (createdItemId && data.alternateGroupMode !== 'none' && !editingItem) {
+        try {
+          let targetGroupId = data.alternateGroupId;
+
+          // Create new group if requested
+          if (data.alternateGroupMode === 'new' && data.newAlternateGroupName) {
+            const newGroup = await createAlternateGroupMutation.mutateAsync({
+              organizationId: currentOrganization.id,
+              data: {
+                name: data.newAlternateGroupName,
+                status: 'unverified'
+              }
+            });
+            targetGroupId = newGroup.id;
+          }
+
+          // Add item to the group
+          if (targetGroupId) {
+            await addToGroupMutation.mutateAsync({
+              organizationId: currentOrganization.id,
+              groupId: targetGroupId,
+              inventoryItemId: createdItemId,
+              isPrimary: false
+            });
+          }
+        } catch (groupError) {
+          // Log but don't fail the whole operation - item was created successfully
+          logger.error('Error adding item to alternate group:', { error: groupError });
+          toast({
+            title: 'Item created',
+            description: 'The item was created but could not be added to the alternate group.',
+            variant: 'warning'
+          });
+        }
+      }
+
       onClose();
     } catch (error) {
       logger.error('Error submitting inventory item form:', { error, editingItem: !!editingItem });
@@ -282,18 +335,11 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   };
 
   const selectedEquipmentIds = form.watch('compatibleEquipmentIds') || [];
-  const selectedManagerIds = form.watch('managerIds') || [];
-  
 
   const filteredEquipment = allEquipment.filter(eq =>
     eq.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
     eq.manufacturer?.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
     eq.model?.toLowerCase().includes(equipmentSearch.toLowerCase())
-  );
-
-  const filteredMembers = members.filter(member =>
-    member.name?.toLowerCase().includes(managerSearch.toLowerCase()) ||
-    member.email?.toLowerCase().includes(managerSearch.toLowerCase())
   );
 
   const handleEquipmentToggle = (equipmentId: string, checked: boolean) => {
@@ -305,16 +351,8 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     }
   };
 
-  const handleManagerToggle = (userId: string, checked: boolean) => {
-    const current = form.getValues('managerIds') || [];
-    if (checked) {
-      form.setValue('managerIds', [...current, userId]);
-    } else {
-      form.setValue('managerIds', current.filter(id => id !== userId));
-    }
-  };
-
-  const isMutating = createMutation.isPending || updateMutation.isPending;
+  const isMutating = createMutation.isPending || updateMutation.isPending || 
+    createAlternateGroupMutation.isPending || addToGroupMutation.isPending;
   // Loading state: either a mutation is in progress or async editing data is still loading
   const isEditingDataPending = !!editingItem && !isEditingDataLoaded;
   // Form should be disabled while mutating, while async editing data is loading, or if loading failed
@@ -520,150 +558,243 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
               )}
             />
 
-            {/* Compatible Equipment (direct links) */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Forklift className="h-4 w-4" />
-                  Compatible Equipment (Direct Links)
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Link specific equipment directly. Use rules above for pattern-based matching.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search equipment..."
-                    value={equipmentSearch}
-                    onChange={(e) => setEquipmentSearch(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-                <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-2">
-                  {filteredEquipment.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No equipment found
-                    </p>
-                  ) : (
-                    filteredEquipment.map((equipment) => {
-                      const isSelected = selectedEquipmentIds.includes(equipment.id);
-                      return (
-                        <div
-                          key={equipment.id}
-                          className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded"
-                        >
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) =>
-                              handleEquipmentToggle(equipment.id, checked as boolean)
-                            }
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium">{equipment.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {equipment.manufacturer} {equipment.model}
+            {/* Compatible Equipment (direct links) - Collapsible to encourage rules-based approach */}
+            <Collapsible open={directLinksOpen} onOpenChange={setDirectLinksOpen}>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center justify-between w-full text-left hover:bg-muted/50 -mx-2 px-2 py-1 rounded transition-colors"
+                    >
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Forklift className="h-4 w-4" />
+                        Compatible Equipment (Direct Links)
+                        {selectedEquipmentIds.length > 0 && (
+                          <Badge variant="secondary" className="ml-2">
+                            {selectedEquipmentIds.length} selected
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      {directLinksOpen ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                  </CollapsibleTrigger>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Link specific equipment directly. <em className="text-primary">Prefer compatibility rules above for pattern-based matching.</em>
+                  </p>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-0">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        placeholder="Search equipment..."
+                        value={equipmentSearch}
+                        onChange={(e) => setEquipmentSearch(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                    <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-2">
+                      {filteredEquipment.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No equipment found
+                        </p>
+                      ) : (
+                        filteredEquipment.map((equipment) => {
+                          const isSelected = selectedEquipmentIds.includes(equipment.id);
+                          return (
+                            <div
+                              key={equipment.id}
+                              className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded"
+                            >
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={(checked) =>
+                                  handleEquipmentToggle(equipment.id, checked as boolean)
+                                }
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium">{equipment.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {equipment.manufacturer} {equipment.model}
+                                </div>
+                              </div>
+                              {isSelected && (
+                                <Badge variant="secondary" className="text-xs">
+                                  <Check className="h-3 w-3 mr-1" />
+                                </Badge>
+                              )}
                             </div>
-                          </div>
-                          {isSelected && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Check className="h-3 w-3 mr-1" />
+                          );
+                        })
+                      )}
+                    </div>
+                    {selectedEquipmentIds.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedEquipmentIds.map((id) => {
+                          const equipment = allEquipment.find(eq => eq.id === id);
+                          return equipment ? (
+                            <Badge key={id} variant="secondary" className="gap-1">
+                              {equipment.name}
+                              <X
+                                className="h-3 w-3 cursor-pointer"
+                                onClick={() => handleEquipmentToggle(id, false)}
+                              />
                             </Badge>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-                {selectedEquipmentIds.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedEquipmentIds.map((id) => {
-                      const equipment = allEquipment.find(eq => eq.id === id);
-                      return equipment ? (
-                        <Badge key={id} variant="secondary" className="gap-1">
-                          {equipment.name}
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() => handleEquipmentToggle(id, false)}
-                          />
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
 
-            {/* Managers */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Managers
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search members..."
-                    value={managerSearch}
-                    onChange={(e) => setManagerSearch(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-                <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-2">
-                  {filteredMembers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No members found
+            {/* Alternate Parts Group (optional) - Only show for new items */}
+            {!editingItem && (
+              <Collapsible open={alternateGroupOpen} onOpenChange={setAlternateGroupOpen}>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex items-center justify-between w-full text-left hover:bg-muted/50 -mx-2 px-2 py-1 rounded transition-colors"
+                      >
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Layers className="h-4 w-4" />
+                          Alternate Parts Group
+                          <Badge variant="outline" className="ml-2 font-normal">
+                            Optional
+                          </Badge>
+                        </CardTitle>
+                        {alternateGroupOpen ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </CollapsibleTrigger>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Add this part to a group of interchangeable parts for cross-reference lookups.
                     </p>
-                  ) : (
-                    filteredMembers.map((member) => {
-                      const isSelected = selectedManagerIds.includes(member.id);
-                      return (
-                        <div
-                          key={member.id}
-                          className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded"
-                        >
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) =>
-                              handleManagerToggle(member.id, checked as boolean)
-                            }
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium">{member.name || 'Unknown'}</div>
-                            <div className="text-sm text-muted-foreground">{member.email}</div>
-                          </div>
-                          {isSelected && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Check className="h-3 w-3 mr-1" />
-                            </Badge>
+                  </CardHeader>
+                  <CollapsibleContent>
+                    <CardContent className="space-y-4 pt-0">
+                      <FormField
+                        control={form.control}
+                        name="alternateGroupMode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RadioGroup
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                className="space-y-2"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="none" id="alt-none" />
+                                  <Label htmlFor="alt-none" className="font-normal cursor-pointer">
+                                    Don't add to a group
+                                  </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="existing" id="alt-existing" />
+                                  <Label htmlFor="alt-existing" className="font-normal cursor-pointer">
+                                    Add to existing group
+                                  </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="new" id="alt-new" />
+                                  <Label htmlFor="alt-new" className="font-normal cursor-pointer">
+                                    Create new group
+                                  </Label>
+                                </div>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Existing group selector */}
+                      {form.watch('alternateGroupMode') === 'existing' && (
+                        <FormField
+                          control={form.control}
+                          name="alternateGroupId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Select Group</FormLabel>
+                              <FormControl>
+                                <Select
+                                  value={field.value || ''}
+                                  onValueChange={field.onChange}
+                                  disabled={isFormDisabled}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choose an alternate group..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {alternateGroups.length === 0 ? (
+                                      <SelectItem value="" disabled>
+                                        No groups available
+                                      </SelectItem>
+                                    ) : (
+                                      alternateGroups.map((group) => (
+                                        <SelectItem key={group.id} value={group.id}>
+                                          <div className="flex items-center gap-2">
+                                            <span>{group.name}</span>
+                                            {group.status === 'verified' && (
+                                              <Badge variant="secondary" className="text-xs">
+                                                <Check className="h-3 w-3 mr-1" />
+                                                Verified
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </SelectItem>
+                                      ))
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
                           )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-                {selectedManagerIds.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedManagerIds.map((id) => {
-                      const member = members.find(m => m.id === id);
-                      return member ? (
-                        <Badge key={id} variant="secondary" className="gap-1">
-                          {member.name || member.email}
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() => handleManagerToggle(id, false)}
-                          />
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                        />
+                      )}
+
+                      {/* New group name input */}
+                      {form.watch('alternateGroupMode') === 'new' && (
+                        <FormField
+                          control={form.control}
+                          name="newAlternateGroupName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>New Group Name</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="e.g., Oil Filter - CAT D6T Compatible"
+                                  {...field}
+                                  value={field.value || ''}
+                                  disabled={isFormDisabled}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                A descriptive name for this group of interchangeable parts.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            )}
 
             {/* Actions */}
             <div className="flex justify-end space-x-2">

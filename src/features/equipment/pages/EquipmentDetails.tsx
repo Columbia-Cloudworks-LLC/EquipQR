@@ -13,6 +13,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import EquipmentDetailsTab from '@/features/equipment/components/EquipmentDetailsTab';
 import EquipmentNotesTab from '@/features/equipment/components/EquipmentNotesTab';
 import EquipmentWorkOrdersTab from '@/features/equipment/components/EquipmentWorkOrdersTab';
+import EquipmentPartsTab from '@/features/equipment/components/EquipmentPartsTab';
 import EquipmentImagesTab from '@/features/equipment/components/EquipmentImagesTab';
 import EquipmentScansTab from '@/features/equipment/components/EquipmentScansTab';
 
@@ -358,6 +359,13 @@ const EquipmentDetails = () => {
             equipmentId={equipment.id} 
             organizationId={currentOrganization.id}
             onCreateWorkOrder={handleCreateWorkOrder}
+          />
+        </TabsContent>
+
+        <TabsContent value="parts">
+          <EquipmentPartsTab 
+            equipmentId={equipment.id} 
+            organizationId={currentOrganization.id}
           />
         </TabsContent>
 

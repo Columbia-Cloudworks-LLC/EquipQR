@@ -557,6 +557,9 @@ export const inventoryTransactions = {
   }
 } as const;
 
+export type ModelMatchType = 'any' | 'exact' | 'prefix' | 'wildcard';
+export type VerificationStatus = 'unverified' | 'verified' | 'deprecated';
+
 export interface TestPartCompatibilityRule {
   id: string;
   inventory_item_id: string;
@@ -564,7 +567,17 @@ export interface TestPartCompatibilityRule {
   model: string | null;
   manufacturer_norm: string;
   model_norm: string | null;
+  match_type: ModelMatchType;
+  model_pattern_raw: string | null;
+  model_pattern_norm: string | null;
+  status: VerificationStatus;
+  notes: string | null;
+  evidence_url: string | null;
+  created_by: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export const partCompatibilityRules = {
@@ -575,7 +588,17 @@ export const partCompatibilityRules = {
     model: '8FGU25',
     manufacturer_norm: 'toyota',
     model_norm: '8fgu25',
-    created_at: '2024-01-01T10:00:00Z'
+    match_type: 'exact' as ModelMatchType,
+    model_pattern_raw: null,
+    model_pattern_norm: null,
+    status: 'verified' as VerificationStatus,
+    notes: 'Verified on job #12345',
+    evidence_url: null,
+    created_by: 'user-admin',
+    verified_by: 'user-admin',
+    verified_at: '2024-01-02T10:00:00Z',
+    created_at: '2024-01-01T10:00:00Z',
+    updated_at: '2024-01-02T10:00:00Z'
   },
   brakePadsUniversal: {
     id: 'rule-brake-universal',
@@ -584,7 +607,17 @@ export const partCompatibilityRules = {
     model: null, // Any Toyota model
     manufacturer_norm: 'toyota',
     model_norm: null,
-    created_at: '2024-01-03T08:30:00Z'
+    match_type: 'any' as ModelMatchType,
+    model_pattern_raw: null,
+    model_pattern_norm: null,
+    status: 'unverified' as VerificationStatus,
+    notes: null,
+    evidence_url: null,
+    created_by: 'user-admin',
+    verified_by: null,
+    verified_at: null,
+    created_at: '2024-01-03T08:30:00Z',
+    updated_at: '2024-01-03T08:30:00Z'
   },
   wireRopeKonecranes: {
     id: 'rule-wire-konecranes',
@@ -593,7 +626,17 @@ export const partCompatibilityRules = {
     model: null, // Any Konecranes model
     manufacturer_norm: 'konecranes',
     model_norm: null,
-    created_at: '2024-01-04T11:00:00Z'
+    match_type: 'any' as ModelMatchType,
+    model_pattern_raw: null,
+    model_pattern_norm: null,
+    status: 'verified' as VerificationStatus,
+    notes: 'Cross-referenced with Konecranes parts catalog',
+    evidence_url: 'https://parts.konecranes.com/catalog',
+    created_by: 'user-admin',
+    verified_by: 'user-owner',
+    verified_at: '2024-01-05T11:00:00Z',
+    created_at: '2024-01-04T11:00:00Z',
+    updated_at: '2024-01-05T11:00:00Z'
   },
   airFilterIngersoll: {
     id: 'rule-air-ingersoll',
@@ -602,9 +645,162 @@ export const partCompatibilityRules = {
     model: 'R-Series 37',
     manufacturer_norm: 'ingersoll rand',
     model_norm: 'r-series 37',
-    created_at: '2024-01-05T14:00:00Z'
+    match_type: 'exact' as ModelMatchType,
+    model_pattern_raw: null,
+    model_pattern_norm: null,
+    status: 'unverified' as VerificationStatus,
+    notes: null,
+    evidence_url: null,
+    created_by: 'user-admin',
+    verified_by: null,
+    verified_at: null,
+    created_at: '2024-01-05T14:00:00Z',
+    updated_at: '2024-01-05T14:00:00Z'
+  },
+  // New fixtures for pattern matching
+  caterpillarDSeriesPrefix: {
+    id: 'rule-cat-d-series',
+    inventory_item_id: 'inv-hydraulic-hose',
+    manufacturer: 'Caterpillar',
+    model: 'D',
+    manufacturer_norm: 'caterpillar',
+    model_norm: null,
+    match_type: 'prefix' as ModelMatchType,
+    model_pattern_raw: 'D',
+    model_pattern_norm: 'd',
+    status: 'verified' as VerificationStatus,
+    notes: 'Fits all Caterpillar D-series dozers',
+    evidence_url: null,
+    created_by: 'user-admin',
+    verified_by: 'user-owner',
+    verified_at: '2024-01-06T10:00:00Z',
+    created_at: '2024-01-06T09:00:00Z',
+    updated_at: '2024-01-06T10:00:00Z'
+  },
+  jlgWildcard: {
+    id: 'rule-jlg-wildcard',
+    inventory_item_id: 'inv-air-filter',
+    manufacturer: 'JLG',
+    model: '*-100',
+    manufacturer_norm: 'jlg',
+    model_norm: null,
+    match_type: 'wildcard' as ModelMatchType,
+    model_pattern_raw: '*-100',
+    model_pattern_norm: '%-100',
+    status: 'unverified' as VerificationStatus,
+    notes: null,
+    evidence_url: null,
+    created_by: 'user-team-manager',
+    verified_by: null,
+    verified_at: null,
+    created_at: '2024-01-07T09:00:00Z',
+    updated_at: '2024-01-07T09:00:00Z'
   }
 } as const;
+
+// ============================================
+// Part Alternate Groups (for interchangeable parts)
+// ============================================
+
+export type PartIdentifierType = 'oem' | 'aftermarket' | 'sku' | 'mpn' | 'upc' | 'cross_ref';
+
+export interface TestPartAlternateGroup {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;
+  status: VerificationStatus;
+  notes: string | null;
+  evidence_url: string | null;
+  created_by: string;
+  verified_by: string | null;
+  verified_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TestPartIdentifier {
+  id: string;
+  organization_id: string;
+  identifier_type: PartIdentifierType;
+  raw_value: string;
+  norm_value: string;
+  inventory_item_id: string | null;
+  manufacturer: string | null;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export const partAlternateGroups: Record<string, TestPartAlternateGroup> = {
+  oilFilterGroup: {
+    id: 'group-oil-filter',
+    organization_id: 'org-acme',
+    name: 'Oil Filter - Toyota/CAT Compatible',
+    description: 'Interchangeable oil filters for Toyota and Caterpillar equipment',
+    status: 'verified',
+    notes: 'Cross-referenced with WIX and Baldwin catalogs',
+    evidence_url: 'https://wixfilters.com/catalog',
+    created_by: 'user-admin',
+    verified_by: 'user-owner',
+    verified_at: '2024-01-10T10:00:00Z',
+    created_at: '2024-01-08T09:00:00Z',
+    updated_at: '2024-01-10T10:00:00Z'
+  },
+  airFilterGroup: {
+    id: 'group-air-filter',
+    organization_id: 'org-acme',
+    name: 'Air Filter - Industrial',
+    description: 'Industrial equipment air filters',
+    status: 'unverified',
+    notes: null,
+    evidence_url: null,
+    created_by: 'user-admin',
+    verified_by: null,
+    verified_at: null,
+    created_at: '2024-01-09T09:00:00Z',
+    updated_at: '2024-01-09T09:00:00Z'
+  }
+};
+
+export const partIdentifiers: Record<string, TestPartIdentifier> = {
+  catOilFilter: {
+    id: 'ident-cat-oil',
+    organization_id: 'org-acme',
+    identifier_type: 'oem',
+    raw_value: 'CAT-1R-0750',
+    norm_value: 'cat-1r-0750',
+    inventory_item_id: 'inv-oil-filter',
+    manufacturer: 'Caterpillar',
+    notes: 'OEM part number',
+    created_by: 'user-admin',
+    created_at: '2024-01-08T09:00:00Z'
+  },
+  wixOilFilter: {
+    id: 'ident-wix-oil',
+    organization_id: 'org-acme',
+    identifier_type: 'aftermarket',
+    raw_value: 'WIX-51773',
+    norm_value: 'wix-51773',
+    inventory_item_id: null, // Not in our inventory
+    manufacturer: 'WIX',
+    notes: 'Aftermarket alternative',
+    created_by: 'user-admin',
+    created_at: '2024-01-08T09:05:00Z'
+  },
+  baldwinOilFilter: {
+    id: 'ident-baldwin-oil',
+    organization_id: 'org-acme',
+    identifier_type: 'aftermarket',
+    raw_value: 'B7299',
+    norm_value: 'b7299',
+    inventory_item_id: null, // Not in our inventory
+    manufacturer: 'Baldwin',
+    notes: 'Aftermarket alternative - cheaper option',
+    created_by: 'user-admin',
+    created_at: '2024-01-08T09:10:00Z'
+  }
+};
 
 // ============================================
 // Utility Functions

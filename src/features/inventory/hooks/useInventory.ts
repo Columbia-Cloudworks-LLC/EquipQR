@@ -10,8 +10,6 @@ import {
   adjustInventoryQuantity,
   getInventoryTransactions,
   getCompatibleInventoryItems,
-  getInventoryItemManagers,
-  assignInventoryManagers,
   DEFAULT_TRANSACTION_LIMIT,
   type TransactionPaginationParams,
   type PaginatedTransactionsResult
@@ -27,13 +25,15 @@ import {
   addCompatibilityRule,
   removeCompatibilityRule,
   bulkSetCompatibilityRules,
-  countEquipmentMatchingRules
+  countEquipmentMatchingRules,
+  getEquipmentMatchingItemRules
 } from '@/features/inventory/services/inventoryCompatibilityRulesService';
 import type {
   InventoryQuantityAdjustment,
   InventoryFilters,
   PartCompatibilityRule,
-  PartCompatibilityRuleFormData
+  PartCompatibilityRuleFormData,
+  EquipmentMatchedByRules
 } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { useAppToast } from '@/hooks/useAppToast';
@@ -138,26 +138,6 @@ export const useCompatibleInventoryItems = (
       return await getCompatibleInventoryItems(organizationId, equipmentIds);
     },
     enabled: !!organizationId && equipmentIds.length > 0,
-    staleTime
-  });
-};
-
-export const useInventoryItemManagers = (
-  organizationId: string | undefined,
-  itemId: string | undefined,
-  options?: {
-    staleTime?: number;
-  }
-) => {
-  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
-
-  return useQuery({
-    queryKey: ['inventory-item-managers', organizationId, itemId],
-    queryFn: async () => {
-      if (!organizationId || !itemId) return [];
-      return await getInventoryItemManagers(organizationId, itemId);
-    },
-    enabled: !!organizationId && !!itemId,
     staleTime
   });
 };
@@ -349,45 +329,6 @@ export const useAdjustInventoryQuantity = () => {
   });
 };
 
-export const useAssignInventoryManagers = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useAppToast();
-
-  return useMutation({
-    mutationFn: async ({
-      organizationId,
-      itemId,
-      userIds
-    }: {
-      organizationId: string;
-      itemId: string;
-      userIds: string[];
-    }) => {
-      return await assignInventoryManagers(organizationId, itemId, userIds);
-    },
-    onSuccess: (_, variables) => {
-      // Invalidate managers query
-      queryClient.invalidateQueries({
-        queryKey: ['inventory-item-managers', variables.organizationId, variables.itemId]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['inventory-item', variables.organizationId, variables.itemId]
-      });
-      toast({
-        title: 'Managers updated',
-        description: 'Inventory item managers have been updated.'
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error updating managers',
-        description: error instanceof Error ? error.message : 'Failed to update managers',
-        variant: 'error'
-      });
-    }
-  });
-};
-
 export const useLinkItemToEquipment = () => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
@@ -545,6 +486,32 @@ export const useCompatibilityRulesForItem = (
     queryFn: async (): Promise<PartCompatibilityRule[]> => {
       if (!organizationId || !itemId) return [];
       return await getCompatibilityRulesForItem(organizationId, itemId);
+    },
+    enabled: !!organizationId && !!itemId,
+    staleTime
+  });
+};
+
+/**
+ * Hook to fetch equipment that matches an inventory item's compatibility rules.
+ * 
+ * This is the inverse of useCompatibleInventoryItems - instead of finding parts
+ * for equipment, it finds equipment that matches a part's compatibility rules.
+ */
+export const useEquipmentMatchingItemRules = (
+  organizationId: string | undefined,
+  itemId: string | undefined,
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+
+  return useQuery({
+    queryKey: ['equipment-matching-rules', organizationId, itemId],
+    queryFn: async (): Promise<EquipmentMatchedByRules[]> => {
+      if (!organizationId || !itemId) return [];
+      return await getEquipmentMatchingItemRules(organizationId, itemId);
     },
     enabled: !!organizationId && !!itemId,
     staleTime

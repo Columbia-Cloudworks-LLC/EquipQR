@@ -56,5 +56,22 @@ export interface SetPrimaryEquipmentParams {
   equipmentId: string;
 }
 
+/**
+ * EquipmentSelectorItem - Common type for equipment items in selector components.
+ * 
+ * Used by WorkOrderEquipmentSelector for both preSelectedEquipment and allEquipment props.
+ * Contains the minimal fields needed for equipment selection and display.
+ */
+export interface EquipmentSelectorItem {
+  id: string;
+  name: string;
+  manufacturer?: string | null;
+  model?: string | null;
+  serial_number?: string | null;
+  location?: string | null;
+  last_known_location?: { name?: string } | null;
+  team?: { id: string; name: string } | null;
+  working_hours?: number | null;
+}
 
 

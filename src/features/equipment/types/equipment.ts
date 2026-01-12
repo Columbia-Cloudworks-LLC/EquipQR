@@ -108,6 +108,51 @@ export const createEquipmentValidationSchema = (context?: EquipmentValidationCon
 export type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
 
 // ============================================
+// Quick Equipment Schema (Minimal for inline creation)
+// ============================================
+
+/**
+ * Quick Equipment Schema - Minimal validation for inline equipment creation
+ * 
+ * Used when technicians create equipment during work order creation.
+ * Only requires essential fields; name is auto-generated but editable.
+ */
+export const quickEquipmentSchema = z.object({
+  manufacturer: z.string().min(1, "Manufacturer is required"),
+  model: z.string().min(1, "Model is required"),
+  serial_number: z.string().min(1, "Serial number is required"),
+  working_hours: z.number().min(0, "Working hours cannot be negative").optional().nullable(),
+  team_id: z.string().min(1, "Team is required"),
+  name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+});
+
+export type QuickEquipmentFormData = z.infer<typeof quickEquipmentSchema>;
+
+/**
+ * Generate default equipment name from manufacturer and model
+ */
+export const generateEquipmentName = (manufacturer: string, model: string): string => {
+  const mfr = manufacturer.trim();
+  const mdl = model.trim();
+  if (!mfr && !mdl) return '';
+  if (!mfr) return mdl;
+  if (!mdl) return mfr;
+  return `${mfr} ${mdl}`;
+};
+
+/**
+ * Generate default equipment description from manufacturer, model, and serial number
+ */
+export const generateEquipmentDescription = (
+  manufacturer: string,
+  model: string,
+  serialNumber: string
+): string => {
+  const name = generateEquipmentName(manufacturer, model);
+  return `${name} - S/N: ${serialNumber}`;
+};
+
+// ============================================
 // Equipment Record Types
 // ============================================
 

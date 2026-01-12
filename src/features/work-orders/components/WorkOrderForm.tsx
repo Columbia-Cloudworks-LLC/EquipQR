@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Clock } from "lucide-react";
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSession } from '@/hooks/useSession';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import { useWorkOrderForm, WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { useEquipmentSelection } from '@/features/equipment/components/hooks/useEquipmentSelection';
@@ -46,8 +48,17 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   pmData
 }) => {
   const { currentOrganization } = useOrganization();
+  const { getUserTeamIds } = useSession();
+  const { equipment: equipmentPerms } = useUnifiedPermissions();
+  
   const [showWorkingHoursWarning, setShowWorkingHoursWarning] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<WorkOrderFormData | null>(null);
+  
+  // Get user's teams and filter to those they can create equipment for
+  const userTeamIds = getUserTeamIds();
+  const canCreateEquipment = useMemo(() => {
+    return userTeamIds.some(teamId => equipmentPerms.canCreateForTeam(teamId));
+  }, [userTeamIds, equipmentPerms]);
   
   const { form, isEditMode, checkForUnsavedChanges } = useWorkOrderForm({
     workOrder,
@@ -191,6 +202,13 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             allEquipment={allEquipment}
             isEditMode={isEditMode}
             isEquipmentPreSelected={isEquipmentPreSelected}
+            canCreateEquipment={canCreateEquipment}
+            canCreateEquipmentForTeam={equipmentPerms.canCreateForTeam}
+            onEquipmentCreated={(newEquipmentId) => {
+              // When equipment is created, the equipmentId is already set by the selector
+              // This callback can be used for additional side effects if needed
+              form.setValue('equipmentId', newEquipmentId);
+            }}
           />
 
           {/* Multi-equipment selection removed: work orders now support a single equipment only */}

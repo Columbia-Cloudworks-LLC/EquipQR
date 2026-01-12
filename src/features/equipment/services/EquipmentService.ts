@@ -6,6 +6,11 @@ import { logger } from '@/utils/logger';
 // Use Supabase types for Equipment
 export type Equipment = Tables<'equipment'>;
 
+// Extended equipment type with team info for display purposes
+export interface EquipmentWithTeam extends Equipment {
+  team?: { id: string; name: string } | null;
+}
+
 export interface EquipmentFilters extends FilterParams {
   status?: Equipment['status'];
   location?: string;
@@ -20,6 +25,19 @@ export interface EquipmentFilters extends FilterParams {
 export type EquipmentCreateData = Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>;
 
 export type EquipmentUpdateData = Partial<Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>>;
+
+/**
+ * Minimal data for quick equipment creation during work order creation.
+ * Name is provided but can be auto-generated from manufacturer + model.
+ */
+export interface QuickEquipmentCreateData {
+  manufacturer: string;
+  model: string;
+  serial_number: string;
+  working_hours?: number | null;
+  team_id: string;
+  name: string;
+}
 
 export interface EquipmentNote extends Tables<'notes'> {
   authorName?: string;
@@ -74,11 +92,11 @@ export class EquipmentService {
     organizationId: string,
     filters: EquipmentFilters = {},
     pagination: PaginationParams = {}
-  ): Promise<ApiResponse<Equipment[]>> {
+  ): Promise<ApiResponse<EquipmentWithTeam[]>> {
     try {
       let query = supabase
         .from('equipment')
-        .select('*')
+        .select('*, team:team_id(id, name)')
         .eq('organization_id', organizationId);
 
       // Apply team-based filtering if user is not org admin
@@ -134,7 +152,7 @@ export class EquipmentService {
         return handleError(error);
       }
 
-      return handleSuccess(data || []);
+      return handleSuccess((data || []) as EquipmentWithTeam[]);
     } catch (error) {
       return handleError(error);
     }
@@ -146,11 +164,11 @@ export class EquipmentService {
   static async getById(
     organizationId: string,
     id: string
-  ): Promise<ApiResponse<Equipment>> {
+  ): Promise<ApiResponse<EquipmentWithTeam>> {
     try {
       const { data, error } = await supabase
         .from('equipment')
-        .select('*')
+        .select('*, team:team_id(id, name)')
         .eq('id', id)
         .eq('organization_id', organizationId)
         .single();
@@ -164,7 +182,7 @@ export class EquipmentService {
         return handleError(new Error('Equipment not found'));
       }
 
-      return handleSuccess(data);
+      return handleSuccess(data as EquipmentWithTeam);
     } catch (error) {
       return handleError(error);
     }
@@ -194,6 +212,54 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error creating equipment:', error);
+        return handleError(error);
+      }
+
+      return handleSuccess(newEquipment);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Create equipment with minimal data (quick creation during work order creation)
+   * 
+   * Auto-generates description and sets sensible defaults for optional fields.
+   * Used when technicians create equipment inline while creating work orders.
+   */
+  static async createQuick(
+    organizationId: string,
+    data: QuickEquipmentCreateData
+  ): Promise<ApiResponse<Equipment>> {
+    try {
+      // Validate required fields
+      if (!data.manufacturer || !data.model || !data.serial_number || !data.team_id || !data.name) {
+        return handleError(new Error('Missing required fields for quick equipment creation'));
+      }
+
+      // Auto-generate description
+      const notes = `${data.manufacturer} ${data.model} - S/N: ${data.serial_number}\nCreated via quick entry during work order creation`;
+
+      const { data: newEquipment, error } = await supabase
+        .from('equipment')
+        .insert({
+          organization_id: organizationId,
+          name: data.name,
+          manufacturer: data.manufacturer,
+          model: data.model,
+          serial_number: data.serial_number,
+          working_hours: data.working_hours ?? null,
+          team_id: data.team_id,
+          status: 'active',
+          location: '', // Optional for quick creation - can be updated later
+          notes: notes,
+          installation_date: new Date().toISOString().split('T')[0], // Default to today for quick creation
+        })
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('Error creating equipment (quick):', error);
         return handleError(error);
       }
 
