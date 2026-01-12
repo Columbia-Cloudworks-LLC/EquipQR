@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-01-12
+
+### Fixed
+
+- **Equipment Form Dropdown Overflow**: Fixed autocomplete dropdowns overflowing dialog bounds on desktop and covering keyboard on mobile
+  - Replaced native HTML `<datalist>` elements with new `AutocompleteInput` component
+  - Desktop: Uses Radix UI Popover with collision detection to stay within viewport
+  - Mobile: Uses Drawer component for better touch interaction without keyboard overlap
+  - New reusable `AutocompleteInput` component in `src/components/ui/autocomplete-input.tsx`
+
 ## [1.8.0] - 2026-01-12
 
 ### Added
@@ -287,7 +297,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.13...v1.8.0
 [1.7.13]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.12...v1.7.13
 [1.7.12]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.11...v1.7.12
