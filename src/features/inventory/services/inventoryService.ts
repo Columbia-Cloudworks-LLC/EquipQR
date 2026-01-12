@@ -406,8 +406,11 @@ export const getCompatibleInventoryItems = async (
     if (error) throw error;
 
     // The RPC returns rows with inventory item fields + match_type + has_alternates
-    // Already deduplicated and sorted by the RPC (parts with alternates first)
-    // Map to PartialInventoryItem type while preserving order
+    // Already deduplicated and sorted by the RPC with the following priority:
+    //   1. Parts with alternates come first (has_alternates = true)
+    //   2. Within each group, sorted by default_unit_cost ascending (cheapest first)
+    //   3. Null costs are sorted last within their group
+    // Map to PartialInventoryItem type while preserving this order
     const itemMap = new Map<string, PartialInventoryItem>();
     
     for (const row of (data || [])) {

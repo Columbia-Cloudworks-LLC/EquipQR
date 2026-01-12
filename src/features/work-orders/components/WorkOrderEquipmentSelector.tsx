@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { useEquipmentCurrentWorkingHours, useUpdateEquipmentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
 import { QuickEquipmentForm } from '@/features/equipment/components/QuickEquipmentForm';
+import type { EquipmentSelectorItem } from '@/features/work-orders/types/workOrderEquipment';
 
 type EquipmentMode = 'select' | 'create';
 
@@ -16,28 +17,8 @@ interface WorkOrderEquipmentSelectorProps {
   values: WorkOrderFormData;
   errors: Record<string, string>;
   setValue: (field: keyof WorkOrderFormData, value: unknown) => void;
-  preSelectedEquipment?: { 
-    id: string; 
-    name: string; 
-    manufacturer?: string | null; 
-    model?: string | null; 
-    serial_number?: string | null;
-    location?: string | null;
-    last_known_location?: { name?: string } | null;
-    team?: { id: string; name: string } | null;
-    working_hours?: number | null;
-  };
-  allEquipment: Array<{ 
-    id: string; 
-    name: string; 
-    manufacturer?: string | null; 
-    model?: string | null; 
-    serial_number?: string | null;
-    location?: string | null;
-    last_known_location?: { name?: string } | null;
-    team?: { id: string; name: string } | null;
-    working_hours?: number | null;
-  }>;
+  preSelectedEquipment?: EquipmentSelectorItem;
+  allEquipment: EquipmentSelectorItem[];
   isEditMode: boolean;
   isEquipmentPreSelected: boolean;
   /**
