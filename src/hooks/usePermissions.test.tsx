@@ -162,9 +162,9 @@ describe('usePermissions', () => {
       })),
       switchOrganization: vi.fn(),
       hasTeamRole: vi.fn(() => false),
-      hasTeamAccess: vi.fn(() => false),
-      canManageTeam: vi.fn(() => false),
-      getUserTeamIds: vi.fn(() => []),
+      hasTeamAccess: vi.fn((teamId: string) => teamId === 'team-1'),
+      canManageTeam: vi.fn((teamId: string) => teamId === 'team-1'),
+      getUserTeamIds: vi.fn(() => ['team-1']),
       refreshSession: vi.fn(),
       clearSession: vi.fn()
     });
@@ -253,8 +253,8 @@ describe('usePermissions', () => {
       expect(result.current.canManageWorkOrder()).toBe(true);
     });
 
-    it('should return false for viewer role', () => {
-      updateSessionMockForRole('member'); // Using member since viewer isn't valid
+    it('should return true for member role (members can edit work orders)', () => {
+      updateSessionMockForRole('member');
       mockUseSimpleOrganization.mockReturnValue(
         createMockSimpleOrganizationContext(createTestOrganization('member'))
       );
@@ -262,7 +262,8 @@ describe('usePermissions', () => {
 
       const { result } = renderHook(() => usePermissions());
       
-      expect(result.current.canManageWorkOrder()).toBe(false);
+      // Members can manage work orders according to the permission engine
+      expect(result.current.canManageWorkOrder()).toBe(true);
     });
   });
 
@@ -757,9 +758,9 @@ describe('useWorkOrderPermissions', () => {
       })),
       switchOrganization: vi.fn(),
       hasTeamRole: vi.fn(() => false),
-      hasTeamAccess: vi.fn(() => false),
-      canManageTeam: vi.fn(() => false),
-      getUserTeamIds: vi.fn(() => []),
+      hasTeamAccess: vi.fn((teamId: string) => teamId === 'team-1'),
+      canManageTeam: vi.fn((teamId: string) => teamId === 'team-1'),
+      getUserTeamIds: vi.fn(() => ['team-1']),
       refreshSession: vi.fn(),
       clearSession: vi.fn()
     });

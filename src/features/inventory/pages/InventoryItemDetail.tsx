@@ -363,7 +363,7 @@ const InventoryItemDetail = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           {/* Title section - always on top */}
           <div className="flex items-center gap-4 min-w-0 flex-1">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/inventory')}>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/inventory')} aria-label="Back to inventory">
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="min-w-0 flex-1">

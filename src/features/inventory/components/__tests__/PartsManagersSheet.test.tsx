@@ -345,11 +345,14 @@ describe('PartsManagersSheet', () => {
 
       render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
 
-      // Find remove buttons (trash icons)
-      const removeButtons = screen.getAllByRole('button').filter(
-        btn => btn.querySelector('svg.lucide-trash-2')
+      // Find remove buttons by looking for buttons with destructive icon styling
+      // The Trash2 icon is inside a button with ghost variant
+      const allButtons = screen.getAllByRole('button');
+      const removeButtons = allButtons.filter(
+        btn => btn.querySelector('svg') && btn.classList.contains('shrink-0')
       );
       
+      // There should be at least one remove button (one for each manager)
       expect(removeButtons.length).toBeGreaterThan(0);
     });
 
@@ -358,9 +361,10 @@ describe('PartsManagersSheet', () => {
 
       render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
 
-      // Find and click remove button
-      const removeButtons = screen.getAllByRole('button').filter(
-        btn => btn.querySelector('svg.lucide-trash-2')
+      // Find and click remove button - it's the button with shrink-0 class containing an SVG
+      const allButtons = screen.getAllByRole('button');
+      const removeButtons = allButtons.filter(
+        btn => btn.querySelector('svg') && btn.classList.contains('shrink-0')
       );
       
       if (removeButtons.length > 0) {
@@ -368,7 +372,7 @@ describe('PartsManagersSheet', () => {
 
         await waitFor(() => {
           expect(screen.getByText(/Remove Parts Manager/i)).toBeInTheDocument();
-          expect(screen.getByText(/will lose their parts manager permissions/i)).toBeInTheDocument();
+          expect(screen.getByText(/will no longer be able to edit inventory/i)).toBeInTheDocument();
         });
       }
     });
@@ -378,9 +382,10 @@ describe('PartsManagersSheet', () => {
 
       render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
 
-      // Find and click remove button
-      const removeButtons = screen.getAllByRole('button').filter(
-        btn => btn.querySelector('svg.lucide-trash-2')
+      // Find and click remove button - it's the button with shrink-0 class containing an SVG
+      const allButtons = screen.getAllByRole('button');
+      const removeButtons = allButtons.filter(
+        btn => btn.querySelector('svg') && btn.classList.contains('shrink-0')
       );
       
       if (removeButtons.length > 0) {
@@ -390,8 +395,8 @@ describe('PartsManagersSheet', () => {
           expect(screen.getByText(/Remove Parts Manager/i)).toBeInTheDocument();
         });
 
-        // Click confirm button
-        const confirmButton = screen.getByRole('button', { name: /remove/i });
+        // Click confirm button in the AlertDialog
+        const confirmButton = screen.getByRole('button', { name: /^remove$/i });
         fireEvent.click(confirmButton);
 
         await waitFor(() => {
@@ -408,9 +413,10 @@ describe('PartsManagersSheet', () => {
 
       render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
 
-      // Find and click remove button
-      const removeButtons = screen.getAllByRole('button').filter(
-        btn => btn.querySelector('svg.lucide-trash-2')
+      // Find and click remove button - it's the button with shrink-0 class containing an SVG
+      const allButtons = screen.getAllByRole('button');
+      const removeButtons = allButtons.filter(
+        btn => btn.querySelector('svg') && btn.classList.contains('shrink-0')
       );
       
       if (removeButtons.length > 0) {
@@ -425,7 +431,7 @@ describe('PartsManagersSheet', () => {
         fireEvent.click(cancelButton);
 
         await waitFor(() => {
-          expect(screen.queryByText(/will lose their parts manager permissions/i)).not.toBeInTheDocument();
+          expect(screen.queryByText(/will no longer be able to edit inventory/i)).not.toBeInTheDocument();
         });
       }
     });
@@ -514,31 +520,26 @@ describe('PartsManagersSheet', () => {
       const searchInput = screen.getByPlaceholderText('Search members...');
       fireEvent.change(searchInput, { target: { value: 'test' } });
 
-      // Close dialog using X button
-      const closeButtons = screen.getAllByRole('button').filter(
-        btn => btn.querySelector('svg.lucide-x')
-      );
-      
-      if (closeButtons.length > 0) {
-        fireEvent.click(closeButtons[0]);
+      // Close dialog using Cancel button (more reliable than X button)
+      const cancelButton = screen.getByRole('button', { name: /cancel/i });
+      fireEvent.click(cancelButton);
 
-        await waitFor(() => {
-          expect(screen.queryByText('Add Parts Managers')).not.toBeInTheDocument();
-        });
+      await waitFor(() => {
+        expect(screen.queryByText('Add Parts Managers')).not.toBeInTheDocument();
+      });
 
-        // Reopen dialog
-        fireEvent.click(addButton);
+      // Reopen dialog
+      fireEvent.click(addButton);
 
-        await waitFor(() => {
-          // Search should be cleared
-          const newSearchInput = screen.getByPlaceholderText('Search members...');
-          expect(newSearchInput).toHaveValue('');
-          
-          // Selection should be cleared
-          const newCheckboxes = screen.getAllByRole('checkbox');
-          newCheckboxes.forEach(cb => expect(cb).not.toBeChecked());
-        });
-      }
+      await waitFor(() => {
+        // Search should be cleared
+        const newSearchInput = screen.getByPlaceholderText('Search members...');
+        expect(newSearchInput).toHaveValue('');
+        
+        // Selection should be cleared
+        const newCheckboxes = screen.getAllByRole('checkbox');
+        newCheckboxes.forEach(cb => expect(cb).not.toBeChecked());
+      });
     });
   });
 

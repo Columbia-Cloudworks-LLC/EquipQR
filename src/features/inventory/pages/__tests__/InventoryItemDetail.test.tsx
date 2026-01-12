@@ -377,12 +377,10 @@ describe('InventoryItemDetail - Action Buttons', () => {
         expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
       });
       
-      // Find back button - it's the button with ArrowLeft icon
-      const backButton = screen.getByRole('button', { name: /back/i });
-      if (backButton) {
-        await user.click(backButton);
-        expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory');
-      }
+      // Find back button by its aria-label
+      const backButton = screen.getByRole('button', { name: /back to inventory/i });
+      await user.click(backButton);
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory');
     });
   });
 
@@ -405,22 +403,18 @@ describe('InventoryItemDetail - Action Buttons', () => {
     });
   });
 
-  describe('Edit Button', () => {
-    it('shows edit form when edit button is clicked', async () => {
-      const { user } = renderWithUser(<InventoryItemDetail />);
+  describe('Inline Editing', () => {
+    it('displays editable fields for inventory item', async () => {
+      render(<InventoryItemDetail />);
       
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
       });
       
-      const editButton = screen.getByRole('button', { name: /edit/i });
-      if (editButton) {
-        await user.click(editButton);
-        
-        await waitFor(() => {
-          expect(screen.getByTestId('inventory-item-form')).toBeInTheDocument();
-        });
-      }
+      // Verify inline edit fields are rendered (component uses InlineEditField)
+      // The item name, SKU, location, etc. are displayed as inline editable fields
+      expect(screen.getByText('TEST-001')).toBeInTheDocument(); // SKU
+      expect(screen.getByText('Warehouse A')).toBeInTheDocument(); // Location
     });
   });
 });
@@ -489,7 +483,7 @@ describe('InventoryItemDetail - Tab Navigation', () => {
     expect(compatibilityTab).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('shows compatibility rules editor in Compatibility tab', async () => {
+  it('shows compatibility rules in Compatibility tab and opens editor on Edit Rules click', async () => {
     const { user } = renderWithUser(<InventoryItemDetail />);
     
     await waitFor(() => {
@@ -499,6 +493,16 @@ describe('InventoryItemDetail - Tab Navigation', () => {
     const compatibilityTab = screen.getByRole('tab', { name: /compatibility/i });
     await user.click(compatibilityTab);
     
+    // Wait for Compatibility tab content to load
+    await waitFor(() => {
+      expect(screen.getByText('Compatibility Rules')).toBeInTheDocument();
+    });
+    
+    // Click "Edit Rules" button to open the editor dialog
+    const editRulesButton = screen.getByRole('button', { name: /edit rules/i });
+    await user.click(editRulesButton);
+    
+    // Now the editor should be visible in the dialog
     await waitFor(() => {
       expect(screen.getByTestId('compatibility-rules-editor')).toBeInTheDocument();
       expect(screen.getByTestId('rules-count')).toHaveTextContent('Rules: 2');
@@ -592,10 +596,27 @@ describe('InventoryItemDetail - Equipment Links', () => {
     vi.clearAllMocks();
     setupMocks();
     
+    // Mock with correct structure matching component expectations
     vi.mocked(useInventoryModule.useEquipmentMatchingItemRules).mockReturnValue({
       data: [
-        { id: 'eq-1', name: 'Bulldozer 1', manufacturer: 'Caterpillar', model: 'D6T' },
-        { id: 'eq-2', name: 'Excavator 1', manufacturer: 'John Deere', model: '350G' }
+        { 
+          equipment_id: 'eq-1', 
+          name: 'Bulldozer 1', 
+          manufacturer: 'Caterpillar', 
+          model: 'D6T',
+          serial_number: null,
+          matched_rule_match_type: 'exact',
+          matched_rule_status: 'verified'
+        },
+        { 
+          equipment_id: 'eq-2', 
+          name: 'Excavator 1', 
+          manufacturer: 'John Deere', 
+          model: '350G',
+          serial_number: null,
+          matched_rule_match_type: 'any',
+          matched_rule_status: 'unverified'
+        }
       ],
       isLoading: false,
       isError: false,
@@ -614,9 +635,16 @@ describe('InventoryItemDetail - Equipment Links', () => {
     const compatibilityTab = screen.getByRole('tab', { name: /compatibility/i });
     await user.click(compatibilityTab);
     
+    // Wait for the tab content to load and find the equipment section
     await waitFor(() => {
-      expect(screen.getByText('Bulldozer 1')).toBeInTheDocument();
+      expect(screen.getByText('Equipment Matched by Rules')).toBeInTheDocument();
     });
+    
+    // Then check for the specific equipment (may appear multiple times due to various mocks)
+    await waitFor(() => {
+      const bulldozerElements = screen.getAllByText('Bulldozer 1');
+      expect(bulldozerElements.length).toBeGreaterThan(0);
+    }, { timeout: 3000 });
   });
 });
 

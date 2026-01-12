@@ -428,25 +428,27 @@ describe('Alternate Group Management', () => {
         }
       ];
 
-      // Mock for group query
-      const groupMockChain = {
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: mockGroup, error: null })
-        })
-      };
-      mockSelect.mockReturnValueOnce(groupMockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
-
-      // Mock for members query
-      const membersMockChain = {
-        eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockReturnValue({
-            order: vi.fn().mockResolvedValue({ data: mockMembers, error: null })
+      // Mock for group query: .select().eq().eq().single()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockGroup, error: null })
+            })
           })
         })
-      };
-      const memberSelect = vi.fn().mockReturnValue(membersMockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ select: memberSelect } as never);
+      } as never);
+
+      // Mock for members query: .select().eq().order().order()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: mockMembers, error: null })
+            })
+          })
+        })
+      } as never);
 
       const result = await getAlternateGroupById('org-1', 'group-1');
 
@@ -457,13 +459,16 @@ describe('Alternate Group Management', () => {
     });
 
     it('returns null for non-existent group', async () => {
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116', message: 'Not found' } })
+      // Mock: .select().eq().eq().single()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116', message: 'Not found' } })
+            })
+          })
         })
-      };
-      mockSelect.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+      } as never);
 
       const result = await getAlternateGroupById('org-1', 'non-existent');
 
@@ -471,13 +476,16 @@ describe('Alternate Group Management', () => {
     });
 
     it('throws error on database failure', async () => {
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: null, error: { code: '500', message: 'Server error' } })
+      // Mock: .select().eq().eq().single()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: null, error: { code: '500', message: 'Server error' } })
+            })
+          })
         })
-      };
-      mockSelect.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+      } as never);
 
       await expect(getAlternateGroupById('org-1', 'group-1'))
         .rejects.toEqual({ code: '500', message: 'Server error' });
@@ -492,17 +500,18 @@ describe('Alternate Group Management', () => {
         organization_id: 'org-1'
       };
 
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
+      // Mock: .update().eq().eq().select().single()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: mockUpdatedGroup, error: null })
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: mockUpdatedGroup, error: null })
+              })
             })
           })
         })
-      };
-      mockUpdate.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ update: mockUpdate } as never);
+      } as never);
 
       const result = await updateAlternateGroup('org-1', 'group-1', { name: 'Updated Name' });
 
@@ -518,17 +527,18 @@ describe('Alternate Group Management', () => {
         verified_at: expect.any(String)
       };
 
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
+      // Mock: .update().eq().eq().select().single()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: mockUpdatedGroup, error: null })
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: mockUpdatedGroup, error: null })
+              })
             })
           })
         })
-      };
-      mockUpdate.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ update: mockUpdate } as never);
+      } as never);
 
       const result = await updateAlternateGroup('org-1', 'group-1', { status: 'verified' });
 
@@ -536,17 +546,18 @@ describe('Alternate Group Management', () => {
     });
 
     it('throws error on database failure', async () => {
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
+      // Mock: .update().eq().eq().select().single()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } })
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } })
+              })
             })
           })
         })
-      };
-      mockUpdate.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ update: mockUpdate } as never);
+      } as never);
 
       await expect(updateAlternateGroup('org-1', 'group-1', { name: 'Test' }))
         .rejects.toEqual({ message: 'Update failed' });
@@ -555,26 +566,28 @@ describe('Alternate Group Management', () => {
 
   describe('deleteAlternateGroup', () => {
     it('deletes a group successfully', async () => {
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ error: null })
+      // Mock: .delete().eq().eq()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        delete: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null })
+          })
         })
-      };
-      mockDelete.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ delete: mockDelete } as never);
+      } as never);
 
       await expect(deleteAlternateGroup('org-1', 'group-1')).resolves.toBeUndefined();
       expect(supabase.from).toHaveBeenCalledWith('part_alternate_groups');
     });
 
     it('throws error on database failure', async () => {
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ error: { message: 'Delete failed' } })
+      // Mock: .delete().eq().eq()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        delete: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: { message: 'Delete failed' } })
+          })
         })
-      };
-      mockDelete.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ delete: mockDelete } as never);
+      } as never);
 
       await expect(deleteAlternateGroup('org-1', 'group-1'))
         .rejects.toEqual({ message: 'Delete failed' });
@@ -583,22 +596,24 @@ describe('Alternate Group Management', () => {
 
   describe('removeGroupMember', () => {
     it('removes a member successfully', async () => {
-      const mockChain = {
-        eq: vi.fn().mockResolvedValue({ error: null })
-      };
-      mockDelete.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ delete: mockDelete } as never);
+      // Mock: .delete().eq()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        delete: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null })
+        })
+      } as never);
 
       await expect(removeGroupMember('member-1')).resolves.toBeUndefined();
       expect(supabase.from).toHaveBeenCalledWith('part_alternate_group_members');
     });
 
     it('throws error on database failure', async () => {
-      const mockChain = {
-        eq: vi.fn().mockResolvedValue({ error: { message: 'Remove failed' } })
-      };
-      mockDelete.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ delete: mockDelete } as never);
+      // Mock: .delete().eq()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        delete: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: { message: 'Remove failed' } })
+        })
+      } as never);
 
       await expect(removeGroupMember('member-1'))
         .rejects.toEqual({ message: 'Remove failed' });
@@ -612,13 +627,14 @@ describe('Alternate Group Management', () => {
         { id: 'group-2', name: 'Group B', organization_id: 'org-1' }
       ];
 
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: mockGroups, error: null })
+      // Mock: .select().eq().order()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: mockGroups, error: null })
+          })
         })
-      };
-      mockSelect.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+      } as never);
 
       const result = await getAlternateGroups('org-1');
 
@@ -627,13 +643,14 @@ describe('Alternate Group Management', () => {
     });
 
     it('returns empty array when no groups exist', async () => {
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: [], error: null })
+      // Mock: .select().eq().order()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: [], error: null })
+          })
         })
-      };
-      mockSelect.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+      } as never);
 
       const result = await getAlternateGroups('org-1');
 
@@ -641,13 +658,14 @@ describe('Alternate Group Management', () => {
     });
 
     it('throws error on database failure', async () => {
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: null, error: { message: 'Fetch failed' } })
+      // Mock: .select().eq().order()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: null, error: { message: 'Fetch failed' } })
+          })
         })
-      };
-      mockSelect.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+      } as never);
 
       await expect(getAlternateGroups('org-1'))
         .rejects.toEqual({ message: 'Fetch failed' });
@@ -728,12 +746,14 @@ describe('Alternate Group Management', () => {
         organization_id: 'org-1'
       };
 
-      const mockChain = {
-        single: vi.fn().mockResolvedValue({ data: mockIdentifier, error: null })
-      };
-      mockSelect.mockReturnValueOnce(mockChain);
-      mockInsert.mockReturnValueOnce({ select: mockSelect });
-      vi.mocked(supabase.from).mockReturnValueOnce({ insert: mockInsert } as never);
+      // Mock: .insert().select().single()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: mockIdentifier, error: null })
+          })
+        })
+      } as never);
 
       const result = await createPartIdentifier('org-1', {
         identifier_type: 'oem',
@@ -756,12 +776,14 @@ describe('Alternate Group Management', () => {
         organization_id: 'org-1'
       };
 
-      const mockChain = {
-        single: vi.fn().mockResolvedValue({ data: mockIdentifier, error: null })
-      };
-      mockSelect.mockReturnValueOnce(mockChain);
-      mockInsert.mockReturnValueOnce({ select: mockSelect });
-      vi.mocked(supabase.from).mockReturnValueOnce({ insert: mockInsert } as never);
+      // Mock: .insert().select().single()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: mockIdentifier, error: null })
+          })
+        })
+      } as never);
 
       const result = await createPartIdentifier('org-1', {
         identifier_type: 'aftermarket',
@@ -775,12 +797,14 @@ describe('Alternate Group Management', () => {
     });
 
     it('throws error for duplicate part number', async () => {
-      const mockChain = {
-        single: vi.fn().mockResolvedValue({ data: null, error: { code: '23505', message: 'Duplicate' } })
-      };
-      mockSelect.mockReturnValueOnce(mockChain);
-      mockInsert.mockReturnValueOnce({ select: mockSelect });
-      vi.mocked(supabase.from).mockReturnValueOnce({ insert: mockInsert } as never);
+      // Mock: .insert().select().single()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: null, error: { code: '23505', message: 'Duplicate' } })
+          })
+        })
+      } as never);
 
       await expect(createPartIdentifier('org-1', {
         identifier_type: 'oem',
@@ -789,12 +813,14 @@ describe('Alternate Group Management', () => {
     });
 
     it('throws error for other database errors', async () => {
-      const mockChain = {
-        single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Server error' } })
-      };
-      mockSelect.mockReturnValueOnce(mockChain);
-      mockInsert.mockReturnValueOnce({ select: mockSelect });
-      vi.mocked(supabase.from).mockReturnValueOnce({ insert: mockInsert } as never);
+      // Mock: .insert().select().single()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Server error' } })
+          })
+        })
+      } as never);
 
       await expect(createPartIdentifier('org-1', {
         identifier_type: 'oem',
@@ -810,17 +836,18 @@ describe('Alternate Group Management', () => {
         { id: 'ident-2', raw_value: 'CAT-456', identifier_type: 'oem' }
       ];
 
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
-          ilike: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue({ data: mockIdentifiers, error: null })
+      // Mock: .select().eq().ilike().order().limit()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            ilike: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue({ data: mockIdentifiers, error: null })
+              })
             })
           })
         })
-      };
-      mockSelect.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+      } as never);
 
       const result = await searchPartIdentifiers('org-1', 'CAT');
 
@@ -839,17 +866,18 @@ describe('Alternate Group Management', () => {
     });
 
     it('throws error on database failure', async () => {
-      const mockChain = {
-        eq: vi.fn().mockReturnValue({
-          ilike: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue({ data: null, error: { message: 'Search failed' } })
+      // Mock: .select().eq().ilike().order().limit()
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            ilike: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue({ data: null, error: { message: 'Search failed' } })
+              })
             })
           })
         })
-      };
-      mockSelect.mockReturnValueOnce(mockChain);
-      vi.mocked(supabase.from).mockReturnValueOnce({ select: mockSelect } as never);
+      } as never);
 
       await expect(searchPartIdentifiers('org-1', 'CAT'))
         .rejects.toEqual({ message: 'Search failed' });

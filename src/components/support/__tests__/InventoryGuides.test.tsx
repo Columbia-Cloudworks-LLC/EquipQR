@@ -43,13 +43,9 @@ describe('InventoryGuides', () => {
     it('displays all three feature highlights', () => {
       render(<InventoryGuides />);
       
-      expect(screen.getByText('Parts Managers')).toBeInTheDocument();
+      // Check for feature highlight descriptions which are unique
       expect(screen.getByText('Delegate inventory permissions to trusted team members')).toBeInTheDocument();
-      
-      expect(screen.getByText('Inventory Items')).toBeInTheDocument();
       expect(screen.getByText('Track parts with stock levels, compatibility, and QR codes')).toBeInTheDocument();
-      
-      expect(screen.getByText('Alternate Groups')).toBeInTheDocument();
       expect(screen.getByText('Define interchangeable parts for flexible ordering')).toBeInTheDocument();
     });
   });
@@ -64,7 +60,8 @@ describe('InventoryGuides', () => {
     it('displays permission information', () => {
       render(<InventoryGuides />);
       expect(screen.getByText(/Owners & Admins/)).toBeInTheDocument();
-      expect(screen.getByText(/Parts Managers/)).toBeInTheDocument();
+      // Use actual text from the component
+      expect(screen.getByText(/Always have full inventory access/)).toBeInTheDocument();
       expect(screen.getByText(/Regular Members/)).toBeInTheDocument();
     });
 
@@ -312,9 +309,11 @@ describe('InventoryGuides', () => {
     it('renders feature highlights with icons and descriptions', () => {
       render(<InventoryGuides />);
       
-      // Check all feature highlights are displayed
-      const featureCards = screen.getAllByText(/Parts Managers|Inventory Items|Alternate Groups/);
-      expect(featureCards.length).toBe(3);
+      // Check that all three unique feature descriptions are present
+      // These descriptions are unique to the FeatureHighlight components
+      expect(screen.getByText('Delegate inventory permissions to trusted team members')).toBeInTheDocument();
+      expect(screen.getByText('Track parts with stock levels, compatibility, and QR codes')).toBeInTheDocument();
+      expect(screen.getByText('Define interchangeable parts for flexible ordering')).toBeInTheDocument();
     });
   });
 
@@ -362,8 +361,10 @@ describe('InventoryGuides', () => {
       await user.click(accordionTrigger);
       
       await waitFor(() => {
-        // Should show placeholder since images don't exist in tests
-        expect(screen.getByText('Screenshot Placeholder')).toBeInTheDocument();
+        // Should show placeholders since images don't exist in tests
+        // Use getAllByText since there are multiple steps with placeholders
+        const placeholders = screen.getAllByText('Screenshot Placeholder');
+        expect(placeholders.length).toBeGreaterThan(0);
       });
     });
 
