@@ -2,9 +2,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Package, AlertTriangle, MapPin, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Package, AlertTriangle, MapPin, RefreshCw, SearchX } from 'lucide-react';
 import { useCompatibleInventoryItems } from '@/features/inventory/hooks/useInventory';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { usePartsFiltering } from '@/features/equipment/hooks/usePartsFiltering';
+import { DesktopPartsToolbar, MobilePartsToolbar } from './parts-tab';
 import type { PartialInventoryItem } from '@/features/inventory/types/inventory';
 import { cn } from '@/lib/utils';
 
@@ -139,6 +142,19 @@ const EquipmentPartsTab: React.FC<EquipmentPartsTabProps> = ({
     [equipmentId]
   );
 
+  // Filtering and sorting
+  const {
+    filters,
+    filteredParts,
+    activeFilterCount,
+    hasActiveFilters,
+    setSearch,
+    setStockFilter,
+    setHasAlternatesOnly,
+    setSort,
+    clearFilters,
+  } = usePartsFiltering({ parts: compatibleParts });
+
   const handlePartClick = (itemId: string) => {
     navigate(`/dashboard/inventory/${itemId}`);
   };
@@ -168,6 +184,35 @@ const EquipmentPartsTab: React.FC<EquipmentPartsTabProps> = ({
     );
   }
 
+  // No compatible parts at all
+  if (compatibleParts.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className={isMobile ? 'text-center' : ''}>
+          <h3 className={cn("font-semibold", isMobile ? "text-base" : "text-lg")}>
+            Compatible Parts
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            0 parts compatible with this equipment
+          </p>
+        </div>
+        <Card>
+          <CardContent className="text-center py-12">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No compatible parts</h3>
+            <p className="text-muted-foreground">
+              No inventory items have been linked to this equipment yet.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Parts can be linked via compatibility rules based on manufacturer and model,
+              or directly from the inventory item details page.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -176,28 +221,54 @@ const EquipmentPartsTab: React.FC<EquipmentPartsTabProps> = ({
           Compatible Parts
         </h3>
         <p className="text-sm text-muted-foreground">
-          {compatibleParts.length} {compatibleParts.length === 1 ? 'part' : 'parts'} compatible with this equipment
+          {hasActiveFilters 
+            ? `Showing ${filteredParts.length} of ${compatibleParts.length} parts`
+            : `${compatibleParts.length} ${compatibleParts.length === 1 ? 'part' : 'parts'} compatible with this equipment`
+          }
         </p>
       </div>
 
+      {/* Toolbar */}
+      {isMobile ? (
+        <MobilePartsToolbar
+          filters={filters}
+          activeFilterCount={activeFilterCount}
+          hasActiveFilters={hasActiveFilters}
+          onSearchChange={setSearch}
+          onStockFilterChange={setStockFilter}
+          onHasAlternatesChange={setHasAlternatesOnly}
+          onSortChange={setSort}
+          onClearFilters={clearFilters}
+        />
+      ) : (
+        <DesktopPartsToolbar
+          filters={filters}
+          hasActiveFilters={hasActiveFilters}
+          onSearchChange={setSearch}
+          onStockFilterChange={setStockFilter}
+          onHasAlternatesChange={setHasAlternatesOnly}
+          onSortChange={setSort}
+          onClearFilters={clearFilters}
+        />
+      )}
+
       {/* Parts List */}
       <div className="space-y-3">
-        {compatibleParts.length === 0 ? (
+        {filteredParts.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
-              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No compatible parts</h3>
-              <p className="text-muted-foreground">
-                No inventory items have been linked to this equipment yet.
+              <SearchX className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No parts match your filters</h3>
+              <p className="text-muted-foreground mb-4">
+                Try adjusting your search or filter criteria.
               </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Parts can be linked via compatibility rules based on manufacturer and model,
-                or directly from the inventory item details page.
-              </p>
+              <Button variant="outline" onClick={clearFilters}>
+                Clear Filters
+              </Button>
             </CardContent>
           </Card>
         ) : (
-          compatibleParts.map((part) => (
+          filteredParts.map((part) => (
             <PartCard
               key={part.id}
               part={part}
