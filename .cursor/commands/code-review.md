@@ -25,6 +25,36 @@ performance implications, and provide actionable suggestions for improvement.
     - Confirm secrets or credentials are not exposed
     - Evaluate performance or scalability impacts of the change
 
+## MCP Tool Reference
+
+### When reviewing a GitHub PR
+
+```typescript
+// Get full PR details
+CallMcpTool({ server: "user-github", toolName: "pull_request_read", arguments: {
+  method: "get",
+  owner: "Columbia-Cloudworks-LLC",
+  repo: "EquipQR",
+  pullNumber: 42
+}})
+
+// Get the diff for detailed review
+CallMcpTool({ server: "user-github", toolName: "pull_request_read", arguments: {
+  method: "get_diff",
+  owner: "Columbia-Cloudworks-LLC",
+  repo: "EquipQR",
+  pullNumber: 42
+}})
+
+// Check CI status
+CallMcpTool({ server: "user-github", toolName: "pull_request_read", arguments: {
+  method: "get_status",
+  owner: "Columbia-Cloudworks-LLC",
+  repo: "EquipQR",
+  pullNumber: 42
+}})
+```
+
 ## Review Checklist
 
 ### Functionality

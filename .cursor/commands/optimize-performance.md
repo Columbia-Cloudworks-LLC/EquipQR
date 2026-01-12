@@ -22,6 +22,25 @@ Analyze the current code for performance bottlenecks and provide optimization re
     - Suggest profiling and monitoring approaches
     - Consider trade-offs between performance and maintainability
 
+## MCP Tool Reference
+
+### Database Performance Analysis
+
+```typescript
+// Check for slow queries
+CallMcpTool({ server: "user-Supabase (local)", toolName: "execute_sql", arguments: {
+  query: "SELECT query, calls, mean_time, total_time FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 10"
+}})
+
+// Check missing indexes
+CallMcpTool({ server: "user-Supabase (local)", toolName: "execute_sql", arguments: {
+  query: "SELECT relname, seq_scan, idx_scan FROM pg_stat_user_tables WHERE seq_scan > idx_scan ORDER BY seq_scan DESC LIMIT 10"
+}})
+
+// Get postgres logs for query issues
+CallMcpTool({ server: "user-Supabase (local)", toolName: "get_logs", arguments: { service: "postgres" } })
+```
+
 ## Optimize Performance Checklist
 
 - [ ] Identified slow algorithms and inefficient data structures

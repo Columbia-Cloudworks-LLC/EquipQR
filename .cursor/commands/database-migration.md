@@ -27,6 +27,45 @@ Help create and manage database migrations, generating complete migration files 
     - Plan rollback procedures and testing
     - Document deployment steps and timing
 
+## MCP Tool Reference
+
+### Before Creating Migration
+
+```typescript
+// List existing tables to understand current schema
+CallMcpTool({ server: "user-Supabase (local)", toolName: "list_tables", arguments: { schemas: ["public"] } })
+
+// View existing migrations
+CallMcpTool({ server: "user-Supabase (local)", toolName: "list_migrations", arguments: {} })
+
+// Query current schema structure
+CallMcpTool({ server: "user-Supabase (local)", toolName: "execute_sql", arguments: {
+  query: "SELECT table_name, column_name, data_type FROM information_schema.columns WHERE table_schema = 'public'"
+}})
+```
+
+### Apply Migrations
+
+```typescript
+// Apply the migration (use instead of execute_sql for DDL)
+CallMcpTool({ server: "user-Supabase (local)", toolName: "apply_migration", arguments: {
+  name: "add_equipment_status_field",
+  query: "ALTER TABLE equipment ADD COLUMN status TEXT DEFAULT 'active';"
+}})
+```
+
+### Verify Migration
+
+```typescript
+// Check postgres logs if issues
+CallMcpTool({ server: "user-Supabase (local)", toolName: "get_logs", arguments: { service: "postgres" } })
+
+// Search Supabase docs for migration best practices
+CallMcpTool({ server: "user-Supabase (local)", toolName: "search_docs", arguments: {
+  graphql_query: "{ searchDocs(query: \"migrations\", limit: 5) { nodes { title href content } } }"
+}})
+```
+
 ## Database Migration Checklist
 
 - [ ] Reviewed schema changes and data transformation requirements
