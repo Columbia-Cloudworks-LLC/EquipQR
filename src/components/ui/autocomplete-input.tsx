@@ -50,6 +50,8 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
     const isMobile = useIsMobile()
     const inputRef = React.useRef<HTMLInputElement>(null)
     const listId = React.useId()
+    // Track if we just selected to prevent immediate reopen
+    const justSelectedRef = React.useRef(false)
     
     // Combine refs
     React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement)
@@ -88,11 +90,21 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
       onChange(selectedValue)
       setOpen(false)
       setHighlightedIndex(-1)
+      // Mark that we just selected to prevent immediate reopen on focus
+      justSelectedRef.current = true
       // Focus back to input after selection
       inputRef.current?.focus()
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        justSelectedRef.current = false
+      }, 100)
     }
 
     const handleFocus = () => {
+      // Don't reopen if we just selected an item
+      if (justSelectedRef.current) {
+        return
+      }
       if (suggestions.length > 0) {
         setOpen(true)
       }
@@ -110,6 +122,15 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
     }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Handle Escape even when dropdown is closed
+      if (e.key === 'Escape' && open) {
+        e.preventDefault()
+        setOpen(false)
+        setHighlightedIndex(-1)
+        return
+      }
+
+      // Other keys only apply when dropdown is open with suggestions
       if (!open || filteredSuggestions.length === 0) return
 
       switch (e.key) {
@@ -126,15 +147,15 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
           )
           break
         case 'Enter':
-          e.preventDefault()
+          // Only prevent default and select if an item is highlighted
+          // Otherwise, allow normal form submission or manual text entry
           if (highlightedIndex >= 0 && highlightedIndex < filteredSuggestions.length) {
+            e.preventDefault()
             handleSelect(filteredSuggestions[highlightedIndex])
+          } else {
+            // Close dropdown but allow normal Enter behavior (form submit, etc.)
+            setOpen(false)
           }
-          break
-        case 'Escape':
-          e.preventDefault()
-          setOpen(false)
-          setHighlightedIndex(-1)
           break
       }
     }
