@@ -47,14 +47,21 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   const [pageSize, setPageSize] = useState(10); // Default to 10 items per page
 
   // Get equipment data using explicit organization ID
-  const { data: equipment = [], isLoading } = useEquipment(organizationId);
+  const equipmentQuery = useEquipment(organizationId);
+  const { data: equipment = [], isLoading } = equipmentQuery;
+  
   const { data: teams = [] } = useTeams(organizationId);
   usePermissions();
 
   // Extract unique values for filter options
+  // Filter out empty strings to prevent SelectItem crash (Radix UI requires non-empty values)
   const filterOptions = useMemo(() => {
-    const manufacturers = [...new Set(equipment.map(item => item.manufacturer))].sort();
-    const locations = [...new Set(equipment.map(item => item.location))].sort();
+    const manufacturers = [...new Set(equipment.map(item => item.manufacturer))]
+      .filter(m => m && m.trim() !== '')
+      .sort();
+    const locations = [...new Set(equipment.map(item => item.location))]
+      .filter(l => l && l.trim() !== '')
+      .sort();
     
     return {
       manufacturers,

@@ -405,8 +405,9 @@ export const getCompatibleInventoryItems = async (
 
     if (error) throw error;
 
-    // The RPC returns rows with inventory item fields + match_type
-    // Deduplicate by inventory_item_id and map to PartialInventoryItem type
+    // The RPC returns rows with inventory item fields + match_type + has_alternates
+    // Already deduplicated and sorted by the RPC (parts with alternates first)
+    // Map to PartialInventoryItem type while preserving order
     const itemMap = new Map<string, PartialInventoryItem>();
     
     for (const row of (data || [])) {
@@ -423,11 +424,13 @@ export const getCompatibleInventoryItems = async (
           image_url: row.image_url,
           location: row.location,
           default_unit_cost: row.default_unit_cost,
-          isLowStock: row.quantity_on_hand < row.low_stock_threshold
+          isLowStock: row.quantity_on_hand < row.low_stock_threshold,
+          hasAlternates: row.has_alternates ?? false
         });
       }
     }
 
+    // Return as array preserving order from RPC (parts with alternates first)
     return Array.from(itemMap.values());
   } catch (error) {
     logger.error('Error fetching compatible inventory items:', error);

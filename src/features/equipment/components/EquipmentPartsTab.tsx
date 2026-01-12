@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Package, AlertTriangle, MapPin } from 'lucide-react';
+import { Package, AlertTriangle, MapPin, RefreshCw } from 'lucide-react';
 import { useCompatibleInventoryItems } from '@/features/inventory/hooks/useInventory';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { PartialInventoryItem } from '@/features/inventory/types/inventory';
@@ -34,7 +34,7 @@ const PartCard: React.FC<PartCardProps> = ({ part, onClick, isMobile }) => {
       <CardContent className={cn("flex gap-4", isMobile ? "p-3" : "p-4")}>
         {/* Image or placeholder */}
         <div className={cn(
-          "flex-shrink-0 rounded-md bg-muted flex items-center justify-center overflow-hidden",
+          "flex-shrink-0 rounded-md bg-muted flex items-center justify-center overflow-hidden relative",
           isMobile ? "h-12 w-12" : "h-16 w-16"
         )}>
           {part.image_url ? (
@@ -46,18 +46,36 @@ const PartCard: React.FC<PartCardProps> = ({ part, onClick, isMobile }) => {
           ) : (
             <Package className={cn("text-muted-foreground", isMobile ? "h-6 w-6" : "h-8 w-8")} />
           )}
+          {/* Alternates indicator on image */}
+          {part.hasAlternates && (
+            <div 
+              className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 rounded-full flex items-center justify-center"
+              title="Has alternates"
+            >
+              <RefreshCw className="h-2.5 w-2.5 text-white" />
+            </div>
+          )}
         </div>
 
         {/* Part details */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h4 className={cn(
-                "font-medium truncate",
-                isMobile ? "text-sm" : "text-base"
-              )}>
-                {part.name}
-              </h4>
+              <div className="flex items-center gap-2">
+                <h4 className={cn(
+                  "font-medium truncate",
+                  isMobile ? "text-sm" : "text-base"
+                )}>
+                  {part.name}
+                </h4>
+                {/* Alternates badge - shown on non-mobile for clarity */}
+                {part.hasAlternates && !isMobile && (
+                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 shrink-0">
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Alternates
+                  </Badge>
+                )}
+              </div>
               {part.sku && (
                 <p className="text-xs text-muted-foreground truncate">
                   SKU: {part.sku}
@@ -86,13 +104,22 @@ const PartCard: React.FC<PartCardProps> = ({ part, onClick, isMobile }) => {
             </div>
           </div>
 
-          {/* Location */}
-          {part.location && (
-            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3" />
-              <span className="truncate">{part.location}</span>
-            </div>
-          )}
+          {/* Location and mobile alternates indicator */}
+          <div className="flex items-center gap-2 mt-1">
+            {part.location && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" />
+                <span className="truncate">{part.location}</span>
+              </div>
+            )}
+            {/* Alternates indicator for mobile */}
+            {part.hasAlternates && isMobile && (
+              <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                <RefreshCw className="h-3 w-3" />
+                <span>Alternates</span>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

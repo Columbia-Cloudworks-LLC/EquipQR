@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
-import { Forklift, Clock, Edit } from "lucide-react";
+import { Forklift, Clock, Edit, Plus, List } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { useEquipmentCurrentWorkingHours, useUpdateEquipmentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
+import { QuickEquipmentForm } from '@/features/equipment/components/QuickEquipmentForm';
+
+type EquipmentMode = 'select' | 'create';
 
 interface WorkOrderEquipmentSelectorProps {
   values: WorkOrderFormData;
@@ -29,6 +33,20 @@ interface WorkOrderEquipmentSelectorProps {
   }>;
   isEditMode: boolean;
   isEquipmentPreSelected: boolean;
+  /**
+   * Function to check if user can create equipment for a specific team.
+   * If not provided, quick equipment creation will be disabled.
+   */
+  canCreateEquipmentForTeam?: (teamId: string) => boolean;
+  /**
+   * Called when new equipment is successfully created via quick entry.
+   */
+  onEquipmentCreated?: (equipmentId: string) => void;
+  /**
+   * Whether user has any teams they can create equipment for.
+   * If false, the Create New tab won't be shown.
+   */
+  canCreateEquipment?: boolean;
 }
 
 const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: (field: string, value: unknown) => void; }> = ({ equipmentId, setValue }) => {
@@ -117,8 +135,21 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
   preSelectedEquipment,
   allEquipment,
   isEditMode,
-  isEquipmentPreSelected
+  isEquipmentPreSelected,
+  canCreateEquipmentForTeam,
+  onEquipmentCreated,
+  canCreateEquipment = false,
 }) => {
+  const [mode, setMode] = useState<EquipmentMode>('select');
+
+  // Handler for when equipment is created via quick entry
+  const handleEquipmentCreated = (equipmentId: string) => {
+    setValue('equipmentId', equipmentId);
+    setMode('select'); // Switch back to select mode to show the new equipment
+    onEquipmentCreated?.(equipmentId);
+  };
+
+  // If equipment is pre-selected (e.g., creating WO from equipment detail page), show read-only view
   if (isEquipmentPreSelected) {
     const equipment = preSelectedEquipment;
     if (!equipment) return null;
@@ -143,36 +174,75 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
     );
   }
 
+  // Show tabs only if user can create equipment
+  const showCreateOption = canCreateEquipment && canCreateEquipmentForTeam && !isEditMode;
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <Label>Equipment *</Label>
-      <Select 
-        value={values.equipmentId} 
-        onValueChange={(value) => setValue('equipmentId', value)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Select equipment" />
-        </SelectTrigger>
-        <SelectContent>
-          {allEquipment.map((equipment) => (
-            <SelectItem key={equipment.id} value={equipment.id}>
-              <div className="flex flex-col">
-                <span>{equipment.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {equipment.manufacturer || ''} {equipment.model || ''} • {equipment.location || ''}
-                </span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {errors.equipmentId && (
-        <p className="text-sm text-destructive">{errors.equipmentId}</p>
+      
+      {/* Mode Toggle - only show if user can create equipment */}
+      {showCreateOption && (
+        <Tabs value={mode} onValueChange={(v) => setMode(v as EquipmentMode)} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="select" className="flex items-center gap-2">
+              <List className="h-4 w-4" />
+              <span>Select Existing</span>
+            </TabsTrigger>
+            <TabsTrigger value="create" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              <span>Create New</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       )}
-      {values.equipmentId && (
-        <WorkingHoursSection equipmentId={values.equipmentId} setValue={setValue} />
+
+      {/* Select Existing Mode */}
+      {mode === 'select' && (
+        <div className="space-y-2">
+          <Select 
+            value={values.equipmentId} 
+            onValueChange={(value) => setValue('equipmentId', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select equipment" />
+            </SelectTrigger>
+            <SelectContent>
+              {allEquipment.length === 0 ? (
+                <SelectItem value="_empty" disabled>
+                  No equipment available
+                </SelectItem>
+              ) : (
+                allEquipment.map((equipment) => (
+                  <SelectItem key={equipment.id} value={equipment.id}>
+                    <div className="flex flex-col">
+                      <span>{equipment.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {equipment.manufacturer || ''} {equipment.model || ''} • {equipment.location || ''}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          {errors.equipmentId && (
+            <p className="text-sm text-destructive">{errors.equipmentId}</p>
+          )}
+          {values.equipmentId && (
+            <WorkingHoursSection equipmentId={values.equipmentId} setValue={setValue} />
+          )}
+        </div>
+      )}
+
+      {/* Create New Mode */}
+      {mode === 'create' && canCreateEquipmentForTeam && (
+        <QuickEquipmentForm
+          onEquipmentCreated={handleEquipmentCreated}
+          onCancel={() => setMode('select')}
+          canCreateForTeam={canCreateEquipmentForTeam}
+        />
       )}
     </div>
   );
 };
-

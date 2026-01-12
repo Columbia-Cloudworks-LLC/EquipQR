@@ -50,8 +50,8 @@ export const useWorkOrderPMChecklist = ({
     ? allTemplates.find(t => t.id === selectedEquipment.default_pm_template_id)
     : null;
   
-  // Filter templates to only show matching templates based on compatibility rules
-  // If no equipment is selected or no rules match, show no templates (user must select equipment first)
+  // Filter templates based on compatibility rules, with fallback to all templates
+  // when no rules are configured for the equipment (e.g., newly created equipment)
   const templates = useMemo(() => {
     if (hasAssignedTemplate) {
       return [];
@@ -60,8 +60,11 @@ export const useWorkOrderPMChecklist = ({
     // Get IDs of templates that match the equipment's manufacturer/model via compatibility rules
     const compatibleTemplateIds = new Set(matchingTemplates.map(m => m.template_id));
     
-    // Filter allTemplates to only include those with matching compatibility rules
-    let filtered = allTemplates.filter(t => compatibleTemplateIds.has(t.id));
+    // If compatibility rules exist for this equipment, filter to only matching templates.
+    // Otherwise, fallback to showing all templates (allows PM selection for new/unconfigured equipment)
+    let filtered = compatibleTemplateIds.size > 0
+      ? allTemplates.filter(t => compatibleTemplateIds.has(t.id))
+      : allTemplates;
     
     // Apply user restrictions (free users can only see global templates)
     if (!restrictions.canCreateCustomPMTemplates) {

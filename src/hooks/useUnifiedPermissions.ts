@@ -78,7 +78,16 @@ export const useUnifiedPermissions = () => {
       };
     },
     canViewAll: hasRole(['owner', 'admin', 'member']),
-    canCreateAny: hasRole(['owner', 'admin'])
+    canCreateAny: hasRole(['owner', 'admin']),
+    /**
+     * Check if user can create equipment for a specific team.
+     * Admins/owners can create for any team; members can only create for their own teams.
+     * Used for inline equipment creation during work order creation.
+     */
+    canCreateForTeam: (teamId: string): boolean => {
+      if (hasRole(['owner', 'admin'])) return true;
+      return hasTeamAccess(teamId);
+    }
   };
 
   // Work order permissions

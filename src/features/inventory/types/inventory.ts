@@ -266,6 +266,7 @@ export interface PartialInventoryItem {
   location: string | null;
   default_unit_cost: number | null;
   isLowStock?: boolean;
+  hasAlternates?: boolean;  // Indicates if part belongs to an alternate group
   // Note: created_by, created_at, updated_at are intentionally omitted
   // to avoid implying they have valid values
 }
