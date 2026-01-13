@@ -1,9 +1,7 @@
 
 import React from 'react';
-import { Forklift, Users, ClipboardList, AlertTriangle } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWorkOrders, useTeamBasedDashboardAccess } from '@/features/teams/hooks/useTeamBasedDashboard';
-import { StatsCard } from '@/features/dashboard/components/StatsCard';
 import TeamQuickList from '@/features/dashboard/components/TeamQuickList';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
@@ -11,6 +9,7 @@ import { DashboardHighPriorityWorkOrdersCard } from '@/features/dashboard/compon
 import { DashboardRecentEquipmentCard } from '@/features/dashboard/components/DashboardRecentEquipmentCard';
 import { DashboardRecentWorkOrdersCard } from '@/features/dashboard/components/DashboardRecentWorkOrdersCard';
 import { DashboardNoTeamsCard } from '@/features/dashboard/components/DashboardNoTeamsCard';
+import { DashboardStatsGrid } from '@/features/dashboard/components/DashboardStatsGrid';
 
 const Dashboard = () => {
   const { currentOrganization, isLoading: orgLoading } = useOrganization();
@@ -55,36 +54,12 @@ const Dashboard = () => {
           title="Dashboard" 
           description={`Welcome back to ${currentOrganization.name}`} 
         />
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-          <StatsCard
-            icon={<Forklift className="h-4 w-4" />}
-            label="Total Equipment"
-            value={0}
-            sublabel="0 active"
-            loading={true}
-          />
-          <StatsCard
-            icon={<AlertTriangle className="h-4 w-4" />}
-            label="Overdue Work"
-            value={0}
-            sublabel="Past due work orders"
-            loading={true}
-          />
-          <StatsCard
-            icon={<ClipboardList className="h-4 w-4" />}
-            label="Total Work Orders"
-            value={0}
-            sublabel="0 active"
-            loading={true}
-          />
-          <StatsCard
-            icon={<Users className="h-4 w-4" />}
-            label="Org Members"
-            value={0}
-            sublabel="Active organization members"
-            loading={true}
-          />
-        </div>
+        <DashboardStatsGrid
+          stats={null}
+          activeWorkOrdersCount={0}
+          memberCount={0}
+          isLoading
+        />
       </Page>
     );
   }
@@ -112,42 +87,12 @@ const Dashboard = () => {
 
         {/* Stats Cards */}
         {/* Mobile: order-2 (second), Desktop: order-1 (first) */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 order-2 md:order-1">
-        <StatsCard
-          icon={<Forklift className="h-4 w-4" />}
-          label="Total Equipment"
-          value={stats?.totalEquipment || 0}
-          sublabel={`${stats?.activeEquipment || 0} active`}
-          to="/dashboard/equipment"
-          ariaDescription="View all equipment in the fleet"
-        />
-
-        <StatsCard
-          icon={<AlertTriangle className="h-4 w-4" />}
-          label="Overdue Work"
-          value={stats?.overdueWorkOrders || 0}
-          sublabel="Past due work orders"
-          to="/dashboard/work-orders?date=overdue"
-          ariaDescription="View overdue work orders"
-        />
-
-        <StatsCard
-          icon={<ClipboardList className="h-4 w-4" />}
-          label="Total Work Orders"
-          value={stats?.totalWorkOrders || 0}
-          sublabel={`${activeWorkOrdersCount} active`}
-          to="/dashboard/work-orders"
-          ariaDescription="View all work orders"
-        />
-
-        <StatsCard
-          icon={<Users className="h-4 w-4" />}
-          label="Org Members"
-          value={currentOrganization.memberCount}
-          sublabel="Active organization members"
-          to="/dashboard/organization"
-          ariaDescription="View organization members"
-        />
+        <div className="order-2 md:order-1">
+          <DashboardStatsGrid
+            stats={stats}
+            activeWorkOrdersCount={activeWorkOrdersCount}
+            memberCount={currentOrganization.memberCount}
+          />
         </div>
 
         {/* Team Quick List */}

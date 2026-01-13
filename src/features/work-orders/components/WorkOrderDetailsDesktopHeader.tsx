@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Info, Download } from 'lucide-react';
+import { ArrowLeft, Edit, Info, Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
@@ -14,6 +14,7 @@ import {
 import { QuickBooksExportButton } from './QuickBooksExportButton';
 import { WorkOrderPDFExportDialog } from './WorkOrderPDFExportDialog';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
+import { useWorkOrderExcelExport } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 interface WorkOrderDetailsDesktopHeaderProps {
@@ -30,6 +31,8 @@ interface WorkOrderDetailsDesktopHeaderProps {
   pmData?: PreventativeMaintenance | PMData | null;
   /** Organization name for PDF header */
   organizationName?: string;
+  /** Organization ID for Excel export */
+  organizationId?: string;
 }
 
 /** Format priority for display */
@@ -46,7 +49,8 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   equipmentTeamId,
   equipment,
   pmData,
-  organizationName
+  organizationName,
+  organizationId
 }) => {
   const [showPDFDialog, setShowPDFDialog] = useState(false);
 
@@ -65,6 +69,12 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     pmData: pmData as PreventativeMaintenance | null,
     organizationName
   });
+
+  // Excel export hook
+  const { exportSingle, isExportingSingle } = useWorkOrderExcelExport(
+    organizationId,
+    organizationName ?? ''
+  );
 
   // Handle PDF export with options from dialog
   const handlePDFExport = async (options: { includeCosts: boolean }) => {
@@ -117,6 +127,19 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
             >
               <Download className="h-4 w-4" />
               <span>Download PDF</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => exportSingle(workOrder.id)}
+              disabled={isExportingSingle || !organizationId}
+              className="flex items-center gap-2"
+            >
+              {isExportingSingle ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
+              <span>Export Excel</span>
             </Button>
             <QuickBooksExportButton
               workOrderId={workOrder.id}

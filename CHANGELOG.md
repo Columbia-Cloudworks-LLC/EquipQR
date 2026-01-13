@@ -9,6 +9,128 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-01-13
+
+### Added
+
+- **Comprehensive Audit Trail System**: New organization-wide audit logging for regulatory compliance (OSHA, DOT, ISO)
+  - New `audit_log` table with database triggers for automatic change tracking
+  - Tracks all changes to Equipment, Work Orders, Inventory, PM Checklists, Teams, and Members
+  - Immutable append-only records that cannot be modified or deleted
+  - New Audit Log page (`/audit-log`) with filtering, search, and statistics
+  - `AuditLogTable` component with pagination and CSV export
+  - `ChangesDiff` component showing before/after field changes
+  - `HistoryTab` component for entity-specific audit history on detail pages
+  - Actor (user) information preserved even after user deletion
+  - Comprehensive type definitions in `src/types/audit.ts`
+
+- **Organization Danger Zone**: New administrative operations for organization lifecycle management
+  - **Transfer Ownership**: Owners can transfer ownership to admins with in-app confirmation workflow
+    - `ownership_transfer_requests` table tracking pending/completed transfers
+    - 7-day expiration on pending transfer requests
+    - Email and in-app notifications for transfer requests
+    - New owner chooses departing owner's role (admin, member, or remove)
+  - **Leave Organization**: Non-owners can leave organizations with proper data denormalization
+    - `user_departure_queue` table for batch processing departures
+    - pg_cron job for background denormalization of user names in historical records
+  - **Delete Organization**: Owners can permanently delete organizations
+    - Cascading delete of all organization data (equipment, work orders, teams, inventory)
+    - Confirmation dialog requiring organization name input
+  - New components: `DangerZoneSection`, `TransferOwnershipDialog`, `LeaveOrganizationDialog`, `DeleteOrganizationDialog`, `PendingTransferCard`
+  - New hooks: `useOwnershipTransfer`, `useLeaveOrganization`, `useDeleteOrganization`
+
+- **Enhanced Report Export System**: Redesigned report export with customizable columns
+  - New `ReportExportDialog` with column selection UI
+  - `ColumnSelector` component with select all/none and reset to defaults
+  - Persistent column preferences saved to localStorage per report type
+  - Record count preview before export
+  - Large dataset warning (>50,000 records)
+  - Filter summary display in export dialog
+  - New Edge Function `export-report` for server-side CSV generation with rate limiting
+  - Report column definitions in `src/features/reports/constants/reportColumns.ts`
+
+- **Work Order Excel Export**: New multi-worksheet Excel export for work orders
+  - 6 worksheets: Summary, Labor Detail, Materials & Costs, PM Checklists, Timeline, Equipment
+  - Client-side single work order export from detail page
+  - Server-side bulk export via `export-work-orders-excel` Edge Function
+  - `WorkOrderExcelExportDialog` for configuring bulk exports
+  - Comprehensive type definitions in `src/features/work-orders/types/workOrderExcel.ts`
+  - Labor hours aggregation across notes
+  - Material cost rollups with inventory tracking
+  - PM checklist items flattened to individual rows
+  - Status change timeline for audit trail
+
+- **Global Notifications**: Support for system-wide broadcast notifications
+  - New notification types for ownership transfer (request, accepted, rejected, expired)
+  - Updated notification bell with global notification support
+  - New migrations for global notification infrastructure
+
+- **Disaster Recovery Documentation**: Comprehensive disaster recovery guide
+  - `docs/ops/disaster-recovery.md` with full PITR and daily backup procedures
+  - Step-by-step recovery guides with PowerShell and Bash examples
+  - Post-recovery verification checklist
+  - RTO/RPO documentation
+  - Quarterly DR testing procedures
+
+- **Dashboard Stats Grid Component**: Extracted reusable stats grid
+  - `DashboardStatsGrid` component in `src/features/dashboard/components/`
+  - Unit tests for the component
+
+- **Equipment Insights Hook**: Extracted equipment insights logic
+  - `useEquipmentInsights` hook for reusable insights data fetching
+  - Unit tests for the hook
+
+### Changed
+
+- **Reports Page**: Complete redesign with new export dialog and column customization
+- **Equipment Details Tab**: Added History tab with audit trail
+- **Inventory Item Detail**: Added History tab with audit trail
+- **Work Order Details**: Added Excel export button to desktop and mobile headers
+- **Dashboard Page**: Refactored to use new `DashboardStatsGrid` component
+- **Equipment Sort Header**: Improved sorting controls and test coverage
+- **Notification Settings**: Enhanced notification preferences handling
+- **Organization Settings**: Added Danger Zone section for administrative operations
+- **PM Template Seed Scripts**: Updated with improved error handling and logging
+
+### Fixed
+
+- **RLS Cross-Tenant Vulnerabilities**: Major security fix preventing former employees from accessing organization data
+  - Added organization membership checks to 7 tables: `work_order_costs`, `notes`, `scans`, `work_order_notes`, `work_order_images`, `equipment_notes`, `export_request_log`
+  - Users immediately lose write access when leaving an organization
+  - Prevents data leakage and unauthorized modifications
+
+- **Export Rate Limiting**: Added rate limiting to export endpoints to prevent abuse
+
+- **Billing Trigger**: Dropped unused billing trigger that was causing errors
+
+### Removed
+
+- **equipmentCSVService.ts**: Removed legacy CSV export service (replaced by new report export system)
+- **ReportExport.tsx**: Removed legacy report export component (replaced by `ReportExportDialog`)
+
+### Security
+
+- **RLS Policy Hardening**: All user-ownership policies now require active organization membership
+- **Audit Trail Immutability**: No UPDATE or DELETE policies on audit_log table
+- **Rate Limiting**: Export endpoints now rate-limited to prevent abuse
+- **Denormalized Name Columns**: User names preserved in records after departure for accountability
+
+### Database Migrations
+
+- `20260113100000_add_export_rate_limiting.sql`: Rate limiting for exports
+- `20260113200000_drop_billing_trigger.sql`: Remove unused billing trigger
+- `20260113210000_fix_rls_cross_tenant_vulnerabilities.sql`: Security fixes for 7 tables
+- `20260115000001_add_organization_danger_zone.sql`: Ownership transfer and departure queue tables
+- `20260115000002_add_denormalized_name_columns.sql`: Name columns for data preservation
+- `20260115000003_ownership_transfer_functions.sql`: RPC functions for ownership transfer
+- `20260115000004_departure_functions.sql`: RPC functions for user departure
+- `20260115000005_delete_organization_function.sql`: Organization deletion function
+- `20260115000006_pgcron_departure_job.sql`: Background job for departure processing
+- `20260115000007_add_ownership_transfer_notification_types.sql`: New notification types
+- `20260115000008_add_global_notifications.sql`: Global notification support
+- `20260115000009_update_transfer_notifications_global.sql`: Transfer notifications as global
+- `20260115100000_comprehensive_audit_trail.sql`: Complete audit trail system with triggers
+
 ## [1.8.1] - 2026-01-12
 
 ### Fixed
@@ -297,7 +419,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.8.1...v2.0.0
 [1.8.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.13...v1.8.0
 [1.7.13]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.12...v1.7.13

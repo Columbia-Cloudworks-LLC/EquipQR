@@ -20,6 +20,7 @@ import {
   useMarkAllNotificationsAsRead
 } from '@/hooks/useNotificationSettings';
 import { useMarkNotificationAsRead, type Notification } from '@/features/work-orders/hooks/useWorkOrderData';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface NotificationBellProps {
   organizationId: string;
@@ -28,6 +29,7 @@ interface NotificationBellProps {
 const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const { switchOrganization } = useOrganization();
   
   // Set up real-time notifications
   const { data: notifications = [] } = useRealTimeNotifications(organizationId);
@@ -50,10 +52,35 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
       }
     }
 
+    setIsOpen(false);
+
+    // Handle ownership transfer notifications - switch to the target org and navigate
+    if (notification.type === 'ownership_transfer_request') {
+      const targetOrgId = notification.data?.organization_id;
+      if (targetOrgId && targetOrgId !== organizationId) {
+        // Switch to the organization first, then navigate to settings
+        await switchOrganization(targetOrgId);
+      }
+      navigate('/dashboard/organization');
+      return;
+    }
+
+    if (notification.type === 'ownership_transfer_accepted' || 
+        notification.type === 'ownership_transfer_rejected' ||
+        notification.type === 'ownership_transfer_cancelled') {
+      // These are informational - navigate to organization page
+      const targetOrgId = notification.data?.organization_id;
+      if (targetOrgId && targetOrgId !== organizationId) {
+        await switchOrganization(targetOrgId);
+      }
+      navigate('/dashboard/organization');
+      return;
+    }
+
     // Navigate to work order if available
     if (notification.data?.work_order_id) {
       navigate(`/dashboard/work-orders/${notification.data.work_order_id}`);
-      setIsOpen(false);
+      return;
     }
   };
 
@@ -86,6 +113,17 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
         return '🎉';
       case 'work_order_cancelled':
         return '❌';
+      // Ownership transfer notifications
+      case 'ownership_transfer_request':
+        return '🔄';
+      case 'ownership_transfer_accepted':
+        return '👑';
+      case 'ownership_transfer_rejected':
+        return '🚫';
+      case 'ownership_transfer_cancelled':
+        return '↩️';
+      case 'member_removed':
+        return '👋';
       default:
         return '📢';
     }
@@ -133,37 +171,50 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
         ) : (
           <ScrollArea className="h-96">
             <div className="space-y-1">
-              {recentNotifications.map((notification) => (
-                <DropdownMenuItem
-                  key={notification.id}
-                  className={`p-3 cursor-pointer ${
-                    notification.read ? 'opacity-60' : ''
-                  }`}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className="flex gap-3 w-full">
-                    <div className="text-lg flex-shrink-0">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium truncate">
-                          {notification.title}
-                        </p>
-                        {!notification.read && (
-                          <div className="h-2 w-2 bg-primary rounded-full flex-shrink-0 mt-2" />
-                        )}
+              {recentNotifications.map((notification) => {
+                const hasAction = notification.data?.work_order_id || 
+                  notification.type.startsWith('ownership_transfer');
+                const isTransferRequest = notification.type === 'ownership_transfer_request';
+                
+                return (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    className={`p-3 cursor-pointer ${
+                      notification.read ? 'opacity-60' : ''
+                    } ${isTransferRequest && !notification.read ? 'bg-primary/5 border-l-2 border-primary' : ''}`}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <div className="flex gap-3 w-full">
+                      <div className="text-lg flex-shrink-0">
+                        {getNotificationIcon(notification.type)}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(notification.created_at), 'MMM d, h:mm a')}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium truncate">
+                            {notification.title}
+                          </p>
+                          {!notification.read && (
+                            <div className="h-2 w-2 bg-primary rounded-full flex-shrink-0 mt-2" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {notification.message}
+                        </p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(notification.created_at), 'MMM d, h:mm a')}
+                          </p>
+                          {hasAction && (
+                            <span className="text-xs text-primary font-medium">
+                              {isTransferRequest ? 'Respond →' : 'View →'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </DropdownMenuItem>
-              ))}
+                  </DropdownMenuItem>
+                );
+              })}
             </div>
           </ScrollArea>
         )}

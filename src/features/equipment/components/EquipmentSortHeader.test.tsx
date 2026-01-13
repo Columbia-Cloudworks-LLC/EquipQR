@@ -14,9 +14,6 @@ describe('EquipmentSortHeader', () => {
     onSortChange: vi.fn(),
     resultCount: 25,
     totalCount: 100,
-    canExport: false,
-    onExportCSV: vi.fn(),
-    isExporting: false
   };
 
   beforeEach(() => {
@@ -142,52 +139,6 @@ describe('EquipmentSortHeader', () => {
     });
   });
 
-  describe('Export Functionality', () => {
-    it('does not show export button when canExport is false', () => {
-      render(<EquipmentSortHeader {...defaultProps} canExport={false} />);
-      
-      expect(screen.queryByText(/Export CSV/i)).not.toBeInTheDocument();
-    });
-
-    it('shows export button when canExport is true', () => {
-      render(<EquipmentSortHeader {...defaultProps} canExport={true} onExportCSV={vi.fn()} />);
-      
-      expect(screen.getByText('Export CSV')).toBeInTheDocument();
-    });
-
-    it('calls onExportCSV when export button is clicked', () => {
-      const onExportCSV = vi.fn();
-      render(<EquipmentSortHeader {...defaultProps} canExport={true} onExportCSV={onExportCSV} />);
-      
-      const exportButton = screen.getByText('Export CSV');
-      fireEvent.click(exportButton);
-      
-      expect(onExportCSV).toHaveBeenCalledOnce();
-    });
-
-    it('disables export button when isExporting is true', () => {
-      render(<EquipmentSortHeader {...defaultProps} canExport={true} onExportCSV={vi.fn()} isExporting={true} />);
-      
-      const exportButton = screen.getByText('Exporting...');
-      expect(exportButton).toBeDisabled();
-    });
-
-    it('disables export button when resultCount is 0', () => {
-      render(<EquipmentSortHeader {...defaultProps} canExport={true} onExportCSV={vi.fn()} resultCount={0} />);
-      
-      const exportButton = screen.getByText('Export CSV');
-      expect(exportButton).toBeDisabled();
-    });
-
-    it('shows export icon in button', () => {
-      render(<EquipmentSortHeader {...defaultProps} canExport={true} onExportCSV={vi.fn()} />);
-      
-      const exportButton = screen.getByText('Export CSV');
-      expect(exportButton).toBeInTheDocument();
-      // Download icon should be included in the button
-    });
-  });
-
   describe('Count Display', () => {
     it('handles zero results', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={0} totalCount={0} />);
@@ -239,13 +190,6 @@ describe('EquipmentSortHeader', () => {
   });
 
   describe('Props Validation', () => {
-    it('handles missing onExportCSV when canExport is true', () => {
-      render(<EquipmentSortHeader {...defaultProps} canExport={true} onExportCSV={undefined} />);
-      
-      // Should not show export button if onExportCSV is not provided
-      expect(screen.queryByText(/Export CSV/i)).not.toBeInTheDocument();
-    });
-
     it('handles negative counts gracefully', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={-1} totalCount={-1} />);
       

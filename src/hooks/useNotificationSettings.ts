@@ -107,6 +107,7 @@ export const useUpdateNotificationSettings = () => {
 };
 
 // Hook to get real-time notifications with Supabase subscriptions
+// Includes both org-specific notifications AND global notifications (like ownership transfers)
 export const useRealTimeNotifications = (organizationId: string) => {
   return useQuery({
     queryKey: ['notifications', organizationId],
@@ -114,16 +115,36 @@ export const useRealTimeNotifications = (organizationId: string) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return [];
 
-      const { data, error } = await supabase
+      // Fetch org-specific notifications
+      const { data: orgNotifications, error: orgError } = await supabase
         .from('notifications')
         .select('*')
         .eq('organization_id', organizationId)
         .eq('user_id', userData.user.id)
+        .eq('is_global', false)
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
-      return data;
+      if (orgError) throw orgError;
+
+      // Fetch global notifications (visible across all orgs)
+      const { data: globalNotifications, error: globalError } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userData.user.id)
+        .eq('is_global', true)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (globalError) throw globalError;
+
+      // Combine and sort by created_at
+      const allNotifications = [...(orgNotifications || []), ...(globalNotifications || [])];
+      allNotifications.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      return allNotifications;
     },
     enabled: !!organizationId,
     refetchInterval: false, // We'll use real-time subscriptions instead
@@ -131,6 +152,7 @@ export const useRealTimeNotifications = (organizationId: string) => {
 };
 
 // Hook to set up real-time subscription for notifications
+// Listens for all user notifications (including global ones) and invalidates the query
 export const useNotificationSubscription = (organizationId: string) => {
   const queryClient = useQueryClient();
 
@@ -140,9 +162,10 @@ export const useNotificationSubscription = (organizationId: string) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return null;
 
-      // Set up real-time subscription
+      // Set up real-time subscription for all user notifications
+      // This will trigger for both org-specific and global notifications
       const channel = supabase
-        .channel('notifications')
+        .channel(`notifications-${userData.user.id}`)
         .on(
           'postgres_changes',
           {
@@ -153,7 +176,9 @@ export const useNotificationSubscription = (organizationId: string) => {
           },
           () => {
             // Invalidate notifications query when changes occur
+            // This covers both org-specific and global notifications
             queryClient.invalidateQueries({ queryKey: ['notifications', organizationId] });
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
           }
         )
         .subscribe();

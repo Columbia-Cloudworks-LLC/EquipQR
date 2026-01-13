@@ -2,9 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Menu, Clipboard, MapPin, Calendar, User, Download } from 'lucide-react';
+import { ArrowLeft, Edit, Menu, Clipboard, MapPin, Calendar, User, Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
+import { useWorkOrderExcelExport } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
 
 interface WorkOrderDetailsMobileHeaderProps {
   workOrder: {
@@ -27,6 +28,7 @@ interface WorkOrderDetailsMobileHeaderProps {
   };
   canEdit: boolean;
   organizationId: string;
+  organizationName?: string;
   onEditClick: () => void;
   onToggleSidebar: () => void;
   /** Callback to open the PDF export dialog */
@@ -37,10 +39,13 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
   workOrder,
   canEdit,
   organizationId,
+  organizationName = '',
   onEditClick,
   onToggleSidebar,
   onDownloadPDF
 }) => {
+  const { exportSingle, isExportingSingle } = useWorkOrderExcelExport(organizationId, organizationName);
+
   return (
     <div className="sticky top-0 z-10 bg-background border-b lg:hidden">
       <div className="p-4 space-y-3">
@@ -61,6 +66,20 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
               aria-label="Download PDF"
             >
               <Download className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => exportSingle(workOrder.id)}
+              disabled={isExportingSingle}
+              className="p-2"
+              aria-label="Export Excel"
+            >
+              {isExportingSingle ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
             </Button>
             {canEdit && (
               <Button variant="outline" size="sm" onClick={onEditClick} className="px-3">

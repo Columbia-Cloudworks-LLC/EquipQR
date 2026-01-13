@@ -26,8 +26,17 @@ dist-ssr
 *.sln
 *.sw?
 .vs/VSWorkspaceState.json
+
+# Environment files (secrets)
 .env
-.cursor/
+.env.*
+!.env.example
+
+# Private keys and credentials
+*.pem
+*.key
+credentials.json
+service-account*.json
 
 # Backup Files used for Testing
 supabase/*.backup
@@ -44,3 +53,6 @@ repomix*.xml
 # Github Rulesets (for debugging)
 github.ruleset*.json
 deno.lock
+
+# Playwright Files
+.playwright-mcp/*

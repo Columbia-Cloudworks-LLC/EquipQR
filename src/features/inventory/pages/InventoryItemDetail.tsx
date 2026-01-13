@@ -32,6 +32,7 @@ import InventoryQRCodeDisplay from '@/features/inventory/components/InventoryQRC
 import InlineEditField from '@/features/equipment/components/InlineEditField';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
+import { HistoryTab } from '@/components/audit';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
@@ -411,6 +412,10 @@ const InventoryItemDetail = () => {
             <TabsTrigger value="compatibility" className={isMobile ? "w-full justify-start" : ""}>
               <Link2 className="h-4 w-4 mr-2" />
               Compatibility
+            </TabsTrigger>
+            <TabsTrigger value="history" className={isMobile ? "w-full justify-start" : ""}>
+              <History className="h-4 w-4 mr-2" />
+              Change History
             </TabsTrigger>
           </TabsList>
 
@@ -1020,6 +1025,23 @@ const InventoryItemDetail = () => {
                       );
                     })}
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Change History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {currentOrganization && itemId && (
+                  <HistoryTab 
+                    entityType="inventory_item"
+                    entityId={itemId}
+                    organizationId={currentOrganization.id}
+                  />
                 )}
               </CardContent>
             </Card>

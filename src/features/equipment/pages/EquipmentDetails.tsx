@@ -16,6 +16,7 @@ import EquipmentWorkOrdersTab from '@/features/equipment/components/EquipmentWor
 import EquipmentPartsTab from '@/features/equipment/components/EquipmentPartsTab';
 import EquipmentImagesTab from '@/features/equipment/components/EquipmentImagesTab';
 import EquipmentScansTab from '@/features/equipment/components/EquipmentScansTab';
+import { HistoryTab } from '@/components/audit';
 
 import MobileEquipmentHeader from '@/features/equipment/components/MobileEquipmentHeader';
 import ResponsiveEquipmentTabs from '@/features/equipment/components/ResponsiveEquipmentTabs';
@@ -382,6 +383,14 @@ const EquipmentDetails = () => {
         <TabsContent value="scans">
           <EquipmentScansTab 
             equipmentId={equipment.id} 
+            organizationId={currentOrganization.id}
+          />
+        </TabsContent>
+
+        <TabsContent value="history">
+          <HistoryTab 
+            entityType="equipment"
+            entityId={equipment.id} 
             organizationId={currentOrganization.id}
           />
         </TabsContent>

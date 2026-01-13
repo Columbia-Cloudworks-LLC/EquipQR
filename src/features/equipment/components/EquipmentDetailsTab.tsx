@@ -16,6 +16,11 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePMTemplates } from "@/features/pm-templates/hooks/usePMTemplates";
 import { toast } from "sonner";
 import { logger } from '@/utils/logger';
+import { 
+  formatDateForInput, 
+  getStatusColor, 
+  EQUIPMENT_STATUS_OPTIONS 
+} from "@/features/equipment/utils/equipmentHelpers";
 
 type Equipment = Tables<'equipment'>;
 
@@ -35,18 +40,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   // Check if user can edit equipment
   const equipmentPermissions = permissions.equipment.getPermissions(equipment.team_id || undefined);
   const canEdit = equipmentPermissions.canEdit;
-
-  // Helper function to format date for HTML input
-  const formatDateForInput = (dateString: string | null) => {
-    if (!dateString) return '';
-    try {
-      const date = new Date(dateString);
-      return date.toISOString().split('T')[0];
-    } catch (error) {
-      logger.error('Error formatting date for input', error);
-      return '';
-    }
-  };
 
   const handleFieldUpdate = async (field: keyof Equipment, value: string) => {
     try {
@@ -101,12 +94,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
     }
   };
 
-  const statusOptions = [
-    { value: 'active', label: 'Active' },
-    { value: 'maintenance', label: 'Under Maintenance' },
-    { value: 'inactive', label: 'Inactive' }
-  ];
-
   // Prepare team options for the select
   const teamOptions = [
     { value: 'unassigned', label: 'Unassigned' },
@@ -155,19 +142,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   // Can assign teams (only admins/owners)
   const canAssignTeams = permissions.organization?.canManageMembers ?? false;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   // Debug logging
   if (process.env.NODE_ENV === 'development') {
     logger.debug('Equipment data snapshot', {
@@ -213,12 +187,12 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                     onSave={(value) => handleFieldUpdate('status', value)}
                     canEdit={canEdit}
                     type="select"
-                    selectOptions={statusOptions}
+                    selectOptions={[...EQUIPMENT_STATUS_OPTIONS]}
                     className="text-base"
                   />
                 ) : (
                   <Badge className={getStatusColor(equipment.status || 'active')}>
-                    {statusOptions.find(opt => opt.value === equipment.status)?.label || 'Active'}
+                    {EQUIPMENT_STATUS_OPTIONS.find(opt => opt.value === equipment.status)?.label || 'Active'}
                   </Badge>
                 )}
               </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { Settings, Palette } from 'lucide-react';
 import { QuickBooksIntegration } from './QuickBooksIntegration';
+import { DangerZoneSection } from './DangerZoneSection';
+import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 
 const organizationFormSchema = z.object({
   name: z.string().min(1, 'Organization name is required').max(100, 'Name too long'),
@@ -31,6 +33,21 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
   const { currentOrganization } = useOrganization();
   const [isUpdating, setIsUpdating] = useState(false);
   const queryClient = useQueryClient();
+
+  // Fetch members to get admins for transfer ownership
+  const { data: members = [] } = useOrganizationMembersQuery(currentOrganization?.id || '');
+
+  // Filter to get only active admins (for ownership transfer)
+  const admins = useMemo(() => {
+    return members
+      .filter(m => m.role === 'admin' && m.status === 'active')
+      .map(m => ({
+        id: m.id,
+        userId: m.userId,
+        name: m.name,
+        email: m.email,
+      }));
+  }, [members]);
 
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationFormSchema),
@@ -202,6 +219,13 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
 
       {/* QuickBooks Integration Section */}
       <QuickBooksIntegration currentUserRole={currentUserRole} />
+
+      {/* Danger Zone Section */}
+      <DangerZoneSection
+        organization={currentOrganization}
+        currentUserRole={currentUserRole}
+        admins={admins}
+      />
     </div>
   );
 };

@@ -13,6 +13,14 @@ export type { WorkOrderNote, WorkOrderImage };
 
 export type NotificationData = {
   work_order_id?: string;
+  // Ownership transfer fields
+  transfer_id?: string;
+  organization_id?: string;
+  organization_name?: string;
+  from_user_id?: string;
+  from_user_name?: string;
+  new_org_id?: string;
+  reason?: string;
   [key: string]: unknown;
 };
 
@@ -25,6 +33,7 @@ export interface Notification {
   message: string;
   data: NotificationData;
   read: boolean;
+  is_global: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -185,6 +194,7 @@ export const useUploadWorkOrderImage = () => {
 };
 
 // Notifications hooks
+// Includes both org-specific notifications AND global notifications (like ownership transfers)
 export const useNotifications = (organizationId: string) => {
   return useQuery({
     queryKey: ['notifications', organizationId],
@@ -192,16 +202,36 @@ export const useNotifications = (organizationId: string) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return [];
 
-      const { data, error } = await supabase
+      // Fetch org-specific notifications
+      const { data: orgNotifications, error: orgError } = await supabase
         .from('notifications')
         .select('*')
         .eq('organization_id', organizationId)
         .eq('user_id', userData.user.id)
+        .eq('is_global', false)
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
-      return data as Notification[];
+      if (orgError) throw orgError;
+
+      // Fetch global notifications (visible across all orgs)
+      const { data: globalNotifications, error: globalError } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userData.user.id)
+        .eq('is_global', true)
+        .order('created_at', { ascending: false })
+        .limit(25);
+
+      if (globalError) throw globalError;
+
+      // Combine and sort by created_at
+      const allNotifications = [...(orgNotifications || []), ...(globalNotifications || [])];
+      allNotifications.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      return allNotifications as Notification[];
     },
     enabled: !!organizationId
   });
