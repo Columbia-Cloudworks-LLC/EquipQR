@@ -179,7 +179,7 @@ BEGIN
       
       INSERT INTO organizations (name, plan, member_count, max_members, features)
       VALUES (
-        COALESCE(v_user_name, 'My') || '''s Organization',
+        COALESCE(v_user_name, 'My') || '''' || 's Organization',
         'free',
         1,
         5,

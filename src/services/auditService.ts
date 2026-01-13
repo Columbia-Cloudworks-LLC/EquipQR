@@ -22,6 +22,17 @@ import {
 } from '@/types/audit';
 
 // ============================================
+// Constants
+// ============================================
+
+/**
+ * Maximum number of records to export in a single CSV export.
+ * This limit is applied for performance reasons. Large organizations
+ * requiring access to older history or larger exports should contact support.
+ */
+export const AUDIT_EXPORT_RECORD_LIMIT = 10000;
+
+// ============================================
 // Response Types
 // ============================================
 
@@ -324,13 +335,13 @@ export const auditService = {
   ): Promise<ServiceResponse<string>> {
     try {
       // Get all data matching filters (no pagination for export)
-      // Limit to 10,000 records for performance
+      // Limit exports for performance - see AUDIT_EXPORT_RECORD_LIMIT
       let query = supabase
         .from('audit_log')
         .select('*')
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false })
-        .limit(10000);
+        .limit(AUDIT_EXPORT_RECORD_LIMIT);
       
       // Apply filters
       if (filters?.entityType && filters.entityType !== 'all') {

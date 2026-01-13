@@ -647,7 +647,7 @@ function generateWorkbook(allRows: ReturnType<typeof buildAllRows>): Uint8Array 
     allRows.laborRows,
     (row) => [
       row.workOrderId, row.workOrderTitle, row.date, row.technician,
-      row.hoursWorked, row.notes, row.hasPhotos ? 'Yes' : 'No', row.photoCount,
+      row.hoursWorked, row.notes, row.hasPhotos ? 'Yes' : 'No', row.hasPhotos ? row.photoCount : '',
     ]
   );
   XLSX.utils.book_append_sheet(workbook, laborSheet, WORKSHEET_NAMES.LABOR);

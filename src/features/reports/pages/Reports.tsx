@@ -462,18 +462,16 @@ const Reports: React.FC = () => {
       />
 
       {/* Work Orders Excel Export Dialog */}
-      {currentOrganization && (
-        <WorkOrderExcelExportDialog
-          open={excelExportDialogOpen}
-          onOpenChange={setExcelExportDialogOpen}
-          organizationId={currentOrganization.id}
-          recordCount={workOrdersDetailedCount.data ?? 0}
-          isLoadingCount={workOrdersDetailedCount.isLoading}
-          onExport={handleExcelExport}
-          isExporting={isBulkExporting}
-          exportError={bulkExportError}
-        />
-      )}
+      <WorkOrderExcelExportDialog
+        open={excelExportDialogOpen}
+        onOpenChange={setExcelExportDialogOpen}
+        organizationId={currentOrganization.id}
+        recordCount={workOrdersDetailedCount.data ?? 0}
+        isLoadingCount={workOrdersDetailedCount.isLoading}
+        onExport={handleExcelExport}
+        isExporting={isBulkExporting}
+        exportError={bulkExportError}
+      />
     </Page>
   );
 };

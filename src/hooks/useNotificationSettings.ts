@@ -139,10 +139,21 @@ export const useRealTimeNotifications = (organizationId: string) => {
       if (globalError) throw globalError;
 
       // Combine and sort by created_at
+      // Pre-compute timestamps to avoid creating Date objects inside the sort comparator
       const allNotifications = [...(orgNotifications || []), ...(globalNotifications || [])];
-      allNotifications.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      const createdAtTimestamps = new Map<string, number>();
+      for (const notification of allNotifications) {
+        createdAtTimestamps.set(
+          notification.id,
+          new Date(notification.created_at).getTime()
+        );
+      }
+
+      allNotifications.sort((a, b) => {
+        const aTs = createdAtTimestamps.get(a.id) ?? 0;
+        const bTs = createdAtTimestamps.get(b.id) ?? 0;
+        return bTs - aTs;
+      });
 
       return allNotifications;
     },

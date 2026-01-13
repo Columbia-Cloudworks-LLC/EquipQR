@@ -218,7 +218,7 @@ BEGIN
       -- Create new personal organization for departing owner
       INSERT INTO organizations (name, plan, member_count, max_members, features)
       VALUES (
-        v_transfer.from_user_name || '''s Organization',
+        v_transfer.from_user_name || '''' || 's Organization',
         'free',
         1,
         5,

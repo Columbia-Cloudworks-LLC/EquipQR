@@ -1036,7 +1036,7 @@ const InventoryItemDetail = () => {
                 <CardTitle>Change History</CardTitle>
               </CardHeader>
               <CardContent>
-                {currentOrganization && itemId && (
+                {itemId && (
                   <HistoryTab 
                     entityType="inventory_item"
                     entityId={itemId}
