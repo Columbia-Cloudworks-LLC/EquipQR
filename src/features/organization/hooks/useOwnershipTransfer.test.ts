@@ -14,8 +14,19 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-// Mock auth context
-vi.mock('@/contexts/AuthContext', () => ({
+// Mock auth context - must include AuthContext for useAuth hook
+vi.mock('@/contexts/AuthContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/contexts/AuthContext')>();
+  return {
+    ...actual,
+    AuthContext: {
+      ...actual.AuthContext,
+    },
+  };
+});
+
+// Mock useAuth hook
+vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
     user: { id: 'test-user-id', email: 'test@example.com' },
   }),
