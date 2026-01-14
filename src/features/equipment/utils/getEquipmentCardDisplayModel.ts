@@ -1,4 +1,4 @@
-import { getStatusColor } from "@/features/equipment/utils/equipmentHelpers";
+import { getStatusColor, safeFormatDate } from "@/features/equipment/utils/equipmentHelpers";
 
 export interface EquipmentCardDisplayModel {
   imageAlt: string;
@@ -15,14 +15,6 @@ interface EquipmentCardDisplayInput {
   status: string;
   last_maintenance?: string;
   working_hours?: number | null;
-}
-
-function safeFormatDate(value: string): string | null {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date.toLocaleDateString();
 }
 
 export function getEquipmentCardDisplayModel(

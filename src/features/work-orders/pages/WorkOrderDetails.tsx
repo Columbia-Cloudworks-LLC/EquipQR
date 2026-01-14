@@ -28,6 +28,7 @@ import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useIniti
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
+import { HistoryTab } from '@/components/audit';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -301,6 +302,7 @@ const WorkOrderDetails = () => {
         }}
         canEdit={canEdit}
         organizationId={currentOrganization.id}
+        organizationName={currentOrganization.name}
         onEditClick={handleEditWorkOrder}
         onToggleSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
         onDownloadPDF={() => setShowMobilePDFDialog(true)}
@@ -325,6 +327,7 @@ const WorkOrderDetails = () => {
         } : null}
         pmData={pmData}
         organizationName={currentOrganization.name}
+        organizationId={currentOrganization.id}
       />
 
       {/* Status Lock Warning */}
@@ -458,6 +461,22 @@ const WorkOrderDetails = () => {
                 workOrder={workOrder} 
                 showDetailedHistory={permissionLevels.isManager}
               />
+
+              {/* Mobile Audit History */}
+              {permissionLevels.isManager && currentOrganization && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Change History</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <HistoryTab 
+                      entityType="work_order"
+                      entityId={workOrder.id}
+                      organizationId={currentOrganization.id}
+                    />
+                  </CardContent>
+                </Card>
+              )}
             </>
           ) : (
             <>
@@ -533,6 +552,22 @@ const WorkOrderDetails = () => {
                 workOrder={workOrder} 
                 showDetailedHistory={permissionLevels.isManager}
               />
+
+              {/* Audit History - Only visible to managers */}
+              {permissionLevels.isManager && currentOrganization && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Change History</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <HistoryTab 
+                      entityType="work_order"
+                      entityId={workOrder.id}
+                      organizationId={currentOrganization.id}
+                    />
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
         </div>

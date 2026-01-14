@@ -15,6 +15,9 @@ import { updateOrganization } from '@/features/organization/services/organizatio
 import type { OrganizationUpdatePayload } from '@/features/organization/types/organization';
 import { organizationFormSchema, OrganizationFormData } from './organizationSettingsSchema';
 import { QuickBooksIntegration } from './QuickBooksIntegration';
+import { DangerZoneSection } from './DangerZoneSection';
+import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
+import { useMemo } from 'react';
 
 interface OrganizationSettingsProps {
   organization: SessionOrganization;
@@ -29,6 +32,21 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
   const [logoError, setLogoError] = useState(false);
   const queryClient = useQueryClient();
   const { refetch } = useOrganization();
+
+  // Fetch members to get admins for transfer ownership
+  const { data: members = [] } = useOrganizationMembersQuery(organization?.id || '');
+
+  // Filter to get only active admins (for ownership transfer)
+  const admins = useMemo(() => {
+    return members
+      .filter(m => m.role === 'admin' && m.status === 'active')
+      .map(m => ({
+        id: m.id,
+        userId: m.userId,
+        name: m.name,
+        email: m.email,
+      }));
+  }, [members]);
 
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationFormSchema),
@@ -289,6 +307,13 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
         </div>
         <QuickBooksIntegration currentUserRole={currentUserRole} />
       </div>
+
+      {/* Danger Zone Section */}
+      <DangerZoneSection
+        organization={organization}
+        currentUserRole={currentUserRole}
+        admins={admins}
+      />
     </div>
   );
 };

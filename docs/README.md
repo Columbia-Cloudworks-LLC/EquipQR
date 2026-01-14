@@ -28,6 +28,7 @@ Operational documentation for deployment and maintenance:
 - **[Migrations](./ops/migrations.md)** - Database migration guide with critical rules
 - **[Migration Rules Quick Reference](./ops/migration-rules-quick-reference.md)** - Quick reference for migration best practices
 - **[Local Supabase Development](./ops/local-supabase-development.md)** - Complete guide for local Supabase setup, edge function development, and migration synchronization
+- **[Disaster Recovery](./ops/disaster-recovery.md)** - Database backup and point-in-time recovery procedures
 
 ## 🎯 Quick Navigation
 
@@ -50,8 +51,9 @@ Operational documentation for deployment and maintenance:
 ### For DevOps Engineers
 1. **READ FIRST**: [Migrations](./ops/migrations.md) - ⚠️ **CRITICAL** migration rules
 2. Study [Deployment](./ops/deployment.md) - Complete deployment guide
-3. Review [Architecture](./technical/architecture.md) - System architecture
-4. Reference [Migration Rules Quick Reference](./ops/migration-rules-quick-reference.md) - Quick reference
+3. Review [Disaster Recovery](./ops/disaster-recovery.md) - Backup and PITR procedures
+4. Review [Architecture](./technical/architecture.md) - System architecture
+5. Reference [Migration Rules Quick Reference](./ops/migration-rules-quick-reference.md) - Quick reference
 
 ## 📁 Additional Resources
 
@@ -92,6 +94,7 @@ Operational documentation for deployment and maintenance:
 - [Deployment Guide](./ops/deployment.md) - Platform-specific deployment
 - [Migrations](./ops/migrations.md) - Database migrations
 - [Local Supabase Development](./ops/local-supabase-development.md) - Local development setup and edge function workflow
+- [Disaster Recovery](./ops/disaster-recovery.md) - Database backup and PITR restoration
 - [Architecture - Performance](./technical/architecture.md#performance-architecture)
 
 #### Business Logic & Features

@@ -31,4 +31,5 @@ export * from './billingExemptions';
 export * from './csvImport';
 export * from './cache';
 export * from './organizationContext';
+export * from './audit';
 

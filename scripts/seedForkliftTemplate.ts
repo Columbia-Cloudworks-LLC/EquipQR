@@ -3,20 +3,21 @@
 import { createClient } from '@supabase/supabase-js';
 import { defaultForkliftChecklist } from '../src/services/preventativeMaintenanceService';
 
-const DEFAULT_SUPABASE_URL = "https://ymxkzronkhwxzcdcbnwq.supabase.co";
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Require SUPABASE_URL to be explicitly set - no hardcoded default
+if (!SUPABASE_URL) {
+  console.error('❌ SUPABASE_URL or VITE_SUPABASE_URL environment variable is required');
+  console.error('   Set it via: export SUPABASE_URL=https://<project-ref>.supabase.co');
+  process.exit(1);
+}
 
 // Validate URL format
 if (!SUPABASE_URL.startsWith('https://') || !SUPABASE_URL.includes('.supabase.co')) {
   console.error('❌ Invalid Supabase URL format. Expected: https://<project-ref>.supabase.co');
   console.error(`   Received: ${SUPABASE_URL}`);
   process.exit(1);
-}
-
-// Warn if using default production URL
-if (SUPABASE_URL === DEFAULT_SUPABASE_URL && !process.env.SUPABASE_URL && !process.env.VITE_SUPABASE_URL) {
-  console.warn('⚠️  Using default production Supabase URL. To use a different project, set SUPABASE_URL or VITE_SUPABASE_URL environment variable.');
 }
 
 if (!SUPABASE_SERVICE_KEY) {

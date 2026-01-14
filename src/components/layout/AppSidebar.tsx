@@ -36,7 +36,8 @@ import {
   ClipboardCheck,
   Warehouse,
   Search,
-  Layers
+  Layers,
+  History
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -75,6 +76,7 @@ const managementNavigation: NavigationItem[] = [
   // Billing removed - app is now free
   // { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
   { title: "Reports", url: "/dashboard/reports", icon: FileText },
+  { title: "Audit Log", url: "/dashboard/audit-log", icon: History, adminOnly: true },
 ];
 
 

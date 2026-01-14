@@ -40,7 +40,8 @@ describe('ResponsiveEquipmentTabs', () => {
         </ResponsiveEquipmentTabs>
       );
       
-      const tabsList = container.querySelector('[class*="grid-cols-6"]');
+      // Desktop uses grid-cols-7 (Details, Work Orders, Notes, Parts, Images, Scans, History)
+      const tabsList = container.querySelector('[class*="grid-cols-7"]');
       expect(tabsList).toBeInTheDocument();
     });
   });
@@ -73,9 +74,13 @@ describe('ResponsiveEquipmentTabs', () => {
         </ResponsiveEquipmentTabs>
       );
       
-      // Both mobile rows use grid-cols-3 layout (3 tabs each)
-      const tabsLists = container.querySelectorAll('[class*="grid-cols-3"]');
-      expect(tabsLists.length).toBeGreaterThanOrEqual(2);
+      // Mobile first row uses grid-cols-3 (Details, Orders, Notes)
+      const firstRow = container.querySelector('[class*="grid-cols-3"]');
+      expect(firstRow).toBeInTheDocument();
+      
+      // Mobile second row uses grid-cols-4 (Parts, Images, Scans, History)
+      const secondRow = container.querySelector('[class*="grid-cols-4"]');
+      expect(secondRow).toBeInTheDocument();
     });
 
     it('shortens work orders label on mobile', async () => {

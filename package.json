@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "1.8.1",
+  "version": "2.0.0",
   "type": "module",
   "engines": {
     "node": "^20.17.0 || >=22.9.0"
@@ -91,6 +91,7 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
+    "xlsx": "0.18.5",
     "zod": "^3.23.8"
   },
   "size-limit": [
@@ -110,9 +111,9 @@
     "@types/file-saver": "^2.0.7",
     "@types/node": "^22.5.5",
     "@types/papaparse": "^5.3.16",
-    "@types/react-window": "^1.8.8",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@types/react-window": "^1.8.8",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "@vitest/coverage-istanbul": "3.2.4",
     "@vitest/coverage-v8": "^3.2.4",
@@ -131,8 +132,8 @@
     "tailwindcss": "^3.4.11",
     "tsx": "4.20.6",
     "typescript": "^5.5.3",
-    "typesense": "^1.8.2",
     "typescript-eslint": "^8.0.1",
+    "typesense": "^1.8.2",
     "vite": "^5.4.21",
     "vitest": "3.2.4"
   }

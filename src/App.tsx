@@ -50,6 +50,7 @@ const InventoryItemDetail = lazy(() => import('@/features/inventory/pages/Invent
 const PartLookup = lazy(() => import('@/features/inventory/pages/PartLookup'));
 const AlternateGroupsPage = lazy(() => import('@/features/inventory/pages/AlternateGroupsPage'));
 const AlternateGroupDetail = lazy(() => import('@/features/inventory/pages/AlternateGroupDetail'));
+const AuditLog = lazy(() => import('@/pages/AuditLog'));
 
 
 const BrandedTopBar = () => {
@@ -171,6 +172,7 @@ function App() {
                                 <Route path="/alternate-groups" element={<AlternateGroupsPage />} />
                                 <Route path="/alternate-groups/:groupId" element={<AlternateGroupDetail />} />
                                 <Route path="/support" element={<DashboardSupport />} />
+                                <Route path="/audit-log" element={<AuditLog />} />
                                 {/* Billing debug routes removed */}
                                 {/* {import.meta.env.DEV && <Route path="/debug/billing" element={<DebugBilling />} />} */}
                                 {/* {import.meta.env.DEV && <Route path="/debug/exemptions-admin" element={<BillingExemptionsAdmin />} />} */}

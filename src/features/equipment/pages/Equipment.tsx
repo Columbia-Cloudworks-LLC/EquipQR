@@ -1,12 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus, Upload } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/features/equipment/hooks/useEquipmentFiltering';
-import { exportEquipmentCSV } from '@/features/equipment/services/equipmentCSVService';
-import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
@@ -24,7 +21,6 @@ import ImportCsvWizard from '@/features/equipment/components/ImportCsvWizard';
 const Equipment = () => {
   const { currentOrganization } = useOrganization();
   const { canCreateEquipment, hasRole } = usePermissions();
-  const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const initializedFromUrl = useRef(false);
   
@@ -32,7 +28,6 @@ const Equipment = () => {
   const {
     filters,
     sortConfig,
-    filteredAndSortedEquipment,
     paginatedEquipment,
     filterOptions,
     isLoading,
@@ -54,7 +49,6 @@ const Equipment = () => {
   const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
-  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   // Apply URL parameter filters on initial load
   useEffect(() => {
@@ -67,7 +61,7 @@ const Equipment = () => {
   }, [searchParams, updateFilter]);
 
   const canCreate = canCreateEquipment();
-  const canExport = hasRole(['owner', 'admin']);
+  const canImport = hasRole(['owner', 'admin']);
 
   if (!currentOrganization) {
     return (
@@ -93,39 +87,10 @@ const Equipment = () => {
     setShowForm(true);
   };
 
-
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingEquipment(null);
   };
-
-  const handleExportCSV = async () => {
-    if (!currentOrganization || !canExport) return;
-    
-    setIsExporting(true);
-    try {
-      await exportEquipmentCSV(
-        filteredAndSortedEquipment,
-        filterOptions.teams || [],
-        currentOrganization.name
-      );
-      toast({
-        title: "Export successful",
-        description: `Exported ${filteredAndSortedEquipment.length} equipment records to CSV.`,
-      });
-    } catch (error) {
-      console.error('Failed to export equipment CSV:', error);
-      toast({
-        title: "Export failed", 
-        description: "There was an error exporting the equipment data.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  // Equipment data comes from the filtering hook
 
   return (
     <Page maxWidth="7xl" padding="responsive">
@@ -135,7 +100,7 @@ const Equipment = () => {
           description={`Manage equipment for ${currentOrganization.name}`}
           actions={
             <div className="flex flex-col sm:flex-row gap-2">
-              {canExport && (
+              {canImport && (
                 <Button 
                   variant="outline"
                   onClick={() => setShowImportCsv(true)}
@@ -172,9 +137,6 @@ const Equipment = () => {
         onSortChange={updateSort}
         resultCount={totalFilteredCount}
         totalCount={equipment.length}
-        canExport={canExport}
-        onExportCSV={handleExportCSV}
-        isExporting={isExporting}
       />
 
       <EquipmentGrid

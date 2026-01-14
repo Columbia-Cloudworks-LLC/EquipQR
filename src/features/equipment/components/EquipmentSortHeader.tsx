@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -10,9 +10,6 @@ interface EquipmentSortHeaderProps {
   onSortChange: (field: string) => void;
   resultCount: number;
   totalCount: number;
-  canExport?: boolean;
-  onExportCSV?: () => void;
-  isExporting?: boolean;
 }
 
 const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
@@ -20,9 +17,6 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
   onSortChange,
   resultCount,
   totalCount,
-  canExport = false,
-  onExportCSV,
-  isExporting = false
 }) => {
   const isMobile = useIsMobile();
   
@@ -55,19 +49,6 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
           Showing <span className="font-medium text-foreground">{resultCount}</span> of{' '}
           <span className="font-medium text-foreground">{totalCount}</span> equipment items
         </div>
-
-        {canExport && onExportCSV && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onExportCSV}
-            disabled={isExporting || resultCount === 0}
-            className="hidden md:inline-flex gap-2"
-          >
-            <Download className="h-4 w-4" />
-            {isExporting ? 'Exporting...' : 'Export CSV'}
-          </Button>
-        )}
 
         {isMobile && (
           <div className="flex shrink-0 items-center gap-2">
