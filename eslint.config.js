@@ -33,5 +33,29 @@ export default tseslint.config(
         { allow: ["error"] }
       ],
     },
+  },
+  // Journey test guardrails - prevent hook-mocking anti-patterns
+  {
+    files: ["src/tests/journeys/**/*.{ts,tsx}"],
+    rules: {
+      // Discourage importing hooks directly in journey tests
+      // Journey tests should render pages/components, not test hooks in isolation
+      "no-restricted-imports": [
+        "warn",
+        {
+          patterns: [
+            {
+              group: ["@/hooks/*", "@/features/*/hooks/*", "@/features/*/hooks/**"],
+              message: "Journey tests should not import hooks directly. Render the page component instead and let it use its hooks internally."
+            },
+            {
+              group: ["@/test/utils/test-utils"],
+              importNames: ["renderHookAsPersona", "renderHookWithCustomPersona"],
+              message: "Journey tests should not use renderHook*. Use renderJourney to render actual page components."
+            }
+          ]
+        }
+      ]
+    }
   }
 );

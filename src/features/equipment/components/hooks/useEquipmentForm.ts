@@ -70,6 +70,7 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         customer_id: null,
         warranty_expiration: data.warranty_expiration || null,
         last_maintenance: data.last_maintenance || null,
+        last_maintenance_work_order_id: null,
         notes: data.notes || null,
         custom_attributes: data.custom_attributes || {},
         image_url: data.image_url || null,
@@ -111,7 +112,7 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         throw new Error('Equipment ID not found');
       }
 
-      const equipmentData = {
+      const normalizedData = {
         name: data.name,
         manufacturer: data.manufacturer,
         model: data.model,
@@ -128,6 +129,45 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         team_id: data.team_id || null,
         default_pm_template_id: data.default_pm_template_id || null
       };
+
+      const normalizedInitial = {
+        name: initialData.name,
+        manufacturer: initialData.manufacturer,
+        model: initialData.model,
+        serial_number: initialData.serial_number,
+        status: initialData.status,
+        location: initialData.location,
+        installation_date: initialData.installation_date,
+        warranty_expiration: initialData.warranty_expiration ?? null,
+        last_maintenance: initialData.last_maintenance ?? null,
+        notes: initialData.notes ?? null,
+        custom_attributes: initialData.custom_attributes ?? {},
+        image_url: initialData.image_url ?? null,
+        last_known_location: initialData.last_known_location ?? null,
+        team_id: initialData.team_id ?? null,
+        default_pm_template_id: initialData.default_pm_template_id ?? null
+      };
+
+      const equipmentData = Object.entries(normalizedData).reduce((acc, [key, value]) => {
+        const initialValue = normalizedInitial[key as keyof typeof normalizedInitial];
+        const isEqual = typeof value === 'object'
+          ? JSON.stringify(value) === JSON.stringify(initialValue)
+          : value === initialValue;
+
+        if (!isEqual) {
+          acc[key] = value;
+        }
+
+        return acc;
+      }, {} as Record<string, unknown>);
+
+      if ('last_maintenance' in equipmentData) {
+        equipmentData.last_maintenance_work_order_id = null;
+      }
+
+      if (Object.keys(equipmentData).length === 0) {
+        return initialData;
+      }
 
       const { data: result, error } = await supabase
         .from('equipment')

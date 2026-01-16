@@ -310,21 +310,52 @@ const { data } = await supabase
 
 ### Testing
 
-- Write tests for new features and bug fixes
+EquipQR follows a **journey-first** testing strategy. See [`docs/technical/testing-guidelines.md`](./docs/technical/testing-guidelines.md) for complete details.
+
+**Key principles**:
+- **Default to journey tests**: Render real pages, use `userEvent`, assert on visible outcomes
+- **Mock at boundaries**: Mock Supabase client, not internal hooks
+- **Unit tests are selective**: Use for pure utilities and complex business rules only
 - Aim for >70% code coverage
-- Test critical paths: auth, data mutations, business logic
-- Use `@testing-library/react` for component tests
-- Mock Supabase calls using test utilities
 
 ```bash
 # Run tests
 npm run test
+
+# Journey tests only
+npm run test:journeys
 
 # With coverage
 npm run test:coverage
 
 # Watch mode
 npm run test:watch
+```
+
+**Journey test template** (for new features):
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { screen, waitFor } from '@testing-library/react';
+import { renderJourney } from '@/test/journey/render-journey';
+import { seedSupabaseMock, resetSupabaseMock } from '@/test/mocks/supabase-scenario';
+
+describe('Feature Journey', () => {
+  beforeEach(() => {
+    resetSupabaseMock();
+    seedSupabaseMock({ /* fixture data */ });
+  });
+
+  it('allows user to perform action', async () => {
+    const user = userEvent.setup();
+    renderJourney({ persona: 'admin', route: '/dashboard/feature' });
+
+    await user.click(await screen.findByRole('button', { name: /action/i }));
+
+    expect(await screen.findByText(/success/i)).toBeInTheDocument();
+  });
+});
 ```
 
 ### Documentation

@@ -44,7 +44,6 @@ const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 // const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
 // const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin'));
 const PMTemplateView = lazy(() => import('@/features/pm-templates/pages/PMTemplateView'));
-const PartPicker = lazy(() => import('@/features/part-picker/pages/PartPicker'));
 const InventoryList = lazy(() => import('@/features/inventory/pages/InventoryList'));
 const InventoryItemDetail = lazy(() => import('@/features/inventory/pages/InventoryItemDetail'));
 const PartLookup = lazy(() => import('@/features/inventory/pages/PartLookup'));
@@ -76,7 +75,6 @@ function App() {
         <Route path="/" element={<SmartLanding />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/debug-auth" element={<DebugAuth />} />
-        <Route path="/part-picker" element={<Navigate to="/dashboard/part-picker" replace />} />
         
         {/* Other public routes with suspense for lazy loading */}
         <Route path="/solutions/repair-shops" element={<Suspense fallback={<div>Loading...</div>}><RepairShops /></Suspense>} />
@@ -165,7 +163,6 @@ function App() {
                                 <Route path="/notifications" element={<Notifications />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/reports" element={<Reports />} />
-                                <Route path="/part-picker" element={<PartPicker />} />
                                 <Route path="/inventory" element={<InventoryList />} />
                                 <Route path="/inventory/:itemId" element={<InventoryItemDetail />} />
                                 <Route path="/part-lookup" element={<PartLookup />} />

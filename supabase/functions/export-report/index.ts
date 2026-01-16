@@ -1,10 +1,20 @@
-import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+/**
+ * Export Report Edge Function
+ *
+ * Exports data (equipment, work orders, inventory, etc.) to CSV format.
+ * Requires authenticated user with admin/owner role in the organization.
+ * Uses user-scoped client so RLS policies apply.
+ */
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  createUserSupabaseClient,
+  requireUser,
+  verifyOrgAdmin,
+  createErrorResponse,
+  handleCorsPreflightIfNeeded,
+} from "../_shared/supabase-clients.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 // Maximum rows per export to prevent abuse
 const MAX_ROWS = 50000;
@@ -30,99 +40,62 @@ interface ExportRequest {
   format: 'csv';
 }
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
+// NOTE: supabase client is now created per-request (see below)
+let supabase: SupabaseClient;
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     if (req.method !== 'POST') {
-      return new Response('Method not allowed', { 
-        status: 405,
-        headers: corsHeaders 
-      });
+      return createErrorResponse('Method not allowed', 405);
     }
+
+    // Create user-scoped client (RLS enforced)
+    supabase = createUserSupabaseClient(req);
+
+    // Validate user authentication
+    const auth = await requireUser(req, supabase);
+    if ("error" in auth) {
+      return createErrorResponse(auth.error, auth.status);
+    }
+
+    const { user } = auth;
 
     const body: ExportRequest = await req.json();
     const { reportType, organizationId, filters, columns, format } = body;
 
     // Validate required fields
     if (!reportType || !organizationId || !columns || columns.length === 0) {
-      return new Response(JSON.stringify({ 
-        error: 'Missing required fields: reportType, organizationId, and columns are required' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return createErrorResponse(
+        'Missing required fields: reportType, organizationId, and columns are required',
+        400
+      );
     }
 
     // Validate format
     if (format !== 'csv') {
-      return new Response(JSON.stringify({ 
-        error: 'Unsupported format. Only CSV is currently supported.' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return createErrorResponse('Unsupported format. Only CSV is currently supported.', 400);
     }
 
-    // Get user from auth header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Check user's role in the organization (must be owner or admin)
-    const { data: membership } = await supabase
-      .from('organization_members')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', organizationId)
-      .eq('status', 'active')
-      .single();
-
-    if (!membership || !['owner', 'admin'].includes(membership.role)) {
-      return new Response(JSON.stringify({ 
-        error: 'Forbidden: Only owners and admins can export reports' 
-      }), { 
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    // Verify user has admin/owner role in the organization (RLS also applies)
+    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
+    if (!isAdmin) {
+      return createErrorResponse('Forbidden: Only owners and admins can export reports', 403);
     }
 
     // Check rate limit
     const rateLimitOk = await checkRateLimit(user.id, organizationId);
     if (!rateLimitOk) {
-      return new Response(JSON.stringify({ 
-        error: 'Rate limit exceeded. Please wait before requesting another export.' 
-      }), {
-        status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return createErrorResponse(
+        'Rate limit exceeded. Please wait before requesting another export.',
+        429
+      );
     }
 
-    // Log the export request
+    // Log the export request (RLS will apply)
     const { data: exportLog } = await supabase
       .from('export_request_log')
       .insert({
@@ -198,14 +171,11 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('Export error:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      details: error.message 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    console.error('[EXPORT-REPORT] Export error:', error);
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      500
+    );
   }
 });
 

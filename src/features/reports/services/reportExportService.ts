@@ -27,18 +27,9 @@ export async function exportReport(
 
   logger.info('Initiating report export', { reportType, organizationId, columnCount: columns.length });
 
-  let data: unknown;
-  let error: Error | null = null;
-  
-  try {
-    const result = await supabase.functions.invoke('export-report', {
-      body: request,
-    });
-    data = result.data;
-    error = result.error;
-  } catch (invokeError) {
-    throw invokeError;
-  }
+  const { data, error } = await supabase.functions.invoke('export-report', {
+    body: request,
+  });
 
   if (error) {
     logger.error('Report export failed', { error: error.message });

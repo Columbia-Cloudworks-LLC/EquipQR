@@ -2,6 +2,8 @@
  * Admin validation utilities for super admin organization access control
  */
 
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
 /**
  * Check if an organization ID matches the super admin organization
  */
@@ -19,9 +21,12 @@ export function isSuperAdminOrg(orgId: string): boolean {
 /**
  * Verify that a user has super admin access
  * Checks if the user is an owner or admin in the super admin organization
+ * 
+ * NOTE: This function should be called with an admin client (service role)
+ * to ensure the check can't be bypassed by RLS.
  */
 export async function verifySuperAdminAccess(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   userId: string
 ): Promise<boolean> {
   const superAdminOrgId = Deno.env.get("SUPER_ADMIN_ORG_ID");
@@ -53,4 +58,3 @@ export async function verifySuperAdminAccess(
     return false;
   }
 }
-

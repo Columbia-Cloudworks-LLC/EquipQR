@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { ChevronRight, Forklift } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface RecentEquipmentItem {
   id: string;
@@ -16,6 +17,7 @@ interface RecentEquipmentItem {
 interface DashboardRecentEquipmentCardProps {
   equipment: RecentEquipmentItem[];
   isLoading: boolean;
+  hasMore: boolean;
 }
 
 function getEquipmentStatusBadgeVariant(status: string): "default" | "destructive" | "secondary" {
@@ -24,27 +26,20 @@ function getEquipmentStatusBadgeVariant(status: string): "default" | "destructiv
   return "secondary";
 }
 
-export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCardProps> = ({ equipment, isLoading }) => {
+export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCardProps> = ({
+  equipment,
+  isLoading,
+  hasMore,
+}) => {
   return (
     <section aria-labelledby="recent-equipment-heading">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle id="recent-equipment-heading" className="flex items-center gap-2">
-                <Forklift className="h-5 w-5" />
-                Recent Equipment
-              </CardTitle>
-              <CardDescription>Latest equipment in your fleet</CardDescription>
-            </div>
-            <Link
-              to="/dashboard/equipment"
-              className="flex items-center gap-1 rounded text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              View all
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
+          <CardTitle id="recent-equipment-heading" className="flex items-center gap-2">
+            <Forklift className="h-5 w-5" />
+            Recent Equipment
+          </CardTitle>
+          <CardDescription>Latest equipment in your fleet</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -54,7 +49,7 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
               ))}
             </div>
           ) : equipment.length > 0 ? (
-            <div className="space-y-4 md:max-h-64 md:overflow-y-auto">
+            <div className="space-y-4">
               {equipment.map((item) => (
                 <Link
                   key={item.id}
@@ -80,6 +75,16 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
             <p className="text-muted-foreground">No equipment found</p>
           )}
         </CardContent>
+        {hasMore && !isLoading && (
+          <CardFooter>
+            <Button asChild variant="secondary" className="w-full">
+              <Link to="/dashboard/equipment" className="inline-flex items-center justify-center gap-2">
+                View all
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardFooter>
+        )}
       </Card>
     </section>
   );
