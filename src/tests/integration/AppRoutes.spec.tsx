@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from '@/App';
 
 // Mock auth hook to bypass provider requirement
@@ -66,11 +67,21 @@ vi.mock('@/components/layout/TopBar', () => ({
   default: () => <div data-testid="top-bar">TopBar</div>
 }));
 
-vi.mock('@/components/providers/AppProviders', () => ({
-  AppProviders: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="app-providers">{children}</div>
-  )
-}));
+vi.mock('@/components/providers/AppProviders', () => {
+  const testQueryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return {
+    AppProviders: ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={testQueryClient}>
+        <div data-testid="app-providers">{children}</div>
+      </QueryClientProvider>
+    ),
+  };
+});
 
 // Mock react-router-dom components
 vi.mock('react-router-dom', async () => {
