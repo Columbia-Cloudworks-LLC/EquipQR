@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getTeamBasedDashboardStats } from '@/features/teams/services/teamBasedDashboardService';
+import { getFleetEfficiency } from '@/features/teams/services/teamFleetEfficiencyService';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { getTeamBasedWorkOrders } from '@/features/teams/services/teamBasedWorkOrderService';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
@@ -71,6 +72,26 @@ export const useTeamBasedRecentWorkOrders = (organizationId?: string) => {
     },
     enabled: !!organizationId && !teamsLoading,
     staleTime: 30 * 1000, // 30 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+};
+
+export const useTeamFleetEfficiency = (organizationId?: string) => {
+  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
+  const { isManager } = useWorkOrderPermissionLevels();
+  const userTeamIds = getUserTeamIds();
+
+  return useQuery({
+    queryKey: ['team-fleet-efficiency', organizationId, userTeamIds, isManager],
+    queryFn: () => {
+      if (!organizationId) {
+        return [];
+      }
+      return getFleetEfficiency(organizationId, userTeamIds, isManager);
+    },
+    enabled: !!organizationId && !teamsLoading,
+    staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });

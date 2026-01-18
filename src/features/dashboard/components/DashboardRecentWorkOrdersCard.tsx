@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { ChevronRight, ClipboardList } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface RecentWorkOrder {
   id: string;
@@ -16,6 +17,7 @@ interface RecentWorkOrder {
 interface DashboardRecentWorkOrdersCardProps {
   workOrders: RecentWorkOrder[];
   isLoading: boolean;
+  hasMore: boolean;
 }
 
 function getWorkOrderStatusBadgeVariant(status: string): "default" | "secondary" | "outline" {
@@ -28,27 +30,20 @@ function formatWorkOrderStatus(status: string): string {
   return status.replace("_", " ");
 }
 
-export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCardProps> = ({ workOrders, isLoading }) => {
+export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCardProps> = ({
+  workOrders,
+  isLoading,
+  hasMore,
+}) => {
   return (
     <section aria-labelledby="recent-work-orders-heading">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle id="recent-work-orders-heading" className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5" />
-                Recent Work Orders
-              </CardTitle>
-              <CardDescription>Latest work order activity</CardDescription>
-            </div>
-            <Link
-              to="/dashboard/work-orders"
-              className="flex items-center gap-1 rounded text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              View all
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
+          <CardTitle id="recent-work-orders-heading" className="flex items-center gap-2">
+            <ClipboardList className="h-5 w-5" />
+            Recent Work Orders
+          </CardTitle>
+          <CardDescription>Latest work order activity</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -58,7 +53,7 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
               ))}
             </div>
           ) : workOrders.length > 0 ? (
-            <div className="space-y-4 md:max-h-64 md:overflow-y-auto">
+            <div className="space-y-4">
               {workOrders.map((order) => (
                 <Link
                   key={order.id}
@@ -84,6 +79,16 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
             <p className="text-muted-foreground">No work orders found</p>
           )}
         </CardContent>
+        {hasMore && !isLoading && (
+          <CardFooter>
+            <Button asChild variant="secondary" className="w-full">
+              <Link to="/dashboard/work-orders" className="inline-flex items-center justify-center gap-2">
+                View all
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardFooter>
+        )}
       </Card>
     </section>
   );

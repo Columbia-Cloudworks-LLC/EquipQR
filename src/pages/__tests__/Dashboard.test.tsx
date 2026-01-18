@@ -117,6 +117,7 @@ vi.mock('@/features/teams/hooks/useTeamBasedDashboard', () => ({
   useTeamBasedDashboardStats: vi.fn(),
   useTeamBasedEquipment: vi.fn(),
   useTeamBasedRecentWorkOrders: vi.fn(),
+  useTeamFleetEfficiency: vi.fn(),
   useTeamBasedDashboardAccess: vi.fn()
 }));
 
@@ -216,6 +217,17 @@ describe('Dashboard', () => {
     } as MockQueryResult);
 
     vi.mocked(useTeamBasedDashboardModule.useTeamBasedRecentWorkOrders).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      isError: false,
+      isPending: false,
+      isSuccess: true,
+      refetch: vi.fn(),
+      fetchStatus: 'idle'
+    } as MockQueryResult);
+
+    vi.mocked(useTeamBasedDashboardModule.useTeamFleetEfficiency).mockReturnValue({
       data: [],
       isLoading: false,
       error: null,

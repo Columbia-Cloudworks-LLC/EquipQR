@@ -145,6 +145,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
               workOrderId={workOrder.id}
               teamId={equipmentTeamId ?? null}
               workOrderStatus={workOrder.status}
+              showStatusDetails
             />
           </div>
           {canEdit && (

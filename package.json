@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "engines": {
     "node": "^20.17.0 || >=22.9.0"
@@ -21,16 +21,15 @@
     "test:coverage": "node scripts/test-runner.mjs --coverage",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",
+    "test:journeys": "node scripts/test-runner.mjs src/tests/journeys",
+    "test:db": "supabase test db",
+    "db:start": "supabase start",
     "test:ci": "npm run test:coverage && node scripts/coverage-ratchet.mjs",
     "analyze": "npm run build && npx vite-bundle-analyzer",
     "size-check": "npx size-limit",
     "type-check": "tsc --noEmit",
     "deploy:vercel": "vercel --prod",
-    "deploy:netlify": "netlify deploy --prod",
-    "typesense:up": "docker compose -f docker/typesense/docker-compose.yml up -d",
-    "typesense:ensure": "tsx scripts/typesense-ensure-collections.ts",
-    "seed:parts": "tsx scripts/seed-parts.ts",
-    "index:parts": "tsx scripts/index-parts.ts"
+    "deploy:netlify": "netlify deploy --prod"
   },
   "dependencies": {
     "@hcaptcha/react-hcaptcha": "^1.12.0",
@@ -133,7 +132,6 @@
     "tsx": "4.20.6",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "typesense": "^1.8.2",
     "vite": "^5.4.21",
     "vitest": "3.2.4"
   }

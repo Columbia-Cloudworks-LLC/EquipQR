@@ -285,6 +285,7 @@ export type Database = {
           installation_date: string
           last_known_location: Json | null
           last_maintenance: string | null
+          last_maintenance_work_order_id: string | null
           location: string
           manufacturer: string
           model: string
@@ -309,6 +310,7 @@ export type Database = {
           installation_date: string
           last_known_location?: Json | null
           last_maintenance?: string | null
+          last_maintenance_work_order_id?: string | null
           location: string
           manufacturer: string
           model: string
@@ -333,6 +335,7 @@ export type Database = {
           installation_date?: string
           last_known_location?: Json | null
           last_maintenance?: string | null
+          last_maintenance_work_order_id?: string | null
           location?: string
           manufacturer?: string
           model?: string
@@ -366,6 +369,13 @@ export type Database = {
             columns: ["default_pm_template_id"]
             isOneToOne: false
             referencedRelation: "pm_templates_check"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_last_maintenance_work_order_id_fkey"
+            columns: ["last_maintenance_work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
           {
