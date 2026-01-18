@@ -41,6 +41,7 @@ const Notifications = lazy(() => import('@/pages/Notifications'));
 const InvitationAccept = lazy(() => import('@/pages/InvitationAccept'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
+const WorkspaceOnboarding = lazy(() => import('@/pages/WorkspaceOnboarding'));
 // const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
 // const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin'));
 const PMTemplateView = lazy(() => import('@/features/pm-templates/pages/PMTemplateView'));
@@ -162,6 +163,7 @@ function App() {
                                 <Route path="/pm-templates/:templateId/view" element={<PMTemplateView />} />
                                 <Route path="/notifications" element={<Notifications />} />
                                 <Route path="/settings" element={<Settings />} />
+                                <Route path="/onboarding/workspace" element={<WorkspaceOnboarding />} />
                                 <Route path="/reports" element={<Reports />} />
                                 <Route path="/inventory" element={<InventoryList />} />
                                 <Route path="/inventory/:itemId" element={<InventoryItemDetail />} />

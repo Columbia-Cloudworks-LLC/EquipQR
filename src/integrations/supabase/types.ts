@@ -3048,6 +3048,326 @@ export type Database = {
           },
         ]
       }
+      google_workspace_credentials: {
+        Row: {
+          access_token_expires_at: string
+          created_at: string
+          customer_id: string | null
+          domain: string
+          id: string
+          organization_id: string
+          refresh_token: string
+          scopes: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token_expires_at: string
+          created_at?: string
+          customer_id?: string | null
+          domain: string
+          id?: string
+          organization_id: string
+          refresh_token: string
+          scopes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token_expires_at?: string
+          created_at?: string
+          customer_id?: string | null
+          domain?: string
+          id?: string
+          organization_id?: string
+          refresh_token?: string
+          scopes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_workspace_credentials_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_workspace_directory_users: {
+        Row: {
+          created_at: string
+          family_name: string | null
+          full_name: string | null
+          given_name: string | null
+          google_user_id: string
+          id: string
+          last_synced_at: string | null
+          organization_id: string
+          org_unit_path: string | null
+          primary_email: string
+          suspended: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          family_name?: string | null
+          full_name?: string | null
+          given_name?: string | null
+          google_user_id: string
+          id?: string
+          last_synced_at?: string | null
+          organization_id: string
+          org_unit_path?: string | null
+          primary_email: string
+          suspended?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          family_name?: string | null
+          full_name?: string | null
+          given_name?: string | null
+          google_user_id?: string
+          id?: string
+          last_synced_at?: string | null
+          organization_id?: string
+          org_unit_path?: string | null
+          primary_email?: string
+          suspended?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_workspace_directory_users_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_workspace_oauth_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          nonce: string
+          organization_id: string
+          origin_url: string | null
+          redirect_url: string | null
+          session_token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          nonce: string
+          organization_id: string
+          origin_url?: string | null
+          redirect_url?: string | null
+          session_token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          nonce?: string
+          organization_id?: string
+          origin_url?: string | null
+          redirect_url?: string | null
+          session_token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_workspace_oauth_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_member_claims: {
+        Row: {
+          claimed_at: string | null
+          claimed_user_id: string | null
+          created_at: string
+          created_by: string
+          email: string
+          id: string
+          organization_id: string
+          source: string
+          status: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_user_id?: string | null
+          created_at?: string
+          created_by: string
+          email: string
+          id?: string
+          organization_id: string
+          source?: string
+          status?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_user_id?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string
+          id?: string
+          organization_id?: string
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_member_claims_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_role_grants_pending: {
+        Row: {
+          applied_at: string | null
+          applied_user_id: string | null
+          created_at: string
+          created_by: string
+          desired_role: string
+          email: string
+          id: string
+          organization_id: string
+          revoked_at: string | null
+          status: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_user_id?: string | null
+          created_at?: string
+          created_by: string
+          desired_role?: string
+          email: string
+          id?: string
+          organization_id: string
+          revoked_at?: string | null
+          status?: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_user_id?: string | null
+          created_at?: string
+          created_by?: string
+          desired_role?: string
+          email?: string
+          id?: string
+          organization_id?: string
+          revoked_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_role_grants_pending_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_organizations: {
+        Row: {
+          created_at: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_organizations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_domain_claims: {
+        Row: {
+          domain: string
+          id: string
+          requested_at: string
+          requested_by_user_id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by_user_id: string | null
+          status: string
+        }
+        Insert: {
+          domain: string
+          id?: string
+          requested_at?: string
+          requested_by_user_id: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          status?: string
+        }
+        Update: {
+          domain?: string
+          id?: string
+          requested_at?: string
+          requested_by_user_id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      workspace_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_domains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_entitlements: {
         Row: {
           granted_at: string | null
@@ -3821,6 +4141,80 @@ export type Database = {
       update_organization_billing_metrics: {
         Args: { org_id: string }
         Returns: undefined
+      }
+      apply_pending_admin_grants_for_user: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
+      create_google_workspace_oauth_session: {
+        Args: {
+          p_organization_id: string
+          p_origin_url?: string | null
+          p_redirect_url?: string | null
+        }
+        Returns: {
+          expires_at: string
+          nonce: string
+          session_token: string
+        }[]
+      }
+      create_workspace_organization_for_domain: {
+        Args: { p_domain: string; p_organization_name: string }
+        Returns: {
+          domain: string
+          organization_id: string
+        }[]
+      }
+      get_google_workspace_connection_status: {
+        Args: { p_organization_id: string }
+        Returns: {
+          access_token_expires_at: string
+          connected_at: string
+          domain: string
+          is_connected: boolean
+          scopes: string
+        }[]
+      }
+      get_workspace_onboarding_state: {
+        Args: { p_user_id: string }
+        Returns: {
+          claim_id: string
+          claim_status: string
+          domain: string
+          domain_status: string
+          email: string
+          is_workspace_connected: boolean
+          workspace_org_id: string
+        }[]
+      }
+      is_user_google_oauth_verified: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      normalize_domain: { Args: { p_domain: string }; Returns: string }
+      normalize_email: { Args: { p_email: string }; Returns: string }
+      request_workspace_domain_claim: {
+        Args: { p_domain: string }
+        Returns: string
+      }
+      select_google_workspace_members: {
+        Args: {
+          p_admin_emails?: string[]
+          p_emails: string[]
+          p_organization_id: string
+        }
+        Returns: Json
+      }
+      validate_google_workspace_oauth_session: {
+        Args: { p_session_token: string }
+        Returns: {
+          is_valid: boolean
+          nonce: string
+          organization_id: string
+          origin_url: string
+          redirect_url: string
+          user_id: string
+        }[]
       }
       user_has_access: { Args: { user_uuid: string }; Returns: boolean }
       validate_invitation_for_account_creation: {

@@ -1,0 +1,200 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import {
+  createAdminSupabaseClient,
+  createUserSupabaseClient,
+  createErrorResponse,
+  requireUser,
+  verifyOrgAdmin,
+} from "../_shared/supabase-clients.ts";
+
+interface SyncRequest {
+  organizationId: string;
+}
+
+interface GoogleRefreshResponse {
+  access_token: string;
+  expires_in: number;
+  scope?: string;
+  token_type?: string;
+}
+
+interface GoogleDirectoryUser {
+  id: string;
+  primaryEmail: string;
+  name?: {
+    fullName?: string;
+    givenName?: string;
+    familyName?: string;
+  };
+  suspended?: boolean;
+  orgUnitPath?: string;
+}
+
+interface GoogleDirectoryResponse {
+  users?: GoogleDirectoryUser[];
+  nextPageToken?: string;
+}
+
+const TOKEN_URL = "https://oauth2.googleapis.com/token";
+const USERS_URL = "https://admin.googleapis.com/admin/directory/v1/users";
+
+const logStep = (step: string, details?: Record<string, unknown>) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
+  console.log(`[GOOGLE-WORKSPACE-SYNC] ${step}${detailsStr}`);
+};
+
+async function refreshAccessToken(refreshToken: string): Promise<GoogleRefreshResponse> {
+  const clientId = Deno.env.get("GOOGLE_WORKSPACE_CLIENT_ID");
+  const clientSecret = Deno.env.get("GOOGLE_WORKSPACE_CLIENT_SECRET");
+
+  if (!clientId || !clientSecret) {
+    throw new Error("Google Workspace OAuth is not configured");
+  }
+
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+    client_id: clientId,
+    client_secret: clientSecret,
+  });
+
+  const response = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to refresh Google access token");
+  }
+
+  return await response.json();
+}
+
+function buildDirectoryUrl(domain: string, pageToken?: string): string {
+  const params = new URLSearchParams({
+    customer: "my_customer",
+    maxResults: "500",
+    orderBy: "email",
+    domain,
+  });
+
+  if (pageToken) {
+    params.set("pageToken", pageToken);
+  }
+
+  return `${USERS_URL}?${params.toString()}`;
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    if (req.method !== "POST") {
+      return createErrorResponse("Method not allowed", 405);
+    }
+
+    const supabase = createUserSupabaseClient(req);
+    const auth = await requireUser(req, supabase);
+    if ("error" in auth) {
+      return createErrorResponse(auth.error, auth.status);
+    }
+
+    const body: SyncRequest = await req.json();
+    const { organizationId } = body;
+    if (!organizationId) {
+      return createErrorResponse("organizationId is required", 400);
+    }
+
+    const isAdmin = await verifyOrgAdmin(supabase, auth.user.id, organizationId);
+    if (!isAdmin) {
+      return createErrorResponse("Only organization administrators can sync Workspace users", 403);
+    }
+
+    const adminClient = createAdminSupabaseClient();
+    const { data: creds, error: credsError } = await adminClient
+      .from("google_workspace_credentials")
+      .select("domain, refresh_token")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (credsError || !creds?.refresh_token || !creds?.domain) {
+      return createErrorResponse("Google Workspace is not connected for this organization", 400);
+    }
+
+    const tokenData = await refreshAccessToken(creds.refresh_token);
+    const accessToken = tokenData.access_token;
+    const accessTokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
+
+    await adminClient
+      .from("google_workspace_credentials")
+      .update({
+        access_token_expires_at: accessTokenExpiresAt.toISOString(),
+        scopes: tokenData.scope || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("organization_id", organizationId)
+      .eq("domain", creds.domain);
+
+    let nextPageToken: string | undefined;
+    let totalUsers = 0;
+    const nowIso = new Date().toISOString();
+
+    do {
+      const url = buildDirectoryUrl(creds.domain, nextPageToken);
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        logStep("Directory API error", { status: response.status });
+        return createErrorResponse("Failed to fetch Google Workspace users", 502);
+      }
+
+      const payload: GoogleDirectoryResponse = await response.json();
+      const users = payload.users || [];
+      totalUsers += users.length;
+
+      const rows = users.map((user) => ({
+        organization_id: organizationId,
+        google_user_id: user.id,
+        primary_email: user.primaryEmail,
+        full_name: user.name?.fullName || null,
+        given_name: user.name?.givenName || null,
+        family_name: user.name?.familyName || null,
+        suspended: user.suspended ?? false,
+        org_unit_path: user.orgUnitPath || null,
+        last_synced_at: nowIso,
+        updated_at: nowIso,
+      }));
+
+      if (rows.length > 0) {
+        const { error: upsertError } = await adminClient
+          .from("google_workspace_directory_users")
+          .upsert(rows, { onConflict: "organization_id,google_user_id" });
+
+        if (upsertError) {
+          logStep("Upsert error", { error: upsertError.message });
+          return createErrorResponse("Failed to store directory users", 500);
+        }
+      }
+
+      nextPageToken = payload.nextPageToken;
+    } while (nextPageToken);
+
+    return new Response(JSON.stringify({ success: true, usersSynced: totalUsers }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    logStep("ERROR", { message: error instanceof Error ? error.message : String(error) });
+    return createErrorResponse("Unexpected error while syncing Google Workspace users", 500);
+  }
+});
+

@@ -56,6 +56,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               window.location.href = pendingRedirect;
             }, 100);
           }
+
+          // Apply pending admin grants for Google-verified users
+          supabase.rpc('apply_pending_admin_grants_for_user', {
+            p_user_id: session.user.id
+          }).catch((error) => {
+            if (import.meta.env.DEV) {
+              logger.warn('Failed to apply pending admin grants', error);
+            }
+          });
         }
 
         // Don't trigger session refresh for token refreshes - this is normal
