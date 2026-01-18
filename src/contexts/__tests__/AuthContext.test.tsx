@@ -16,6 +16,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       signInWithOAuth: vi.fn(),
       signOut: vi.fn(),
     },
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   },
 }));
 

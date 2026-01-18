@@ -29,6 +29,9 @@ vi.mock('react-router-dom', async () => {
 // Make vi globally available for tests
 globalThis.vi = vi;
 
+// Ensure Vite define constants exist in tests
+vi.stubGlobal('__APP_VERSION__', 'test');
+
 // Cleanup after each test case
 afterEach(() => {
   cleanup();
