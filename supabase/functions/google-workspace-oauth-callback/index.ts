@@ -45,12 +45,13 @@ function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): 
     const url = new URL(redirectUrl);
     const productionDomain = new URL(productionUrl).hostname;
 
+    // Only allow production domain and localhost for development
+    // Wildcard domains (*.vercel.app, *.netlify.app) are not allowed as they
+    // could be exploited by malicious apps deployed on these platforms
     const allowedDomains = [
       productionDomain,
       "localhost",
       "127.0.0.1",
-      ".vercel.app",
-      ".netlify.app",
     ];
 
     for (const domain of allowedDomains) {

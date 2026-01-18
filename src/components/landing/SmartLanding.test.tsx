@@ -23,6 +23,11 @@ vi.mock('@/hooks/useWorkspaceOnboarding', () => ({
   useWorkspaceOnboardingState: () => mockUseWorkspaceOnboardingState(),
 }));
 
+vi.mock('@/pages/Landing', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 describe('SmartLanding', () => {
   beforeEach(() => {
     mockNavigate.mockClear();

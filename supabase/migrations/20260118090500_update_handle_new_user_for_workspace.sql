@@ -65,11 +65,11 @@ BEGIN
 
     INSERT INTO public.personal_organizations (user_id, organization_id)
     VALUES (NEW.id, new_org_id)
-    ON CONFLICT DO NOTHING;
+    ON CONFLICT (user_id) DO NOTHING;
 
     INSERT INTO public.organization_members (organization_id, user_id, role, status)
     VALUES (new_org_id, NEW.id, 'owner', 'active')
-    ON CONFLICT DO NOTHING;
+    ON CONFLICT (organization_id, user_id) DO NOTHING;
   END IF;
 
   -- ═══════════════════════════════════════════════════════════════════════════
@@ -80,7 +80,7 @@ BEGIN
   FROM public.organization_member_claims c
   WHERE public.normalize_email(c.email) = public.normalize_email(NEW.email)
     AND c.status IN ('selected', 'claimed')
-  ON CONFLICT DO NOTHING;
+  ON CONFLICT (organization_id, user_id) DO NOTHING;
 
   UPDATE public.organization_member_claims
   SET status = 'claimed',

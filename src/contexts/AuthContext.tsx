@@ -58,13 +58,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           // Apply pending admin grants for Google-verified users
-          supabase.rpc('apply_pending_admin_grants_for_user', {
-            p_user_id: session.user.id
-          }).catch((error) => {
-            if (import.meta.env.DEV) {
-              logger.warn('Failed to apply pending admin grants', error);
-            }
-          });
+          // Avoid calling this RPC repeatedly for the same user within a single browser session
+          const adminGrantsCacheKey = `adminGrantsApplied:${session.user.id}`;
+          const hasAppliedAdminGrants = sessionStorage.getItem(adminGrantsCacheKey);
+
+          if (!hasAppliedAdminGrants) {
+            supabase.rpc('apply_pending_admin_grants_for_user', {
+              p_user_id: session.user.id
+            })
+              .then(() => {
+                // Cache that we've applied (or attempted to apply) admin grants for this user
+                sessionStorage.setItem(adminGrantsCacheKey, 'true');
+              })
+              .catch((error) => {
+                if (import.meta.env.DEV) {
+                  logger.warn('Failed to apply pending admin grants', error);
+                }
+              });
+          }
         }
 
         // Don't trigger session refresh for token refreshes - this is normal
@@ -144,6 +155,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clear application-specific session storage
       try {
         sessionStorage.removeItem('pendingRedirect');
+        // Clear admin grants cache keys (they start with adminGrantsApplied:)
+        Object.keys(sessionStorage)
+          .filter(key => key.startsWith('adminGrantsApplied:'))
+          .forEach(key => sessionStorage.removeItem(key));
       } catch (sessionError) {
         logger.warn('Error clearing sessionStorage', sessionError);
       }

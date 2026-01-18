@@ -112,6 +112,9 @@ CREATE TABLE IF NOT EXISTS public.google_workspace_credentials (
   updated_at timestamptz DEFAULT now() NOT NULL
 );
 
+COMMENT ON COLUMN public.google_workspace_credentials.refresh_token IS
+  'Application-layer encrypted Google OAuth refresh token. Raw (unencrypted) tokens must never be stored in this column.';
+
 CREATE UNIQUE INDEX IF NOT EXISTS google_workspace_credentials_org_domain
   ON public.google_workspace_credentials (organization_id, public.normalize_domain(domain));
 
@@ -256,16 +259,16 @@ BEGIN
 
   email := v_email;
   domain := v_domain;
-  claim_id := v_claim.id;
-  claim_status := v_claim.status;
+  claim_id := CASE WHEN v_claim IS NOT NULL THEN v_claim.id ELSE NULL END;
+  claim_status := CASE WHEN v_claim IS NOT NULL THEN v_claim.status ELSE NULL END;
   workspace_org_id := v_workspace.organization_id;
   is_workspace_connected := v_connected;
 
   IF v_workspace.organization_id IS NOT NULL THEN
     domain_status := 'claimed';
-  ELSIF v_claim.status = 'approved' THEN
+  ELSIF v_claim IS NOT NULL AND v_claim.status = 'approved' THEN
     domain_status := 'approved';
-  ELSIF v_claim.status = 'pending' THEN
+  ELSIF v_claim IS NOT NULL AND v_claim.status = 'pending' THEN
     domain_status := 'pending';
   ELSE
     domain_status := 'unclaimed';
@@ -599,10 +602,12 @@ BEGIN
     'selected',
     v_user_id
   FROM unnest(p_emails) AS e
-  ON CONFLICT (organization_id, email) DO UPDATE
-    SET status = 'selected',
-        created_by = EXCLUDED.created_by,
-        created_at = now();
+  ON CONFLICT (organization_id, public.normalize_email(email))
+    WHERE status IN ('selected', 'claimed')
+    DO UPDATE
+      SET status = 'selected',
+          created_by = EXCLUDED.created_by,
+          created_at = now();
 
   -- Create memberships immediately for existing users
   INSERT INTO public.organization_members (organization_id, user_id, role, status)
@@ -611,7 +616,7 @@ BEGIN
   WHERE public.normalize_email(u.email) = ANY (
     SELECT public.normalize_email(e) FROM unnest(p_emails) AS e
   )
-  ON CONFLICT DO NOTHING;
+  ON CONFLICT (organization_id, user_id) DO NOTHING;
 
   GET DIAGNOSTICS v_member_count = ROW_COUNT;
 
@@ -626,7 +631,9 @@ BEGIN
     'pending',
     v_user_id
   FROM unnest(p_admin_emails) AS e
-  ON CONFLICT (organization_id, email) DO NOTHING;
+  ON CONFLICT (organization_id, public.normalize_email(email))
+    WHERE status = 'pending'
+    DO NOTHING;
 
   -- Apply admin grants immediately for Google-verified users
   UPDATE public.organization_members om
