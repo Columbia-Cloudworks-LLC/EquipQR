@@ -142,8 +142,24 @@ serve(async (req) => {
       .eq("domain", creds.domain);
 
     let nextPageToken: string | undefined;
-    let totalUsers = 0;
     const nowIso = new Date().toISOString();
+
+    // Batch configuration: collect users across pages before upserting
+    const BATCH_SIZE = 1000; // Upsert after collecting this many users
+    let pendingRows: Array<{
+      organization_id: string;
+      google_user_id: string;
+      primary_email: string;
+      full_name: string | null;
+      given_name: string | null;
+      family_name: string | null;
+      suspended: boolean;
+      org_unit_path: string | null;
+      last_synced_at: string;
+      updated_at: string;
+    }> = [];
+    let totalUsers = 0;
+    let pagesProcessed = 0;
 
     do {
       const url = buildDirectoryUrl(creds.domain, nextPageToken);
@@ -160,7 +176,7 @@ serve(async (req) => {
 
       const payload: GoogleDirectoryResponse = await response.json();
       const users = payload.users || [];
-      totalUsers += users.length;
+      pagesProcessed++;
 
       const rows = users.map((user) => ({
         organization_id: organizationId,
@@ -175,19 +191,41 @@ serve(async (req) => {
         updated_at: nowIso,
       }));
 
-      if (rows.length > 0) {
+      pendingRows.push(...rows);
+      totalUsers += rows.length;
+
+      // Batch upsert when we've collected enough users to reduce DB round trips
+      if (pendingRows.length >= BATCH_SIZE) {
+        logStep("Batch upserting users", { count: pendingRows.length, pagesProcessed, totalSoFar: totalUsers });
         const { error: upsertError } = await adminClient
           .from("google_workspace_directory_users")
-          .upsert(rows, { onConflict: "organization_id,google_user_id" });
+          .upsert(pendingRows, { onConflict: "organization_id,google_user_id" });
 
         if (upsertError) {
           logStep("Upsert error", { error: upsertError.message });
           return createErrorResponse("Failed to store directory users", 500);
         }
+
+        pendingRows = []; // Reset batch
       }
 
       nextPageToken = payload.nextPageToken;
     } while (nextPageToken);
+
+    // Final upsert for remaining users
+    if (pendingRows.length > 0) {
+      logStep("Final batch upserting users", { count: pendingRows.length, pagesProcessed, total: totalUsers });
+      const { error: upsertError } = await adminClient
+        .from("google_workspace_directory_users")
+        .upsert(pendingRows, { onConflict: "organization_id,google_user_id" });
+
+      if (upsertError) {
+        logStep("Upsert error", { error: upsertError.message });
+        return createErrorResponse("Failed to store directory users", 500);
+      }
+    }
+
+    logStep("Sync complete", { totalUsers, pagesProcessed });
 
     return new Response(JSON.stringify({ success: true, usersSynced: totalUsers }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

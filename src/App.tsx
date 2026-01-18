@@ -6,6 +6,7 @@ import { TeamProvider } from '@/contexts/TeamContext';
 import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvider'; // Fixed import path
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard';
 
 // Critical components loaded eagerly to prevent loading issues for unauthenticated users
 import Auth from '@/pages/Auth';
@@ -118,8 +119,9 @@ function App() {
             element={
               <ProtectedRoute>
                 <SimpleOrganizationProvider>
-                  <TeamProvider>
-                    <SidebarProvider>
+                  <WorkspaceOnboardingGuard>
+                    <TeamProvider>
+                      <SidebarProvider>
                       <div className="flex min-h-screen w-full">
                         <Suspense fallback={
                           <div className="w-64 border-r bg-sidebar">
@@ -183,8 +185,9 @@ function App() {
                           </Suspense>
                         </SidebarInset>
                       </div>
-                    </SidebarProvider>
-                  </TeamProvider>
+                      </SidebarProvider>
+                    </TeamProvider>
+                  </WorkspaceOnboardingGuard>
                 </SimpleOrganizationProvider>
               </ProtectedRoute>
             }
