@@ -52,11 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Migration Squashing System**: New baseline migration workflow for faster local/CI setup
+- **Migration Baseline**: New baseline migration for faster fresh environment setup
   - Generated `supabase/migrations/20260114000000_baseline.sql` (13,000+ lines) containing complete schema snapshot
-  - Archived 143 historical migrations to `supabase/migrations_archive/` with README
   - New `docs/database/migration-squashing.md` with validation checklist and regeneration instructions
-  - Fresh environments now apply single baseline instead of 143 incremental migrations
+  - All historical migrations remain in `supabase/migrations/` for compatibility with existing databases
 
 - **Edge Function Shared Auth Utilities**: Standardized authentication patterns for Edge Functions
   - New `supabase/functions/_shared/supabase-clients.ts` with client creation helpers

@@ -1,6 +1,6 @@
 # Migration Squashing Guide
 
-This document describes the migration squashing process used to maintain a clean, fast-to-apply migration set.
+This document describes the migration squashing approach and its limitations.
 
 ## Why Squash Migrations?
 
@@ -9,17 +9,31 @@ Over time, development produces many small "fix" migrations that slow down:
 - CI pipelines
 - New team member onboarding
 
-By periodically squashing into a baseline, new environments apply a single SQL file instead of hundreds of incremental migrations.
+A baseline migration can help new environments apply a single SQL file instead of hundreds of incremental migrations.
 
 ## Current State
 
 - **Baseline**: `supabase/migrations/20260114000000_baseline.sql` (13,000+ lines)
-- **Archived**: `supabase/migrations_archive/` (143 historical migrations)
-- **Active**: Only migrations after the baseline timestamp
+- **All Historical Migrations**: Kept in `supabase/migrations/` alongside the baseline
+- **Active**: All migrations remain in the migrations folder
+
+## Important: Why We Don't Archive Migrations
+
+**Do NOT move migrations to an archive folder.** Supabase CLI compares local migrations against the `supabase_migrations` table in remote databases. If historical migrations exist in the remote but not locally, you'll get:
+
+```
+Remote migration versions not found in local migrations directory.
+```
+
+The baseline migration is useful for:
+- **Fresh local resets**: `supabase db reset` applies migrations in order; the baseline provides the starting schema
+- **New environments**: A completely new database can use just the baseline
+
+But for **existing production/staging databases**, all historical migrations must remain in the migrations folder.
 
 ## Validation Checklist
 
-After squashing, verify the baseline is correct:
+After any schema changes, verify with:
 
 ### 1. Fresh Local Reset
 
@@ -27,7 +41,7 @@ After squashing, verify the baseline is correct:
 # Stop any running Supabase instance
 npx supabase stop
 
-# Reset and apply baseline + seeds
+# Reset and apply all migrations + seeds
 npx supabase db reset
 
 # Start services
@@ -89,7 +103,7 @@ SELECT COUNT(*) FROM pm_templates;
 
 ## How to Regenerate the Baseline
 
-When ready to squash again (e.g., quarterly):
+When ready to create a new baseline (e.g., quarterly):
 
 ```bash
 # 1. Link to production project
@@ -98,32 +112,24 @@ npx supabase link --project-ref <your-project-ref>
 # 2. Dump current schema
 npx supabase db dump --schema public --file supabase/migrations/<timestamp>_baseline.sql
 
-# 3. Archive old migrations
-mkdir -p supabase/migrations_archive
-mv supabase/migrations/2025*.sql supabase/migrations_archive/
-# (Keep only the new baseline and any migrations after it)
+# 3. Keep ALL migrations in the migrations folder
+# Do NOT archive or delete old migrations!
 
-# 4. Validate (see checklist above)
+# 4. Validate
 npx supabase db reset
 ```
 
 ## Production/Staging Considerations
 
-**Critical**: Never re-apply the baseline to environments that have already run the historical migrations.
+**Critical**: The baseline is supplementary, not a replacement for historical migrations.
 
-- **Production/Staging**: Their schema is already current via incremental migrations. The baseline is only for new installs.
-- **Existing Dev DBs**: If you've been developing locally, you may see a "migration history mismatch". Options:
-  1. Reset your local DB: `npx supabase db reset` (loses local data)
-  2. Keep working with your existing DB (no action needed if schema is current)
-
-## Squash Cadence
-
-Recommended: Squash quarterly or after major feature releases that add many migrations.
+- **Production/Staging**: Their schema is already current via incremental migrations. They ignore the baseline because those version numbers are already recorded.
+- **Fresh Databases**: Will apply the baseline first, then any migrations with timestamps after the baseline.
+- **Existing Dev DBs**: Keep working normally; migrations are applied incrementally.
 
 ## Files Reference
 
 | Path | Purpose |
 |------|---------|
-| `supabase/migrations/` | Active migrations (baseline + new) |
-| `supabase/migrations_archive/` | Historical migrations (kept in git) |
+| `supabase/migrations/` | All migrations (baseline + historical + new) |
 | `supabase/seeds/*.sql` | Seed data for local development |
