@@ -159,7 +159,9 @@ serve(async (req) => {
     const nowIso = new Date().toISOString();
 
     // Batch configuration: collect users across pages before upserting
-    const BATCH_SIZE = 1000; // Upsert after collecting this many users
+    // Using 200 users per batch for better error recovery granularity
+    // and to avoid potential timeout/memory issues with larger batches
+    const BATCH_SIZE = 200; // Upsert after collecting this many users
     let pendingRows: Array<{
       organization_id: string;
       google_user_id: string;

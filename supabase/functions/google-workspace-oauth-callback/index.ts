@@ -182,9 +182,9 @@ serve(async (req) => {
     // Tighter validation: 15-minute TTL with 2-minute clock skew tolerance
     // This prevents replay attacks while allowing for reasonable clock drift between
     // the client, this server, and Google's servers. A 2-minute tolerance is standard
-    // for OAuth flows and reduces the attack window compared to 5 minutes.
+    // for OAuth flows and keeps the replay attack window small.
     const stateTtlMs = 15 * 60 * 1000; // 15 minutes max age
-    const maxClockSkewMs = 2 * 60 * 1000; // 2 minutes future tolerance (reduced from 5 for better security)
+    const maxClockSkewMs = 2 * 60 * 1000; // 2 minutes future tolerance to allow typical clock drift
 
     // Calculate the time difference (positive = state is in the past)
     const ageMs = nowMs - stateTimestamp;
@@ -232,6 +232,22 @@ serve(async (req) => {
 
     const redirectBaseUrl = oauthRedirectBaseUrl.trim().replace(/\/+$/, "");
     const redirectUri = `${redirectBaseUrl}/functions/v1/google-workspace-oauth-callback`;
+
+    // Validate redirect_uri against allowlist to prevent redirect manipulation attacks
+    // The allowlist is derived from validated environment variables
+    const allowedRedirectBases = [
+      supabaseUrl?.trim().replace(/\/+$/, ""),
+      Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL")?.trim().replace(/\/+$/, ""),
+    ].filter(Boolean) as string[];
+
+    const isRedirectUriAllowed = allowedRedirectBases.some(base => 
+      redirectUri.startsWith(base + "/functions/v1/google-workspace-oauth-callback")
+    );
+
+    if (!isRedirectUriAllowed) {
+      logStep("ERROR: redirect_uri not in allowlist", { redirectUri, allowedBases: allowedRedirectBases });
+      throw new Error("Invalid OAuth redirect configuration");
+    }
 
     const tokenRequestBody = new URLSearchParams({
       grant_type: "authorization_code",

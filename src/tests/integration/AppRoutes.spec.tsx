@@ -67,19 +67,31 @@ vi.mock('@/components/layout/TopBar', () => ({
   default: () => <div data-testid="top-bar">TopBar</div>
 }));
 
+// Create QueryClient once outside mock to avoid unnecessary object creation
+// and potential state leakage between tests
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+    mutations: { retry: false },
+  },
+});
+
+// Singleton instance for tests - cleared in beforeEach
+let testQueryClient: QueryClient;
+
 vi.mock('@/components/providers/AppProviders', () => {
-  const testQueryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
   return {
-    AppProviders: ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={testQueryClient}>
-        <div data-testid="app-providers">{children}</div>
-      </QueryClientProvider>
-    ),
+    AppProviders: ({ children }: { children: React.ReactNode }) => {
+      // Use the test QueryClient that's reset between tests
+      if (!testQueryClient) {
+        testQueryClient = createTestQueryClient();
+      }
+      return (
+        <QueryClientProvider client={testQueryClient}>
+          <div data-testid="app-providers">{children}</div>
+        </QueryClientProvider>
+      );
+    },
   };
 });
 
@@ -97,6 +109,8 @@ vi.mock('react-router-dom', async () => {
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset QueryClient between tests to prevent state leakage
+    testQueryClient = createTestQueryClient();
   });
 
   const renderApp = (initialEntries = ['/']) => {

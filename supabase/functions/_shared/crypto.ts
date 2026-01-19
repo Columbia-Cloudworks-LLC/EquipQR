@@ -120,6 +120,19 @@ function hasLowEntropy(key: string): boolean {
 }
 
 /**
+ * Validates that the encryption key is properly configured.
+ * Call this at module load time or during health checks to catch
+ * configuration issues early rather than at first encryption attempt.
+ * 
+ * @returns true if the key is valid, throws otherwise
+ */
+export function validateEncryptionKeyConfiguration(): boolean {
+  // This will throw if key is missing or invalid
+  getTokenEncryptionKey();
+  return true;
+}
+
+/**
  * Gets the encryption key from environment, throwing if not set or too weak.
  * 
  * IMPORTANT: In production, TOKEN_ENCRYPTION_KEY must be a cryptographically
@@ -132,7 +145,10 @@ function hasLowEntropy(key: string): boolean {
 export function getTokenEncryptionKey(): string {
   const key = Deno.env.get('TOKEN_ENCRYPTION_KEY');
   if (!key) {
-    throw new Error('TOKEN_ENCRYPTION_KEY environment variable is not set');
+    throw new Error(
+      'TOKEN_ENCRYPTION_KEY environment variable is not set. ' +
+      'This is a critical security configuration. Generate a key with: openssl rand -base64 32'
+    );
   }
   
   // Validate minimum key length to ensure sufficient entropy

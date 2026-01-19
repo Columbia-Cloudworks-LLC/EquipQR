@@ -122,11 +122,16 @@ export async function requireUser(
     return { error: "No authorization header provided", status: 401 };
   }
 
-  if (!authHeader.toLowerCase().startsWith("bearer ")) {
+  // Parse Authorization header with case-insensitive scheme detection
+  const parts = authHeader.split(" ");
+  const scheme = parts[0];
+  const credentials = parts.slice(1).join(" ");
+
+  if (!scheme || scheme.toLowerCase() !== "bearer" || !credentials) {
     return { error: "Invalid authorization header format", status: 401 };
   }
 
-  const token = authHeader.substring(7).trim();
+  const token = credentials.trim();
 
   if (!token) {
     return { error: "Empty token", status: 401 };
@@ -203,18 +208,56 @@ export async function verifyOrgAdmin(
 
 /**
  * Create a JSON error response with CORS headers.
+ * 
+ * Note: Only pass user-safe error messages. Internal details and stack traces
+ * should be logged server-side but never exposed to clients.
  */
 export function createErrorResponse(
   error: string,
   status: number = 500
 ): Response {
+  // Sanitize error message to prevent information disclosure
+  // Never expose stack traces or internal system details to clients
+  const sanitizedError = sanitizeErrorMessage(error);
+  
   return new Response(
-    JSON.stringify({ error }),
+    JSON.stringify({ error: sanitizedError }),
     {
       status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     }
   );
+}
+
+/**
+ * Sanitizes error messages to prevent information disclosure.
+ * Removes stack traces and internal implementation details.
+ */
+function sanitizeErrorMessage(error: string): string {
+  // If the error contains stack trace patterns, return a generic message
+  const stackTracePatterns = [
+    /at\s+\w+\s+\(/i,           // "at functionName ("
+    /at\s+<anonymous>/i,         // "at <anonymous>"
+    /\s+at\s+.*:\d+:\d+/i,       // " at file.ts:10:5"
+    /Error:\s*\n/i,              // "Error:\n" followed by stack
+    /^\s+at\s+/m,                // Lines starting with "at " (stack frames)
+  ];
+
+  for (const pattern of stackTracePatterns) {
+    if (pattern.test(error)) {
+      console.error("[SANITIZED] Original error contained stack trace:", error);
+      return "An internal error occurred";
+    }
+  }
+
+  // Truncate overly long error messages that might contain debug info
+  const MAX_ERROR_LENGTH = 200;
+  if (error.length > MAX_ERROR_LENGTH) {
+    console.error("[TRUNCATED] Original error:", error);
+    return error.substring(0, MAX_ERROR_LENGTH) + "...";
+  }
+
+  return error;
 }
 
 /**
