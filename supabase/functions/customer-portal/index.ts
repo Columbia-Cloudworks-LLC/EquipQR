@@ -60,9 +60,13 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in customer-portal", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    // Log the full error server-side for debugging
+    logStep("ERROR in customer-portal", { 
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    // Return generic message to client - never expose error.message directly
+    return new Response(JSON.stringify({ error: "An unexpected error occurred" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

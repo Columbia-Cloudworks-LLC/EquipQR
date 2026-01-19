@@ -830,10 +830,9 @@ Deno.serve(async (req) => {
       throw exportError;
     }
   } catch (error) {
+    // Log the full error server-side for debugging
     console.error('[EXPORT-WORK-ORDERS-EXCEL] Export error:', error);
-    return createErrorResponse(
-      error instanceof Error ? error.message : 'Internal server error',
-      500
-    );
+    // Return generic message to client - never expose error.message directly
+    return createErrorResponse("An unexpected error occurred", 500);
   }
 });

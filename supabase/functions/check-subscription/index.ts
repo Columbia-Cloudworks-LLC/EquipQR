@@ -138,8 +138,12 @@ Deno.serve(async (req) => {
       subscription_end: subscriptionEnd,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in check-subscription", { message: errorMessage });
-    return createErrorResponse(errorMessage, 500);
+    // Log the full error server-side for debugging
+    logStep("ERROR in check-subscription", { 
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    // Return generic message to client - never expose error.message directly
+    return createErrorResponse("An unexpected error occurred", 500);
   }
 });

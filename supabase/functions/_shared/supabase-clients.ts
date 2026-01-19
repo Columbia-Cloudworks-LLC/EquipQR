@@ -207,79 +207,103 @@ export async function verifyOrgAdmin(
 // =============================================================================
 
 /**
+ * Allowlist of safe error message prefixes/patterns.
+ * Only messages matching these patterns are considered safe for client exposure.
+ * This allowlist approach prevents information disclosure (CWE-209) by ensuring
+ * only known-safe messages reach clients.
+ */
+const SAFE_ERROR_PATTERNS: RegExp[] = [
+  // Authentication/Authorization errors
+  /^No authorization header provided$/,
+  /^Invalid authorization header format$/,
+  /^Empty token$/,
+  /^Invalid or expired token$/,
+  /^User email not available$/,
+  /^Only organization (owners|admins|administrators) can /,
+  /^Forbidden: /,
+  /^You are not a member of /,
+  /^Google Workspace is not connected/,
+  
+  // Validation errors
+  /^Method not allowed$/,
+  /^Missing required field/,
+  /^(Quantity|organizationId|scanned_value|input) (is|are) required$/,
+  /^\w+ and \w+ are required$/,
+  /^Unsupported format/,
+  /^Rate limit exceeded/,
+  /^Invitation not found$/,
+  
+  // Safe operational messages
+  /^Failed to (verify|fetch|store|decrypt|send)/,
+  /^An unexpected error occurred$/,
+  /^An internal error occurred$/,
+  /^Internal server error$/,
+  
+  // Stripe-related safe messages
+  /^Stripe price .+ not found/,
+];
+
+/** Default generic error message when the original is not allowlisted */
+const GENERIC_ERROR_MESSAGE = "An internal error occurred";
+
+/**
+ * Checks if an error message is safe to expose to clients.
+ * Uses an allowlist approach - only explicitly safe messages pass through.
+ */
+function isErrorMessageSafe(error: string): boolean {
+  // Empty or very short messages are suspicious
+  if (!error || error.length < 3) {
+    return false;
+  }
+  
+  // Messages over 200 chars likely contain debug info
+  if (error.length > 200) {
+    return false;
+  }
+  
+  // Check against allowlist
+  return SAFE_ERROR_PATTERNS.some(pattern => pattern.test(error));
+}
+
+/**
  * Create a JSON error response with CORS headers.
  * 
- * Note: Only pass user-safe error messages. Internal details and stack traces
- * should be logged server-side but never exposed to clients.
+ * Security (CWE-209 mitigation): This function uses an allowlist approach to
+ * prevent information disclosure. Only error messages matching known-safe
+ * patterns are exposed to clients. All other messages are replaced with a
+ * generic error and the original is logged server-side for debugging.
  * 
- * Security: This function sanitizes all error messages via sanitizeErrorMessage()
- * to prevent information disclosure (CWE-209). Stack traces, file paths, and
- * overly long messages are detected and replaced with generic responses.
+ * @param error - The error message (will be validated against allowlist)
+ * @param status - HTTP status code (default: 500)
  */
 export function createErrorResponse(
   error: string,
   status: number = 500
 ): Response {
-  // Sanitize error message to prevent information disclosure (CWE-209)
-  // This catches stack traces, file paths, and internal details
-  // Always sanitize regardless of input to ensure defense-in-depth
-  const sanitizedError = sanitizeErrorMessage(error);
+  // Use allowlist approach: only known-safe messages are exposed
+  // This ensures defense-in-depth against stack trace exposure
+  let safeMessage: string;
   
-  // Log the original error server-side before returning sanitized version
-  // This ensures we have debug info in logs without exposing it to clients
-  if (sanitizedError !== error) {
-    console.error("[createErrorResponse] Original error sanitized:", error);
+  if (isErrorMessageSafe(error)) {
+    safeMessage = error;
+  } else {
+    // Log the original error server-side for debugging
+    console.error("[createErrorResponse] Unsafe error message blocked:", error);
+    // Return a static generic message - no dynamic content from the error
+    safeMessage = GENERIC_ERROR_MESSAGE;
   }
   
-  // lgtm[js/stack-trace-exposure] - sanitizeErrorMessage() prevents stack trace exposure
+  // Create response with only the safe static message
+  // The safeMessage is either from the allowlist or a constant string literal
+  const responseBody = JSON.stringify({ error: safeMessage });
+  
   return new Response(
-    JSON.stringify({ error: sanitizedError }),
+    responseBody,
     {
       status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     }
   );
-}
-
-/**
- * Sanitizes error messages to prevent information disclosure (CWE-209).
- * Removes stack traces, file paths, and internal implementation details.
- * 
- * This is the primary defense against stack trace exposure in error responses.
- * All error messages pass through this function before being sent to clients.
- */
-function sanitizeErrorMessage(error: string): string {
-  // Patterns that indicate sensitive internal information
-  const sensitivePatterns = [
-    // Stack trace patterns
-    /at\s+\w+\s+\(/i,           // "at functionName ("
-    /at\s+<anonymous>/i,         // "at <anonymous>"
-    /\s+at\s+.*:\d+:\d+/i,       // " at file.ts:10:5"
-    /Error:\s*\n/i,              // "Error:\n" followed by stack
-    /^\s+at\s+/m,                // Lines starting with "at " (stack frames)
-    // File path patterns
-    /\/[a-z_-]+\/[a-z_-]+\.(ts|js|tsx|jsx)/i,  // Unix file paths
-    /[A-Z]:\\[^\\]+\\/i,         // Windows file paths
-    // Internal error patterns
-    /node_modules/i,             // Node modules paths
-    /internal\/|_internal\//i,   // Internal paths
-  ];
-
-  for (const pattern of sensitivePatterns) {
-    if (pattern.test(error)) {
-      console.error("[SANITIZED] Original error contained sensitive info:", error);
-      return "An internal error occurred";
-    }
-  }
-
-  // Truncate overly long error messages that might contain debug info
-  const MAX_ERROR_LENGTH = 200;
-  if (error.length > MAX_ERROR_LENGTH) {
-    console.error("[TRUNCATED] Original error:", error);
-    return error.substring(0, MAX_ERROR_LENGTH) + "...";
-  }
-
-  return error;
 }
 
 /**

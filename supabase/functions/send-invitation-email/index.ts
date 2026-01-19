@@ -234,14 +234,12 @@ Deno.serve(async (req) => {
       emailId: emailResponse.data?.id,
     });
   } catch (error: unknown) {
+    // Log the full error server-side for debugging
     logStep("ERROR", {
       message: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
     });
-
-    return createErrorResponse(
-      error instanceof Error ? error.message : "Failed to send invitation email",
-      500
-    );
+    // Return generic message to client - never expose error.message directly
+    return createErrorResponse("Failed to send invitation email", 500);
   }
 });
