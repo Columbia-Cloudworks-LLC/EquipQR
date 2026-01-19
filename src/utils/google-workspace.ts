@@ -117,7 +117,7 @@ export function needsWorkspaceOnboarding(
   // Check if domain is fully set up with connected workspace
   const domainFullySetUp = 
     onboardingState.domain_status === 'claimed' && 
-    onboardingState.is_workspace_connected === true;
+    onboardingState.is_workspace_connected;
 
   // User needs onboarding if domain is NOT fully set up
   return !domainFullySetUp;

@@ -188,8 +188,9 @@ Deno.serve(async (req) => {
     // the client, this server, and Google's servers.
     const ageMs = nowMs - stateTimestamp;
 
-    // Reject timestamps too far in the future (beyond clock skew tolerance)
-    // A negative age means the state is from the future; allow up to MAX_CLOCK_SKEW_MS
+    // Reject timestamps more than MAX_CLOCK_SKEW_MS in the future (beyond clock skew tolerance).
+    // A negative age means the state timestamp is ahead of server time; we allow small
+    // negative values to handle clock drift, but reject anything too far in the future.
     if (ageMs < -MAX_CLOCK_SKEW_MS) {
       throw new Error("OAuth state has an invalid timestamp. Please try again.");
     }
@@ -231,19 +232,22 @@ Deno.serve(async (req) => {
     const redirectBaseUrl = oauthRedirectBaseUrl.trim().replace(/\/+$/, "");
     const redirectUri = `${redirectBaseUrl}/functions/v1/google-workspace-oauth-callback`;
 
-    // Validate redirect_uri against allowlist to prevent redirect manipulation attacks
-    // The allowlist is derived from validated environment variables
-    const allowedRedirectBases = [
+    // Validate redirect_uri against allowlist to prevent redirect manipulation attacks.
+    // We use exact path matching (not startsWith) to prevent path traversal attacks
+    // where a malicious URI like "base/callback/../evil" could bypass validation.
+    const expectedCallbackPath = "/functions/v1/google-workspace-oauth-callback";
+    const allowedRedirectUris = [
       supabaseUrl?.trim().replace(/\/+$/, ""),
       Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL")?.trim().replace(/\/+$/, ""),
-    ].filter(Boolean) as string[];
+    ]
+      .filter(Boolean)
+      .map(base => base + expectedCallbackPath);
 
-    const isRedirectUriAllowed = allowedRedirectBases.some(base => 
-      redirectUri.startsWith(base + "/functions/v1/google-workspace-oauth-callback")
-    );
+    // Exact match required - no partial/prefix matching to prevent traversal attacks
+    const isRedirectUriAllowed = allowedRedirectUris.includes(redirectUri);
 
     if (!isRedirectUriAllowed) {
-      logStep("ERROR: redirect_uri not in allowlist", { redirectUri, allowedBases: allowedRedirectBases });
+      logStep("ERROR: redirect_uri not in allowlist", { redirectUri, allowedUris: allowedRedirectUris });
       throw new Error("Invalid OAuth redirect configuration");
     }
 
@@ -338,11 +342,15 @@ Deno.serve(async (req) => {
     const encryptedRefreshToken = await encryptToken(refreshToken, encryptionKey);
     logStep("Refresh token encrypted for storage");
 
-    // Upsert using the unique functional index on (organization_id, normalize_domain(domain))
-    // The domain is pre-normalized above (line 297) to match what the index expects.
-    // We use the index name instead of column names because functional indexes require
-    // the exact expression match. Since we've normalized the domain to match the index's
-    // normalize_domain() function output, using the index name ensures correct conflict resolution.
+    // Upsert using the unique functional index on (organization_id, normalize_domain(domain)).
+    // The domain is pre-normalized above (line 317) to match what the index expects.
+    //
+    // IMPORTANT: We use the index name instead of column names because this is a
+    // functional index (normalize_domain(domain)). Column-based onConflict resolution
+    // cannot target expression indexes - PostgreSQL requires the exact index name
+    // when the uniqueness constraint involves a function call. Since we've already
+    // normalized the domain to match the index's normalize_domain() output, using
+    // the index name ensures correct conflict detection and resolution.
     const { error: upsertError } = await supabaseClient
       .from("google_workspace_credentials")
       .upsert({
@@ -353,7 +361,8 @@ Deno.serve(async (req) => {
         scopes: tokenData.scope || null,
         updated_at: now.toISOString(),
       }, {
-        // Use the index name for functional indexes to ensure correct conflict resolution
+        // Use the index name because this is a functional index (normalize_domain(domain));
+        // column-based onConflict cannot target expression indexes, so the index name is required.
         onConflict: "google_workspace_credentials_org_domain",
       });
 

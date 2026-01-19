@@ -169,35 +169,29 @@ export function renderJourney(options: RenderJourneyOptions): RenderJourneyResul
 }
 
 // ============================================
-// Helper: Wait for app to be idle (no pending queries)
+// Helper: Query idle utilities (intentionally simplified)
 // ============================================
 
 /**
- * Wait for React Query to settle (no pending queries).
- * Useful after navigation or data mutations.
+ * @deprecated This helper does not actually check React Query state.
+ * Journey tests should use React Testing Library's `waitFor()` with explicit
+ * assertions instead of relying on a global "query idle" helper.
  * 
- * @example
+ * Example of preferred approach:
  * ```typescript
- * await waitForQueryIdle();
- * expect(screen.getByText('Data loaded')).toBeInTheDocument();
+ * await waitFor(() => {
+ *   expect(screen.getByText('Data loaded')).toBeInTheDocument();
+ * });
  * ```
+ * 
+ * This function is kept for backwards compatibility but simply resolves
+ * after a short delay. New tests should not use this function.
  */
-export async function waitForQueryIdle(timeoutMs = 5000): Promise<void> {
-  const start = Date.now();
-  
-  // Simple polling approach - in practice, journey tests should use
-  // waitFor() with specific assertions rather than relying on this
-  return new Promise((resolve) => {
-    const check = () => {
-      if (Date.now() - start > timeoutMs) {
-        resolve();
-        return;
-      }
-      // Give React time to process
-      setTimeout(resolve, 50);
-    };
-    check();
-  });
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function waitForQueryIdle(_timeoutMs = 5000): Promise<void> {
+  // Intentionally simple - just give React time to process.
+  // Tests should use waitFor() with specific assertions instead.
+  return new Promise((resolve) => setTimeout(resolve, 50));
 }
 
 // ============================================
