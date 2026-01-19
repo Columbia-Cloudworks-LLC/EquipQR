@@ -7986,7 +7986,19 @@ CREATE TABLE IF NOT EXISTS "public"."notifications" (
 ALTER TABLE "public"."notifications" OWNER TO "postgres";
 
 
-COMMENT ON COLUMN "public"."notifications"."is_global" IS 'When true, this notification is visible regardless of which organization the user is currently viewing. Used for cross-org notifications like ownership transfer requests.';
+-- Add comment only if column exists (for idempotent baseline on existing databases)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'notifications' 
+        AND column_name = 'is_global'
+    ) THEN
+        COMMENT ON COLUMN "public"."notifications"."is_global" IS 
+            'When true, this notification is visible regardless of which organization the user is currently viewing. Used for cross-org notifications like ownership transfer requests.';
+    END IF;
+END $$;
 
 
 
@@ -8998,362 +9010,307 @@ COMMENT ON COLUMN "public"."work_orders"."equipment_id" IS 'DEPRECATED: Use work
 
 
 
-COMMENT ON COLUMN "public"."work_orders"."equipment_working_hours_at_creation" IS 'Equipment working hours at the time this work order was created. Used as a historical KPI for maintenance scheduling and equipment usage tracking.';
+-- Add comment only if column exists (for idempotent baseline on existing databases)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'work_orders' 
+        AND column_name = 'equipment_working_hours_at_creation'
+    ) THEN
+        COMMENT ON COLUMN "public"."work_orders"."equipment_working_hours_at_creation" IS 
+            'Equipment working hours at the time this work order was created. Used as a historical KPI for maintenance scheduling and equipment usage tracking.';
+    END IF;
+END $$;
 
 
+-- ============================================================================
+-- PRIMARY KEY AND UNIQUE CONSTRAINTS
+-- Only add constraints if they don't already exist (for idempotent baseline)
+-- ============================================================================
 
-ALTER TABLE ONLY "public"."audit_log"
-    ADD CONSTRAINT "audit_log_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_log_pkey') THEN ALTER TABLE ONLY "public"."audit_log" ADD CONSTRAINT "audit_log_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."billing_events"
-    ADD CONSTRAINT "billing_events_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'billing_events_pkey') THEN ALTER TABLE ONLY "public"."billing_events" ADD CONSTRAINT "billing_events_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."billing_exemptions"
-    ADD CONSTRAINT "billing_exemptions_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'billing_exemptions_pkey') THEN ALTER TABLE ONLY "public"."billing_exemptions" ADD CONSTRAINT "billing_exemptions_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."billing_usage"
-    ADD CONSTRAINT "billing_usage_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'billing_usage_pkey') THEN ALTER TABLE ONLY "public"."billing_usage" ADD CONSTRAINT "billing_usage_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."customer_contacts"
-    ADD CONSTRAINT "customer_contacts_pkey" PRIMARY KEY ("customer_id", "user_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'customer_contacts_pkey') THEN ALTER TABLE ONLY "public"."customer_contacts" ADD CONSTRAINT "customer_contacts_pkey" PRIMARY KEY ("customer_id", "user_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."customer_sites"
-    ADD CONSTRAINT "customer_sites_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'customer_sites_pkey') THEN ALTER TABLE ONLY "public"."customer_sites" ADD CONSTRAINT "customer_sites_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."customers"
-    ADD CONSTRAINT "customers_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'customers_pkey') THEN ALTER TABLE ONLY "public"."customers" ADD CONSTRAINT "customers_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."distributor_listing"
-    ADD CONSTRAINT "distributor_listing_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'distributor_listing_pkey') THEN ALTER TABLE ONLY "public"."distributor_listing" ADD CONSTRAINT "distributor_listing_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."distributor"
-    ADD CONSTRAINT "distributor_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'distributor_pkey') THEN ALTER TABLE ONLY "public"."distributor" ADD CONSTRAINT "distributor_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment_note_images"
-    ADD CONSTRAINT "equipment_note_images_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_note_images_pkey') THEN ALTER TABLE ONLY "public"."equipment_note_images" ADD CONSTRAINT "equipment_note_images_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment_notes"
-    ADD CONSTRAINT "equipment_notes_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_notes_pkey') THEN ALTER TABLE ONLY "public"."equipment_notes" ADD CONSTRAINT "equipment_notes_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment"
-    ADD CONSTRAINT "equipment_organization_id_serial_number_key" UNIQUE ("organization_id", "serial_number");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_organization_id_serial_number_key') THEN ALTER TABLE ONLY "public"."equipment" ADD CONSTRAINT "equipment_organization_id_serial_number_key" UNIQUE ("organization_id", "serial_number"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment_part_compatibility"
-    ADD CONSTRAINT "equipment_part_compatibility_pkey" PRIMARY KEY ("equipment_id", "inventory_item_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_part_compatibility_pkey') THEN ALTER TABLE ONLY "public"."equipment_part_compatibility" ADD CONSTRAINT "equipment_part_compatibility_pkey" PRIMARY KEY ("equipment_id", "inventory_item_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment"
-    ADD CONSTRAINT "equipment_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_pkey') THEN ALTER TABLE ONLY "public"."equipment" ADD CONSTRAINT "equipment_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment_working_hours_history"
-    ADD CONSTRAINT "equipment_working_hours_history_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_working_hours_history_pkey') THEN ALTER TABLE ONLY "public"."equipment_working_hours_history" ADD CONSTRAINT "equipment_working_hours_history_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."export_request_log"
-    ADD CONSTRAINT "export_request_log_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'export_request_log_pkey') THEN ALTER TABLE ONLY "public"."export_request_log" ADD CONSTRAINT "export_request_log_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."geocoded_locations"
-    ADD CONSTRAINT "geocoded_locations_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'geocoded_locations_pkey') THEN ALTER TABLE ONLY "public"."geocoded_locations" ADD CONSTRAINT "geocoded_locations_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."inventory_items"
-    ADD CONSTRAINT "inventory_items_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_items_pkey') THEN ALTER TABLE ONLY "public"."inventory_items" ADD CONSTRAINT "inventory_items_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."inventory_transactions"
-    ADD CONSTRAINT "inventory_transactions_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_transactions_pkey') THEN ALTER TABLE ONLY "public"."inventory_transactions" ADD CONSTRAINT "inventory_transactions_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."invitation_performance_logs"
-    ADD CONSTRAINT "invitation_performance_logs_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'invitation_performance_logs_pkey') THEN ALTER TABLE ONLY "public"."invitation_performance_logs" ADD CONSTRAINT "invitation_performance_logs_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."member_removal_audit"
-    ADD CONSTRAINT "member_removal_audit_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'member_removal_audit_pkey') THEN ALTER TABLE ONLY "public"."member_removal_audit" ADD CONSTRAINT "member_removal_audit_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notes"
-    ADD CONSTRAINT "notes_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notes_pkey') THEN ALTER TABLE ONLY "public"."notes" ADD CONSTRAINT "notes_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notification_preferences"
-    ADD CONSTRAINT "notification_preferences_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notification_preferences_pkey') THEN ALTER TABLE ONLY "public"."notification_preferences" ADD CONSTRAINT "notification_preferences_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notification_preferences"
-    ADD CONSTRAINT "notification_preferences_user_id_key" UNIQUE ("user_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notification_preferences_user_id_key') THEN ALTER TABLE ONLY "public"."notification_preferences" ADD CONSTRAINT "notification_preferences_user_id_key" UNIQUE ("user_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notification_settings"
-    ADD CONSTRAINT "notification_settings_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notification_settings_pkey') THEN ALTER TABLE ONLY "public"."notification_settings" ADD CONSTRAINT "notification_settings_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notification_settings"
-    ADD CONSTRAINT "notification_settings_user_id_organization_id_team_id_key" UNIQUE ("user_id", "organization_id", "team_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notification_settings_user_id_organization_id_team_id_key') THEN ALTER TABLE ONLY "public"."notification_settings" ADD CONSTRAINT "notification_settings_user_id_organization_id_team_id_key" UNIQUE ("user_id", "organization_id", "team_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notifications"
-    ADD CONSTRAINT "notifications_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notifications_pkey') THEN ALTER TABLE ONLY "public"."notifications" ADD CONSTRAINT "notifications_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_invitations"
-    ADD CONSTRAINT "organization_invitations_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_invitations_pkey') THEN ALTER TABLE ONLY "public"."organization_invitations" ADD CONSTRAINT "organization_invitations_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_members"
-    ADD CONSTRAINT "organization_members_organization_id_user_id_key" UNIQUE ("organization_id", "user_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_members_organization_id_user_id_key') THEN ALTER TABLE ONLY "public"."organization_members" ADD CONSTRAINT "organization_members_organization_id_user_id_key" UNIQUE ("organization_id", "user_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_members"
-    ADD CONSTRAINT "organization_members_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_members_pkey') THEN ALTER TABLE ONLY "public"."organization_members" ADD CONSTRAINT "organization_members_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_slots"
-    ADD CONSTRAINT "organization_slots_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_slots_pkey') THEN ALTER TABLE ONLY "public"."organization_slots" ADD CONSTRAINT "organization_slots_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_subscriptions"
-    ADD CONSTRAINT "organization_subscriptions_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_subscriptions_pkey') THEN ALTER TABLE ONLY "public"."organization_subscriptions" ADD CONSTRAINT "organization_subscriptions_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_subscriptions"
-    ADD CONSTRAINT "organization_subscriptions_stripe_subscription_id_key" UNIQUE ("stripe_subscription_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_subscriptions_stripe_subscription_id_key') THEN ALTER TABLE ONLY "public"."organization_subscriptions" ADD CONSTRAINT "organization_subscriptions_stripe_subscription_id_key" UNIQUE ("stripe_subscription_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organizations"
-    ADD CONSTRAINT "organizations_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organizations_pkey') THEN ALTER TABLE ONLY "public"."organizations" ADD CONSTRAINT "organizations_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."ownership_transfer_requests"
-    ADD CONSTRAINT "ownership_transfer_requests_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ownership_transfer_requests_pkey') THEN ALTER TABLE ONLY "public"."ownership_transfer_requests" ADD CONSTRAINT "ownership_transfer_requests_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_alternate_group_members"
-    ADD CONSTRAINT "part_alternate_group_members_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_alternate_group_members_pkey') THEN ALTER TABLE ONLY "public"."part_alternate_group_members" ADD CONSTRAINT "part_alternate_group_members_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_alternate_group_members"
-    ADD CONSTRAINT "part_alternate_group_members_unique_identifier" UNIQUE ("group_id", "part_identifier_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_alternate_group_members_unique_identifier') THEN ALTER TABLE ONLY "public"."part_alternate_group_members" ADD CONSTRAINT "part_alternate_group_members_unique_identifier" UNIQUE ("group_id", "part_identifier_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_alternate_group_members"
-    ADD CONSTRAINT "part_alternate_group_members_unique_item" UNIQUE ("group_id", "inventory_item_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_alternate_group_members_unique_item') THEN ALTER TABLE ONLY "public"."part_alternate_group_members" ADD CONSTRAINT "part_alternate_group_members_unique_item" UNIQUE ("group_id", "inventory_item_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_alternate_groups"
-    ADD CONSTRAINT "part_alternate_groups_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_alternate_groups_pkey') THEN ALTER TABLE ONLY "public"."part_alternate_groups" ADD CONSTRAINT "part_alternate_groups_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_compatibility_rules"
-    ADD CONSTRAINT "part_compatibility_rules_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_compatibility_rules_pkey') THEN ALTER TABLE ONLY "public"."part_compatibility_rules" ADD CONSTRAINT "part_compatibility_rules_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_identifier"
-    ADD CONSTRAINT "part_identifier_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_identifier_pkey') THEN ALTER TABLE ONLY "public"."part_identifier" ADD CONSTRAINT "part_identifier_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_identifiers"
-    ADD CONSTRAINT "part_identifiers_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_identifiers_pkey') THEN ALTER TABLE ONLY "public"."part_identifiers" ADD CONSTRAINT "part_identifiers_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_identifiers"
-    ADD CONSTRAINT "part_identifiers_unique" UNIQUE ("organization_id", "identifier_type", "norm_value");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_identifiers_unique') THEN ALTER TABLE ONLY "public"."part_identifiers" ADD CONSTRAINT "part_identifiers_unique" UNIQUE ("organization_id", "identifier_type", "norm_value"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part"
-    ADD CONSTRAINT "part_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_pkey') THEN ALTER TABLE ONLY "public"."part" ADD CONSTRAINT "part_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."parts_managers"
-    ADD CONSTRAINT "parts_managers_pkey" PRIMARY KEY ("organization_id", "user_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'parts_managers_pkey') THEN ALTER TABLE ONLY "public"."parts_managers" ADD CONSTRAINT "parts_managers_pkey" PRIMARY KEY ("organization_id", "user_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_checklist_templates"
-    ADD CONSTRAINT "pm_checklist_templates_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_checklist_templates_pkey') THEN ALTER TABLE ONLY "public"."pm_checklist_templates" ADD CONSTRAINT "pm_checklist_templates_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_checklist_templates"
-    ADD CONSTRAINT "pm_checklist_templates_unique_name_per_org" UNIQUE ("organization_id", "name");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_checklist_templates_unique_name_per_org') THEN ALTER TABLE ONLY "public"."pm_checklist_templates" ADD CONSTRAINT "pm_checklist_templates_unique_name_per_org" UNIQUE ("organization_id", "name"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_status_history"
-    ADD CONSTRAINT "pm_status_history_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_status_history_pkey') THEN ALTER TABLE ONLY "public"."pm_status_history" ADD CONSTRAINT "pm_status_history_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_template_compatibility_rules"
-    ADD CONSTRAINT "pm_template_compat_rules_unique" UNIQUE ("pm_template_id", "organization_id", "manufacturer_norm", "model_norm");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_template_compat_rules_unique') THEN ALTER TABLE ONLY "public"."pm_template_compatibility_rules" ADD CONSTRAINT "pm_template_compat_rules_unique" UNIQUE ("pm_template_id", "organization_id", "manufacturer_norm", "model_norm"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_template_compatibility_rules"
-    ADD CONSTRAINT "pm_template_compatibility_rules_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_template_compatibility_rules_pkey') THEN ALTER TABLE ONLY "public"."pm_template_compatibility_rules" ADD CONSTRAINT "pm_template_compatibility_rules_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."preventative_maintenance"
-    ADD CONSTRAINT "preventative_maintenance_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'preventative_maintenance_pkey') THEN ALTER TABLE ONLY "public"."preventative_maintenance" ADD CONSTRAINT "preventative_maintenance_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."profiles"
-    ADD CONSTRAINT "profiles_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_pkey') THEN ALTER TABLE ONLY "public"."profiles" ADD CONSTRAINT "profiles_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_credentials"
-    ADD CONSTRAINT "quickbooks_credentials_organization_id_realm_id_key" UNIQUE ("organization_id", "realm_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_credentials_organization_id_realm_id_key') THEN ALTER TABLE ONLY "public"."quickbooks_credentials" ADD CONSTRAINT "quickbooks_credentials_organization_id_realm_id_key" UNIQUE ("organization_id", "realm_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_credentials"
-    ADD CONSTRAINT "quickbooks_credentials_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_credentials_pkey') THEN ALTER TABLE ONLY "public"."quickbooks_credentials" ADD CONSTRAINT "quickbooks_credentials_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_export_logs"
-    ADD CONSTRAINT "quickbooks_export_logs_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_export_logs_pkey') THEN ALTER TABLE ONLY "public"."quickbooks_export_logs" ADD CONSTRAINT "quickbooks_export_logs_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_oauth_sessions"
-    ADD CONSTRAINT "quickbooks_oauth_sessions_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_oauth_sessions_pkey') THEN ALTER TABLE ONLY "public"."quickbooks_oauth_sessions" ADD CONSTRAINT "quickbooks_oauth_sessions_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_oauth_sessions"
-    ADD CONSTRAINT "quickbooks_oauth_sessions_token_unique" UNIQUE ("session_token");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_oauth_sessions_token_unique') THEN ALTER TABLE ONLY "public"."quickbooks_oauth_sessions" ADD CONSTRAINT "quickbooks_oauth_sessions_token_unique" UNIQUE ("session_token"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_team_customers"
-    ADD CONSTRAINT "quickbooks_team_customers_organization_id_team_id_key" UNIQUE ("organization_id", "team_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_team_customers_organization_id_team_id_key') THEN ALTER TABLE ONLY "public"."quickbooks_team_customers" ADD CONSTRAINT "quickbooks_team_customers_organization_id_team_id_key" UNIQUE ("organization_id", "team_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_team_customers"
-    ADD CONSTRAINT "quickbooks_team_customers_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_team_customers_pkey') THEN ALTER TABLE ONLY "public"."quickbooks_team_customers" ADD CONSTRAINT "quickbooks_team_customers_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."scans"
-    ADD CONSTRAINT "scans_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'scans_pkey') THEN ALTER TABLE ONLY "public"."scans" ADD CONSTRAINT "scans_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."slot_purchases"
-    ADD CONSTRAINT "slot_purchases_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'slot_purchases_pkey') THEN ALTER TABLE ONLY "public"."slot_purchases" ADD CONSTRAINT "slot_purchases_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."slot_purchases"
-    ADD CONSTRAINT "slot_purchases_stripe_payment_intent_id_key" UNIQUE ("stripe_payment_intent_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'slot_purchases_stripe_payment_intent_id_key') THEN ALTER TABLE ONLY "public"."slot_purchases" ADD CONSTRAINT "slot_purchases_stripe_payment_intent_id_key" UNIQUE ("stripe_payment_intent_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."stripe_event_logs"
-    ADD CONSTRAINT "stripe_event_logs_event_id_key" UNIQUE ("event_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'stripe_event_logs_event_id_key') THEN ALTER TABLE ONLY "public"."stripe_event_logs" ADD CONSTRAINT "stripe_event_logs_event_id_key" UNIQUE ("event_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."stripe_event_logs"
-    ADD CONSTRAINT "stripe_event_logs_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'stripe_event_logs_pkey') THEN ALTER TABLE ONLY "public"."stripe_event_logs" ADD CONSTRAINT "stripe_event_logs_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."subscribers"
-    ADD CONSTRAINT "subscribers_email_key" UNIQUE ("email");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscribers_email_key') THEN ALTER TABLE ONLY "public"."subscribers" ADD CONSTRAINT "subscribers_email_key" UNIQUE ("email"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."subscribers"
-    ADD CONSTRAINT "subscribers_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscribers_pkey') THEN ALTER TABLE ONLY "public"."subscribers" ADD CONSTRAINT "subscribers_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."team_members"
-    ADD CONSTRAINT "team_members_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'team_members_pkey') THEN ALTER TABLE ONLY "public"."team_members" ADD CONSTRAINT "team_members_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."team_members"
-    ADD CONSTRAINT "team_members_team_id_user_id_key" UNIQUE ("team_id", "user_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'team_members_team_id_user_id_key') THEN ALTER TABLE ONLY "public"."team_members" ADD CONSTRAINT "team_members_team_id_user_id_key" UNIQUE ("team_id", "user_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."teams"
-    ADD CONSTRAINT "teams_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'teams_pkey') THEN ALTER TABLE ONLY "public"."teams" ADD CONSTRAINT "teams_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."billing_exemptions"
-    ADD CONSTRAINT "unique_active_exemption" UNIQUE ("organization_id", "exemption_type", "is_active");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_active_exemption') THEN ALTER TABLE ONLY "public"."billing_exemptions" ADD CONSTRAINT "unique_active_exemption" UNIQUE ("organization_id", "exemption_type", "is_active"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_slots"
-    ADD CONSTRAINT "unique_org_billing_period" UNIQUE ("organization_id", "billing_period_start");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_org_billing_period') THEN ALTER TABLE ONLY "public"."organization_slots" ADD CONSTRAINT "unique_org_billing_period" UNIQUE ("organization_id", "billing_period_start"); END IF; END $$;
 
 
 
@@ -9361,262 +9318,251 @@ COMMENT ON CONSTRAINT "unique_org_billing_period" ON "public"."organization_slot
 
 
 
-ALTER TABLE ONLY "public"."user_departure_queue"
-    ADD CONSTRAINT "user_departure_queue_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_departure_queue_pkey') THEN ALTER TABLE ONLY "public"."user_departure_queue" ADD CONSTRAINT "user_departure_queue_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."user_license_subscriptions"
-    ADD CONSTRAINT "user_license_subscriptions_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_license_subscriptions_pkey') THEN ALTER TABLE ONLY "public"."user_license_subscriptions" ADD CONSTRAINT "user_license_subscriptions_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."user_license_subscriptions"
-    ADD CONSTRAINT "user_license_subscriptions_stripe_subscription_id_key" UNIQUE ("stripe_subscription_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_license_subscriptions_stripe_subscription_id_key') THEN ALTER TABLE ONLY "public"."user_license_subscriptions" ADD CONSTRAINT "user_license_subscriptions_stripe_subscription_id_key" UNIQUE ("stripe_subscription_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."webhook_events"
-    ADD CONSTRAINT "webhook_events_pkey" PRIMARY KEY ("event_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'webhook_events_pkey') THEN ALTER TABLE ONLY "public"."webhook_events" ADD CONSTRAINT "webhook_events_pkey" PRIMARY KEY ("event_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_costs"
-    ADD CONSTRAINT "work_order_costs_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_costs_pkey') THEN ALTER TABLE ONLY "public"."work_order_costs" ADD CONSTRAINT "work_order_costs_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_equipment"
-    ADD CONSTRAINT "work_order_equipment_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_equipment_pkey') THEN ALTER TABLE ONLY "public"."work_order_equipment" ADD CONSTRAINT "work_order_equipment_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_equipment"
-    ADD CONSTRAINT "work_order_equipment_work_order_id_equipment_id_key" UNIQUE ("work_order_id", "equipment_id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_equipment_work_order_id_equipment_id_key') THEN ALTER TABLE ONLY "public"."work_order_equipment" ADD CONSTRAINT "work_order_equipment_work_order_id_equipment_id_key" UNIQUE ("work_order_id", "equipment_id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_images"
-    ADD CONSTRAINT "work_order_images_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_images_pkey') THEN ALTER TABLE ONLY "public"."work_order_images" ADD CONSTRAINT "work_order_images_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_notes"
-    ADD CONSTRAINT "work_order_notes_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_notes_pkey') THEN ALTER TABLE ONLY "public"."work_order_notes" ADD CONSTRAINT "work_order_notes_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_status_history"
-    ADD CONSTRAINT "work_order_status_history_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_status_history_pkey') THEN ALTER TABLE ONLY "public"."work_order_status_history" ADD CONSTRAINT "work_order_status_history_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_orders"
-    ADD CONSTRAINT "work_orders_pkey" PRIMARY KEY ("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_orders_pkey') THEN ALTER TABLE ONLY "public"."work_orders" ADD CONSTRAINT "work_orders_pkey" PRIMARY KEY ("id"); END IF; END $$;
 
 
 
-CREATE UNIQUE INDEX "geocoded_locations_org_norm_unique" ON "public"."geocoded_locations" USING "btree" ("organization_id", "normalized_text");
+CREATE UNIQUE INDEX IF NOT EXISTS "geocoded_locations_org_norm_unique" ON "public"."geocoded_locations" USING "btree" ("organization_id", "normalized_text");
 
 
 
-CREATE INDEX "idx_audit_log_actor" ON "public"."audit_log" USING "btree" ("actor_id", "created_at" DESC) WHERE ("actor_id" IS NOT NULL);
+CREATE INDEX IF NOT EXISTS "idx_audit_log_actor" ON "public"."audit_log" USING "btree" ("actor_id", "created_at" DESC) WHERE ("actor_id" IS NOT NULL);
 
 
 
-CREATE INDEX "idx_audit_log_entity" ON "public"."audit_log" USING "btree" ("entity_type", "entity_id", "created_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_audit_log_entity" ON "public"."audit_log" USING "btree" ("entity_type", "entity_id", "created_at" DESC);
 
 
 
-CREATE INDEX "idx_audit_log_equipment" ON "public"."audit_log" USING "btree" ("organization_id", "entity_id", "created_at" DESC) WHERE ("entity_type" = 'equipment'::"text");
+CREATE INDEX IF NOT EXISTS "idx_audit_log_equipment" ON "public"."audit_log" USING "btree" ("organization_id", "entity_id", "created_at" DESC) WHERE ("entity_type" = 'equipment'::"text");
 
 
 
-CREATE INDEX "idx_audit_log_org_time" ON "public"."audit_log" USING "btree" ("organization_id", "created_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_audit_log_org_time" ON "public"."audit_log" USING "btree" ("organization_id", "created_at" DESC);
 
 
 
-CREATE INDEX "idx_audit_log_org_type_time" ON "public"."audit_log" USING "btree" ("organization_id", "entity_type", "created_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_audit_log_org_type_time" ON "public"."audit_log" USING "btree" ("organization_id", "entity_type", "created_at" DESC);
 
 
 
-CREATE INDEX "idx_audit_log_work_orders" ON "public"."audit_log" USING "btree" ("organization_id", "entity_id", "created_at" DESC) WHERE ("entity_type" = 'work_order'::"text");
+CREATE INDEX IF NOT EXISTS "idx_audit_log_work_orders" ON "public"."audit_log" USING "btree" ("organization_id", "entity_id", "created_at" DESC) WHERE ("entity_type" = 'work_order'::"text");
 
 
 
-CREATE INDEX "idx_billing_events_organization_id" ON "public"."billing_events" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_billing_events_organization_id" ON "public"."billing_events" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_billing_events_user_id" ON "public"."billing_events" USING "btree" ("user_id");
+CREATE INDEX IF NOT EXISTS "idx_billing_events_user_id" ON "public"."billing_events" USING "btree" ("user_id");
 
 
 
-CREATE INDEX "idx_billing_exemptions_granted_by" ON "public"."billing_exemptions" USING "btree" ("granted_by");
+CREATE INDEX IF NOT EXISTS "idx_billing_exemptions_granted_by" ON "public"."billing_exemptions" USING "btree" ("granted_by");
 
 
 
-CREATE INDEX "idx_billing_usage_organization_id" ON "public"."billing_usage" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_billing_usage_organization_id" ON "public"."billing_usage" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_customer_contacts_user_id" ON "public"."customer_contacts" USING "btree" ("user_id");
+CREATE INDEX IF NOT EXISTS "idx_customer_contacts_user_id" ON "public"."customer_contacts" USING "btree" ("user_id");
 
 
 
-CREATE INDEX "idx_customer_sites_customer_id" ON "public"."customer_sites" USING "btree" ("customer_id");
+CREATE INDEX IF NOT EXISTS "idx_customer_sites_customer_id" ON "public"."customer_sites" USING "btree" ("customer_id");
 
 
 
-CREATE INDEX "idx_customers_organization_id" ON "public"."customers" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_customers_organization_id" ON "public"."customers" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_departure_queue_org" ON "public"."user_departure_queue" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_departure_queue_org" ON "public"."user_departure_queue" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_departure_queue_pending" ON "public"."user_departure_queue" USING "btree" ("status") WHERE ("status" = ANY (ARRAY['pending'::"text", 'processing'::"text"]));
+CREATE INDEX IF NOT EXISTS "idx_departure_queue_pending" ON "public"."user_departure_queue" USING "btree" ("status") WHERE ("status" = ANY (ARRAY['pending'::"text", 'processing'::"text"]));
 
 
 
-CREATE INDEX "idx_departure_queue_user" ON "public"."user_departure_queue" USING "btree" ("user_id");
+CREATE INDEX IF NOT EXISTS "idx_departure_queue_user" ON "public"."user_departure_queue" USING "btree" ("user_id");
 
 
 
-CREATE INDEX "idx_equipment_customer_id" ON "public"."equipment" USING "btree" ("customer_id");
+CREATE INDEX IF NOT EXISTS "idx_equipment_customer_id" ON "public"."equipment" USING "btree" ("customer_id");
 
 
 
-CREATE INDEX "idx_equipment_default_pm_template_id" ON "public"."equipment" USING "btree" ("default_pm_template_id");
+CREATE INDEX IF NOT EXISTS "idx_equipment_default_pm_template_id" ON "public"."equipment" USING "btree" ("default_pm_template_id");
 
 
 
-CREATE INDEX "idx_equipment_note_images_equipment_note_id" ON "public"."equipment_note_images" USING "btree" ("equipment_note_id");
+CREATE INDEX IF NOT EXISTS "idx_equipment_note_images_equipment_note_id" ON "public"."equipment_note_images" USING "btree" ("equipment_note_id");
 
 
 
-CREATE INDEX "idx_equipment_note_images_uploaded_by" ON "public"."equipment_note_images" USING "btree" ("uploaded_by");
+CREATE INDEX IF NOT EXISTS "idx_equipment_note_images_uploaded_by" ON "public"."equipment_note_images" USING "btree" ("uploaded_by");
 
 
 
-CREATE INDEX "idx_equipment_notes_author_id" ON "public"."equipment_notes" USING "btree" ("author_id");
+CREATE INDEX IF NOT EXISTS "idx_equipment_notes_author_id" ON "public"."equipment_notes" USING "btree" ("author_id");
 
 
 
-CREATE INDEX "idx_equipment_notes_equipment_author" ON "public"."equipment_notes" USING "btree" ("equipment_id", "author_id");
+CREATE INDEX IF NOT EXISTS "idx_equipment_notes_equipment_author" ON "public"."equipment_notes" USING "btree" ("equipment_id", "author_id");
 
 
 
-CREATE INDEX "idx_equipment_notes_equipment_created" ON "public"."equipment_notes" USING "btree" ("equipment_id", "created_at");
+CREATE INDEX IF NOT EXISTS "idx_equipment_notes_equipment_created" ON "public"."equipment_notes" USING "btree" ("equipment_id", "created_at");
 
 
 
-CREATE INDEX "idx_equipment_notes_last_modified_by" ON "public"."equipment_notes" USING "btree" ("last_modified_by");
+CREATE INDEX IF NOT EXISTS "idx_equipment_notes_last_modified_by" ON "public"."equipment_notes" USING "btree" ("last_modified_by");
 
 
 
-CREATE INDEX "idx_equipment_org_team" ON "public"."equipment" USING "btree" ("organization_id", "team_id");
+CREATE INDEX IF NOT EXISTS "idx_equipment_org_team" ON "public"."equipment" USING "btree" ("organization_id", "team_id");
 
 
 
-CREATE INDEX "idx_equipment_organization_id" ON "public"."equipment" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_equipment_organization_id" ON "public"."equipment" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_equipment_part_compatibility_equipment_id" ON "public"."equipment_part_compatibility" USING "btree" ("equipment_id");
+CREATE INDEX IF NOT EXISTS "idx_equipment_part_compatibility_equipment_id" ON "public"."equipment_part_compatibility" USING "btree" ("equipment_id");
 
 
 
-CREATE INDEX "idx_equipment_part_compatibility_inventory_item_id" ON "public"."equipment_part_compatibility" USING "btree" ("inventory_item_id");
+CREATE INDEX IF NOT EXISTS "idx_equipment_part_compatibility_inventory_item_id" ON "public"."equipment_part_compatibility" USING "btree" ("inventory_item_id");
 
 
 
-CREATE INDEX "idx_equipment_team_id" ON "public"."equipment" USING "btree" ("team_id");
+CREATE INDEX IF NOT EXISTS "idx_equipment_team_id" ON "public"."equipment" USING "btree" ("team_id");
 
 
 
-CREATE INDEX "idx_export_log_org_time" ON "public"."export_request_log" USING "btree" ("organization_id", "requested_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_export_log_org_time" ON "public"."export_request_log" USING "btree" ("organization_id", "requested_at" DESC);
 
 
 
-CREATE INDEX "idx_export_log_status" ON "public"."export_request_log" USING "btree" ("status") WHERE ("status" = 'pending'::"text");
+CREATE INDEX IF NOT EXISTS "idx_export_log_status" ON "public"."export_request_log" USING "btree" ("status") WHERE ("status" = 'pending'::"text");
 
 
 
-CREATE INDEX "idx_export_log_user_time" ON "public"."export_request_log" USING "btree" ("user_id", "requested_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_export_log_user_time" ON "public"."export_request_log" USING "btree" ("user_id", "requested_at" DESC);
 
 
 
-CREATE INDEX "idx_inventory_items_external_id" ON "public"."inventory_items" USING "btree" ("external_id") WHERE ("external_id" IS NOT NULL);
+CREATE INDEX IF NOT EXISTS "idx_inventory_items_external_id" ON "public"."inventory_items" USING "btree" ("external_id") WHERE ("external_id" IS NOT NULL);
 
 
 
-CREATE UNIQUE INDEX "idx_inventory_items_external_id_org_unique" ON "public"."inventory_items" USING "btree" ("organization_id", "external_id") WHERE ("external_id" IS NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_inventory_items_external_id_org_unique" ON "public"."inventory_items" USING "btree" ("organization_id", "external_id") WHERE ("external_id" IS NOT NULL);
 
 
 
-CREATE INDEX "idx_inventory_items_low_stock" ON "public"."inventory_items" USING "btree" ("organization_id", "quantity_on_hand", "low_stock_threshold") WHERE ("quantity_on_hand" < "low_stock_threshold");
+CREATE INDEX IF NOT EXISTS "idx_inventory_items_low_stock" ON "public"."inventory_items" USING "btree" ("organization_id", "quantity_on_hand", "low_stock_threshold") WHERE ("quantity_on_hand" < "low_stock_threshold");
 
 
 
-CREATE INDEX "idx_inventory_items_organization_id" ON "public"."inventory_items" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_inventory_items_organization_id" ON "public"."inventory_items" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_inventory_items_sku" ON "public"."inventory_items" USING "btree" ("sku") WHERE ("sku" IS NOT NULL);
+CREATE INDEX IF NOT EXISTS "idx_inventory_items_sku" ON "public"."inventory_items" USING "btree" ("sku") WHERE ("sku" IS NOT NULL);
 
 
 
-CREATE UNIQUE INDEX "idx_inventory_items_sku_org_unique" ON "public"."inventory_items" USING "btree" ("organization_id", "sku") WHERE ("sku" IS NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_inventory_items_sku_org_unique" ON "public"."inventory_items" USING "btree" ("organization_id", "sku") WHERE ("sku" IS NOT NULL);
 
 
 
-CREATE INDEX "idx_inventory_transactions_created_at" ON "public"."inventory_transactions" USING "btree" ("created_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_inventory_transactions_created_at" ON "public"."inventory_transactions" USING "btree" ("created_at" DESC);
 
 
 
-CREATE INDEX "idx_inventory_transactions_item_id" ON "public"."inventory_transactions" USING "btree" ("inventory_item_id");
+CREATE INDEX IF NOT EXISTS "idx_inventory_transactions_item_id" ON "public"."inventory_transactions" USING "btree" ("inventory_item_id");
 
 
 
-CREATE INDEX "idx_inventory_transactions_organization_id" ON "public"."inventory_transactions" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_inventory_transactions_organization_id" ON "public"."inventory_transactions" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_inventory_transactions_user_id" ON "public"."inventory_transactions" USING "btree" ("user_id");
+CREATE INDEX IF NOT EXISTS "idx_inventory_transactions_user_id" ON "public"."inventory_transactions" USING "btree" ("user_id");
 
 
 
-CREATE INDEX "idx_inventory_transactions_work_order_id" ON "public"."inventory_transactions" USING "btree" ("work_order_id") WHERE ("work_order_id" IS NOT NULL);
+CREATE INDEX IF NOT EXISTS "idx_inventory_transactions_work_order_id" ON "public"."inventory_transactions" USING "btree" ("work_order_id") WHERE ("work_order_id" IS NOT NULL);
 
 
 
-CREATE INDEX "idx_notes_author_id" ON "public"."notes" USING "btree" ("author_id");
+CREATE INDEX IF NOT EXISTS "idx_notes_author_id" ON "public"."notes" USING "btree" ("author_id");
 
 
 
-CREATE INDEX "idx_notes_equipment_id" ON "public"."notes" USING "btree" ("equipment_id");
+CREATE INDEX IF NOT EXISTS "idx_notes_equipment_id" ON "public"."notes" USING "btree" ("equipment_id");
 
 
 
-CREATE INDEX "idx_notification_settings_organization_id" ON "public"."notification_settings" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_notification_settings_organization_id" ON "public"."notification_settings" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_notification_settings_team_id" ON "public"."notification_settings" USING "btree" ("team_id");
+CREATE INDEX IF NOT EXISTS "idx_notification_settings_team_id" ON "public"."notification_settings" USING "btree" ("team_id");
 
 
 
-CREATE INDEX "idx_notification_settings_user_id" ON "public"."notification_settings" USING "btree" ("user_id");
+CREATE INDEX IF NOT EXISTS "idx_notification_settings_user_id" ON "public"."notification_settings" USING "btree" ("user_id");
 
 
 
-CREATE INDEX "idx_notifications_is_global" ON "public"."notifications" USING "btree" ("user_id", "is_global") WHERE ("is_global" = true);
+CREATE INDEX IF NOT EXISTS "idx_notifications_is_global" ON "public"."notifications" USING "btree" ("user_id", "is_global") WHERE ("is_global" = true);
 
 
 
-CREATE UNIQUE INDEX "idx_org_invitations_pending_unique" ON "public"."organization_invitations" USING "btree" ("organization_id", "lower"(TRIM(BOTH FROM "email"))) WHERE ("status" = 'pending'::"text");
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_org_invitations_pending_unique" ON "public"."organization_invitations" USING "btree" ("organization_id", "lower"(TRIM(BOTH FROM "email"))) WHERE ("status" = 'pending'::"text");
 
 
 
@@ -9624,27 +9570,27 @@ COMMENT ON INDEX "public"."idx_org_invitations_pending_unique" IS 'Ensures only 
 
 
 
-CREATE INDEX "idx_org_members_org_role_status" ON "public"."organization_members" USING "btree" ("organization_id", "role", "status");
+CREATE INDEX IF NOT EXISTS "idx_org_members_org_role_status" ON "public"."organization_members" USING "btree" ("organization_id", "role", "status");
 
 
 
-CREATE INDEX "idx_organization_invitations_accepted_by" ON "public"."organization_invitations" USING "btree" ("accepted_by");
+CREATE INDEX IF NOT EXISTS "idx_organization_invitations_accepted_by" ON "public"."organization_invitations" USING "btree" ("accepted_by");
 
 
 
-CREATE INDEX "idx_organization_invitations_invited_by" ON "public"."organization_invitations" USING "btree" ("invited_by");
+CREATE INDEX IF NOT EXISTS "idx_organization_invitations_invited_by" ON "public"."organization_invitations" USING "btree" ("invited_by");
 
 
 
-CREATE INDEX "idx_organization_invitations_slot_purchase_id" ON "public"."organization_invitations" USING "btree" ("slot_purchase_id");
+CREATE INDEX IF NOT EXISTS "idx_organization_invitations_slot_purchase_id" ON "public"."organization_invitations" USING "btree" ("slot_purchase_id");
 
 
 
-CREATE INDEX "idx_organization_members_admin_quick" ON "public"."organization_members" USING "btree" ("user_id", "organization_id") WHERE (("role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("status" = 'active'::"text"));
+CREATE INDEX IF NOT EXISTS "idx_organization_members_admin_quick" ON "public"."organization_members" USING "btree" ("user_id", "organization_id") WHERE (("role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("status" = 'active'::"text"));
 
 
 
-CREATE INDEX "idx_organization_members_can_manage_qb" ON "public"."organization_members" USING "btree" ("organization_id", "can_manage_quickbooks") WHERE ("can_manage_quickbooks" = true);
+CREATE INDEX IF NOT EXISTS "idx_organization_members_can_manage_qb" ON "public"."organization_members" USING "btree" ("organization_id", "can_manage_quickbooks") WHERE ("can_manage_quickbooks" = true);
 
 
 
@@ -9652,83 +9598,83 @@ COMMENT ON INDEX "public"."idx_organization_members_can_manage_qb" IS 'Index to 
 
 
 
-CREATE INDEX "idx_organization_members_slot_purchase_id" ON "public"."organization_members" USING "btree" ("slot_purchase_id");
+CREATE INDEX IF NOT EXISTS "idx_organization_members_slot_purchase_id" ON "public"."organization_members" USING "btree" ("slot_purchase_id");
 
 
 
-CREATE INDEX "idx_organization_members_user_id" ON "public"."organization_members" USING "btree" ("user_id");
+CREATE INDEX IF NOT EXISTS "idx_organization_members_user_id" ON "public"."organization_members" USING "btree" ("user_id");
 
 
 
-CREATE INDEX "idx_organization_members_user_org_status_active" ON "public"."organization_members" USING "btree" ("user_id", "organization_id", "status") WHERE ("status" = 'active'::"text");
+CREATE INDEX IF NOT EXISTS "idx_organization_members_user_org_status_active" ON "public"."organization_members" USING "btree" ("user_id", "organization_id", "status") WHERE ("status" = 'active'::"text");
 
 
 
-CREATE INDEX "idx_organization_slots_organization_id" ON "public"."organization_slots" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_organization_slots_organization_id" ON "public"."organization_slots" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_organization_subscriptions_organization_id" ON "public"."organization_subscriptions" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_organization_subscriptions_organization_id" ON "public"."organization_subscriptions" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_ownership_transfer_from_user" ON "public"."ownership_transfer_requests" USING "btree" ("from_user_id");
+CREATE INDEX IF NOT EXISTS "idx_ownership_transfer_from_user" ON "public"."ownership_transfer_requests" USING "btree" ("from_user_id");
 
 
 
-CREATE INDEX "idx_ownership_transfer_org" ON "public"."ownership_transfer_requests" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_ownership_transfer_org" ON "public"."ownership_transfer_requests" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_ownership_transfer_pending" ON "public"."ownership_transfer_requests" USING "btree" ("status") WHERE ("status" = 'pending'::"text");
+CREATE INDEX IF NOT EXISTS "idx_ownership_transfer_pending" ON "public"."ownership_transfer_requests" USING "btree" ("status") WHERE ("status" = 'pending'::"text");
 
 
 
-CREATE INDEX "idx_ownership_transfer_to_user" ON "public"."ownership_transfer_requests" USING "btree" ("to_user_id");
+CREATE INDEX IF NOT EXISTS "idx_ownership_transfer_to_user" ON "public"."ownership_transfer_requests" USING "btree" ("to_user_id");
 
 
 
-CREATE INDEX "idx_part_alternate_group_members_group" ON "public"."part_alternate_group_members" USING "btree" ("group_id");
+CREATE INDEX IF NOT EXISTS "idx_part_alternate_group_members_group" ON "public"."part_alternate_group_members" USING "btree" ("group_id");
 
 
 
-CREATE INDEX "idx_part_alternate_group_members_identifier" ON "public"."part_alternate_group_members" USING "btree" ("part_identifier_id") WHERE ("part_identifier_id" IS NOT NULL);
+CREATE INDEX IF NOT EXISTS "idx_part_alternate_group_members_identifier" ON "public"."part_alternate_group_members" USING "btree" ("part_identifier_id") WHERE ("part_identifier_id" IS NOT NULL);
 
 
 
-CREATE INDEX "idx_part_alternate_group_members_item" ON "public"."part_alternate_group_members" USING "btree" ("inventory_item_id") WHERE ("inventory_item_id" IS NOT NULL);
+CREATE INDEX IF NOT EXISTS "idx_part_alternate_group_members_item" ON "public"."part_alternate_group_members" USING "btree" ("inventory_item_id") WHERE ("inventory_item_id" IS NOT NULL);
 
 
 
-CREATE INDEX "idx_part_alternate_groups_org" ON "public"."part_alternate_groups" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_part_alternate_groups_org" ON "public"."part_alternate_groups" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_part_alternate_groups_status" ON "public"."part_alternate_groups" USING "btree" ("organization_id", "status");
+CREATE INDEX IF NOT EXISTS "idx_part_alternate_groups_status" ON "public"."part_alternate_groups" USING "btree" ("organization_id", "status");
 
 
 
-CREATE INDEX "idx_part_compat_rules_item" ON "public"."part_compatibility_rules" USING "btree" ("inventory_item_id");
+CREATE INDEX IF NOT EXISTS "idx_part_compat_rules_item" ON "public"."part_compatibility_rules" USING "btree" ("inventory_item_id");
 
 
 
-CREATE INDEX "idx_part_compat_rules_match_type" ON "public"."part_compatibility_rules" USING "btree" ("inventory_item_id", "match_type");
+CREATE INDEX IF NOT EXISTS "idx_part_compat_rules_match_type" ON "public"."part_compatibility_rules" USING "btree" ("inventory_item_id", "match_type");
 
 
 
-CREATE INDEX "idx_part_compat_rules_mfr_any_model" ON "public"."part_compatibility_rules" USING "btree" ("manufacturer_norm") WHERE ("model_norm" IS NULL);
+CREATE INDEX IF NOT EXISTS "idx_part_compat_rules_mfr_any_model" ON "public"."part_compatibility_rules" USING "btree" ("manufacturer_norm") WHERE ("model_norm" IS NULL);
 
 
 
-CREATE INDEX "idx_part_compat_rules_mfr_model_norm" ON "public"."part_compatibility_rules" USING "btree" ("manufacturer_norm", "model_norm");
+CREATE INDEX IF NOT EXISTS "idx_part_compat_rules_mfr_model_norm" ON "public"."part_compatibility_rules" USING "btree" ("manufacturer_norm", "model_norm");
 
 
 
-CREATE INDEX "idx_part_compat_rules_pattern_norm" ON "public"."part_compatibility_rules" USING "btree" ("manufacturer_norm", "model_pattern_norm") WHERE ("match_type" = ANY (ARRAY['prefix'::"public"."model_match_type", 'wildcard'::"public"."model_match_type"]));
+CREATE INDEX IF NOT EXISTS "idx_part_compat_rules_pattern_norm" ON "public"."part_compatibility_rules" USING "btree" ("manufacturer_norm", "model_pattern_norm") WHERE ("match_type" = ANY (ARRAY['prefix'::"public"."model_match_type", 'wildcard'::"public"."model_match_type"]));
 
 
 
-CREATE UNIQUE INDEX "idx_part_compat_rules_unique_any_model" ON "public"."part_compatibility_rules" USING "btree" ("inventory_item_id", "manufacturer_norm") WHERE ("model_norm" IS NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_part_compat_rules_unique_any_model" ON "public"."part_compatibility_rules" USING "btree" ("inventory_item_id", "manufacturer_norm") WHERE ("model_norm" IS NULL);
 
 
 
@@ -9736,7 +9682,7 @@ COMMENT ON INDEX "public"."idx_part_compat_rules_unique_any_model" IS 'Ensures o
 
 
 
-CREATE UNIQUE INDEX "idx_part_compat_rules_unique_with_model" ON "public"."part_compatibility_rules" USING "btree" ("inventory_item_id", "manufacturer_norm", "model_norm") WHERE ("model_norm" IS NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_part_compat_rules_unique_with_model" ON "public"."part_compatibility_rules" USING "btree" ("inventory_item_id", "manufacturer_norm", "model_norm") WHERE ("model_norm" IS NOT NULL);
 
 
 
@@ -9744,287 +9690,287 @@ COMMENT ON INDEX "public"."idx_part_compat_rules_unique_with_model" IS 'Ensures 
 
 
 
-CREATE INDEX "idx_part_identifiers_inventory_item" ON "public"."part_identifiers" USING "btree" ("inventory_item_id") WHERE ("inventory_item_id" IS NOT NULL);
+CREATE INDEX IF NOT EXISTS "idx_part_identifiers_inventory_item" ON "public"."part_identifiers" USING "btree" ("inventory_item_id") WHERE ("inventory_item_id" IS NOT NULL);
 
 
 
-CREATE INDEX "idx_part_identifiers_norm_value" ON "public"."part_identifiers" USING "btree" ("organization_id", "norm_value");
+CREATE INDEX IF NOT EXISTS "idx_part_identifiers_norm_value" ON "public"."part_identifiers" USING "btree" ("organization_id", "norm_value");
 
 
 
-CREATE INDEX "idx_part_identifiers_org" ON "public"."part_identifiers" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_part_identifiers_org" ON "public"."part_identifiers" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_parts_managers_org_id" ON "public"."parts_managers" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_parts_managers_org_id" ON "public"."parts_managers" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_parts_managers_user_id" ON "public"."parts_managers" USING "btree" ("user_id");
+CREATE INDEX IF NOT EXISTS "idx_parts_managers_user_id" ON "public"."parts_managers" USING "btree" ("user_id");
 
 
 
-CREATE INDEX "idx_pm_checklist_templates_created_by" ON "public"."pm_checklist_templates" USING "btree" ("created_by");
+CREATE INDEX IF NOT EXISTS "idx_pm_checklist_templates_created_by" ON "public"."pm_checklist_templates" USING "btree" ("created_by");
 
 
 
-CREATE INDEX "idx_pm_checklist_templates_updated_by" ON "public"."pm_checklist_templates" USING "btree" ("updated_by");
+CREATE INDEX IF NOT EXISTS "idx_pm_checklist_templates_updated_by" ON "public"."pm_checklist_templates" USING "btree" ("updated_by");
 
 
 
-CREATE INDEX "idx_pm_org_status_composite" ON "public"."preventative_maintenance" USING "btree" ("organization_id", "status");
+CREATE INDEX IF NOT EXISTS "idx_pm_org_status_composite" ON "public"."preventative_maintenance" USING "btree" ("organization_id", "status");
 
 
 
-CREATE INDEX "idx_pm_status_history_changed_by" ON "public"."pm_status_history" USING "btree" ("changed_by");
+CREATE INDEX IF NOT EXISTS "idx_pm_status_history_changed_by" ON "public"."pm_status_history" USING "btree" ("changed_by");
 
 
 
-CREATE INDEX "idx_pm_status_history_pm_id" ON "public"."pm_status_history" USING "btree" ("pm_id");
+CREATE INDEX IF NOT EXISTS "idx_pm_status_history_pm_id" ON "public"."pm_status_history" USING "btree" ("pm_id");
 
 
 
-CREATE INDEX "idx_pm_template_compat_rules_mfr_any_model" ON "public"."pm_template_compatibility_rules" USING "btree" ("organization_id", "manufacturer_norm") WHERE ("model_norm" IS NULL);
+CREATE INDEX IF NOT EXISTS "idx_pm_template_compat_rules_mfr_any_model" ON "public"."pm_template_compatibility_rules" USING "btree" ("organization_id", "manufacturer_norm") WHERE ("model_norm" IS NULL);
 
 
 
-CREATE INDEX "idx_pm_template_compat_rules_mfr_model_norm" ON "public"."pm_template_compatibility_rules" USING "btree" ("organization_id", "manufacturer_norm", "model_norm");
+CREATE INDEX IF NOT EXISTS "idx_pm_template_compat_rules_mfr_model_norm" ON "public"."pm_template_compatibility_rules" USING "btree" ("organization_id", "manufacturer_norm", "model_norm");
 
 
 
-CREATE INDEX "idx_pm_template_compat_rules_org" ON "public"."pm_template_compatibility_rules" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_pm_template_compat_rules_org" ON "public"."pm_template_compatibility_rules" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_pm_template_compat_rules_org_template" ON "public"."pm_template_compatibility_rules" USING "btree" ("organization_id", "pm_template_id");
+CREATE INDEX IF NOT EXISTS "idx_pm_template_compat_rules_org_template" ON "public"."pm_template_compatibility_rules" USING "btree" ("organization_id", "pm_template_id");
 
 
 
-CREATE INDEX "idx_pm_template_compat_rules_template" ON "public"."pm_template_compatibility_rules" USING "btree" ("pm_template_id");
+CREATE INDEX IF NOT EXISTS "idx_pm_template_compat_rules_template" ON "public"."pm_template_compatibility_rules" USING "btree" ("pm_template_id");
 
 
 
-CREATE INDEX "idx_preventative_maintenance_equipment_id" ON "public"."preventative_maintenance" USING "btree" ("equipment_id");
+CREATE INDEX IF NOT EXISTS "idx_preventative_maintenance_equipment_id" ON "public"."preventative_maintenance" USING "btree" ("equipment_id");
 
 
 
-CREATE INDEX "idx_preventative_maintenance_organization_id" ON "public"."preventative_maintenance" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_preventative_maintenance_organization_id" ON "public"."preventative_maintenance" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_preventative_maintenance_template_id" ON "public"."preventative_maintenance" USING "btree" ("template_id");
+CREATE INDEX IF NOT EXISTS "idx_preventative_maintenance_template_id" ON "public"."preventative_maintenance" USING "btree" ("template_id");
 
 
 
-CREATE INDEX "idx_preventative_maintenance_work_order_id" ON "public"."preventative_maintenance" USING "btree" ("work_order_id");
+CREATE INDEX IF NOT EXISTS "idx_preventative_maintenance_work_order_id" ON "public"."preventative_maintenance" USING "btree" ("work_order_id");
 
 
 
-CREATE INDEX "idx_quickbooks_credentials_org" ON "public"."quickbooks_credentials" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_credentials_org" ON "public"."quickbooks_credentials" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_quickbooks_credentials_refresh_needed" ON "public"."quickbooks_credentials" USING "btree" ("access_token_expires_at", "organization_id");
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_credentials_refresh_needed" ON "public"."quickbooks_credentials" USING "btree" ("access_token_expires_at", "organization_id");
 
 
 
-CREATE INDEX "idx_quickbooks_credentials_token_expiry" ON "public"."quickbooks_credentials" USING "btree" ("access_token_expires_at");
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_credentials_token_expiry" ON "public"."quickbooks_credentials" USING "btree" ("access_token_expires_at");
 
 
 
-CREATE INDEX "idx_quickbooks_export_logs_intuit_tid" ON "public"."quickbooks_export_logs" USING "btree" ("intuit_tid") WHERE ("intuit_tid" IS NOT NULL);
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_export_logs_intuit_tid" ON "public"."quickbooks_export_logs" USING "btree" ("intuit_tid") WHERE ("intuit_tid" IS NOT NULL);
 
 
 
-CREATE INDEX "idx_quickbooks_export_logs_invoice_number" ON "public"."quickbooks_export_logs" USING "btree" ("quickbooks_invoice_number") WHERE ("quickbooks_invoice_number" IS NOT NULL);
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_export_logs_invoice_number" ON "public"."quickbooks_export_logs" USING "btree" ("quickbooks_invoice_number") WHERE ("quickbooks_invoice_number" IS NOT NULL);
 
 
 
-CREATE INDEX "idx_quickbooks_export_logs_org" ON "public"."quickbooks_export_logs" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_export_logs_org" ON "public"."quickbooks_export_logs" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_quickbooks_export_logs_realm" ON "public"."quickbooks_export_logs" USING "btree" ("realm_id");
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_export_logs_realm" ON "public"."quickbooks_export_logs" USING "btree" ("realm_id");
 
 
 
-CREATE INDEX "idx_quickbooks_export_logs_status" ON "public"."quickbooks_export_logs" USING "btree" ("status");
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_export_logs_status" ON "public"."quickbooks_export_logs" USING "btree" ("status");
 
 
 
-CREATE INDEX "idx_quickbooks_export_logs_work_order" ON "public"."quickbooks_export_logs" USING "btree" ("work_order_id");
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_export_logs_work_order" ON "public"."quickbooks_export_logs" USING "btree" ("work_order_id");
 
 
 
-CREATE INDEX "idx_quickbooks_export_logs_work_order_created" ON "public"."quickbooks_export_logs" USING "btree" ("work_order_id", "created_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_export_logs_work_order_created" ON "public"."quickbooks_export_logs" USING "btree" ("work_order_id", "created_at" DESC);
 
 
 
-CREATE INDEX "idx_quickbooks_oauth_sessions_expires" ON "public"."quickbooks_oauth_sessions" USING "btree" ("expires_at");
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_oauth_sessions_expires" ON "public"."quickbooks_oauth_sessions" USING "btree" ("expires_at");
 
 
 
-CREATE INDEX "idx_quickbooks_oauth_sessions_token" ON "public"."quickbooks_oauth_sessions" USING "btree" ("session_token") WHERE ("used_at" IS NULL);
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_oauth_sessions_token" ON "public"."quickbooks_oauth_sessions" USING "btree" ("session_token") WHERE ("used_at" IS NULL);
 
 
 
-CREATE INDEX "idx_quickbooks_team_customers_org" ON "public"."quickbooks_team_customers" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_team_customers_org" ON "public"."quickbooks_team_customers" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_quickbooks_team_customers_qb_customer" ON "public"."quickbooks_team_customers" USING "btree" ("quickbooks_customer_id");
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_team_customers_qb_customer" ON "public"."quickbooks_team_customers" USING "btree" ("quickbooks_customer_id");
 
 
 
-CREATE INDEX "idx_quickbooks_team_customers_team" ON "public"."quickbooks_team_customers" USING "btree" ("team_id");
+CREATE INDEX IF NOT EXISTS "idx_quickbooks_team_customers_team" ON "public"."quickbooks_team_customers" USING "btree" ("team_id");
 
 
 
-CREATE INDEX "idx_scans_equipment_id" ON "public"."scans" USING "btree" ("equipment_id");
+CREATE INDEX IF NOT EXISTS "idx_scans_equipment_id" ON "public"."scans" USING "btree" ("equipment_id");
 
 
 
-CREATE INDEX "idx_scans_scanned_by" ON "public"."scans" USING "btree" ("scanned_by");
+CREATE INDEX IF NOT EXISTS "idx_scans_scanned_by" ON "public"."scans" USING "btree" ("scanned_by");
 
 
 
-CREATE INDEX "idx_slot_purchases_organization_id" ON "public"."slot_purchases" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_slot_purchases_organization_id" ON "public"."slot_purchases" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_slot_purchases_purchased_by" ON "public"."slot_purchases" USING "btree" ("purchased_by");
+CREATE INDEX IF NOT EXISTS "idx_slot_purchases_purchased_by" ON "public"."slot_purchases" USING "btree" ("purchased_by");
 
 
 
-CREATE INDEX "idx_subscribers_user_id" ON "public"."subscribers" USING "btree" ("user_id");
+CREATE INDEX IF NOT EXISTS "idx_subscribers_user_id" ON "public"."subscribers" USING "btree" ("user_id");
 
 
 
-CREATE INDEX "idx_team_members_team_id" ON "public"."team_members" USING "btree" ("team_id");
+CREATE INDEX IF NOT EXISTS "idx_team_members_team_id" ON "public"."team_members" USING "btree" ("team_id");
 
 
 
-CREATE INDEX "idx_team_members_user_team" ON "public"."team_members" USING "btree" ("user_id", "team_id");
+CREATE INDEX IF NOT EXISTS "idx_team_members_user_team" ON "public"."team_members" USING "btree" ("user_id", "team_id");
 
 
 
-CREATE INDEX "idx_teams_organization_id" ON "public"."teams" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_teams_organization_id" ON "public"."teams" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_user_license_subscriptions_organization_id" ON "public"."user_license_subscriptions" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_user_license_subscriptions_organization_id" ON "public"."user_license_subscriptions" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "idx_work_order_costs_created_by" ON "public"."work_order_costs" USING "btree" ("created_by");
+CREATE INDEX IF NOT EXISTS "idx_work_order_costs_created_by" ON "public"."work_order_costs" USING "btree" ("created_by");
 
 
 
-CREATE INDEX "idx_work_order_costs_inventory_item_id" ON "public"."work_order_costs" USING "btree" ("inventory_item_id") WHERE ("inventory_item_id" IS NOT NULL);
+CREATE INDEX IF NOT EXISTS "idx_work_order_costs_inventory_item_id" ON "public"."work_order_costs" USING "btree" ("inventory_item_id") WHERE ("inventory_item_id" IS NOT NULL);
 
 
 
-CREATE INDEX "idx_work_order_costs_work_order_id" ON "public"."work_order_costs" USING "btree" ("work_order_id");
+CREATE INDEX IF NOT EXISTS "idx_work_order_costs_work_order_id" ON "public"."work_order_costs" USING "btree" ("work_order_id");
 
 
 
-CREATE INDEX "idx_work_order_equipment_eq" ON "public"."work_order_equipment" USING "btree" ("equipment_id");
+CREATE INDEX IF NOT EXISTS "idx_work_order_equipment_eq" ON "public"."work_order_equipment" USING "btree" ("equipment_id");
 
 
 
-CREATE INDEX "idx_work_order_equipment_primary" ON "public"."work_order_equipment" USING "btree" ("work_order_id", "is_primary") WHERE ("is_primary" = true);
+CREATE INDEX IF NOT EXISTS "idx_work_order_equipment_primary" ON "public"."work_order_equipment" USING "btree" ("work_order_id", "is_primary") WHERE ("is_primary" = true);
 
 
 
-CREATE INDEX "idx_work_order_equipment_wo" ON "public"."work_order_equipment" USING "btree" ("work_order_id");
+CREATE INDEX IF NOT EXISTS "idx_work_order_equipment_wo" ON "public"."work_order_equipment" USING "btree" ("work_order_id");
 
 
 
-CREATE INDEX "idx_work_order_images_note_id" ON "public"."work_order_images" USING "btree" ("note_id");
+CREATE INDEX IF NOT EXISTS "idx_work_order_images_note_id" ON "public"."work_order_images" USING "btree" ("note_id");
 
 
 
-CREATE INDEX "idx_work_order_images_work_order_id" ON "public"."work_order_images" USING "btree" ("work_order_id");
+CREATE INDEX IF NOT EXISTS "idx_work_order_images_work_order_id" ON "public"."work_order_images" USING "btree" ("work_order_id");
 
 
 
-CREATE INDEX "idx_work_order_notes_author_id" ON "public"."work_order_notes" USING "btree" ("author_id");
+CREATE INDEX IF NOT EXISTS "idx_work_order_notes_author_id" ON "public"."work_order_notes" USING "btree" ("author_id");
 
 
 
-CREATE INDEX "idx_work_order_notes_work_order_id" ON "public"."work_order_notes" USING "btree" ("work_order_id");
+CREATE INDEX IF NOT EXISTS "idx_work_order_notes_work_order_id" ON "public"."work_order_notes" USING "btree" ("work_order_id");
 
 
 
-CREATE INDEX "idx_work_order_status_history_changed_by" ON "public"."work_order_status_history" USING "btree" ("changed_by");
+CREATE INDEX IF NOT EXISTS "idx_work_order_status_history_changed_by" ON "public"."work_order_status_history" USING "btree" ("changed_by");
 
 
 
-CREATE INDEX "idx_work_order_status_history_work_order_id" ON "public"."work_order_status_history" USING "btree" ("work_order_id");
+CREATE INDEX IF NOT EXISTS "idx_work_order_status_history_work_order_id" ON "public"."work_order_status_history" USING "btree" ("work_order_id");
 
 
 
-CREATE INDEX "idx_work_orders_assignee_id" ON "public"."work_orders" USING "btree" ("assignee_id");
+CREATE INDEX IF NOT EXISTS "idx_work_orders_assignee_id" ON "public"."work_orders" USING "btree" ("assignee_id");
 
 
 
-CREATE INDEX "idx_work_orders_created_by" ON "public"."work_orders" USING "btree" ("created_by");
+CREATE INDEX IF NOT EXISTS "idx_work_orders_created_by" ON "public"."work_orders" USING "btree" ("created_by");
 
 
 
-CREATE INDEX "idx_work_orders_created_by_admin" ON "public"."work_orders" USING "btree" ("created_by_admin");
+CREATE INDEX IF NOT EXISTS "idx_work_orders_created_by_admin" ON "public"."work_orders" USING "btree" ("created_by_admin");
 
 
 
-CREATE INDEX "idx_work_orders_created_date" ON "public"."work_orders" USING "btree" ("created_date");
+CREATE INDEX IF NOT EXISTS "idx_work_orders_created_date" ON "public"."work_orders" USING "btree" ("created_date");
 
 
 
-CREATE INDEX "idx_work_orders_equipment_id" ON "public"."work_orders" USING "btree" ("equipment_id");
+CREATE INDEX IF NOT EXISTS "idx_work_orders_equipment_id" ON "public"."work_orders" USING "btree" ("equipment_id");
 
 
 
-CREATE INDEX "idx_work_orders_equipment_status" ON "public"."work_orders" USING "btree" ("equipment_id", "status");
+CREATE INDEX IF NOT EXISTS "idx_work_orders_equipment_status" ON "public"."work_orders" USING "btree" ("equipment_id", "status");
 
 
 
-CREATE INDEX "idx_work_orders_historical" ON "public"."work_orders" USING "btree" ("is_historical", "organization_id");
+CREATE INDEX IF NOT EXISTS "idx_work_orders_historical" ON "public"."work_orders" USING "btree" ("is_historical", "organization_id");
 
 
 
-CREATE INDEX "idx_work_orders_org_status" ON "public"."work_orders" USING "btree" ("organization_id", "status");
+CREATE INDEX IF NOT EXISTS "idx_work_orders_org_status" ON "public"."work_orders" USING "btree" ("organization_id", "status");
 
 
 
-CREATE INDEX "idx_work_orders_org_status_composite" ON "public"."work_orders" USING "btree" ("organization_id", "status");
+CREATE INDEX IF NOT EXISTS "idx_work_orders_org_status_composite" ON "public"."work_orders" USING "btree" ("organization_id", "status");
 
 
 
-CREATE INDEX "idx_work_orders_organization_id" ON "public"."work_orders" USING "btree" ("organization_id");
+CREATE INDEX IF NOT EXISTS "idx_work_orders_organization_id" ON "public"."work_orders" USING "btree" ("organization_id");
 
 
 
-CREATE INDEX "ix_listing_distributor" ON "public"."distributor_listing" USING "btree" ("distributor_id");
+CREATE INDEX IF NOT EXISTS "ix_listing_distributor" ON "public"."distributor_listing" USING "btree" ("distributor_id");
 
 
 
-CREATE INDEX "ix_listing_part" ON "public"."distributor_listing" USING "btree" ("part_id");
+CREATE INDEX IF NOT EXISTS "ix_listing_part" ON "public"."distributor_listing" USING "btree" ("part_id");
 
 
 
-CREATE INDEX "ix_part_identifier_normalized" ON "public"."part_identifier" USING "btree" ("normalized_value");
+CREATE INDEX IF NOT EXISTS "ix_part_identifier_normalized" ON "public"."part_identifier" USING "btree" ("normalized_value");
 
 
 
-CREATE INDEX "ix_part_identifier_part" ON "public"."part_identifier" USING "btree" ("part_id");
+CREATE INDEX IF NOT EXISTS "ix_part_identifier_part" ON "public"."part_identifier" USING "btree" ("part_id");
 
 
 
-CREATE UNIQUE INDEX "organization_subscriptions_org_feature_unique" ON "public"."organization_subscriptions" USING "btree" ("organization_id", "feature_type");
+CREATE UNIQUE INDEX IF NOT EXISTS "organization_subscriptions_org_feature_unique" ON "public"."organization_subscriptions" USING "btree" ("organization_id", "feature_type");
 
 
 
-CREATE UNIQUE INDEX "ux_part_canonical_mpn" ON "public"."part" USING "btree" ("canonical_mpn");
+CREATE UNIQUE INDEX IF NOT EXISTS "ux_part_canonical_mpn" ON "public"."part" USING "btree" ("canonical_mpn");
 
 
 
@@ -10220,478 +10166,383 @@ CREATE OR REPLACE TRIGGER "work_order_status_change_trigger" AFTER UPDATE ON "pu
 
 
 
-ALTER TABLE ONLY "public"."audit_log"
-    ADD CONSTRAINT "audit_log_actor_id_fkey" FOREIGN KEY ("actor_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_log_actor_id_fkey') THEN ALTER TABLE ONLY "public"."audit_log" ADD CONSTRAINT "audit_log_actor_id_fkey" FOREIGN KEY ("actor_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."audit_log"
-    ADD CONSTRAINT "audit_log_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_log_organization_id_fkey') THEN ALTER TABLE ONLY "public"."audit_log" ADD CONSTRAINT "audit_log_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."billing_events"
-    ADD CONSTRAINT "billing_events_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'billing_events_organization_id_fkey') THEN ALTER TABLE ONLY "public"."billing_events" ADD CONSTRAINT "billing_events_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."billing_events"
-    ADD CONSTRAINT "billing_events_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'billing_events_user_id_fkey') THEN ALTER TABLE ONLY "public"."billing_events" ADD CONSTRAINT "billing_events_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."billing_exemptions"
-    ADD CONSTRAINT "billing_exemptions_granted_by_fkey" FOREIGN KEY ("granted_by") REFERENCES "auth"."users"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'billing_exemptions_granted_by_fkey') THEN ALTER TABLE ONLY "public"."billing_exemptions" ADD CONSTRAINT "billing_exemptions_granted_by_fkey" FOREIGN KEY ("granted_by") REFERENCES "auth"."users"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."billing_exemptions"
-    ADD CONSTRAINT "billing_exemptions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'billing_exemptions_organization_id_fkey') THEN ALTER TABLE ONLY "public"."billing_exemptions" ADD CONSTRAINT "billing_exemptions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."billing_usage"
-    ADD CONSTRAINT "billing_usage_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'billing_usage_organization_id_fkey') THEN ALTER TABLE ONLY "public"."billing_usage" ADD CONSTRAINT "billing_usage_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."customer_contacts"
-    ADD CONSTRAINT "customer_contacts_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "public"."customers"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'customer_contacts_customer_id_fkey') THEN ALTER TABLE ONLY "public"."customer_contacts" ADD CONSTRAINT "customer_contacts_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "public"."customers"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."customer_contacts"
-    ADD CONSTRAINT "customer_contacts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'customer_contacts_user_id_fkey') THEN ALTER TABLE ONLY "public"."customer_contacts" ADD CONSTRAINT "customer_contacts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."customer_sites"
-    ADD CONSTRAINT "customer_sites_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "public"."customers"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'customer_sites_customer_id_fkey') THEN ALTER TABLE ONLY "public"."customer_sites" ADD CONSTRAINT "customer_sites_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "public"."customers"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."customers"
-    ADD CONSTRAINT "customers_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'customers_organization_id_fkey') THEN ALTER TABLE ONLY "public"."customers" ADD CONSTRAINT "customers_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."distributor_listing"
-    ADD CONSTRAINT "distributor_listing_distributor_id_fkey" FOREIGN KEY ("distributor_id") REFERENCES "public"."distributor"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'distributor_listing_distributor_id_fkey') THEN ALTER TABLE ONLY "public"."distributor_listing" ADD CONSTRAINT "distributor_listing_distributor_id_fkey" FOREIGN KEY ("distributor_id") REFERENCES "public"."distributor"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."distributor_listing"
-    ADD CONSTRAINT "distributor_listing_part_id_fkey" FOREIGN KEY ("part_id") REFERENCES "public"."part"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'distributor_listing_part_id_fkey') THEN ALTER TABLE ONLY "public"."distributor_listing" ADD CONSTRAINT "distributor_listing_part_id_fkey" FOREIGN KEY ("part_id") REFERENCES "public"."part"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment"
-    ADD CONSTRAINT "equipment_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "public"."customers"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_customer_id_fkey') THEN ALTER TABLE ONLY "public"."equipment" ADD CONSTRAINT "equipment_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "public"."customers"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment"
-    ADD CONSTRAINT "equipment_default_pm_template_id_fkey" FOREIGN KEY ("default_pm_template_id") REFERENCES "public"."pm_checklist_templates"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_default_pm_template_id_fkey') THEN ALTER TABLE ONLY "public"."equipment" ADD CONSTRAINT "equipment_default_pm_template_id_fkey" FOREIGN KEY ("default_pm_template_id") REFERENCES "public"."pm_checklist_templates"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment_note_images"
-    ADD CONSTRAINT "equipment_note_images_equipment_note_id_fkey" FOREIGN KEY ("equipment_note_id") REFERENCES "public"."equipment_notes"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_note_images_equipment_note_id_fkey') THEN ALTER TABLE ONLY "public"."equipment_note_images" ADD CONSTRAINT "equipment_note_images_equipment_note_id_fkey" FOREIGN KEY ("equipment_note_id") REFERENCES "public"."equipment_notes"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment_note_images"
-    ADD CONSTRAINT "equipment_note_images_uploaded_by_fkey" FOREIGN KEY ("uploaded_by") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_note_images_uploaded_by_fkey') THEN ALTER TABLE ONLY "public"."equipment_note_images" ADD CONSTRAINT "equipment_note_images_uploaded_by_fkey" FOREIGN KEY ("uploaded_by") REFERENCES "public"."profiles"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment_notes"
-    ADD CONSTRAINT "equipment_notes_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_notes_author_id_fkey') THEN ALTER TABLE ONLY "public"."equipment_notes" ADD CONSTRAINT "equipment_notes_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment_notes"
-    ADD CONSTRAINT "equipment_notes_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_notes_equipment_id_fkey') THEN ALTER TABLE ONLY "public"."equipment_notes" ADD CONSTRAINT "equipment_notes_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment_notes"
-    ADD CONSTRAINT "equipment_notes_last_modified_by_fkey" FOREIGN KEY ("last_modified_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_notes_last_modified_by_fkey') THEN ALTER TABLE ONLY "public"."equipment_notes" ADD CONSTRAINT "equipment_notes_last_modified_by_fkey" FOREIGN KEY ("last_modified_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment"
-    ADD CONSTRAINT "equipment_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_organization_id_fkey') THEN ALTER TABLE ONLY "public"."equipment" ADD CONSTRAINT "equipment_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment_part_compatibility"
-    ADD CONSTRAINT "equipment_part_compatibility_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_part_compatibility_equipment_id_fkey') THEN ALTER TABLE ONLY "public"."equipment_part_compatibility" ADD CONSTRAINT "equipment_part_compatibility_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment_part_compatibility"
-    ADD CONSTRAINT "equipment_part_compatibility_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_part_compatibility_inventory_item_id_fkey') THEN ALTER TABLE ONLY "public"."equipment_part_compatibility" ADD CONSTRAINT "equipment_part_compatibility_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."equipment"
-    ADD CONSTRAINT "equipment_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipment_team_id_fkey') THEN ALTER TABLE ONLY "public"."equipment" ADD CONSTRAINT "equipment_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."export_request_log"
-    ADD CONSTRAINT "export_request_log_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'export_request_log_organization_id_fkey') THEN ALTER TABLE ONLY "public"."export_request_log" ADD CONSTRAINT "export_request_log_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."export_request_log"
-    ADD CONSTRAINT "export_request_log_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'export_request_log_user_id_fkey') THEN ALTER TABLE ONLY "public"."export_request_log" ADD CONSTRAINT "export_request_log_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."preventative_maintenance"
-    ADD CONSTRAINT "fk_pm_equipment" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_pm_equipment') THEN ALTER TABLE ONLY "public"."preventative_maintenance" ADD CONSTRAINT "fk_pm_equipment" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."preventative_maintenance"
-    ADD CONSTRAINT "fk_pm_organization" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_pm_organization') THEN ALTER TABLE ONLY "public"."preventative_maintenance" ADD CONSTRAINT "fk_pm_organization" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."preventative_maintenance"
-    ADD CONSTRAINT "fk_pm_work_order" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_pm_work_order') THEN ALTER TABLE ONLY "public"."preventative_maintenance" ADD CONSTRAINT "fk_pm_work_order" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_notes"
-    ADD CONSTRAINT "fk_work_order_notes_author" FOREIGN KEY ("author_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_work_order_notes_author') THEN ALTER TABLE ONLY "public"."work_order_notes" ADD CONSTRAINT "fk_work_order_notes_author" FOREIGN KEY ("author_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."geocoded_locations"
-    ADD CONSTRAINT "geocoded_locations_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'geocoded_locations_organization_id_fkey') THEN ALTER TABLE ONLY "public"."geocoded_locations" ADD CONSTRAINT "geocoded_locations_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."inventory_items"
-    ADD CONSTRAINT "inventory_items_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE RESTRICT;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_items_created_by_fkey') THEN ALTER TABLE ONLY "public"."inventory_items" ADD CONSTRAINT "inventory_items_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE RESTRICT; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."inventory_items"
-    ADD CONSTRAINT "inventory_items_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_items_organization_id_fkey') THEN ALTER TABLE ONLY "public"."inventory_items" ADD CONSTRAINT "inventory_items_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."inventory_transactions"
-    ADD CONSTRAINT "inventory_transactions_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_transactions_inventory_item_id_fkey') THEN ALTER TABLE ONLY "public"."inventory_transactions" ADD CONSTRAINT "inventory_transactions_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."inventory_transactions"
-    ADD CONSTRAINT "inventory_transactions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_transactions_organization_id_fkey') THEN ALTER TABLE ONLY "public"."inventory_transactions" ADD CONSTRAINT "inventory_transactions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."inventory_transactions"
-    ADD CONSTRAINT "inventory_transactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE RESTRICT;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_transactions_user_id_fkey') THEN ALTER TABLE ONLY "public"."inventory_transactions" ADD CONSTRAINT "inventory_transactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE RESTRICT; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."inventory_transactions"
-    ADD CONSTRAINT "inventory_transactions_work_order_id_fkey" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_transactions_work_order_id_fkey') THEN ALTER TABLE ONLY "public"."inventory_transactions" ADD CONSTRAINT "inventory_transactions_work_order_id_fkey" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notes"
-    ADD CONSTRAINT "notes_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "public"."profiles"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notes_author_id_fkey') THEN ALTER TABLE ONLY "public"."notes" ADD CONSTRAINT "notes_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "public"."profiles"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notes"
-    ADD CONSTRAINT "notes_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notes_equipment_id_fkey') THEN ALTER TABLE ONLY "public"."notes" ADD CONSTRAINT "notes_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notification_preferences"
-    ADD CONSTRAINT "notification_preferences_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notification_preferences_user_id_fkey') THEN ALTER TABLE ONLY "public"."notification_preferences" ADD CONSTRAINT "notification_preferences_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notification_settings"
-    ADD CONSTRAINT "notification_settings_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notification_settings_organization_id_fkey') THEN ALTER TABLE ONLY "public"."notification_settings" ADD CONSTRAINT "notification_settings_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notification_settings"
-    ADD CONSTRAINT "notification_settings_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notification_settings_team_id_fkey') THEN ALTER TABLE ONLY "public"."notification_settings" ADD CONSTRAINT "notification_settings_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."notification_settings"
-    ADD CONSTRAINT "notification_settings_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notification_settings_user_id_fkey') THEN ALTER TABLE ONLY "public"."notification_settings" ADD CONSTRAINT "notification_settings_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_invitations"
-    ADD CONSTRAINT "organization_invitations_accepted_by_fkey" FOREIGN KEY ("accepted_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_invitations_accepted_by_fkey') THEN ALTER TABLE ONLY "public"."organization_invitations" ADD CONSTRAINT "organization_invitations_accepted_by_fkey" FOREIGN KEY ("accepted_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_invitations"
-    ADD CONSTRAINT "organization_invitations_invited_by_fkey" FOREIGN KEY ("invited_by") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_invitations_invited_by_fkey') THEN ALTER TABLE ONLY "public"."organization_invitations" ADD CONSTRAINT "organization_invitations_invited_by_fkey" FOREIGN KEY ("invited_by") REFERENCES "public"."profiles"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_invitations"
-    ADD CONSTRAINT "organization_invitations_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_invitations_organization_id_fkey') THEN ALTER TABLE ONLY "public"."organization_invitations" ADD CONSTRAINT "organization_invitations_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_invitations"
-    ADD CONSTRAINT "organization_invitations_slot_purchase_id_fkey" FOREIGN KEY ("slot_purchase_id") REFERENCES "public"."slot_purchases"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_invitations_slot_purchase_id_fkey') THEN ALTER TABLE ONLY "public"."organization_invitations" ADD CONSTRAINT "organization_invitations_slot_purchase_id_fkey" FOREIGN KEY ("slot_purchase_id") REFERENCES "public"."slot_purchases"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_members"
-    ADD CONSTRAINT "organization_members_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_members_organization_id_fkey') THEN ALTER TABLE ONLY "public"."organization_members" ADD CONSTRAINT "organization_members_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_members"
-    ADD CONSTRAINT "organization_members_slot_purchase_id_fkey" FOREIGN KEY ("slot_purchase_id") REFERENCES "public"."slot_purchases"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_members_slot_purchase_id_fkey') THEN ALTER TABLE ONLY "public"."organization_members" ADD CONSTRAINT "organization_members_slot_purchase_id_fkey" FOREIGN KEY ("slot_purchase_id") REFERENCES "public"."slot_purchases"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_members"
-    ADD CONSTRAINT "organization_members_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_members_user_id_fkey') THEN ALTER TABLE ONLY "public"."organization_members" ADD CONSTRAINT "organization_members_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_slots"
-    ADD CONSTRAINT "organization_slots_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_slots_organization_id_fkey') THEN ALTER TABLE ONLY "public"."organization_slots" ADD CONSTRAINT "organization_slots_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."organization_subscriptions"
-    ADD CONSTRAINT "organization_subscriptions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'organization_subscriptions_organization_id_fkey') THEN ALTER TABLE ONLY "public"."organization_subscriptions" ADD CONSTRAINT "organization_subscriptions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."ownership_transfer_requests"
-    ADD CONSTRAINT "ownership_transfer_requests_from_user_id_fkey" FOREIGN KEY ("from_user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ownership_transfer_requests_from_user_id_fkey') THEN ALTER TABLE ONLY "public"."ownership_transfer_requests" ADD CONSTRAINT "ownership_transfer_requests_from_user_id_fkey" FOREIGN KEY ("from_user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."ownership_transfer_requests"
-    ADD CONSTRAINT "ownership_transfer_requests_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ownership_transfer_requests_organization_id_fkey') THEN ALTER TABLE ONLY "public"."ownership_transfer_requests" ADD CONSTRAINT "ownership_transfer_requests_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."ownership_transfer_requests"
-    ADD CONSTRAINT "ownership_transfer_requests_to_user_id_fkey" FOREIGN KEY ("to_user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ownership_transfer_requests_to_user_id_fkey') THEN ALTER TABLE ONLY "public"."ownership_transfer_requests" ADD CONSTRAINT "ownership_transfer_requests_to_user_id_fkey" FOREIGN KEY ("to_user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_alternate_group_members"
-    ADD CONSTRAINT "part_alternate_group_members_group_id_fkey" FOREIGN KEY ("group_id") REFERENCES "public"."part_alternate_groups"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_alternate_group_members_group_id_fkey') THEN ALTER TABLE ONLY "public"."part_alternate_group_members" ADD CONSTRAINT "part_alternate_group_members_group_id_fkey" FOREIGN KEY ("group_id") REFERENCES "public"."part_alternate_groups"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_alternate_group_members"
-    ADD CONSTRAINT "part_alternate_group_members_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_alternate_group_members_inventory_item_id_fkey') THEN ALTER TABLE ONLY "public"."part_alternate_group_members" ADD CONSTRAINT "part_alternate_group_members_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_alternate_group_members"
-    ADD CONSTRAINT "part_alternate_group_members_part_identifier_id_fkey" FOREIGN KEY ("part_identifier_id") REFERENCES "public"."part_identifiers"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_alternate_group_members_part_identifier_id_fkey') THEN ALTER TABLE ONLY "public"."part_alternate_group_members" ADD CONSTRAINT "part_alternate_group_members_part_identifier_id_fkey" FOREIGN KEY ("part_identifier_id") REFERENCES "public"."part_identifiers"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_alternate_groups"
-    ADD CONSTRAINT "part_alternate_groups_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE RESTRICT;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_alternate_groups_created_by_fkey') THEN ALTER TABLE ONLY "public"."part_alternate_groups" ADD CONSTRAINT "part_alternate_groups_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE RESTRICT; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_alternate_groups"
-    ADD CONSTRAINT "part_alternate_groups_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_alternate_groups_organization_id_fkey') THEN ALTER TABLE ONLY "public"."part_alternate_groups" ADD CONSTRAINT "part_alternate_groups_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_alternate_groups"
-    ADD CONSTRAINT "part_alternate_groups_verified_by_fkey" FOREIGN KEY ("verified_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_alternate_groups_verified_by_fkey') THEN ALTER TABLE ONLY "public"."part_alternate_groups" ADD CONSTRAINT "part_alternate_groups_verified_by_fkey" FOREIGN KEY ("verified_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_compatibility_rules"
-    ADD CONSTRAINT "part_compatibility_rules_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_compatibility_rules_created_by_fkey') THEN ALTER TABLE ONLY "public"."part_compatibility_rules" ADD CONSTRAINT "part_compatibility_rules_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_compatibility_rules"
-    ADD CONSTRAINT "part_compatibility_rules_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_compatibility_rules_inventory_item_id_fkey') THEN ALTER TABLE ONLY "public"."part_compatibility_rules" ADD CONSTRAINT "part_compatibility_rules_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_compatibility_rules"
-    ADD CONSTRAINT "part_compatibility_rules_verified_by_fkey" FOREIGN KEY ("verified_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_compatibility_rules_verified_by_fkey') THEN ALTER TABLE ONLY "public"."part_compatibility_rules" ADD CONSTRAINT "part_compatibility_rules_verified_by_fkey" FOREIGN KEY ("verified_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_identifier"
-    ADD CONSTRAINT "part_identifier_part_id_fkey" FOREIGN KEY ("part_id") REFERENCES "public"."part"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_identifier_part_id_fkey') THEN ALTER TABLE ONLY "public"."part_identifier" ADD CONSTRAINT "part_identifier_part_id_fkey" FOREIGN KEY ("part_id") REFERENCES "public"."part"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_identifiers"
-    ADD CONSTRAINT "part_identifiers_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE RESTRICT;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_identifiers_created_by_fkey') THEN ALTER TABLE ONLY "public"."part_identifiers" ADD CONSTRAINT "part_identifiers_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE RESTRICT; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_identifiers"
-    ADD CONSTRAINT "part_identifiers_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_identifiers_inventory_item_id_fkey') THEN ALTER TABLE ONLY "public"."part_identifiers" ADD CONSTRAINT "part_identifiers_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."part_identifiers"
-    ADD CONSTRAINT "part_identifiers_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'part_identifiers_organization_id_fkey') THEN ALTER TABLE ONLY "public"."part_identifiers" ADD CONSTRAINT "part_identifiers_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."parts_managers"
-    ADD CONSTRAINT "parts_managers_assigned_by_fkey" FOREIGN KEY ("assigned_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'parts_managers_assigned_by_fkey') THEN ALTER TABLE ONLY "public"."parts_managers" ADD CONSTRAINT "parts_managers_assigned_by_fkey" FOREIGN KEY ("assigned_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."parts_managers"
-    ADD CONSTRAINT "parts_managers_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'parts_managers_organization_id_fkey') THEN ALTER TABLE ONLY "public"."parts_managers" ADD CONSTRAINT "parts_managers_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."parts_managers"
-    ADD CONSTRAINT "parts_managers_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'parts_managers_user_id_fkey') THEN ALTER TABLE ONLY "public"."parts_managers" ADD CONSTRAINT "parts_managers_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_checklist_templates"
-    ADD CONSTRAINT "pm_checklist_templates_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id") ON DELETE RESTRICT;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_checklist_templates_created_by_fkey') THEN ALTER TABLE ONLY "public"."pm_checklist_templates" ADD CONSTRAINT "pm_checklist_templates_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id") ON DELETE RESTRICT; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_checklist_templates"
-    ADD CONSTRAINT "pm_checklist_templates_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_checklist_templates_organization_id_fkey') THEN ALTER TABLE ONLY "public"."pm_checklist_templates" ADD CONSTRAINT "pm_checklist_templates_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_checklist_templates"
-    ADD CONSTRAINT "pm_checklist_templates_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "public"."profiles"("id") ON DELETE RESTRICT;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_checklist_templates_updated_by_fkey') THEN ALTER TABLE ONLY "public"."pm_checklist_templates" ADD CONSTRAINT "pm_checklist_templates_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "public"."profiles"("id") ON DELETE RESTRICT; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_status_history"
-    ADD CONSTRAINT "pm_status_history_changed_by_fkey" FOREIGN KEY ("changed_by") REFERENCES "public"."profiles"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_status_history_changed_by_fkey') THEN ALTER TABLE ONLY "public"."pm_status_history" ADD CONSTRAINT "pm_status_history_changed_by_fkey" FOREIGN KEY ("changed_by") REFERENCES "public"."profiles"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_status_history"
-    ADD CONSTRAINT "pm_status_history_pm_id_fkey" FOREIGN KEY ("pm_id") REFERENCES "public"."preventative_maintenance"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_status_history_pm_id_fkey') THEN ALTER TABLE ONLY "public"."pm_status_history" ADD CONSTRAINT "pm_status_history_pm_id_fkey" FOREIGN KEY ("pm_id") REFERENCES "public"."preventative_maintenance"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_template_compatibility_rules"
-    ADD CONSTRAINT "pm_template_compatibility_rules_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_template_compatibility_rules_organization_id_fkey') THEN ALTER TABLE ONLY "public"."pm_template_compatibility_rules" ADD CONSTRAINT "pm_template_compatibility_rules_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."pm_template_compatibility_rules"
-    ADD CONSTRAINT "pm_template_compatibility_rules_pm_template_id_fkey" FOREIGN KEY ("pm_template_id") REFERENCES "public"."pm_checklist_templates"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pm_template_compatibility_rules_pm_template_id_fkey') THEN ALTER TABLE ONLY "public"."pm_template_compatibility_rules" ADD CONSTRAINT "pm_template_compatibility_rules_pm_template_id_fkey" FOREIGN KEY ("pm_template_id") REFERENCES "public"."pm_checklist_templates"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."preventative_maintenance"
-    ADD CONSTRAINT "preventative_maintenance_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."pm_checklist_templates"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'preventative_maintenance_template_id_fkey') THEN ALTER TABLE ONLY "public"."preventative_maintenance" ADD CONSTRAINT "preventative_maintenance_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."pm_checklist_templates"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."profiles"
-    ADD CONSTRAINT "profiles_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_id_fkey') THEN ALTER TABLE ONLY "public"."profiles" ADD CONSTRAINT "profiles_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_credentials"
-    ADD CONSTRAINT "quickbooks_credentials_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_credentials_organization_id_fkey') THEN ALTER TABLE ONLY "public"."quickbooks_credentials" ADD CONSTRAINT "quickbooks_credentials_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_export_logs"
-    ADD CONSTRAINT "quickbooks_export_logs_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_export_logs_organization_id_fkey') THEN ALTER TABLE ONLY "public"."quickbooks_export_logs" ADD CONSTRAINT "quickbooks_export_logs_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_export_logs"
-    ADD CONSTRAINT "quickbooks_export_logs_work_order_id_fkey" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_export_logs_work_order_id_fkey') THEN ALTER TABLE ONLY "public"."quickbooks_export_logs" ADD CONSTRAINT "quickbooks_export_logs_work_order_id_fkey" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_oauth_sessions"
-    ADD CONSTRAINT "quickbooks_oauth_sessions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_oauth_sessions_organization_id_fkey') THEN ALTER TABLE ONLY "public"."quickbooks_oauth_sessions" ADD CONSTRAINT "quickbooks_oauth_sessions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_oauth_sessions"
-    ADD CONSTRAINT "quickbooks_oauth_sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_oauth_sessions_user_id_fkey') THEN ALTER TABLE ONLY "public"."quickbooks_oauth_sessions" ADD CONSTRAINT "quickbooks_oauth_sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_team_customers"
-    ADD CONSTRAINT "quickbooks_team_customers_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_team_customers_organization_id_fkey') THEN ALTER TABLE ONLY "public"."quickbooks_team_customers" ADD CONSTRAINT "quickbooks_team_customers_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."quickbooks_team_customers"
-    ADD CONSTRAINT "quickbooks_team_customers_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quickbooks_team_customers_team_id_fkey') THEN ALTER TABLE ONLY "public"."quickbooks_team_customers" ADD CONSTRAINT "quickbooks_team_customers_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."scans"
-    ADD CONSTRAINT "scans_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'scans_equipment_id_fkey') THEN ALTER TABLE ONLY "public"."scans" ADD CONSTRAINT "scans_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."scans"
-    ADD CONSTRAINT "scans_scanned_by_fkey" FOREIGN KEY ("scanned_by") REFERENCES "public"."profiles"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'scans_scanned_by_fkey') THEN ALTER TABLE ONLY "public"."scans" ADD CONSTRAINT "scans_scanned_by_fkey" FOREIGN KEY ("scanned_by") REFERENCES "public"."profiles"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."slot_purchases"
-    ADD CONSTRAINT "slot_purchases_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'slot_purchases_organization_id_fkey') THEN ALTER TABLE ONLY "public"."slot_purchases" ADD CONSTRAINT "slot_purchases_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."slot_purchases"
-    ADD CONSTRAINT "slot_purchases_purchased_by_fkey" FOREIGN KEY ("purchased_by") REFERENCES "public"."profiles"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'slot_purchases_purchased_by_fkey') THEN ALTER TABLE ONLY "public"."slot_purchases" ADD CONSTRAINT "slot_purchases_purchased_by_fkey" FOREIGN KEY ("purchased_by") REFERENCES "public"."profiles"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."subscribers"
-    ADD CONSTRAINT "subscribers_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscribers_user_id_fkey') THEN ALTER TABLE ONLY "public"."subscribers" ADD CONSTRAINT "subscribers_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."team_members"
-    ADD CONSTRAINT "team_members_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'team_members_team_id_fkey') THEN ALTER TABLE ONLY "public"."team_members" ADD CONSTRAINT "team_members_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."team_members"
-    ADD CONSTRAINT "team_members_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'team_members_user_id_fkey') THEN ALTER TABLE ONLY "public"."team_members" ADD CONSTRAINT "team_members_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."teams"
-    ADD CONSTRAINT "teams_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'teams_organization_id_fkey') THEN ALTER TABLE ONLY "public"."teams" ADD CONSTRAINT "teams_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
@@ -10711,122 +10562,113 @@ END $$;
 
 
 
-ALTER TABLE ONLY "public"."user_departure_queue"
-    ADD CONSTRAINT "user_departure_queue_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_departure_queue_organization_id_fkey') THEN ALTER TABLE ONLY "public"."user_departure_queue" ADD CONSTRAINT "user_departure_queue_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."user_departure_queue"
-    ADD CONSTRAINT "user_departure_queue_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_departure_queue_user_id_fkey') THEN ALTER TABLE ONLY "public"."user_departure_queue" ADD CONSTRAINT "user_departure_queue_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."user_license_subscriptions"
-    ADD CONSTRAINT "user_license_subscriptions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_license_subscriptions_organization_id_fkey') THEN ALTER TABLE ONLY "public"."user_license_subscriptions" ADD CONSTRAINT "user_license_subscriptions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_costs"
-    ADD CONSTRAINT "work_order_costs_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_costs_created_by_fkey') THEN ALTER TABLE ONLY "public"."work_order_costs" ADD CONSTRAINT "work_order_costs_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_costs"
-    ADD CONSTRAINT "work_order_costs_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE SET NULL;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_costs_inventory_item_id_fkey') THEN ALTER TABLE ONLY "public"."work_order_costs" ADD CONSTRAINT "work_order_costs_inventory_item_id_fkey" FOREIGN KEY ("inventory_item_id") REFERENCES "public"."inventory_items"("id") ON DELETE SET NULL; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_costs"
-    ADD CONSTRAINT "work_order_costs_work_order_id_fkey" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_costs_work_order_id_fkey') THEN ALTER TABLE ONLY "public"."work_order_costs" ADD CONSTRAINT "work_order_costs_work_order_id_fkey" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_equipment"
-    ADD CONSTRAINT "work_order_equipment_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_equipment_equipment_id_fkey') THEN ALTER TABLE ONLY "public"."work_order_equipment" ADD CONSTRAINT "work_order_equipment_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_equipment"
-    ADD CONSTRAINT "work_order_equipment_work_order_id_fkey" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_equipment_work_order_id_fkey') THEN ALTER TABLE ONLY "public"."work_order_equipment" ADD CONSTRAINT "work_order_equipment_work_order_id_fkey" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_images"
-    ADD CONSTRAINT "work_order_images_note_id_fkey" FOREIGN KEY ("note_id") REFERENCES "public"."work_order_notes"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_images_note_id_fkey') THEN ALTER TABLE ONLY "public"."work_order_images" ADD CONSTRAINT "work_order_images_note_id_fkey" FOREIGN KEY ("note_id") REFERENCES "public"."work_order_notes"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_status_history"
-    ADD CONSTRAINT "work_order_status_history_changed_by_fkey" FOREIGN KEY ("changed_by") REFERENCES "public"."profiles"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_status_history_changed_by_fkey') THEN ALTER TABLE ONLY "public"."work_order_status_history" ADD CONSTRAINT "work_order_status_history_changed_by_fkey" FOREIGN KEY ("changed_by") REFERENCES "public"."profiles"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_order_status_history"
-    ADD CONSTRAINT "work_order_status_history_work_order_id_fkey" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_order_status_history_work_order_id_fkey') THEN ALTER TABLE ONLY "public"."work_order_status_history" ADD CONSTRAINT "work_order_status_history_work_order_id_fkey" FOREIGN KEY ("work_order_id") REFERENCES "public"."work_orders"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_orders"
-    ADD CONSTRAINT "work_orders_assignee_id_fkey" FOREIGN KEY ("assignee_id") REFERENCES "public"."profiles"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_orders_assignee_id_fkey') THEN ALTER TABLE ONLY "public"."work_orders" ADD CONSTRAINT "work_orders_assignee_id_fkey" FOREIGN KEY ("assignee_id") REFERENCES "public"."profiles"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_orders"
-    ADD CONSTRAINT "work_orders_created_by_admin_fkey" FOREIGN KEY ("created_by_admin") REFERENCES "auth"."users"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_orders_created_by_admin_fkey') THEN ALTER TABLE ONLY "public"."work_orders" ADD CONSTRAINT "work_orders_created_by_admin_fkey" FOREIGN KEY ("created_by_admin") REFERENCES "auth"."users"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_orders"
-    ADD CONSTRAINT "work_orders_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_orders_created_by_fkey') THEN ALTER TABLE ONLY "public"."work_orders" ADD CONSTRAINT "work_orders_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id"); END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_orders"
-    ADD CONSTRAINT "work_orders_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_orders_equipment_id_fkey') THEN ALTER TABLE ONLY "public"."work_orders" ADD CONSTRAINT "work_orders_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
-ALTER TABLE ONLY "public"."work_orders"
-    ADD CONSTRAINT "work_orders_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'work_orders_organization_id_fkey') THEN ALTER TABLE ONLY "public"."work_orders" ADD CONSTRAINT "work_orders_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE; END IF; END $$;
 
 
 
+DROP POLICY IF EXISTS "Admins can delete work orders" ON "public"."work_orders";
 CREATE POLICY "Admins can delete work orders" ON "public"."work_orders" FOR DELETE USING (("organization_id" IN ( SELECT "organization_members"."organization_id"
    FROM "public"."organization_members"
   WHERE (("organization_members"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("organization_members"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("organization_members"."status" = 'active'::"text")))));
 
 
 
+DROP POLICY IF EXISTS "Admins can delete working hours history" ON "public"."equipment_working_hours_history";
 CREATE POLICY "Admins can delete working hours history" ON "public"."equipment_working_hours_history" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "Admins can insert work order history" ON "public"."work_order_status_history";
 CREATE POLICY "Admins can insert work order history" ON "public"."work_order_status_history" FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_status_history"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))) AND ("changed_by" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
+DROP POLICY IF EXISTS "Admins can update working hours history" ON "public"."equipment_working_hours_history";
 CREATE POLICY "Admins can update working hours history" ON "public"."equipment_working_hours_history" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "Admins can view billing events" ON "public"."billing_events";
 CREATE POLICY "Admins can view billing events" ON "public"."billing_events" FOR SELECT USING (("organization_id" IN ( SELECT "organization_members"."organization_id"
    FROM "public"."organization_members"
   WHERE (("organization_members"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("organization_members"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("organization_members"."status" = 'active'::"text")))));
 
 
 
+DROP POLICY IF EXISTS "Admins can view org export history" ON "public"."export_request_log";
 CREATE POLICY "Admins can view org export history" ON "public"."export_request_log" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."organization_members"
   WHERE (("organization_members"."organization_id" = "export_request_log"."organization_id") AND ("organization_members"."user_id" = "auth"."uid"()) AND ("organization_members"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("organization_members"."status" = 'active'::"text")))));
 
 
 
+DROP POLICY IF EXISTS "Authorized users can insert removal audit" ON "public"."member_removal_audit";
 CREATE POLICY "Authorized users can insert removal audit" ON "public"."member_removal_audit" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."organization_members" "om"
   WHERE (("om"."organization_id" = "member_removal_audit"."organization_id") AND ("om"."user_id" = "auth"."uid"()) AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
@@ -10837,34 +10679,42 @@ COMMENT ON POLICY "Authorized users can insert removal audit" ON "public"."membe
 
 
 
+DROP POLICY IF EXISTS "Org admins can view removal audit" ON "public"."member_removal_audit";
 CREATE POLICY "Org admins can view removal audit" ON "public"."member_removal_audit" FOR SELECT USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "Prevent unauthorized billing_events deletes" ON "public"."billing_events";
 CREATE POLICY "Prevent unauthorized billing_events deletes" ON "public"."billing_events" FOR DELETE USING (false);
 
 
 
+DROP POLICY IF EXISTS "Prevent unauthorized billing_events updates" ON "public"."billing_events";
 CREATE POLICY "Prevent unauthorized billing_events updates" ON "public"."billing_events" FOR UPDATE USING (false);
 
 
 
+DROP POLICY IF EXISTS "Prevent unauthorized billing_usage deletes" ON "public"."billing_usage";
 CREATE POLICY "Prevent unauthorized billing_usage deletes" ON "public"."billing_usage" FOR DELETE USING (false);
 
 
 
+DROP POLICY IF EXISTS "Prevent unauthorized billing_usage inserts" ON "public"."billing_usage";
 CREATE POLICY "Prevent unauthorized billing_usage inserts" ON "public"."billing_usage" FOR INSERT WITH CHECK (false);
 
 
 
+DROP POLICY IF EXISTS "Prevent unauthorized billing_usage updates" ON "public"."billing_usage";
 CREATE POLICY "Prevent unauthorized billing_usage updates" ON "public"."billing_usage" FOR UPDATE USING (false);
 
 
 
+DROP POLICY IF EXISTS "Prevent unauthorized exemption deletes" ON "public"."billing_exemptions";
 CREATE POLICY "Prevent unauthorized exemption deletes" ON "public"."billing_exemptions" FOR DELETE USING ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "Service role can insert removal audit" ON "public"."member_removal_audit";
 CREATE POLICY "Service role can insert removal audit" ON "public"."member_removal_audit" FOR INSERT TO "service_role" WITH CHECK (true);
 
 
@@ -10873,18 +10723,22 @@ COMMENT ON POLICY "Service role can insert removal audit" ON "public"."member_re
 
 
 
+DROP POLICY IF EXISTS "Service role can manage export logs" ON "public"."export_request_log";
 CREATE POLICY "Service role can manage export logs" ON "public"."export_request_log" TO "service_role" USING (true) WITH CHECK (true);
 
 
 
+DROP POLICY IF EXISTS "System can insert audit logs" ON "public"."audit_log";
 CREATE POLICY "System can insert audit logs" ON "public"."audit_log" FOR INSERT TO "authenticated" WITH CHECK (false);
 
 
 
+DROP POLICY IF EXISTS "System only billing_events inserts" ON "public"."billing_events";
 CREATE POLICY "System only billing_events inserts" ON "public"."billing_events" FOR INSERT WITH CHECK ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "Users can create working hours history for accessible equipment" ON "public"."equipment_working_hours_history";
 CREATE POLICY "Users can create working hours history for accessible equipment" ON "public"."equipment_working_hours_history" FOR INSERT WITH CHECK ((("updated_by" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
@@ -10893,26 +10747,31 @@ CREATE POLICY "Users can create working hours history for accessible equipment" 
 
 
 
+DROP POLICY IF EXISTS "Users can manage their own notification preferences" ON "public"."notification_preferences";
 CREATE POLICY "Users can manage their own notification preferences" ON "public"."notification_preferences" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
 
+DROP POLICY IF EXISTS "Users can update their own notifications" ON "public"."notifications";
 CREATE POLICY "Users can update their own notifications" ON "public"."notifications" FOR UPDATE USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
 
+DROP POLICY IF EXISTS "Users can upload work order images" ON "public"."work_order_images";
 CREATE POLICY "Users can upload work order images" ON "public"."work_order_images" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_images"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "Users can view audit logs for their organizations" ON "public"."audit_log";
 CREATE POLICY "Users can view audit logs for their organizations" ON "public"."audit_log" FOR SELECT TO "authenticated" USING (("organization_id" IN ( SELECT "om"."organization_id"
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."status" = 'active'::"text")))));
 
 
 
+DROP POLICY IF EXISTS "Users can view own export history" ON "public"."export_request_log";
 CREATE POLICY "Users can view own export history" ON "public"."export_request_log" FOR SELECT TO "authenticated" USING ((("user_id" = ( SELECT "auth"."uid"() AS "uid")) AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
@@ -10921,22 +10780,26 @@ COMMENT ON POLICY "Users can view own export history" ON "public"."export_reques
 
 
 
+DROP POLICY IF EXISTS "Users can view their own notifications" ON "public"."notifications";
 CREATE POLICY "Users can view their own notifications" ON "public"."notifications" FOR SELECT USING (("user_id" = "auth"."uid"()));
 
 
 
+DROP POLICY IF EXISTS "Users can view work order history for their organization" ON "public"."work_order_status_history";
 CREATE POLICY "Users can view work order history for their organization" ON "public"."work_order_status_history" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_status_history"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "Users can view work order images" ON "public"."work_order_images";
 CREATE POLICY "Users can view work order images" ON "public"."work_order_images" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_images"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "Users can view working hours history for accessible equipment" ON "public"."equipment_working_hours_history";
 CREATE POLICY "Users can view working hours history for accessible equipment" ON "public"."equipment_working_hours_history" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
@@ -10960,18 +10823,21 @@ ALTER TABLE "public"."billing_usage" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."customer_contacts" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "customer_contacts_admins_insert" ON "public"."customer_contacts";
 CREATE POLICY "customer_contacts_admins_insert" ON "public"."customer_contacts" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
   WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "customer_contacts_admins_select" ON "public"."customer_contacts";
 CREATE POLICY "customer_contacts_admins_select" ON "public"."customer_contacts" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
   WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "customer_contacts_admins_update" ON "public"."customer_contacts";
 CREATE POLICY "customer_contacts_admins_update" ON "public"."customer_contacts" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
   WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
@@ -10981,18 +10847,21 @@ CREATE POLICY "customer_contacts_admins_update" ON "public"."customer_contacts" 
 ALTER TABLE "public"."customer_sites" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "customer_sites_admins_insert" ON "public"."customer_sites";
 CREATE POLICY "customer_sites_admins_insert" ON "public"."customer_sites" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
   WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "customer_sites_admins_select" ON "public"."customer_sites";
 CREATE POLICY "customer_sites_admins_select" ON "public"."customer_sites" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
   WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "customer_sites_admins_update" ON "public"."customer_sites";
 CREATE POLICY "customer_sites_admins_update" ON "public"."customer_sites" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
   WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
@@ -11002,14 +10871,17 @@ CREATE POLICY "customer_sites_admins_update" ON "public"."customer_sites" FOR UP
 ALTER TABLE "public"."customers" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "customers_admins_insert" ON "public"."customers";
 CREATE POLICY "customers_admins_insert" ON "public"."customers" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "customers_admins_select" ON "public"."customers";
 CREATE POLICY "customers_admins_select" ON "public"."customers" FOR SELECT USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "customers_admins_update" ON "public"."customers";
 CREATE POLICY "customers_admins_update" ON "public"."customers" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
@@ -11020,10 +10892,12 @@ ALTER TABLE "public"."distributor" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."distributor_listing" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "distributor_listing_read_auth" ON "public"."distributor_listing";
 CREATE POLICY "distributor_listing_read_auth" ON "public"."distributor_listing" FOR SELECT USING (true);
 
 
 
+DROP POLICY IF EXISTS "distributor_read_auth" ON "public"."distributor";
 CREATE POLICY "distributor_read_auth" ON "public"."distributor" FOR SELECT USING (true);
 
 
@@ -11031,6 +10905,7 @@ CREATE POLICY "distributor_read_auth" ON "public"."distributor" FOR SELECT USING
 ALTER TABLE "public"."equipment" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "equipment_access_consolidated" ON "public"."equipment";
 CREATE POLICY "equipment_access_consolidated" ON "public"."equipment" USING (("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
@@ -11038,6 +10913,7 @@ CREATE POLICY "equipment_access_consolidated" ON "public"."equipment" USING (("p
 ALTER TABLE "public"."equipment_note_images" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "equipment_note_images_delete" ON "public"."equipment_note_images";
 CREATE POLICY "equipment_note_images_delete" ON "public"."equipment_note_images" FOR DELETE USING ((("uploaded_by" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM ("public"."equipment_notes" "en"
      JOIN "public"."equipment" "e" ON (("e"."id" = "en"."equipment_id")))
@@ -11045,6 +10921,7 @@ CREATE POLICY "equipment_note_images_delete" ON "public"."equipment_note_images"
 
 
 
+DROP POLICY IF EXISTS "equipment_note_images_insert" ON "public"."equipment_note_images";
 CREATE POLICY "equipment_note_images_insert" ON "public"."equipment_note_images" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM ("public"."equipment_notes" "en"
      JOIN "public"."equipment" "e" ON (("e"."id" = "en"."equipment_id")))
@@ -11052,6 +10929,7 @@ CREATE POLICY "equipment_note_images_insert" ON "public"."equipment_note_images"
 
 
 
+DROP POLICY IF EXISTS "equipment_note_images_select" ON "public"."equipment_note_images";
 CREATE POLICY "equipment_note_images_select" ON "public"."equipment_note_images" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM ("public"."equipment_notes" "en"
      JOIN "public"."equipment" "e" ON (("e"."id" = "en"."equipment_id")))
@@ -11062,12 +10940,14 @@ CREATE POLICY "equipment_note_images_select" ON "public"."equipment_note_images"
 ALTER TABLE "public"."equipment_notes" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "equipment_notes_delete" ON "public"."equipment_notes";
 CREATE POLICY "equipment_notes_delete" ON "public"."equipment_notes" FOR DELETE USING (((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "equipment_notes"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))) OR ("author_id" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
+DROP POLICY IF EXISTS "equipment_notes_delete_own" ON "public"."equipment_notes";
 CREATE POLICY "equipment_notes_delete_own" ON "public"."equipment_notes" FOR DELETE USING ((("author_id" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "equipment_notes"."equipment_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
@@ -11078,22 +10958,26 @@ COMMENT ON POLICY "equipment_notes_delete_own" ON "public"."equipment_notes" IS 
 
 
 
+DROP POLICY IF EXISTS "equipment_notes_insert" ON "public"."equipment_notes";
 CREATE POLICY "equipment_notes_insert" ON "public"."equipment_notes" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "equipment_notes"."equipment_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "equipment_notes_select" ON "public"."equipment_notes";
 CREATE POLICY "equipment_notes_select" ON "public"."equipment_notes" FOR SELECT USING (((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "equipment_notes"."equipment_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))) OR ("author_id" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
+DROP POLICY IF EXISTS "equipment_notes_update" ON "public"."equipment_notes";
 CREATE POLICY "equipment_notes_update" ON "public"."equipment_notes" FOR UPDATE USING (("author_id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
 
+DROP POLICY IF EXISTS "equipment_notes_update_own" ON "public"."equipment_notes";
 CREATE POLICY "equipment_notes_update_own" ON "public"."equipment_notes" FOR UPDATE USING ((("author_id" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "equipment_notes"."equipment_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
@@ -11107,6 +10991,7 @@ COMMENT ON POLICY "equipment_notes_update_own" ON "public"."equipment_notes" IS 
 ALTER TABLE "public"."equipment_part_compatibility" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "equipment_part_compatibility_organization_isolation" ON "public"."equipment_part_compatibility";
 CREATE POLICY "equipment_part_compatibility_organization_isolation" ON "public"."equipment_part_compatibility" USING (("equipment_id" IN ( SELECT "e"."id"
    FROM ("public"."equipment" "e"
      JOIN "public"."organization_members" "om" ON (("e"."organization_id" = "om"."organization_id")))
@@ -11123,14 +11008,17 @@ ALTER TABLE "public"."export_request_log" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."geocoded_locations" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "geocoded_locations_select_org_members" ON "public"."geocoded_locations";
 CREATE POLICY "geocoded_locations_select_org_members" ON "public"."geocoded_locations" FOR SELECT USING ("public"."check_org_access_secure"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "geocoded_locations_service_insert" ON "public"."geocoded_locations";
 CREATE POLICY "geocoded_locations_service_insert" ON "public"."geocoded_locations" FOR INSERT WITH CHECK ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "geocoded_locations_service_update" ON "public"."geocoded_locations";
 CREATE POLICY "geocoded_locations_service_update" ON "public"."geocoded_locations" FOR UPDATE USING ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
@@ -11138,6 +11026,7 @@ CREATE POLICY "geocoded_locations_service_update" ON "public"."geocoded_location
 ALTER TABLE "public"."inventory_items" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "inventory_items_organization_isolation" ON "public"."inventory_items";
 CREATE POLICY "inventory_items_organization_isolation" ON "public"."inventory_items" USING (("organization_id" IN ( SELECT "organization_members"."organization_id"
    FROM "public"."organization_members"
   WHERE (("organization_members"."user_id" = "auth"."uid"()) AND ("organization_members"."status" = 'active'::"text")))));
@@ -11147,6 +11036,7 @@ CREATE POLICY "inventory_items_organization_isolation" ON "public"."inventory_it
 ALTER TABLE "public"."inventory_transactions" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "inventory_transactions_organization_isolation" ON "public"."inventory_transactions";
 CREATE POLICY "inventory_transactions_organization_isolation" ON "public"."inventory_transactions" FOR SELECT USING (("organization_id" IN ( SELECT "organization_members"."organization_id"
    FROM "public"."organization_members"
   WHERE (("organization_members"."user_id" = "auth"."uid"()) AND ("organization_members"."status" = 'active'::"text")))));
@@ -11156,6 +11046,7 @@ CREATE POLICY "inventory_transactions_organization_isolation" ON "public"."inven
 ALTER TABLE "public"."invitation_performance_logs" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "invitation_performance_logs_service_only" ON "public"."invitation_performance_logs";
 CREATE POLICY "invitation_performance_logs_service_only" ON "public"."invitation_performance_logs" USING ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
@@ -11166,24 +11057,28 @@ ALTER TABLE "public"."member_removal_audit" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."notes" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "notes_delete_own_or_admin" ON "public"."notes";
 CREATE POLICY "notes_delete_own_or_admin" ON "public"."notes" FOR DELETE USING ((("author_id" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "notes"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
 
 
 
+DROP POLICY IF EXISTS "notes_insert_organization_members" ON "public"."notes";
 CREATE POLICY "notes_insert_organization_members" ON "public"."notes" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "notes"."equipment_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "notes_select_organization_members" ON "public"."notes";
 CREATE POLICY "notes_select_organization_members" ON "public"."notes" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "notes"."equipment_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "notes_update_own" ON "public"."notes";
 CREATE POLICY "notes_update_own" ON "public"."notes" FOR UPDATE USING ((("author_id" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "notes"."equipment_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
@@ -11200,6 +11095,7 @@ ALTER TABLE "public"."notification_preferences" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."notification_settings" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "notification_settings_user_policy" ON "public"."notification_settings";
 CREATE POLICY "notification_settings_user_policy" ON "public"."notification_settings" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
@@ -11207,16 +11103,19 @@ CREATE POLICY "notification_settings_user_policy" ON "public"."notification_sett
 ALTER TABLE "public"."notifications" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "org_admins_view_departure_queue" ON "public"."user_departure_queue";
 CREATE POLICY "org_admins_view_departure_queue" ON "public"."user_departure_queue" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."organization_members" "om"
   WHERE (("om"."organization_id" = "user_departure_queue"."organization_id") AND ("om"."user_id" = "auth"."uid"()) AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
 
 
 
+DROP POLICY IF EXISTS "org_admins_view_exemptions" ON "public"."billing_exemptions";
 CREATE POLICY "org_admins_view_exemptions" ON "public"."billing_exemptions" FOR SELECT USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "org_admins_view_transfer_requests" ON "public"."ownership_transfer_requests";
 CREATE POLICY "org_admins_view_transfer_requests" ON "public"."ownership_transfer_requests" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."organization_members" "om"
   WHERE (("om"."organization_id" = "ownership_transfer_requests"."organization_id") AND ("om"."user_id" = "auth"."uid"()) AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
@@ -11226,10 +11125,12 @@ CREATE POLICY "org_admins_view_transfer_requests" ON "public"."ownership_transfe
 ALTER TABLE "public"."organization_invitations" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "organization_invitations_select" ON "public"."organization_invitations";
 CREATE POLICY "organization_invitations_select" ON "public"."organization_invitations" FOR SELECT USING ((("email" = ( SELECT "auth"."email"() AS "email")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
+DROP POLICY IF EXISTS "organization_invitations_update" ON "public"."organization_invitations";
 CREATE POLICY "organization_invitations_update" ON "public"."organization_invitations" FOR UPDATE USING ((("email" = ( SELECT "auth"."email"() AS "email")) OR ("invited_by" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"))) WITH CHECK ((("email" = ( SELECT "auth"."email"() AS "email")) OR ("invited_by" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
@@ -11237,18 +11138,22 @@ CREATE POLICY "organization_invitations_update" ON "public"."organization_invita
 ALTER TABLE "public"."organization_members" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "organization_members_delete_safe" ON "public"."organization_members";
 CREATE POLICY "organization_members_delete_safe" ON "public"."organization_members" FOR DELETE TO "authenticated" USING ("public"."user_is_org_admin"("organization_id"));
 
 
 
+DROP POLICY IF EXISTS "organization_members_insert_safe" ON "public"."organization_members";
 CREATE POLICY "organization_members_insert_safe" ON "public"."organization_members" FOR INSERT TO "authenticated" WITH CHECK ("public"."user_is_org_admin"("organization_id"));
 
 
 
+DROP POLICY IF EXISTS "organization_members_select_safe" ON "public"."organization_members";
 CREATE POLICY "organization_members_select_safe" ON "public"."organization_members" FOR SELECT TO "authenticated" USING ((("user_id" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."user_is_org_member"("organization_id")));
 
 
 
+DROP POLICY IF EXISTS "organization_members_select_secure" ON "public"."organization_members";
 CREATE POLICY "organization_members_select_secure" ON "public"."organization_members" FOR SELECT TO "authenticated" USING (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
@@ -11259,6 +11164,7 @@ Also allows users to see their own membership record directly.';
 
 
 
+DROP POLICY IF EXISTS "organization_members_update_safe" ON "public"."organization_members";
 CREATE POLICY "organization_members_update_safe" ON "public"."organization_members" FOR UPDATE TO "authenticated" USING ("public"."user_is_org_admin"("organization_id"));
 
 
@@ -11266,18 +11172,22 @@ CREATE POLICY "organization_members_update_safe" ON "public"."organization_membe
 ALTER TABLE "public"."organization_slots" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "organization_slots_admin_delete" ON "public"."organization_slots";
 CREATE POLICY "organization_slots_admin_delete" ON "public"."organization_slots" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "organization_slots_admin_insert" ON "public"."organization_slots";
 CREATE POLICY "organization_slots_admin_insert" ON "public"."organization_slots" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "organization_slots_admin_update" ON "public"."organization_slots";
 CREATE POLICY "organization_slots_admin_update" ON "public"."organization_slots" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "organization_slots_select_consolidated" ON "public"."organization_slots";
 CREATE POLICY "organization_slots_select_consolidated" ON "public"."organization_slots" FOR SELECT USING (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
@@ -11285,18 +11195,22 @@ CREATE POLICY "organization_slots_select_consolidated" ON "public"."organization
 ALTER TABLE "public"."organization_subscriptions" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "organization_subscriptions_admin_delete" ON "public"."organization_subscriptions";
 CREATE POLICY "organization_subscriptions_admin_delete" ON "public"."organization_subscriptions" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "organization_subscriptions_admin_insert" ON "public"."organization_subscriptions";
 CREATE POLICY "organization_subscriptions_admin_insert" ON "public"."organization_subscriptions" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "organization_subscriptions_admin_update" ON "public"."organization_subscriptions";
 CREATE POLICY "organization_subscriptions_admin_update" ON "public"."organization_subscriptions" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "organization_subscriptions_select_consolidated" ON "public"."organization_subscriptions";
 CREATE POLICY "organization_subscriptions_select_consolidated" ON "public"."organization_subscriptions" FOR SELECT USING (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
@@ -11304,12 +11218,14 @@ CREATE POLICY "organization_subscriptions_select_consolidated" ON "public"."orga
 ALTER TABLE "public"."organizations" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "organizations_select" ON "public"."organizations";
 CREATE POLICY "organizations_select" ON "public"."organizations" FOR SELECT USING (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "id") OR (EXISTS ( SELECT 1
    FROM "public"."organization_invitations"
   WHERE (("organization_invitations"."organization_id" = "organizations"."id") AND ("organization_invitations"."email" = ( SELECT "auth"."email"() AS "email")) AND ("organization_invitations"."status" = 'pending'::"text"))))));
 
 
 
+DROP POLICY IF EXISTS "orgs_update_admins" ON "public"."organizations";
 CREATE POLICY "orgs_update_admins" ON "public"."organizations" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "id"));
 
 
@@ -11323,6 +11239,7 @@ ALTER TABLE "public"."part" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."part_alternate_group_members" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "part_alternate_group_members_org_isolation" ON "public"."part_alternate_group_members";
 CREATE POLICY "part_alternate_group_members_org_isolation" ON "public"."part_alternate_group_members" USING (("group_id" IN ( SELECT "part_alternate_groups"."id"
    FROM "public"."part_alternate_groups"
   WHERE ("part_alternate_groups"."organization_id" IN ( SELECT "organization_members"."organization_id"
@@ -11334,6 +11251,7 @@ CREATE POLICY "part_alternate_group_members_org_isolation" ON "public"."part_alt
 ALTER TABLE "public"."part_alternate_groups" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "part_alternate_groups_org_isolation" ON "public"."part_alternate_groups";
 CREATE POLICY "part_alternate_groups_org_isolation" ON "public"."part_alternate_groups" USING (("organization_id" IN ( SELECT "organization_members"."organization_id"
    FROM "public"."organization_members"
   WHERE (("organization_members"."user_id" = "auth"."uid"()) AND ("organization_members"."status" = 'active'::"text")))));
@@ -11343,6 +11261,7 @@ CREATE POLICY "part_alternate_groups_org_isolation" ON "public"."part_alternate_
 ALTER TABLE "public"."part_compatibility_rules" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "part_compatibility_rules_org_isolation" ON "public"."part_compatibility_rules";
 CREATE POLICY "part_compatibility_rules_org_isolation" ON "public"."part_compatibility_rules" USING (("inventory_item_id" IN ( SELECT "inventory_items"."id"
    FROM "public"."inventory_items"
   WHERE ("inventory_items"."organization_id" IN ( SELECT "organization_members"."organization_id"
@@ -11354,6 +11273,7 @@ CREATE POLICY "part_compatibility_rules_org_isolation" ON "public"."part_compati
 ALTER TABLE "public"."part_identifier" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "part_identifier_read_auth" ON "public"."part_identifier";
 CREATE POLICY "part_identifier_read_auth" ON "public"."part_identifier" FOR SELECT USING (true);
 
 
@@ -11361,12 +11281,14 @@ CREATE POLICY "part_identifier_read_auth" ON "public"."part_identifier" FOR SELE
 ALTER TABLE "public"."part_identifiers" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "part_identifiers_org_isolation" ON "public"."part_identifiers";
 CREATE POLICY "part_identifiers_org_isolation" ON "public"."part_identifiers" USING (("organization_id" IN ( SELECT "organization_members"."organization_id"
    FROM "public"."organization_members"
   WHERE (("organization_members"."user_id" = "auth"."uid"()) AND ("organization_members"."status" = 'active'::"text")))));
 
 
 
+DROP POLICY IF EXISTS "part_read_auth" ON "public"."part";
 CREATE POLICY "part_read_auth" ON "public"."part" FOR SELECT USING (true);
 
 
@@ -11374,18 +11296,21 @@ CREATE POLICY "part_read_auth" ON "public"."part" FOR SELECT USING (true);
 ALTER TABLE "public"."parts_managers" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "parts_managers_delete_policy" ON "public"."parts_managers";
 CREATE POLICY "parts_managers_delete_policy" ON "public"."parts_managers" FOR DELETE USING (("organization_id" IN ( SELECT "organization_members"."organization_id"
    FROM "public"."organization_members"
   WHERE (("organization_members"."user_id" = "auth"."uid"()) AND ("organization_members"."status" = 'active'::"text") AND ("organization_members"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"]))))));
 
 
 
+DROP POLICY IF EXISTS "parts_managers_insert_policy" ON "public"."parts_managers";
 CREATE POLICY "parts_managers_insert_policy" ON "public"."parts_managers" FOR INSERT WITH CHECK (("organization_id" IN ( SELECT "organization_members"."organization_id"
    FROM "public"."organization_members"
   WHERE (("organization_members"."user_id" = "auth"."uid"()) AND ("organization_members"."status" = 'active'::"text") AND ("organization_members"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"]))))));
 
 
 
+DROP POLICY IF EXISTS "parts_managers_select_policy" ON "public"."parts_managers";
 CREATE POLICY "parts_managers_select_policy" ON "public"."parts_managers" FOR SELECT USING (("organization_id" IN ( SELECT "organization_members"."organization_id"
    FROM "public"."organization_members"
   WHERE (("organization_members"."user_id" = "auth"."uid"()) AND ("organization_members"."status" = 'active'::"text")))));
@@ -11395,18 +11320,22 @@ CREATE POLICY "parts_managers_select_policy" ON "public"."parts_managers" FOR SE
 ALTER TABLE "public"."pm_checklist_templates" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "pm_checklist_templates_admin_insert" ON "public"."pm_checklist_templates";
 CREATE POLICY "pm_checklist_templates_admin_insert" ON "public"."pm_checklist_templates" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "pm_checklist_templates_admin_update" ON "public"."pm_checklist_templates";
 CREATE POLICY "pm_checklist_templates_admin_update" ON "public"."pm_checklist_templates" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "pm_checklist_templates_delete_consolidated" ON "public"."pm_checklist_templates";
 CREATE POLICY "pm_checklist_templates_delete_consolidated" ON "public"."pm_checklist_templates" FOR DELETE USING (("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("is_protected" = false)));
 
 
 
+DROP POLICY IF EXISTS "pm_checklist_templates_select_consolidated" ON "public"."pm_checklist_templates";
 CREATE POLICY "pm_checklist_templates_select_consolidated" ON "public"."pm_checklist_templates" FOR SELECT USING (((("organization_id" IS NULL) AND (( SELECT "auth"."uid"() AS "uid") IS NOT NULL)) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
@@ -11414,24 +11343,28 @@ CREATE POLICY "pm_checklist_templates_select_consolidated" ON "public"."pm_check
 ALTER TABLE "public"."pm_status_history" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "pm_status_history_admin_insert" ON "public"."pm_status_history";
 CREATE POLICY "pm_status_history_admin_insert" ON "public"."pm_status_history" FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
    FROM "public"."preventative_maintenance" "pm"
   WHERE (("pm"."id" = "pm_status_history"."pm_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "pm"."organization_id")))) AND ("changed_by" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
+DROP POLICY IF EXISTS "pm_status_history_select_consolidated" ON "public"."pm_status_history";
 CREATE POLICY "pm_status_history_select_consolidated" ON "public"."pm_status_history" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."preventative_maintenance" "pm"
   WHERE (("pm"."id" = "pm_status_history"."pm_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "pm"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "pm_template_compat_rules_delete" ON "public"."pm_template_compatibility_rules";
 CREATE POLICY "pm_template_compat_rules_delete" ON "public"."pm_template_compatibility_rules" FOR DELETE USING (("organization_id" IN ( SELECT "om"."organization_id"
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = "auth"."uid"()) AND ("om"."status" = 'active'::"text")))));
 
 
 
+DROP POLICY IF EXISTS "pm_template_compat_rules_insert" ON "public"."pm_template_compatibility_rules";
 CREATE POLICY "pm_template_compat_rules_insert" ON "public"."pm_template_compatibility_rules" FOR INSERT WITH CHECK ((("organization_id" IN ( SELECT "om"."organization_id"
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = "auth"."uid"()) AND ("om"."status" = 'active'::"text")))) AND ("pm_template_id" IN ( SELECT "pm_checklist_templates"."id"
@@ -11442,12 +11375,14 @@ CREATE POLICY "pm_template_compat_rules_insert" ON "public"."pm_template_compati
 
 
 
+DROP POLICY IF EXISTS "pm_template_compat_rules_select" ON "public"."pm_template_compatibility_rules";
 CREATE POLICY "pm_template_compat_rules_select" ON "public"."pm_template_compatibility_rules" FOR SELECT USING (("organization_id" IN ( SELECT "om"."organization_id"
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = "auth"."uid"()) AND ("om"."status" = 'active'::"text")))));
 
 
 
+DROP POLICY IF EXISTS "pm_template_compat_rules_update" ON "public"."pm_template_compatibility_rules";
 CREATE POLICY "pm_template_compat_rules_update" ON "public"."pm_template_compatibility_rules" FOR UPDATE USING (("organization_id" IN ( SELECT "om"."organization_id"
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = "auth"."uid"()) AND ("om"."status" = 'active'::"text")))));
@@ -11460,6 +11395,7 @@ ALTER TABLE "public"."pm_template_compatibility_rules" ENABLE ROW LEVEL SECURITY
 ALTER TABLE "public"."preventative_maintenance" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "preventative_maintenance_insert" ON "public"."preventative_maintenance";
 CREATE POLICY "preventative_maintenance_insert" ON "public"."preventative_maintenance" FOR INSERT WITH CHECK (("organization_id" = ( SELECT "organizations"."id"
    FROM "public"."organizations"
   WHERE ("organizations"."id" = "preventative_maintenance"."organization_id")
@@ -11467,18 +11403,22 @@ CREATE POLICY "preventative_maintenance_insert" ON "public"."preventative_mainte
 
 
 
+DROP POLICY IF EXISTS "preventative_maintenance_insert_consolidated" ON "public"."preventative_maintenance";
 CREATE POLICY "preventative_maintenance_insert_consolidated" ON "public"."preventative_maintenance" FOR INSERT WITH CHECK (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
+DROP POLICY IF EXISTS "preventative_maintenance_select" ON "public"."preventative_maintenance";
 CREATE POLICY "preventative_maintenance_select" ON "public"."preventative_maintenance" FOR SELECT USING ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "preventative_maintenance_select_consolidated" ON "public"."preventative_maintenance";
 CREATE POLICY "preventative_maintenance_select_consolidated" ON "public"."preventative_maintenance" FOR SELECT USING ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "preventative_maintenance_update" ON "public"."preventative_maintenance";
 CREATE POLICY "preventative_maintenance_update" ON "public"."preventative_maintenance" FOR UPDATE USING (("organization_id" = ( SELECT "organizations"."id"
    FROM "public"."organizations"
   WHERE ("organizations"."id" = "preventative_maintenance"."organization_id")
@@ -11486,6 +11426,7 @@ CREATE POLICY "preventative_maintenance_update" ON "public"."preventative_mainte
 
 
 
+DROP POLICY IF EXISTS "preventative_maintenance_update_consolidated" ON "public"."preventative_maintenance";
 CREATE POLICY "preventative_maintenance_update_consolidated" ON "public"."preventative_maintenance" FOR UPDATE USING (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
@@ -11493,10 +11434,12 @@ CREATE POLICY "preventative_maintenance_update_consolidated" ON "public"."preven
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "profiles_insert_optimized" ON "public"."profiles";
 CREATE POLICY "profiles_insert_optimized" ON "public"."profiles" FOR INSERT WITH CHECK (("id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
 
+DROP POLICY IF EXISTS "profiles_select" ON "public"."profiles";
 CREATE POLICY "profiles_select" ON "public"."profiles" FOR SELECT USING ((("id" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM ("public"."organization_members" "om1"
      JOIN "public"."organization_members" "om2" ON (("om1"."organization_id" = "om2"."organization_id")))
@@ -11504,6 +11447,7 @@ CREATE POLICY "profiles_select" ON "public"."profiles" FOR SELECT USING ((("id" 
 
 
 
+DROP POLICY IF EXISTS "profiles_update_optimized" ON "public"."profiles";
 CREATE POLICY "profiles_update_optimized" ON "public"."profiles" FOR UPDATE USING (("id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
@@ -11511,24 +11455,28 @@ CREATE POLICY "profiles_update_optimized" ON "public"."profiles" FOR UPDATE USIN
 ALTER TABLE "public"."quickbooks_credentials" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "quickbooks_credentials_delete_policy" ON "public"."quickbooks_credentials";
 CREATE POLICY "quickbooks_credentials_delete_policy" ON "public"."quickbooks_credentials" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."organization_id" = "quickbooks_credentials"."organization_id") AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
 
 
 
+DROP POLICY IF EXISTS "quickbooks_credentials_insert_policy" ON "public"."quickbooks_credentials";
 CREATE POLICY "quickbooks_credentials_insert_policy" ON "public"."quickbooks_credentials" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."organization_id" = "quickbooks_credentials"."organization_id") AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
 
 
 
+DROP POLICY IF EXISTS "quickbooks_credentials_select_policy" ON "public"."quickbooks_credentials";
 CREATE POLICY "quickbooks_credentials_select_policy" ON "public"."quickbooks_credentials" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."organization_id" = "quickbooks_credentials"."organization_id") AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
 
 
 
+DROP POLICY IF EXISTS "quickbooks_credentials_update_policy" ON "public"."quickbooks_credentials";
 CREATE POLICY "quickbooks_credentials_update_policy" ON "public"."quickbooks_credentials" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."organization_id" = "quickbooks_credentials"."organization_id") AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text"))))) WITH CHECK ((EXISTS ( SELECT 1
@@ -11540,14 +11488,17 @@ CREATE POLICY "quickbooks_credentials_update_policy" ON "public"."quickbooks_cre
 ALTER TABLE "public"."quickbooks_export_logs" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "quickbooks_export_logs_insert_policy" ON "public"."quickbooks_export_logs";
 CREATE POLICY "quickbooks_export_logs_insert_policy" ON "public"."quickbooks_export_logs" FOR INSERT WITH CHECK ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "quickbooks_export_logs_select_policy" ON "public"."quickbooks_export_logs";
 CREATE POLICY "quickbooks_export_logs_select_policy" ON "public"."quickbooks_export_logs" FOR SELECT USING ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "quickbooks_export_logs_update_policy" ON "public"."quickbooks_export_logs";
 CREATE POLICY "quickbooks_export_logs_update_policy" ON "public"."quickbooks_export_logs" FOR UPDATE USING ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) WITH CHECK ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
@@ -11555,12 +11506,14 @@ CREATE POLICY "quickbooks_export_logs_update_policy" ON "public"."quickbooks_exp
 ALTER TABLE "public"."quickbooks_oauth_sessions" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "quickbooks_oauth_sessions_insert_policy" ON "public"."quickbooks_oauth_sessions";
 CREATE POLICY "quickbooks_oauth_sessions_insert_policy" ON "public"."quickbooks_oauth_sessions" FOR INSERT WITH CHECK ((("user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("organization_id" IN ( SELECT "om"."organization_id"
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text"))))));
 
 
 
+DROP POLICY IF EXISTS "quickbooks_oauth_sessions_select_policy" ON "public"."quickbooks_oauth_sessions";
 CREATE POLICY "quickbooks_oauth_sessions_select_policy" ON "public"."quickbooks_oauth_sessions" FOR SELECT USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
@@ -11568,18 +11521,22 @@ CREATE POLICY "quickbooks_oauth_sessions_select_policy" ON "public"."quickbooks_
 ALTER TABLE "public"."quickbooks_team_customers" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "quickbooks_team_customers_delete_policy" ON "public"."quickbooks_team_customers";
 CREATE POLICY "quickbooks_team_customers_delete_policy" ON "public"."quickbooks_team_customers" FOR DELETE USING ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "quickbooks_team_customers_insert_policy" ON "public"."quickbooks_team_customers";
 CREATE POLICY "quickbooks_team_customers_insert_policy" ON "public"."quickbooks_team_customers" FOR INSERT WITH CHECK ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "quickbooks_team_customers_select_policy" ON "public"."quickbooks_team_customers";
 CREATE POLICY "quickbooks_team_customers_select_policy" ON "public"."quickbooks_team_customers" FOR SELECT USING ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "quickbooks_team_customers_update_policy" ON "public"."quickbooks_team_customers";
 CREATE POLICY "quickbooks_team_customers_update_policy" ON "public"."quickbooks_team_customers" FOR UPDATE USING ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) WITH CHECK ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
@@ -11587,24 +11544,28 @@ CREATE POLICY "quickbooks_team_customers_update_policy" ON "public"."quickbooks_
 ALTER TABLE "public"."scans" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "scans_delete_admins" ON "public"."scans";
 CREATE POLICY "scans_delete_admins" ON "public"."scans" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "scans"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "scans_insert_organization_members" ON "public"."scans";
 CREATE POLICY "scans_insert_organization_members" ON "public"."scans" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "scans"."equipment_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "scans_select_organization_members" ON "public"."scans";
 CREATE POLICY "scans_select_organization_members" ON "public"."scans" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "scans"."equipment_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "scans_update_own" ON "public"."scans";
 CREATE POLICY "scans_update_own" ON "public"."scans" FOR UPDATE USING ((("scanned_by" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "scans"."equipment_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
@@ -11615,38 +11576,47 @@ COMMENT ON POLICY "scans_update_own" ON "public"."scans" IS 'Users can update th
 
 
 
+DROP POLICY IF EXISTS "secure_system_insert_exemptions" ON "public"."billing_exemptions";
 CREATE POLICY "secure_system_insert_exemptions" ON "public"."billing_exemptions" FOR INSERT WITH CHECK ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "secure_system_update_exemptions" ON "public"."billing_exemptions";
 CREATE POLICY "secure_system_update_exemptions" ON "public"."billing_exemptions" FOR UPDATE USING ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "service_role_delete_webhook_events" ON "public"."webhook_events";
 CREATE POLICY "service_role_delete_webhook_events" ON "public"."webhook_events" FOR DELETE USING ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "service_role_insert_webhook_events" ON "public"."webhook_events";
 CREATE POLICY "service_role_insert_webhook_events" ON "public"."webhook_events" FOR INSERT WITH CHECK ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "service_role_manage_departure_queue" ON "public"."user_departure_queue";
 CREATE POLICY "service_role_manage_departure_queue" ON "public"."user_departure_queue" TO "authenticated" USING (("auth"."role"() = 'service_role'::"text")) WITH CHECK (("auth"."role"() = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "service_role_manage_transfer_requests" ON "public"."ownership_transfer_requests";
 CREATE POLICY "service_role_manage_transfer_requests" ON "public"."ownership_transfer_requests" TO "authenticated" USING (("auth"."role"() = 'service_role'::"text")) WITH CHECK (("auth"."role"() = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "service_role_only_create_notifications" ON "public"."notifications";
 CREATE POLICY "service_role_only_create_notifications" ON "public"."notifications" FOR INSERT WITH CHECK ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "service_role_select_webhook_events" ON "public"."webhook_events";
 CREATE POLICY "service_role_select_webhook_events" ON "public"."webhook_events" FOR SELECT USING ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "service_role_update_webhook_events" ON "public"."webhook_events";
 CREATE POLICY "service_role_update_webhook_events" ON "public"."webhook_events" FOR UPDATE USING ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
@@ -11654,18 +11624,22 @@ CREATE POLICY "service_role_update_webhook_events" ON "public"."webhook_events" 
 ALTER TABLE "public"."slot_purchases" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "slot_purchases_admin_delete" ON "public"."slot_purchases";
 CREATE POLICY "slot_purchases_admin_delete" ON "public"."slot_purchases" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "slot_purchases_admin_insert" ON "public"."slot_purchases";
 CREATE POLICY "slot_purchases_admin_insert" ON "public"."slot_purchases" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "slot_purchases_admin_update" ON "public"."slot_purchases";
 CREATE POLICY "slot_purchases_admin_update" ON "public"."slot_purchases" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "slot_purchases_select_consolidated" ON "public"."slot_purchases";
 CREATE POLICY "slot_purchases_select_consolidated" ON "public"."slot_purchases" FOR SELECT USING (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
@@ -11673,6 +11647,7 @@ CREATE POLICY "slot_purchases_select_consolidated" ON "public"."slot_purchases" 
 ALTER TABLE "public"."stripe_event_logs" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "stripe_event_logs_service_only" ON "public"."stripe_event_logs";
 CREATE POLICY "stripe_event_logs_service_only" ON "public"."stripe_event_logs" USING ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
@@ -11680,18 +11655,22 @@ CREATE POLICY "stripe_event_logs_service_only" ON "public"."stripe_event_logs" U
 ALTER TABLE "public"."subscribers" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "subscribers_select_consolidated" ON "public"."subscribers";
 CREATE POLICY "subscribers_select_consolidated" ON "public"."subscribers" FOR SELECT USING ((("user_id" = ( SELECT "auth"."uid"() AS "uid")) OR (( SELECT "auth"."role"() AS "role") = 'service_role'::"text")));
 
 
 
+DROP POLICY IF EXISTS "subscribers_service_delete" ON "public"."subscribers";
 CREATE POLICY "subscribers_service_delete" ON "public"."subscribers" FOR DELETE USING ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "subscribers_service_insert" ON "public"."subscribers";
 CREATE POLICY "subscribers_service_insert" ON "public"."subscribers" FOR INSERT WITH CHECK ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "subscribers_update_consolidated" ON "public"."subscribers";
 CREATE POLICY "subscribers_update_consolidated" ON "public"."subscribers" FOR UPDATE USING ((("user_id" = ( SELECT "auth"."uid"() AS "uid")) OR (( SELECT "auth"."role"() AS "role") = 'service_role'::"text")));
 
 
@@ -11699,24 +11678,28 @@ CREATE POLICY "subscribers_update_consolidated" ON "public"."subscribers" FOR UP
 ALTER TABLE "public"."team_members" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "team_members_admin_delete" ON "public"."team_members";
 CREATE POLICY "team_members_admin_delete" ON "public"."team_members" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."teams" "t"
   WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "team_members_admin_insert" ON "public"."team_members";
 CREATE POLICY "team_members_admin_insert" ON "public"."team_members" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."teams" "t"
   WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "team_members_admin_update" ON "public"."team_members";
 CREATE POLICY "team_members_admin_update" ON "public"."team_members" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."teams" "t"
   WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "team_members_select" ON "public"."team_members";
 CREATE POLICY "team_members_select" ON "public"."team_members" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."teams" "t"
   WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
@@ -11726,18 +11709,22 @@ CREATE POLICY "team_members_select" ON "public"."team_members" FOR SELECT USING 
 ALTER TABLE "public"."teams" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "teams_admin_delete" ON "public"."teams";
 CREATE POLICY "teams_admin_delete" ON "public"."teams" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "teams_admin_insert" ON "public"."teams";
 CREATE POLICY "teams_admin_insert" ON "public"."teams" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "teams_admin_update" ON "public"."teams";
 CREATE POLICY "teams_admin_update" ON "public"."teams" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "teams_select_consolidated" ON "public"."teams";
 CREATE POLICY "teams_select_consolidated" ON "public"."teams" FOR SELECT USING (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
@@ -11748,34 +11735,42 @@ ALTER TABLE "public"."user_departure_queue" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."user_license_subscriptions" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "user_license_subscriptions_admin_insert" ON "public"."user_license_subscriptions";
 CREATE POLICY "user_license_subscriptions_admin_insert" ON "public"."user_license_subscriptions" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "user_license_subscriptions_admin_update" ON "public"."user_license_subscriptions";
 CREATE POLICY "user_license_subscriptions_admin_update" ON "public"."user_license_subscriptions" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "user_license_subscriptions_select_consolidated" ON "public"."user_license_subscriptions";
 CREATE POLICY "user_license_subscriptions_select_consolidated" ON "public"."user_license_subscriptions" FOR SELECT USING (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
+DROP POLICY IF EXISTS "user_license_subscriptions_service_delete" ON "public"."user_license_subscriptions";
 CREATE POLICY "user_license_subscriptions_service_delete" ON "public"."user_license_subscriptions" FOR DELETE USING ((( SELECT "auth"."role"() AS "role") = 'service_role'::"text"));
 
 
 
+DROP POLICY IF EXISTS "users_create_invitations" ON "public"."organization_invitations";
 CREATE POLICY "users_create_invitations" ON "public"."organization_invitations" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "users_delete_own_invitations" ON "public"."organization_invitations";
 CREATE POLICY "users_delete_own_invitations" ON "public"."organization_invitations" FOR DELETE USING (("email" = ( SELECT "auth"."email"() AS "email")));
 
 
 
+DROP POLICY IF EXISTS "users_view_own_transfer_requests" ON "public"."ownership_transfer_requests";
 CREATE POLICY "users_view_own_transfer_requests" ON "public"."ownership_transfer_requests" FOR SELECT TO "authenticated" USING (("to_user_id" = "auth"."uid"()));
 
 
 
+DROP POLICY IF EXISTS "view_org_usage" ON "public"."billing_usage";
 CREATE POLICY "view_org_usage" ON "public"."billing_usage" FOR SELECT USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
@@ -11786,6 +11781,7 @@ ALTER TABLE "public"."webhook_events" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."work_order_costs" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "work_order_costs_delete" ON "public"."work_order_costs";
 CREATE POLICY "work_order_costs_delete" ON "public"."work_order_costs" FOR DELETE USING (((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))) OR (("created_by" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
@@ -11798,12 +11794,14 @@ COMMENT ON POLICY "work_order_costs_delete" ON "public"."work_order_costs" IS 'A
 
 
 
+DROP POLICY IF EXISTS "work_order_costs_delete_consolidated" ON "public"."work_order_costs";
 CREATE POLICY "work_order_costs_delete_consolidated" ON "public"."work_order_costs" FOR DELETE USING (((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))) OR ("created_by" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
+DROP POLICY IF EXISTS "work_order_costs_insert" ON "public"."work_order_costs";
 CREATE POLICY "work_order_costs_insert" ON "public"."work_order_costs" FOR INSERT WITH CHECK ((("created_by" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id"))))));
@@ -11814,12 +11812,14 @@ COMMENT ON POLICY "work_order_costs_insert" ON "public"."work_order_costs" IS 'U
 
 
 
+DROP POLICY IF EXISTS "work_order_costs_insert_consolidated" ON "public"."work_order_costs";
 CREATE POLICY "work_order_costs_insert_consolidated" ON "public"."work_order_costs" FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))) OR ("created_by" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
+DROP POLICY IF EXISTS "work_order_costs_select" ON "public"."work_order_costs";
 CREATE POLICY "work_order_costs_select" ON "public"."work_order_costs" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))));
@@ -11830,12 +11830,14 @@ COMMENT ON POLICY "work_order_costs_select" ON "public"."work_order_costs" IS 'O
 
 
 
+DROP POLICY IF EXISTS "work_order_costs_select_consolidated" ON "public"."work_order_costs";
 CREATE POLICY "work_order_costs_select_consolidated" ON "public"."work_order_costs" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id"))))));
 
 
 
+DROP POLICY IF EXISTS "work_order_costs_update" ON "public"."work_order_costs";
 CREATE POLICY "work_order_costs_update" ON "public"."work_order_costs" FOR UPDATE USING (((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))) OR (("created_by" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
@@ -11848,6 +11850,7 @@ COMMENT ON POLICY "work_order_costs_update" ON "public"."work_order_costs" IS 'A
 
 
 
+DROP POLICY IF EXISTS "work_order_costs_update_consolidated" ON "public"."work_order_costs";
 CREATE POLICY "work_order_costs_update_consolidated" ON "public"."work_order_costs" FOR UPDATE USING (((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))) OR ("created_by" = ( SELECT "auth"."uid"() AS "uid"))));
@@ -11857,6 +11860,7 @@ CREATE POLICY "work_order_costs_update_consolidated" ON "public"."work_order_cos
 ALTER TABLE "public"."work_order_equipment" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "work_order_equipment_delete_policy" ON "public"."work_order_equipment";
 CREATE POLICY "work_order_equipment_delete_policy" ON "public"."work_order_equipment" FOR DELETE USING (("work_order_id" IN ( SELECT "work_orders"."id"
    FROM "public"."work_orders"
   WHERE ("work_orders"."organization_id" IN ( SELECT "organization_members"."organization_id"
@@ -11865,6 +11869,7 @@ CREATE POLICY "work_order_equipment_delete_policy" ON "public"."work_order_equip
 
 
 
+DROP POLICY IF EXISTS "work_order_equipment_insert_policy" ON "public"."work_order_equipment";
 CREATE POLICY "work_order_equipment_insert_policy" ON "public"."work_order_equipment" FOR INSERT WITH CHECK (("work_order_id" IN ( SELECT "work_orders"."id"
    FROM "public"."work_orders"
   WHERE ("work_orders"."organization_id" IN ( SELECT "organization_members"."organization_id"
@@ -11873,6 +11878,7 @@ CREATE POLICY "work_order_equipment_insert_policy" ON "public"."work_order_equip
 
 
 
+DROP POLICY IF EXISTS "work_order_equipment_select_policy" ON "public"."work_order_equipment";
 CREATE POLICY "work_order_equipment_select_policy" ON "public"."work_order_equipment" FOR SELECT USING (("work_order_id" IN ( SELECT "work_orders"."id"
    FROM "public"."work_orders"
   WHERE ("work_orders"."organization_id" IN ( SELECT "organization_members"."organization_id"
@@ -11881,6 +11887,7 @@ CREATE POLICY "work_order_equipment_select_policy" ON "public"."work_order_equip
 
 
 
+DROP POLICY IF EXISTS "work_order_equipment_update_policy" ON "public"."work_order_equipment";
 CREATE POLICY "work_order_equipment_update_policy" ON "public"."work_order_equipment" FOR UPDATE USING (("work_order_id" IN ( SELECT "work_orders"."id"
    FROM "public"."work_orders"
   WHERE ("work_orders"."organization_id" IN ( SELECT "organization_members"."organization_id"
@@ -11892,6 +11899,7 @@ CREATE POLICY "work_order_equipment_update_policy" ON "public"."work_order_equip
 ALTER TABLE "public"."work_order_images" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "work_order_images_delete_own" ON "public"."work_order_images";
 CREATE POLICY "work_order_images_delete_own" ON "public"."work_order_images" FOR DELETE USING ((("uploaded_by" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_images"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id"))))));
@@ -11905,6 +11913,7 @@ COMMENT ON POLICY "work_order_images_delete_own" ON "public"."work_order_images"
 ALTER TABLE "public"."work_order_notes" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "work_order_notes_delete_own" ON "public"."work_order_notes";
 CREATE POLICY "work_order_notes_delete_own" ON "public"."work_order_notes" FOR DELETE USING ((("author_id" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id"))))));
@@ -11915,18 +11924,21 @@ COMMENT ON POLICY "work_order_notes_delete_own" ON "public"."work_order_notes" I
 
 
 
+DROP POLICY IF EXISTS "work_order_notes_insert_organization_members" ON "public"."work_order_notes";
 CREATE POLICY "work_order_notes_insert_organization_members" ON "public"."work_order_notes" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "work_order_notes_select_organization_members" ON "public"."work_order_notes";
 CREATE POLICY "work_order_notes_select_organization_members" ON "public"."work_order_notes" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))));
 
 
 
+DROP POLICY IF EXISTS "work_order_notes_update_own" ON "public"."work_order_notes";
 CREATE POLICY "work_order_notes_update_own" ON "public"."work_order_notes" FOR UPDATE USING ((("author_id" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id"))))));
@@ -11943,14 +11955,17 @@ ALTER TABLE "public"."work_order_status_history" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."work_orders" ENABLE ROW LEVEL SECURITY;
 
 
+DROP POLICY IF EXISTS "work_orders_insert_consolidated" ON "public"."work_orders";
 CREATE POLICY "work_orders_insert_consolidated" ON "public"."work_orders" FOR INSERT WITH CHECK (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("created_by_admin" = ( SELECT "auth"."uid"() AS "uid"))) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
+DROP POLICY IF EXISTS "work_orders_select_consolidated" ON "public"."work_orders";
 CREATE POLICY "work_orders_select_consolidated" ON "public"."work_orders" FOR SELECT USING ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
+DROP POLICY IF EXISTS "work_orders_update_consolidated" ON "public"."work_orders";
 CREATE POLICY "work_orders_update_consolidated" ON "public"."work_orders" FOR UPDATE USING (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 

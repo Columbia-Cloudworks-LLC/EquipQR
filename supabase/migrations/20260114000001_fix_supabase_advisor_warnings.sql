@@ -144,6 +144,7 @@ DROP POLICY IF EXISTS "System can insert removal audit" ON public.member_removal
 -- Only allow inserts from service_role context or during organization member removal
 -- Since this is an audit table for member removals, inserts should happen via triggers
 -- or service_role functions, not directly by users
+DROP POLICY IF EXISTS "Service role can insert removal audit" ON public.member_removal_audit;
 CREATE POLICY "Service role can insert removal audit" ON public.member_removal_audit
   FOR INSERT
   TO service_role
@@ -151,6 +152,7 @@ CREATE POLICY "Service role can insert removal audit" ON public.member_removal_a
 
 -- Add a policy for authenticated users who are removing members (owner/admin)
 -- This allows the removal trigger/function to work when called by authorized users
+DROP POLICY IF EXISTS "Authorized users can insert removal audit" ON public.member_removal_audit;
 CREATE POLICY "Authorized users can insert removal audit" ON public.member_removal_audit
   FOR INSERT
   TO authenticated

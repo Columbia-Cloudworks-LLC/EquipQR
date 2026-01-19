@@ -28,6 +28,8 @@ END;
 $$;
 
 -- Returns true when a user has a Google OAuth identity.
+-- Queries auth.identities table directly instead of auth.users.identities
+-- computed column which doesn't exist in all Supabase versions.
 CREATE OR REPLACE FUNCTION public.is_user_google_oauth_verified(p_user_id uuid)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -39,10 +41,9 @@ DECLARE
 BEGIN
   SELECT EXISTS (
     SELECT 1
-    FROM auth.users u,
-      LATERAL jsonb_array_elements(COALESCE(u.identities, '[]'::jsonb)) AS ident
-    WHERE u.id = p_user_id
-      AND ident->>'provider' = 'google'
+    FROM auth.identities i
+    WHERE i.user_id = p_user_id
+      AND i.provider = 'google'
   )
   INTO has_google_identity;
 
