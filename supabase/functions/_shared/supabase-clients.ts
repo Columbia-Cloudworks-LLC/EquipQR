@@ -211,13 +211,18 @@ export async function verifyOrgAdmin(
  * 
  * Note: Only pass user-safe error messages. Internal details and stack traces
  * should be logged server-side but never exposed to clients.
+ * 
+ * Security: This function sanitizes all error messages via sanitizeErrorMessage()
+ * to prevent information disclosure (CWE-209). Stack traces, file paths, and
+ * overly long messages are detected and replaced with generic responses.
  */
 export function createErrorResponse(
   error: string,
   status: number = 500
 ): Response {
-  // Sanitize error message to prevent information disclosure
-  // Never expose stack traces or internal system details to clients
+  // Sanitize error message to prevent information disclosure (CWE-209)
+  // This catches stack traces, file paths, and internal details
+  // Always sanitize regardless of input to ensure defense-in-depth
   const sanitizedError = sanitizeErrorMessage(error);
   
   // Log the original error server-side before returning sanitized version
@@ -226,6 +231,7 @@ export function createErrorResponse(
     console.error("[createErrorResponse] Original error sanitized:", error);
   }
   
+  // lgtm[js/stack-trace-exposure] - sanitizeErrorMessage() prevents stack trace exposure
   return new Response(
     JSON.stringify({ error: sanitizedError }),
     {
@@ -236,22 +242,32 @@ export function createErrorResponse(
 }
 
 /**
- * Sanitizes error messages to prevent information disclosure.
- * Removes stack traces and internal implementation details.
+ * Sanitizes error messages to prevent information disclosure (CWE-209).
+ * Removes stack traces, file paths, and internal implementation details.
+ * 
+ * This is the primary defense against stack trace exposure in error responses.
+ * All error messages pass through this function before being sent to clients.
  */
 function sanitizeErrorMessage(error: string): string {
-  // If the error contains stack trace patterns, return a generic message
-  const stackTracePatterns = [
+  // Patterns that indicate sensitive internal information
+  const sensitivePatterns = [
+    // Stack trace patterns
     /at\s+\w+\s+\(/i,           // "at functionName ("
     /at\s+<anonymous>/i,         // "at <anonymous>"
     /\s+at\s+.*:\d+:\d+/i,       // " at file.ts:10:5"
     /Error:\s*\n/i,              // "Error:\n" followed by stack
     /^\s+at\s+/m,                // Lines starting with "at " (stack frames)
+    // File path patterns
+    /\/[a-z_-]+\/[a-z_-]+\.(ts|js|tsx|jsx)/i,  // Unix file paths
+    /[A-Z]:\\[^\\]+\\/i,         // Windows file paths
+    // Internal error patterns
+    /node_modules/i,             // Node modules paths
+    /internal\/|_internal\//i,   // Internal paths
   ];
 
-  for (const pattern of stackTracePatterns) {
+  for (const pattern of sensitivePatterns) {
     if (pattern.test(error)) {
-      console.error("[SANITIZED] Original error contained stack trace:", error);
+      console.error("[SANITIZED] Original error contained sensitive info:", error);
       return "An internal error occurred";
     }
   }

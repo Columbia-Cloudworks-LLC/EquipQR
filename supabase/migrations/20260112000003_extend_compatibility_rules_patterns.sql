@@ -9,8 +9,7 @@ BEGIN;
 -- PART 1: Create model_match_type enum (idempotent)
 -- ============================================================================
 
-DO $$ 
-BEGIN
+DO $$ BEGIN
     CREATE TYPE model_match_type AS ENUM (
       'any',       -- Match any model from this manufacturer (model is NULL)
       'exact',     -- Exact match on model (current behavior)

@@ -67,8 +67,8 @@ vi.mock('@/components/layout/TopBar', () => ({
   default: () => <div data-testid="top-bar">TopBar</div>
 }));
 
-// Create QueryClient once outside mock to avoid unnecessary object creation
-// and potential state leakage between tests
+// Factory function to create a fresh QueryClient instance for each test
+// to avoid state leakage and keep test cache isolated
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
     queries: { retry: false },

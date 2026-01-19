@@ -34,6 +34,12 @@ interface GoogleTokenResponse {
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
+// OAuth state validation constants
+// STATE_TTL_MS: Maximum age of OAuth state parameter (15 minutes)
+// MAX_CLOCK_SKEW_MS: Tolerance for clock drift between servers (2 minutes)
+const STATE_TTL_MS = 15 * 60 * 1000;
+const MAX_CLOCK_SKEW_MS = 2 * 60 * 1000;
+
 /**
  * Normalizes a domain for consistent storage and matching.
  * This mirrors the SQL normalize_domain() function.
@@ -177,25 +183,20 @@ Deno.serve(async (req) => {
       throw new Error("Invalid timestamp in state parameter");
     }
 
-    // Tighter validation: 15-minute TTL with 2-minute clock skew tolerance
+    // Validate state timestamp using module-level constants
     // This prevents replay attacks while allowing for reasonable clock drift between
-    // the client, this server, and Google's servers. A 2-minute tolerance is standard
-    // for OAuth flows and keeps the replay attack window small.
-    const stateTtlMs = 15 * 60 * 1000; // 15 minutes max age
-    const maxClockSkewMs = 2 * 60 * 1000; // 2 minutes future tolerance to allow typical clock drift
-
-    // Calculate the time difference (positive = state is in the past)
+    // the client, this server, and Google's servers.
     const ageMs = nowMs - stateTimestamp;
 
     // Reject timestamps too far in the future (beyond clock skew tolerance)
-    // A negative age means the state is from the future; allow up to maxClockSkewMs
-    if (ageMs < -maxClockSkewMs) {
+    // A negative age means the state is from the future; allow up to MAX_CLOCK_SKEW_MS
+    if (ageMs < -MAX_CLOCK_SKEW_MS) {
       throw new Error("OAuth state has an invalid timestamp. Please try again.");
     }
 
-    // Reject expired timestamps (older than TTL, accounting for clock skew)
-    // If age is positive (state is in the past), it must be within the TTL
-    if (ageMs > stateTtlMs) {
+    // Reject expired timestamps (older than TTL)
+    // If age is positive (state is in the past), it must be within STATE_TTL_MS
+    if (ageMs > STATE_TTL_MS) {
       throw new Error("OAuth state has expired. Please try again.");
     }
 

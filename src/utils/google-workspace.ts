@@ -6,21 +6,53 @@
 import type { User } from '@supabase/supabase-js';
 
 /**
- * List of consumer Google domains that don't support Workspace features.
+ * Default consumer Google domains that don't support Workspace features.
  * Users with these domains are personal accounts, not Workspace accounts.
- * 
- * Note: This list covers the primary consumer domains. Known regional variants
- * (e.g., gmail.co.uk, googlemail.de) are intentionally excluded because:
- * 1. Google has largely consolidated these to gmail.com
- * 2. Historical regional variants are rare in practice
- * 3. If encountered, they should be treated as consumer domains and added here
- * 
- * To add a regional variant, append it to this array (e.g., 'gmail.co.uk').
  */
-export const CONSUMER_GOOGLE_DOMAINS = [
+const DEFAULT_CONSUMER_GOOGLE_DOMAINS = [
   'gmail.com',
   'googlemail.com',
 ] as const;
+
+/**
+ * Load consumer Google domains, optionally extending with environment configuration.
+ * 
+ * Known regional variants (e.g., gmail.co.uk, googlemail.de) are intentionally excluded
+ * from defaults because:
+ * 1. Google has largely consolidated these to gmail.com
+ * 2. Historical regional variants are rare in practice
+ * 3. If encountered, they can be added via CONSUMER_GOOGLE_DOMAINS environment variable
+ * 
+ * You can extend this list at runtime by setting a comma-separated list of
+ * domains in the CONSUMER_GOOGLE_DOMAINS environment variable (e.g.,
+ * "gmail.co.uk,googlemail.de"). These will be merged with the defaults.
+ */
+function loadConsumerGoogleDomains(): readonly string[] {
+  let configuredDomains: string[] = [];
+
+  // Allow deployments to extend the default list via environment variable.
+  // This check is safe in both Node and browser environments.
+  if (
+    typeof process !== 'undefined' &&
+    typeof process.env !== 'undefined' &&
+    typeof process.env.CONSUMER_GOOGLE_DOMAINS === 'string'
+  ) {
+    configuredDomains = process.env.CONSUMER_GOOGLE_DOMAINS
+      .split(',')
+      .map((domain) => domain.toLowerCase().trim())
+      .filter((domain) => domain.length > 0);
+  }
+
+  const combined = [
+    ...DEFAULT_CONSUMER_GOOGLE_DOMAINS,
+    ...configuredDomains,
+  ];
+
+  // Deduplicate while preserving order
+  return Array.from(new Set(combined));
+}
+
+export const CONSUMER_GOOGLE_DOMAINS = loadConsumerGoogleDomains();
 
 /**
  * Check if an email domain is a consumer Google domain (not a Workspace domain).
@@ -28,7 +60,7 @@ export const CONSUMER_GOOGLE_DOMAINS = [
 export function isConsumerGoogleDomain(domain: string | undefined | null): boolean {
   if (!domain) return false;
   const normalizedDomain = domain.toLowerCase().trim();
-  return CONSUMER_GOOGLE_DOMAINS.includes(normalizedDomain as typeof CONSUMER_GOOGLE_DOMAINS[number]);
+  return CONSUMER_GOOGLE_DOMAINS.includes(normalizedDomain);
 }
 
 /**

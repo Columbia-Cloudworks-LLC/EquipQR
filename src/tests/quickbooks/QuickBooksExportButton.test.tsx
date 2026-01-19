@@ -330,11 +330,9 @@ describe('QuickBooksExportButton Component', () => {
     it('should call mutate when updating existing export', async () => {
       renderComponent();
       
-      const button = await waitFor(() => {
-        const foundButton = screen.getByRole('button', { name: /Update Invoice 1001/i });
-        expect(foundButton).not.toBeDisabled();
-        return foundButton;
-      });
+      // Use findByRole (built-in waiting) instead of waitFor + getByRole
+      const button = await screen.findByRole('button', { name: /Update Invoice 1001/i });
+      expect(button).not.toBeDisabled();
 
       fireEvent.click(button);
       

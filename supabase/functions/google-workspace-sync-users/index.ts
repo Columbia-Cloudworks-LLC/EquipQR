@@ -158,9 +158,14 @@ Deno.serve(async (req) => {
     const nowIso = new Date().toISOString();
 
     // Batch configuration: collect users across pages before upserting
-    // Using 200 users per batch for better error recovery granularity
-    // and to avoid potential timeout/memory issues with larger batches
-    const BATCH_SIZE = 200; // Upsert after collecting this many users
+    // Using 200 users per batch by default for better error recovery granularity
+    // and to avoid potential timeout/memory issues with larger batches.
+    // Can be overridden via GW_SYNC_BATCH_SIZE environment variable.
+    const DEFAULT_BATCH_SIZE = 200;
+    const envBatchSize = Deno.env.get("GW_SYNC_BATCH_SIZE");
+    const parsedBatchSize = envBatchSize ? Number.parseInt(envBatchSize, 10) : Number.NaN;
+    const BATCH_SIZE =
+      Number.isNaN(parsedBatchSize) || parsedBatchSize <= 0 ? DEFAULT_BATCH_SIZE : parsedBatchSize;
     let pendingRows: Array<{
       organization_id: string;
       google_user_id: string;

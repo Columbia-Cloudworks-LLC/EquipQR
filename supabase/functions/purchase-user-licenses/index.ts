@@ -98,7 +98,9 @@ Deno.serve(async (req) => {
     }
 
     // Use existing product and price IDs for user licenses
-    const PRICE_ID = "price_1RU6PMF7dmK1pWnR58UJKOPh"; // $10/month per license
+    // Can be overridden via STRIPE_USER_LICENSE_PRICE_ID environment variable
+    const DEFAULT_PRICE_ID = "price_1RU6PMF7dmK1pWnR58UJKOPh"; // $10/month per license
+    const PRICE_ID = Deno.env.get("STRIPE_USER_LICENSE_PRICE_ID") || DEFAULT_PRICE_ID;
 
     // Verify the price exists in Stripe
     try {
