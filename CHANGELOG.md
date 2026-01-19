@@ -11,23 +11,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Google Workspace Integration**: Allow organization owners to import users from their Google Workspace
+- **Google Workspace Integration**: Allow organization owners to import users from their Google Workspace directory
   - Domain claiming system with super-admin approval for workspace domains
-  - OAuth integration using Admin SDK for directory sync
-  - Selective member import - admins can choose which users to import
+  - OAuth integration using Google Admin SDK for directory user synchronization
+  - Selective member import - admins can browse directory and choose which users to import
   - Automatic membership provisioning for new sign-ups matching claimed domains
   - Email verification gating for admin role grants (members don't require verification)
   - New onboarding flow for Google Workspace users during first sign-up
-  - New database tables: `workspace_domain_claims`, `workspace_domains`, `google_workspace_oauth_sessions`, `google_workspace_credentials`, `google_workspace_directory_users`, `organization_member_claims`, `organization_role_grants_pending`
+  - New `WorkspaceOnboardingGuard` component for routing new users to onboarding
+  - New `GoogleWorkspaceIntegration` component in organization settings
+  - New `WorkspaceOnboarding` page for first-time domain claim and organization setup
+  - New `src/services/google-workspace/` service layer for OAuth flow and API calls
+  - New `src/utils/google-workspace.ts` utility functions
+  - New shared `_shared/crypto.ts` for secure token encryption/decryption
+  - New database tables: `workspace_domain_claims`, `workspace_domains`, `google_workspace_oauth_sessions`, `google_workspace_credentials`, `google_workspace_directory_users`, `organization_member_claims`, `organization_role_grants_pending`, `personal_organizations`
   - New Edge Functions: `google-workspace-oauth-callback`, `google-workspace-sync-users`, `workspace-domain-claims-admin`
-  - New RPCs: `get_workspace_onboarding_state`, `request_workspace_domain_claim`, `create_google_workspace_oauth_session`, `validate_google_workspace_oauth_session`, `get_google_workspace_connection_status`, `select_google_workspace_members`, `is_user_google_oauth_verified`
-  - `GoogleWorkspaceIntegration` component in organization settings
-  - `WorkspaceOnboarding` page for first-time setup
-  - Updated `handle_new_user` trigger to claim pending memberships and apply role grants
+  - New RPCs: `get_workspace_onboarding_state`, `request_workspace_domain_claim`, `create_workspace_organization_for_domain`, `create_google_workspace_oauth_session`, `validate_google_workspace_oauth_session`, `get_google_workspace_connection_status`, `select_google_workspace_members`, `apply_pending_admin_grants_for_user`, `is_user_google_oauth_verified`
+  - Helper functions: `normalize_email`, `normalize_domain` for consistent email/domain handling
+  - Updated `handle_new_user` trigger to create personal organizations and apply pending workspace memberships and role grants
+  - New `TOKEN_ENCRYPTION_KEY` environment variable for OAuth token encryption
 
 ### Changed
 
 - **AuthContext**: Updated Google OAuth to request offline access with consent prompt for refresh tokens
+- **SmartLanding**: Enhanced onboarding logic and error handling for workspace users
+
+### Security
+
+- **Google Workspace Credentials**: OAuth refresh tokens are encrypted at the application layer before storage
+- **RLS Policies**: All new tables have Row Level Security policies restricting access appropriately
+- **OAuth Sessions**: Short-lived CSRF tokens with 1-hour expiration; clients cannot read/update/delete directly
+
+### Database Migrations
+
+- `20260118090000_google_workspace_onboarding.sql`: Domain claims, OAuth sessions, credentials, directory cache, member claims, pending role grants
+- `20260118090500_update_handle_new_user_for_workspace.sql`: Updated trigger for personal org creation and workspace claim processing
+- `20260119000000_google_workspace_improvements.sql`: NULL handling for normalize functions, improved documentation
 
 ## [2.1.0] - 2026-01-14
 
