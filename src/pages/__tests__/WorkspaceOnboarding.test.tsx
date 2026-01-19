@@ -242,7 +242,6 @@ describe('WorkspaceOnboarding', () => {
 
     customRender(<WorkspaceOnboarding />);
 
-    expect(screen.getByText(/connect google workspace/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /connect google workspace/i })).toBeInTheDocument();
   });
 

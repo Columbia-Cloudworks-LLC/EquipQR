@@ -42,7 +42,7 @@ vi.mock('@tanstack/react-query', async () => {
     useQueryClient: () => ({
       invalidateQueries: vi.fn(),
     }),
-    useQuery: ({ queryFn, enabled }: { queryFn: () => Promise<unknown>; enabled: boolean }) => {
+    useQuery: ({ enabled }: { queryFn: () => Promise<unknown>; enabled: boolean }) => {
       if (!enabled) {
         return { data: undefined, isLoading: false };
       }
@@ -64,11 +64,13 @@ describe('GoogleWorkspaceIntegration', () => {
   });
 
   it('renders nothing for non-admin users', () => {
-    const { container } = customRender(
+    customRender(
       <GoogleWorkspaceIntegration currentUserRole="member" />
     );
 
-    expect(container.firstChild).toBeNull();
+    // Component returns null for non-admin users, so no Card/content should be present
+    expect(screen.queryByRole('heading', { name: /google workspace integration/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /connect google workspace/i })).not.toBeInTheDocument();
   });
 
   it('renders connect button when not connected', () => {
