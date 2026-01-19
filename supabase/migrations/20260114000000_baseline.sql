@@ -8748,6 +8748,18 @@ CREATE TABLE IF NOT EXISTS "public"."teams" (
 
 ALTER TABLE "public"."teams" OWNER TO "postgres";
 
+-- Add team_lead_id column if table existed without it (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'teams' 
+    AND column_name = 'team_lead_id'
+  ) THEN
+    ALTER TABLE "public"."teams" ADD COLUMN "team_lead_id" "uuid";
+  END IF;
+END $$;
 
 COMMENT ON COLUMN "public"."teams"."team_lead_id" IS 'Reference to the team lead user profile. Can be null if no team lead is assigned.';
 
@@ -10683,8 +10695,19 @@ ALTER TABLE ONLY "public"."teams"
 
 
 
-ALTER TABLE ONLY "public"."teams"
-    ADD CONSTRAINT "teams_team_lead_id_fkey" FOREIGN KEY ("team_lead_id") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+-- Add teams_team_lead_id_fkey constraint if it doesn't exist (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE constraint_schema = 'public' 
+    AND table_name = 'teams' 
+    AND constraint_name = 'teams_team_lead_id_fkey'
+  ) THEN
+    ALTER TABLE ONLY "public"."teams"
+      ADD CONSTRAINT "teams_team_lead_id_fkey" FOREIGN KEY ("team_lead_id") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+  END IF;
+END $$;
 
 
 
