@@ -70,6 +70,9 @@ CREATE TABLE IF NOT EXISTS public.workspace_domain_claims (
     CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text]))
 );
 
+-- NOTE: The normalize_domain function is created earlier in this migration (line 20-28).
+-- PostgreSQL executes statements sequentially within a migration, so the function
+-- is guaranteed to exist before this index is created.
 CREATE UNIQUE INDEX IF NOT EXISTS workspace_domain_claims_unique_active
   ON public.workspace_domain_claims (public.normalize_domain(domain))
   WHERE status IN ('pending', 'approved');
@@ -898,11 +901,31 @@ CREATE POLICY organization_role_grants_pending_update_admin
     )
   );
 
--- Personal organizations: owner only
+-- Personal organizations: owner can only SELECT their own record.
+-- INSERT/UPDATE/DELETE are restricted to SECURITY DEFINER functions and service_role.
 CREATE POLICY personal_organizations_select_own
   ON public.personal_organizations
   FOR SELECT
   USING (user_id = auth.uid());
+
+CREATE POLICY personal_organizations_insert_deny
+  ON public.personal_organizations
+  FOR INSERT
+  WITH CHECK (false);
+
+CREATE POLICY personal_organizations_update_deny
+  ON public.personal_organizations
+  FOR UPDATE
+  USING (false)
+  WITH CHECK (false);
+
+CREATE POLICY personal_organizations_delete_deny
+  ON public.personal_organizations
+  FOR DELETE
+  USING (false);
+
+COMMENT ON TABLE public.personal_organizations IS
+  'Maps users to their personal organization. Clients can only SELECT their own record; INSERT/UPDATE/DELETE are restricted to SECURITY DEFINER functions (handle_new_user trigger) and service_role.';
 
 -- =============================================================================
 -- Grants

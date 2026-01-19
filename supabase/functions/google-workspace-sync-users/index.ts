@@ -135,7 +135,9 @@ serve(async (req) => {
       decryptedRefreshToken = await decryptToken(creds.refresh_token, encryptionKey);
       logStep("Refresh token decrypted successfully");
     } catch (decryptError) {
-      logStep("Failed to decrypt refresh token", { error: decryptError instanceof Error ? decryptError.message : String(decryptError) });
+      // Log only error type to avoid potential information leakage in production logs
+      const errorType = decryptError instanceof Error ? decryptError.name : "UnknownError";
+      logStep("Failed to decrypt refresh token", { errorType });
       return createErrorResponse("Failed to decrypt stored credentials. Please reconnect Google Workspace.", 500);
     }
 

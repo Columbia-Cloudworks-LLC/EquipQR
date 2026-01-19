@@ -62,18 +62,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // client-side call is needed for EXISTING users who may have pending grants
           // that were created after their initial sign-up. The RPC is idempotent.
           // 
-          // SessionStorage caching prevents redundant calls within the same browser session.
-          // While this doesn't prevent calls across different tabs/sessions, the RPC is
-          // lightweight and idempotent, so occasional duplicate calls are acceptable.
+          // We use timestamp-based caching to prevent frequent redundant calls:
+          // - SessionStorage prevents calls within the same browser session/tab
+          // - Timestamp check (1 hour) limits calls across browser restarts
+          // The RPC is lightweight and idempotent, so occasional duplicate calls are acceptable.
           const adminGrantsCacheKey = `adminGrantsApplied:${session.user.id}`;
-          const hasAppliedAdminGrants = sessionStorage.getItem(adminGrantsCacheKey);
+          const lastAppliedStr = sessionStorage.getItem(adminGrantsCacheKey);
+          const lastAppliedAt = lastAppliedStr ? parseInt(lastAppliedStr, 10) : 0;
+          const oneHourMs = 60 * 60 * 1000;
+          const shouldApplyGrants = Date.now() - lastAppliedAt > oneHourMs;
 
-          if (!hasAppliedAdminGrants) {
+          if (shouldApplyGrants) {
             supabase.rpc('apply_pending_admin_grants_for_user', {
               p_user_id: session.user.id
             })
               .then(() => {
-                sessionStorage.setItem(adminGrantsCacheKey, 'true');
+                // Store timestamp instead of boolean to enable time-based throttling
+                sessionStorage.setItem(adminGrantsCacheKey, String(Date.now()));
               })
               .catch((error) => {
                 if (import.meta.env.DEV) {

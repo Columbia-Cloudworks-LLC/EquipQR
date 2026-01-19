@@ -239,6 +239,9 @@ serve(async (req) => {
     const now = new Date();
     const accessTokenExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000);
 
+    // Verify that the organization has an approved workspace domain.
+    // This prevents attackers from creating OAuth sessions for organizations that
+    // haven't gone through the domain claim approval process.
     const { data: domainData, error: domainError } = await supabaseClient
       .from("workspace_domains")
       .select("domain")
@@ -246,8 +249,31 @@ serve(async (req) => {
       .single();
 
     if (domainError || !domainData?.domain) {
-      logStep("Workspace domain not found", { organizationId, error: domainError?.message });
-      throw new Error("Workspace domain not found for organization");
+      logStep("Workspace domain not found or not approved", {
+        organizationId,
+        error: domainError?.message,
+      });
+      throw new Error("Approved workspace domain not found for organization");
+    }
+
+    // Verify the domain was claimed through the proper approval workflow
+    // by checking that a workspace_domains entry exists (which is only created
+    // via create_workspace_organization_for_domain RPC after domain approval)
+    const { data: claimData, error: claimError } = await supabaseClient
+      .from("workspace_domain_claims")
+      .select("id, status")
+      .eq("domain", domainData.domain)
+      .eq("status", "approved")
+      .maybeSingle();
+
+    // Note: claimData may be null if the domain was set up before claims existed,
+    // but for new domains, an approved claim should exist. We log a warning but
+    // allow the flow to continue for backwards compatibility.
+    if (!claimData && !claimError) {
+      logStep("Warning: No approved domain claim found, domain may have been grandfathered", {
+        domain: domainData.domain,
+        organizationId,
+      });
     }
 
     const domain = domainData.domain;
