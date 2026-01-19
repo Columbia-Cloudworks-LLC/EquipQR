@@ -143,14 +143,23 @@ export function getTokenEncryptionKey(): string {
     );
   }
   
-  // Warn about low-entropy keys in production
-  // We don't throw because this is a heuristic, but we log a strong warning
+  // Enforce strong keys in production; warn only in non-production environments
   if (hasLowEntropy(key)) {
-    console.warn(
+    const env = Deno.env.get('DENO_ENV') ?? Deno.env.get('NODE_ENV') ?? 'production';
+    const warningMessage = 
       '[SECURITY WARNING] TOKEN_ENCRYPTION_KEY appears to have low entropy. ' +
       'Weak keys like repeated characters or common patterns are insecure. ' +
-      'Generate a cryptographically random key with: openssl rand -base64 32'
-    );
+      'Generate a cryptographically random key with: openssl rand -base64 32';
+
+    if (env === 'production') {
+      throw new Error(
+        '[SECURITY ERROR] TOKEN_ENCRYPTION_KEY appears to have low entropy. ' +
+        'Weak keys like repeated characters or common patterns are insecure. ' +
+        'Generate a cryptographically random key with: openssl rand -base64 32'
+      );
+    } else {
+      console.warn(warningMessage);
+    }
   }
   
   return key;

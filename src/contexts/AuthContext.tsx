@@ -67,6 +67,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // - Timestamp check (1 hour) prevents excessive calls while ensuring grants
           //   are eventually applied for users who haven't logged in recently
           // The RPC is lightweight and idempotent, so occasional duplicate calls are acceptable.
+          // Note: The cache key only includes user_id (not organization_id) because
+          // apply_pending_admin_grants_for_user applies grants for the user across ALL
+          // organizations they belong to, so organization context isn't needed.
           const adminGrantsCacheKey = `adminGrantsApplied:${session.user.id}`;
           const lastAppliedStr = localStorage.getItem(adminGrantsCacheKey);
           const lastAppliedAt = lastAppliedStr ? parseInt(lastAppliedStr, 10) : 0;

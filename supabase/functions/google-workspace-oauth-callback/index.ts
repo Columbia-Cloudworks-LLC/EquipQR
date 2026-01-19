@@ -38,8 +38,13 @@ const TOKEN_URL = "https://oauth2.googleapis.com/token";
 /**
  * Normalizes a domain for consistent storage and matching.
  * This mirrors the SQL normalize_domain() function.
+ * Returns empty string for null/undefined inputs to match SQL behavior.
  */
-function normalizeDomain(domain: string): string {
+function normalizeDomain(domain: string | null | undefined): string {
+  if (domain == null) {
+    // Mirror SQL behavior by safely handling NULL-like inputs
+    return "";
+  }
   return domain.toLowerCase().trim();
 }
 
@@ -174,11 +179,12 @@ serve(async (req) => {
       throw new Error("Invalid timestamp in state parameter");
     }
 
-    // Tighter validation: 15-minute TTL with 5-minute clock skew tolerance
+    // Tighter validation: 15-minute TTL with 2-minute clock skew tolerance
     // This prevents replay attacks while allowing for reasonable clock drift between
-    // the client, this server, and Google's servers.
+    // the client, this server, and Google's servers. A 2-minute tolerance is standard
+    // for OAuth flows and reduces the attack window compared to 5 minutes.
     const stateTtlMs = 15 * 60 * 1000; // 15 minutes max age
-    const maxClockSkewMs = 5 * 60 * 1000; // 5 minutes future tolerance
+    const maxClockSkewMs = 2 * 60 * 1000; // 2 minutes future tolerance (reduced from 5 for better security)
 
     // Calculate the time difference (positive = state is in the past)
     const ageMs = nowMs - stateTimestamp;
@@ -318,22 +324,23 @@ serve(async (req) => {
     const encryptedRefreshToken = await encryptToken(refreshToken, encryptionKey);
     logStep("Refresh token encrypted for storage");
 
-    // Upsert using the unique index on (organization_id, normalize_domain(domain))
-    // The domain is pre-normalized above to ensure consistent matching
+    // Upsert using the unique functional index on (organization_id, normalize_domain(domain))
+    // The domain is pre-normalized above (line 297) to match what the index expects.
+    // We use the index name instead of column names because functional indexes require
+    // the exact expression match. Since we've normalized the domain to match the index's
+    // normalize_domain() function output, using the index name ensures correct conflict resolution.
     const { error: upsertError } = await supabaseClient
       .from("google_workspace_credentials")
       .upsert({
         organization_id: organizationId,
-        domain: domain, // Already normalized
+        domain: domain, // Already normalized to match index expression
         refresh_token: encryptedRefreshToken,
         access_token_expires_at: accessTokenExpiresAt.toISOString(),
         scopes: tokenData.scope || null,
         updated_at: now.toISOString(),
       }, {
-        // The unique index is: google_workspace_credentials_org_domain
-        // on (organization_id, normalize_domain(domain))
-        // Since we pre-normalized the domain, using these columns will match correctly
-        onConflict: "organization_id,domain",
+        // Use the index name for functional indexes to ensure correct conflict resolution
+        onConflict: "google_workspace_credentials_org_domain",
       });
 
     if (upsertError) {
