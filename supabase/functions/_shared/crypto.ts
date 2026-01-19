@@ -87,6 +87,39 @@ export async function decryptToken(encrypted: string, secret: string): Promise<s
 const MIN_KEY_LENGTH = 32;
 
 /**
+ * Checks if a string has low entropy (repeated or sequential characters).
+ * This is a heuristic check, not a cryptographic entropy measurement.
+ */
+function hasLowEntropy(key: string): boolean {
+  // Check for repeated character patterns (e.g., "aaaaaaa...")
+  const uniqueChars = new Set(key).size;
+  const uniqueRatio = uniqueChars / key.length;
+  
+  // If less than 30% of characters are unique, likely a weak key
+  if (uniqueRatio < 0.3) {
+    return true;
+  }
+  
+  // Check for simple sequential patterns
+  const lowerKey = key.toLowerCase();
+  const weakPatterns = [
+    'abcdefghijklmnopqrstuvwxyz',
+    '0123456789',
+    'qwertyuiop',
+    'password',
+    'secret',
+  ];
+  
+  for (const pattern of weakPatterns) {
+    if (lowerKey.includes(pattern)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
  * Gets the encryption key from environment, throwing if not set or too weak.
  * 
  * IMPORTANT: In production, TOKEN_ENCRYPTION_KEY must be a cryptographically
@@ -107,6 +140,16 @@ export function getTokenEncryptionKey(): string {
     throw new Error(
       `TOKEN_ENCRYPTION_KEY must be at least ${MIN_KEY_LENGTH} characters. ` +
       'Generate a secure key with: openssl rand -base64 32'
+    );
+  }
+  
+  // Warn about low-entropy keys in production
+  // We don't throw because this is a heuristic, but we log a strong warning
+  if (hasLowEntropy(key)) {
+    console.warn(
+      '[SECURITY WARNING] TOKEN_ENCRYPTION_KEY appears to have low entropy. ' +
+      'Weak keys like repeated characters or common patterns are insecure. ' +
+      'Generate a cryptographically random key with: openssl rand -base64 32'
     );
   }
   

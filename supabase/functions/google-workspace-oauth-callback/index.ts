@@ -35,6 +35,24 @@ interface GoogleTokenResponse {
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
+/**
+ * Normalizes a domain for consistent storage and matching.
+ * This mirrors the SQL normalize_domain() function.
+ */
+function normalizeDomain(domain: string): string {
+  return domain.toLowerCase().trim();
+}
+
+/**
+ * Checks if we're running in a production environment.
+ * In production, localhost redirects should not be allowed.
+ */
+function isProductionEnvironment(): boolean {
+  const productionUrl = Deno.env.get("PRODUCTION_URL");
+  // If PRODUCTION_URL is set and doesn't contain localhost, we're in production
+  return !!productionUrl && !productionUrl.includes("localhost");
+}
+
 function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): boolean {
   if (!redirectUrl) return true;
 
@@ -46,14 +64,12 @@ function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): 
     const url = new URL(redirectUrl);
     const productionDomain = new URL(productionUrl).hostname;
 
-    // Only allow production domain and localhost for development
-    // Wildcard domains (*.vercel.app, *.netlify.app) are not allowed as they
-    // could be exploited by malicious apps deployed on these platforms
-    const allowedDomains = [
-      productionDomain,
-      "localhost",
-      "127.0.0.1",
-    ];
+    // In production, only allow the production domain
+    // localhost/127.0.0.1 are ONLY allowed in non-production environments
+    const isProduction = isProductionEnvironment();
+    const allowedDomains = isProduction
+      ? [productionDomain]
+      : [productionDomain, "localhost", "127.0.0.1"];
 
     for (const domain of allowedDomains) {
       if (domain.startsWith(".")) {
@@ -69,6 +85,7 @@ function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): 
       redirectUrl: redirectUrl.substring(0, 100),
       hostname: url.hostname,
       productionDomain,
+      isProduction,
     });
     return false;
   } catch {
@@ -276,10 +293,12 @@ serve(async (req) => {
       });
     }
 
-    const domain = domainData.domain;
+    // Normalize the domain to match the database index (normalize_domain function)
+    const domain = normalizeDomain(domainData.domain);
 
     let refreshToken = tokenData.refresh_token || null;
     if (!refreshToken) {
+      // Look up existing credentials using normalized domain for consistency
       const { data: existingCreds } = await supabaseClient
         .from("google_workspace_credentials")
         .select("refresh_token")
@@ -299,16 +318,21 @@ serve(async (req) => {
     const encryptedRefreshToken = await encryptToken(refreshToken, encryptionKey);
     logStep("Refresh token encrypted for storage");
 
+    // Upsert using the unique index on (organization_id, normalize_domain(domain))
+    // The domain is pre-normalized above to ensure consistent matching
     const { error: upsertError } = await supabaseClient
       .from("google_workspace_credentials")
       .upsert({
         organization_id: organizationId,
-        domain,
+        domain: domain, // Already normalized
         refresh_token: encryptedRefreshToken,
         access_token_expires_at: accessTokenExpiresAt.toISOString(),
         scopes: tokenData.scope || null,
         updated_at: now.toISOString(),
       }, {
+        // The unique index is: google_workspace_credentials_org_domain
+        // on (organization_id, normalize_domain(domain))
+        // Since we pre-normalized the domain, using these columns will match correctly
         onConflict: "organization_id,domain",
       });
 

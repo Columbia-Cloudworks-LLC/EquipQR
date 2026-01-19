@@ -23,8 +23,7 @@ import {
   syncGoogleWorkspaceUsers,
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
-
-const CONSUMER_DOMAINS = new Set(['gmail.com', 'googlemail.com']);
+import { isConsumerGoogleDomain } from '@/utils/google-workspace';
 
 const WorkspaceOnboarding = () => {
   const { user } = useAuth();
@@ -48,7 +47,7 @@ const WorkspaceOnboarding = () => {
   }, [user]);
 
   const domain = onboardingState?.domain || null;
-  const isConsumerDomain = domain ? CONSUMER_DOMAINS.has(domain) : false;
+  const isConsumerDomain = isConsumerGoogleDomain(domain);
 
   const workspaceOrgId = onboardingState?.workspace_org_id || null;
 

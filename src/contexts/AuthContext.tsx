@@ -62,12 +62,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // client-side call is needed for EXISTING users who may have pending grants
           // that were created after their initial sign-up. The RPC is idempotent.
           // 
-          // We use timestamp-based caching to prevent frequent redundant calls:
-          // - SessionStorage prevents calls within the same browser session/tab
-          // - Timestamp check (1 hour) limits calls across browser restarts
+          // We use localStorage (not sessionStorage) for cross-window/tab persistence:
+          // - localStorage persists across browser windows and restarts
+          // - Timestamp check (1 hour) prevents excessive calls while ensuring grants
+          //   are eventually applied for users who haven't logged in recently
           // The RPC is lightweight and idempotent, so occasional duplicate calls are acceptable.
           const adminGrantsCacheKey = `adminGrantsApplied:${session.user.id}`;
-          const lastAppliedStr = sessionStorage.getItem(adminGrantsCacheKey);
+          const lastAppliedStr = localStorage.getItem(adminGrantsCacheKey);
           const lastAppliedAt = lastAppliedStr ? parseInt(lastAppliedStr, 10) : 0;
           const oneHourMs = 60 * 60 * 1000;
           const shouldApplyGrants = Date.now() - lastAppliedAt > oneHourMs;
@@ -77,8 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               p_user_id: session.user.id
             })
               .then(() => {
-                // Store timestamp instead of boolean to enable time-based throttling
-                sessionStorage.setItem(adminGrantsCacheKey, String(Date.now()));
+                // Store timestamp in localStorage to enable time-based throttling across windows
+                localStorage.setItem(adminGrantsCacheKey, String(Date.now()));
               })
               .catch((error) => {
                 if (import.meta.env.DEV) {
@@ -162,15 +163,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       logger.error('Exception during logout', error);
     } finally {
-      // Clear application-specific session storage
+      // Clear application-specific storage
       try {
         sessionStorage.removeItem('pendingRedirect');
-        // Clear admin grants cache keys (they start with adminGrantsApplied:)
-        Object.keys(sessionStorage)
+        // Clear admin grants cache keys from localStorage (they start with adminGrantsApplied:)
+        Object.keys(localStorage)
           .filter(key => key.startsWith('adminGrantsApplied:'))
-          .forEach(key => sessionStorage.removeItem(key));
-      } catch (sessionError) {
-        logger.warn('Error clearing sessionStorage', sessionError);
+          .forEach(key => localStorage.removeItem(key));
+      } catch (storageError) {
+        logger.warn('Error clearing storage', storageError);
       }
       
       // Reset local state
