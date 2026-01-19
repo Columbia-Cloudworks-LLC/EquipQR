@@ -220,6 +220,12 @@ export function createErrorResponse(
   // Never expose stack traces or internal system details to clients
   const sanitizedError = sanitizeErrorMessage(error);
   
+  // Log the original error server-side before returning sanitized version
+  // This ensures we have debug info in logs without exposing it to clients
+  if (sanitizedError !== error) {
+    console.error("[createErrorResponse] Original error sanitized:", error);
+  }
+  
   return new Response(
     JSON.stringify({ error: sanitizedError }),
     {

@@ -76,7 +76,7 @@ const createTestQueryClient = () => new QueryClient({
   },
 });
 
-// Singleton instance for tests - cleared in beforeEach
+// Test-scoped QueryClient instance – reset/recreated in beforeEach to avoid cross-test state leakage
 let testQueryClient: QueryClient;
 
 vi.mock('@/components/providers/AppProviders', () => {

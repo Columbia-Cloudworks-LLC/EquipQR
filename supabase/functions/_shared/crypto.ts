@@ -3,6 +3,11 @@
  * Uses AES-256-GCM for authenticated encryption.
  */
 
+// AES-GCM chosen for AEAD (authenticated encryption with associated data):
+// - Provides both confidentiality and integrity in a single operation
+// - Widely supported in Web Crypto API across Deno, browsers, and Node.js
+// - Good performance characteristics compared to other authenticated modes
+// - 96-bit (12-byte) IV is the recommended size for GCM mode
 const ALGORITHM = 'AES-GCM';
 const IV_LENGTH = 12; // 96 bits for GCM
 

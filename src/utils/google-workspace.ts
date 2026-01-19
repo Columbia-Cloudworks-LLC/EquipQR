@@ -9,8 +9,13 @@ import type { User } from '@supabase/supabase-js';
  * List of consumer Google domains that don't support Workspace features.
  * Users with these domains are personal accounts, not Workspace accounts.
  * 
- * Note: This list covers the primary consumer domains. Google may have
- * regional variants, but these are the most common ones.
+ * Note: This list covers the primary consumer domains. Known regional variants
+ * (e.g., gmail.co.uk, googlemail.de) are intentionally excluded because:
+ * 1. Google has largely consolidated these to gmail.com
+ * 2. Historical regional variants are rare in practice
+ * 3. If encountered, they should be treated as consumer domains and added here
+ * 
+ * To add a regional variant, append it to this array (e.g., 'gmail.co.uk').
  */
 export const CONSUMER_GOOGLE_DOMAINS = [
   'gmail.com',

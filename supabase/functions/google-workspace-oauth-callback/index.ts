@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { encryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
+import { createAdminSupabaseClient } from "../_shared/supabase-clients.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -99,7 +98,7 @@ function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): 
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -110,7 +109,6 @@ serve(async (req) => {
     const clientId = Deno.env.get("GOOGLE_WORKSPACE_CLIENT_ID");
     const clientSecret = Deno.env.get("GOOGLE_WORKSPACE_CLIENT_SECRET");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const productionUrl = Deno.env.get("PRODUCTION_URL");
     const oauthRedirectBaseUrl = Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL") || supabaseUrl;
 
@@ -126,7 +124,7 @@ serve(async (req) => {
       throw new Error("Google Workspace OAuth is not configured");
     }
 
-    if (!supabaseUrl || !supabaseServiceKey) {
+    if (!supabaseUrl) {
       throw new Error("Supabase configuration is missing");
     }
 
@@ -201,9 +199,8 @@ serve(async (req) => {
       throw new Error("OAuth state has expired. Please try again.");
     }
 
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false },
-    });
+    // Use centralized admin client for consistency with other Edge Functions
+    const supabaseClient = createAdminSupabaseClient();
 
     const { data: sessionData, error: sessionError } = await supabaseClient
       .rpc("validate_google_workspace_oauth_session", {
