@@ -41,6 +41,19 @@ verify_jwt = false
 # Handles OAuth callback from Intuit. OAuth callbacks don't include JWT tokens.
 # Security is handled via state parameter validation and organization membership checks.
 
+[functions.google-workspace-oauth-callback]
+verify_jwt = false
+# Handles OAuth callback from Google Workspace. OAuth callbacks don't include JWT tokens.
+# Security is handled via state parameter validation and organization membership checks.
+
+[functions.google-workspace-sync-users]
+verify_jwt = true
+# Syncs Google Workspace directory users. Requires authenticated admin/owner.
+
+[functions.workspace-domain-claims-admin]
+verify_jwt = true
+# Super-admin endpoint for approving Workspace domain claims.
+
 [functions.quickbooks-refresh-tokens]
 verify_jwt = true
 # Called by cron job to refresh expiring tokens. Requires authentication with service role key.

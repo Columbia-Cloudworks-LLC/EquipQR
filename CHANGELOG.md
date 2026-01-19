@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Google Workspace Integration**: Allow organization owners to import users from their Google Workspace
+  - Domain claiming system with super-admin approval for workspace domains
+  - OAuth integration using Admin SDK for directory sync
+  - Selective member import - admins can choose which users to import
+  - Automatic membership provisioning for new sign-ups matching claimed domains
+  - Email verification gating for admin role grants (members don't require verification)
+  - New onboarding flow for Google Workspace users during first sign-up
+  - New database tables: `workspace_domain_claims`, `workspace_domains`, `google_workspace_oauth_sessions`, `google_workspace_credentials`, `google_workspace_directory_users`, `organization_member_claims`, `organization_role_grants_pending`
+  - New Edge Functions: `google-workspace-oauth-callback`, `google-workspace-sync-users`, `workspace-domain-claims-admin`
+  - New RPCs: `get_workspace_onboarding_state`, `request_workspace_domain_claim`, `create_google_workspace_oauth_session`, `validate_google_workspace_oauth_session`, `get_google_workspace_connection_status`, `select_google_workspace_members`, `is_user_google_oauth_verified`
+  - `GoogleWorkspaceIntegration` component in organization settings
+  - `WorkspaceOnboarding` page for first-time setup
+  - Updated `handle_new_user` trigger to claim pending memberships and apply role grants
+
+### Changed
+
+- **AuthContext**: Updated Google OAuth to request offline access with consent prompt for refresh tokens
+
 ## [2.1.0] - 2026-01-14
 
 ### Added

@@ -19,11 +19,17 @@ export function isSuperAdminOrg(orgId: string): boolean {
 }
 
 /**
- * Verify that a user has super admin access
- * Checks if the user is an owner or admin in the super admin organization
+ * Verify that a user has super admin access.
  * 
- * NOTE: This function should be called with an admin client (service role)
- * to ensure the check can't be bypassed by RLS.
+ * Security Model:
+ * - Super admin access is determined by membership in a designated "super admin organization"
+ * - The organization ID is configured via SUPER_ADMIN_ORG_ID environment variable
+ * - This is a DATABASE-level check (not app_metadata) - membership is verified against
+ *   the organization_members table, ensuring the flag cannot be spoofed client-side
+ * - Only users with owner/admin role in this specific org are granted super admin access
+ * 
+ * NOTE: This function must be called with a service role client to bypass RLS
+ * and ensure the check cannot be circumvented by client-side manipulation.
  */
 export async function verifySuperAdminAccess(
   supabaseClient: SupabaseClient,

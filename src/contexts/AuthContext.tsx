@@ -56,6 +56,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               window.location.href = pendingRedirect;
             }, 100);
           }
+
+          // Apply pending admin grants for Google-verified users.
+          // Note: The handle_new_user trigger also calls this for NEW users, but this
+          // client-side call is needed for EXISTING users who may have pending grants
+          // that were created after their initial sign-up. The RPC is idempotent.
+          // 
+          // We use localStorage (not sessionStorage) for cross-window/tab persistence:
+          // - localStorage persists across browser windows and restarts
+          // - Timestamp check (1 hour) prevents excessive calls while ensuring grants
+          //   are eventually applied for users who haven't logged in recently
+          // The RPC is lightweight and idempotent, so occasional duplicate calls are acceptable.
+          // Note: The cache key only includes user_id (not organization_id) because
+          // apply_pending_admin_grants_for_user applies grants for the user across ALL
+          // organizations they belong to, so organization context isn't needed.
+          const adminGrantsCacheKey = `adminGrantsApplied:${session.user.id}`;
+          const lastAppliedStr = localStorage.getItem(adminGrantsCacheKey);
+          const lastAppliedAt = lastAppliedStr ? parseInt(lastAppliedStr, 10) : 0;
+          const oneHourMs = 60 * 60 * 1000;
+          const shouldApplyGrants = Date.now() - lastAppliedAt > oneHourMs;
+
+          if (shouldApplyGrants) {
+            supabase.rpc('apply_pending_admin_grants_for_user', {
+              p_user_id: session.user.id
+            })
+              .then(() => {
+                // Store timestamp in localStorage to enable time-based throttling across windows
+                localStorage.setItem(adminGrantsCacheKey, String(Date.now()));
+              })
+              .catch((error) => {
+                if (import.meta.env.DEV) {
+                  logger.warn('Failed to apply pending admin grants', error);
+                }
+              });
+          }
         }
 
         // Don't trigger session refresh for token refreshes - this is normal
@@ -132,11 +166,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       logger.error('Exception during logout', error);
     } finally {
-      // Clear application-specific session storage
+      // Clear application-specific storage
       try {
         sessionStorage.removeItem('pendingRedirect');
-      } catch (sessionError) {
-        logger.warn('Error clearing sessionStorage', sessionError);
+        // Clear admin grants cache keys from localStorage (they start with adminGrantsApplied:)
+        Object.keys(localStorage)
+          .filter(key => key.startsWith('adminGrantsApplied:'))
+          .forEach(key => localStorage.removeItem(key));
+      } catch (storageError) {
+        logger.warn('Error clearing storage', storageError);
       }
       
       // Reset local state

@@ -15,6 +15,7 @@ import { updateOrganization } from '@/features/organization/services/organizatio
 import type { OrganizationUpdatePayload } from '@/features/organization/types/organization';
 import { organizationFormSchema, OrganizationFormData } from './organizationSettingsSchema';
 import { QuickBooksIntegration } from './QuickBooksIntegration';
+import { GoogleWorkspaceIntegration } from './GoogleWorkspaceIntegration';
 import { DangerZoneSection } from './DangerZoneSection';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import { useMemo } from 'react';
@@ -306,6 +307,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
           <h3 className="text-lg font-semibold">Integrations</h3>
         </div>
         <QuickBooksIntegration currentUserRole={currentUserRole} />
+        <GoogleWorkspaceIntegration currentUserRole={currentUserRole} />
       </div>
 
       {/* Danger Zone Section */}

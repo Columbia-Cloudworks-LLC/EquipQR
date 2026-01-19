@@ -131,4 +131,3 @@ Follow the hierarchy documented in `docs/technical/architecture.md`:
 - `docs/technical/architecture.md` - Full architecture details
 - `docs/technical/standards.md` - Complete design system and UI guidelines
 - `docs/technical/api-reference.md` - API documentation
-
