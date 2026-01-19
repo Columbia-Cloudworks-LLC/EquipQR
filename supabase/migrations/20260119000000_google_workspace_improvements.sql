@@ -43,13 +43,9 @@ $$;
 -- 1. user_id is the PRIMARY KEY - ensures each user has at most ONE personal org
 -- 2. organization_id has a UNIQUE constraint - ensures each org is personal for at most ONE user
 -- Together these create a strict 1:1 mapping between users and their personal organizations.
-COMMENT ON TABLE public.personal_organizations IS
-  'Maps users to their personal (default) organization. The user_id primary key ensures ' ||
-  'one personal org per user, while the unique constraint on organization_id ensures each ' ||
-  'organization can only be designated as personal for one user. This creates a strict 1:1 mapping.';
+COMMENT ON TABLE public.personal_organizations IS 'Maps users to their personal (default) organization. The user_id primary key ensures one personal org per user, while the unique constraint on organization_id ensures each organization can only be designated as personal for one user. This creates a strict 1:1 mapping.';
 
-COMMENT ON INDEX public.personal_organizations_org_unique IS
-  'Ensures each organization can only be the personal organization for one user.';
+COMMENT ON INDEX public.personal_organizations_org_unique IS 'Ensures each organization can only be the personal organization for one user.';
 
 -- =============================================================================
 -- Add documentation about OAuth session cleanup
@@ -61,22 +57,13 @@ COMMENT ON INDEX public.personal_organizations_org_unique IS
 -- Example cleanup query (run via pg_cron or external scheduler):
 --   DELETE FROM google_workspace_oauth_sessions WHERE expires_at < now() - interval '1 day';
 
-COMMENT ON TABLE public.google_workspace_oauth_sessions IS
-  'OAuth CSRF protection sessions. Sessions expire after 1 hour and should be cleaned up ' ||
-  'by a scheduled job. Clients cannot read/update/delete directly; only SECURITY DEFINER ' ||
-  'RPCs and service_role can manage these rows. ' ||
-  'TODO: Implement pg_cron job or external scheduler to delete expired sessions.';
+COMMENT ON TABLE public.google_workspace_oauth_sessions IS 'OAuth CSRF protection sessions. Sessions expire after 1 hour and should be cleaned up by a scheduled job. Clients cannot read/update/delete directly; only SECURITY DEFINER RPCs and service_role can manage these rows. TODO: Implement pg_cron job or external scheduler to delete expired sessions.';
 
 -- =============================================================================
 -- Add documentation about transaction behavior
 -- =============================================================================
 
-COMMENT ON FUNCTION public.select_google_workspace_members(uuid, text[], text[]) IS
-  'Selects Google Workspace users as organization members and optionally grants admin roles. ' ||
-  'This function runs as a single database transaction (PL/pgSQL functions are transactional by default), ' ||
-  'ensuring atomicity: either all operations succeed or the entire function rolls back. ' ||
-  'Race conditions between membership creation and admin grant application are prevented by this ' ||
-  'transactional behavior - no explicit transaction wrapper is needed.';
+COMMENT ON FUNCTION public.select_google_workspace_members(uuid, text[], text[]) IS 'Selects Google Workspace users as organization members and optionally grants admin roles. This function runs as a single database transaction (PL/pgSQL functions are transactional by default), ensuring atomicity: either all operations succeed or the entire function rolls back. Race conditions between membership creation and admin grant application are prevented by this transactional behavior - no explicit transaction wrapper is needed.';
 
 -- =============================================================================
 -- Improve get_workspace_onboarding_state to always return a row
