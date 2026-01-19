@@ -5,16 +5,21 @@
 BEGIN;
 
 -- ============================================================================
--- PART 1: Create Transaction Type Enum
+-- PART 1: Create Transaction Type Enum (idempotent)
 -- ============================================================================
 
-CREATE TYPE inventory_transaction_type AS ENUM (
-  'usage',
-  'restock',
-  'adjustment',
-  'initial',
-  'work_order'
-);
+DO $$ 
+BEGIN
+    CREATE TYPE inventory_transaction_type AS ENUM (
+      'usage',
+      'restock',
+      'adjustment',
+      'initial',
+      'work_order'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- ============================================================================
 -- PART 2: Create inventory_items table

@@ -2,15 +2,19 @@
 -- BASELINE MIGRATION: Full schema snapshot as of 2026-01-14
 -- =============================================================================
 -- This file contains the complete public schema including:
---   - All ENUM types
---   - All tables and columns
---   - All functions and triggers
+--   - All ENUM types (idempotent - safe to re-run)
+--   - All tables and columns (IF NOT EXISTS)
+--   - All functions and triggers (CREATE OR REPLACE)
 --   - All RLS policies (180 policies across 61 RLS-enabled tables)
 --   - All grants for anon/authenticated/service_role
 --
+-- This baseline is designed to be IDEMPOTENT - it can safely run on databases
+-- that already have some or all schema objects. ENUM types use DO blocks with
+-- exception handling, tables use IF NOT EXISTS, functions use CREATE OR REPLACE.
+--
 -- IMPORTANT: This baseline replaces all previous migrations for new environments.
 -- Production/staging environments that have already run historical migrations
--- should NOT re-run this baseline; their schema is already current.
+-- will have this baseline applied but existing objects will be preserved.
 -- =============================================================================
 
 SET statement_timeout = 0;
@@ -39,105 +43,182 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
 
 
 
-CREATE TYPE "public"."equipment_status" AS ENUM (
-    'active',
-    'maintenance',
-    'inactive'
-);
-
+-- Create ENUM types idempotently (handle existing types for preview/staging branches)
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."equipment_status" AS ENUM (
+        'active',
+        'maintenance',
+        'inactive'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."equipment_status" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."inventory_transaction_type" AS ENUM (
-    'usage',
-    'restock',
-    'adjustment',
-    'initial',
-    'work_order'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."inventory_transaction_type" AS ENUM (
+        'usage',
+        'restock',
+        'adjustment',
+        'initial',
+        'work_order'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."inventory_transaction_type" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."model_match_type" AS ENUM (
-    'any',
-    'exact',
-    'prefix',
-    'wildcard'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."model_match_type" AS ENUM (
+        'any',
+        'exact',
+        'prefix',
+        'wildcard'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."model_match_type" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."organization_plan" AS ENUM (
-    'free',
-    'premium'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."organization_plan" AS ENUM (
+        'free',
+        'premium'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."organization_plan" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."part_identifier_type" AS ENUM (
-    'oem',
-    'aftermarket',
-    'sku',
-    'mpn',
-    'upc',
-    'cross_ref'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."part_identifier_type" AS ENUM (
+        'oem',
+        'aftermarket',
+        'sku',
+        'mpn',
+        'upc',
+        'cross_ref'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."part_identifier_type" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."team_member_role" AS ENUM (
-    'owner',
-    'manager',
-    'technician',
-    'requestor',
-    'viewer'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."team_member_role" AS ENUM (
+        'owner',
+        'manager',
+        'technician',
+        'requestor',
+        'viewer'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."team_member_role" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."verification_status" AS ENUM (
-    'unverified',
-    'verified',
-    'deprecated'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."verification_status" AS ENUM (
+        'unverified',
+        'verified',
+        'deprecated'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."verification_status" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."work_order_priority" AS ENUM (
-    'low',
-    'medium',
-    'high'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."work_order_priority" AS ENUM (
+        'low',
+        'medium',
+        'high'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."work_order_priority" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."work_order_status" AS ENUM (
-    'submitted',
-    'accepted',
-    'assigned',
-    'in_progress',
-    'on_hold',
-    'completed',
-    'cancelled'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."work_order_status" AS ENUM (
+        'submitted',
+        'accepted',
+        'assigned',
+        'in_progress',
+        'on_hold',
+        'completed',
+        'cancelled'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."work_order_status" OWNER TO "postgres";
+
+
+-- =============================================================================
+-- Drop functions with TABLE return types before recreating them
+-- PostgreSQL doesn't allow CREATE OR REPLACE to change return type signatures
+-- =============================================================================
+
+DROP FUNCTION IF EXISTS "public"."create_quickbooks_oauth_session"("uuid", "text", "text");
+DROP FUNCTION IF EXISTS "public"."disconnect_quickbooks"("uuid", "text");
+DROP FUNCTION IF EXISTS "public"."get_alternates_for_inventory_item"("uuid", "uuid");
+DROP FUNCTION IF EXISTS "public"."get_alternates_for_part_number"("uuid", "text");
+DROP FUNCTION IF EXISTS "public"."get_audit_actor_info"();
+DROP FUNCTION IF EXISTS "public"."get_compatible_parts_for_equipment"("uuid", "uuid"[]);
+DROP FUNCTION IF EXISTS "public"."get_compatible_parts_for_make_model"("uuid", "text", "text");
+DROP FUNCTION IF EXISTS "public"."get_current_billing_period"();
+DROP FUNCTION IF EXISTS "public"."get_equipment_for_inventory_item_rules"("uuid", "uuid");
+DROP FUNCTION IF EXISTS "public"."get_global_pm_template_names"();
+DROP FUNCTION IF EXISTS "public"."get_invitation_by_token_secure"("uuid");
+DROP FUNCTION IF EXISTS "public"."get_invitations_atomic"("uuid", "uuid");
+DROP FUNCTION IF EXISTS "public"."get_invitations_bypass_optimized"("uuid", "uuid");
+DROP FUNCTION IF EXISTS "public"."get_latest_completed_pm"("uuid");
+DROP FUNCTION IF EXISTS "public"."get_matching_pm_templates"("uuid", "uuid");
+DROP FUNCTION IF EXISTS "public"."get_member_profiles_secure"("uuid");
+DROP FUNCTION IF EXISTS "public"."get_organization_exemptions"("uuid");
+DROP FUNCTION IF EXISTS "public"."get_organization_member_profile"("uuid");
+DROP FUNCTION IF EXISTS "public"."get_organization_slot_availability"("uuid");
+DROP FUNCTION IF EXISTS "public"."get_organization_slot_availability_with_exemptions"("uuid");
+DROP FUNCTION IF EXISTS "public"."get_pending_transfer_requests"();
+DROP FUNCTION IF EXISTS "public"."get_quickbooks_connection_status"("uuid");
+DROP FUNCTION IF EXISTS "public"."get_user_invitations_safe"("uuid", "uuid");
+DROP FUNCTION IF EXISTS "public"."get_user_managed_teams"("uuid");
+DROP FUNCTION IF EXISTS "public"."get_user_organization_membership"("uuid");
+DROP FUNCTION IF EXISTS "public"."get_user_organizations"("uuid");
+DROP FUNCTION IF EXISTS "public"."get_user_team_memberships"("uuid", "uuid");
+DROP FUNCTION IF EXISTS "public"."get_user_teams_for_notifications"("uuid");
+DROP FUNCTION IF EXISTS "public"."list_pm_templates"();
+DROP FUNCTION IF EXISTS "public"."list_pm_templates"("uuid");
+DROP FUNCTION IF EXISTS "public"."refresh_quickbooks_tokens_manual"();
+DROP FUNCTION IF EXISTS "public"."update_member_quickbooks_permission"("uuid", "uuid", boolean);
+DROP FUNCTION IF EXISTS "public"."validate_quickbooks_oauth_session"("text");
 
 
 CREATE OR REPLACE FUNCTION "public"."accept_invitation_atomic"("p_invitation_token" "uuid", "p_user_id" "uuid" DEFAULT "auth"."uid"()) RETURNS "jsonb"
@@ -7789,7 +7870,13 @@ CREATE TABLE IF NOT EXISTS "public"."inventory_transactions" (
 ALTER TABLE "public"."inventory_transactions" OWNER TO "postgres";
 
 
-COMMENT ON COLUMN "public"."inventory_transactions"."user_name" IS 'Denormalized user name. Populated when user leaves organization for audit trail.';
+-- Comment only if column exists (added by later migration)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'inventory_transactions' AND column_name = 'user_name') THEN
+        COMMENT ON COLUMN "public"."inventory_transactions"."user_name" IS 'Denormalized user name. Populated when user leaves organization for audit trail.';
+    END IF;
+END $$;
 
 
 
@@ -7839,7 +7926,13 @@ CREATE TABLE IF NOT EXISTS "public"."notes" (
 ALTER TABLE "public"."notes" OWNER TO "postgres";
 
 
-COMMENT ON COLUMN "public"."notes"."author_name" IS 'Denormalized author name. Populated when user leaves organization for audit trail.';
+-- Comment only if column exists (added by later migration)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'notes' AND column_name = 'author_name') THEN
+        COMMENT ON COLUMN "public"."notes"."author_name" IS 'Denormalized author name. Populated when user leaves organization for audit trail.';
+    END IF;
+END $$;
 
 
 
@@ -8338,11 +8431,23 @@ COMMENT ON TABLE "public"."preventative_maintenance" IS 'RLS enabled to enforce 
 
 
 
-COMMENT ON COLUMN "public"."preventative_maintenance"."created_by_name" IS 'Denormalized creator name. Populated when user leaves organization.';
+-- Comment only if column exists (added by later migration)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'preventative_maintenance' AND column_name = 'created_by_name') THEN
+        COMMENT ON COLUMN "public"."preventative_maintenance"."created_by_name" IS 'Denormalized creator name. Populated when user leaves organization.';
+    END IF;
+END $$;
 
 
 
-COMMENT ON COLUMN "public"."preventative_maintenance"."completed_by_name" IS 'Denormalized completer name. Populated when user leaves organization.';
+-- Comment only if column exists (added by later migration)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'preventative_maintenance' AND column_name = 'completed_by_name') THEN
+        COMMENT ON COLUMN "public"."preventative_maintenance"."completed_by_name" IS 'Denormalized completer name. Populated when user leaves organization.';
+    END IF;
+END $$;
 
 
 
@@ -8550,7 +8655,13 @@ CREATE TABLE IF NOT EXISTS "public"."scans" (
 ALTER TABLE "public"."scans" OWNER TO "postgres";
 
 
-COMMENT ON COLUMN "public"."scans"."scanned_by_name" IS 'Denormalized scanner name. Populated when user leaves organization for audit trail.';
+-- Comment only if column exists (added by later migration)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'scans' AND column_name = 'scanned_by_name') THEN
+        COMMENT ON COLUMN "public"."scans"."scanned_by_name" IS 'Denormalized scanner name. Populated when user leaves organization for audit trail.';
+    END IF;
+END $$;
 
 
 
@@ -8747,7 +8858,13 @@ COMMENT ON COLUMN "public"."work_order_costs"."original_quantity" IS 'Original q
 
 
 
-COMMENT ON COLUMN "public"."work_order_costs"."created_by_name" IS 'Denormalized name of user who created cost entry. Populated when user leaves organization.';
+-- Comment only if column exists (added by later migration)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'work_order_costs' AND column_name = 'created_by_name') THEN
+        COMMENT ON COLUMN "public"."work_order_costs"."created_by_name" IS 'Denormalized name of user who created cost entry. Populated when user leaves organization.';
+    END IF;
+END $$;
 
 
 
@@ -8823,7 +8940,13 @@ CREATE TABLE IF NOT EXISTS "public"."work_order_status_history" (
 ALTER TABLE "public"."work_order_status_history" OWNER TO "postgres";
 
 
-COMMENT ON COLUMN "public"."work_order_status_history"."changed_by_name" IS 'Denormalized name of user who changed status. Populated when user leaves organization.';
+-- Comment only if column exists (added by later migration)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'work_order_status_history' AND column_name = 'changed_by_name') THEN
+        COMMENT ON COLUMN "public"."work_order_status_history"."changed_by_name" IS 'Denormalized name of user who changed status. Populated when user leaves organization.';
+    END IF;
+END $$;
 
 
 

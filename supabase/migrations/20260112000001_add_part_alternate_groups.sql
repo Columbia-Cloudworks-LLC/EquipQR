@@ -6,27 +6,37 @@
 BEGIN;
 
 -- ============================================================================
--- PART 1: Create part_identifier_type enum
+-- PART 1: Create part_identifier_type enum (idempotent)
 -- ============================================================================
 
-CREATE TYPE part_identifier_type AS ENUM (
-  'oem',           -- Original Equipment Manufacturer part number
-  'aftermarket',   -- Aftermarket/third-party part number
-  'sku',           -- Internal SKU (maps to inventory_items.sku)
-  'mpn',           -- Manufacturer Part Number
-  'upc',           -- Universal Product Code
-  'cross_ref'      -- Cross-reference number from compatibility guides
-);
+DO $$ 
+BEGIN
+    CREATE TYPE part_identifier_type AS ENUM (
+      'oem',           -- Original Equipment Manufacturer part number
+      'aftermarket',   -- Aftermarket/third-party part number
+      'sku',           -- Internal SKU (maps to inventory_items.sku)
+      'mpn',           -- Manufacturer Part Number
+      'upc',           -- Universal Product Code
+      'cross_ref'      -- Cross-reference number from compatibility guides
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- ============================================================================
--- PART 2: Create verification_status enum
+-- PART 2: Create verification_status enum (idempotent)
 -- ============================================================================
 
-CREATE TYPE verification_status AS ENUM (
-  'unverified',    -- Not yet verified by shop owner/manager
-  'verified',      -- Verified as correct by authorized user
-  'deprecated'     -- No longer recommended (but kept for history)
-);
+DO $$ 
+BEGIN
+    CREATE TYPE verification_status AS ENUM (
+      'unverified',    -- Not yet verified by shop owner/manager
+      'verified',      -- Verified as correct by authorized user
+      'deprecated'     -- No longer recommended (but kept for history)
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- ============================================================================
 -- PART 3: Create part_alternate_groups table

@@ -51,57 +51,78 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
-CREATE TYPE "public"."equipment_status" AS ENUM (
-    'active',
-    'maintenance',
-    'inactive'
-);
-
+-- Create ENUM types idempotently (handle existing types)
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."equipment_status" AS ENUM (
+        'active',
+        'maintenance',
+        'inactive'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."equipment_status" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."organization_plan" AS ENUM (
-    'free',
-    'premium'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."organization_plan" AS ENUM (
+        'free',
+        'premium'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."organization_plan" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."team_member_role" AS ENUM (
-    'owner',
-    'manager',
-    'technician',
-    'requestor',
-    'viewer'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."team_member_role" AS ENUM (
+        'owner',
+        'manager',
+        'technician',
+        'requestor',
+        'viewer'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."team_member_role" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."work_order_priority" AS ENUM (
-    'low',
-    'medium',
-    'high'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."work_order_priority" AS ENUM (
+        'low',
+        'medium',
+        'high'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."work_order_priority" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."work_order_status" AS ENUM (
-    'submitted',
-    'accepted',
-    'assigned',
-    'in_progress',
-    'on_hold',
-    'completed',
-    'cancelled'
-);
-
+DO $$ 
+BEGIN
+    CREATE TYPE "public"."work_order_status" AS ENUM (
+        'submitted',
+        'accepted',
+        'assigned',
+        'in_progress',
+        'on_hold',
+        'completed',
+        'cancelled'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TYPE "public"."work_order_status" OWNER TO "postgres";
 
