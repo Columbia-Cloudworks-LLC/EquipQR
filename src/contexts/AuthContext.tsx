@@ -57,8 +57,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }, 100);
           }
 
-          // Apply pending admin grants for Google-verified users
-          // Avoid calling this RPC repeatedly for the same user within a single browser session
+          // Apply pending admin grants for Google-verified users.
+          // Note: The handle_new_user trigger also calls this for NEW users, but this
+          // client-side call is needed for EXISTING users who may have pending grants
+          // that were created after their initial sign-up. The RPC is idempotent.
+          // 
+          // SessionStorage caching prevents redundant calls within the same browser session.
+          // While this doesn't prevent calls across different tabs/sessions, the RPC is
+          // lightweight and idempotent, so occasional duplicate calls are acceptable.
           const adminGrantsCacheKey = `adminGrantsApplied:${session.user.id}`;
           const hasAppliedAdminGrants = sessionStorage.getItem(adminGrantsCacheKey);
 
@@ -67,7 +73,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               p_user_id: session.user.id
             })
               .then(() => {
-                // Cache that we've applied (or attempted to apply) admin grants for this user
                 sessionStorage.setItem(adminGrantsCacheKey, 'true');
               })
               .catch((error) => {

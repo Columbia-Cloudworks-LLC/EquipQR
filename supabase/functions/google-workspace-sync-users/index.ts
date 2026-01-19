@@ -7,6 +7,7 @@ import {
   requireUser,
   verifyOrgAdmin,
 } from "../_shared/supabase-clients.ts";
+import { decryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
 
 interface SyncRequest {
   organizationId: string;
@@ -127,7 +128,18 @@ serve(async (req) => {
       return createErrorResponse("Google Workspace is not connected for this organization", 400);
     }
 
-    const tokenData = await refreshAccessToken(creds.refresh_token);
+    // Decrypt the stored refresh token
+    const encryptionKey = getTokenEncryptionKey();
+    let decryptedRefreshToken: string;
+    try {
+      decryptedRefreshToken = await decryptToken(creds.refresh_token, encryptionKey);
+      logStep("Refresh token decrypted successfully");
+    } catch (decryptError) {
+      logStep("Failed to decrypt refresh token", { error: decryptError instanceof Error ? decryptError.message : String(decryptError) });
+      return createErrorResponse("Failed to decrypt stored credentials. Please reconnect Google Workspace.", 500);
+    }
+
+    const tokenData = await refreshAccessToken(decryptedRefreshToken);
     const accessToken = tokenData.access_token;
     const accessTokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 

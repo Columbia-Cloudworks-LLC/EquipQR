@@ -758,6 +758,52 @@ CREATE POLICY google_workspace_oauth_sessions_insert
     )
   );
 
+-- OAuth sessions: explicitly deny SELECT/UPDATE/DELETE from clients.
+-- SECURITY DEFINER functions and service_role can still manage these rows.
+CREATE POLICY google_workspace_oauth_sessions_select_deny
+  ON public.google_workspace_oauth_sessions
+  FOR SELECT
+  USING (false);
+
+CREATE POLICY google_workspace_oauth_sessions_update_deny
+  ON public.google_workspace_oauth_sessions
+  FOR UPDATE
+  USING (false)
+  WITH CHECK (false);
+
+CREATE POLICY google_workspace_oauth_sessions_delete_deny
+  ON public.google_workspace_oauth_sessions
+  FOR DELETE
+  USING (false);
+
+COMMENT ON TABLE public.google_workspace_oauth_sessions IS
+  'OAuth CSRF protection sessions. Clients cannot read/update/delete directly; only SECURITY DEFINER RPCs and service_role can manage these rows. Expired sessions should be cleaned by a scheduled job.';
+
+-- Credentials: explicitly deny SELECT from clients (Edge Functions use service_role)
+CREATE POLICY google_workspace_credentials_select_deny
+  ON public.google_workspace_credentials
+  FOR SELECT
+  USING (false);
+
+CREATE POLICY google_workspace_credentials_insert_deny
+  ON public.google_workspace_credentials
+  FOR INSERT
+  WITH CHECK (false);
+
+CREATE POLICY google_workspace_credentials_update_deny
+  ON public.google_workspace_credentials
+  FOR UPDATE
+  USING (false)
+  WITH CHECK (false);
+
+CREATE POLICY google_workspace_credentials_delete_deny
+  ON public.google_workspace_credentials
+  FOR DELETE
+  USING (false);
+
+COMMENT ON TABLE public.google_workspace_credentials IS
+  'Google OAuth credentials (encrypted refresh tokens). Clients cannot access this table directly; only Edge Functions using service_role can read/write credentials.';
+
 -- Directory users: admins can select
 CREATE POLICY google_workspace_directory_users_select_admin
   ON public.google_workspace_directory_users

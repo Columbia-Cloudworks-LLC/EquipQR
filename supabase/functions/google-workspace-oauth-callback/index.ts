@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { encryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -149,8 +150,17 @@ serve(async (req) => {
       throw new Error("Invalid timestamp in state parameter");
     }
 
-    const oneHourMs = 60 * 60 * 1000;
-    if (stateTimestamp > nowMs || nowMs - stateTimestamp > oneHourMs) {
+    // Tighter validation: 15-minute TTL with 5-minute clock skew tolerance
+    const stateTtlMs = 15 * 60 * 1000; // 15 minutes
+    const maxClockSkewMs = 5 * 60 * 1000; // 5 minutes
+
+    // Reject timestamps too far in the future (accounting for clock skew)
+    if (stateTimestamp - nowMs > maxClockSkewMs) {
+      throw new Error("OAuth state has an invalid timestamp. Please try again.");
+    }
+
+    // Reject expired timestamps
+    if (nowMs - stateTimestamp > stateTtlMs) {
       throw new Error("OAuth state has expired. Please try again.");
     }
 
@@ -244,12 +254,17 @@ serve(async (req) => {
       throw new Error("Google Workspace refresh token missing. Please reconnect.");
     }
 
+    // Encrypt the refresh token before storing
+    const encryptionKey = getTokenEncryptionKey();
+    const encryptedRefreshToken = await encryptToken(refreshToken, encryptionKey);
+    logStep("Refresh token encrypted for storage");
+
     const { error: upsertError } = await supabaseClient
       .from("google_workspace_credentials")
       .upsert({
         organization_id: organizationId,
         domain,
-        refresh_token: refreshToken,
+        refresh_token: encryptedRefreshToken,
         access_token_expires_at: accessTokenExpiresAt.toISOString(),
         scopes: tokenData.scope || null,
         updated_at: now.toISOString(),
