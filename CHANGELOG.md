@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-01-14
+
 ### Added
 
 - **Google Workspace Integration**: Allow organization owners to import users from their Google Workspace directory
@@ -30,27 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Helper functions: `normalize_email`, `normalize_domain` for consistent email/domain handling
   - Updated `handle_new_user` trigger to create personal organizations and apply pending workspace memberships and role grants
   - New `TOKEN_ENCRYPTION_KEY` environment variable for OAuth token encryption
-
-### Changed
-
-- **AuthContext**: Updated Google OAuth to request offline access with consent prompt for refresh tokens
-- **SmartLanding**: Enhanced onboarding logic and error handling for workspace users
-
-### Security
-
-- **Google Workspace Credentials**: OAuth refresh tokens are encrypted at the application layer before storage
-- **RLS Policies**: All new tables have Row Level Security policies restricting access appropriately
-- **OAuth Sessions**: Short-lived CSRF tokens with 1-hour expiration; clients cannot read/update/delete directly
-
-### Database Migrations
-
-- `20260118090000_google_workspace_onboarding.sql`: Domain claims, OAuth sessions, credentials, directory cache, member claims, pending role grants
-- `20260118090500_update_handle_new_user_for_workspace.sql`: Updated trigger for personal org creation and workspace claim processing
-- `20260119000000_google_workspace_improvements.sql`: NULL handling for normalize functions, improved documentation
-
-## [2.1.0] - 2026-01-14
-
-### Added
 
 - **Migration Baseline**: New baseline migration for faster fresh environment setup
   - Generated `supabase/migrations/20260114000000_baseline.sql` (13,000+ lines) containing complete schema snapshot
@@ -76,6 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **AuthContext**: Updated Google OAuth to request offline access with consent prompt for refresh tokens
+- **SmartLanding**: Enhanced onboarding logic and error handling for workspace users
 - **Journey-First Testing Strategy**: Shifted testing approach to prioritize integration/E2E-style journey tests over implementation-detail unit tests
   - New `docs/technical/testing-guidelines.md` documenting the journey-first testing philosophy
   - Updated `CONTRIBUTING.md` testing section with journey test template
@@ -86,6 +69,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Google Workspace Credentials**: OAuth refresh tokens are encrypted at the application layer before storage
+- **RLS Policies**: All new tables have Row Level Security policies restricting access appropriately
+- **OAuth Sessions**: Short-lived CSRF tokens with 1-hour expiration; clients cannot read/update/delete directly
 - **Edge Function RLS Hardening**: Refactored user-facing Edge Functions to use JWT-scoped clients instead of service role
   - `geocode-location` - Now validates org membership and uses user-scoped client
   - `send-invitation-email` - Now validates caller has admin access before sending
@@ -129,6 +115,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed npm scripts: `typesense:up`, `typesense:ensure`, `seed:parts`, `index:parts`
   - Removed `typesense` devDependency from `package.json`
   - Removed `TYPESENSE_*` environment variables from `env.example`
+
+### Database Migrations
+
+- `20260118090000_google_workspace_onboarding.sql`: Domain claims, OAuth sessions, credentials, directory cache, member claims, pending role grants
+- `20260118090500_update_handle_new_user_for_workspace.sql`: Updated trigger for personal org creation and workspace claim processing
+- `20260119000000_google_workspace_improvements.sql`: NULL handling for normalize functions, improved documentation
 
 ## [2.0.0] - 2026-01-13
 
