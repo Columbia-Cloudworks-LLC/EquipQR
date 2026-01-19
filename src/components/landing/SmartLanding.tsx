@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import Landing from '@/pages/Landing';
 import { useWorkspaceOnboardingState } from '@/hooks/useWorkspaceOnboarding';
+import { needsWorkspaceOnboarding } from '@/utils/google-workspace';
 
 const SmartLanding = () => {
   const { user, isLoading } = useAuth();
@@ -12,22 +13,8 @@ const SmartLanding = () => {
   useEffect(() => {
     // If user is authenticated and not loading, redirect to dashboard
     if (!isLoading && !onboardingLoading && user) {
-      const provider = (user.app_metadata as { provider?: string })?.provider;
-      const providers = (user.app_metadata as { providers?: string[] })?.providers || [];
-      const isGoogleUser = provider === 'google' || providers.includes('google');
-      const domain = onboardingState?.domain;
-      const isConsumerDomain = domain === 'gmail.com' || domain === 'googlemail.com';
-      const needsOnboarding = Boolean(
-        isGoogleUser &&
-        onboardingState &&
-        !isConsumerDomain &&
-        (
-          onboardingState.domain_status !== 'claimed' ||
-          (onboardingState.domain_status === 'claimed' && onboardingState.is_workspace_connected === false)
-        )
-      );
-
-      navigate(needsOnboarding ? '/dashboard/onboarding/workspace' : '/dashboard', { replace: true });
+      const requiresOnboarding = needsWorkspaceOnboarding(user, onboardingState);
+      navigate(requiresOnboarding ? '/dashboard/onboarding/workspace' : '/dashboard', { replace: true });
     }
   }, [user, isLoading, onboardingLoading, onboardingState, navigate]);
 

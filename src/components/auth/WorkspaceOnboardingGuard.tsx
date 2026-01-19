@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceOnboardingState } from '@/hooks/useWorkspaceOnboarding';
+import { needsWorkspaceOnboarding } from '@/utils/google-workspace';
 import { Loader2 } from 'lucide-react';
 
 interface WorkspaceOnboardingGuardProps {
@@ -45,35 +46,8 @@ const WorkspaceOnboardingGuard: React.FC<WorkspaceOnboardingGuardProps> = ({ chi
     return <>{children}</>;
   }
 
-  // Determine if user is a Google user
-  const provider = (user.app_metadata as { provider?: string })?.provider;
-  const providers = (user.app_metadata as { providers?: string[] })?.providers || [];
-  const isGoogleUser = provider === 'google' || providers.includes('google');
-
-  // Non-Google users don't need workspace onboarding
-  if (!isGoogleUser) {
-    return <>{children}</>;
-  }
-
-  // Check if onboarding is needed
-  const domain = onboardingState?.domain;
-  const isConsumerDomain = domain === 'gmail.com' || domain === 'googlemail.com';
-
-  // Consumer domain users (gmail.com, etc.) don't need workspace onboarding
-  if (isConsumerDomain) {
-    return <>{children}</>;
-  }
-
-  // Check if domain is claimed and workspace is connected
-  const needsOnboarding = Boolean(
-    onboardingState &&
-    (
-      onboardingState.domain_status !== 'claimed' ||
-      (onboardingState.domain_status === 'claimed' && onboardingState.is_workspace_connected === false)
-    )
-  );
-
-  if (needsOnboarding) {
+  // Use shared utility to determine if onboarding is needed
+  if (needsWorkspaceOnboarding(user, onboardingState)) {
     return <Navigate to="/dashboard/onboarding/workspace" replace />;
   }
 

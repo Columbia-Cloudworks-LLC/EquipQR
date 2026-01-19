@@ -89,8 +89,15 @@ serve(async (req) => {
     const clientSecret = Deno.env.get("GOOGLE_WORKSPACE_CLIENT_SECRET");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
+    const productionUrl = Deno.env.get("PRODUCTION_URL");
     const oauthRedirectBaseUrl = Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL") || supabaseUrl;
+
+    // PRODUCTION_URL must be set in production to prevent redirect URL validation issues.
+    // The fallback is only used for development/testing environments.
+    if (!productionUrl) {
+      logStep("WARNING: PRODUCTION_URL not set, using fallback", { fallback: "https://equipqr.app" });
+    }
+    const resolvedProductionUrl = productionUrl || "https://equipqr.app";
 
     if (!clientId || !clientSecret) {
       logStep("ERROR", { message: "Missing GOOGLE_WORKSPACE_CLIENT_ID or GOOGLE_WORKSPACE_CLIENT_SECRET" });
@@ -125,7 +132,7 @@ serve(async (req) => {
       const userFriendlyError = error === "access_denied"
         ? "Google Workspace connection was cancelled"
         : "Google Workspace connection failed";
-      const errorUrl = `${productionUrl}/dashboard/onboarding/workspace?gw_error=${encodeURIComponent(error)}&gw_error_description=${encodeURIComponent(userFriendlyError)}`;
+      const errorUrl = `${resolvedProductionUrl}/dashboard/onboarding/workspace?gw_error=${encodeURIComponent(error)}&gw_error_description=${encodeURIComponent(userFriendlyError)}`;
       return Response.redirect(errorUrl, 302);
     }
 
@@ -151,16 +158,23 @@ serve(async (req) => {
     }
 
     // Tighter validation: 15-minute TTL with 5-minute clock skew tolerance
-    const stateTtlMs = 15 * 60 * 1000; // 15 minutes
-    const maxClockSkewMs = 5 * 60 * 1000; // 5 minutes
+    // This prevents replay attacks while allowing for reasonable clock drift between
+    // the client, this server, and Google's servers.
+    const stateTtlMs = 15 * 60 * 1000; // 15 minutes max age
+    const maxClockSkewMs = 5 * 60 * 1000; // 5 minutes future tolerance
 
-    // Reject timestamps too far in the future (accounting for clock skew)
-    if (stateTimestamp - nowMs > maxClockSkewMs) {
+    // Calculate the time difference (positive = state is in the past)
+    const ageMs = nowMs - stateTimestamp;
+
+    // Reject timestamps too far in the future (beyond clock skew tolerance)
+    // A negative age means the state is from the future; allow up to maxClockSkewMs
+    if (ageMs < -maxClockSkewMs) {
       throw new Error("OAuth state has an invalid timestamp. Please try again.");
     }
 
-    // Reject expired timestamps
-    if (nowMs - stateTimestamp > stateTtlMs) {
+    // Reject expired timestamps (older than TTL, accounting for clock skew)
+    // If age is positive (state is in the past), it must be within the TTL
+    if (ageMs > stateTtlMs) {
       throw new Error("OAuth state has expired. Please try again.");
     }
 
@@ -277,13 +291,13 @@ serve(async (req) => {
       throw new Error("Failed to store Google Workspace credentials");
     }
 
-    const isOriginValid = !!originUrl && isValidRedirectUrl(originUrl, productionUrl);
-    const finalBaseUrl = (isOriginValid ? originUrl : productionUrl).replace(/\/+$/, "");
+    const isOriginValid = !!originUrl && isValidRedirectUrl(originUrl, resolvedProductionUrl);
+    const finalBaseUrl = (isOriginValid ? originUrl : resolvedProductionUrl).replace(/\/+$/, "");
     const defaultRedirectPath = "/dashboard/onboarding/workspace";
 
     let successUrl: string;
     if (redirectUrl) {
-      if (!isValidRedirectUrl(redirectUrl, productionUrl)) {
+      if (!isValidRedirectUrl(redirectUrl, resolvedProductionUrl)) {
         successUrl = `${finalBaseUrl}${defaultRedirectPath}?gw_connected=true`;
       } else {
         const isAbsolute = /^https?:\/\//i.test(redirectUrl);
@@ -297,9 +311,9 @@ serve(async (req) => {
 
     return Response.redirect(successUrl, 302);
   } catch (error) {
-    const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
+    const fallbackProductionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
     const userMessage = "Failed to connect Google Workspace. Please try again.";
-    const errorUrl = `${productionUrl}/dashboard/onboarding/workspace?gw_error=oauth_failed&gw_error_description=${encodeURIComponent(userMessage)}`;
+    const errorUrl = `${fallbackProductionUrl}/dashboard/onboarding/workspace?gw_error=oauth_failed&gw_error_description=${encodeURIComponent(userMessage)}`;
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
     return Response.redirect(errorUrl, 302);

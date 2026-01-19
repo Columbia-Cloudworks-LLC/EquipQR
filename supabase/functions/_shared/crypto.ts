@@ -80,12 +80,35 @@ export async function decryptToken(encrypted: string, secret: string): Promise<s
 }
 
 /**
- * Gets the encryption key from environment, throwing if not set.
+ * Minimum required length for the encryption key.
+ * A 32-character key provides sufficient entropy when hashed with SHA-256.
+ * For production, use a cryptographically random 32+ character string.
+ */
+const MIN_KEY_LENGTH = 32;
+
+/**
+ * Gets the encryption key from environment, throwing if not set or too weak.
+ * 
+ * IMPORTANT: In production, TOKEN_ENCRYPTION_KEY must be a cryptographically
+ * random string of at least 32 characters. Generate one with:
+ *   openssl rand -base64 32
+ * 
+ * Never use weak keys like "password123" - even though SHA-256 hashing is
+ * applied, weak input leads to predictable output.
  */
 export function getTokenEncryptionKey(): string {
   const key = Deno.env.get('TOKEN_ENCRYPTION_KEY');
   if (!key) {
     throw new Error('TOKEN_ENCRYPTION_KEY environment variable is not set');
   }
+  
+  // Validate minimum key length to ensure sufficient entropy
+  if (key.length < MIN_KEY_LENGTH) {
+    throw new Error(
+      `TOKEN_ENCRYPTION_KEY must be at least ${MIN_KEY_LENGTH} characters. ` +
+      'Generate a secure key with: openssl rand -base64 32'
+    );
+  }
+  
   return key;
 }
