@@ -12,11 +12,28 @@ const ALGORITHM = 'AES-GCM';
 const IV_LENGTH = 12; // 96 bits for GCM
 
 // PBKDF2 configuration for key derivation
-// Using a static salt since the input key is already a high-entropy secret
-// (validated by getTokenEncryptionKey). This is acceptable because we're deriving
-// from a cryptographically random key, not a user password.
-const KDF_SALT = new TextEncoder().encode('equipqr_aes_gcm_kdf_salt_v1');
 const PBKDF2_ITERATIONS = 100_000; // OWASP recommended minimum for 2024+
+
+// Default salt value - used if KDF_SALT environment variable is not set.
+// This maintains backwards compatibility with existing encrypted data.
+const DEFAULT_KDF_SALT = 'equipqr_aes_gcm_kdf_salt_v1';
+
+/**
+ * Gets the KDF salt from environment variable or falls back to default.
+ * 
+ * For defense-in-depth, each deployment should set a unique KDF_SALT value.
+ * This ensures that even if TOKEN_ENCRYPTION_KEY is compromised, an attacker
+ * would also need the deployment-specific salt to derive the same key material.
+ * 
+ * IMPORTANT: Once set for a deployment, KDF_SALT must remain constant.
+ * Changing it will make previously encrypted data unreadable.
+ * 
+ * Generate a unique salt with: openssl rand -base64 32
+ */
+function getKdfSalt(): Uint8Array {
+  const salt = Deno.env.get('KDF_SALT') ?? DEFAULT_KDF_SALT;
+  return new TextEncoder().encode(salt);
+}
 
 /**
  * Derives a CryptoKey from the secret key string using PBKDF2.
@@ -48,7 +65,7 @@ async function deriveKey(secret: string): Promise<CryptoKey> {
     {
       name: 'PBKDF2',
       hash: 'SHA-256',
-      salt: KDF_SALT,
+      salt: getKdfSalt(),
       iterations: PBKDF2_ITERATIONS,
     },
     keyMaterial,

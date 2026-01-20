@@ -61,12 +61,17 @@ npm ci
 cp .env.example .env
 ```
 
-Edit `.env` with your Supabase credentials:
+Edit `.env` with your Supabase credentials (minimum required):
 
 ```env
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
+
+> **📋 Full Reference**: The `env.example` file contains detailed documentation for all environment variables, including descriptions, file references, and generation commands. See also:
+> - **[Setup Guide - Environment Configuration](../technical/setup.md#environment-configuration)** - Overview of environment variable categories
+> - **[Supabase Branch Secrets](../ops/supabase-branch-secrets.md)** - Edge Function secrets for production/preview
+> - **[Local Supabase Development](../ops/local-supabase-development.md)** - Local development environment setup
 
 ### 4. Start Development Server
 
@@ -476,9 +481,10 @@ npm run analyze
 ### Resources
 
 - **Documentation**: Check the `docs/` folder
-- **API Reference**: `docs/api-reference.md`
-- **Architecture Guide**: `docs/architecture.md`
-- **Agents Guide**: `../../.cursor/agents.md` (development workflow)
+- **API Reference**: `docs/technical/api-reference.md`
+- **Architecture Guide**: `docs/technical/architecture.md`
+- **Setup Guide**: `docs/technical/setup.md`
+- **Environment Variables**: `env.example` (source of truth)
 
 ### Team Communication
 
@@ -499,9 +505,9 @@ npm run size-check    # Check bundle size
 ## Next Steps
 
 1. **Explore the Codebase**: Start with `src/App.tsx` and follow the component tree
-2. **Read the Documentation**: Review `docs/features.md` and `docs/technical-guide.md`
+2. **Read the Documentation**: Review `docs/technical/architecture.md` and `docs/technical/setup.md`
 3. **Run Tests**: Execute `npm run test` to understand the testing patterns
 4. **Make a Small Change**: Try updating a component or adding a new feature
 5. **Join the Team**: Participate in code reviews and team discussions
 
-Welcome to the EquipQR™ development team! 🎉
+Welcome to the EquipQR™ development team!

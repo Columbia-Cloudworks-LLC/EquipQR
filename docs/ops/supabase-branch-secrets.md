@@ -49,6 +49,13 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 |------------|--------------|---------------|-------|
 | `HCAPTCHA_SECRET_KEY` | `verify-hcaptcha` | `0x...` | hCaptcha secret key for server-side verification |
 
+### Encryption & Cryptography
+
+| Secret Name | Required For | Example Value | Notes |
+|------------|--------------|---------------|-------|
+| `TOKEN_ENCRYPTION_KEY` | Google Workspace OAuth functions | Base64 string | **Required.** Encrypts OAuth refresh tokens at rest. Generate with: `openssl rand -base64 32` |
+| `KDF_SALT` | Google Workspace OAuth functions | Base64 string | **Optional but recommended.** Deployment-specific salt for PBKDF2 key derivation. Provides defense-in-depth. Generate with: `openssl rand -base64 32`. ⚠️ Once set, do NOT change. |
+
 ### Google Maps Integration
 
 | Secret Name | Required For | Example Value | Notes |
@@ -179,6 +186,29 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 
+### Google Workspace Integration Functions
+
+#### `google-workspace-oauth-callback`
+- `SUPABASE_URL` ✅
+- `SUPABASE_SERVICE_ROLE_KEY` ✅
+- `TOKEN_ENCRYPTION_KEY` ✅
+- `KDF_SALT` ⚠️ (Optional but recommended for defense-in-depth)
+- `GW_OAUTH_REDIRECT_BASE_URL` ✅
+- `GOOGLE_OAUTH_CLIENT_ID` ✅
+- `GOOGLE_OAUTH_CLIENT_SECRET` ✅
+
+#### `google-workspace-sync-users`
+- `SUPABASE_URL` ✅
+- `SUPABASE_SERVICE_ROLE_KEY` ✅
+- `TOKEN_ENCRYPTION_KEY` ✅
+- `KDF_SALT` ⚠️ (Optional but recommended for defense-in-depth)
+- `GOOGLE_OAUTH_CLIENT_ID` ✅
+- `GOOGLE_OAUTH_CLIENT_SECRET` ✅
+
+#### `workspace-domain-claims-admin`
+- `SUPABASE_URL` ✅
+- `SUPABASE_SERVICE_ROLE_KEY` ✅
+
 ## Configuration Steps for Preview Branch
 
 ### Step 1: Switch to Preview Branch
@@ -226,6 +256,13 @@ INTUIT_CLIENT_SECRET=<your-intuit-client-secret>
 QB_OAUTH_REDIRECT_BASE_URL=https://supabase.preview.equipqr.app
 QUICKBOOKS_SANDBOX=true
 ENABLE_QB_PDF_ATTACHMENT=false
+
+# Google Workspace Integration (if enabled)
+GOOGLE_OAUTH_CLIENT_ID=<your-google-oauth-client-id>
+GOOGLE_OAUTH_CLIENT_SECRET=<your-google-oauth-client-secret>
+GW_OAUTH_REDIRECT_BASE_URL=https://supabase.preview.equipqr.app
+TOKEN_ENCRYPTION_KEY=<generate-with-openssl-rand-base64-32>
+KDF_SALT=<generate-unique-salt-with-openssl-rand-base64-32>
 ```
 
 ### Step 4: Verify Configuration
