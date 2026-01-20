@@ -37,10 +37,13 @@ function loadConsumerGoogleDomains(): readonly string[] {
     typeof process.env !== 'undefined' &&
     typeof process.env.CONSUMER_GOOGLE_DOMAINS === 'string'
   ) {
-    configuredDomains = process.env.CONSUMER_GOOGLE_DOMAINS
+    const parsed = process.env.CONSUMER_GOOGLE_DOMAINS
       .split(',')
       .map((domain) => domain.toLowerCase().trim())
       .filter((domain) => domain.length > 0);
+    
+    // Deduplicate configured domains before spreading to avoid unnecessary array copies
+    configuredDomains = Array.from(new Set(parsed));
   }
 
   const combined = [
@@ -48,7 +51,7 @@ function loadConsumerGoogleDomains(): readonly string[] {
     ...configuredDomains,
   ];
 
-  // Deduplicate while preserving order
+  // Deduplicate while preserving order (in case defaults overlap with configured)
   return Array.from(new Set(combined));
 }
 
