@@ -258,8 +258,10 @@ const GENERIC_ERROR_MESSAGE = "An internal error occurred";
  * Uses an allowlist approach - only explicitly safe messages pass through.
  */
 function isErrorMessageSafe(error: string): boolean {
-  // Empty or very short messages are suspicious
-  if (!error || error.length < 3) {
+  // Empty or very short messages are suspicious and may leak information.
+  // Require at least 10 characters to filter out potential stack trace fragments
+  // or system error codes (e.g., 'err', 'bad') that could leak debug info.
+  if (!error || error.length < 10) {
     return false;
   }
   

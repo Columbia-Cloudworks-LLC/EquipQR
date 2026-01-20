@@ -191,7 +191,13 @@ Deno.serve(async (req) => {
     // Reject timestamps more than MAX_CLOCK_SKEW_MS in the future (beyond clock skew tolerance).
     // A negative age means the state timestamp is ahead of server time; we allow small
     // negative values to handle clock drift, but reject anything too far in the future.
+    // Log this event as it may indicate a timing attack attempt or misconfigured client.
     if (ageMs < -MAX_CLOCK_SKEW_MS) {
+      logStep("OAuth state rejected due to future timestamp beyond clock skew tolerance", {
+        nowMs,
+        stateTimestamp,
+        ageMs,
+      });
       throw new Error("OAuth state has an invalid timestamp. Please try again.");
     }
 

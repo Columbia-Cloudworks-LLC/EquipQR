@@ -30,12 +30,13 @@ vi.mock('react-router-dom', async () => {
 globalThis.vi = vi;
 
 // Test-specific version constant
-// Using a fixed value ensures deterministic test behavior across different versions.
-const TEST_APP_VERSION = 'test';
+// Using a dedicated test-harness version to distinguish test environments from production.
+// This ensures deterministic test behavior and allows for versioning of the test infrastructure itself if needed.
+const TEST_APP_VERSION = 'test-harness-v1';
 
 // Ensure Vite define constants exist in tests
-// Using 'test' as the version to distinguish test environments from production.
-// This is intentional - tests don't need the real version.
+// Using a dedicated test-harness version to distinguish test environments from production.
+// This is intentional - tests don't need the real application version.
 vi.stubGlobal('__APP_VERSION__', TEST_APP_VERSION);
 
 // Cleanup after each test case

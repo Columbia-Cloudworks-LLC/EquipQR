@@ -52,6 +52,17 @@ function loadConsumerGoogleDomains(): readonly string[] {
   return Array.from(new Set(combined));
 }
 
+/**
+ * Consumer Google domains that don't support Workspace features.
+ * 
+ * Users with these domains are personal accounts, not Workspace accounts.
+ * This list can be extended at runtime via the CONSUMER_GOOGLE_DOMAINS environment variable,
+ * which should be a comma-separated list of domains (e.g., 'gmail.co.uk,googlemail.de').
+ * 
+ * @example
+ * // In production, extend via environment variable:
+ * // CONSUMER_GOOGLE_DOMAINS='gmail.co.uk,googlemail.de'
+ */
 export const CONSUMER_GOOGLE_DOMAINS = loadConsumerGoogleDomains();
 
 /**

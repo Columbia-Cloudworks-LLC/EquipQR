@@ -194,9 +194,6 @@ Deno.serve(async (req) => {
         ?.replace(".supabase.co", "")}.lovableproject.com`;
     const equipQRLogoUrl = `${baseUrl}/icons/EquipQR-Icon-Purple-Medium.png`;
 
-    // Admin review URL (super admins would need access to this)
-    const adminReviewUrl = `${baseUrl}/dashboard/admin/workspace-claims`;
-
     const emailHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <!-- EquipQR Logo Section -->

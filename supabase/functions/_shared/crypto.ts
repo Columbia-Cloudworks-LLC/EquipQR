@@ -86,7 +86,12 @@ export async function decryptToken(encrypted: string, secret: string): Promise<s
 
 /**
  * Minimum required length for the encryption key.
+ * 
  * A 32-character key provides sufficient entropy when hashed with SHA-256.
+ * Since SHA-256 produces a 256-bit (32-byte) key, a 32-character input ensures
+ * adequate source entropy before hashing. Using a shorter key would reduce the
+ * effective entropy of the derived key material.
+ * 
  * For production, use a cryptographically random 32+ character string.
  */
 const MIN_KEY_LENGTH = 32;

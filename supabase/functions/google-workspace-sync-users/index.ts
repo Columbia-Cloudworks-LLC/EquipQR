@@ -162,11 +162,14 @@ Deno.serve(async (req) => {
     // and to avoid potential timeout/memory issues with larger batches.
     // Can be overridden via GW_SYNC_BATCH_SIZE environment variable.
     const DEFAULT_BATCH_SIZE = 200;
+    const MAX_BATCH_SIZE = 1000;
     const envBatchSize = Deno.env.get("GW_SYNC_BATCH_SIZE");
     // parseInt returns NaN for empty/undefined strings, so we can simplify the fallback
     const parsedBatchSize = Number.parseInt(envBatchSize || "", 10);
     const BATCH_SIZE =
-      Number.isNaN(parsedBatchSize) || parsedBatchSize <= 0 ? DEFAULT_BATCH_SIZE : parsedBatchSize;
+      Number.isNaN(parsedBatchSize) || parsedBatchSize <= 0
+        ? DEFAULT_BATCH_SIZE
+        : Math.min(parsedBatchSize, MAX_BATCH_SIZE);
     let pendingRows: Array<{
       organization_id: string;
       google_user_id: string;
