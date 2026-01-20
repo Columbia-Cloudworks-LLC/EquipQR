@@ -388,7 +388,7 @@ Deno.serve(async (req) => {
     logStep("Refresh token encrypted for storage");
 
     // Upsert using the unique functional index on (organization_id, normalize_domain(domain)).
-    // The domain is pre-normalized above (line 317) to match what the index expects.
+    // The domain is pre-normalized above (line 366) to match what the index expects.
     //
     // IMPORTANT: We use the index name instead of column names because this is a
     // functional index (normalize_domain(domain)). Column-based onConflict resolution
