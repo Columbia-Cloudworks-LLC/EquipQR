@@ -11,21 +11,48 @@
 const ALGORITHM = 'AES-GCM';
 const IV_LENGTH = 12; // 96 bits for GCM
 
+// PBKDF2 configuration for key derivation
+// Using a static salt since the input key is already a high-entropy secret
+// (validated by getTokenEncryptionKey). This is acceptable because we're deriving
+// from a cryptographically random key, not a user password.
+const KDF_SALT = new TextEncoder().encode('equipqr_aes_gcm_kdf_salt_v1');
+const PBKDF2_ITERATIONS = 100_000; // OWASP recommended minimum for 2024+
+
 /**
- * Derives a CryptoKey from the secret key string.
- * Uses SHA-256 to hash the secret to ensure consistent key length.
+ * Derives a CryptoKey from the secret key string using PBKDF2.
+ * 
+ * PBKDF2 is a proper key derivation function (KDF) designed to:
+ * - Be intentionally slow to resist brute-force attacks
+ * - Use a salt to prevent rainbow table attacks
+ * - Apply many iterations to increase computational cost
+ * 
+ * This is superior to using SHA-256 directly, which is a fast hash function
+ * designed for integrity checking, not key derivation.
+ * 
+ * Note: HKDF (HMAC-based KDF) would be more efficient for high-entropy inputs,
+ * but PBKDF2 provides defense-in-depth in case some deployments use weak keys
+ * despite validation. The 100K iterations provide protection even if the input
+ * entropy is lower than expected.
  */
 async function deriveKey(secret: string): Promise<CryptoKey> {
   const encoder = new TextEncoder();
-  const keyMaterial = encoder.encode(secret);
-  
-  // Hash the secret to get a consistent 256-bit key
-  const hash = await crypto.subtle.digest('SHA-256', keyMaterial);
-  
-  return await crypto.subtle.importKey(
+  const keyMaterial = await crypto.subtle.importKey(
     'raw',
-    hash,
-    { name: ALGORITHM },
+    encoder.encode(secret),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+  
+  return await crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      hash: 'SHA-256',
+      salt: KDF_SALT,
+      iterations: PBKDF2_ITERATIONS,
+    },
+    keyMaterial,
+    { name: ALGORITHM, length: 256 },
     false,
     ['encrypt', 'decrypt']
   );
@@ -87,9 +114,9 @@ export async function decryptToken(encrypted: string, secret: string): Promise<s
 /**
  * Minimum required length for the encryption key.
  * 
- * A 32-character key provides sufficient entropy when hashed with SHA-256.
- * Since SHA-256 produces a 256-bit (32-byte) key, a 32-character input ensures
- * adequate source entropy before hashing. Using a shorter key would reduce the
+ * A 32-character key provides sufficient entropy when processed with PBKDF2.
+ * Since PBKDF2 derives a 256-bit (32-byte) key, a 32-character input ensures
+ * adequate source entropy before derivation. Using a shorter key would reduce the
  * effective entropy of the derived key material.
  * 
  * For production, use a cryptographically random 32+ character string.
@@ -154,8 +181,8 @@ export function validateEncryptionKeyConfiguration(): boolean {
  * random string of at least 32 characters. Generate one with:
  *   openssl rand -base64 32
  * 
- * Never use weak keys like "password123" - even though SHA-256 hashing is
- * applied, weak input leads to predictable output.
+ * Never use weak keys like "password123" - even though PBKDF2 is applied,
+ * weak input leads to predictable output after derivation.
  * 
  * @throws {Error} If TOKEN_ENCRYPTION_KEY is missing, too short, or considered too weak
  * @returns The validated encryption key string

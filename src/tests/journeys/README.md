@@ -2,6 +2,9 @@
 
 This folder contains **journey tests** - high-value tests that exercise complete user workflows from start to finish.
 
+> **Note**: The journey test harness (`@/test/journey`) is fully implemented and available for use. 
+> See `src/test/journey/` for the implementation and `example.test.tsx` for a working example.
+
 ## Philosophy
 
 Journey tests validate that features work from a user's perspective:
