@@ -23,9 +23,12 @@ DROP TABLE IF EXISTS public.workspace_domain_claims;
 -- =============================================================================
 -- Update get_workspace_onboarding_state RPC
 -- Simplified: returns only 'unclaimed' or 'claimed' domain_status
+-- NOTE: Must DROP first because return type is changing (removing claim_status, claim_id)
 -- =============================================================================
 
-CREATE OR REPLACE FUNCTION public.get_workspace_onboarding_state(p_user_id uuid)
+DROP FUNCTION IF EXISTS public.get_workspace_onboarding_state(uuid);
+
+CREATE FUNCTION public.get_workspace_onboarding_state(p_user_id uuid)
 RETURNS TABLE(
   email text,
   domain text,
