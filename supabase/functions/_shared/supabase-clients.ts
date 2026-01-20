@@ -235,8 +235,16 @@ const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^User email not available$/,
   /^Only organization (owners|admins|administrators) can /,
   /^Forbidden: /,
+  /^Forbidden$/,
   /^You are not a member of /,
   /^Google Workspace is not connected/,
+  
+  // Common short HTTP-style error messages (added to allowlist instead of length check)
+  /^Not found$/,
+  /^Bad request$/,
+  /^Unauthorized$/,
+  /^Conflict$/,
+  /^Gone$/,
   
   // Validation errors
   /^Method not allowed$/,

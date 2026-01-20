@@ -188,6 +188,12 @@ Deno.serve(async (req) => {
     // the client, this server, and Google's servers.
     const ageMs = nowMs - stateTimestamp;
 
+    // Security note (timing-safe validation): Both validation paths below perform similar
+    // operations (logging context + throwing generic error) to prevent timing analysis attacks.
+    // An attacker cannot distinguish between "too far in future" vs "expired" based on response
+    // time because both paths have equivalent execution cost. The generic error messages also
+    // avoid leaking which validation failed.
+
     // Reject timestamps more than MAX_CLOCK_SKEW_MS in the future (beyond clock skew tolerance).
     // A negative age means the state timestamp is ahead of server time; we allow small
     // negative values to handle clock drift, but reject anything too far in the future.
@@ -203,7 +209,14 @@ Deno.serve(async (req) => {
 
     // Reject expired timestamps (older than TTL)
     // If age is positive (state is in the past), it must be within STATE_TTL_MS
+    // Note: We log equivalent context here as the future timestamp case above to maintain
+    // consistent timing characteristics between both validation paths.
     if (ageMs > STATE_TTL_MS) {
+      logStep("OAuth state rejected due to expired timestamp", {
+        nowMs,
+        stateTimestamp,
+        ageMs,
+      });
       throw new Error("OAuth state has expired. Please try again.");
     }
 
