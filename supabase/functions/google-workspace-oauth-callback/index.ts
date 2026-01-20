@@ -299,12 +299,13 @@ Deno.serve(async (req) => {
     const isPathCorrect = parsedRedirectUri.pathname === expectedCallbackPath;
 
     if (!isUriExactMatch || !isHostnameAllowed || !isPathCorrect) {
+      // Log only hostname and pathname to avoid exposing sensitive query parameters or tokens
+      // that an attacker might inject into the redirectUri
       logStep("ERROR: redirect_uri validation failed", {
-        redirectUri,
         hostname: parsedRedirectUri.hostname,
         pathname: parsedRedirectUri.pathname,
-        allowedUris: allowedRedirectUris,
         allowedHostnames: Array.from(allowedHostnames),
+        expectedPath: expectedCallbackPath,
       });
       throw new Error("Invalid OAuth redirect configuration");
     }

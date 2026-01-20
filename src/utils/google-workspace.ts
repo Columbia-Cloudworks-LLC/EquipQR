@@ -23,15 +23,25 @@ const DEFAULT_CONSUMER_GOOGLE_DOMAINS = [
  * 2. Historical regional variants are rare in practice
  * 3. If encountered, they can be added via CONSUMER_GOOGLE_DOMAINS environment variable
  * 
+ * **Environment Variable Extension (Server-Side Only)**:
  * You can extend this list at runtime by setting a comma-separated list of
  * domains in the CONSUMER_GOOGLE_DOMAINS environment variable (e.g.,
  * "gmail.co.uk,googlemail.de"). These will be merged with the defaults.
+ * 
+ * LIMITATION: The process.env check only works in Node.js/server-side environments.
+ * In browser contexts, process.env is undefined and only the default domains apply.
+ * For browser-based customization, consider:
+ * - Build-time configuration via Vite's define/env handling
+ * - A server endpoint that returns the domain list
+ * - Updating the DEFAULT_CONSUMER_GOOGLE_DOMAINS array directly in code
  */
 function loadConsumerGoogleDomains(): readonly string[] {
   let configuredDomains: string[] = [];
 
   // Allow deployments to extend the default list via environment variable.
-  // This check is safe in both Node and browser environments.
+  // NOTE: This only works in Node.js/server-side environments.
+  // In browser contexts, process is undefined and this block is skipped,
+  // meaning only DEFAULT_CONSUMER_GOOGLE_DOMAINS will be used.
   if (
     typeof process !== 'undefined' &&
     typeof process.env !== 'undefined' &&

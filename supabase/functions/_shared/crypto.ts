@@ -11,8 +11,10 @@
 const ALGORITHM = 'AES-GCM';
 const IV_LENGTH = 12; // 96 bits for GCM
 
-// PBKDF2 configuration for key derivation
-const PBKDF2_ITERATIONS = 100_000; // OWASP recommended minimum for 2024+
+// PBKDF2 configuration for key derivation.
+// 100,000 iterations is a conservative baseline; review against current OWASP
+// guidance (Password Storage / PBKDF2 recommendations) before changing.
+const PBKDF2_ITERATIONS = 100_000;
 
 // Default salt value - used if KDF_SALT environment variable is not set.
 // This maintains backwards compatibility with existing encrypted data.

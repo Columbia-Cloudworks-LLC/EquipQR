@@ -250,7 +250,8 @@ const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Method not allowed$/,
   /^Missing required field/,
   /^(Quantity|organizationId|scanned_value|input) (is|are) required$/,
-  /^\w+ and \w+ are required$/,
+  // Explicit field name allowlist to prevent matching sensitive fields like "password" or "api_key"
+  /^(organizationId|equipmentId|workOrderId|userId|quantity|name|email|title|description|status) and (organizationId|equipmentId|workOrderId|userId|quantity|name|email|title|description|status) are required$/,
   /^Unsupported format/,
   /^Rate limit exceeded/,
   /^Invitation not found$/,
