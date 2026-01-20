@@ -54,6 +54,9 @@ interface NotificationRecipient {
 }
 
 // HTML escape function to prevent XSS in email templates
+// NOTE: For this single email template, manual HTML escaping is sufficient and secure.
+// If we need multiple complex email templates in the future, consider using a template
+// library like mjml or a dedicated email template engine for better maintainability.
 const escapeHtml = (unsafe: string): string => {
   return unsafe
     .replace(/&/g, "&amp;")
