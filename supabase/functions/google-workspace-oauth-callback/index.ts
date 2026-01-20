@@ -239,21 +239,51 @@ Deno.serve(async (req) => {
     const redirectUri = `${redirectBaseUrl}/functions/v1/google-workspace-oauth-callback`;
 
     // Validate redirect_uri against allowlist to prevent redirect manipulation attacks.
-    // We use exact path matching (not startsWith) to prevent path traversal attacks
-    // where a malicious URI like "base/callback/../evil" could bypass validation.
+    // We use exact URL matching with hostname validation to prevent:
+    // 1. Path traversal attacks (e.g., "base/callback/../evil")
+    // 2. Subdomain attacks (e.g., attacker controls "evil.supabase.co")
     const expectedCallbackPath = "/functions/v1/google-workspace-oauth-callback";
-    const allowedRedirectUris = [
+    const allowedBaseUrls = [
       supabaseUrl?.trim().replace(/\/+$/, ""),
       Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL")?.trim().replace(/\/+$/, ""),
-    ]
-      .filter(Boolean)
-      .map((base) => base + expectedCallbackPath);
+    ].filter(Boolean) as string[];
 
-    // Exact match required - no partial/prefix matching to prevent traversal attacks
-    const isRedirectUriAllowed = allowedRedirectUris.includes(redirectUri);
+    // Parse redirect URI to validate hostname separately
+    let parsedRedirectUri: URL;
+    try {
+      parsedRedirectUri = new URL(redirectUri);
+    } catch {
+      logStep("ERROR: Invalid redirect_uri format", { redirectUri });
+      throw new Error("Invalid OAuth redirect URI format");
+    }
 
-    if (!isRedirectUriAllowed) {
-      logStep("ERROR: redirect_uri not in allowlist", { redirectUri, allowedUris: allowedRedirectUris });
+    // Build allowlist with both full URIs and parsed hostnames for validation
+    const allowedRedirectUris = allowedBaseUrls.map((base) => base + expectedCallbackPath);
+    const allowedHostnames = new Set<string>();
+    
+    for (const baseUrl of allowedBaseUrls) {
+      try {
+        const parsed = new URL(baseUrl);
+        // Store the exact hostname (no subdomains allowed)
+        allowedHostnames.add(parsed.hostname);
+      } catch {
+        logStep("WARNING: Could not parse base URL", { baseUrl });
+      }
+    }
+
+    // Validate: exact URI match AND hostname match (no subdomain attacks)
+    const isUriExactMatch = allowedRedirectUris.includes(redirectUri);
+    const isHostnameAllowed = allowedHostnames.has(parsedRedirectUri.hostname);
+    const isPathCorrect = parsedRedirectUri.pathname === expectedCallbackPath;
+
+    if (!isUriExactMatch || !isHostnameAllowed || !isPathCorrect) {
+      logStep("ERROR: redirect_uri validation failed", {
+        redirectUri,
+        hostname: parsedRedirectUri.hostname,
+        pathname: parsedRedirectUri.pathname,
+        allowedUris: allowedRedirectUris,
+        allowedHostnames: Array.from(allowedHostnames),
+      });
       throw new Error("Invalid OAuth redirect configuration");
     }
 
