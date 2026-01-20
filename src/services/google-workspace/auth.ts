@@ -6,7 +6,8 @@ const DEFAULT_SCOPES = [
 ].join(' ');
 
 export interface GoogleWorkspaceAuthConfig {
-  organizationId: string;
+  /** Organization ID - optional for first-time setup, required for reconnecting existing orgs */
+  organizationId?: string;
   redirectUrl?: string;
   scopes?: string;
   originUrl?: string;
@@ -49,7 +50,7 @@ export async function generateGoogleWorkspaceAuthUrl(
   const { data: sessionData, error: sessionError } = await supabase.rpc(
     'create_google_workspace_oauth_session',
     {
-      p_organization_id: config.organizationId,
+      p_organization_id: config.organizationId || null,
       p_redirect_url: config.redirectUrl || null,
       p_origin_url: originUrl,
     }
@@ -58,7 +59,7 @@ export async function generateGoogleWorkspaceAuthUrl(
   if (sessionError) {
     throw new Error(
       `Failed to create OAuth session: ${sessionError.message}. ` +
-      'Make sure you are authenticated and have admin/owner permissions for this organization.'
+      'Make sure you are authenticated.'
     );
   }
 

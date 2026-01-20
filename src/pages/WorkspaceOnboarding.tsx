@@ -1,13 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -15,33 +14,56 @@ import { useSession } from '@/hooks/useSession';
 import { useWorkspaceOnboardingState } from '@/hooks/useWorkspaceOnboarding';
 import { useAppToast } from '@/hooks/useAppToast';
 import {
-  createWorkspaceOrganizationForDomain,
   getGoogleWorkspaceConnectionStatus,
   listWorkspaceDirectoryUsers,
-  requestWorkspaceDomainClaim,
   selectGoogleWorkspaceMembers,
-  sendWorkspaceDomainClaimEmail,
   syncGoogleWorkspaceUsers,
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
 import { isConsumerGoogleDomain } from '@/utils/google-workspace';
+import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
 const WorkspaceOnboarding = () => {
   const { user } = useAuth();
   const { refreshSession } = useSession();
-  const { currentOrganization, switchOrganization } = useOrganization();
+  const { switchOrganization } = useOrganization();
   const { toast } = useAppToast();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { data: onboardingState, isLoading, refetch } = useWorkspaceOnboardingState();
 
-  const [orgName, setOrgName] = useState('');
-  const [isCreatingOrg, setIsCreatingOrg] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isRequestingClaim, setIsRequestingClaim] = useState(false);
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
+
+  // Handle OAuth callback parameters
+  const gwError = searchParams.get('gw_error');
+  const gwErrorDescription = searchParams.get('gw_error_description');
+  const gwConnected = searchParams.get('gw_connected');
+
+  // Clear query params after displaying them
+  useEffect(() => {
+    if (gwError || gwConnected) {
+      // Show toast for success
+      if (gwConnected === 'true') {
+        toast({
+          title: 'Google Workspace connected',
+          description: 'Your organization is now connected to Google Workspace.',
+        });
+        // Refresh data after successful connection
+        refetch();
+        refreshSession();
+      }
+      // Clear the query params
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('gw_error');
+      newParams.delete('gw_error_description');
+      newParams.delete('gw_connected');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [gwError, gwConnected, searchParams, setSearchParams, toast, refetch, refreshSession]);
 
   const isGoogleUser = useMemo(() => {
     const provider = (user?.app_metadata as { provider?: string })?.provider;
@@ -68,94 +90,19 @@ const WorkspaceOnboarding = () => {
     staleTime: 60 * 1000,
   });
 
-  const handleRequestClaim = async () => {
-    if (!domain) return;
-    setIsRequestingClaim(true);
-    try {
-      await requestWorkspaceDomainClaim(domain, currentOrganization?.id);
-      await refetch();
-
-      // Send notification email to admins
-      try {
-        await sendWorkspaceDomainClaimEmail(domain, currentOrganization?.id);
-        toast({
-          title: 'Domain claim requested',
-          description: 'Admins have been notified and will review your request.',
-        });
-      } catch {
-        // Claim was created but email failed - still show success but warn about email
-        toast({
-          title: 'Domain claim requested',
-          description: 'Your request was submitted, but we could not send the notification email. Please try resending.',
-          variant: 'warning',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Failed to request domain claim',
-        description: error instanceof Error ? error.message : 'Please try again.',
-        variant: 'error',
-      });
-    } finally {
-      setIsRequestingClaim(false);
+  // Switch to the workspace organization if connected
+  useEffect(() => {
+    if (gwConnected === 'true' && workspaceOrgId) {
+      switchOrganization(workspaceOrgId);
     }
-  };
-
-  const handleResendEmail = async () => {
-    if (!domain) return;
-    setIsSendingEmail(true);
-    try {
-      await sendWorkspaceDomainClaimEmail(domain, currentOrganization?.id);
-      toast({
-        title: 'Notification sent',
-        description: 'Admins have been notified about your pending request.',
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Please try again.';
-      // Check if it's a cooldown error (429 status)
-      if (errorMessage.includes('wait') || errorMessage.includes('hour')) {
-        toast({
-          title: 'Please wait',
-          description: errorMessage,
-          variant: 'warning',
-        });
-      } else {
-        toast({
-          title: 'Failed to send notification',
-          description: errorMessage,
-          variant: 'error',
-        });
-      }
-    } finally {
-      setIsSendingEmail(false);
-    }
-  };
-
-  const handleCreateOrg = async () => {
-    if (!domain || !orgName.trim()) return;
-    setIsCreatingOrg(true);
-    try {
-      const result = await createWorkspaceOrganizationForDomain(domain, orgName.trim());
-      await refreshSession();
-      await refetch();
-      switchOrganization(result.organization_id);
-      toast({ title: 'Workspace organization created' });
-    } catch (error) {
-      toast({
-        title: 'Failed to create organization',
-        description: error instanceof Error ? error.message : 'Please try again.',
-        variant: 'error',
-      });
-    } finally {
-      setIsCreatingOrg(false);
-    }
-  };
+  }, [gwConnected, workspaceOrgId, switchOrganization]);
 
   const handleConnectWorkspace = async () => {
-    if (!workspaceOrgId) return;
+    setIsConnecting(true);
     try {
+      // For first-time setup, don't pass organization_id - the callback will create one
       const authUrl = await generateGoogleWorkspaceAuthUrl({
-        organizationId: workspaceOrgId,
+        organizationId: workspaceOrgId || '',
         redirectUrl: '/dashboard/onboarding/workspace',
       });
       window.location.href = authUrl;
@@ -165,6 +112,7 @@ const WorkspaceOnboarding = () => {
         description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'error',
       });
+      setIsConnecting(false);
     }
   };
 
@@ -246,6 +194,9 @@ const WorkspaceOnboarding = () => {
     return (
       <Page maxWidth="7xl" padding="responsive">
         <PageHeader title="Workspace Onboarding" description="Preparing your Google Workspace setup..." />
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       </Page>
     );
   }
@@ -266,6 +217,9 @@ const WorkspaceOnboarding = () => {
     );
   }
 
+  const isConnected = connectionStatus?.is_connected;
+  const showConnectButton = !isConnected;
+
   return (
     <Page maxWidth="7xl" padding="responsive">
       <PageHeader
@@ -274,76 +228,23 @@ const WorkspaceOnboarding = () => {
       />
 
       <div className="space-y-6">
-        {onboardingState.domain_status === 'unclaimed' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Request Domain Setup</CardTitle>
-              <CardDescription>
-                We need to approve your Google Workspace domain before you can connect it.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={handleRequestClaim} disabled={isRequestingClaim}>
-                {isRequestingClaim ? 'Requesting...' : 'Request Approval'}
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Error Alert */}
+        {gwError && gwErrorDescription && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Connection Failed</AlertTitle>
+            <AlertDescription>{gwErrorDescription}</AlertDescription>
+          </Alert>
         )}
 
-        {onboardingState.domain_status === 'pending' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Domain Approval Pending</CardTitle>
-              <CardDescription>
-                We are reviewing your domain request. We will notify you once approved.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                If you haven't received a response, you can resend the approval notification to administrators.
-              </p>
-              <Button
-                variant="outline"
-                onClick={handleResendEmail}
-                disabled={isSendingEmail}
-              >
-                {isSendingEmail ? 'Sending...' : 'Resend Approval Email'}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {onboardingState.domain_status === 'approved' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Create Workspace Organization</CardTitle>
-              <CardDescription>
-                Choose the organization name for your Google Workspace directory.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="workspace-org-name">Organization Name</Label>
-                <Input
-                  id="workspace-org-name"
-                  value={orgName}
-                  onChange={(event) => setOrgName(event.target.value)}
-                  placeholder="Company Name"
-                />
-              </div>
-              <Button onClick={handleCreateOrg} disabled={isCreatingOrg || !orgName.trim()}>
-                {isCreatingOrg ? 'Creating...' : 'Create Organization'}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {onboardingState.domain_status === 'claimed' && (
+        {/* Connect Workspace Card */}
+        {showConnectButton && (
           <Card>
             <CardHeader>
               <CardTitle>Connect Google Workspace</CardTitle>
               <CardDescription>
-                Connect your Google Workspace to import users and assign members.
+                Connect your Google Workspace to set up your organization and import users.
+                Only Google Workspace administrators can complete this step.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -355,84 +256,117 @@ const WorkspaceOnboarding = () => {
                 </Alert>
               )}
 
-              {connectionStatus?.is_connected ? (
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div>Connected domain: {connectionStatus.domain}</div>
-                  <div>Connected on: {connectionStatus.connected_at ? new Date(connectionStatus.connected_at).toLocaleDateString() : 'Unknown'}</div>
-                </div>
-              ) : (
-                <Button onClick={handleConnectWorkspace} disabled={!isGoogleWorkspaceConfigured()}>
-                  Connect Google Workspace
-                </Button>
-              )}
+              <Button 
+                onClick={handleConnectWorkspace} 
+                disabled={!isGoogleWorkspaceConfigured() || isConnecting}
+              >
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  'Connect Google Workspace'
+                )}
+              </Button>
+
+              <p className="text-sm text-muted-foreground">
+                You will be redirected to Google to authorize EquipQR to access your Workspace directory.
+              </p>
             </CardContent>
           </Card>
         )}
 
-        {onboardingState.domain_status === 'claimed' && connectionStatus?.is_connected && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Sync Directory Users</CardTitle>
-              <CardDescription>
-                Sync your Google Workspace directory and select the members you want to add.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button onClick={handleSyncUsers} disabled={isSyncing}>
-                {isSyncing ? 'Syncing...' : 'Sync Directory'}
-              </Button>
+        {/* Connected Status + Sync Card */}
+        {isConnected && (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  Google Workspace Connected
+                </CardTitle>
+                <CardDescription>
+                  Your organization is connected to Google Workspace.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
+                <div>Connected domain: {connectionStatus.domain}</div>
+                <div>Connected on: {connectionStatus.connected_at ? new Date(connectionStatus.connected_at).toLocaleDateString() : 'Unknown'}</div>
+              </CardContent>
+            </Card>
 
-              {directoryUsers.length > 0 && (
-                <>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Include</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Make Admin</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {directoryUsers.map((user) => {
-                        const email = user.primary_email;
-                        const isSelected = selectedEmails.has(email);
-                        const isAdmin = adminEmails.has(email);
-                        return (
-                          <TableRow key={user.id}>
-                            <TableCell>
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={(checked) => toggleEmail(email, Boolean(checked))}
-                                aria-label={`Select ${email}`}
-                              />
-                            </TableCell>
-                            <TableCell>{email}</TableCell>
-                            <TableCell>{user.full_name || '-'}</TableCell>
-                            <TableCell>
-                              <Checkbox
-                                checked={isAdmin}
-                                disabled={!isSelected}
-                                onCheckedChange={(checked) => toggleAdmin(email, Boolean(checked))}
-                                aria-label={`Make admin ${email}`}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+            <Card>
+              <CardHeader>
+                <CardTitle>Sync Directory Users</CardTitle>
+                <CardDescription>
+                  Sync your Google Workspace directory and select the members you want to add.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button onClick={handleSyncUsers} disabled={isSyncing}>
+                  {isSyncing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    'Sync Directory'
+                  )}
+                </Button>
 
-                  <Button
-                    onClick={handleAddMembers}
-                    disabled={selectedEmails.size === 0}
-                  >
-                    Add Selected Members
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                {directoryUsers.length > 0 && (
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Include</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Make Admin</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {directoryUsers.map((dirUser) => {
+                          const email = dirUser.primary_email;
+                          const isSelected = selectedEmails.has(email);
+                          const isAdmin = adminEmails.has(email);
+                          return (
+                            <TableRow key={dirUser.id}>
+                              <TableCell>
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={(checked) => toggleEmail(email, Boolean(checked))}
+                                  aria-label={`Select ${email}`}
+                                />
+                              </TableCell>
+                              <TableCell>{email}</TableCell>
+                              <TableCell>{dirUser.full_name || '-'}</TableCell>
+                              <TableCell>
+                                <Checkbox
+                                  checked={isAdmin}
+                                  disabled={!isSelected}
+                                  onCheckedChange={(checked) => toggleAdmin(email, Boolean(checked))}
+                                  aria-label={`Make admin ${email}`}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+
+                    <Button
+                      onClick={handleAddMembers}
+                      disabled={selectedEmails.size === 0}
+                    >
+                      Add Selected Members
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
     </Page>
@@ -440,4 +374,3 @@ const WorkspaceOnboarding = () => {
 };
 
 export default WorkspaceOnboarding;
-

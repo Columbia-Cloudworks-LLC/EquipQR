@@ -32,6 +32,18 @@ interface GoogleTokenResponse {
   token_type?: string;
 }
 
+interface GoogleUserInfo {
+  email: string;
+  email_verified?: boolean;
+  hd?: string; // hosted domain
+}
+
+interface GoogleAdminUserInfo {
+  primaryEmail: string;
+  isAdmin?: boolean;
+  isDelegatedAdmin?: boolean;
+}
+
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
 // OAuth state validation constants
@@ -339,53 +351,133 @@ Deno.serve(async (req) => {
     const now = new Date();
     const accessTokenExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000);
 
-    // Verify that the organization has an approved workspace domain.
-    // This prevents attackers from creating OAuth sessions for organizations that
-    // haven't gone through the domain claim approval process.
-    const { data: domainData, error: domainError } = await supabaseClient
-      .from("workspace_domains")
-      .select("domain")
-      .eq("organization_id", organizationId)
-      .single();
+    // ==========================================================================
+    // Step 1: Get user info from Google to determine email and domain
+    // ==========================================================================
+    const userinfoResponse = await fetch(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      { headers: { Authorization: `Bearer ${tokenData.access_token}` } }
+    );
 
-    if (domainError || !domainData?.domain) {
-      logStep("Workspace domain not found or not approved", {
-        organizationId,
-        error: domainError?.message,
-      });
-      throw new Error("Approved workspace domain not found for organization");
+    if (!userinfoResponse.ok) {
+      logStep("Failed to fetch user info", { status: userinfoResponse.status });
+      throw new Error("Failed to verify your Google account. Please try again.");
     }
 
-    // Verify the domain was claimed through the proper approval workflow
-    // by checking that a workspace_domains entry exists (which is only created
-    // via create_workspace_organization_for_domain RPC after domain approval)
-    const { data: claimData, error: claimError } = await supabaseClient
-      .from("workspace_domain_claims")
-      .select("id, status")
-      .eq("domain", domainData.domain)
-      .eq("status", "approved")
+    const userinfo: GoogleUserInfo = await userinfoResponse.json();
+    const userEmail = userinfo.email;
+    const userDomain = userinfo.hd || userEmail.split("@")[1];
+
+    logStep("User info retrieved", { email: userEmail, domain: userDomain });
+
+    // Block consumer domains
+    if (!userDomain || ["gmail.com", "googlemail.com"].includes(userDomain.toLowerCase())) {
+      throw new Error("Consumer Google accounts (gmail.com) cannot use Google Workspace integration.");
+    }
+
+    // ==========================================================================
+    // Step 2: Verify user is a Google Workspace admin via Admin SDK
+    // ==========================================================================
+    const adminCheckResponse = await fetch(
+      `https://admin.googleapis.com/admin/directory/v1/users/${encodeURIComponent(userEmail)}`,
+      { headers: { Authorization: `Bearer ${tokenData.access_token}` } }
+    );
+
+    if (!adminCheckResponse.ok) {
+      const errorStatus = adminCheckResponse.status;
+      logStep("Admin API check failed", { status: errorStatus });
+      
+      if (errorStatus === 403) {
+        throw new Error(
+          "Unable to verify admin status. Please ensure you granted the required permissions " +
+          "and that you are a Google Workspace administrator."
+        );
+      }
+      throw new Error("Failed to verify Google Workspace admin status. Please try again.");
+    }
+
+    const adminUserInfo: GoogleAdminUserInfo = await adminCheckResponse.json();
+    const isWorkspaceAdmin = adminUserInfo.isAdmin === true || adminUserInfo.isDelegatedAdmin === true;
+
+    logStep("Admin status checked", { 
+      isAdmin: adminUserInfo.isAdmin, 
+      isDelegatedAdmin: adminUserInfo.isDelegatedAdmin,
+      isWorkspaceAdmin,
+    });
+
+    if (!isWorkspaceAdmin) {
+      throw new Error(
+        "Only Google Workspace administrators can connect their organization to EquipQR. " +
+        "Please contact your Workspace admin to set up EquipQR for your organization."
+      );
+    }
+
+    // ==========================================================================
+    // Step 3: Auto-provision organization if domain not already claimed
+    // ==========================================================================
+    const domain = normalizeDomain(userDomain);
+    let effectiveOrgId = organizationId;
+
+    // Check if this domain already has an organization
+    const { data: existingDomainData } = await supabaseClient
+      .from("workspace_domains")
+      .select("organization_id, domain")
+      .eq("domain", domain)
       .maybeSingle();
 
-    // Note: claimData may be null if the domain was set up before claims existed,
-    // but for new domains, an approved claim should exist. We log a warning but
-    // allow the flow to continue for backwards compatibility.
-    if (!claimData && !claimError) {
-      logStep("Warning: No approved domain claim found, domain may have been grandfathered", {
-        domain: domainData.domain,
-        organizationId,
+    if (existingDomainData?.organization_id) {
+      // Domain already claimed - use existing organization
+      effectiveOrgId = existingDomainData.organization_id;
+      logStep("Using existing organization for domain", { 
+        domain, 
+        organizationId: effectiveOrgId,
+      });
+    } else if (!organizationId) {
+      // First-time setup: auto-provision new organization
+      // Generate organization name from domain (e.g., "acme.com" -> "Acme")
+      const domainParts = domain.split(".");
+      const orgNameBase = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+      const orgName = `${orgNameBase} Organization`;
+
+      logStep("Auto-provisioning new organization", { domain, orgName });
+
+      const { data: provisionData, error: provisionError } = await supabaseClient
+        .rpc("auto_provision_workspace_organization", {
+          p_user_id: session.user_id,
+          p_domain: domain,
+          p_organization_name: orgName,
+        });
+
+      if (provisionError) {
+        logStep("Failed to provision organization", { error: provisionError.message });
+        throw new Error("Failed to create organization. Please try again.");
+      }
+
+      if (!provisionData || provisionData.length === 0) {
+        throw new Error("Failed to create organization. Please try again.");
+      }
+
+      effectiveOrgId = provisionData[0].organization_id;
+      logStep("Organization provisioned", {
+        organizationId: effectiveOrgId,
+        alreadyExisted: provisionData[0].already_existed,
       });
     }
 
-    // Normalize the domain to match the database index (normalize_domain function)
-    const domain = normalizeDomain(domainData.domain);
+    if (!effectiveOrgId) {
+      throw new Error("No organization available for this domain. Please try again.");
+    }
 
+    // ==========================================================================
+    // Step 4: Store Google Workspace credentials
+    // ==========================================================================
     let refreshToken = tokenData.refresh_token || null;
     if (!refreshToken) {
       // Look up existing credentials using normalized domain for consistency
       const { data: existingCreds } = await supabaseClient
         .from("google_workspace_credentials")
         .select("refresh_token")
-        .eq("organization_id", organizationId)
+        .eq("organization_id", effectiveOrgId)
         .eq("domain", domain)
         .maybeSingle();
 
@@ -402,26 +494,21 @@ Deno.serve(async (req) => {
     logStep("Refresh token encrypted for storage");
 
     // Upsert using the unique functional index on (organization_id, normalize_domain(domain)).
-    // The domain is pre-normalized above (line 366) to match what the index expects.
     //
     // IMPORTANT: We use the index name instead of column names because this is a
     // functional index (normalize_domain(domain)). Column-based onConflict resolution
     // cannot target expression indexes - PostgreSQL requires the exact index name
-    // when the uniqueness constraint involves a function call. Since we've already
-    // normalized the domain to match the index's normalize_domain() output, using
-    // the index name ensures correct conflict detection and resolution.
+    // when the uniqueness constraint involves a function call.
     const { error: upsertError } = await supabaseClient
       .from("google_workspace_credentials")
       .upsert({
-        organization_id: organizationId,
-        domain: domain, // Already normalized to match index expression
+        organization_id: effectiveOrgId,
+        domain: domain,
         refresh_token: encryptedRefreshToken,
         access_token_expires_at: accessTokenExpiresAt.toISOString(),
         scopes: tokenData.scope || null,
         updated_at: now.toISOString(),
       }, {
-        // Use the index name because this is a functional index (normalize_domain(domain));
-        // column-based onConflict cannot target expression indexes, so the index name is required.
         onConflict: "google_workspace_credentials_org_domain",
       });
 
@@ -451,10 +538,16 @@ Deno.serve(async (req) => {
     return Response.redirect(successUrl, 302);
   } catch (error) {
     const fallbackProductionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
-    const userMessage = "Failed to connect Google Workspace. Please try again.";
-    const errorUrl = `${fallbackProductionUrl}/dashboard/onboarding/workspace?gw_error=oauth_failed&gw_error_description=${encodeURIComponent(userMessage)}`;
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
+    
+    // Determine error type for better frontend handling
+    const isNotAdminError = errorMessage.includes("Only Google Workspace administrators");
+    const errorCode = isNotAdminError ? "not_workspace_admin" : "oauth_failed";
+    
+    // Use the actual error message for user-facing display
+    const userMessage = errorMessage || "Failed to connect Google Workspace. Please try again.";
+    const errorUrl = `${fallbackProductionUrl}/dashboard/onboarding/workspace?gw_error=${encodeURIComponent(errorCode)}&gw_error_description=${encodeURIComponent(userMessage)}`;
     return Response.redirect(errorUrl, 302);
   }
 });

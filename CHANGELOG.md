@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Google Workspace Integration**: Allow organization owners to import users from their Google Workspace directory
-  - Domain claiming system with super-admin approval for workspace domains
+  - Self-service domain verification via Google Admin SDK - Workspace admins can instantly connect
   - OAuth integration using Google Admin SDK for directory user synchronization
   - Selective member import - admins can browse directory and choose which users to import
   - Automatic membership provisioning for new sign-ups matching claimed domains
@@ -22,13 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New onboarding flow for Google Workspace users during first sign-up
   - New `WorkspaceOnboardingGuard` component for routing new users to onboarding
   - New `GoogleWorkspaceIntegration` component in organization settings
-  - New `WorkspaceOnboarding` page for first-time domain claim and organization setup
+  - New `WorkspaceOnboarding` page for first-time Workspace connection and organization setup
   - New `src/services/google-workspace/` service layer for OAuth flow and API calls
   - New `src/utils/google-workspace.ts` utility functions
   - New shared `_shared/crypto.ts` for secure token encryption/decryption
-  - New database tables: `workspace_domain_claims`, `workspace_domains`, `google_workspace_oauth_sessions`, `google_workspace_credentials`, `google_workspace_directory_users`, `organization_member_claims`, `organization_role_grants_pending`, `personal_organizations`
-  - New Edge Functions: `google-workspace-oauth-callback`, `google-workspace-sync-users`, `workspace-domain-claims-admin`
-  - New RPCs: `get_workspace_onboarding_state`, `request_workspace_domain_claim`, `create_workspace_organization_for_domain`, `create_google_workspace_oauth_session`, `validate_google_workspace_oauth_session`, `get_google_workspace_connection_status`, `select_google_workspace_members`, `apply_pending_admin_grants_for_user`, `is_user_google_oauth_verified`
+  - New database tables: `workspace_domains`, `google_workspace_oauth_sessions`, `google_workspace_credentials`, `google_workspace_directory_users`, `organization_member_claims`, `organization_role_grants_pending`, `personal_organizations`
+  - New Edge Functions: `google-workspace-oauth-callback`, `google-workspace-sync-users`
+  - New RPCs: `get_workspace_onboarding_state`, `create_workspace_organization_for_domain`, `auto_provision_workspace_organization`, `create_google_workspace_oauth_session`, `validate_google_workspace_oauth_session`, `get_google_workspace_connection_status`, `select_google_workspace_members`, `apply_pending_admin_grants_for_user`, `is_user_google_oauth_verified`
   - Helper functions: `normalize_email`, `normalize_domain` for consistent email/domain handling
   - Updated `handle_new_user` trigger to create personal organizations and apply pending workspace memberships and role grants
   - New `TOKEN_ENCRYPTION_KEY` environment variable for OAuth token encryption

@@ -1,13 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type WorkspaceDomainStatus = 'unclaimed' | 'pending' | 'approved' | 'claimed';
+export type WorkspaceDomainStatus = 'unclaimed' | 'claimed';
 
 export interface WorkspaceOnboardingState {
   email: string | null;
   domain: string | null;
   domain_status: WorkspaceDomainStatus;
-  claim_status: string | null;
-  claim_id: string | null;
   workspace_org_id: string | null;
   is_workspace_connected: boolean | null;
 }
@@ -47,55 +45,6 @@ export async function getWorkspaceOnboardingState(userId: string): Promise<Works
   }
 
   return data[0] as WorkspaceOnboardingState;
-}
-
-export async function requestWorkspaceDomainClaim(
-  domain: string,
-  organizationId?: string
-): Promise<string> {
-  const { data, error } = await supabase.rpc('request_workspace_domain_claim', {
-    p_domain: domain,
-    p_organization_id: organizationId ?? null,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data as string;
-}
-
-export interface SendClaimEmailResult {
-  success: boolean;
-  emailId?: string;
-  recipientCount?: number;
-}
-
-/**
- * Sends notification email to admins about a pending workspace domain claim.
- * Enforces a 24-hour cooldown between sends.
- */
-export async function sendWorkspaceDomainClaimEmail(
-  domain: string,
-  organizationId?: string
-): Promise<SendClaimEmailResult> {
-  const { data, error } = await supabase.functions.invoke('workspace-domain-claim-email', {
-    body: { domain, organizationId },
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!data?.success) {
-    throw new Error(data?.error || 'Failed to send notification email');
-  }
-
-  return {
-    success: true,
-    emailId: data.emailId,
-    recipientCount: data.recipientCount,
-  };
 }
 
 export async function createWorkspaceOrganizationForDomain(
@@ -193,4 +142,3 @@ export async function selectGoogleWorkspaceMembers(
     admin_pending: number;
   };
 }
-

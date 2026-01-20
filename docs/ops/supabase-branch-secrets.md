@@ -205,10 +205,6 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `GOOGLE_OAUTH_CLIENT_ID` ✅
 - `GOOGLE_OAUTH_CLIENT_SECRET` ✅
 
-#### `workspace-domain-claims-admin`
-- `SUPABASE_URL` ✅
-- `SUPABASE_SERVICE_ROLE_KEY` ✅
-
 ## Configuration Steps for Preview Branch
 
 ### Step 1: Switch to Preview Branch

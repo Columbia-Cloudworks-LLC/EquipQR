@@ -100,13 +100,12 @@ export function isGoogleUser(user: User | null): boolean {
 
 /**
  * Onboarding state from the get_workspace_onboarding_state RPC.
+ * Simplified: domain_status is either 'unclaimed' or 'claimed'.
  */
 export interface WorkspaceOnboardingState {
   email: string | null;
   domain: string | null;
-  domain_status: 'unclaimed' | 'pending' | 'approved' | 'claimed' | null;
-  claim_status: 'pending' | 'approved' | 'rejected' | null;
-  claim_id: string | null;
+  domain_status: 'unclaimed' | 'claimed' | null;
   workspace_org_id: string | null;
   is_workspace_connected: boolean;
 }
@@ -117,7 +116,7 @@ export interface WorkspaceOnboardingState {
  * A user needs onboarding if:
  * 1. They are a Google OAuth user
  * 2. They are NOT using a consumer domain (gmail.com, googlemail.com)
- * 3. Their domain is not yet claimed OR their domain is claimed but Workspace is not connected
+ * 3. Their domain is not claimed OR Workspace is not connected
  */
 export function needsWorkspaceOnboarding(
   user: User | null,

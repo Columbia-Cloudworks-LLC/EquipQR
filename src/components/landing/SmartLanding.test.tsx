@@ -54,6 +54,27 @@ describe('SmartLanding', () => {
     });
   });
 
+  it('redirects to onboarding when domain is claimed but not connected', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { app_metadata: { provider: 'google' } },
+      isLoading: false,
+    });
+    mockUseWorkspaceOnboardingState.mockReturnValue({
+      data: {
+        domain: 'acme.com',
+        domain_status: 'claimed',
+        is_workspace_connected: false,
+      },
+      isLoading: false,
+    });
+
+    render(<SmartLanding />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard/onboarding/workspace', { replace: true });
+    });
+  });
+
   it('redirects to dashboard when onboarding is complete', async () => {
     mockUseAuth.mockReturnValue({
       user: { app_metadata: { provider: 'google' } },
