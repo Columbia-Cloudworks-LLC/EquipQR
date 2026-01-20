@@ -17,6 +17,13 @@ import { corsHeaders } from "./cors.ts";
 /** Maximum length for error messages before they're considered to contain debug info */
 const MAX_ERROR_MESSAGE_LENGTH = 200;
 
+/** 
+ * Minimum safe error message length.
+ * Messages shorter than this are likely system error codes or stack trace fragments
+ * that could leak debug information (e.g., 'err', 'bad', 'E_FAIL').
+ */
+const MIN_SAFE_ERROR_LENGTH = 10;
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -259,9 +266,9 @@ const GENERIC_ERROR_MESSAGE = "An internal error occurred";
  */
 function isErrorMessageSafe(error: string): boolean {
   // Empty or very short messages are suspicious and may leak information.
-  // Require at least 10 characters to filter out potential stack trace fragments
-  // or system error codes (e.g., 'err', 'bad') that could leak debug info.
-  if (!error || error.length < 10) {
+  // Messages shorter than MIN_SAFE_ERROR_LENGTH are likely system error codes
+  // or stack trace fragments (e.g., 'err', 'bad') that could leak debug info.
+  if (!error || error.length < MIN_SAFE_ERROR_LENGTH) {
     return false;
   }
   
