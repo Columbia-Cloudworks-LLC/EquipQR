@@ -273,7 +273,10 @@ Deno.serve(async (req) => {
 
     // Ensure at least one valid base URL was configured
     if (allowedHostnames.size === 0) {
-      logStep("ERROR: No valid base URLs configured", { allowedBaseUrls });
+      logStep("ERROR: No valid base URLs configured", {
+        allowedBaseUrls,
+        note: "All base URLs failed to parse. See WARNING logs above for details.",
+      });
       throw new Error("No valid base URLs configured for OAuth redirect validation");
     }
 
