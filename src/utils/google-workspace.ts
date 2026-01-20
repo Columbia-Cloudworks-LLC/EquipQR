@@ -41,9 +41,9 @@ function loadConsumerGoogleDomains(): readonly string[] {
       .split(',')
       .map((domain) => domain.toLowerCase().trim())
       .filter((domain) => domain.length > 0);
-    
-    // Deduplicate configured domains before spreading to avoid unnecessary array copies
-    configuredDomains = Array.from(new Set(parsed));
+
+    // Keep configured domains as-is; final deduplication on the combined array is sufficient
+    configuredDomains = parsed;
   }
 
   const combined = [
