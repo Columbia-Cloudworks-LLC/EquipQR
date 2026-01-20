@@ -10,12 +10,14 @@ const {
   mockSyncUsers,
   mockSelectMembers,
   mockGenerateAuthUrl,
+  mockSendClaimEmail,
 } = vi.hoisted(() => ({
   mockRequestClaim: vi.fn(),
   mockCreateOrg: vi.fn(),
   mockSyncUsers: vi.fn(),
   mockSelectMembers: vi.fn(),
   mockGenerateAuthUrl: vi.fn(),
+  mockSendClaimEmail: vi.fn(),
 }));
 
 const mockOnboardingState = vi.hoisted(() => vi.fn());
@@ -30,6 +32,7 @@ vi.mock('@/services/google-workspace', () => ({
   selectGoogleWorkspaceMembers: (...args: unknown[]) => mockSelectMembers(...args),
   getGoogleWorkspaceConnectionStatus: (...args: unknown[]) => mockConnectionStatus(...args),
   listWorkspaceDirectoryUsers: (...args: unknown[]) => mockDirectoryUsers(...args),
+  sendWorkspaceDomainClaimEmail: (...args: unknown[]) => mockSendClaimEmail(...args),
 }));
 
 vi.mock('@/services/google-workspace/auth', () => ({
@@ -56,6 +59,7 @@ vi.mock('@/hooks/useSession', () => ({
 
 vi.mock('@/contexts/OrganizationContext', () => ({
   useOrganization: () => ({
+    currentOrganization: { id: 'current-org-123', name: 'Test Org' },
     switchOrganization: vi.fn(),
   }),
 }));
@@ -109,6 +113,7 @@ describe('WorkspaceOnboarding', () => {
     mockSyncUsers.mockReset();
     mockSelectMembers.mockReset();
     mockGenerateAuthUrl.mockReset();
+    mockSendClaimEmail.mockReset();
     mockToast.mockReset();
     mockRefetch.mockReset();
     mockOnboardingState.mockReset();
@@ -133,7 +138,7 @@ describe('WorkspaceOnboarding', () => {
     expect(screen.getByRole('button', { name: /request approval/i })).toBeInTheDocument();
   });
 
-  it('shows pending approval message for pending domain', () => {
+  it('shows pending approval message and resend button for pending domain', () => {
     mockOnboardingState.mockReturnValue({
       email: 'test@example.com',
       domain: 'example.com',
@@ -147,6 +152,62 @@ describe('WorkspaceOnboarding', () => {
     customRender(<WorkspaceOnboarding />);
 
     expect(screen.getByText(/domain approval pending/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /resend approval email/i })).toBeInTheDocument();
+  });
+
+  it('handles resend approval email', async () => {
+    mockOnboardingState.mockReturnValue({
+      email: 'test@example.com',
+      domain: 'example.com',
+      domain_status: 'pending',
+      claim_status: 'pending',
+      claim_id: 'claim-123',
+      workspace_org_id: null,
+      is_workspace_connected: false,
+    });
+    mockSendClaimEmail.mockResolvedValue({ success: true, recipientCount: 3 });
+
+    customRender(<WorkspaceOnboarding />);
+
+    const button = screen.getByRole('button', { name: /resend approval email/i });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(mockSendClaimEmail).toHaveBeenCalledWith('example.com', 'current-org-123');
+    });
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith({
+        title: 'Notification sent',
+        description: 'Admins have been notified about your pending request.',
+      });
+    });
+  });
+
+  it('handles cooldown error on resend', async () => {
+    mockOnboardingState.mockReturnValue({
+      email: 'test@example.com',
+      domain: 'example.com',
+      domain_status: 'pending',
+      claim_status: 'pending',
+      claim_id: 'claim-123',
+      workspace_org_id: null,
+      is_workspace_connected: false,
+    });
+    mockSendClaimEmail.mockRejectedValue(new Error('Please wait 20 hours before sending another notification'));
+
+    customRender(<WorkspaceOnboarding />);
+
+    const button = screen.getByRole('button', { name: /resend approval email/i });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith({
+        title: 'Please wait',
+        description: 'Please wait 20 hours before sending another notification',
+        variant: 'warning',
+      });
+    });
   });
 
   it('shows create organization form for approved domain', () => {
@@ -167,7 +228,7 @@ describe('WorkspaceOnboarding', () => {
     expect(screen.getByRole('button', { name: /create organization/i })).toBeInTheDocument();
   });
 
-  it('handles domain claim request', async () => {
+  it('handles domain claim request and sends notification email', async () => {
     mockOnboardingState.mockReturnValue({
       email: 'test@example.com',
       domain: 'example.com',
@@ -178,6 +239,7 @@ describe('WorkspaceOnboarding', () => {
       is_workspace_connected: false,
     });
     mockRequestClaim.mockResolvedValue('claim-uuid');
+    mockSendClaimEmail.mockResolvedValue({ success: true, recipientCount: 2 });
 
     customRender(<WorkspaceOnboarding />);
 
@@ -185,13 +247,17 @@ describe('WorkspaceOnboarding', () => {
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(mockRequestClaim).toHaveBeenCalledWith('example.com');
+      expect(mockRequestClaim).toHaveBeenCalledWith('example.com', 'current-org-123');
+    });
+
+    await waitFor(() => {
+      expect(mockSendClaimEmail).toHaveBeenCalledWith('example.com', 'current-org-123');
     });
 
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Domain claim requested',
-        description: 'We will notify you once it is approved.',
+        description: 'Admins have been notified and will review your request.',
       });
     });
   });

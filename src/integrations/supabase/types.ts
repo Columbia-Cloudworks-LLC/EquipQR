@@ -3311,8 +3311,11 @@ export type Database = {
       }
       workspace_domain_claims: {
         Row: {
+          admin_notified_at: string | null
+          admin_notified_by_user_id: string | null
           domain: string
           id: string
+          organization_id: string | null
           requested_at: string
           requested_by_user_id: string
           review_notes: string | null
@@ -3321,8 +3324,11 @@ export type Database = {
           status: string
         }
         Insert: {
+          admin_notified_at?: string | null
+          admin_notified_by_user_id?: string | null
           domain: string
           id?: string
+          organization_id?: string | null
           requested_at?: string
           requested_by_user_id: string
           review_notes?: string | null
@@ -3331,8 +3337,11 @@ export type Database = {
           status?: string
         }
         Update: {
+          admin_notified_at?: string | null
+          admin_notified_by_user_id?: string | null
           domain?: string
           id?: string
+          organization_id?: string | null
           requested_at?: string
           requested_by_user_id?: string
           review_notes?: string | null
@@ -4194,8 +4203,35 @@ export type Database = {
       normalize_domain: { Args: { p_domain: string }; Returns: string }
       normalize_email: { Args: { p_email: string }; Returns: string }
       request_workspace_domain_claim: {
-        Args: { p_domain: string }
+        Args: { p_domain: string; p_organization_id?: string | null }
         Returns: string
+      }
+      update_workspace_claim_notification: {
+        Args: { p_claim_id: string; p_notified_by_user_id: string }
+        Returns: undefined
+      }
+      get_pending_workspace_claim_for_notification: {
+        Args: { p_domain: string }
+        Returns: {
+          claim_id: string
+          domain: string
+          requested_by_user_id: string
+          requester_email: string
+          requester_name: string | null
+          organization_id: string | null
+          organization_name: string | null
+          admin_notified_at: string | null
+          requested_at: string
+        }[]
+      }
+      get_workspace_claim_notification_recipients: {
+        Args: { p_organization_id: string | null; p_super_admin_org_id: string | null }
+        Returns: {
+          user_id: string
+          email: string
+          name: string | null
+          is_super_admin: boolean
+        }[]
       }
       select_google_workspace_members: {
         Args: {

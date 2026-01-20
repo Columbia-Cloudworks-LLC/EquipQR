@@ -54,6 +54,10 @@ verify_jwt = true
 verify_jwt = true
 # Super-admin endpoint for approving Workspace domain claims.
 
+[functions.workspace-domain-claim-email]
+verify_jwt = true
+# Sends notification emails to admins when a workspace domain claim is submitted.
+
 [functions.quickbooks-refresh-tokens]
 verify_jwt = true
 # Called by cron job to refresh expiring tokens. Requires authentication with service role key.

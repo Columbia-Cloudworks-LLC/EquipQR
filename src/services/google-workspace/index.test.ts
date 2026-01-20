@@ -7,6 +7,7 @@ import {
   syncGoogleWorkspaceUsers,
   listWorkspaceDirectoryUsers,
   selectGoogleWorkspaceMembers,
+  sendWorkspaceDomainClaimEmail,
 } from './index';
 
 const rpcMock = vi.fn();
@@ -75,6 +76,19 @@ describe('Google Workspace Service Functions', () => {
 
       expect(rpcMock).toHaveBeenCalledWith('request_workspace_domain_claim', {
         p_domain: 'example.com',
+        p_organization_id: null,
+      });
+      expect(result).toBe('claim-uuid-123');
+    });
+
+    it('accepts an optional organization ID', async () => {
+      rpcMock.mockResolvedValue({ data: 'claim-uuid-123', error: null });
+
+      const result = await requestWorkspaceDomainClaim('example.com', 'org-123');
+
+      expect(rpcMock).toHaveBeenCalledWith('request_workspace_domain_claim', {
+        p_domain: 'example.com',
+        p_organization_id: 'org-123',
       });
       expect(result).toBe('claim-uuid-123');
     });
@@ -83,6 +97,60 @@ describe('Google Workspace Service Functions', () => {
       rpcMock.mockResolvedValue({ data: null, error: { message: 'Domain already claimed' } });
 
       await expect(requestWorkspaceDomainClaim('example.com')).rejects.toThrow('Domain already claimed');
+    });
+  });
+
+  describe('sendWorkspaceDomainClaimEmail', () => {
+    it('sends notification email successfully', async () => {
+      invokeMock.mockResolvedValue({
+        data: { success: true, emailId: 'email-123', recipientCount: 3 },
+        error: null,
+      });
+
+      const result = await sendWorkspaceDomainClaimEmail('example.com', 'org-123');
+
+      expect(invokeMock).toHaveBeenCalledWith('workspace-domain-claim-email', {
+        body: { domain: 'example.com', organizationId: 'org-123' },
+      });
+      expect(result).toEqual({
+        success: true,
+        emailId: 'email-123',
+        recipientCount: 3,
+      });
+    });
+
+    it('sends without organization ID', async () => {
+      invokeMock.mockResolvedValue({
+        data: { success: true, emailId: 'email-123', recipientCount: 2 },
+        error: null,
+      });
+
+      const result = await sendWorkspaceDomainClaimEmail('example.com');
+
+      expect(invokeMock).toHaveBeenCalledWith('workspace-domain-claim-email', {
+        body: { domain: 'example.com', organizationId: undefined },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('throws an error on invoke failure', async () => {
+      invokeMock.mockResolvedValue({
+        data: null,
+        error: { message: 'Function invocation failed' },
+      });
+
+      await expect(sendWorkspaceDomainClaimEmail('example.com')).rejects.toThrow(
+        'Function invocation failed'
+      );
+    });
+
+    it('throws an error when success is false', async () => {
+      invokeMock.mockResolvedValue({
+        data: { success: false, error: 'Cooldown active' },
+        error: null,
+      });
+
+      await expect(sendWorkspaceDomainClaimEmail('example.com')).rejects.toThrow('Cooldown active');
     });
   });
 

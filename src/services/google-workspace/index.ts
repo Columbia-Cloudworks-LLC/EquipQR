@@ -49,9 +49,13 @@ export async function getWorkspaceOnboardingState(userId: string): Promise<Works
   return data[0] as WorkspaceOnboardingState;
 }
 
-export async function requestWorkspaceDomainClaim(domain: string): Promise<string> {
+export async function requestWorkspaceDomainClaim(
+  domain: string,
+  organizationId?: string
+): Promise<string> {
   const { data, error } = await supabase.rpc('request_workspace_domain_claim', {
     p_domain: domain,
+    p_organization_id: organizationId ?? null,
   });
 
   if (error) {
@@ -59,6 +63,39 @@ export async function requestWorkspaceDomainClaim(domain: string): Promise<strin
   }
 
   return data as string;
+}
+
+export interface SendClaimEmailResult {
+  success: boolean;
+  emailId?: string;
+  recipientCount?: number;
+}
+
+/**
+ * Sends notification email to admins about a pending workspace domain claim.
+ * Enforces a 24-hour cooldown between sends.
+ */
+export async function sendWorkspaceDomainClaimEmail(
+  domain: string,
+  organizationId?: string
+): Promise<SendClaimEmailResult> {
+  const { data, error } = await supabase.functions.invoke('workspace-domain-claim-email', {
+    body: { domain, organizationId },
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data?.success) {
+    throw new Error(data?.error || 'Failed to send notification email');
+  }
+
+  return {
+    success: true,
+    emailId: data.emailId,
+    recipientCount: data.recipientCount,
+  };
 }
 
 export async function createWorkspaceOrganizationForDomain(

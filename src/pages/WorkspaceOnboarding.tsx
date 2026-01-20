@@ -20,6 +20,7 @@ import {
   listWorkspaceDirectoryUsers,
   requestWorkspaceDomainClaim,
   selectGoogleWorkspaceMembers,
+  sendWorkspaceDomainClaimEmail,
   syncGoogleWorkspaceUsers,
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
@@ -28,7 +29,7 @@ import { isConsumerGoogleDomain } from '@/utils/google-workspace';
 const WorkspaceOnboarding = () => {
   const { user } = useAuth();
   const { refreshSession } = useSession();
-  const { switchOrganization } = useOrganization();
+  const { currentOrganization, switchOrganization } = useOrganization();
   const { toast } = useAppToast();
   const queryClient = useQueryClient();
 
@@ -37,6 +38,8 @@ const WorkspaceOnboarding = () => {
   const [orgName, setOrgName] = useState('');
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isRequestingClaim, setIsRequestingClaim] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
 
@@ -67,16 +70,64 @@ const WorkspaceOnboarding = () => {
 
   const handleRequestClaim = async () => {
     if (!domain) return;
+    setIsRequestingClaim(true);
     try {
-      await requestWorkspaceDomainClaim(domain);
-      toast({ title: 'Domain claim requested', description: 'We will notify you once it is approved.' });
+      await requestWorkspaceDomainClaim(domain, currentOrganization?.id);
       await refetch();
+
+      // Send notification email to admins
+      try {
+        await sendWorkspaceDomainClaimEmail(domain, currentOrganization?.id);
+        toast({
+          title: 'Domain claim requested',
+          description: 'Admins have been notified and will review your request.',
+        });
+      } catch {
+        // Claim was created but email failed - still show success but warn about email
+        toast({
+          title: 'Domain claim requested',
+          description: 'Your request was submitted, but we could not send the notification email. Please try resending.',
+          variant: 'warning',
+        });
+      }
     } catch (error) {
       toast({
         title: 'Failed to request domain claim',
         description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'error',
       });
+    } finally {
+      setIsRequestingClaim(false);
+    }
+  };
+
+  const handleResendEmail = async () => {
+    if (!domain) return;
+    setIsSendingEmail(true);
+    try {
+      await sendWorkspaceDomainClaimEmail(domain, currentOrganization?.id);
+      toast({
+        title: 'Notification sent',
+        description: 'Admins have been notified about your pending request.',
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Please try again.';
+      // Check if it's a cooldown error (429 status)
+      if (errorMessage.includes('wait') || errorMessage.includes('hour')) {
+        toast({
+          title: 'Please wait',
+          description: errorMessage,
+          variant: 'warning',
+        });
+      } else {
+        toast({
+          title: 'Failed to send notification',
+          description: errorMessage,
+          variant: 'error',
+        });
+      }
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -232,8 +283,8 @@ const WorkspaceOnboarding = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={handleRequestClaim}>
-                Request Approval
+              <Button onClick={handleRequestClaim} disabled={isRequestingClaim}>
+                {isRequestingClaim ? 'Requesting...' : 'Request Approval'}
               </Button>
             </CardContent>
           </Card>
@@ -247,6 +298,18 @@ const WorkspaceOnboarding = () => {
                 We are reviewing your domain request. We will notify you once approved.
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                If you haven't received a response, you can resend the approval notification to administrators.
+              </p>
+              <Button
+                variant="outline"
+                onClick={handleResendEmail}
+                disabled={isSendingEmail}
+              >
+                {isSendingEmail ? 'Sending...' : 'Resend Approval Email'}
+              </Button>
+            </CardContent>
           </Card>
         )}
 
