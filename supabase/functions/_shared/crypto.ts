@@ -28,6 +28,11 @@ const PBKDF2_ITERATIONS = 100_000; // OWASP recommended minimum for 2024+
  * 
  * This is superior to using SHA-256 directly, which is a fast hash function
  * designed for integrity checking, not key derivation.
+ * 
+ * Note: HKDF (HMAC-based KDF) would be more efficient for high-entropy inputs,
+ * but PBKDF2 provides defense-in-depth in case some deployments use weak keys
+ * despite validation. The 100K iterations provide protection even if the input
+ * entropy is lower than expected.
  */
 async function deriveKey(secret: string): Promise<CryptoKey> {
   const encoder = new TextEncoder();

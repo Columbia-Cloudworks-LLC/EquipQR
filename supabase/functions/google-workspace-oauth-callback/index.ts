@@ -252,8 +252,8 @@ Deno.serve(async (req) => {
     let parsedRedirectUri: URL;
     try {
       parsedRedirectUri = new URL(redirectUri);
-    } catch {
-      logStep("ERROR: Invalid redirect_uri format", { redirectUri });
+    } catch (error) {
+      logStep("ERROR: Invalid redirect_uri format", { redirectUri, error: String(error) });
       throw new Error("Invalid OAuth redirect URI format");
     }
 
@@ -266,9 +266,15 @@ Deno.serve(async (req) => {
         const parsed = new URL(baseUrl);
         // Store the exact hostname (no subdomains allowed)
         allowedHostnames.add(parsed.hostname);
-      } catch {
-        logStep("WARNING: Could not parse base URL", { baseUrl });
+      } catch (error) {
+        logStep("WARNING: Could not parse base URL", { baseUrl, error: String(error) });
       }
+    }
+
+    // Ensure at least one valid base URL was configured
+    if (allowedHostnames.size === 0) {
+      logStep("ERROR: No valid base URLs configured", { allowedBaseUrls });
+      throw new Error("No valid base URLs configured for OAuth redirect validation");
     }
 
     // Validate: exact URI match AND hostname match (no subdomain attacks)
