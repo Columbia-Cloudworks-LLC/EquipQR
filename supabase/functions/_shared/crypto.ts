@@ -138,7 +138,12 @@ export function validateEncryptionKeyConfiguration(): boolean {
 }
 
 /**
- * Gets the encryption key from environment, throwing if not set or too weak.
+ * Gets and validates the encryption key from environment.
+ * 
+ * This function performs configuration validation and will throw an Error if:
+ * - TOKEN_ENCRYPTION_KEY is not set
+ * - The key is shorter than the minimum required length (32 characters)
+ * - The key appears to have low entropy and ENFORCE_STRONG_KEYS is not explicitly disabled
  * 
  * IMPORTANT: In production, TOKEN_ENCRYPTION_KEY must be a cryptographically
  * random string of at least 32 characters. Generate one with:
@@ -146,6 +151,9 @@ export function validateEncryptionKeyConfiguration(): boolean {
  * 
  * Never use weak keys like "password123" - even though SHA-256 hashing is
  * applied, weak input leads to predictable output.
+ * 
+ * @throws {Error} If TOKEN_ENCRYPTION_KEY is missing, too short, or considered too weak
+ * @returns The validated encryption key string
  */
 export function getTokenEncryptionKey(): string {
   const key = Deno.env.get('TOKEN_ENCRYPTION_KEY');

@@ -29,11 +29,14 @@ vi.mock('react-router-dom', async () => {
 // Make vi globally available for tests
 globalThis.vi = vi;
 
+// Test-specific version constant
+// Using a fixed value ensures deterministic test behavior across different versions.
+const TEST_APP_VERSION = 'test';
+
 // Ensure Vite define constants exist in tests
 // Using 'test' as the version to distinguish test environments from production.
-// This is intentional - tests don't need the real version and using a fixed value
-// ensures deterministic test behavior across different versions.
-vi.stubGlobal('__APP_VERSION__', 'test');
+// This is intentional - tests don't need the real version.
+vi.stubGlobal('__APP_VERSION__', TEST_APP_VERSION);
 
 // Cleanup after each test case
 afterEach(() => {

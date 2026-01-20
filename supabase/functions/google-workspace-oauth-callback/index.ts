@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
       Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL")?.trim().replace(/\/+$/, ""),
     ]
       .filter(Boolean)
-      .map(base => base + expectedCallbackPath);
+      .map((base) => base + expectedCallbackPath);
 
     // Exact match required - no partial/prefix matching to prevent traversal attacks
     const isRedirectUriAllowed = allowedRedirectUris.includes(redirectUri);

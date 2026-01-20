@@ -82,10 +82,7 @@ let testQueryClient: QueryClient;
 vi.mock('@/components/providers/AppProviders', () => {
   return {
     AppProviders: ({ children }: { children: React.ReactNode }) => {
-      // Use the test QueryClient that's reset between tests
-      if (!testQueryClient) {
-        testQueryClient = createTestQueryClient();
-      }
+      // testQueryClient is reset in beforeEach, so it's always available
       return (
         <QueryClientProvider client={testQueryClient}>
           <div data-testid="app-providers">{children}</div>

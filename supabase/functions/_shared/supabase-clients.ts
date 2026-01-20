@@ -11,6 +11,13 @@ import { createClient, SupabaseClient, User } from "https://esm.sh/@supabase/sup
 import { corsHeaders } from "./cors.ts";
 
 // =============================================================================
+// Constants
+// =============================================================================
+
+/** Maximum length for error messages before they're considered to contain debug info */
+const MAX_ERROR_MESSAGE_LENGTH = 200;
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -256,8 +263,8 @@ function isErrorMessageSafe(error: string): boolean {
     return false;
   }
   
-  // Messages over 200 chars likely contain debug info
-  if (error.length > 200) {
+  // Messages over MAX_ERROR_MESSAGE_LENGTH chars likely contain debug info
+  if (error.length > MAX_ERROR_MESSAGE_LENGTH) {
     return false;
   }
   
