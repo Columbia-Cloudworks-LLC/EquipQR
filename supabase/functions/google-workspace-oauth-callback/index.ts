@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
     try {
       new URL(oauthRedirectBaseUrl);
     } catch {
-      logStep("ERROR", { message: `Invalid GW_OAUTH_REDIRECT_BASE_URL: ${oauthRedirectBaseUrl}` });
+      logStep("ERROR", { message: "Invalid GW_OAUTH_REDIRECT_BASE_URL configuration" });
       throw new Error("Invalid OAuth redirect base URL configuration");
     }
 
