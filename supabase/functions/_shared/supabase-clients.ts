@@ -277,7 +277,7 @@ function isErrorMessageSafe(error: string): boolean {
   // Empty or very short messages are suspicious and may leak information.
   // Messages shorter than MIN_SAFE_ERROR_LENGTH are likely system error codes
   // or stack trace fragments (e.g., 'err', 'bad') that could leak debug info.
-  if (!error || error.length < MIN_SAFE_ERROR_LENGTH) {
+  if (error.length < MIN_SAFE_ERROR_LENGTH) {
     return false;
   }
   
