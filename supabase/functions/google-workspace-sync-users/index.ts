@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
 
       if (!response.ok) {
         logStep("Directory API error", { status: response.status });
-        return createErrorResponse("Failed to fetch Google Workspace users", 502);
+        return createErrorResponse(`Failed to fetch Google Workspace users (HTTP ${response.status})`, 502);
       }
 
       const payload: GoogleDirectoryResponse = await response.json();
