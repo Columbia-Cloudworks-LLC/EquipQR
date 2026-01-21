@@ -179,9 +179,32 @@ export async function requireUser(
   ) {
     return { error: "Invalid authorization header format", status: 401 };
   }
+    let authErrorMessage = "Authentication failed";
 
-  const { data: { user }, error } = await supabaseClient.auth.getUser(credentials);
+    if (error && typeof error.message === "string") {
+      const normalizedMessage = error.message.toLowerCase();
 
+      if (normalizedMessage.includes("expired")) {
+        authErrorMessage = "Token has expired";
+      } else if (
+        normalizedMessage.includes("jwt malformed") ||
+        normalizedMessage.includes("invalid token") ||
+        normalizedMessage.includes("invalid jwt")
+      ) {
+        authErrorMessage = "Invalid token format";
+      } else if (
+        normalizedMessage.includes("session not found") ||
+        normalizedMessage.includes("user not found")
+      ) {
+        authErrorMessage = "User session not found for provided token";
+      }
+    } else if (!user) {
+      authErrorMessage = "User not found for provided token";
+    }
+
+    return {
+      error: authErrorMessage,
+      status: 401
   if (error || !user) {
     return { 
       error: error?.message || "Invalid or expired token", 
