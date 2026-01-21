@@ -217,9 +217,12 @@ function truncateId(id: string): string {
 // ============================================
 
 // NOTE: supabase client is now created per-request (see serve function below)
-let supabase: SupabaseClient;
 
-async function checkRateLimit(userId: string, organizationId: string): Promise<boolean> {
+async function checkRateLimit(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
   const { error: tableCheckError } = await supabase
     .from('export_request_log')
     .select('id')
