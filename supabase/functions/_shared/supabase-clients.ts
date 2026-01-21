@@ -146,15 +146,15 @@ export async function requireUser(
   }
 
   // Parse Authorization header with case-insensitive scheme detection
-  const parts = authHeader.split(" ");
+  const parts = authHeader.trim().split(/\s+/);
   const scheme = parts[0];
-  const credentials = parts.slice(1).join(" ");
+  const credentials = parts.slice(1).join(" ").trim();
 
   if (!scheme || scheme.toLowerCase() !== "bearer" || !credentials) {
     return { error: "Invalid authorization header format", status: 401 };
   }
 
-  const token = credentials.trim();
+  const token = credentials;
 
   if (!token) {
     return { error: "Empty token", status: 401 };
