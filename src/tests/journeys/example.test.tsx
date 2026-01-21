@@ -37,6 +37,8 @@ const TestEquipmentList = () => {
 };
 
 describe('Example Journey Test', () => {
+  // Note: TestEquipmentList is intentionally simplified for demonstration purposes.
+  // In real journey tests, import actual page components from src/pages/.
   beforeEach(() => {
     // Always reset mock state for test isolation
     resetSupabaseMock();
