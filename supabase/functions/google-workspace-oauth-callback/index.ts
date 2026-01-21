@@ -478,7 +478,8 @@ Deno.serve(async (req) => {
       // First-time setup: auto-provision new organization
       // Generate organization name from domain (e.g., "acme.com" -> "Acme")
       const domainParts = domain.split(".");
-      const orgNameBase = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+      const primaryPart = domainParts.find((part) => part.length > 0) ?? "Workspace";
+      const orgNameBase = primaryPart.charAt(0).toUpperCase() + primaryPart.slice(1);
       const orgName = `${orgNameBase} Organization`;
 
       logStep("Auto-provisioning new organization", { domain, orgName });
