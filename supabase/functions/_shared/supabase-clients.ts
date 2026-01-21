@@ -33,18 +33,18 @@ import { SAFE_ERROR_PATTERNS } from "./error-message-allowlist.ts";
 const MAX_ERROR_MESSAGE_LENGTH = 200;
 
 /** 
- * Minimum safe error message length.
- * Messages shorter than this are likely system error codes or stack trace fragments
- * that could leak debug information.
+ * Minimum safe error message length for messages that are NOT explicitly allowlisted.
+ * Messages shorter than this (that do not match SAFE_ERROR_PATTERNS) are likely
+ * system error codes or stack trace fragments that could leak debug information.
  * 
- * Examples of unsafe short messages that would be blocked:
+ * Examples of unsafe short messages that would be blocked when not allowlisted:
  * - 'err', 'bad' - vague codes that may come from internal systems
  * - 'E_FAIL', 'EPERM' - system error codes
  * - 'null', 'undefined' - JavaScript runtime errors converted to strings
  * - Stack trace line numbers like '42' or 'L123'
  * 
  * Known-safe short messages like 'Gone' or 'Not found' are explicitly allowlisted
- * in SAFE_ERROR_PATTERNS and bypass this length check.
+ * in SAFE_ERROR_PATTERNS and therefore bypass this minimum-length check.
  */
 const MIN_SAFE_ERROR_LENGTH = 10;
 
