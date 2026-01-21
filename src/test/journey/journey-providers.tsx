@@ -53,7 +53,7 @@ export const JourneyProviders: React.FC<JourneyProvidersProps> = ({
       queries: {
         retry: false,
         staleTime: 0,
-        gcTime: 0, // Don't cache between tests
+        gcTime: 0, // Clean up cache immediately when inactive to prevent leakage between tests
       },
       mutations: {
         retry: false,
