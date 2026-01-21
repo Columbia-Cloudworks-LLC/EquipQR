@@ -511,7 +511,7 @@ Deno.serve(async (req) => {
         scopes: tokenData.scope || null,
         updated_at: now.toISOString(),
       }, {
-        onConflict: "google_workspace_credentials_org_domain",
+        onConflict: "google_workspace_credentials_org_domain", // Must use index name for functional index - see comment above
       });
 
     if (upsertError) {
