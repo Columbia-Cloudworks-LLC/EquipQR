@@ -159,6 +159,11 @@ function getKdfSalt(): Uint8Array {
  * but PBKDF2 provides defense-in-depth in case some deployments use weak keys
  * despite validation. The 100K iterations provide protection even if the input
  * entropy is lower than expected.
+ * 
+ * This function is async because it relies on the Web Crypto API:
+ * - {@link crypto.subtle.importKey} to create key material from the secret
+ * - {@link crypto.subtle.deriveKey} to derive the AES-GCM key
+ * Both of these operations return Promises and must be awaited.
  */
 async function deriveKey(secret: string): Promise<CryptoKey> {
   const encoder = new TextEncoder();
