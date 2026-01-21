@@ -163,7 +163,14 @@ Deno.serve(async (req) => {
 
     if (!clientId || !clientSecret) {
       logStep("ERROR", { message: "Missing GOOGLE_WORKSPACE_CLIENT_ID or GOOGLE_WORKSPACE_CLIENT_SECRET" });
-      throw new Error("Google Workspace OAuth is not configured");
+      const fallbackProductionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
+      const errorCode = "oauth_failed";
+      const userMessage =
+        "Google Workspace OAuth is not configured. Please contact your administrator.";
+      const errorUrl = `${fallbackProductionUrl}/dashboard/onboarding/workspace?gw_error=${encodeURIComponent(
+        errorCode,
+      )}&gw_error_description=${encodeURIComponent(userMessage)}`;
+      return Response.redirect(errorUrl, 302);
     }
 
     if (!supabaseUrl) {
