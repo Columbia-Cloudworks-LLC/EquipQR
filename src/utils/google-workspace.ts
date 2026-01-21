@@ -66,25 +66,28 @@ function loadConsumerGoogleDomains(): readonly string[] {
   // NOTE: This only works in Node.js/server-side environments (Edge Functions, SSR).
   // In browser contexts (Vite builds), process.env is undefined and this block is skipped,
   // meaning only DEFAULT_CONSUMER_GOOGLE_DOMAINS will be used.
-  if (
-    isServerEnvironment() &&
-    typeof process.env !== 'undefined' &&
-    process.env.CONSUMER_GOOGLE_DOMAINS
-  ) {
-    // If this is executing in a browser, having a runtime environment variable here
-    // indicates a build configuration issue (env should be injected at build time).
-    if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
-      logWarning(
-        '[google-workspace] CONSUMER_GOOGLE_DOMAINS is set at runtime in a browser environment. ' +
-          'This likely indicates a build configuration issue. Prefer build-time configuration ' +
-          'via Vite\'s import.meta.env or a server-provided domain list instead of relying on process.env in the browser.'
-      );
+  if (isServerEnvironment()) {
+    const envValue = process.env?.CONSUMER_GOOGLE_DOMAINS;
+
+    if (envValue) {
+      // If this is executing in a browser, having a runtime environment variable here
+      // indicates a build configuration issue (env should be injected at build time).
+      if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
+        logWarning(
+          '[google-workspace] CONSUMER_GOOGLE_DOMAINS is set at runtime in a browser environment. ' +
+            'This likely indicates a build configuration issue. Prefer build-time configuration ' +
+            'via Vite\'s import.meta.env or a server-provided domain list instead of relying on process.env in the browser.'
+        );
+      }
+
+      const parsed = envValue
+        .split(',')
+        .map((domain) => domain.toLowerCase().trim())
+        .filter((domain) => domain.length > 0);
+
+      // Keep configured domains as-is; final deduplication on the combined array is sufficient
+      configuredDomains = parsed;
     }
-    // Type guard ensures process.env.CONSUMER_GOOGLE_DOMAINS is a string here
-    const envValue = process.env.CONSUMER_GOOGLE_DOMAINS;
-    const parsed = envValue
-      .split(',')
-      .map((domain) => domain.toLowerCase().trim())
       .filter((domain) => domain.length > 0);
 
     // Keep configured domains as-is; final deduplication on the combined array is sufficient
