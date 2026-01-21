@@ -40,9 +40,6 @@ interface ExportRequest {
   format: 'csv';
 }
 
-// NOTE: supabase client is now created per-request (see below)
-let supabase: SupabaseClient;
-
 Deno.serve(async (req) => {
   // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
