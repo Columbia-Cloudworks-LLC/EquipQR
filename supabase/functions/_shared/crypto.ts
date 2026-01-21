@@ -12,9 +12,12 @@ const ALGORITHM = 'AES-GCM';
 const IV_LENGTH = 12; // 96 bits for GCM
 
 // PBKDF2 configuration for key derivation.
-// 100,000 iterations is a conservative baseline; review against the current
-// OWASP Password Storage Cheat Sheet (https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
-// and its PBKDF2 recommendations before changing this value.
+// 100,000 iterations is a conservative baseline and, as of 2023, matches the
+// minimum recommended value for PBKDF2-SHA256 in the OWASP Password Storage
+// Cheat Sheet (https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+// IMPORTANT: OWASP recommendations may change over time. Review this setting
+// periodically against the current PBKDF2 guidance, and for production
+// deployments consider using a higher iteration count if performance permits.
 const PBKDF2_ITERATIONS = 100_000;
 
 // Default salt value - used if KDF_SALT environment variable is not set.
