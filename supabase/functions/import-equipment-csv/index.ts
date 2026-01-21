@@ -289,6 +289,9 @@ async function handleImport(
 
           if (!existingDate || newDate > existingDate) {
             updateData.last_maintenance = mappedRow.last_maintenance;
+            // When last_maintenance is overridden from CSV data, clear any existing
+            // last_maintenance_work_order_id link to avoid keeping a stale work order
+            // reference that no longer matches the source of the maintenance date.
             updateData.last_maintenance_work_order_id = null;
           }
         }
@@ -328,6 +331,8 @@ async function handleImport(
 
         if (mappedRow.last_maintenance) {
           insertData.last_maintenance = mappedRow.last_maintenance;
+          // When last_maintenance is set from CSV data, set last_maintenance_work_order_id
+          // to null since the maintenance date comes from external data, not a work order.
           insertData.last_maintenance_work_order_id = null;
         }
 

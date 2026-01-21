@@ -112,9 +112,9 @@ function getKdfSalt(): Uint8Array {
   
   // Validate salt length (check encoded byte length, not string length)
   const encodedSalt = new TextEncoder().encode(salt);
-  if (encodedSalt.length < 32) {
+  if (encodedSalt.length < MIN_SALT_LENGTH) {
     throw new Error(
-      'KDF_SALT must be at least 32 bytes when encoded. ' +
+      `KDF_SALT must be at least ${MIN_SALT_LENGTH} bytes when encoded. ` +
       'Generate a secure salt with: openssl rand -base64 32'
     );
   }
@@ -265,6 +265,13 @@ const MIN_KEY_LENGTH = 32;
 const MIN_SALT_LENGTH = 32;
 
 /**
+ * Minimum ratio of unique characters required to consider a key/salt as having
+ * sufficient entropy. Keys with less than 30% unique characters are likely weak
+ * (e.g., "aaaaaaa..." or repeated patterns).
+ */
+const MIN_UNIQUE_CHAR_RATIO = 0.3;
+
+/**
  * Checks if a string has low entropy (repeated or sequential characters).
  * This is a heuristic check, not a cryptographic entropy measurement.
  */
@@ -273,8 +280,8 @@ function hasLowEntropy(key: string): boolean {
   const uniqueChars = new Set(key).size;
   const uniqueRatio = uniqueChars / key.length;
   
-  // If less than 30% of characters are unique, likely a weak key
-  if (uniqueRatio < 0.3) {
+  // If less than MIN_UNIQUE_CHAR_RATIO of characters are unique, likely a weak key
+  if (uniqueRatio < MIN_UNIQUE_CHAR_RATIO) {
     return true;
   }
   

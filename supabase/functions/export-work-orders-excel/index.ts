@@ -260,6 +260,7 @@ async function checkRateLimit(
 // ============================================
 
 async function fetchWorkOrdersWithData(
+  supabase: SupabaseClient,
   organizationId: string,
   filters: WorkOrderExcelFilters
 ) {
@@ -756,7 +757,7 @@ Deno.serve(async (req) => {
     }
 
     // Check rate limit
-    const rateLimitOk = await checkRateLimit(user.id, organizationId);
+    const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
     if (!rateLimitOk) {
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded. Please wait before requesting another export.' }),
@@ -781,7 +782,7 @@ Deno.serve(async (req) => {
 
     try {
       // Fetch all data
-      const data = await fetchWorkOrdersWithData(organizationId, filters);
+      const data = await fetchWorkOrdersWithData(supabase, organizationId, filters);
 
       if (data.workOrders.length === 0) {
         if (exportLogId) {

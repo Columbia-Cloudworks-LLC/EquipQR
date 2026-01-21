@@ -6,7 +6,6 @@
  * Uses user-scoped client so RLS policies apply.
  */
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
   createUserSupabaseClient,
   requireUser,
@@ -51,7 +50,7 @@ Deno.serve(async (req) => {
     }
 
     // Create user-scoped client (RLS enforced)
-    supabase = createUserSupabaseClient(req);
+    const supabase = createUserSupabaseClient(req);
 
     // Validate user authentication
     const auth = await requireUser(req, supabase);
@@ -84,7 +83,7 @@ Deno.serve(async (req) => {
     }
 
     // Check rate limit
-    const rateLimitOk = await checkRateLimit(user.id, organizationId);
+    const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
     if (!rateLimitOk) {
       return createErrorResponse(
         'Rate limit exceeded. Please wait before requesting another export.',
@@ -114,19 +113,19 @@ Deno.serve(async (req) => {
     try {
       switch (reportType) {
         case 'equipment':
-          ({ csvContent, rowCount } = await exportEquipment(organizationId, filters, columns));
+          ({ csvContent, rowCount } = await exportEquipment(supabase, organizationId, filters, columns));
           break;
         case 'work-orders':
-          ({ csvContent, rowCount } = await exportWorkOrders(organizationId, filters, columns));
+          ({ csvContent, rowCount } = await exportWorkOrders(supabase, organizationId, filters, columns));
           break;
         case 'inventory':
-          ({ csvContent, rowCount } = await exportInventory(organizationId, filters, columns));
+          ({ csvContent, rowCount } = await exportInventory(supabase, organizationId, filters, columns));
           break;
         case 'scans':
-          ({ csvContent, rowCount } = await exportScans(organizationId, filters, columns));
+          ({ csvContent, rowCount } = await exportScans(supabase, organizationId, filters, columns));
           break;
         case 'alternate-groups':
-          ({ csvContent, rowCount } = await exportAlternateGroups(organizationId, filters, columns));
+          ({ csvContent, rowCount } = await exportAlternateGroups(supabase, organizationId, filters, columns));
           break;
         default:
           throw new Error(`Unsupported report type: ${reportType}`);
@@ -180,7 +179,7 @@ Deno.serve(async (req) => {
  * - Max 5 exports per user per minute
  * - Max 50 exports per organization per hour
  */
-async function checkRateLimit(userId: string, organizationId: string): Promise<boolean> {
+async function checkRateLimit(supabase: ReturnType<typeof createUserSupabaseClient>, userId: string, organizationId: string): Promise<boolean> {
   // Check if export_request_log table exists - if not, allow the request
   // This handles the case before the migration is run
   const { error: tableCheckError } = await supabase
@@ -256,6 +255,7 @@ function formatDate(dateString: string | null): string {
  * Export equipment data
  */
 async function exportEquipment(
+  supabase: ReturnType<typeof createUserSupabaseClient>,
   organizationId: string, 
   filters: ExportFilters, 
   columns: string[]
@@ -399,6 +399,7 @@ async function exportEquipment(
  * Export work orders data
  */
 async function exportWorkOrders(
+  supabase: ReturnType<typeof createUserSupabaseClient>,
   organizationId: string, 
   filters: ExportFilters, 
   columns: string[]
@@ -504,6 +505,7 @@ async function exportWorkOrders(
  * Export inventory data
  */
 async function exportInventory(
+  supabase: ReturnType<typeof createUserSupabaseClient>,
   organizationId: string, 
   filters: ExportFilters, 
   columns: string[]
@@ -596,6 +598,7 @@ async function exportInventory(
  * Export scans data
  */
 async function exportScans(
+  supabase: ReturnType<typeof createUserSupabaseClient>,
   organizationId: string, 
   filters: ExportFilters, 
   columns: string[]
@@ -693,6 +696,7 @@ async function exportScans(
  * Each row represents one group member (inventory item or part identifier)
  */
 async function exportAlternateGroups(
+  supabase: ReturnType<typeof createUserSupabaseClient>,
   organizationId: string, 
   _filters: ExportFilters, 
   columns: string[]

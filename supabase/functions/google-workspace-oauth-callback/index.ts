@@ -394,14 +394,8 @@ Deno.serve(async (req) => {
     const userinfo: GoogleUserInfo = await userinfoResponse.json();
     const userEmail = userinfo.email;
     
-    // Validate email format before extracting domain.
-    const emailDomain =
-      typeof userEmail === "string"
-        ? (userEmail.split("@")[1] ?? "")
-        : "";
-    const userDomain = userinfo.hd || emailDomain;
-    // from the email. This validates that the email is well-formed to prevent
-    // undefined domain extraction from malformed emails.
+    // Validate email format before extracting domain. This validates that the email
+    // is well-formed to prevent undefined domain extraction from malformed emails.
     if (!isValidEmail(userEmail)) {
       throw new Error("Invalid email format received from Google. Please try again.");
     }
@@ -419,7 +413,7 @@ Deno.serve(async (req) => {
     logStep("User info retrieved", { email: userEmail, domain: userDomain });
 
     // Block consumer domains
-    if (!userDomain || ["gmail.com", "googlemail.com"].includes(userDomain.toLowerCase())) {
+    if (["gmail.com", "googlemail.com"].includes(userDomain.toLowerCase())) {
       throw new Error("Consumer Google accounts (gmail.com) cannot use Google Workspace integration.");
     }
 

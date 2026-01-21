@@ -187,8 +187,17 @@ export function renderJourney(options: RenderJourneyOptions): RenderJourneyResul
  * This function is kept for backwards compatibility but simply resolves
  * after a short delay. New tests should not use this function.
  */
+let hasWarnedWaitForQueryIdleDeprecation = false;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function waitForQueryIdle(_timeoutMs = 5000): Promise<void> {
+  if (!hasWarnedWaitForQueryIdleDeprecation) {
+    hasWarnedWaitForQueryIdleDeprecation = true;
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[renderJourney.waitForQueryIdle] is deprecated and will be removed in a future version. ' +
+        'Use React Testing Library\'s waitFor() with explicit assertions instead.',
+    );
+  }
   // Intentionally simple - just give React time to process.
   // Tests should use waitFor() with specific assertions instead.
   return new Promise((resolve) => setTimeout(resolve, 50));

@@ -265,6 +265,10 @@ export async function verifyOrgAdmin(
  * 
  * To validate error messages during development, check the console for
  * "[createErrorResponse] Unsafe error message blocked:" warnings.
+ * 
+ * SECURITY MAINTENANCE: If you modify SAFE_ERROR_PATTERNS, also update the
+ * MAINTENANCE NOTE in createErrorResponse's docstring so documentation stays
+ * in sync with this implementation.
  */
 const SAFE_ERROR_PATTERNS: RegExp[] = [
   // Authentication/Authorization errors
