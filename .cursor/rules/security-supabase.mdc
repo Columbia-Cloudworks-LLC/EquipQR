@@ -1,13 +1,16 @@
 ---
-description: "Security & Database Best Practices"
-globs: "**/*.{ts,tsx,sql}"
+description: "Security rules for Supabase RLS and Config"
+globs: "supabase/**/*.{sql,toml}"
 ---
-# Security (Supabase)
+# Supabase Security
 
-## Client-Side
-- **No Service Key:** NEVER use the `service_role` key in the frontend code.
-- **RLS:** Assume Row Level Security is active. Ensure queries include necessary filters (e.g., `organization_id`) to comply with policies.
+## Row Level Security (RLS)
+- **Audit:** NEVER create a policy that returns `true` (public access) without explicit justification in comments.
+- **Service Role:** Avoid using `service_role` key in Edge Functions unless absolutely necessary (e.g., admin tasks bypassing RLS).
 
-## Data Validation
-- **Input Validation:** Use Zod schemas to validate all form inputs before submission.
-- **Types:** Generate and use Supabase Database Types (`Database` interface) for strong typing of query results.
+## Database Config
+- **Extensions:** Only enable necessary extensions. Review implications of `pg_cron` or `http` extensions.
+- **Public Schema:** Do not expose sensitive system tables in the `public` schema.
+
+## Authentication
+- **Triggers:** Use database triggers on `auth.users` for user profile creation to ensure data integrity vs client-side creation.
