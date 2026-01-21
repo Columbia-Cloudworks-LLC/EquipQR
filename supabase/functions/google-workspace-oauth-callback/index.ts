@@ -56,20 +56,20 @@ const MAX_CLOCK_SKEW_MS = 2 * 60 * 1000;
  * Normalizes a domain for consistent storage and matching.
  * This mirrors the SQL normalize_domain() function.
  * Returns empty string for null/undefined inputs to match SQL behavior.
- * 
+ *
  * Note: While current call sites always pass a string (due to the fallback
- * on line 369), this null check is kept for API parity with the SQL function
- * and to support potential future callers that may pass nullable values.
+ * on line 369), this function still accepts nullable values for API parity
+ * with the SQL function and to support potential future callers.
  */
 function normalizeDomain(domain: string | null | undefined): string {
-  // This check mirrors SQL COALESCE behavior - kept for API consistency
-  // even though current TypeScript usage ensures domain is always defined.
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (domain == null) {
+  // Coalesce null/undefined to empty string, mirroring SQL COALESCE behavior.
+  const value = domain ?? "";
+  if (value === "") {
     return "";
   }
-  return domain.toLowerCase().trim();
+  return value.toLowerCase().trim();
 }
+
 
 /**
  * Checks if we're running in a production environment.
