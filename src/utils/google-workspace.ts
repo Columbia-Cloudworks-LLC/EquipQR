@@ -65,7 +65,7 @@ function loadConsumerGoogleDomains(): readonly string[] {
   // meaning only DEFAULT_CONSUMER_GOOGLE_DOMAINS will be used.
   if (
     isServerEnvironment() &&
-    typeof process.env.CONSUMER_GOOGLE_DOMAINS === 'string'
+    process.env.CONSUMER_GOOGLE_DOMAINS
   ) {
     // If this is executing in a browser, having a runtime environment variable here
     // indicates a build configuration issue (env should be injected at build time).
