@@ -274,20 +274,26 @@ const GENERIC_ERROR_MESSAGE = "An internal error occurred";
  * Uses an allowlist approach - only explicitly safe messages pass through.
  */
 function isErrorMessageSafe(error: string): boolean {
+  // Messages over MAX_ERROR_MESSAGE_LENGTH chars likely contain debug info
+  if (error.length > MAX_ERROR_MESSAGE_LENGTH) {
+    return false;
+  }
+
+  // First, allow explicitly safe messages regardless of minimum length.
+  // This ensures short but known-safe messages (e.g., "Gone") are not blocked.
+  if ( SAFE_ERROR_PATTERNS.some((pattern) => pattern.test(error)) ) {
+    return true;
+  }
+
   // Empty or very short messages are suspicious and may leak information.
   // Messages shorter than MIN_SAFE_ERROR_LENGTH are likely system error codes
   // or stack trace fragments (e.g., 'err', 'bad') that could leak debug info.
   if (error.length < MIN_SAFE_ERROR_LENGTH) {
     return false;
   }
-  
-  // Messages over MAX_ERROR_MESSAGE_LENGTH chars likely contain debug info
-  if (error.length > MAX_ERROR_MESSAGE_LENGTH) {
-    return false;
-  }
-  
-  // Check against allowlist
-  return SAFE_ERROR_PATTERNS.some(pattern => pattern.test(error));
+
+  // If the message is not explicitly allowlisted, treat it as unsafe by default.
+  return false;
 }
 
 /**
