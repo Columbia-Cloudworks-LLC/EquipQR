@@ -99,15 +99,15 @@ function isProductionEnvironment(): boolean {
   return !!productionUrl && !productionUrl.includes("localhost");
 }
 
-function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): boolean {
-  if (!redirectUrl) return true;
+function isValidRedirectUrl(urlToValidate: string | null, productionUrl: string): boolean {
+  if (!urlToValidate) return true;
 
   try {
-    if (redirectUrl.startsWith("/") && !redirectUrl.startsWith("//")) {
+    if (urlToValidate.startsWith("/") && !urlToValidate.startsWith("//")) {
       return true;
     }
 
-    const url = new URL(redirectUrl);
+    const url = new URL(urlToValidate);
     const productionDomain = new URL(productionUrl).hostname;
 
     // In production, only allow the production domain
@@ -128,14 +128,14 @@ function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): 
     }
 
     logStep("Redirect URL validation failed", {
-      redirectUrl: redirectUrl.substring(0, 100),
+      redirectUrl: urlToValidate.substring(0, 100),
       hostname: url.hostname,
       productionDomain,
       isProduction,
     });
     return false;
   } catch {
-    logStep("Redirect URL is malformed", { redirectUrl: redirectUrl.substring(0, 100) });
+    logStep("Redirect URL is malformed", { redirectUrl: urlToValidate.substring(0, 100) });
     return false;
   }
 }
@@ -402,7 +402,10 @@ Deno.serve(async (req) => {
       throw new Error("Invalid email format received from Google. Please try again.");
     }
     
-    const userDomain = userinfo.hd || userEmail.split("@")[1];
+    // Safely extract domain from email with explicit check for split result
+    const emailParts = userEmail.split("@");
+    const emailDomain = emailParts.length === 2 ? emailParts[1] : "";
+    const userDomain = userinfo.hd || emailDomain;
     
     // Defensive check: ensure we have a valid domain after extraction
     if (!userDomain) {

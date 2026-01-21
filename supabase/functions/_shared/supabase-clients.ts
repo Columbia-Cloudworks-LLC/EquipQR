@@ -14,7 +14,21 @@ import { corsHeaders } from "./cors.ts";
 // Constants
 // =============================================================================
 
-/** Maximum length for error messages before they're considered to contain debug info */
+/**
+ * Maximum length for error messages before they're considered to contain debug info.
+ *
+ * Rationale for 200 characters:
+ * - In our API and edge functions, user-facing error messages are intentionally short
+ *   (typically < 120 characters) and do not include stack traces or SQL/query details.
+ * - Messages significantly longer than ~200 characters are more likely to contain
+ *   debug information (stack traces, SQL fragments, internal identifiers) that we
+ *   don't want to surface directly to clients or log in full.
+ * - This limit also reduces the risk and impact of log injection / log flooding
+ *   by constraining the amount of untrusted text we propagate.
+ *
+ * If product requirements change and we need to show more verbose messages, update
+ * this threshold in tandem with a review of error-sanitization and logging behavior.
+ */
 const MAX_ERROR_MESSAGE_LENGTH = 200;
 
 /** 
