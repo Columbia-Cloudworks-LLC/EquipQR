@@ -307,7 +307,7 @@ function isErrorMessageSafe(error: string): boolean {
 
   // First, allow explicitly safe messages regardless of minimum length.
   // This ensures short but known-safe messages (e.g., "Gone") are not blocked.
-  if ( SAFE_ERROR_PATTERNS.some((pattern) => pattern.test(error)) ) {
+  if (SAFE_ERROR_PATTERNS.some((pattern) => pattern.test(error))) {
     return true;
   }
 
