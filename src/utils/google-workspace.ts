@@ -88,10 +88,6 @@ function loadConsumerGoogleDomains(): readonly string[] {
       // Keep configured domains as-is; final deduplication on the combined array is sufficient
       configuredDomains = parsed;
     }
-      .filter((domain) => domain.length > 0);
-
-    // Keep configured domains as-is; final deduplication on the combined array is sufficient
-    configuredDomains = parsed;
   }
 
   const combined = [
