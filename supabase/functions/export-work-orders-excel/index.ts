@@ -732,7 +732,7 @@ Deno.serve(async (req) => {
     }
 
     // Create user-scoped client (RLS enforced)
-    supabase = createUserSupabaseClient(req);
+    const supabase = createUserSupabaseClient(req);
 
     // Validate user authentication
     const auth = await requireUser(req, supabase);
