@@ -1,0 +1,20 @@
+---
+description: RLS policies, auth, and database interaction rules.
+globs: supabase/**/*.sql, src/services/**/*.ts, src/types/supabase.ts
+---
+# Security & Supabase
+
+## Row Level Security (RLS)
+- **CRITICAL:** Never bypass RLS in the client.
+- **Tenant Isolation:** Every table must have RLS ensuring `organization_id` matches the user's session.
+
+## Data Access
+- **Failsafe:** All queries MUST explicitly filter by `organization_id` even with RLS enabled.
+  ```typescript
+  .eq('organization_id', orgId)
+  ```
+- **Auth:** Use useAuth() for session. Never trust local storage.
+
+## Mutations
+ - **Optimistic Updates:** Implement in TanStack Query for immediate UI feedback.
+ - **Rollback:** Always rollback on error and show a toast.

@@ -1,0 +1,23 @@
+---
+description: Architectural patterns, file structure, and data flow.
+globs: src/**/*
+---
+# Architecture
+
+## Project Structure
+- `src/pages/`: Route-level components (Lazy loaded).
+- `src/components/[feature]/`: Feature-specific logic (e.g., `work-orders/`).
+- `src/components/ui/`: Reusable primitives (Shadcn). NO business logic.
+- `src/services/`: Stateless Supabase API calls.
+- `src/hooks/`: React Query wrappers and custom logic.
+
+## Patterns
+- **Container/Presentational:**
+  - **Containers:** Handle `useQuery`, mutations, and `organization_id`.
+  - **Presentational:** Pure UI, receiving data via props.
+- **Data Flow:** Service -> Hook (React Query) -> Component.
+
+## Naming
+- **Files:** `kebab-case` (`equipment-list.tsx`).
+- **Components:** `PascalCase` (`EquipmentList`).
+- **Hooks:** `camelCase` (`useEquipment`).

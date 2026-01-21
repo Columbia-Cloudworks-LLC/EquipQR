@@ -1,40 +1,23 @@
 ---
-description: Code style, TypeScript, and performance standards.
+description: Code style, TypeScript strictness, and performance.
 globs: src/**/*.{ts,tsx}
-alwaysApply: true
 ---
 # Coding Standards
 
-## TypeScript & Types
-
-- **Strict Typing**: No `any`. Use `unknown` if necessary, but prefer explicit interfaces.
-- **Interfaces**: Define in `src/types/`. Name them `PascalCase` (e.g., `interface Equipment`).
-- **Props**: Explicitly type component props (e.g., `React.FC<EquipmentProps>`).
-
-## Naming Conventions
-
-- **Variables/Functions**: `camelCase` (`fetchEquipment`).
-- **Constants**: `UPPER_SNAKE_CASE` (`DEFAULT_STALE_TIME`).
-- **Query Keys**: Array format with dependencies (`['equipment', orgId, { status }]`).
-
-## Error Handling
-
-- **Services**: Use `try/catch`. Throw descriptive errors.
-- **UI**: Use `useAppToast` for user feedback.
-
-  ```typescript
-  const { toast } = useAppToast();
-  // ... onError: () => toast({ title: "Error", variant: "destructive" })
-  ```
+## TypeScript
+- **Strict Typing:** No `any`. Use `unknown` if necessary.
+- **Interfaces:** Define in `src/types/`. Name them `PascalCase`.
+- **Props:** Explicitly type all component props (e.g., `React.FC<Props>`).
 
 ## Performance
+- **React:** Use `useMemo` for expensive calcs. Use `useCallback` for functions passed to children.
+- **Imports:** Use absolute imports `@/` (configured in tsconfig).
+- **Supabase:** Always use `.select('id, name')` to fetch ONLY needed fields.
 
-- **Memoization**: Use useMemo for expensive calculations and useCallback for stable function references passed to children.
-- **Imports**: Avoid circular dependencies. Use absolute imports @/ configured in tsconfig.json.
-- **Query Optimization**: In Supabase queries, always use .select('id, name, ...') to fetch only needed fields.
-
-## Linting
-
-- Ensure code passes eslint.config.js.
-- No unused variables.
-- React Hooks dependencies must be exhaustive.
+## Error Handling
+- **Services:** Throw descriptive errors.
+- **UI:** Use `useAppToast` for feedback.
+  ```typescript
+  const { toast } = useAppToast();
+  // onError: () => toast({ title: "Error", variant: "destructive" })
+  ```
