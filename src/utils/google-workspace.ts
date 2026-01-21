@@ -66,7 +66,11 @@ function loadConsumerGoogleDomains(): readonly string[] {
   // NOTE: This only works in Node.js/server-side environments (Edge Functions, SSR).
   // In browser contexts (Vite builds), process.env is undefined and this block is skipped,
   // meaning only DEFAULT_CONSUMER_GOOGLE_DOMAINS will be used.
-  if (isServerEnvironment() && process.env.CONSUMER_GOOGLE_DOMAINS) {
+  if (
+    isServerEnvironment() &&
+    typeof process.env !== 'undefined' &&
+    process.env.CONSUMER_GOOGLE_DOMAINS
+  ) {
     // If this is executing in a browser, having a runtime environment variable here
     // indicates a build configuration issue (env should be injected at build time).
     if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
