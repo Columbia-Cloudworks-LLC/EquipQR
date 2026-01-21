@@ -1,0 +1,10 @@
+---
+description: "Performance Optimization Guidelines"
+globs: "**/*.{ts,tsx}"
+---
+# Performance
+
+- **Memoization:** Use `useMemo` for expensive calculations and `useCallback` for functions passed as props to optimized children.
+- **Query Configuration:** Set appropriate `staleTime` for queries to avoid fetching too frequently (default to at least 1-5 minutes for non-critical data).
+- **Code Splitting:** Use `React.lazy` for heavy feature routes/pages.
+- **Images:** Use optimized image formats and appropriate sizing.

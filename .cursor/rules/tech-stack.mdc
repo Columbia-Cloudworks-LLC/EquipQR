@@ -1,22 +1,17 @@
 ---
-description: Global tech stack, tool usage strategy, and behavioral constraints.
-globs: *
-alwaysApply: true
+description: "Core Technology Stack & Versioning"
+globs: "*"
 ---
-# Tech Stack & Strategy
+# Technology Stack
 
-## Core Stack
-- **Frontend:** React 18+ (Vite), TypeScript 5.5+, Tailwind CSS 3.4.
-- **Backend:** Supabase (PostgreSQL, Edge Functions, RLS).
-- **State:** TanStack Query v5 (Server State), React Context (Global Client State).
-- **UI Library:** Shadcn UI (Radix Primitives) + Lucide React Icons.
-
-## Behavioral Rules
-- **Tool Usage:** PROACTIVE. Run `grep` or `codebase_search` before creating new files to avoid duplicates.
-- **Output Format:** Use `// ... existing code ...` to keep responses concise. Focus on the changed lines only.
-- **Files:** Prioritize non-breaking changes. If a rule conflicts with a user request, ask for clarification.
-
-## Critical Constraints
-- **Multi-Tenancy:** ALL data fetching and mutations MUST include `organization_id`.
-- **Styling:** Use Tailwind utility classes ONLY. No inline styles.
-- **Strict Mode:** No `any`. No `console.log` in production code.
+- **Framework:** React 18.3+ with TypeScript 5.6+
+- **Build Tool:** Vite 5.4+
+- **Styling:** Tailwind CSS 3.4+ with `shadcn/ui` components
+- **Backend/Database:** Supabase (PostgreSQL, Auth, Storage, Edge Functions)
+- **State Management:**
+  - Server State: TanStack Query (React Query) v5
+  - Form State: React Hook Form + Zod validation
+  - Global UI State: React Context (minimal usage)
+- **Routing:** React Router v6
+- **Testing:** Vitest + React Testing Library
+- **Icons:** Lucide React

@@ -1,20 +1,18 @@
 ---
-description: Design tokens, Shadcn components, and responsive guidelines.
-globs: src/**/*.{ts,tsx,css}
+description: "UI/UX & Design System Guidelines"
+globs: "**/*.tsx"
 ---
-# UI System
+# Design System
 
-## Design Tokens
-- **Colors:** Use CSS variables (e.g., `bg-primary`, `text-muted-foreground`) from `src/index.css`.
-- **Spacing:** Use Tailwind classes.
-- **Breakpoints:** Mobile-first. Respect `xs: 475px` from config.
+## Components
+- **Primary Source:** ALWAYS check `src/components/ui` for existing components (shadcn/ui) before creating new ones.
+- **Composition:** Compose complex UIs using `Card`, `Dialog`, `Sheet`, etc.
 
-## Component Usage
-- **Primitives:** check `src/components/ui/` first. Do not reinvent Button/Input.
-- **Layout:** Use `Page` for layout, `PageHeader` for titles.
-- **Loading:** Use `Skeleton` components, not spinners.
-- **Empty States:** Use `EmptyState` component.
+## Styling (Tailwind CSS)
+- **Utility First:** Use Tailwind utility classes. Avoid custom CSS modules or `style` tags.
+- **Responsiveness:** Mobile-first approach. Use `sm:`, `md:`, `lg:` prefixes.
+- **Spacing:** Use standard Tailwind spacing (e.g., `gap-4`, `p-6`).
+- **Colors:** Use semantic colors defined in `tailwind.config.ts` (e.g., `bg-primary`, `text-muted-foreground`) rather than hardcoded hex values.
 
-## Forms
-- Use `src/components/form/` wrappers (`TextField`, `SelectField`).
-- Ensure all inputs have labels and `aria-describedby` for errors.
+## Icons
+- Use `lucide-react` for all icons.

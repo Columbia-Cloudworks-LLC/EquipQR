@@ -1,23 +1,17 @@
 ---
-description: Architectural patterns, file structure, and data flow.
-globs: src/**/*
+description: "Architectural Patterns & Data Flow"
+globs: "**/*.{ts,tsx}"
 ---
 # Architecture
 
-## Project Structure
-- `src/pages/`: Route-level components (Lazy loaded).
-- `src/components/[feature]/`: Feature-specific logic (e.g., `work-orders/`).
-- `src/components/ui/`: Reusable primitives (Shadcn). NO business logic.
-- `src/services/`: Stateless Supabase API calls.
-- `src/hooks/`: React Query wrappers and custom logic.
+## Data Fetching
+- **Read Operations:** Use custom hooks wrapping `useQuery`. Define keys in `src/lib/queryKeys.ts` (if available) or a dedicated factory.
+- **Write Operations:** Use custom hooks wrapping `useMutation`. Always invalidate relevant query keys upon success.
 
-## Patterns
-- **Container/Presentational:**
-  - **Containers:** Handle `useQuery`, mutations, and `organization_id`.
-  - **Presentational:** Pure UI, receiving data via props.
-- **Data Flow:** Service -> Hook (React Query) -> Component.
+## Service Layer
+- **Supabase Interaction:** UI components MUST NOT call `supabase` directly.
+- **Service Files:** Create service functions in `src/features/<feature>/services/` (e.g., `workOrderService.ts`) that return typed promises.
 
-## Naming
-- **Files:** `kebab-case` (`equipment-list.tsx`).
-- **Components:** `PascalCase` (`EquipmentList`).
-- **Hooks:** `camelCase` (`useEquipment`).
+## State
+- Prefer **Server State** (React Query) over **Global State** (Context/Redux).
+- Use Context only for truly global app data (Auth, Theme, Toast).

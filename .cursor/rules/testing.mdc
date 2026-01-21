@@ -1,15 +1,11 @@
 ---
-description: Vitest standards, mocking, and coverage.
-globs: **/*.test.ts, **/*.spec.ts, vitest.config.ts
+description: "Testing Standards"
+globs: "**/*.test.{ts,tsx}"
 ---
 # Testing
 
-## Standards
-- **Framework:** Vitest. Run `npm test`.
-- **Coverage:** Aim for >80%.
-- **No Live DB:** Mock Supabase calls using `msw` or internal mocks.
-
-## Pre-Commit Checklist
-1. `npm run lint`
-2. `npm run type-check`
-3. Ensure no new console warnings.
+- **Framework:** Vitest + React Testing Library.
+- **Location:** Co-locate tests with source files (e.g., `Feature.tsx` -> `Feature.test.tsx`).
+- **Philosophy:** Test behavior, not implementation details.
+- **Mocking:** Mock Supabase client calls and Service layer functions. Do not mock internal component state logic if possible.
+- **Selectors:** Use accessible selectors (`getByRole`, `getByLabelText`) over `getByTestId` when possible.

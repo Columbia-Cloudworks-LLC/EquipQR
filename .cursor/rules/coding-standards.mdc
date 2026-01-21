@@ -1,23 +1,25 @@
 ---
-description: Code style, TypeScript strictness, and performance.
-globs: src/**/*.{ts,tsx}
+description: "Code Style, Structure & Naming Conventions"
+globs: "**/*.{ts,tsx}"
 ---
 # Coding Standards
 
-## TypeScript
-- **Strict Typing:** No `any`. Use `unknown` if necessary.
-- **Interfaces:** Define in `src/types/`. Name them `PascalCase`.
-- **Props:** Explicitly type all component props (e.g., `React.FC<Props>`).
+## Folder Structure
+- **Feature-Based:** Organize code by feature in `src/features/<feature-name>/`.
+  - `components/`: Feature-specific UI
+  - `hooks/`: Logic and state
+  - `services/`: API/Supabase interaction
+  - `types/`: Domain interfaces
+- **Shared:** Generic UI goes in `src/components/ui` or `src/components/common`.
 
-## Performance
-- **React:** Use `useMemo` for expensive calcs. Use `useCallback` for functions passed to children.
-- **Imports:** Use absolute imports `@/` (configured in tsconfig).
-- **Supabase:** Always use `.select('id, name')` to fetch ONLY needed fields.
+## Naming Conventions
+- **Components:** PascalCase (e.g., `WorkOrderCard.tsx`)
+- **Hooks:** camelCase with `use` prefix (e.g., `useWorkOrderData.ts`)
+- **Functions:** camelCase (e.g., `calculateTotalCost`)
+- **Types:** PascalCase, no `I` prefix (e.g., `interface WorkOrder`)
 
-## Error Handling
-- **Services:** Throw descriptive errors.
-- **UI:** Use `useAppToast` for feedback.
-  ```typescript
-  const { toast } = useAppToast();
-  // onError: () => toast({ title: "Error", variant: "destructive" })
-  ```
+## Best Practices
+- **Strict Typing:** No `any`. Use `unknown` if necessary and narrow types.
+- **Imports:** Use absolute imports (e.g., `import { Button } from "@/components/ui/button"`).
+- **Exports:** Use named exports, avoid default exports for components.
+- **Logic Separation:** Extract complex logic from UI components into custom hooks.
