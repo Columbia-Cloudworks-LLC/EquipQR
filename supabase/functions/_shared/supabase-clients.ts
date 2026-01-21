@@ -282,6 +282,9 @@ const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Rate limit exceeded/,
   /^Invitation not found$/,
   
+  // OAuth configuration errors
+  /^Invalid OAuth redirect (base URL )?configuration$/,
+  
   // Safe operational messages
   /^Failed to (verify|fetch|store|decrypt|send)/,
   /^An unexpected error occurred$/,
