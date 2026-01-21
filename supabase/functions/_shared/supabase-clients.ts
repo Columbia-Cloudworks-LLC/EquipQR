@@ -179,6 +179,12 @@ export async function requireUser(
   ) {
     return { error: "Invalid authorization header format", status: 401 };
   }
+
+  // Validate token with Supabase Auth
+  const { data: { user }, error } = await supabaseClient.auth.getUser(credentials);
+
+  if (error || !user) {
+    // Provide user-friendly error messages based on the error type
     let authErrorMessage = "Authentication failed";
 
     if (error && typeof error.message === "string") {
@@ -204,11 +210,7 @@ export async function requireUser(
 
     return {
       error: authErrorMessage,
-      status: 401
-  if (error || !user) {
-    return { 
-      error: error?.message || "Invalid or expired token", 
-      status: 401 
+      status: 401,
     };
   }
 
