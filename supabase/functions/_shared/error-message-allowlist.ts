@@ -55,6 +55,7 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^No authorization header provided$/,
   /^Invalid authorization header format$/,
   /^Invalid or expired token$/,
+  /^Unauthorized: Empty token$/,
   /^User email not available$/,
   /^Only organization (owners|admins|administrators) can /,
   /^Forbidden: /,
