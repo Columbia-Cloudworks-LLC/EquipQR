@@ -9,7 +9,7 @@
 
 import { createClient, SupabaseClient, User } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "./cors.ts";
-import { SAFE_ERROR_PATTERNS, ALLOWED_VALIDATION_FIELDS } from "./error-message-allowlist.ts";
+import { SAFE_ERROR_PATTERNS } from "./error-message-allowlist.ts";
 
 // =============================================================================
 // Constants
