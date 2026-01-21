@@ -163,14 +163,18 @@ export async function requireUser(
   // Parse Authorization header with case-insensitive scheme detection
   // JWTs and API tokens should not contain spaces, so we require exactly 2 parts
   const parts = authHeader.trim().split(/\s+/);
-  const scheme = parts[0];
-  const credentials = parts[1];
+
+  // Fail fast if the basic structure is not exactly "Bearer <token>"
+  if (!parts[0] || !parts[1] || parts.length !== 2) {
+    return { error: "Invalid authorization header format", status: 401 };
+  }
+
+  const [scheme, credentials] = parts;
 
   if (
     !scheme ||
     scheme.toLowerCase() !== "bearer" ||
     !credentials ||
-    parts.length !== 2 ||
     /\s/.test(credentials)
   ) {
     return { error: "Invalid authorization header format", status: 401 };
