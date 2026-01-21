@@ -132,13 +132,19 @@ export async function decryptToken(encrypted: string, secret: string): Promise<s
 
 /**
  * Minimum required length for the encryption key.
- * 
- * A 32-character key provides sufficient entropy when processed with PBKDF2.
- * Since PBKDF2 derives a 256-bit (32-byte) key, a 32-character input ensures
- * adequate source entropy before derivation. Using a shorter key would reduce the
- * effective entropy of the derived key material.
- * 
- * For production, use a cryptographically random 32+ character string.
+ *
+ * This value is measured using JavaScript's `string.length`, which counts
+ * UTF-16 code units (not bytes and not Unicode code points). A minimum of
+ * 32 UTF-16 code units provides sufficient entropy when processed with PBKDF2.
+ * Since PBKDF2 derives a 256-bit (32-byte) key, a 32-code-unit input ensures
+ * adequate source entropy before derivation. Using a shorter key would reduce
+ * the effective entropy of the derived key material.
+ *
+ * Note: For non-ASCII input, some visible characters (e.g., emoji or certain
+ * symbols) may consume two UTF-16 code units each. This means a visually
+ * shorter string can still meet the `MIN_KEY_LENGTH` check. For predictable
+ * behavior and maximum entropy, prefer cryptographically random ASCII (or
+ * otherwise single-code-unit) secrets of length 32 or greater.
  */
 const MIN_KEY_LENGTH = 32;
 
