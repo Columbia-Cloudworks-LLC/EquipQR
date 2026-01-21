@@ -209,9 +209,13 @@ Deno.serve(async (req) => {
       throw new Error("Missing authorization code");
     }
 
+    if (!stateParam) {
+      throw new Error("Missing state parameter");
+    }
+
     let state: OAuthState;
     try {
-      state = stateParam ? JSON.parse(atob(stateParam)) : null;
+      state = JSON.parse(atob(stateParam));
     } catch {
       throw new Error("Invalid state parameter");
     }

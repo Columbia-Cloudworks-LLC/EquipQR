@@ -114,6 +114,18 @@ Deno.serve(async (req) => {
       return createErrorResponse("Only organization administrators can sync Workspace users", 403);
     }
 
+    // SECURITY NOTE: We use the admin client for these operations because:
+    // 1. google_workspace_credentials contains encrypted OAuth tokens that should
+    //    not be directly accessible via RLS (even to org admins in the app layer)
+    // 2. google_workspace_directory_users is a sync target that requires bulk upserts
+    //
+    // Authorization is enforced at the application layer:
+    // - User authentication verified via requireUser() above
+    // - Org admin status verified via verifyOrgAdmin() above
+    // - organizationId is validated against the user's membership
+    //
+    // Defense-in-depth: We still filter by organizationId to ensure the admin client
+    // only accesses data for the verified organization.
     const adminClient = createAdminSupabaseClient();
     const { data: creds, error: credsError } = await adminClient
       .from("google_workspace_credentials")

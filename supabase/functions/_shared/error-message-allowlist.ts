@@ -51,10 +51,15 @@ const ALLOWED_FIELDS_PATTERN = ALLOWED_VALIDATION_FIELDS.join('|');
  * only known-safe messages reach clients.
  */
 export const SAFE_ERROR_PATTERNS: RegExp[] = [
-  // Authentication/Authorization errors
+  // Authentication/Authorization errors (from requireUser)
   /^No authorization header provided$/,
   /^Invalid authorization header format$/,
   /^Invalid or expired token$/,
+  /^Authentication failed$/,
+  /^Token has expired$/,
+  /^Invalid token format$/,
+  /^User session not found for provided token$/,
+  /^User not found for provided token$/,
   /^Unauthorized: Empty token$/,
   /^User email not available$/,
   /^Only organization (owners|admins|administrators) can /,
