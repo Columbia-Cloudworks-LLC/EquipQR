@@ -53,20 +53,10 @@ const STATE_TTL_MS = 15 * 60 * 1000;
 const MAX_CLOCK_SKEW_MS = 2 * 60 * 1000;
 
 /**
- * Normalizes a domain for consistent storage and matching.
- * This mirrors the SQL normalize_domain() function.
- * Returns empty string for null/undefined inputs to match SQL behavior.
- *
- * Note: While current call sites always pass a string (due to the fallback
- * on line 369), this function still accepts nullable values for API parity
- * with the SQL function and to support potential future callers.
+ * This mirrors the SQL normalize_domain() function for non-null inputs.
+ * Expects a defined domain string; callers should provide a fallback if needed.
  */
-function normalizeDomain(domain: string | null | undefined): string {
-  // Coalesce null/undefined to empty string, mirroring SQL COALESCE behavior.
-  const value = domain ?? "";
-  if (value === "") {
-    return "";
-  }
+function normalizeDomain(domain: string): string {
   return value.toLowerCase().trim();
 }
 
