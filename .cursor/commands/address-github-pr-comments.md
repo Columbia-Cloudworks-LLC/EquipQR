@@ -1,34 +1,89 @@
+---
+description: "Workflow to resolve PR feedback using GitHub MCP tools and project standards."
+triggers: ["/fix-pr", "/pr-comments"]
+---
+
 # Address GitHub PR Comments
 
-## Context & constraints
-- **Goal:** Resolve outstanding PR feedback for the current branch.
-- **Tooling Rule:** You MUST use the available MCP tools (`user-github` server) to read and reply to comments.
-- **Prohibition:** DO NOT use `gh` CLI commands or `git log` to find comments unless the MCP tools explicitly fail.
+**Goal:** Resolve outstanding PR feedback for the current branch efficiently and safely.
+**Constraint:** Use **GitHub MCP Tools** exclusively for PR interaction. Do NOT hallucinate `gh` CLI commands.
 
 ## Steps
 
-1. **Identify the PR**
-   - Check the current git branch name to infer the context.
-   - Ask the user for the PR number if it is not provided in the chat and cannot be inferred. (Do NOT assume PR #42).
+1. **Identify Context**
+   - **Branch Check:** Run `git branch --show-current` to confirm the active feature branch.
+   - **PR Lookup:**
+     - Use `mcp_github_list_pull_requests` (state: "OPEN") to find the PR matching this branch.
+     - *If ambiguous:* Ask user for the specific PR number.
 
-2. **Fetch Review Context**
-   - Use the `pull_request_read` tool with `method: "get_review_comments"` to fetch unresolved threads.
-   - Use `pull_request_read` with `method: "get_files"` to see the file scope.
-   - Use `pull_request_read` with `method: "get_status"` to check CI health.
+2. **Fetch & Triage**
+   - **Get Comments:** Use `mcp_github_pull_request_read` with `method: "get_review_comments"`.
+   - **Get Files:** Use `mcp_github_pull_request_read` with `method: "get_files"` to scope the work.
+   - **Triage:** Filter for **UNRESOLVED** threads only. Group them by file.
 
-3. **Plan & Execute**
-   - **Audit:** Group comments by file. Ignore "resolved" or "outdated" comments unless relevant.
-   - **Plan:** specific code changes for each unresolved thread.
-   - **Implement:** Apply fixes one by one. Run relevant tests after changes.
+3. **Plan & Implement**
+   - **Standards Check:** Before fixing, review:
+     - `.cursor/rules/coding-standards.mdc` (if UI/React related).
+     - `.cursor/rules/supabase-migrations.mdc` (if DB related).
+   - **Execution:**
+     - Apply fixes file-by-file.
+     - *Crucial:* If a comment requests a style change, ensure it matches `shadcn/ui` patterns.
 
-4. **Response Strategy**
-   - Once fixes are applied, use `add_comment_to_pending_review` (or equivalent) to draft replies.
-   - **Format:** "Fixed in [commit-hash]. [Brief explanation]."
-   - Ask the user before submitting the final review/comments if you are unsure.
+4. **Verify (Strict)**
+   - **Local Check:**
+     - Run `npm run typecheck` (Frontend).
+     - Run `npm test` (Unit tests).
+     - Run `/supabase-audit` (if DB schema changed).
+   - **CI Health:** Use `mcp_github_pull_request_read` (method: "get_status") to ensure the *current* build isn't already broken.
 
-## Response Checklist
-- [ ] Correct PR number identified.
-- [ ] All UNRESOLVED comments listed and addressed.
-- [ ] CI status checked.
-- [ ] Code changes implemented.
-- [ ] Replies drafted (but not sent without confirmation).
+5. **Response Strategy**
+   - **Commit:** `git commit -am "fix: address review comments for PR #<number>"`
+   - **Reply:** Use `mcp_github_add_pull_request_review_comment` (or general comment).
+     - *Template:* "Fixed in [commit-hash]. [Brief explanation]."
+   - **Validation:** Ask user: "Draft replies prepared. Ready to push and submit?"
+
+## MCP Tool Reference
+
+### Fetch PR Context
+```typescript
+mcp_github_list_pull_requests({
+  owner: "columbia-cloudworks-llc",
+  repo: "EquipQR-preview",
+  state: "OPEN"
+})
+
+```
+
+### Fetch Comments
+
+```typescript
+mcp_github_pull_request_read({
+  owner: "...",
+  repo: "...",
+  pull_number: 123,
+  method: "get_review_comments"
+})
+
+```
+
+### Reply to Review
+
+```typescript
+// For a general PR comment
+mcp_github_add_issue_comment({
+  owner: "...",
+  repo: "...",
+  issue_number: 123, // PRs are issues in API
+  body: "Addressed all comments in commit..."
+})
+
+```
+
+## Completion Checklist
+
+* [ ] PR identified & matching branch confirmed.
+* [ ] Unresolved comments extracted via MCP.
+* [ ] Fixes applied following `.cursor/rules`.
+* [ ] `npm run typecheck` passed.
+* [ ] Changes committed.
+* [ ] User confirmation obtained before pushing.

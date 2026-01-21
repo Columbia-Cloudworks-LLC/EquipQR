@@ -1,140 +1,95 @@
+---
+description: "Workflow to analyze, plan, and resolve GitHub issues using MCP tools"
+triggers: ["/fix-issue", "/gh-issue"]
+---
+
 # Address GitHub Issue
 
 ## Overview
 
-Discover, analyze, and resolve GitHub issues using GitHub MCP tools. This workflow guides you through identifying specific issues, understanding their context, implementing fixes, and providing updates.
+Discover, analyze, and resolve GitHub issues for the **EquipQR** project. This workflow enforces branch discipline, project standards (Supabase/React), and strict verification.
 
 ## Steps
 
-1. **Discover and identify the issue**
-   - Use the `mcp_github_get_me` tool to get repository owner information if needed
-   - Use the `mcp_github_list_issues` tool to list issues in the repository
-     - Required parameters: `owner` (repository owner), `repo` (repository name)
-     - Optional filters: `state` (OPEN/CLOSED), `labels` (array of label names), `orderBy` (CREATED_AT/UPDATED_AT/COMMENTS), `direction` (ASC/DESC), `perPage` (1-100)
-     - For pagination: use the `after` parameter with `endCursor` from previous response's `pageInfo`
-   - Filter results to identify the specific issue(s) to address
+1. **Discover & Identify**
+   - Use `mcp_github_list_issues` to find OPEN issues.
+     - *Parameters:* `owner`, `repo`, `state: "OPEN"`.
+   - Filter by labels if provided (e.g., `bug`, `enhancement`).
+   - *Output:* confirm the Issue Number and Title to work on.
 
-2. **Analyze the issue**
-   - Use `mcp_github_issue_read` with `method: "get"` to retrieve full issue details
-     - Required: `owner`, `repo`, `issue_number`, `method: "get"`
-   - Use `mcp_github_issue_read` with `method: "get_comments"` to read all comments
-     - Required: `owner`, `repo`, `issue_number`, `method: "get_comments"`
-     - Optional: `page`, `perPage` for pagination
-   - Use `mcp_github_issue_read` with `method: "get_labels"` to see assigned labels
-     - Required: `owner`, `repo`, `issue_number`, `method: "get_labels"`
-   - Use `mcp_github_issue_read` with `method: "get_sub_issues"` to check for sub-issues if applicable
-   - Review issue description, comments, labels, and any linked code/files to understand the problem
+2. **Analyze & Contextualize**
+   - **Read Issue:** Use `mcp_github_issue_read` (method: "get") to get the description.
+   - **Read Comments:** Use `mcp_github_issue_read` (method: "get_comments") to capture the latest discussion.
+   - **Codebase Search:** Before planning, use codebase search to locate relevant files mentioned in the issue.
+   - **Check Standards:** ALWAYS review `.cursor/rules/tech-stack.mdc` and `.cursor/rules/coding-standards.mdc` to ensure compliance.
 
-3. **Plan the resolution**
-   - Break down the issue into actionable tasks
-   - Identify dependencies, blockers, or clarification needs
-   - Determine if code changes, documentation updates, or configuration changes are required
-   - Note any related files or components that need modification
+3. **Plan & Branch**
+   - **Create Branch:** Create a dedicated branch for this issue.
+     - *Format:* `git checkout -b fix/{issue_number}-{short-description}` or `feat/{issue_number}-{short-description}`.
+   - **Strategy:** Outline the changes required.
+     - If DB changes are needed: Reference `.cursor/rules/supabase-migrations.mdc`.
+     - If UI changes are needed: Reference `.cursor/rules/design-system.mdc`.
 
-4. **Implement fixes**
-   - Make necessary code changes, following project standards
-   - Run relevant tests and linters to verify fixes
-   - Create commits with clear messages referencing the issue (e.g., "Fix #123: resolve authentication bug")
-   - Ensure changes address the root cause, not just symptoms
+4. **Implement Fixes**
+   - Apply code changes in the specific feature folder (`src/features/...`).
+   - Ensure all new components use `shadcn/ui` (per Design System).
+   - If modifying database: Create a migration file `YYYYMMDDHHMMSS_description.sql`.
 
-5. **Respond and update the issue**
-   - Use `mcp_github_add_issue_comment` to provide updates on progress
-     - Required: `owner`, `repo`, `issue_number`, `body` (comment content)
-     - Explain what was changed, why, and how to verify the fix
-     - Link to relevant commits or code sections when helpful
-   - Use `mcp_github_issue_write` with `method: "update"` to modify issue state or metadata
-     - Required: `method: "update"`, `owner`, `repo`, `issue_number`
-     - Optional: `state: "closed"` with `state_reason: "completed"` when issue is resolved
-     - Optional: `labels` to add/update labels (e.g., "fixed", "verified")
-     - Optional: `assignees` to assign the issue to team members
-   - If the issue requires follow-up, clearly document what remains
+5. **Verify (Strict)**
+   - **Type Check:** Run `npm run typecheck` to ensure no TypeScript errors.
+   - **Test:** Run `npm test` or specific test files related to the change.
+   - **Lint:** Run `npm run lint` to ensure code style compliance.
+
+6. **Commit & Respond**
+   - **Commit:** Create a commit referencing the issue.
+     - *Format:* `git commit -m "fix: #123 resolve authentication bug"`
+   - **Update Issue:** Use `mcp_github_add_issue_comment` to post a summary.
+     - *Content:* "Fix implemented in branch `[branch-name]`. Changes: [summary]. Verified via `npm test`."
+   - **Close (Optional):** If the fix is merged or the user requests, use `mcp_github_issue_write` to close.
 
 ## MCP Tool Reference
 
-### Discover Issues
+### Discover
 
 ```typescript
-// List open issues
 mcp_github_list_issues({
-  owner: "organization-or-username",
-  repo: "repository-name",
+  owner: "columbia-cloudworks-llc", // Default for this project
+  repo: "EquipQR-preview",          // Default for this project
   state: "OPEN",
-  orderBy: "UPDATED_AT",
-  direction: "DESC",
-  perPage: 50
+  perPage: 20
 })
 
-// List issues with specific labels
-mcp_github_list_issues({
-  owner: "organization-or-username",
-  repo: "repository-name",
-  state: "OPEN",
-  labels: ["bug", "priority-high"],
-  orderBy: "CREATED_AT",
-  direction: "ASC"
-})
 ```
 
-### Read Issue Details
+### Read
 
 ```typescript
-// Get issue details
 mcp_github_issue_read({
   method: "get",
-  owner: "organization-or-username",
-  repo: "repository-name",
+  owner: "...",
+  repo: "...",
   issue_number: 123
 })
 
-// Get issue comments
-mcp_github_issue_read({
-  method: "get_comments",
-  owner: "organization-or-username",
-  repo: "repository-name",
-  issue_number: 123,
-  page: 1,
-  perPage: 100
-})
-
-// Get issue labels
-mcp_github_issue_read({
-  method: "get_labels",
-  owner: "organization-or-username",
-  repo: "repository-name",
-  issue_number: 123
-})
 ```
 
-### Update Issue
+### Update
 
 ```typescript
-// Add a comment
 mcp_github_add_issue_comment({
-  owner: "organization-or-username",
-  repo: "repository-name",
+  owner: "...",
+  repo: "...",
   issue_number: 123,
-  body: "Fixed in commit abc123. The issue was caused by..."
+  body: "Fix deployed to preview..."
 })
 
-// Close issue as completed
-mcp_github_issue_write({
-  method: "update",
-  owner: "organization-or-username",
-  repo: "repository-name",
-  issue_number: 123,
-  state: "closed",
-  state_reason: "completed",
-  labels: ["fixed", "verified"]
-})
 ```
 
 ## Completion Checklist
 
-- [ ] Issue identified using `list_issues` with appropriate filters
-- [ ] Full issue details retrieved including description, comments, and labels
-- [ ] Problem understood and root cause identified
-- [ ] Fix implemented and tested (code changes, tests, linting)
-- [ ] Commits created with clear messages referencing the issue
-- [ ] Progress update posted as issue comment using `add_issue_comment`
-- [ ] Issue closed (if resolved) using `issue_write` with appropriate state and labels
-- [ ] Any follow-up items documented in issue comments
+- [ ] Correct Issue selected and analyzed.
+- [ ] **Feature Branch** created (not on main).
+- [ ] Code changes follow `tech-stack` and `coding-standards`.
+- [ ] `npm run typecheck` passed.
+- [ ] Commit message includes Issue #.
+- [ ] GitHub Comment posted with update.
