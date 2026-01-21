@@ -497,7 +497,10 @@ Deno.serve(async (req) => {
     // IMPORTANT: We use the index name instead of column names because this is a
     // functional index (normalize_domain(domain)). Column-based onConflict resolution
     // cannot target expression indexes - PostgreSQL requires the exact index name
-    // when the uniqueness constraint involves a function call.
+    // when the uniqueness constraint involves a function call. If you instead try to
+    // use column names here (e.g. "organization_id,domain"), PostgreSQL will fail
+    // the statement with an error similar to:
+    //   "there is no unique or exclusion constraint matching the ON CONFLICT specification".
     const { error: upsertError } = await supabaseClient
       .from("google_workspace_credentials")
       .upsert({
