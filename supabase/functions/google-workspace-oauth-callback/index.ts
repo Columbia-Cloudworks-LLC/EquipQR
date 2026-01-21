@@ -57,7 +57,7 @@ const MAX_CLOCK_SKEW_MS = 2 * 60 * 1000;
  * Expects a defined domain string; callers should provide a fallback if needed.
  */
 function normalizeDomain(domain: string): string {
-  return value.toLowerCase().trim();
+  return domain.toLowerCase().trim();
 }
 
 
