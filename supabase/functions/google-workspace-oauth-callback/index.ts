@@ -60,6 +60,34 @@ function normalizeDomain(domain: string): string {
   return domain.toLowerCase().trim();
 }
 
+/**
+ * Validates that an email address is well-formed.
+ * 
+ * Uses a regex pattern to ensure:
+ * - At least one non-whitespace, non-@ character before @
+ * - Exactly one @ symbol
+ * - At least one non-whitespace, non-@ character after @
+ * - At least one dot after @
+ * - At least one character after the dot
+ * 
+ * This prevents malformed emails like:
+ * - @domain.com (missing local part)
+ * - user@@domain.com (multiple @ symbols)
+ * - user@ (missing domain)
+ * - @domain (missing local part and TLD)
+ * 
+ * @param email - The email address to validate
+ * @returns true if the email is well-formed, false otherwise
+ */
+function isValidEmail(email: string | null | undefined): boolean {
+  if (!email || typeof email !== 'string') {
+    return false;
+  }
+  // Regex pattern matching the frontend validation: /[^\s@]+@[^\s@]+\.[^\s@]+/
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
 
 /**
  * Checks if we're running in a production environment.
@@ -370,7 +398,7 @@ Deno.serve(async (req) => {
     // If hd (hosted domain) is not present, we fall back to extracting the domain
     // from the email. This validates that the email is well-formed to prevent
     // undefined domain extraction from malformed emails.
-    if (!userEmail || !userEmail.includes('@')) {
+    if (!isValidEmail(userEmail)) {
       throw new Error("Invalid email format received from Google. Please try again.");
     }
     

@@ -15,6 +15,16 @@ const DEFAULT_CONSUMER_GOOGLE_DOMAINS = [
 ] as const;
 
 /**
+ * Checks if code is running in a Node.js/server environment where process.env is available.
+ * In browser contexts, process is undefined and this returns false.
+ * 
+ * @returns true if running in a server environment with process.env available, false otherwise
+ */
+function isServerEnvironment(): boolean {
+  return typeof process !== 'undefined' && typeof process.env !== 'undefined';
+}
+
+/**
  * Load consumer Google domains, optionally extending with environment configuration.
  * 
  * Known regional variants (e.g., gmail.co.uk, googlemail.de) are intentionally excluded
@@ -43,8 +53,7 @@ function loadConsumerGoogleDomains(): readonly string[] {
   // In browser contexts, process is undefined and this block is skipped,
   // meaning only DEFAULT_CONSUMER_GOOGLE_DOMAINS will be used.
   if (
-    typeof process !== 'undefined' &&
-    typeof process.env !== 'undefined' &&
+    isServerEnvironment() &&
     typeof process.env.CONSUMER_GOOGLE_DOMAINS === 'string'
   ) {
     // If this is executing in a browser, having a runtime environment variable here

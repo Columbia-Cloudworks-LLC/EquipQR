@@ -20,8 +20,53 @@ const PBKDF2_ITERATIONS = 100_000;
 // This maintains backwards compatibility with existing encrypted data.
 const DEFAULT_KDF_SALT = 'equipqr_aes_gcm_kdf_salt_v1';
 
+// =============================================================================
+// Environment Detection
+// =============================================================================
+
 /**
- * Gets the KDF salt from environment variable or falls back to default.
+ * Environment variable names checked for production detection, in priority order.
+ * DEPLOYMENT_ENV is checked first, then DENO_ENV as a fallback for backwards compatibility.
+ */
+const DEPLOYMENT_ENV_VARS = ['DEPLOYMENT_ENV', 'DENO_ENV'] as const;
+
+/**
+ * Accepted values that indicate a production environment (case-insensitive).
+ */
+const PRODUCTION_ENV_VALUES = ['production', 'prod'] as const;
+
+/**
+ * Checks if the current deployment is running in a production environment.
+ * 
+ * Priority order for environment variable detection:
+ * 1. DEPLOYMENT_ENV (checked first)
+ * 2. DENO_ENV (fallback for backwards compatibility)
+ * 
+ * Accepted production values (case-insensitive):
+ * - 'production'
+ * - 'prod'
+ * 
+ * If neither environment variable is set, or the value doesn't match a production
+ * indicator, this function returns false (non-production).
+ * 
+ * @returns true if running in production, false otherwise
+ */
+function isProductionEnvironment(): boolean {
+  // Check environment variables in priority order
+  for (const envVar of DEPLOYMENT_ENV_VARS) {
+    const value = Deno.env.get(envVar);
+    if (value) {
+      const normalizedValue = value.toLowerCase();
+      if (PRODUCTION_ENV_VALUES.includes(normalizedValue as typeof PRODUCTION_ENV_VALUES[number])) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Gets and validates the KDF salt from environment variable.
  * 
  * For defense-in-depth, each deployment should set a unique KDF_SALT value.
  * This ensures that even if TOKEN_ENCRYPTION_KEY is compromised, an attacker
@@ -30,11 +75,50 @@ const DEFAULT_KDF_SALT = 'equipqr_aes_gcm_kdf_salt_v1';
  * IMPORTANT: Once set for a deployment, KDF_SALT must remain constant.
  * Changing it will make previously encrypted data unreadable.
  * 
+ * This function performs configuration validation and will throw an Error if:
+ * - KDF_SALT is not set in production environments (no default fallback)
+ * - The salt is shorter than the minimum required length (32 bytes when encoded)
+ * 
+ * In non-production environments, if KDF_SALT is not set, a warning is logged
+ * and the default salt is used for backwards compatibility.
+ * 
  * Generate a unique salt with: openssl rand -base64 32
+ * 
+ * @throws {Error} If KDF_SALT is missing in production or too short
+ * @returns The validated salt as a Uint8Array
  */
 function getKdfSalt(): Uint8Array {
-  const salt = Deno.env.get('KDF_SALT') ?? DEFAULT_KDF_SALT;
-  return new TextEncoder().encode(salt);
+  const salt = Deno.env.get('KDF_SALT');
+  const isProductionEnv = isProductionEnvironment();
+  
+  // In production, KDF_SALT must be explicitly set - no default fallback
+  if (!salt) {
+    if (isProductionEnv) {
+      throw new Error(
+        'KDF_SALT environment variable is not set in production. ' +
+        'This is a critical security configuration. Generate a salt with: openssl rand -base64 32'
+      );
+    } else {
+      // Non-production: warn but allow default for backwards compatibility
+      console.warn(
+        '[SECURITY WARNING] KDF_SALT environment variable is not set. ' +
+        'Using default salt which provides no additional security beyond the encryption key. ' +
+        'Generate a unique salt with: openssl rand -base64 32'
+      );
+      return new TextEncoder().encode(DEFAULT_KDF_SALT);
+    }
+  }
+  
+  // Validate salt length (check encoded byte length, not string length)
+  const encodedSalt = new TextEncoder().encode(salt);
+  if (encodedSalt.length < MIN_SALT_LENGTH) {
+    throw new Error(
+      `KDF_SALT must be at least ${MIN_SALT_LENGTH} bytes when encoded. ` +
+      'Generate a secure salt with: openssl rand -base64 32'
+    );
+  }
+  
+  return encodedSalt;
 }
 
 /**
@@ -149,6 +233,15 @@ export async function decryptToken(encrypted: string, secret: string): Promise<s
 const MIN_KEY_LENGTH = 32;
 
 /**
+ * Minimum required byte length for the KDF salt.
+ * 
+ * A minimum of 32 bytes (256 bits) provides sufficient entropy for the salt.
+ * This matches the key length requirement and ensures the salt contributes
+ * meaningful entropy to the key derivation process.
+ */
+const MIN_SALT_LENGTH = 32;
+
+/**
  * Checks if a string has low entropy (repeated or sequential characters).
  * This is a heuristic check, not a cryptographic entropy measurement.
  */
@@ -195,6 +288,19 @@ export function validateEncryptionKeyConfiguration(): boolean {
 }
 
 /**
+ * Validates that the KDF salt is properly configured.
+ * Call this at module load time or during health checks to catch
+ * configuration issues early rather than at first encryption attempt.
+ * 
+ * @returns true if the salt is valid, throws otherwise
+ */
+export function validateKdfSaltConfiguration(): boolean {
+  // This will throw if salt is missing in production or invalid
+  getKdfSalt();
+  return true;
+}
+
+/**
  * Gets and validates the encryption key from environment.
  * 
  * This function performs configuration validation and will throw an Error if:
@@ -233,8 +339,7 @@ export function getTokenEncryptionKey(): string {
   // This is safer than relying on DENO_ENV/NODE_ENV which may not be set in all deployments.
   if (hasLowEntropy(key)) {
     const enforceStrongKeys = Deno.env.get('ENFORCE_STRONG_KEYS');
-    const deploymentEnv = Deno.env.get('DEPLOYMENT_ENV') || Deno.env.get('DENO_ENV') || '';
-    const isProductionEnv = ['production', 'prod'].includes(deploymentEnv.toLowerCase());
+    const isProductionEnv = isProductionEnvironment();
     
     // In production environments, ALWAYS enforce strong keys regardless of ENFORCE_STRONG_KEYS setting.
     // This prevents accidental weak key usage in production even if the env var is misconfigured.
