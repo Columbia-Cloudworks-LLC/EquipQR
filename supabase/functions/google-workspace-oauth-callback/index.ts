@@ -395,7 +395,11 @@ Deno.serve(async (req) => {
     const userEmail = userinfo.email;
     
     // Validate email format before extracting domain.
-    // If hd (hosted domain) is not present, we fall back to extracting the domain
+    const emailDomain =
+      typeof userEmail === "string"
+        ? (userEmail.split("@")[1] ?? "")
+        : "";
+    const userDomain = userinfo.hd || emailDomain;
     // from the email. This validates that the email is well-formed to prevent
     // undefined domain extraction from malformed emails.
     if (!isValidEmail(userEmail)) {
