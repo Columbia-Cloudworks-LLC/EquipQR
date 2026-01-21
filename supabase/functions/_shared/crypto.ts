@@ -371,9 +371,9 @@ export function getTokenEncryptionKey(): string {
   }
   
   // Enforce strong keys by default; allow an explicit, clearly test-only opt-out.
-  // Weak keys are NEVER allowed in production, regardless of configuration.
-  if (hasLowEntropy(key)) {
-    const isProductionEnv = isProductionEnvironment();
+    const normalizedAllowWeakKeysEnv = allowWeakKeysEnv.trim().toLowerCase();
+    const allowWeakKeysForTesting =
+      !isProductionEnv && normalizedAllowWeakKeysEnv === 'true';
     // Weak keys are NEVER allowed in production, regardless of configuration.
     const allowWeakKeysEnv = Deno.env.get('ALLOW_WEAK_KEYS_FOR_TESTING') || '';
     const allowWeakKeysForTesting =
