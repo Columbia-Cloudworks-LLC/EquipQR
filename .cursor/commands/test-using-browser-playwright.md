@@ -6,10 +6,20 @@ Use this context when testing the EquipQR application with Playwright MCP tools.
 
 EquipQR is an equipment management and work order tracking application built with React, TypeScript, and Supabase. It supports multi-tenancy with organization-based access control.
 
-## Development Server
+## Development (Local) Server
 
 - **Base URL**: `http://localhost:8080`
 - Ensure the dev server is running before testing: `npm run dev`
+
+## Preview (Staging) Server
+
+- **Base URL**: `<https://preview.equipqr.app>
+- This site is automatically updated from the latest commit on the preview branch. This uses a custom "staging" environment on Vercel.
+
+## Production Server
+
+- **Base URL**: `<https://equipqr.app>
+- Vercel deploys to the preview environment automatically from the latest commit to the main branch. Preview deployments are manually promoted to Production.
 
 ## Available Playwright MCP Tools
 

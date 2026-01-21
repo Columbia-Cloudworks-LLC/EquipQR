@@ -25,6 +25,17 @@ function isServerEnvironment(): boolean {
 }
 
 /**
+ * Logs a warning message. Extracted to a separate function for testability.
+ * Can be mocked in test environments to verify warning behavior.
+ * 
+ * @param message - The warning message to log
+ */
+function logWarning(message: string): void {
+  // eslint-disable-next-line no-console
+  console.warn(message);
+}
+
+/**
  * Load consumer Google domains, optionally extending with environment configuration.
  * 
  * Known regional variants (e.g., gmail.co.uk, googlemail.de) are intentionally excluded
@@ -59,8 +70,7 @@ function loadConsumerGoogleDomains(): readonly string[] {
     // If this is executing in a browser, having a runtime environment variable here
     // indicates a build configuration issue (env should be injected at build time).
     if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
-      // eslint-disable-next-line no-console
-      console.warn(
+      logWarning(
         '[google-workspace] CONSUMER_GOOGLE_DOMAINS is set at runtime in a browser environment. ' +
           'This likely indicates a build configuration issue. Prefer build-time configuration ' +
           'or a server-provided domain list instead of relying on process.env in the browser.'

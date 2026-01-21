@@ -146,11 +146,18 @@ export async function requireUser(
   }
 
   // Parse Authorization header with case-insensitive scheme detection
+  // JWTs and API tokens should not contain spaces, so we require exactly 2 parts
   const parts = authHeader.trim().split(/\s+/);
   const scheme = parts[0];
-  const credentials = parts.slice(1).join(" ").trim();
+  const credentials = parts[1];
 
-  if (!scheme || scheme.toLowerCase() !== "bearer" || !credentials) {
+  if (
+    !scheme ||
+    scheme.toLowerCase() !== "bearer" ||
+    !credentials ||
+    parts.length !== 2 ||
+    /\s/.test(credentials)
+  ) {
     return { error: "Invalid authorization header format", status: 401 };
   }
 
@@ -322,6 +329,21 @@ function isErrorMessageSafe(error: string): boolean {
  * prevent information disclosure. Only error messages matching known-safe
  * patterns are exposed to clients. All other messages are replaced with a
  * generic error and the original is logged server-side for debugging.
+ * 
+ * **IMPORTANT - MAINTENANCE REQUIREMENT**: When adding new user-facing error
+ * messages to Edge Functions, you MUST update the SAFE_ERROR_PATTERNS allowlist
+ * in this file. Failure to do so will cause your error message to be replaced
+ * with a generic "An internal error occurred" message, hiding the actual
+ * error from users.
+ * 
+ * **Steps to add a new error message**:
+ * 1. Add a matching RegExp pattern to the SAFE_ERROR_PATTERNS array
+ * 2. Ensure the pattern is specific enough to not accidentally match debug info
+ * 3. Prefer explicit full-message patterns over broad prefixes when possible
+ * 4. Test by calling createErrorResponse with your new message and verifying
+ *    it's not replaced with the generic error
+ * 5. Check the console for "[createErrorResponse] Unsafe error message blocked:"
+ *    warnings during development
  * 
  * CALLER RESPONSIBILITY: While this function sanitizes unknown error messages,
  * callers should prefer passing known-safe string literals when possible.

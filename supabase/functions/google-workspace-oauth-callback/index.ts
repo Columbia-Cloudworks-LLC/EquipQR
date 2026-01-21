@@ -233,26 +233,19 @@ Deno.serve(async (req) => {
     // Reject timestamps more than MAX_CLOCK_SKEW_MS in the future (beyond clock skew tolerance).
     // A negative age means the state timestamp is ahead of server time; we allow small
     // negative values to handle clock drift, but reject anything too far in the future.
-    // Log this event as it may indicate a timing attack attempt or misconfigured client.
+    // Use a single generic log message for both validation paths to ensure truly equivalent
+    // timing characteristics and prevent side-channel timing analysis.
     if (ageMs < -MAX_CLOCK_SKEW_MS) {
-      logStep("OAuth state rejected due to future timestamp beyond clock skew tolerance", {
-        nowMs,
-        stateTimestamp,
-        ageMs,
-      });
+      logStep("OAuth state timestamp validation failed", { ageMs });
       throw new Error("OAuth state has an invalid timestamp. Please try again.");
     }
 
     // Reject expired timestamps (older than TTL)
     // If age is positive (state is in the past), it must be within STATE_TTL_MS
-    // Note: We log equivalent context here as the future timestamp case above to maintain
+    // Use the same generic log message as the future timestamp case to maintain
     // consistent timing characteristics between both validation paths.
     if (ageMs > STATE_TTL_MS) {
-      logStep("OAuth state rejected due to expired timestamp", {
-        nowMs,
-        stateTimestamp,
-        ageMs,
-      });
+      logStep("OAuth state timestamp validation failed", { ageMs });
       throw new Error("OAuth state has expired. Please try again.");
     }
 

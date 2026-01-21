@@ -118,6 +118,28 @@ function getKdfSalt(): Uint8Array {
     );
   }
   
+  // Validate salt entropy to ensure it's not a weak pattern
+  // Using the default salt (which is hardcoded and public) provides no additional
+  // security beyond the encryption key itself. This check ensures deployments
+  // use cryptographically random salts.
+  if (hasLowEntropy(salt)) {
+    const warningMessage = 
+      '[SECURITY WARNING] KDF_SALT appears to have low entropy. ' +
+      'Weak salts like repeated characters or common patterns reduce security. ' +
+      'Generate a cryptographically random salt with: openssl rand -base64 32';
+    
+    if (isProductionEnv) {
+      throw new Error(
+        '[SECURITY ERROR] KDF_SALT appears to have low entropy. ' +
+        'Weak salts like repeated characters or common patterns reduce security. ' +
+        'Generate a cryptographically random salt with: openssl rand -base64 32. ' +
+        'This check cannot be bypassed in production environments.'
+      );
+    } else {
+      console.warn(warningMessage);
+    }
+  }
+  
   return encodedSalt;
 }
 
@@ -306,7 +328,7 @@ export function validateKdfSaltConfiguration(): boolean {
  * This function performs configuration validation and will throw an Error if:
  * - TOKEN_ENCRYPTION_KEY is not set
  * - The key is shorter than the minimum required length (32 characters)
- * - The key appears to have low entropy and ENFORCE_STRONG_KEYS is not explicitly disabled
+ * - The key appears to have low entropy (unless ALLOW_WEAK_KEYS_FOR_TESTING is explicitly enabled in non-production)
  * 
  * IMPORTANT: In production, TOKEN_ENCRYPTION_KEY must be a cryptographically
  * random string of at least 32 characters. Generate one with:
@@ -335,37 +357,33 @@ export function getTokenEncryptionKey(): string {
     );
   }
   
-  // Enforce strong keys by default; allow explicit opt-out via ENFORCE_STRONG_KEYS=false.
-  // This is safer than relying on DENO_ENV/NODE_ENV which may not be set in all deployments.
+  // Enforce strong keys by default; allow an explicit, clearly test-only opt-out.
+  // Weak keys are NEVER allowed in production, regardless of configuration.
   if (hasLowEntropy(key)) {
-    const enforceStrongKeys = Deno.env.get('ENFORCE_STRONG_KEYS');
     const isProductionEnv = isProductionEnvironment();
-    
-    // In production environments, ALWAYS enforce strong keys regardless of ENFORCE_STRONG_KEYS setting.
-    // This prevents accidental weak key usage in production even if the env var is misconfigured.
-    // The ENFORCE_STRONG_KEYS bypass is ONLY available in non-production environments.
-    const shouldEnforceStrongKeys = isProductionEnv 
-      ? true  // Always enforce in production - no bypass allowed
-      : enforceStrongKeys === undefined
-        ? true
-        : !['false', '0', 'off'].includes(enforceStrongKeys.toLowerCase());
+    // Weak keys are NEVER allowed in production, regardless of configuration.
+    const allowWeakKeysEnv = Deno.env.get('ALLOW_WEAK_KEYS_FOR_TESTING') || '';
+    const allowWeakKeysForTesting =
+      !isProductionEnv &&
+      ['true', '1', 'on'].includes(allowWeakKeysEnv.toLowerCase());
 
     const warningMessage = 
       '[SECURITY WARNING] TOKEN_ENCRYPTION_KEY appears to have low entropy. ' +
       'Weak keys like repeated characters or common patterns are insecure. ' +
       'Generate a cryptographically random key with: openssl rand -base64 32';
 
-    if (shouldEnforceStrongKeys) {
+    if (!allowWeakKeysForTesting) {
       const bypassNote = isProductionEnv
         ? 'This check cannot be bypassed in production environments.'
-        : 'Set ENFORCE_STRONG_KEYS=false to disable this check in development only.';
+        : 'If you absolutely must use a weak key in a non-production environment, ' +
+          'set ALLOW_WEAK_KEYS_FOR_TESTING=true and ensure this is NEVER enabled in production.';
       throw new Error(
         '[SECURITY ERROR] TOKEN_ENCRYPTION_KEY appears to have low entropy. ' +
         'Weak keys like repeated characters or common patterns are insecure. ' +
         `Generate a cryptographically random key with: openssl rand -base64 32. ${bypassNote}`
       );
     } else {
-      console.warn(warningMessage);
+      console.warn(warningMessage + ' ALLOW_WEAK_KEYS_FOR_TESTING is enabled; this should only be used in non-production environments.');
     }
   }
   

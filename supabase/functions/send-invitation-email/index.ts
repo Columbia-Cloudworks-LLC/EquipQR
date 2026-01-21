@@ -140,12 +140,15 @@ Deno.serve(async (req) => {
     const rawOrg = invitation.organizations;
     const isValidOrgShape = (
       obj: unknown
-    ): obj is { name: string; logo?: string } => {
+    ): obj is { name: string; logo?: string | null } => {
       return (
         typeof obj === "object" &&
         obj !== null &&
         "name" in obj &&
-        typeof (obj as { name: unknown }).name === "string"
+        typeof (obj as { name: unknown }).name === "string" &&
+        (!("logo" in obj) ||
+          typeof (obj as { logo: unknown }).logo === "string" ||
+          (obj as { logo: unknown }).logo === null)
       );
     };
     
