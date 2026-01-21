@@ -176,13 +176,7 @@ export async function requireUser(
     return { error: "Invalid authorization header format", status: 401 };
   }
 
-  const token = credentials;
-
-  if (!token) {
-    return { error: "Empty token", status: 401 };
-  }
-
-  const { data: { user }, error } = await supabaseClient.auth.getUser(token);
+  const { data: { user }, error } = await supabaseClient.auth.getUser(credentials);
 
   if (error || !user) {
     return { 
@@ -191,7 +185,7 @@ export async function requireUser(
     };
   }
 
-  return { user, token };
+  return { user, token: credentials };
 }
 
 /**
