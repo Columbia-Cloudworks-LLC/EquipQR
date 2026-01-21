@@ -111,9 +111,9 @@ function getKdfSalt(): Uint8Array {
   
   // Validate salt length (check encoded byte length, not string length)
   const encodedSalt = new TextEncoder().encode(salt);
-  if (encodedSalt.length < MIN_SALT_LENGTH) {
+  if (encodedSalt.length < 32) {
     throw new Error(
-      `KDF_SALT must be at least ${MIN_SALT_LENGTH} bytes when encoded. ` +
+      'KDF_SALT must be at least 32 bytes when encoded. ' +
       'Generate a secure salt with: openssl rand -base64 32'
     );
   }
