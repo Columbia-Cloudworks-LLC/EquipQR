@@ -37,10 +37,14 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    // Log the full error server-side for debugging
-    console.error("[STRIPE-WEBHOOK] Redirect error:", error);
-    // Return generic message to client - never expose error.message directly
-    return new Response("Webhook processing failed", { 
+    // Generate a unique error ID to correlate client response with server logs
+    const errorId = crypto.randomUUID();
+
+    // Log the full error server-side for debugging, including the error ID
+    console.error("[STRIPE-WEBHOOK] Redirect error:", { errorId, error });
+
+    // Return generic message to client with a reference ID - never expose error.message directly
+    return new Response(`Webhook processing failed. Reference ID: ${errorId}`, { 
       status: 500,
       headers: corsHeaders 
     });

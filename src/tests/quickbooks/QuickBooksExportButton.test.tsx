@@ -357,6 +357,47 @@ describe('QuickBooksExportButton Component', () => {
   });
 
   describe('Status Details Popover', () => {
+    it('should not show status button when showStatusDetails is false', async () => {
+      mockUseQuickBooksExportLogs.mockReturnValue({
+        data: [
+          {
+            id: 'log-1',
+            organization_id: 'org-123',
+            work_order_id: 'wo-123',
+            realm_id: 'realm-1',
+            quickbooks_invoice_id: 'inv-123',
+            quickbooks_invoice_number: '1001',
+            quickbooks_environment: 'sandbox',
+            status: 'success',
+            error_message: null,
+            exported_at: '2024-01-01T10:00:00.000Z',
+            created_at: '2024-01-01T09:00:00.000Z',
+            updated_at: '2024-01-01T10:00:00.000Z',
+            intuit_tid: 'tid-123',
+            pdf_attachment_status: 'success',
+            pdf_attachment_error: null,
+            pdf_attachment_intuit_tid: 'tid-pdf-456',
+          },
+        ],
+      });
+
+      renderComponent({
+        workOrderId: 'wo-123',
+        teamId: 'team-456',
+        workOrderStatus: 'completed',
+        asMenuItem: false,
+        showStatusDetails: false,
+      });
+
+      await waitFor(() => {
+        // The export button should exist
+        expect(screen.getByRole('button', { name: /Export to QuickBooks|Update Invoice/i })).toBeInTheDocument();
+      });
+
+      // Status details button should NOT be present when showStatusDetails is false
+      expect(screen.queryByRole('button', { name: /QuickBooks export status/i })).not.toBeInTheDocument();
+    });
+
     it('should show status details when enabled', async () => {
       mockUseQuickBooksExportLogs.mockReturnValue({
         data: [
