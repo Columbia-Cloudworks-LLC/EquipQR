@@ -274,8 +274,11 @@ Deno.serve(async (req) => {
     try {
       parsedRedirectUri = new URL(redirectUri);
     } catch (error) {
-      logStep("ERROR: Invalid redirect_uri format", { redirectUri, error: String(error) });
-      throw new Error("Invalid OAuth redirect URI format");
+      const parseError = error instanceof Error ? error.message : String(error);
+      logStep("ERROR: Invalid redirect_uri format", { redirectUri, error: parseError });
+      throw new Error(
+        `Invalid OAuth redirect URI format. Expected an absolute URL ending with "${expectedCallbackPath}" (e.g., "https://<your-domain>${expectedCallbackPath}") but got "${redirectUri}". Parse error: ${parseError}`,
+      );
     }
 
     // Build allowlist with both full URIs and parsed hostnames for validation
