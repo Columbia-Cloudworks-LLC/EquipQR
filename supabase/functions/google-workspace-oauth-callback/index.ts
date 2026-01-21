@@ -542,14 +542,21 @@ Deno.serve(async (req) => {
     const fallbackProductionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    
-    // Determine error type for better frontend handling
-    const isNotAdminError = errorMessage.includes("Only Google Workspace administrators");
+
+    // Determine error type for better frontend handling using structured error properties
+    const typedError = error as { code?: string; name?: string } | null | undefined;
+    const isNotAdminError =
+      !!typedError &&
+      (typedError.code === "not_workspace_admin" ||
+        typedError.name === "NotWorkspaceAdminError");
     const errorCode = isNotAdminError ? "not_workspace_admin" : "oauth_failed";
-    
+
     // Use the actual error message for user-facing display
-    const userMessage = errorMessage || "Failed to connect Google Workspace. Please try again.";
-    const errorUrl = `${fallbackProductionUrl}/dashboard/onboarding/workspace?gw_error=${encodeURIComponent(errorCode)}&gw_error_description=${encodeURIComponent(userMessage)}`;
+    const userMessage =
+      errorMessage || "Failed to connect Google Workspace. Please try again.";
+    const errorUrl = `${fallbackProductionUrl}/dashboard/onboarding/workspace?gw_error=${encodeURIComponent(
+      errorCode,
+    )}&gw_error_description=${encodeURIComponent(userMessage)}`;
     return Response.redirect(errorUrl, 302);
   }
 });
