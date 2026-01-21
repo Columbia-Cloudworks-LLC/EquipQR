@@ -128,16 +128,31 @@ Deno.serve(async (req) => {
     }
 
     // Decrypt the stored refresh token
-    const encryptionKey = getTokenEncryptionKey();
+    let encryptionKey: string;
+    try {
+      encryptionKey = getTokenEncryptionKey();
+    } catch (keyError) {
+      // Configuration issue: encryption key is missing or invalid
+      const errorMessage = keyError instanceof Error ? keyError.message : String(keyError);
+      logStep("Encryption key configuration error", { error: errorMessage });
+      return createErrorResponse(
+        "Google Workspace encryption is not properly configured. Please contact your administrator.",
+        500
+      );
+    }
+
     let decryptedRefreshToken: string;
     try {
       decryptedRefreshToken = await decryptToken(creds.refresh_token, encryptionKey);
       logStep("Refresh token decrypted successfully");
     } catch (decryptError) {
-      // Log only error type to avoid potential information leakage in production logs
+      // Token corruption issue: key is valid but token cannot be decrypted
       const errorType = decryptError instanceof Error ? decryptError.name : "UnknownError";
       logStep("Failed to decrypt refresh token", { errorType });
-      return createErrorResponse("Failed to decrypt stored credentials. Please reconnect Google Workspace.", 500);
+      return createErrorResponse(
+        "Failed to decrypt stored credentials. The stored token may be corrupted. Please reconnect Google Workspace.",
+        500
+      );
     }
 
     const tokenData = await refreshAccessToken(decryptedRefreshToken);

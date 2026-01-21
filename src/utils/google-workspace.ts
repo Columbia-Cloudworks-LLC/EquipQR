@@ -49,10 +49,13 @@ function logWarning(message: string): void {
  * domains in the CONSUMER_GOOGLE_DOMAINS environment variable (e.g.,
  * "gmail.co.uk,googlemail.de"). These will be merged with the defaults.
  * 
- * LIMITATION: The process.env check only works in Node.js/server-side environments.
- * In browser contexts, process.env is undefined and only the default domains apply.
+ * **IMPORTANT - Server-Side Only**: The `process.env.CONSUMER_GOOGLE_DOMAINS` check
+ * only works in Node.js/server-side environments (Edge Functions, server-side rendering).
+ * In browser contexts (Vite builds), `process.env` is undefined and this environment
+ * variable extension will NOT work - only the default domains will apply.
+ * 
  * For browser-based customization, consider:
- * - Build-time configuration via Vite's define/env handling
+ * - Build-time configuration via Vite's `import.meta.env` (not `process.env`)
  * - A server endpoint that returns the domain list
  * - Updating the DEFAULT_CONSUMER_GOOGLE_DOMAINS array directly in code
  */
@@ -60,23 +63,22 @@ function loadConsumerGoogleDomains(): readonly string[] {
   let configuredDomains: string[] = [];
 
   // Allow deployments to extend the default list via environment variable.
-  // NOTE: This only works in Node.js/server-side environments.
-  // In browser contexts, process is undefined and this block is skipped,
+  // NOTE: This only works in Node.js/server-side environments (Edge Functions, SSR).
+  // In browser contexts (Vite builds), process.env is undefined and this block is skipped,
   // meaning only DEFAULT_CONSUMER_GOOGLE_DOMAINS will be used.
-  if (
-    isServerEnvironment() &&
-    process.env.CONSUMER_GOOGLE_DOMAINS
-  ) {
+  if (isServerEnvironment() && process.env.CONSUMER_GOOGLE_DOMAINS) {
     // If this is executing in a browser, having a runtime environment variable here
     // indicates a build configuration issue (env should be injected at build time).
     if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
       logWarning(
         '[google-workspace] CONSUMER_GOOGLE_DOMAINS is set at runtime in a browser environment. ' +
           'This likely indicates a build configuration issue. Prefer build-time configuration ' +
-          'or a server-provided domain list instead of relying on process.env in the browser.'
+          'via Vite\'s import.meta.env or a server-provided domain list instead of relying on process.env in the browser.'
       );
     }
-    const parsed = process.env.CONSUMER_GOOGLE_DOMAINS
+    // Type guard ensures process.env.CONSUMER_GOOGLE_DOMAINS is a string here
+    const envValue = process.env.CONSUMER_GOOGLE_DOMAINS;
+    const parsed = envValue
       .split(',')
       .map((domain) => domain.toLowerCase().trim())
       .filter((domain) => domain.length > 0);

@@ -9,6 +9,7 @@
 
 import { createClient, SupabaseClient, User } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "./cors.ts";
+import { SAFE_ERROR_PATTERNS, ALLOWED_VALIDATION_FIELDS } from "./error-message-allowlist.ts";
 
 // =============================================================================
 // Constants
@@ -251,13 +252,11 @@ export async function verifyOrgAdmin(
 // =============================================================================
 
 /**
- * Allowlist of safe error message prefixes/patterns.
- * Only messages matching these patterns are considered safe for client exposure.
- * This allowlist approach prevents information disclosure (CWE-209) by ensuring
- * only known-safe messages reach clients.
+ * MAINTENANCE NOTE: The error message allowlist has been moved to a separate
+ * configuration file: `error-message-allowlist.ts`
  * 
- * MAINTENANCE NOTE: When adding new user-facing error messages to Edge Functions:
- * 1. Add a matching pattern to this allowlist
+ * When adding new user-facing error messages to Edge Functions:
+ * 1. Add a matching pattern to SAFE_ERROR_PATTERNS in error-message-allowlist.ts
  * 2. Ensure the pattern is specific enough to not accidentally match debug info
  * 3. Prefer explicit full-message patterns over broad prefixes when possible
  * 4. Test by calling createErrorResponse with your new message and verifying
@@ -266,52 +265,9 @@ export async function verifyOrgAdmin(
  * To validate error messages during development, check the console for
  * "[createErrorResponse] Unsafe error message blocked:" warnings.
  * 
- * SECURITY MAINTENANCE: If you modify SAFE_ERROR_PATTERNS, also update the
- * MAINTENANCE NOTE in createErrorResponse's docstring so documentation stays
- * in sync with this implementation.
+ * Use the `isErrorAllowlisted()` helper function from error-message-allowlist.ts
+ * in tests to validate that commonly returned errors are covered.
  */
-const SAFE_ERROR_PATTERNS: RegExp[] = [
-  // Authentication/Authorization errors
-  /^No authorization header provided$/,
-  /^Invalid authorization header format$/,
-  /^Empty token$/,
-  /^Invalid or expired token$/,
-  /^User email not available$/,
-  /^Only organization (owners|admins|administrators) can /,
-  /^Forbidden: /,
-  /^Forbidden$/,
-  /^You are not a member of /,
-  /^Google Workspace is not connected/,
-  
-  // Common short HTTP-style error messages (added to allowlist instead of length check)
-  /^Not found$/,
-  /^Bad request$/,
-  /^Unauthorized$/,
-  /^Conflict$/,
-  /^Gone$/,
-  
-  // Validation errors
-  /^Method not allowed$/,
-  /^Missing required field/,
-  /^(Quantity|organizationId|scanned_value|input) (is|are) required$/,
-  // Explicit field name allowlist to prevent matching sensitive fields like "password" or "api_key"
-  /^(organizationId|equipmentId|workOrderId|userId|quantity|name|email|title|description|status) and (organizationId|equipmentId|workOrderId|userId|quantity|name|email|title|description|status) are required$/,
-  /^Unsupported format/,
-  /^Rate limit exceeded/,
-  /^Invitation not found$/,
-  
-  // OAuth configuration errors
-  /^Invalid OAuth redirect (base URL )?configuration$/,
-  
-  // Safe operational messages
-  /^Failed to (verify|fetch|store|decrypt|send)/,
-  /^An unexpected error occurred$/,
-  /^An internal error occurred$/,
-  /^Internal server error$/,
-  
-  // Stripe-related safe messages
-  /^Stripe price .+ not found/,
-];
 
 /** Default generic error message when the original is not allowlisted */
 const GENERIC_ERROR_MESSAGE = "An internal error occurred";
@@ -353,17 +309,19 @@ function isErrorMessageSafe(error: string): boolean {
  * 
  * **IMPORTANT - MAINTENANCE REQUIREMENT**: When adding new user-facing error
  * messages to Edge Functions, you MUST update the SAFE_ERROR_PATTERNS allowlist
- * in this file. Failure to do so will cause your error message to be replaced
- * with a generic "An internal error occurred" message, hiding the actual
- * error from users.
+ * in `error-message-allowlist.ts`. Failure to do so will cause your error message
+ * to be replaced with a generic "An internal error occurred" message, hiding the
+ * actual error from users.
  * 
  * **Steps to add a new error message**:
- * 1. Add a matching RegExp pattern to the SAFE_ERROR_PATTERNS array
+ * 1. Add a matching RegExp pattern to SAFE_ERROR_PATTERNS in error-message-allowlist.ts
  * 2. Ensure the pattern is specific enough to not accidentally match debug info
  * 3. Prefer explicit full-message patterns over broad prefixes when possible
  * 4. Test by calling createErrorResponse with your new message and verifying
  *    it's not replaced with the generic error
- * 5. Check the console for "[createErrorResponse] Unsafe error message blocked:"
+ * 5. Use `isErrorAllowlisted()` from error-message-allowlist.ts in tests to validate
+ *    that commonly returned errors are covered
+ * 6. Check the console for "[createErrorResponse] Unsafe error message blocked:"
  *    warnings during development
  * 
  * CALLER RESPONSIBILITY: While this function sanitizes unknown error messages,

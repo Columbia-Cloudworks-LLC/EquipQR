@@ -9,6 +9,16 @@
  * - Use userEvent for interactions
  * - Assert on visible outcomes
  * - Mock only at external boundaries (Supabase)
+ * 
+ * IMPORTANT: The TestEquipmentList component below is intentionally simplified
+ * for demonstration purposes. In real journey tests, you MUST import and test
+ * actual production page components from src/pages/, not stub components.
+ * 
+ * Example of correct import:
+ *   import { EquipmentListPage } from '@/pages/equipment/EquipmentListPage';
+ * 
+ * The stub component is only shown here to demonstrate the test structure
+ * without requiring the full application context.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -24,8 +34,9 @@ import {
   teams,
 } from '@/test/journey';
 
-// A simple test component for demonstration purposes
-// In real tests, you would import the actual page component
+// ⚠️ DEMONSTRATION ONLY: This is a simplified stub component for demonstration.
+// ⚠️ In real journey tests, import actual page components from src/pages/.
+// ⚠️ Example: import { EquipmentListPage } from '@/pages/equipment/EquipmentListPage';
 const TestEquipmentList = () => {
   return (
     <div>
