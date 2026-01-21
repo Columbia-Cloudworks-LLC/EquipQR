@@ -233,9 +233,15 @@ export function getTokenEncryptionKey(): string {
   // This is safer than relying on DENO_ENV/NODE_ENV which may not be set in all deployments.
   if (hasLowEntropy(key)) {
     const enforceStrongKeys = Deno.env.get('ENFORCE_STRONG_KEYS');
-    // Default to enforcing strong keys unless explicitly disabled
-    const shouldEnforceStrongKeys =
-      enforceStrongKeys === undefined
+    const deploymentEnv = Deno.env.get('DEPLOYMENT_ENV') || Deno.env.get('DENO_ENV') || '';
+    const isProductionEnv = ['production', 'prod'].includes(deploymentEnv.toLowerCase());
+    
+    // In production environments, ALWAYS enforce strong keys regardless of ENFORCE_STRONG_KEYS setting.
+    // This prevents accidental weak key usage in production even if the env var is misconfigured.
+    // The ENFORCE_STRONG_KEYS bypass is ONLY available in non-production environments.
+    const shouldEnforceStrongKeys = isProductionEnv 
+      ? true  // Always enforce in production - no bypass allowed
+      : enforceStrongKeys === undefined
         ? true
         : !['false', '0', 'off'].includes(enforceStrongKeys.toLowerCase());
 
@@ -245,11 +251,13 @@ export function getTokenEncryptionKey(): string {
       'Generate a cryptographically random key with: openssl rand -base64 32';
 
     if (shouldEnforceStrongKeys) {
+      const bypassNote = isProductionEnv
+        ? 'This check cannot be bypassed in production environments.'
+        : 'Set ENFORCE_STRONG_KEYS=false to disable this check in development only.';
       throw new Error(
         '[SECURITY ERROR] TOKEN_ENCRYPTION_KEY appears to have low entropy. ' +
         'Weak keys like repeated characters or common patterns are insecure. ' +
-        'Generate a cryptographically random key with: openssl rand -base64 32. ' +
-        'Set ENFORCE_STRONG_KEYS=false to disable this check in development.'
+        `Generate a cryptographically random key with: openssl rand -base64 32. ${bypassNote}`
       );
     } else {
       console.warn(warningMessage);

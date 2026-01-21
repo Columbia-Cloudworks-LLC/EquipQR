@@ -365,7 +365,21 @@ Deno.serve(async (req) => {
 
     const userinfo: GoogleUserInfo = await userinfoResponse.json();
     const userEmail = userinfo.email;
+    
+    // Validate email format before extracting domain.
+    // If hd (hosted domain) is not present, we fall back to extracting the domain
+    // from the email. This validates that the email is well-formed to prevent
+    // undefined domain extraction from malformed emails.
+    if (!userEmail || !userEmail.includes('@')) {
+      throw new Error("Invalid email format received from Google. Please try again.");
+    }
+    
     const userDomain = userinfo.hd || userEmail.split("@")[1];
+    
+    // Defensive check: ensure we have a valid domain after extraction
+    if (!userDomain) {
+      throw new Error("Could not determine your organization domain. Please try again.");
+    }
 
     logStep("User info retrieved", { email: userEmail, domain: userDomain });
 

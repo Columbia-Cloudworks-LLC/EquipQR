@@ -94,6 +94,44 @@ When adding a new Edge Function:
 3. Set appropriate `verify_jwt` in `supabase/config.toml`
 4. Add explicit org membership checks even with RLS as defense-in-depth
 
+## Security Best Practices
+
+### Error Handling with Correlation IDs
+
+When handling errors in webhook handlers or other sensitive endpoints, use the error ID pattern to correlate client responses with server logs without exposing internal error details:
+
+```typescript
+} catch (error) {
+  // Generate a unique error ID to correlate client response with server logs
+  const errorId = crypto.randomUUID();
+
+  // Log the full error server-side for debugging, including the error ID
+  console.error("[FUNCTION-NAME] Error:", { errorId, error });
+
+  // Return generic message to client with reference ID - never expose error.message directly
+  return new Response(`Operation failed. Reference ID: ${errorId}`, { 
+    status: 500,
+    headers: corsHeaders 
+  });
+}
+```
+
+**Benefits:**
+- Prevents information disclosure (CWE-209) by never exposing internal error messages
+- Enables efficient debugging by correlating client-reported reference IDs with server logs
+- Provides users with a trackable reference for support requests
+
+**When to use:**
+- Webhook handlers (Stripe, QuickBooks, etc.)
+- Any endpoint where errors may contain sensitive debugging info
+- OAuth callback handlers
+
+### Error Message Allowlisting
+
+For user-facing endpoints, use `createErrorResponse()` from `supabase-clients.ts` which implements an allowlist approach. Only explicitly safe error messages are exposed to clients; all others are replaced with a generic message and logged server-side.
+
+See `SAFE_ERROR_PATTERNS` in `supabase-clients.ts` for the allowlist and add new patterns when introducing new user-facing error messages.
+
 ## Shared Utilities
 
 All auth helpers are in `supabase/functions/_shared/`:
@@ -101,3 +139,4 @@ All auth helpers are in `supabase/functions/_shared/`:
 - `supabase-clients.ts` - Client creation and auth helpers
 - `admin-validation.ts` - Super admin validation
 - `cors.ts` - CORS headers
+- `crypto.ts` - Token encryption utilities

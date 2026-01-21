@@ -99,7 +99,15 @@ Deno.serve(async (req) => {
       return createErrorResponse("Invitation not found", 404);
     }
 
-    // Verify user has admin/owner access to the organization (double-check beyond RLS)
+    // Defense-in-depth: Verify user has admin/owner role, not just read access.
+    // 
+    // WHY THIS IS NECESSARY (do not remove as "redundant"):
+    // RLS on organization_invitations may allow read access to members who can see
+    // their own invitations or pending invitations to their org. However, only
+    // admins/owners should be able to SEND invitation emails. This check ensures
+    // the caller actually has admin privileges, not just read access via RLS.
+    // Without this check, a non-admin member could potentially trigger invitation
+    // emails for invitations they can read but shouldn't be able to act on.
     const isAdmin = await verifyOrgAdmin(
       supabase,
       user.id,
@@ -126,9 +134,29 @@ Deno.serve(async (req) => {
     const safeRole = escapeHtml(role);
     const safeMessage = message ? escapeHtml(message) : undefined;
 
-    // Get organization logo from the invitation data
-    const org = invitation.organizations as { name: string; logo?: string };
-    const organizationLogo = org?.logo;
+    // Extract organization logo from the joined data with runtime type validation.
+    // The database join returns organizations as an object, but we validate the
+    // shape at runtime to guard against schema changes that could cause failures.
+    const rawOrg = invitation.organizations;
+    const isValidOrgShape = (
+      obj: unknown
+    ): obj is { name: string; logo?: string } => {
+      return (
+        typeof obj === "object" &&
+        obj !== null &&
+        "name" in obj &&
+        typeof (obj as { name: unknown }).name === "string"
+      );
+    };
+    
+    if (!isValidOrgShape(rawOrg)) {
+      logStep("WARNING: Unexpected organizations shape in invitation", {
+        invitationId,
+        orgType: typeof rawOrg,
+      });
+    }
+    
+    const organizationLogo = isValidOrgShape(rawOrg) ? rawOrg.logo : undefined;
 
     // Construct the invitation URL using production URL if available
     const baseUrl =

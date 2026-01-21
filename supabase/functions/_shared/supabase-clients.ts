@@ -20,7 +20,16 @@ const MAX_ERROR_MESSAGE_LENGTH = 200;
 /** 
  * Minimum safe error message length.
  * Messages shorter than this are likely system error codes or stack trace fragments
- * that could leak debug information (e.g., 'err', 'bad', 'E_FAIL').
+ * that could leak debug information.
+ * 
+ * Examples of unsafe short messages that would be blocked:
+ * - 'err', 'bad' - vague codes that may come from internal systems
+ * - 'E_FAIL', 'EPERM' - system error codes
+ * - 'null', 'undefined' - JavaScript runtime errors converted to strings
+ * - Stack trace line numbers like '42' or 'L123'
+ * 
+ * Known-safe short messages like 'Gone' or 'Not found' are explicitly allowlisted
+ * in SAFE_ERROR_PATTERNS and bypass this length check.
  */
 const MIN_SAFE_ERROR_LENGTH = 10;
 
@@ -225,6 +234,16 @@ export async function verifyOrgAdmin(
  * Only messages matching these patterns are considered safe for client exposure.
  * This allowlist approach prevents information disclosure (CWE-209) by ensuring
  * only known-safe messages reach clients.
+ * 
+ * MAINTENANCE NOTE: When adding new user-facing error messages to Edge Functions:
+ * 1. Add a matching pattern to this allowlist
+ * 2. Ensure the pattern is specific enough to not accidentally match debug info
+ * 3. Prefer explicit full-message patterns over broad prefixes when possible
+ * 4. Test by calling createErrorResponse with your new message and verifying
+ *    it's not replaced with the generic error
+ * 
+ * To validate error messages during development, check the console for
+ * "[createErrorResponse] Unsafe error message blocked:" warnings.
  */
 const SAFE_ERROR_PATTERNS: RegExp[] = [
   // Authentication/Authorization errors
@@ -303,6 +322,15 @@ function isErrorMessageSafe(error: string): boolean {
  * prevent information disclosure. Only error messages matching known-safe
  * patterns are exposed to clients. All other messages are replaced with a
  * generic error and the original is logged server-side for debugging.
+ * 
+ * CALLER RESPONSIBILITY: While this function sanitizes unknown error messages,
+ * callers should prefer passing known-safe string literals when possible.
+ * For dynamic errors from external sources (database, third-party APIs), this
+ * function provides defense-in-depth by blocking unrecognized messages.
+ * 
+ * TypeScript cannot enforce that only allowlisted strings are passed at compile
+ * time without significant complexity (template literal types for each pattern).
+ * Instead, this runtime validation ensures safety while keeping the API simple.
  * 
  * @param error - The error message (will be validated against allowlist)
  * @param status - HTTP status code (default: 500)
