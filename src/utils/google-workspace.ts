@@ -47,6 +47,16 @@ function loadConsumerGoogleDomains(): readonly string[] {
     typeof process.env !== 'undefined' &&
     typeof process.env.CONSUMER_GOOGLE_DOMAINS === 'string'
   ) {
+    // If this is executing in a browser, having a runtime environment variable here
+    // indicates a build configuration issue (env should be injected at build time).
+    if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[google-workspace] CONSUMER_GOOGLE_DOMAINS is set at runtime in a browser environment. ' +
+          'This likely indicates a build configuration issue. Prefer build-time configuration ' +
+          'or a server-provided domain list instead of relying on process.env in the browser.'
+      );
+    }
     const parsed = process.env.CONSUMER_GOOGLE_DOMAINS
       .split(',')
       .map((domain) => domain.toLowerCase().trim())
