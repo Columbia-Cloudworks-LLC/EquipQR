@@ -164,8 +164,8 @@ Deno.serve(async (req) => {
     const DEFAULT_BATCH_SIZE = 200;
     const MAX_BATCH_SIZE = 1000;
     const envBatchSize = Deno.env.get("GW_SYNC_BATCH_SIZE");
-    // Number.parseInt returns NaN for empty/undefined strings, so we can simplify the fallback
-    const parsedBatchSize = Number.parseInt(envBatchSize || "", 10);
+    // Number.parseInt returns NaN for undefined/null, so we can rely on the NaN check below
+    const parsedBatchSize = Number.parseInt(envBatchSize as string, 10);
     const BATCH_SIZE =
       Number.isNaN(parsedBatchSize) || parsedBatchSize <= 0
         ? DEFAULT_BATCH_SIZE
