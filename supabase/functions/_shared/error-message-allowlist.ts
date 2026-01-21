@@ -39,6 +39,12 @@ export const ALLOWED_VALIDATION_FIELDS = [
 ] as const;
 
 /**
+ * Pre-computed joined string of allowed validation fields for regex construction.
+ * This avoids repeated array joins during error message validation.
+ */
+const ALLOWED_FIELDS_PATTERN = ALLOWED_VALIDATION_FIELDS.join('|');
+
+/**
  * Allowlist of safe error message prefixes/patterns.
  * Only messages matching these patterns are considered safe for client exposure.
  * This allowlist approach prevents information disclosure (CWE-209) by ensuring
@@ -69,8 +75,8 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Missing required field/,
   /^(Quantity|organizationId|scanned_value|input) (is|are) required$/,
   // Explicit field name allowlist to prevent matching sensitive fields like "password" or "api_key"
-  // Construct regex dynamically from ALLOWED_VALIDATION_FIELDS to avoid duplication
-  new RegExp(`^(${ALLOWED_VALIDATION_FIELDS.join('|')}) and (${ALLOWED_VALIDATION_FIELDS.join('|')}) are required$`),
+  // Uses pre-computed ALLOWED_FIELDS_PATTERN to avoid repeated array joins
+  new RegExp(`^(${ALLOWED_FIELDS_PATTERN}) and (${ALLOWED_FIELDS_PATTERN}) are required$`),
   /^Unsupported format/,
   /^Rate limit exceeded/,
   /^Invitation not found$/,
