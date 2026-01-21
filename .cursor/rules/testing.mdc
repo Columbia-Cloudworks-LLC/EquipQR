@@ -1,0 +1,15 @@
+---
+description: Vitest standards, mocking, and coverage.
+globs: **/*.test.ts, **/*.spec.ts, vitest.config.ts
+---
+# Testing
+
+## Standards
+- **Framework:** Vitest. Run `npm test`.
+- **Coverage:** Aim for >80%.
+- **No Live DB:** Mock Supabase calls using `msw` or internal mocks.
+
+## Pre-Commit Checklist
+1. `npm run lint`
+2. `npm run type-check`
+3. Ensure no new console warnings.
