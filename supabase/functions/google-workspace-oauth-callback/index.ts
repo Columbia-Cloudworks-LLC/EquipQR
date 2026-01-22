@@ -165,6 +165,42 @@ function isValidRedirectUrl(urlToValidate: string | null, productionUrl: string)
   }
 }
 
+/**
+ * Validates that a URL is from a trusted domain to prevent open redirect attacks.
+ * Only allows URLs from equipqr.app and its subdomains.
+ * 
+ * @param urlString - The URL string to validate
+ * @returns true if the URL is from a trusted domain, false otherwise
+ */
+function isTrustedDomain(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    const hostname = url.hostname.toLowerCase();
+    
+    // Allow exact match for equipqr.app
+    if (hostname === "equipqr.app") {
+      return true;
+    }
+    
+    // Allow subdomains of equipqr.app (e.g., preview.equipqr.app, staging.equipqr.app)
+    if (hostname.endsWith(".equipqr.app")) {
+      return true;
+    }
+    
+    // In non-production, also allow localhost for development
+    if (!isProductionEnvironment()) {
+      if (hostname === "localhost" || hostname === "127.0.0.1") {
+        return true;
+      }
+    }
+    
+    return false;
+  } catch {
+    // Invalid URL format
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -188,7 +224,11 @@ Deno.serve(async (req) => {
 
     if (!clientId || !clientSecret) {
       logStep("ERROR", { message: "Missing GOOGLE_WORKSPACE_CLIENT_ID or GOOGLE_WORKSPACE_CLIENT_SECRET" });
-      const fallbackProductionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
+      const rawProductionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
+      // Validate PRODUCTION_URL to prevent open redirect attacks
+      const fallbackProductionUrl = isTrustedDomain(rawProductionUrl)
+        ? rawProductionUrl
+        : "https://equipqr.app";
       const errorCode = "oauth_failed";
       const userMessage =
         "Google Workspace OAuth is not configured. Please contact your administrator.";
@@ -709,7 +749,11 @@ Deno.serve(async (req) => {
 
     return Response.redirect(successUrl, 302);
   } catch (error) {
-    const fallbackProductionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
+    const rawProductionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
+    // Validate PRODUCTION_URL to prevent open redirect attacks
+    const fallbackProductionUrl = isTrustedDomain(rawProductionUrl)
+      ? rawProductionUrl
+      : "https://equipqr.app";
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
 

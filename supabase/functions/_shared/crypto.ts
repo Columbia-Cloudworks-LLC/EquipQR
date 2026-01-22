@@ -24,6 +24,15 @@ const PBKDF2_ITERATIONS = 100_000;
 // This maintains backwards compatibility with existing encrypted data.
 const DEFAULT_KDF_SALT = 'equipqr_aes_gcm_kdf_salt_v1';
 
+/**
+ * Minimum required byte length for the KDF salt.
+ * 
+ * A minimum of 32 bytes (256 bits) provides sufficient entropy for the salt.
+ * This matches the key length requirement and ensures the salt contributes
+ * meaningful entropy to the key derivation process.
+ */
+const MIN_SALT_LENGTH = 32;
+
 // =============================================================================
 // Environment Detection
 // =============================================================================
@@ -262,15 +271,6 @@ export async function decryptToken(encrypted: string, secret: string): Promise<s
  * otherwise single-code-unit) secrets of length 32 or greater.
  */
 const MIN_KEY_LENGTH = 32;
-
-/**
- * Minimum required byte length for the KDF salt.
- * 
- * A minimum of 32 bytes (256 bits) provides sufficient entropy for the salt.
- * This matches the key length requirement and ensures the salt contributes
- * meaningful entropy to the key derivation process.
- */
-const MIN_SALT_LENGTH = 32;
 
 /**
  * Minimum ratio of unique characters required to consider a key/salt as having
