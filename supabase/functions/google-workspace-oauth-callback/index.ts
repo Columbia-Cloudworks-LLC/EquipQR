@@ -622,18 +622,54 @@ Deno.serve(async (req) => {
       scopes: tokenData.scope || null,
     });
 
-    const { error: upsertError } = await supabaseClient
+    // Manual upsert: The functional index on (organization_id, normalize_domain(domain))
+    // cannot be used with Supabase JS client's onConflict (it only supports column names).
+    // So we first check if a record exists, then update or insert accordingly.
+    const { data: existingRecord, error: selectError } = await supabaseClient
       .from("google_workspace_credentials")
-      .upsert({
-        organization_id: effectiveOrgId,
-        domain: domain,
-        refresh_token: encryptedRefreshToken,
-        access_token_expires_at: accessTokenExpiresAt.toISOString(),
-        scopes: tokenData.scope || null,
-        updated_at: now.toISOString(),
-      }, {
-        onConflict: "google_workspace_credentials_org_domain", // Must use index name for functional index - see comment above
+      .select("id")
+      .eq("organization_id", effectiveOrgId)
+      .eq("domain", normalizeDomain(domain))
+      .maybeSingle();
+
+    if (selectError) {
+      logStep("DEBUG: Select for upsert failed", { 
+        error: selectError.message, 
+        code: selectError.code,
       });
+      throw new Error(`DB select error: ${selectError.code}; ${selectError.message}`);
+    }
+
+    let upsertError: { message: string; code?: string; details?: string; hint?: string } | null = null;
+
+    if (existingRecord) {
+      // Update existing record
+      logStep("DEBUG: Updating existing credentials record", { id: existingRecord.id });
+      const { error } = await supabaseClient
+        .from("google_workspace_credentials")
+        .update({
+          refresh_token: encryptedRefreshToken,
+          access_token_expires_at: accessTokenExpiresAt.toISOString(),
+          scopes: tokenData.scope || null,
+          updated_at: now.toISOString(),
+        })
+        .eq("id", existingRecord.id);
+      upsertError = error;
+    } else {
+      // Insert new record
+      logStep("DEBUG: Inserting new credentials record");
+      const { error } = await supabaseClient
+        .from("google_workspace_credentials")
+        .insert({
+          organization_id: effectiveOrgId,
+          domain: normalizeDomain(domain),
+          refresh_token: encryptedRefreshToken,
+          access_token_expires_at: accessTokenExpiresAt.toISOString(),
+          scopes: tokenData.scope || null,
+          updated_at: now.toISOString(),
+        });
+      upsertError = error;
+    }
 
     if (upsertError) {
       logStep("DEBUG: Upsert failed", { 
