@@ -10,15 +10,22 @@
  * - Assert on visible outcomes
  * - Mock only at external boundaries (Supabase)
  * 
- * IMPORTANT: The TestEquipmentList component below is intentionally simplified
- * for demonstration purposes. In real journey tests, you MUST import and test
- * actual production page components from src/pages/, not stub components.
+ * ⚠️ CRITICAL: The TestEquipmentList component below is a STUB for demonstration only.
  * 
- * Example of correct import:
+ * In ALL real journey tests, you MUST import and test actual production page components
+ * from src/pages/, NOT stub components. Journey tests validate real user workflows
+ * through production code, not simplified test doubles.
+ * 
+ * ✅ CORRECT (real journey test):
  *   import { EquipmentListPage } from '@/pages/equipment/EquipmentListPage';
+ *   // ... then use <EquipmentListPage /> in renderJourney()
  * 
- * The stub component is only shown here to demonstrate the test structure
- * without requiring the full application context.
+ * ❌ INCORRECT (stub component):
+ *   const TestEquipmentList = () => <div>...</div>;  // DO NOT DO THIS
+ * 
+ * The stub component shown here is ONLY for demonstrating the test structure without
+ * requiring the full application context. It should NEVER be used as a pattern for
+ * actual test implementations.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -34,9 +41,16 @@ import {
   teams,
 } from '@/test/journey';
 
-// ⚠️ DEMONSTRATION ONLY: This is a simplified stub component for demonstration.
-// ⚠️ In real journey tests, import actual page components from src/pages/.
-// ⚠️ Example: import { EquipmentListPage } from '@/pages/equipment/EquipmentListPage';
+// ⚠️⚠️⚠️ STUB COMPONENT - DO NOT USE THIS PATTERN IN REAL TESTS ⚠️⚠️⚠️
+// 
+// This is a simplified stub component for demonstration ONLY.
+// 
+// In real journey tests, you MUST import and use actual production page components:
+//   import { EquipmentListPage } from '@/pages/equipment/EquipmentListPage';
+// 
+// Journey tests must exercise real production code, not test stubs.
+// This stub exists solely to demonstrate test structure without requiring full app context.
+//
 const TestEquipmentList = () => {
   return (
     <div>
@@ -48,8 +62,9 @@ const TestEquipmentList = () => {
 };
 
 describe('Example Journey Test', () => {
-  // Note: TestEquipmentList is intentionally simplified for demonstration purposes.
-  // In real journey tests, import actual page components from src/pages/.
+  // ⚠️ REMINDER: TestEquipmentList is a STUB for demonstration only.
+  // Real journey tests MUST import actual page components from src/pages/.
+  // Journey tests validate production code, not test doubles.
   beforeEach(() => {
     // Always reset mock state for test isolation
     resetSupabaseMock();
