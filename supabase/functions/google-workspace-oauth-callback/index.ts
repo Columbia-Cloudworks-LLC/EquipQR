@@ -642,7 +642,13 @@ Deno.serve(async (req) => {
         details: upsertError.details,
         hint: upsertError.hint,
       });
-      throw new Error("Failed to store Google Workspace credentials");
+      // Include error details in the message so they appear in the redirect URL for debugging
+      const errorDetails = [
+        upsertError.code && `code=${upsertError.code}`,
+        upsertError.message,
+        upsertError.hint && `hint: ${upsertError.hint}`,
+      ].filter(Boolean).join('; ');
+      throw new Error(`DB error: ${errorDetails}`);
     }
     
     logStep("DEBUG: Credentials stored successfully");
