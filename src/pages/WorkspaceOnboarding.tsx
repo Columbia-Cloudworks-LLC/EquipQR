@@ -146,23 +146,17 @@ const WorkspaceOnboarding = () => {
     }
   };
 
-  const handleDisconnect = async (alsoUnclaimDomain: boolean) => {
+  const handleDisconnect = async () => {
     if (!workspaceOrgId) return;
     
-    const confirmMessage = alsoUnclaimDomain
-      ? 'This will disconnect Google Workspace AND unclaim the domain, allowing full re-onboarding. Continue?'
-      : 'This will disconnect Google Workspace but keep the domain claimed. Continue?';
-    
-    if (!window.confirm(confirmMessage)) return;
+    if (!window.confirm('This will disconnect Google Workspace but keep the domain claimed. You can reconnect anytime. Continue?')) return;
     
     setIsDisconnecting(true);
     try {
-      const result = await disconnectGoogleWorkspace(workspaceOrgId, alsoUnclaimDomain);
+      const result = await disconnectGoogleWorkspace(workspaceOrgId, false);
       toast({
         title: 'Google Workspace disconnected',
-        description: alsoUnclaimDomain 
-          ? `Disconnected and unclaimed domain ${result.domain}. You can now re-run onboarding.`
-          : `Disconnected from ${result.domain}. You can reconnect anytime.`,
+        description: `Disconnected from ${result.domain}. You can reconnect anytime.`,
       });
       // Invalidate queries to refresh state
       await queryClient.invalidateQueries({ queryKey: ['google-workspace'] });
@@ -361,43 +355,26 @@ const WorkspaceOnboarding = () => {
                   <div>Connected on: {connectionStatus.connected_at ? new Date(connectionStatus.connected_at).toLocaleDateString() : 'Unknown'}</div>
                 </div>
                 
-                {/* Disconnect options - for testing/development */}
+                {/* Disconnect option - for testing/development */}
                 <div className="pt-4 border-t">
-                  <p className="text-sm font-medium mb-2">Disconnect Options</p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleDisconnect(false)}
-                      disabled={isDisconnecting}
-                    >
-                      {isDisconnecting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Disconnecting...
-                        </>
-                      ) : (
-                        'Disconnect (Keep Domain)'
-                      )}
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => handleDisconnect(true)}
-                      disabled={isDisconnecting}
-                    >
-                      {isDisconnecting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Disconnecting...
-                        </>
-                      ) : (
-                        'Full Reset (Unclaim Domain)'
-                      )}
-                    </Button>
-                  </div>
+                  <p className="text-sm font-medium mb-2">Disconnect</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleDisconnect}
+                    disabled={isDisconnecting}
+                  >
+                    {isDisconnecting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Disconnecting...
+                      </>
+                    ) : (
+                      'Disconnect Google Workspace'
+                    )}
+                  </Button>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Use these options to test the onboarding flow again. "Full Reset" allows complete re-onboarding.
+                    Disconnect to test the OAuth flow again. The domain will remain claimed, so reconnecting will use the same organization.
                   </p>
                 </div>
               </CardContent>

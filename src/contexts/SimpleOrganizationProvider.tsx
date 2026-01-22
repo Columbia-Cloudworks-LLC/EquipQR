@@ -111,12 +111,18 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     retry: 3,
   });
 
-  // Helper function to prioritize organizations by user role
+  // Helper function to prioritize organizations
+  // Prioritizes non-personal (workspace) orgs first, then by role (owner > admin > member)
   const getPrioritizedOrganization = useCallback((orgs: SimpleOrganization[]): string => {
     if (orgs.length === 0) return '';
     
-    // Sort by role priority: owner > admin > member
+    // Sort: non-personal orgs first, then by role priority
     const prioritized = [...orgs].sort((a, b) => {
+      // Non-personal orgs first (workspace orgs)
+      if (a.isPersonal !== b.isPersonal) {
+        return a.isPersonal ? 1 : -1;
+      }
+      // Then by role: owner > admin > member
       const roleWeight = { owner: 3, admin: 2, member: 1 };
       return (roleWeight[b.userRole] || 0) - (roleWeight[a.userRole] || 0);
     });
