@@ -99,6 +99,16 @@ function isProductionEnvironment(): boolean {
   return !!productionUrl && !productionUrl.includes("localhost");
 }
 
+/**
+ * Checks if this is a preview/staging environment (not production).
+ * Preview environments allow additional trusted domains like Vercel preview URLs.
+ */
+function isPreviewEnvironment(): boolean {
+  const productionUrl = Deno.env.get("PRODUCTION_URL") || "";
+  // If PRODUCTION_URL contains "preview" in the hostname, we're in preview/staging
+  return productionUrl.includes("preview.");
+}
+
 function isValidRedirectUrl(urlToValidate: string | null, productionUrl: string): boolean {
   if (!urlToValidate) return true;
 
@@ -113,9 +123,16 @@ function isValidRedirectUrl(urlToValidate: string | null, productionUrl: string)
     // In production, only allow the production domain
     // localhost/127.0.0.1 are ONLY allowed in non-production environments
     const isProduction = isProductionEnvironment();
+    const isPreview = isPreviewEnvironment();
+    
+    // Build list of allowed domains
     const allowedDomains = isProduction
       ? [productionDomain]
       : [productionDomain, "localhost", "127.0.0.1"];
+    
+    // In preview environments, also allow Vercel preview deployment URLs
+    // These are trusted since they're deployed by our CI/CD pipeline
+    const allowedSuffixes = isPreview ? [".vercel.app"] : [];
 
     for (const domain of allowedDomains) {
       if (domain.startsWith(".")) {
@@ -126,12 +143,20 @@ function isValidRedirectUrl(urlToValidate: string | null, productionUrl: string)
         return true;
       }
     }
+    
+    // Check suffix-based allowed domains (e.g., *.vercel.app)
+    for (const suffix of allowedSuffixes) {
+      if (url.hostname.endsWith(suffix)) {
+        return true;
+      }
+    }
 
     logStep("Redirect URL validation failed", {
       redirectUrl: urlToValidate.substring(0, 100),
       hostname: url.hostname,
       productionDomain,
       isProduction,
+      isPreview,
     });
     return false;
   } catch {
