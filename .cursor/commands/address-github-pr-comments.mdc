@@ -1,0 +1,203 @@
+---
+description: "Workflow to fetch, triage, and plan fixes for GitHub PR review comments using MCP tools."
+triggers: ["/fix-pr", "/pr-comments", "/address-pr"]
+---
+
+# Address GitHub PR Comments
+
+**Goal:** Fetch all PR review comments, identify unresolved issues, and create a structured plan to address them.
+
+## Prerequisites
+
+- GitHub MCP server must be connected (check for green indicator in Cursor MCP panel)
+- Must be on a feature branch with an open PR
+
+---
+
+## Step 1: Identify the PR
+
+First, determine the current branch and find the matching PR:
+
+```bash
+git branch --show-current
+git remote -v
+```
+
+Then use the GitHub MCP tool to find the PR:
+
+```
+user-github-list_pull_requests({
+  owner: "<org-name>",
+  repo: "<repo-name>",
+  state: "open"
+})
+```
+
+---
+
+## Step 2: Fetch Review Threads
+
+Use the `pull_request_read` tool with `method: "get_review_comments"` to get ALL review threads with their resolution status:
+
+```
+user-github-pull_request_read({
+  owner: "<org-name>",
+  repo: "<repo-name>",
+  pullNumber: <pr-number>,
+  method: "get_review_comments",
+  perPage: 100
+})
+```
+
+### Response Structure
+
+The response contains:
+```json
+{
+  "totalCount": 183,
+  "pageInfo": { "hasNextPage": false, "endCursor": "..." },
+  "reviewThreads": [
+    {
+      "ID": "PRRT_...",
+      "IsResolved": false,
+      "IsOutdated": true,
+      "IsCollapsed": false,
+      "Comments": {
+        "Nodes": [
+          {
+            "ID": "PRRC_...",
+            "Body": "The comment text...",
+            "Path": "path/to/file.ts",
+            "Line": 123,
+            "Author": { "Login": "reviewer-name" },
+            "CreatedAt": "2026-01-20T23:26:27Z",
+            "URL": "https://github.com/..."
+          }
+        ],
+        "TotalCount": 1
+      }
+    }
+  ]
+}
+```
+
+### Key Fields
+
+| Field | Description |
+|-------|-------------|
+| `IsResolved` | `true` = thread is resolved, `false` = still needs attention |
+| `IsOutdated` | `true` = code has changed since comment, `false` = comment is current |
+| `Comments.Nodes[0].Path` | File path the comment applies to |
+| `Comments.Nodes[0].Line` | Line number in the file |
+| `Comments.Nodes[0].Body` | The actual review comment text |
+| `Comments.Nodes[0].Author.Login` | Who left the comment |
+
+---
+
+## Step 3: Filter for Actionable Comments
+
+**Unresolved & Current** = Comments that need action:
+- `IsResolved === false` AND `IsOutdated === false`
+
+**Unresolved but Outdated** = Code changed, may be auto-resolved:
+- `IsResolved === false` AND `IsOutdated === true`
+
+### PowerShell Filter Example
+
+```powershell
+$content = Get-Content "<output-file>" -Raw | ConvertFrom-Json
+
+# Get unresolved, current (not outdated) threads
+$actionable = $content.reviewThreads | Where-Object { 
+  $_.IsResolved -eq $false -and $_.IsOutdated -eq $false 
+}
+
+# Display each actionable thread
+$actionable | ForEach-Object {
+    $comment = $_.Comments.Nodes[0]
+    Write-Host "File: $($comment.Path)"
+    Write-Host "Line: $($comment.Line)"
+    Write-Host "Author: $($comment.Author.Login)"
+    Write-Host "Body: $($comment.Body)"
+    Write-Host "---"
+}
+```
+
+---
+
+## Step 4: Create Action Plan
+
+After identifying unresolved comments, switch to **Plan Mode** to create a structured implementation plan.
+
+### Plan Structure
+
+For each unresolved comment, document:
+
+1. **File & Line**: Exact location
+2. **Issue Type**: Security, code quality, documentation, etc.
+3. **Reviewer**: Who raised the concern
+4. **Problem**: What needs to be fixed
+5. **Proposed Fix**: How to address it
+6. **Priority**: HIGH (security/breaking), MEDIUM (code quality), LOW (docs/style)
+
+### Implementation Order
+
+Prioritize fixes in this order:
+1. **Security issues** (open redirect, injection, etc.)
+2. **Breaking issues** (const assignment, type errors)
+3. **Code quality** (unused variables, redundant code)
+4. **Documentation** (comments, examples)
+
+---
+
+## Step 5: Implement Fixes
+
+After planning, implement fixes following the plan:
+
+1. Read each affected file
+2. Apply the fix
+3. Run verification:
+   ```bash
+   npm run typecheck
+   npm run lint
+   npm test
+   ```
+4. Commit with message referencing the PR
+
+---
+
+## Step 6: Respond to Comments
+
+After fixing, optionally reply to comments using:
+
+```
+user-github-add_issue_comment({
+  owner: "<org-name>",
+  repo: "<repo-name>",
+  issue_number: <pr-number>,
+  body: "Addressed all review comments in commit <sha>. See details..."
+})
+```
+
+---
+
+## Quick Reference: Comment Categories
+
+| `IsResolved` | `IsOutdated` | Status | Action |
+|--------------|--------------|--------|--------|
+| `false` | `false` | **Needs Action** | Must address |
+| `false` | `true` | Outdated | May be resolved by code changes, verify |
+| `true` | `false` | Resolved | No action needed |
+| `true` | `true` | Resolved + Outdated | No action needed |
+
+---
+
+## Automatic Plan Mode
+
+After fetching and triaging comments, **switch to Plan Mode** to collaboratively design the implementation approach before making changes.
+
+This ensures:
+- All issues are properly understood
+- Implementation order is agreed upon
+- No fixes are missed
+- User can review approach before code changes
