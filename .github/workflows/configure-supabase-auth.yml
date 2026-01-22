@@ -1,5 +1,15 @@
 name: Configure Supabase Auth (Preview)
 
+# This workflow configures Supabase auth settings for the preview environment.
+# It runs AFTER Vercel deployment completes to override the Supabase-Vercel
+# integration which sets Site URL to per-commit Vercel URLs.
+#
+# The delay ensures we run after:
+# 1. Vercel deployment completes (~2-3 minutes)
+# 2. Supabase-Vercel integration updates auth config
+#
+# See: https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/512
+
 on:
   push:
     branches: [preview]
@@ -11,9 +21,15 @@ jobs:
   configure-auth:
     name: Configure Supabase Auth for Preview
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
+      - name: Wait for Vercel deployment and Supabase integration
+        run: |
+          echo "⏳ Waiting 4 minutes for Vercel deployment and Supabase-Vercel integration to complete..."
+          echo "   This ensures our config runs AFTER the integration sets incorrect URLs."
+          sleep 240
+
       - name: Checkout code
         uses: actions/checkout@v4
 
