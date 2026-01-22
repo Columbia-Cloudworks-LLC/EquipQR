@@ -393,8 +393,32 @@ Deno.serve(async (req) => {
     });
 
     if (!tokenResponse.ok) {
-      logStep("Token exchange failed", { status: tokenResponse.status });
-      throw new Error("Failed to exchange authorization code. Please try again.");
+      // Log the actual error from Google to diagnose the issue
+      let googleError: { error?: string; error_description?: string } = {};
+      try {
+        googleError = await tokenResponse.json();
+      } catch {
+        // Response wasn't JSON
+      }
+      logStep("Token exchange failed", {
+        status: tokenResponse.status,
+        error: googleError.error || "unknown",
+        error_description: googleError.error_description || "no description",
+        redirect_uri_used: redirectUri,
+        client_id_prefix: clientId?.substring(0, 20) + "...",
+      });
+      
+      // Provide more specific error message based on Google's response
+      let userMessage = "Failed to exchange authorization code. Please try again.";
+      if (googleError.error === "redirect_uri_mismatch") {
+        userMessage = "OAuth configuration error: redirect URI mismatch. Please contact support.";
+      } else if (googleError.error === "invalid_client") {
+        userMessage = "OAuth configuration error: invalid client credentials. Please contact support.";
+      } else if (googleError.error === "invalid_grant") {
+        userMessage = "Authorization code expired or already used. Please try again.";
+      }
+      
+      throw new Error(userMessage);
     }
 
     const tokenData: GoogleTokenResponse = await tokenResponse.json();
