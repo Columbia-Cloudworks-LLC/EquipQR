@@ -152,12 +152,18 @@ async function main() {
     const currentConfig = await getAuthConfig(envConfig.projectId, accessToken);
     
     console.log(`   Current Site URL: ${currentConfig.site_url || '(not set)'}`);
-    console.log(`   Current Redirect URIs: ${currentConfig.uri_allow_list?.length || 0} entries`);
+    const rawUris = currentConfig.uri_allow_list;
+    const currentUris = Array.isArray(rawUris)
+      ? [...rawUris]
+      : rawUris != null && typeof rawUris === 'object' && 'length' in rawUris
+        ? Array.from(rawUris)
+        : [];
+    console.log(`   Current Redirect URIs: ${currentUris.length} entries`);
 
     // Check if update is needed
     const siteUrlNeedsUpdate = currentConfig.site_url !== envConfig.siteUrl;
-    const currentUris = currentConfig.uri_allow_list || [];
-    const urisNeedUpdate = JSON.stringify(currentUris.sort()) !== JSON.stringify(envConfig.redirectUris.sort());
+    const urisNeedUpdate =
+      JSON.stringify([...currentUris].sort()) !== JSON.stringify([...envConfig.redirectUris].sort());
 
     if (!siteUrlNeedsUpdate && !urisNeedUpdate) {
       console.log('\n✅ Auth configuration is already correct. No changes needed.');
