@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import Page from '@/components/layout/Page';
@@ -39,9 +39,6 @@ const WorkspaceOnboarding = () => {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
-  
-  // Track if we've already done the initial auto-switch to prevent infinite loops
-  const hasAutoSwitchedRef = useRef(false);
 
   // Handle OAuth callback parameters
   const gwError = searchParams.get('gw_error');
@@ -95,26 +92,14 @@ const WorkspaceOnboarding = () => {
     staleTime: 60 * 1000,
   });
 
-  // Switch to the workspace organization if connected or if viewing personal org
-  // Only do this once on initial load, not on every render/navigation
+  // Only auto-switch to workspace org after OAuth callback
+  // Otherwise, let users freely choose their organization
   useEffect(() => {
-    // After OAuth callback, switch to workspace org (always do this)
+    // After OAuth callback, switch to workspace org
     if (gwConnected === 'true' && workspaceOrgId) {
       switchOrganization(workspaceOrgId);
-      hasAutoSwitchedRef.current = true;
-      return;
     }
-    
-    // Only auto-switch on initial load if user is on personal org and workspace org exists
-    // Don't auto-switch if user has manually changed organizations
-    if (!hasAutoSwitchedRef.current && currentOrganization?.isPersonal && workspaceOrgId && !gwConnected) {
-      switchOrganization(workspaceOrgId);
-      hasAutoSwitchedRef.current = true;
-    }
-  }, [gwConnected, workspaceOrgId, switchOrganization, currentOrganization?.isPersonal]);
-  
-  // Check if currently viewing a personal organization
-  const isViewingPersonalOrg = currentOrganization?.isPersonal === true;
+  }, [gwConnected, workspaceOrgId, switchOrganization]);
 
   const handleConnectWorkspace = async () => {
     setIsConnecting(true);
@@ -258,27 +243,6 @@ const WorkspaceOnboarding = () => {
             Sign in with your Google Workspace account to start setup.
           </AlertDescription>
         </Alert>
-      </Page>
-    );
-  }
-
-  // If viewing personal organization and no workspace org exists yet,
-  // show a message that workspace connection will create a new org
-  if (isViewingPersonalOrg && !workspaceOrgId) {
-    // This is the first-time setup case - the connect button will create the workspace org
-    // Let the page render normally to show the connect button
-  } else if (isViewingPersonalOrg && workspaceOrgId) {
-    // User is on personal org but workspace org exists - this shouldn't happen
-    // because the useEffect above should auto-switch, but show a loading state
-    return (
-      <Page maxWidth="7xl" padding="responsive">
-        <PageHeader
-          title="Workspace Onboarding"
-          description="Switching to your workspace organization..."
-        />
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
       </Page>
     );
   }
