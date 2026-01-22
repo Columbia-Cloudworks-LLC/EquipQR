@@ -114,12 +114,17 @@ async function main() {
         type: 'boolean',
         short: 'd',
         default: false
+      },
+      'print-payload': {
+        type: 'boolean',
+        default: false
       }
     }
   });
 
   const environment = values.environment;
   const dryRun = values['dry-run'];
+  const printPayload = values['print-payload'];
 
   // Validate environment
   if (!ENVIRONMENTS[environment]) {
@@ -155,9 +160,14 @@ async function main() {
     const rawUris = currentConfig.uri_allow_list;
     const currentUris = Array.isArray(rawUris)
       ? [...rawUris]
-      : rawUris != null && typeof rawUris === 'object' && 'length' in rawUris
-        ? Array.from(rawUris)
-        : [];
+      : typeof rawUris === 'string'
+        ? rawUris
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean)
+        : rawUris != null && typeof rawUris === 'object' && 'length' in rawUris
+          ? Array.from(rawUris)
+          : [];
     console.log(`   Current Redirect URIs: ${currentUris.length} entries`);
 
     // Check if update is needed
@@ -179,12 +189,17 @@ async function main() {
     }
 
     if (urisNeedUpdate) {
-      updatePayload.uri_allow_list = envConfig.redirectUris;
+      updatePayload.uri_allow_list = envConfig.redirectUris.join(',');
       console.log(`\n📝 Will update Redirect URIs:`);
       console.log('   Current:');
       currentUris.forEach(uri => console.log(`     - ${uri}`));
       console.log('   New:');
       envConfig.redirectUris.forEach(uri => console.log(`     - ${uri}`));
+    }
+
+    if (printPayload) {
+      console.log('\n🧾 Update payload:');
+      console.log(JSON.stringify(updatePayload, null, 2));
     }
 
     if (dryRun) {
