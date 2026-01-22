@@ -585,9 +585,26 @@ Deno.serve(async (req) => {
     }
 
     // Encrypt the refresh token before storing
-    const encryptionKey = getTokenEncryptionKey();
-    const encryptedRefreshToken = await encryptToken(refreshToken, encryptionKey);
-    logStep("Refresh token encrypted for storage");
+    logStep("DEBUG: About to get encryption key");
+    let encryptionKey: string;
+    try {
+      encryptionKey = getTokenEncryptionKey();
+      logStep("DEBUG: Got encryption key", { keyLength: encryptionKey.length });
+    } catch (keyError) {
+      const keyErrorMsg = keyError instanceof Error ? keyError.message : String(keyError);
+      logStep("DEBUG: Failed to get encryption key", { error: keyErrorMsg });
+      throw new Error(`Encryption key error: ${keyErrorMsg}`);
+    }
+
+    let encryptedRefreshToken: string;
+    try {
+      encryptedRefreshToken = await encryptToken(refreshToken, encryptionKey);
+      logStep("DEBUG: Refresh token encrypted", { encryptedLength: encryptedRefreshToken.length });
+    } catch (encryptError) {
+      const encryptErrorMsg = encryptError instanceof Error ? encryptError.message : String(encryptError);
+      logStep("DEBUG: Encryption failed", { error: encryptErrorMsg });
+      throw new Error(`Encryption failed: ${encryptErrorMsg}`);
+    }
 
     // Upsert using the unique functional index on (organization_id, normalize_domain(domain)).
     //
@@ -598,6 +615,13 @@ Deno.serve(async (req) => {
     // use column names here (e.g. "organization_id,domain"), PostgreSQL will fail
     // the statement with an error similar to:
     //   "there is no unique or exclusion constraint matching the ON CONFLICT specification".
+    logStep("DEBUG: About to upsert credentials", {
+      organization_id: effectiveOrgId,
+      domain: domain,
+      access_token_expires_at: accessTokenExpiresAt.toISOString(),
+      scopes: tokenData.scope || null,
+    });
+
     const { error: upsertError } = await supabaseClient
       .from("google_workspace_credentials")
       .upsert({
@@ -612,9 +636,16 @@ Deno.serve(async (req) => {
       });
 
     if (upsertError) {
-      logStep("Failed to store credentials", { error: upsertError.message });
+      logStep("DEBUG: Upsert failed", { 
+        error: upsertError.message, 
+        code: upsertError.code,
+        details: upsertError.details,
+        hint: upsertError.hint,
+      });
       throw new Error("Failed to store Google Workspace credentials");
     }
+    
+    logStep("DEBUG: Credentials stored successfully");
 
     const isOriginValid = !!originUrl && isValidRedirectUrl(originUrl, resolvedProductionUrl);
     const finalBaseUrl = (isOriginValid ? originUrl : resolvedProductionUrl).replace(/\/+$/, "");
