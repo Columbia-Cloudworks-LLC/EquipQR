@@ -24,6 +24,7 @@ Guides for end users and administrators:
 
 Operational documentation for deployment and maintenance:
 
+- **[CI/CD Pipeline](./ops/ci-cd-pipeline.md)** - Complete CI/CD pipeline documentation including GitHub Actions, Vercel, and Supabase integrations
 - **[Deployment](./ops/deployment.md)** - Complete deployment guide including build, hosting, runners, and versioning
 - **[Migrations](./ops/migrations.md)** - Database migration guide with critical rules
 - **[Migration Rules Quick Reference](./ops/migration-rules-quick-reference.md)** - Quick reference for migration best practices
@@ -50,10 +51,11 @@ Operational documentation for deployment and maintenance:
 
 ### For DevOps Engineers
 1. **READ FIRST**: [Migrations](./ops/migrations.md) - ⚠️ **CRITICAL** migration rules
-2. Study [Deployment](./ops/deployment.md) - Complete deployment guide
-3. Review [Disaster Recovery](./ops/disaster-recovery.md) - Backup and PITR procedures
-4. Review [Architecture](./technical/architecture.md) - System architecture
-5. Reference [Migration Rules Quick Reference](./ops/migration-rules-quick-reference.md) - Quick reference
+2. Study [CI/CD Pipeline](./ops/ci-cd-pipeline.md) - Complete pipeline documentation
+3. Study [Deployment](./ops/deployment.md) - Complete deployment guide
+4. Review [Disaster Recovery](./ops/disaster-recovery.md) - Backup and PITR procedures
+5. Review [Architecture](./technical/architecture.md) - System architecture
+6. Reference [Migration Rules Quick Reference](./ops/migration-rules-quick-reference.md) - Quick reference
 
 ## 📁 Additional Resources
 
@@ -91,6 +93,7 @@ Operational documentation for deployment and maintenance:
 - [Architecture - Component Patterns](./technical/architecture.md#component-design-patterns)
 
 #### Deployment & DevOps
+- [CI/CD Pipeline](./ops/ci-cd-pipeline.md) - GitHub Actions, Vercel, Supabase integrations
 - [Deployment Guide](./ops/deployment.md) - Platform-specific deployment
 - [Migrations](./ops/migrations.md) - Database migrations
 - [Local Supabase Development](./ops/local-supabase-development.md) - Local development setup and edge function workflow
@@ -132,6 +135,6 @@ Operational documentation for deployment and maintenance:
 
 ---
 
-**Last Updated**: November 2024  
+**Last Updated**: January 2026  
 **Maintained by**: EquipQR™ Development Team  
 **Feedback**: Create GitHub issues for documentation improvements
