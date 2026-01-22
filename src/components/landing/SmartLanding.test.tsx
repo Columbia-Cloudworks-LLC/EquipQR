@@ -33,7 +33,7 @@ describe('SmartLanding', () => {
     mockNavigate.mockClear();
   });
 
-  it('redirects Google Workspace users to onboarding when domain is unclaimed', async () => {
+  it('redirects authenticated users to dashboard when domain is unclaimed', async () => {
     mockUseAuth.mockReturnValue({
       user: { app_metadata: { provider: 'google' } },
       isLoading: false,
@@ -50,11 +50,11 @@ describe('SmartLanding', () => {
     render(<SmartLanding />);
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard/onboarding/workspace', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
     });
   });
 
-  it('redirects to onboarding when domain is claimed but not connected', async () => {
+  it('redirects authenticated users to dashboard when domain is claimed but not connected', async () => {
     mockUseAuth.mockReturnValue({
       user: { app_metadata: { provider: 'google' } },
       isLoading: false,
@@ -71,7 +71,7 @@ describe('SmartLanding', () => {
     render(<SmartLanding />);
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard/onboarding/workspace', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
     });
   });
 
