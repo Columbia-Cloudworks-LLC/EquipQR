@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useWorkspaceOnboardingState } from '@/hooks/useWorkspaceOnboarding';
 import { needsWorkspaceOnboarding } from '@/utils/google-workspace';
 import { Loader2 } from 'lucide-react';
@@ -18,14 +19,15 @@ interface WorkspaceOnboardingGuardProps {
  */
 const WorkspaceOnboardingGuard: React.FC<WorkspaceOnboardingGuardProps> = ({ children }) => {
   const { user, isLoading: authLoading } = useAuth();
+  const { currentOrganization, isLoading: orgLoading } = useOrganization();
   const { data: onboardingState, isLoading: onboardingLoading } = useWorkspaceOnboardingState();
   const location = useLocation();
 
   // Don't guard the onboarding route itself
   const isOnboardingRoute = location.pathname === '/dashboard/onboarding/workspace';
 
-  // Wait for auth and onboarding state to load
-  if (authLoading || onboardingLoading) {
+  // Wait for auth, organization, and onboarding state to load
+  if (authLoading || orgLoading || onboardingLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div role="status" aria-label="Loading" className="text-center">
@@ -46,7 +48,14 @@ const WorkspaceOnboardingGuard: React.FC<WorkspaceOnboardingGuardProps> = ({ chi
     return <>{children}</>;
   }
 
+  // Allow navigation if user is on their personal organization
+  // Personal orgs don't require workspace onboarding
+  if (currentOrganization?.isPersonal) {
+    return <>{children}</>;
+  }
+
   // Use shared utility to determine if onboarding is needed
+  // Only check this for workspace organizations
   if (needsWorkspaceOnboarding(user, onboardingState)) {
     return <Navigate to="/dashboard/onboarding/workspace" replace />;
   }
