@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import Page from '@/components/layout/Page';
@@ -39,6 +39,9 @@ const WorkspaceOnboarding = () => {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
+  
+  // Track if we've already done the initial auto-switch to prevent infinite loops
+  const hasAutoSwitchedRef = useRef(false);
 
   // Handle OAuth callback parameters
   const gwError = searchParams.get('gw_error');
@@ -93,16 +96,20 @@ const WorkspaceOnboarding = () => {
   });
 
   // Switch to the workspace organization if connected or if viewing personal org
+  // Only do this once on initial load, not on every render/navigation
   useEffect(() => {
-    // After OAuth callback, switch to workspace org
+    // After OAuth callback, switch to workspace org (always do this)
     if (gwConnected === 'true' && workspaceOrgId) {
       switchOrganization(workspaceOrgId);
+      hasAutoSwitchedRef.current = true;
       return;
     }
     
-    // If currently on personal org and workspace org exists, switch to it
-    if (currentOrganization?.isPersonal && workspaceOrgId && !gwConnected) {
+    // Only auto-switch on initial load if user is on personal org and workspace org exists
+    // Don't auto-switch if user has manually changed organizations
+    if (!hasAutoSwitchedRef.current && currentOrganization?.isPersonal && workspaceOrgId && !gwConnected) {
       switchOrganization(workspaceOrgId);
+      hasAutoSwitchedRef.current = true;
     }
   }, [gwConnected, workspaceOrgId, switchOrganization, currentOrganization?.isPersonal]);
   
