@@ -18,6 +18,7 @@ import {
   listWorkspaceDirectoryUsers,
   selectGoogleWorkspaceMembers,
   syncGoogleWorkspaceUsers,
+  disconnectGoogleWorkspace,
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
 import { isConsumerGoogleDomain } from '@/utils/google-workspace';
@@ -26,7 +27,7 @@ import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 const WorkspaceOnboarding = () => {
   const { user } = useAuth();
   const { refreshSession } = useSession();
-  const { switchOrganization } = useOrganization();
+  const { switchOrganization, currentOrganization, organizations } = useOrganization();
   const { toast } = useAppToast();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,6 +36,7 @@ const WorkspaceOnboarding = () => {
 
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
 
@@ -90,12 +92,22 @@ const WorkspaceOnboarding = () => {
     staleTime: 60 * 1000,
   });
 
-  // Switch to the workspace organization if connected
+  // Switch to the workspace organization if connected or if viewing personal org
   useEffect(() => {
+    // After OAuth callback, switch to workspace org
     if (gwConnected === 'true' && workspaceOrgId) {
       switchOrganization(workspaceOrgId);
+      return;
     }
-  }, [gwConnected, workspaceOrgId, switchOrganization]);
+    
+    // If currently on personal org and workspace org exists, switch to it
+    if (currentOrganization?.isPersonal && workspaceOrgId && !gwConnected) {
+      switchOrganization(workspaceOrgId);
+    }
+  }, [gwConnected, workspaceOrgId, switchOrganization, currentOrganization?.isPersonal]);
+  
+  // Check if currently viewing a personal organization
+  const isViewingPersonalOrg = currentOrganization?.isPersonal === true;
 
   const handleConnectWorkspace = async () => {
     setIsConnecting(true);
@@ -131,6 +143,38 @@ const WorkspaceOnboarding = () => {
       });
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleDisconnect = async (alsoUnclaimDomain: boolean) => {
+    if (!workspaceOrgId) return;
+    
+    const confirmMessage = alsoUnclaimDomain
+      ? 'This will disconnect Google Workspace AND unclaim the domain, allowing full re-onboarding. Continue?'
+      : 'This will disconnect Google Workspace but keep the domain claimed. Continue?';
+    
+    if (!window.confirm(confirmMessage)) return;
+    
+    setIsDisconnecting(true);
+    try {
+      const result = await disconnectGoogleWorkspace(workspaceOrgId, alsoUnclaimDomain);
+      toast({
+        title: 'Google Workspace disconnected',
+        description: alsoUnclaimDomain 
+          ? `Disconnected and unclaimed domain ${result.domain}. You can now re-run onboarding.`
+          : `Disconnected from ${result.domain}. You can reconnect anytime.`,
+      });
+      // Invalidate queries to refresh state
+      await queryClient.invalidateQueries({ queryKey: ['google-workspace'] });
+      await refetch();
+    } catch (error) {
+      toast({
+        title: 'Failed to disconnect',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'error',
+      });
+    } finally {
+      setIsDisconnecting(false);
     }
   };
 
@@ -217,6 +261,27 @@ const WorkspaceOnboarding = () => {
     );
   }
 
+  // If viewing personal organization and no workspace org exists yet,
+  // show a message that workspace connection will create a new org
+  if (isViewingPersonalOrg && !workspaceOrgId) {
+    // This is the first-time setup case - the connect button will create the workspace org
+    // Let the page render normally to show the connect button
+  } else if (isViewingPersonalOrg && workspaceOrgId) {
+    // User is on personal org but workspace org exists - this shouldn't happen
+    // because the useEffect above should auto-switch, but show a loading state
+    return (
+      <Page maxWidth="7xl" padding="responsive">
+        <PageHeader
+          title="Workspace Onboarding"
+          description="Switching to your workspace organization..."
+        />
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Page>
+    );
+  }
+
   const isConnected = connectionStatus?.is_connected;
   const showConnectButton = !isConnected;
 
@@ -290,9 +355,51 @@ const WorkspaceOnboarding = () => {
                   Your organization is connected to Google Workspace.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <div>Connected domain: {connectionStatus.domain}</div>
-                <div>Connected on: {connectionStatus.connected_at ? new Date(connectionStatus.connected_at).toLocaleDateString() : 'Unknown'}</div>
+              <CardContent className="space-y-4">
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div>Connected domain: {connectionStatus.domain}</div>
+                  <div>Connected on: {connectionStatus.connected_at ? new Date(connectionStatus.connected_at).toLocaleDateString() : 'Unknown'}</div>
+                </div>
+                
+                {/* Disconnect options - for testing/development */}
+                <div className="pt-4 border-t">
+                  <p className="text-sm font-medium mb-2">Disconnect Options</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDisconnect(false)}
+                      disabled={isDisconnecting}
+                    >
+                      {isDisconnecting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Disconnecting...
+                        </>
+                      ) : (
+                        'Disconnect (Keep Domain)'
+                      )}
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleDisconnect(true)}
+                      disabled={isDisconnecting}
+                    >
+                      {isDisconnecting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Disconnecting...
+                        </>
+                      ) : (
+                        'Full Reset (Unclaim Domain)'
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Use these options to test the onboarding flow again. "Full Reset" allows complete re-onboarding.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 

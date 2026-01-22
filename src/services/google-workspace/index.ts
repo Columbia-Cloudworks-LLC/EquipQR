@@ -142,3 +142,34 @@ export async function selectGoogleWorkspaceMembers(
     admin_pending: number;
   };
 }
+
+export interface DisconnectWorkspaceResult {
+  success: boolean;
+  credentials_deleted: number;
+  directory_users_deleted: number;
+  domain_unclaimed: number;
+  domain: string | null;
+}
+
+/**
+ * Disconnect Google Workspace integration for an organization.
+ * This removes OAuth credentials and optionally unclaims the domain.
+ * 
+ * @param organizationId - The organization to disconnect
+ * @param alsoUnclaimDomain - If true, also removes the domain claim allowing full re-onboarding
+ */
+export async function disconnectGoogleWorkspace(
+  organizationId: string,
+  alsoUnclaimDomain: boolean = false
+): Promise<DisconnectWorkspaceResult> {
+  const { data, error } = await supabase.rpc('disconnect_google_workspace', {
+    p_organization_id: organizationId,
+    p_also_unclaim_domain: alsoUnclaimDomain,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as DisconnectWorkspaceResult;
+}

@@ -74,6 +74,15 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         throw orgError;
       }
 
+      // Get user's personal organization ID
+      const { data: personalOrgData } = await supabase
+        .from('personal_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      const personalOrgId = personalOrgData?.organization_id || null;
+
       // Combine data
       const orgs: SimpleOrganization[] = (orgData || []).map(org => {
         const membership = membershipData.find(m => m.organization_id === org.id);
@@ -89,7 +98,8 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
           logo: org.logo || undefined,
           backgroundColor: org.background_color || undefined,
           userRole: membership?.role as 'owner' | 'admin' | 'member' || 'member',
-          userStatus: membership?.status as 'active' | 'pending' | 'inactive' || 'active'
+          userStatus: membership?.status as 'active' | 'pending' | 'inactive' || 'active',
+          isPersonal: org.id === personalOrgId
         };
       });
 
