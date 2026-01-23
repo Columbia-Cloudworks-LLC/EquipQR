@@ -7,9 +7,14 @@ description: Fetches GitHub PR review comments, categorizes them as resolved or 
 
 Fetches all review comments from a GitHub pull request, presents them organized by resolution status, and guides systematic resolution of unresolved comments.
 
-## Included scripts
+## Recommended Approach: MCP Tools
 
-This skill includes an optional `scripts/` directory that can be executed by the agent to automate fetching/categorizing review threads.
+The most reliable method is to use MCP tools directly (documented in the Workflow section below).
+The script pipeline is available as an alternative but requires `gh` CLI authentication.
+
+## Alternative: Script Pipeline
+
+This skill includes an optional `scripts/` directory that can be executed locally to automate fetching/categorizing review threads.
 
 - **Prereqs check**: `scripts/check-prereqs.ps1`
 - **Discover PR (owner/repo/number)**: `scripts/discover-pr.mjs`
@@ -18,7 +23,7 @@ This skill includes an optional `scripts/` directory that can be executed by the
 - **Render a markdown summary**: `scripts/render-summary.mjs`
 - **Post a PR comment**: `scripts/post-pr-comment.mjs`
 
-### Example pipeline (local / agent)
+### Example pipeline (local only, requires gh auth)
 
 ```powershell
 # From repo root (requires gh auth)
@@ -32,35 +37,54 @@ node ./scripts/discover-pr.mjs `
   | Out-File -Encoding utf8 pr-review-comments-summary.md
 ```
 
+**Note:** If the script pipeline fails (e.g., GraphQL schema changes), fall back to the MCP tool approach below.
+
 ## Workflow
 
 ### Step 1: Identify PR
 
 1. Get current branch: `git branch --show-current`
-2. Get repository info: `git remote -v`
-3. Find matching PR using `mcp_github_list_pull_requests`:
+2. Get repository info: `git remote -v` (extract owner/repo from origin URL)
+3. Find matching PR using GitHub MCP tool:
    ```typescript
-   mcp_github_list_pull_requests({
-     owner: "<org-name>",
-     repo: "<repo-name>",
-     state: "open"
+   // MCP Tool Call
+   CallMcpTool({
+     server: "user-github",
+     toolName: "list_pull_requests",
+     arguments: {
+       owner: "<org-name>",
+       repo: "<repo-name>",
+       state: "open"
+     }
    })
    ```
-4. If multiple PRs match, ask user for the PR number
+4. Match the current branch to a PR's `head.ref` field
+5. If multiple PRs match, ask user for the PR number
 
 ### Step 2: Fetch Review Comments
 
-Use `mcp_github_pull_request_read` to get all review threads:
+Use the GitHub MCP tool `pull_request_read` with method `get_review_comments` to get all review threads:
 
 ```typescript
-mcp_github_pull_request_read({
-  owner: "<org-name>",
-  repo: "<repo-name>",
-  pullNumber: <pr-number>,
-  method: "get_review_comments",
-  perPage: 100
+// MCP Tool Call
+CallMcpTool({
+  server: "user-github",
+  toolName: "pull_request_read",
+  arguments: {
+    owner: "<org-name>",
+    repo: "<repo-name>",
+    pullNumber: <pr-number>,
+    method: "get_review_comments",
+    perPage: 100
+  }
 })
 ```
+
+The response includes `reviewThreads` with fields:
+- `IsResolved`: boolean - whether the thread is resolved
+- `IsOutdated`: boolean - whether the code has changed since the comment
+- `Comments.Nodes[].Body`: the comment text
+- `Comments.Nodes[].Author.Login`: the reviewer's username
 
 ### Step 3: Categorize Comments
 
@@ -128,9 +152,9 @@ For each unresolved comment:
    - Check `.cursor/rules/supabase-migrations.mdc` for DB changes
    - Ensure shadcn/ui patterns for style changes
 4. **Verify fix:**
-   - Run `npm run typecheck`
-   - Run `npm run lint`
-   - Run `npm test` (if applicable)
+   - Run TypeScript check: `npm run type-check` (or `npm run typecheck` - check package.json)
+   - Run linter: `npm run lint`
+   - Run tests: `npm test` (if applicable)
 
 ### Step 6: Commit and Push
 
@@ -152,11 +176,15 @@ After all fixes are applied:
 After pushing, add a comment to the PR summarizing the fixes:
 
 ```typescript
-mcp_github_add_issue_comment({
-  owner: "<org-name>",
-  repo: "<repo-name>",
-  issue_number: <pr-number>,
-  body: `## Fixed Review Comments
+// MCP Tool Call
+CallMcpTool({
+  server: "user-github",
+  toolName: "add_issue_comment",
+  arguments: {
+    owner: "<org-name>",
+    repo: "<repo-name>",
+    issue_number: <pr-number>,
+    body: `## Fixed Review Comments
 
 Addressed all unresolved review comments in commit <sha>.
 
@@ -166,6 +194,7 @@ Addressed all unresolved review comments in commit <sha>.
 - [File 3]: Fixed [issue description]
 
 All fixes have been verified with typecheck and lint.`
+  }
 })
 ```
 
