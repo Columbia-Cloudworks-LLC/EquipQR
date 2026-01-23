@@ -78,8 +78,10 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   // Validation errors
   /^Method not allowed$/,
   /^Missing required field/,
-  /^(Quantity|organizationId|scanned_value|input) (is|are) required$/,
-  // Explicit field name allowlist to prevent matching sensitive fields like "password" or "api_key"
+  // Single-field validation errors - uses same allowlist as multi-field to maintain consistency
+  // Explicit field name allowlist prevents matching sensitive fields like "password" or "api_key"
+  new RegExp(`^(${ALLOWED_FIELDS_PATTERN}|Quantity|scanned_value|input) (is|are) required$`),
+  // Multi-field validation errors (e.g., "organizationId and equipmentId are required")
   // Uses pre-computed ALLOWED_FIELDS_PATTERN to avoid repeated array joins
   new RegExp(`^(${ALLOWED_FIELDS_PATTERN}) and (${ALLOWED_FIELDS_PATTERN}) are required$`),
   /^Unsupported format/,

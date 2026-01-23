@@ -54,6 +54,11 @@ function logWarning(message: string): void {
  * In browser contexts (Vite builds), `process.env` is undefined and this environment
  * variable extension will NOT work - only the default domains will apply.
  * 
+ * **This function is intended for server-side use only.** When used in Edge Functions
+ * or server-side rendering, the environment variable extension works as documented.
+ * When bundled for the browser by Vite, `process.env` is not available at runtime,
+ * so only the default domains will be used regardless of environment variable settings.
+ * 
  * For browser-based customization, consider:
  * - Build-time configuration via Vite's `import.meta.env` (not `process.env`)
  * - A server endpoint that returns the domain list

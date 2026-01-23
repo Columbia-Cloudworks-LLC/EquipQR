@@ -48,8 +48,18 @@ import {
 // In real journey tests, you MUST import and use actual production page components:
 //   import { EquipmentListPage } from '@/pages/equipment/EquipmentListPage';
 // 
-// Journey tests must exercise real production code, not test stubs.
+// ⚠️ IMPORTANT: Journey tests must exercise real production code, not test stubs.
 // This stub exists solely to demonstrate test structure without requiring full app context.
+// 
+// REAL JOURNEY TESTS MUST:
+// - Import actual page components from src/pages/ (e.g., import { EquipmentList } from '@/pages/EquipmentList')
+// - Test real user workflows and interactions
+// - Validate production code behavior, not test doubles
+// - Use the renderJourney() helper from src/test/journey/ to set up proper context
+//
+// Example of a real journey test:
+//   import { EquipmentList } from '@/pages/EquipmentList';
+//   const { user, screen } = renderJourney(<EquipmentList />, { ... });
 //
 const TestEquipmentList = () => {
   return (

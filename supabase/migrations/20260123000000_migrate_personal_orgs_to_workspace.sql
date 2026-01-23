@@ -82,18 +82,30 @@ DECLARE
   v_user_id uuid;
   v_user_name text;
   v_user_email text;
-  v_equipment_count int;
+  v_pm_count int;
+  v_customer_count int;
   v_work_order_count int;
+  v_user_stats jsonb;
+  v_is_personal_org boolean;
 BEGIN
   v_domain := public.normalize_domain(p_domain);
 
-  -- Get workspace org name for notifications
-  SELECT name INTO v_workspace_org_name
+  -- Acquire advisory lock to prevent concurrent migrations for the same workspace org
+  -- Using workspace org ID as lock key to serialize migrations per org
+  PERFORM pg_advisory_xact_lock(hashtext(p_workspace_org_id::text));
+
+  -- Validate workspace org exists and is not a personal org
+  SELECT name, (EXISTS (SELECT 1 FROM public.personal_organizations WHERE organization_id = p_workspace_org_id)) 
+  INTO v_workspace_org_name, v_is_personal_org
   FROM public.organizations
   WHERE id = p_workspace_org_id;
 
   IF v_workspace_org_name IS NULL THEN
     RAISE EXCEPTION 'Workspace organization not found';
+  END IF;
+
+  IF v_is_personal_org THEN
+    RAISE EXCEPTION 'Target organization is a personal organization. Cannot migrate to personal org.';
   END IF;
 
   -- Find all personal orgs for users with matching domain
@@ -111,6 +123,13 @@ BEGIN
     v_user_id := v_personal_org_record.user_id;
     v_user_name := v_personal_org_record.user_name;
     v_user_email := v_personal_org_record.user_email;
+
+    -- Initialize per-user stats for accurate notification data
+    v_user_stats := jsonb_build_object(
+      'equipment_migrated', 0,
+      'work_orders_migrated', 0,
+      'inventory_items_migrated', 0
+    );
 
     -- ========================================================================
     -- STEP 1: Migrate Teams (must be first - referenced by equipment/work_orders)
@@ -173,20 +192,18 @@ BEGIN
       END IF;
 
       -- Update equipment organization_id, serial_number (if renamed), and team_id (if team was migrated)
+      -- Note: team_id is preserved if it exists in the migrated teams map, otherwise kept as-is
+      -- (equipment may have team_id pointing to a team that wasn't migrated, which is fine)
       UPDATE public.equipment
       SET organization_id = p_workspace_org_id,
           serial_number = COALESCE(v_serial_number, serial_number),
-          team_id = CASE 
-            WHEN team_id IS NOT NULL AND v_team_id_map ? team_id::text 
-            THEN team_id 
-            ELSE team_id 
-          END,
           updated_at = NOW()
       WHERE id = v_equipment_id;
 
       -- Store mapping
       v_equipment_id_map := v_equipment_id_map || jsonb_build_object(v_equipment_id::text, v_equipment_id::text);
       v_stats := jsonb_set(v_stats, '{equipment_migrated}', to_jsonb((v_stats->>'equipment_migrated')::int + 1));
+      v_user_stats := jsonb_set(v_user_stats, '{equipment_migrated}', to_jsonb((v_user_stats->>'equipment_migrated')::int + 1));
     END LOOP;
 
     -- ========================================================================
@@ -204,6 +221,7 @@ BEGIN
 
     GET DIAGNOSTICS v_work_order_count = ROW_COUNT;
     v_stats := jsonb_set(v_stats, '{work_orders_migrated}', to_jsonb((v_stats->>'work_orders_migrated')::int + v_work_order_count));
+    v_user_stats := jsonb_set(v_user_stats, '{work_orders_migrated}', to_jsonb((v_user_stats->>'work_orders_migrated')::int + v_work_order_count));
 
     -- ========================================================================
     -- STEP 4: Migrate Inventory Items (referenced by transactions, identifiers)
@@ -240,16 +258,13 @@ BEGIN
       -- Store mapping
       v_inventory_id_map := v_inventory_id_map || jsonb_build_object(v_inventory_id::text, v_inventory_id::text);
       v_stats := jsonb_set(v_stats, '{inventory_items_migrated}', to_jsonb((v_stats->>'inventory_items_migrated')::int + 1));
+      v_user_stats := jsonb_set(v_user_stats, '{inventory_items_migrated}', to_jsonb((v_user_stats->>'inventory_items_migrated')::int + 1));
     END LOOP;
 
     -- Migrate inventory transactions
+    -- Note: inventory_item_id references are preserved as-is since items are migrated above
     UPDATE public.inventory_transactions
-    SET organization_id = p_workspace_org_id,
-        inventory_item_id = CASE 
-          WHEN inventory_item_id IS NOT NULL AND v_inventory_id_map ? inventory_item_id::text 
-          THEN inventory_item_id 
-          ELSE inventory_item_id 
-        END
+    SET organization_id = p_workspace_org_id
     WHERE organization_id = v_personal_org_record.personal_org_id;
 
     -- ========================================================================
@@ -260,8 +275,8 @@ BEGIN
         updated_at = NOW()
     WHERE organization_id = v_personal_org_record.personal_org_id;
 
-    GET DIAGNOSTICS v_equipment_count = ROW_COUNT;
-    v_stats := jsonb_set(v_stats, '{pm_records_migrated}', to_jsonb((v_stats->>'pm_records_migrated')::int + v_equipment_count));
+    GET DIAGNOSTICS v_pm_count = ROW_COUNT;
+    v_stats := jsonb_set(v_stats, '{pm_records_migrated}', to_jsonb((v_stats->>'pm_records_migrated')::int + v_pm_count));
 
     -- ========================================================================
     -- STEP 6: Migrate PM Templates & Compatibility Rules
@@ -346,8 +361,8 @@ BEGIN
     SET organization_id = p_workspace_org_id
     WHERE organization_id = v_personal_org_record.personal_org_id;
 
-    GET DIAGNOSTICS v_equipment_count = ROW_COUNT;
-    v_stats := jsonb_set(v_stats, '{customers_migrated}', to_jsonb((v_stats->>'customers_migrated')::int + v_equipment_count));
+    GET DIAGNOSTICS v_customer_count = ROW_COUNT;
+    v_stats := jsonb_set(v_stats, '{customers_migrated}', to_jsonb((v_stats->>'customers_migrated')::int + v_customer_count));
 
     UPDATE public.geocoded_locations
     SET organization_id = p_workspace_org_id
@@ -423,9 +438,9 @@ BEGIN
       jsonb_build_object(
         'workspace_org_id', p_workspace_org_id,
         'workspace_org_name', v_workspace_org_name,
-        'equipment_count', (v_stats->>'equipment_migrated')::int,
-        'work_orders_count', (v_stats->>'work_orders_migrated')::int,
-        'inventory_count', (v_stats->>'inventory_items_migrated')::int
+        'equipment_count', (v_user_stats->>'equipment_migrated')::int,
+        'work_orders_count', (v_user_stats->>'work_orders_migrated')::int,
+        'inventory_count', (v_user_stats->>'inventory_items_migrated')::int
       ),
       false
     );
@@ -565,3 +580,42 @@ COMMENT ON FUNCTION public.auto_provision_workspace_organization(uuid, text, tex
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION public.migrate_personal_orgs_to_workspace(uuid, text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.auto_provision_workspace_organization(uuid, text, text) TO service_role;
+
+-- =============================================================================
+-- PART 4: Down Migration Notes
+-- =============================================================================
+-- 
+-- To reverse this migration:
+-- 
+-- 1. The migrate_personal_orgs_to_workspace function cannot automatically reverse
+--    migrations because data has been merged and conflicts resolved. Manual
+--    intervention would be required to split data back to personal orgs.
+-- 
+-- 2. To remove the workspace_migration notification type:
+--    ALTER TABLE public.notifications 
+--      DROP CONSTRAINT IF EXISTS notifications_type_check;
+--    ALTER TABLE public.notifications 
+--      ADD CONSTRAINT notifications_type_check 
+--      CHECK (type = ANY (ARRAY[
+--        'work_order_request'::text, 
+--        'work_order_accepted'::text, 
+--        'work_order_assigned'::text, 
+--        'work_order_completed'::text,
+--        'work_order_submitted'::text,
+--        'work_order_in_progress'::text,
+--        'work_order_on_hold'::text,
+--        'work_order_cancelled'::text,
+--        'general'::text,
+--        'ownership_transfer_request'::text,
+--        'ownership_transfer_accepted'::text,
+--        'ownership_transfer_rejected'::text,
+--        'ownership_transfer_cancelled'::text,
+--        'member_removed'::text
+--      ]));
+-- 
+-- 3. To restore the previous auto_provision_workspace_organization function,
+--    revert to the version from migration 20260121210534_fix_auto_provision_reuse_existing_orgs.sql
+--    (removing the migration trigger calls).
+-- 
+-- NOTE: This migration is designed to be one-way. Reversing would require
+--       complex data splitting logic and is not recommended.

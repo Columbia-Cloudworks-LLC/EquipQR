@@ -164,9 +164,12 @@ Deno.serve(async (req) => {
       // with a different key than the one currently configured.
       const errorType = decryptError instanceof Error ? decryptError.name : "UnknownError";
       const errorMessage = decryptError instanceof Error ? decryptError.message : String(decryptError);
-      logStep("Failed to decrypt refresh token", { errorType, errorMessage });
+      logStep("Failed to decrypt refresh token", { errorType, errorMessage, organizationId });
+      
+      // Distinguish between token corruption (key works but token is bad) vs configuration issues
+      // Configuration issues are caught earlier, so this is specifically token corruption
       return createErrorResponse(
-        "Failed to decrypt stored Google Workspace credentials. The stored token may be corrupted or was encrypted with a different key. Please reconnect Google Workspace to generate new credentials.",
+        "Failed to decrypt stored Google Workspace credentials. The stored token may be corrupted or was encrypted with a different key than currently configured. Please reconnect Google Workspace to generate new credentials. If this persists, verify that TOKEN_ENCRYPTION_KEY matches the key used when credentials were originally stored.",
         500
       );
     }
