@@ -141,6 +141,9 @@ export function renderJourney(options: RenderJourneyOptions): RenderJourneyResul
     <div data-testid="journey-no-element">No element provided to renderJourney</div>
   );
 
+  // The wrapper function is a component factory that RTL calls once per render.
+  // The onLocationChange callback is stable within a single test render, so
+  // inline definition here is appropriate (useCallback is not available in this context).
   const result = render(content, {
     wrapper: ({ children }) => (
       <JourneyProviders

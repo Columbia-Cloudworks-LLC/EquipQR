@@ -49,7 +49,7 @@ export default tseslint.config(
               message: "Journey tests should render page components, not import hooks directly. Hooks used within components are allowed."
             },
             {
-              group: ["@/test/utils/test-utils"],
+              group: ["@/test/utils/test-utils", "@/test/utils/renderUtils"],
               importNames: ["renderHookAsPersona", "renderHookWithCustomPersona"],
               message: "Journey tests should not use renderHook*. Use renderJourney to render actual page components."
             }

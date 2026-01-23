@@ -1,9 +1,5 @@
 
 import React from 'react';
-
-/** Maximum number of items to display in dashboard preview cards */
-const DASHBOARD_PREVIEW_LIMIT = 5;
-
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWorkOrders, useTeamBasedDashboardAccess } from '@/features/teams/hooks/useTeamBasedDashboard';
 import FleetEfficiencyScatterPlotCard from '@/features/dashboard/components/FleetEfficiencyScatterPlotCard';
@@ -14,6 +10,9 @@ import { DashboardRecentEquipmentCard } from '@/features/dashboard/components/Da
 import { DashboardRecentWorkOrdersCard } from '@/features/dashboard/components/DashboardRecentWorkOrdersCard';
 import { DashboardNoTeamsCard } from '@/features/dashboard/components/DashboardNoTeamsCard';
 import { DashboardStatsGrid } from '@/features/dashboard/components/DashboardStatsGrid';
+
+/** Maximum number of items to display in dashboard preview cards */
+const DASHBOARD_PREVIEW_LIMIT = 5;
 
 const Dashboard = () => {
   const { currentOrganization, isLoading: orgLoading } = useOrganization();

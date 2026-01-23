@@ -177,10 +177,11 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
       // Apply business rules (e.g., clearing work order ID when last_maintenance changes)
       const equipmentData = applyEquipmentUpdateRules(changedFields);
 
-      // If no changes detected, still complete the mutation to ensure callbacks run
+      // If no changes detected, return early without making a DB call.
+      // Returning a value (instead of throwing) means the mutation resolves successfully,
+      // which triggers onSuccess callbacks. This is intentional: the user submitted the form
+      // so we want the success toast and modal close to occur, even if nothing changed.
       if (Object.keys(equipmentData).length === 0) {
-        // Return initialData but ensure mutation callbacks are still called
-        // The mutation will complete successfully with no-op
         return initialData;
       }
 

@@ -30,7 +30,6 @@
 
 export {
   renderJourney,
-  waitForQueryIdle,
   personas,
   type RenderJourneyOptions,
   type RenderJourneyResult,
