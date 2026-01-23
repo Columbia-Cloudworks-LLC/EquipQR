@@ -69,6 +69,14 @@ export const pmTemplates = {
   byId: (templateId: string) => ['pm-templates', templateId] as const,
 };
 
+// Workspace personal org merge keys
+export const workspacePersonalOrgMerge = (userId: string) => ({
+  root: ['workspace-personal-org-merge', userId] as const,
+  pending: () => ['workspace-personal-org-merge', userId, 'pending'] as const,
+  preview: (workspaceOrgId: string) =>
+    ['workspace-personal-org-merge', userId, 'preview', workspaceOrgId] as const,
+});
+
 // Legacy query keys for backward compatibility - these should eventually be migrated
 export const queryKeys = {
   organization,
@@ -76,5 +84,6 @@ export const queryKeys = {
   teams,
   equipment,
   workOrders,
-  pmTemplates
+  pmTemplates,
+  workspacePersonalOrgMerge
 };

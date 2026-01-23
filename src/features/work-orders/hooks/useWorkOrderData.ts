@@ -17,6 +17,9 @@ export type NotificationData = {
   transfer_id?: string;
   organization_id?: string;
   organization_name?: string;
+  workspace_org_id?: string;
+  workspace_org_name?: string;
+  merge_request_id?: string;
   from_user_id?: string;
   from_user_name?: string;
   new_org_id?: string;

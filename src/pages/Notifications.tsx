@@ -57,9 +57,9 @@ const Notifications: React.FC = () => {
       }
     }
 
-    // Handle ownership transfer notifications - switch to target org and navigate
-    if (notification.type.startsWith('ownership_transfer')) {
-      const targetOrgId = notification.data?.organization_id;
+    // Handle ownership transfer and workspace merge notifications - switch to target org and navigate
+    if (notification.type.startsWith('ownership_transfer') || notification.type.startsWith('workspace_merge')) {
+      const targetOrgId = notification.data?.organization_id || notification.data?.workspace_org_id;
       if (targetOrgId && targetOrgId !== organizationId) {
         // Switch to the organization first, then navigate to settings
         await switchOrganization(targetOrgId);
@@ -112,6 +112,12 @@ const Notifications: React.FC = () => {
         return '🚫';
       case 'ownership_transfer_cancelled':
         return '↩️';
+      case 'workspace_merge_request':
+        return '🧩';
+      case 'workspace_merge_accepted':
+        return '✅';
+      case 'workspace_merge_rejected':
+        return '🚫';
       case 'member_removed':
         return '👋';
       default:
@@ -144,6 +150,12 @@ const Notifications: React.FC = () => {
         return 'Transfer Declined';
       case 'ownership_transfer_cancelled':
         return 'Transfer Cancelled';
+      case 'workspace_merge_request':
+        return 'Merge Request';
+      case 'workspace_merge_accepted':
+        return 'Merge Accepted';
+      case 'workspace_merge_rejected':
+        return 'Merge Declined';
       case 'member_removed':
         return 'Member Removed';
       default:
@@ -231,6 +243,9 @@ const Notifications: React.FC = () => {
                 <SelectItem value="ownership_transfer_request">Transfer Request</SelectItem>
                 <SelectItem value="ownership_transfer_accepted">Transfer Accepted</SelectItem>
                 <SelectItem value="ownership_transfer_rejected">Transfer Declined</SelectItem>
+                <SelectItem value="workspace_merge_request">Merge Request</SelectItem>
+                <SelectItem value="workspace_merge_accepted">Merge Accepted</SelectItem>
+                <SelectItem value="workspace_merge_rejected">Merge Declined</SelectItem>
               </SelectContent>
             </Select>
 
@@ -272,7 +287,9 @@ const Notifications: React.FC = () => {
           ) : (
             <div className="space-y-3">
               {filteredNotifications.map((notification) => {
-                const isTransferRequest = notification.type === 'ownership_transfer_request';
+                const isTransferRequest = notification.type === 'ownership_transfer_request' || notification.type === 'workspace_merge_request';
+                const isOwnershipTransferRequest = notification.type === 'ownership_transfer_request';
+                const isWorkspaceMergeRequest = notification.type === 'workspace_merge_request';
                 const isActionRequired = isTransferRequest && !notification.read;
                 
                 return (
@@ -320,12 +337,14 @@ const Notifications: React.FC = () => {
                         {notification.message}
                       </p>
                       
-                      {(notification.data?.work_order_id || notification.type.startsWith('ownership_transfer')) && (
+                      {(notification.data?.work_order_id || notification.type.startsWith('ownership_transfer') || notification.type.startsWith('workspace_merge')) && (
                         <div className="flex items-center gap-2 mt-3">
                           <ArrowRight className="h-3 w-3 text-primary" />
                           <span className="text-xs text-primary font-medium">
-                            {notification.type === 'ownership_transfer_request'
+                            {isOwnershipTransferRequest
                               ? 'Click to respond to transfer request'
+                              : isWorkspaceMergeRequest
+                                ? 'Click to respond to merge request'
                               : notification.data?.work_order_id 
                                 ? 'Click to view work order'
                                 : 'Click to view organization'
