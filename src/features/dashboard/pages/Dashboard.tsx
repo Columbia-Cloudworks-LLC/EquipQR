@@ -1,5 +1,9 @@
 
 import React from 'react';
+
+/** Maximum number of items to display in dashboard preview cards */
+const DASHBOARD_PREVIEW_LIMIT = 5;
+
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedDashboardStats, useTeamBasedEquipment, useTeamBasedRecentWorkOrders, useTeamBasedDashboardAccess } from '@/features/teams/hooks/useTeamBasedDashboard';
 import FleetEfficiencyScatterPlotCard from '@/features/dashboard/components/FleetEfficiencyScatterPlotCard';
@@ -64,10 +68,10 @@ const Dashboard = () => {
     );
   }
 
-  const recentEquipment = equipment?.slice(0, 5) || [];
-  const recentWorkOrders = workOrders?.slice(0, 5) || [];
-  const equipmentHasMore = (equipment?.length ?? 0) > 5;
-  const workOrdersHasMore = (workOrders?.length ?? 0) > 5;
+  const recentEquipment = equipment?.slice(0, DASHBOARD_PREVIEW_LIMIT) || [];
+  const recentWorkOrders = workOrders?.slice(0, DASHBOARD_PREVIEW_LIMIT) || [];
+  const equipmentHasMore = (equipment?.length ?? 0) > DASHBOARD_PREVIEW_LIMIT;
+  const workOrdersHasMore = (workOrders?.length ?? 0) > DASHBOARD_PREVIEW_LIMIT;
   const highPriorityWorkOrders = workOrders?.filter(wo => wo.priority === 'high' && wo.status !== 'completed') || [];
   const activeWorkOrdersCount = workOrders?.filter((wo) => wo.status !== "completed").length || 0;
 

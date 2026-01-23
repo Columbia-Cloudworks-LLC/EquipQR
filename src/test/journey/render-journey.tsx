@@ -169,32 +169,23 @@ export function renderJourney(options: RenderJourneyOptions): RenderJourneyResul
 }
 
 // ============================================
-// Helper: Query idle utilities (intentionally simplified)
+// Deprecated: Query idle utilities removed
 // ============================================
-
-/**
- * @deprecated This helper is intentionally deprecated and no longer usable.
- * This function always throws an error to make usage fail loudly so tests are updated.
- * 
- * Journey tests should use React Testing Library's `waitFor()` with explicit
- * assertions instead of relying on a global "query idle" helper.
- * 
- * Example of preferred approach:
- * ```typescript
- * await waitFor(() => {
- *   expect(screen.getByText('Data loaded')).toBeInTheDocument();
- * });
- * ```
- * 
- * @throws {Error} Always throws to indicate this function is no longer supported
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function waitForQueryIdle(_timeoutMs = 5000): Promise<void> {
-  throw new Error(
-    '[renderJourney.waitForQueryIdle] is deprecated and no longer supported. ' +
-      'Use React Testing Library\'s waitFor() with explicit assertions instead.',
-  );
-}
+// 
+// The `waitForQueryIdle` helper has been removed from this module.
+// 
+// Journey tests should use React Testing Library's `waitFor()` with explicit
+// assertions instead of relying on a global "query idle" helper.
+// 
+// Example of preferred approach:
+// ```typescript
+// await waitFor(() => {
+//   expect(screen.getByText('Data loaded')).toBeInTheDocument();
+// });
+// ```
+// 
+// If your tests previously imported `waitForQueryIdle`, update them to use
+// `waitFor()` from '@testing-library/react' instead.
 
 // ============================================
 // Re-export common testing utilities

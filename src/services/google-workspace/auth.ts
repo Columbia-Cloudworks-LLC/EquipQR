@@ -8,8 +8,14 @@ const DEFAULT_SCOPES = [
 export interface GoogleWorkspaceAuthConfig {
   /** Organization ID - optional for first-time setup, required for reconnecting existing orgs */
   organizationId?: string;
+  /** URL to redirect to after OAuth flow completes */
   redirectUrl?: string;
+  /** OAuth scopes to request (defaults to admin.directory.user.readonly) */
   scopes?: string;
+  /** 
+   * Origin URL of the caller. Required when calling from non-browser contexts 
+   * (e.g., Edge Functions or server-side code). In browsers, defaults to window.location.origin.
+   */
   originUrl?: string;
 }
 
@@ -23,11 +29,27 @@ function encodeState(state: OAuthState): string {
   return btoa(JSON.stringify(state));
 }
 
+/**
+ * Generates the Google Workspace OAuth authorization URL for the current organization.
+ *
+ * **OAuth Redirect Base URL Resolution:**
+ * The redirect URI is constructed using the following precedence:
+ * 1. `VITE_GW_OAUTH_REDIRECT_BASE_URL` - Use this when your Edge Functions or OAuth
+ *    callback are exposed on a custom domain or behind a gateway different from the
+ *    Supabase project URL.
+ * 2. `VITE_SUPABASE_URL` - Fallback to the default Supabase project URL where the
+ *    Edge Function `google-workspace-oauth-callback` is hosted.
+ *
+ * @param config - Configuration options for OAuth URL generation
+ * @returns A fully formed Google OAuth 2.0 authorization URL
+ * @throws If required environment variables are missing or the redirect base URL is invalid
+ */
 export async function generateGoogleWorkspaceAuthUrl(
   config: GoogleWorkspaceAuthConfig
 ): Promise<string> {
   const clientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  // Prefer explicit OAuth redirect base URL override, otherwise fall back to Supabase project URL
   const explicitBaseUrl = import.meta.env.VITE_GW_OAUTH_REDIRECT_BASE_URL;
   const oauthRedirectBaseUrl = explicitBaseUrl || supabaseUrl;
 

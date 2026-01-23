@@ -8,7 +8,22 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { equipmentFormSchema, EquipmentFormData, EquipmentRecord } from '@/features/equipment/types/equipment';
 import { toast } from 'sonner';
-import { shallowEqual } from '@/utils/object-utils';
+import { shallowEqual, applyEquipmentUpdateRules } from '@/utils/object-utils';
+
+/**
+ * Helper to compare two values for equality.
+ * Uses shallowEqual for object comparison, strict equality for primitives.
+ * 
+ * @param value - The new value to compare
+ * @param initialValue - The initial/original value to compare against
+ * @returns true if values are equal, false otherwise
+ */
+function areValuesEqual(value: unknown, initialValue: unknown): boolean {
+  if (typeof value === 'object' && value !== null && typeof initialValue === 'object' && initialValue !== null) {
+    return shallowEqual(value, initialValue);
+  }
+  return value === initialValue;
+}
 
 export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () => void) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -149,22 +164,18 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         default_pm_template_id: initialData.default_pm_template_id ?? null
       };
 
-      const equipmentData = Object.entries(normalizedData).reduce((acc, [key, value]) => {
+      const changedFields = Object.entries(normalizedData).reduce((acc, [key, value]) => {
         const initialValue = normalizedInitial[key as keyof typeof normalizedInitial];
-        const isEqual = typeof value === 'object' && value !== null && typeof initialValue === 'object' && initialValue !== null
-          ? shallowEqual(value, initialValue)
-          : value === initialValue;
 
-        if (!isEqual) {
+        if (!areValuesEqual(value, initialValue)) {
           acc[key] = value;
         }
 
         return acc;
       }, {} as Record<string, unknown>);
 
-      if ('last_maintenance' in equipmentData) {
-        equipmentData.last_maintenance_work_order_id = null;
-      }
+      // Apply business rules (e.g., clearing work order ID when last_maintenance changes)
+      const equipmentData = applyEquipmentUpdateRules(changedFields);
 
       // If no changes detected, still complete the mutation to ensure callbacks run
       if (Object.keys(equipmentData).length === 0) {

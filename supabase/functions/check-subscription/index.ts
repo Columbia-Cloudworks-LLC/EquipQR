@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
       let totalAmount = 0;
       for (const item of subscription.items.data) {
         const price = await stripe.prices.retrieve(item.price.id);
-        totalAmount += (price.unit_amount || 0) * (item.quantity || 1);
+        totalAmount += (price.unit_amount || 0) * (item.quantity ?? 1);
       }
 
       if (totalAmount <= 999) {

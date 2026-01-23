@@ -22,6 +22,7 @@ import {
   getStatusColor, 
   EQUIPMENT_STATUS_OPTIONS 
 } from "@/features/equipment/utils/equipmentHelpers";
+import { applyEquipmentUpdateRules } from "@/utils/object-utils";
 
 type Equipment = Tables<'equipment'>;
 
@@ -47,10 +48,8 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
       if (process.env.NODE_ENV === 'development') {
         logger.debug(`Updating equipment field`, { field: String(field), value });
       }
-      const updateData: Partial<Equipment> = { [field]: value } as Partial<Equipment>;
-      if (field === 'last_maintenance') {
-        updateData.last_maintenance_work_order_id = null;
-      }
+      // Apply business rules (e.g., clearing work order ID when last_maintenance changes)
+      const updateData = applyEquipmentUpdateRules({ [field]: value } as Partial<Equipment>);
       await updateEquipmentMutation.mutateAsync({
         id: equipment.id,
         data: updateData

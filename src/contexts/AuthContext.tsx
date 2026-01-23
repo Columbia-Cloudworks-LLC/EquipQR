@@ -4,6 +4,12 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
+/**
+ * Throttle duration for applying pending admin grants.
+ * 1 hour = 60 minutes * 60 seconds * 1000 milliseconds
+ */
+const ADMIN_GRANTS_THROTTLE_MS = 60 * 60 * 1000;
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -73,8 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const adminGrantsCacheKey = `adminGrantsApplied_${session.user.id}`;
           const lastAppliedStr = localStorage.getItem(adminGrantsCacheKey);
           const lastAppliedAt = lastAppliedStr ? parseInt(lastAppliedStr, 10) : 0;
-          const oneHourMs = 60 * 60 * 1000;
-          const shouldApplyGrants = Date.now() - lastAppliedAt > oneHourMs;
+          const shouldApplyGrants = Date.now() - lastAppliedAt > ADMIN_GRANTS_THROTTLE_MS;
 
           if (shouldApplyGrants) {
             supabase.rpc('apply_pending_admin_grants_for_user', {

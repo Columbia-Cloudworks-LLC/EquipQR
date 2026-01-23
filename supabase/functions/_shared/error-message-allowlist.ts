@@ -31,6 +31,9 @@ export const ALLOWED_VALIDATION_FIELDS = [
   'workOrderId',
   'userId',
   'quantity',
+  'Quantity',  // Case-sensitive variant used in some validation messages
+  'scanned_value',  // Used in barcode/QR scanning validation
+  'input',  // Generic input validation field
   'name',
   'email',
   'title',
@@ -78,9 +81,9 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   // Validation errors
   /^Method not allowed$/,
   /^Missing required field/,
-  // Single-field validation errors - uses same allowlist as multi-field to maintain consistency
+  // Single-field validation errors - uses the same allowlist as multi-field to maintain consistency
   // Explicit field name allowlist prevents matching sensitive fields like "password" or "api_key"
-  new RegExp(`^(${ALLOWED_FIELDS_PATTERN}|Quantity|scanned_value|input) (is|are) required$`),
+  new RegExp(`^(${ALLOWED_FIELDS_PATTERN}) (is|are) required$`),
   // Multi-field validation errors (e.g., "organizationId and equipmentId are required")
   // Uses pre-computed ALLOWED_FIELDS_PATTERN to avoid repeated array joins
   new RegExp(`^(${ALLOWED_FIELDS_PATTERN}) and (${ALLOWED_FIELDS_PATTERN}) are required$`),
