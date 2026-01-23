@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import SmartLanding from './SmartLanding';
 
 const mockNavigate = vi.fn();
@@ -13,37 +13,25 @@ vi.mock('react-router-dom', async () => {
 });
 
 const mockUseAuth = vi.fn();
-const mockUseWorkspaceOnboardingState = vi.fn();
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-vi.mock('@/hooks/useWorkspaceOnboarding', () => ({
-  useWorkspaceOnboardingState: () => mockUseWorkspaceOnboardingState(),
-}));
-
 vi.mock('@/pages/Landing', () => ({
   __esModule: true,
-  default: () => null,
+  default: () => <div data-testid="landing-page">Landing Page</div>,
 }));
 
 describe('SmartLanding', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+    mockUseAuth.mockReset();
   });
 
-  it('redirects authenticated users to dashboard when domain is unclaimed', async () => {
+  it('redirects authenticated users to dashboard', async () => {
     mockUseAuth.mockReturnValue({
-      user: { app_metadata: { provider: 'google' } },
-      isLoading: false,
-    });
-    mockUseWorkspaceOnboardingState.mockReturnValue({
-      data: {
-        domain: 'acme.com',
-        domain_status: 'unclaimed',
-        is_workspace_connected: false,
-      },
+      user: { id: 'user-123', email: 'test@example.com' },
       isLoading: false,
     });
 
@@ -54,46 +42,30 @@ describe('SmartLanding', () => {
     });
   });
 
-  it('redirects authenticated users to dashboard when domain is claimed but not connected', async () => {
+  it('shows landing page for unauthenticated users', async () => {
     mockUseAuth.mockReturnValue({
-      user: { app_metadata: { provider: 'google' } },
-      isLoading: false,
-    });
-    mockUseWorkspaceOnboardingState.mockReturnValue({
-      data: {
-        domain: 'acme.com',
-        domain_status: 'claimed',
-        is_workspace_connected: false,
-      },
+      user: null,
       isLoading: false,
     });
 
     render(<SmartLanding />);
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+      expect(screen.getByTestId('landing-page')).toBeInTheDocument();
     });
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('redirects to dashboard when onboarding is complete', async () => {
+  it('shows nothing while auth is loading', () => {
     mockUseAuth.mockReturnValue({
-      user: { app_metadata: { provider: 'google' } },
-      isLoading: false,
-    });
-    mockUseWorkspaceOnboardingState.mockReturnValue({
-      data: {
-        domain: 'acme.com',
-        domain_status: 'claimed',
-        is_workspace_connected: true,
-      },
-      isLoading: false,
+      user: null,
+      isLoading: true,
     });
 
-    render(<SmartLanding />);
+    const { container } = render(<SmartLanding />);
 
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
-    });
+    expect(container.firstChild).toBeNull();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });
 
