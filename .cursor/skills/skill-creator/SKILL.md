@@ -1,18 +1,18 @@
 ---
 name: skill-creator
-description: Guide for creating effective skills. Use when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
+description: Guide for creating effective skills. Use when users want to create a new skill (or update an existing skill) that extends Cursor's capabilities with specialized knowledge, workflows, or tool integrations.
 source: anthropics/skills
 license: Apache-2.0
 ---
 
 # Skill Creator
 
-Skills are modular packages that extend Claude's capabilities by providing specialized knowledge, workflows, and tools.
+Skills are modular packages that extend Cursor's capabilities by providing specialized knowledge, workflows, and tools.
 
 ## Core Principles
 
 ### Concise is Key
-The context window is a shared resource. Only add context Claude doesn't already have. Challenge each piece: "Does Claude really need this?"
+The context window is a shared resource. Only add context Cursor doesn't already have. Challenge each piece: "Does Cursor really need this?"
 
 ### Anatomy of a Skill
 
@@ -37,7 +37,7 @@ description: A clear description of what this skill does and when to use it
 
 # My Skill Name
 
-[Instructions for Claude when this skill is active]
+[Instructions for Cursor when this skill is active]
 
 ## Examples
 - Example usage 1
@@ -58,7 +58,7 @@ Gather concrete examples of how the skill will be used. Ask:
 ### Step 2: Plan Reusable Contents
 Analyze examples to identify:
 - **Scripts**: Code that gets rewritten repeatedly
-- **References**: Documentation Claude needs to reference
+- **References**: Documentation Cursor needs to reference
 - **Assets**: Templates, images for output
 
 ### Step 3: Initialize
