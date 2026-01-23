@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Note: The cache key only includes user_id (not organization_id) because
           // apply_pending_admin_grants_for_user applies grants for the user across ALL
           // organizations they belong to, so organization context isn't needed.
-          const adminGrantsCacheKey = `adminGrantsApplied_${session.user.id}`;
+          const adminGrantsCacheKey = `equipqr_admin_grants_${session.user.id}`;
           const lastAppliedStr = localStorage.getItem(adminGrantsCacheKey);
           const lastAppliedAt = lastAppliedStr ? parseInt(lastAppliedStr, 10) : 0;
           const shouldApplyGrants = Date.now() - lastAppliedAt > ADMIN_GRANTS_THROTTLE_MS;
@@ -174,9 +174,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clear application-specific storage
       try {
         sessionStorage.removeItem('pendingRedirect');
-        // Clear admin grants cache keys from localStorage (they start with adminGrantsApplied_)
+        // Clear admin grants cache keys from localStorage (they start with equipqr_admin_grants_)
         Object.keys(localStorage)
-          .filter(key => key.startsWith('adminGrantsApplied_'))
+          .filter(key => key.startsWith('equipqr_admin_grants_'))
           .forEach(key => localStorage.removeItem(key));
       } catch (storageError) {
         logger.warn('Error clearing storage', storageError);

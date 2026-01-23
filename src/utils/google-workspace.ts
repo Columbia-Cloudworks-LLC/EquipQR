@@ -62,7 +62,7 @@ function loadConsumerGoogleDomains(): readonly string[] {
   // In browser contexts (Vite builds), process.env is undefined and this block is skipped,
   // meaning only DEFAULT_CONSUMER_GOOGLE_DOMAINS will be used.
   if (isServerEnvironment()) {
-    const envValue = process.env?.CONSUMER_GOOGLE_DOMAINS;
+    const envValue = process.env.CONSUMER_GOOGLE_DOMAINS;
 
     if (envValue) {
       const parsed = envValue

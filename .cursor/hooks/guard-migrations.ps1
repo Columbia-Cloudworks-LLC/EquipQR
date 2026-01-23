@@ -9,7 +9,7 @@ if ($filePath -match "supabase[\\/]migrations") {
     $latestMigration = Get-ChildItem "supabase\migrations\*.sql" | Sort-Object Name | Select-Object -Last 1
 
     # If the file being read is NOT the latest migration, block it
-    if ($latestMigration -and $filePath -notmatch $latestMigration.Name) {
+    if ($latestMigration -and $filePath -notlike "*$([regex]::Escape($latestMigration.Name))") {
         
         # Construct the JSON response to block the agent
         $response = @{

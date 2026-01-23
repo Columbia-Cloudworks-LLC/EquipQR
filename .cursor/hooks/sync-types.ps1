@@ -2,7 +2,7 @@
 $inputJson = [Console]::In.ReadToEnd()
 
 # Check if the edited file is a migration file
-if ($inputJson -match "supabase/migrations") {
+if ($inputJson -match "supabase[\\/]migrations[\\/]") {
     Write-Host "Migration change detected. Regenerating types..."
     
     # Run the generation command (using cmd /c ensures npx resolves correctly on Windows)
