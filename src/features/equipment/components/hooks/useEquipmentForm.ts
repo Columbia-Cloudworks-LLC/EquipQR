@@ -9,6 +9,26 @@ import { useAuth } from '@/hooks/useAuth';
 import { equipmentFormSchema, EquipmentFormData, EquipmentRecord } from '@/features/equipment/types/equipment';
 import { toast } from 'sonner';
 
+/**
+ * Helper function for shallow object comparison.
+ * Compares two objects by checking if they have the same keys and values.
+ */
+function shallowEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
+    return false;
+  }
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  for (const key of keysA) {
+    if (!(key in b) || (a as Record<string, unknown>)[key] !== (b as Record<string, unknown>)[key]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () => void) => {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -146,23 +166,6 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         last_known_location: initialData.last_known_location ?? null,
         team_id: initialData.team_id ?? null,
         default_pm_template_id: initialData.default_pm_template_id ?? null
-      };
-
-      // Helper function for shallow object comparison
-      const shallowEqual = (a: unknown, b: unknown): boolean => {
-        if (a === b) return true;
-        if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
-          return false;
-        }
-        const keysA = Object.keys(a);
-        const keysB = Object.keys(b);
-        if (keysA.length !== keysB.length) return false;
-        for (const key of keysA) {
-          if (!(key in b) || (a as Record<string, unknown>)[key] !== (b as Record<string, unknown>)[key]) {
-            return false;
-          }
-        }
-        return true;
       };
 
       const equipmentData = Object.entries(normalizedData).reduce((acc, [key, value]) => {

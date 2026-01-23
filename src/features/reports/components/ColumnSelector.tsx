@@ -1,3 +1,7 @@
+/**
+ * Note: Column preference utilities previously defined in this file
+ * have been moved to '@/features/reports/utils/column-preferences'.
+ */
 import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';

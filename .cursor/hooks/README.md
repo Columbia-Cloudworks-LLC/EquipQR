@@ -2,6 +2,8 @@
 
 These hooks are Windows-specific and require PowerShell. They will not work on Unix-like systems (Linux, macOS) unless PowerShell Core is installed.
 
+**Note:** This project's primary development platform is Windows. The hooks are designed for Windows development environments using PowerShell.
+
 ## Available Hooks
 
 - `sync-types.ps1` - Syncs TypeScript types after file edits

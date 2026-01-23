@@ -25,17 +25,6 @@ function isServerEnvironment(): boolean {
 }
 
 /**
- * Logs a warning message. Extracted to a separate function for testability.
- * Can be mocked in test environments to verify warning behavior.
- * 
- * @param message - The warning message to log
- */
-function logWarning(message: string): void {
-  // eslint-disable-next-line no-console
-  console.warn(message);
-}
-
-/**
  * Load consumer Google domains, optionally extending with environment configuration.
  * 
  * Known regional variants (e.g., gmail.co.uk, googlemail.de) are intentionally excluded
@@ -75,18 +64,6 @@ function loadConsumerGoogleDomains(): readonly string[] {
     const envValue = process.env?.CONSUMER_GOOGLE_DOMAINS;
 
     if (envValue) {
-      // Note: This check only runs in server-side contexts (Edge Functions, SSR) because
-      // it's inside the isServerEnvironment() guard. In browser contexts, process.env is
-      // undefined and this block is skipped. The warning below would never fire in browsers
-      // because isServerEnvironment() returns false, so this is purely defensive for SSR scenarios.
-      if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
-        logWarning(
-          '[google-workspace] CONSUMER_GOOGLE_DOMAINS is set at runtime in a browser environment. ' +
-            'This indicates a build configuration issue. In browser contexts, process.env is not available. ' +
-            'Prefer build-time configuration via Vite\'s import.meta.env or a server-provided domain list.'
-        );
-      }
-
       const parsed = envValue
         .split(',')
         .map((domain) => domain.toLowerCase().trim())
