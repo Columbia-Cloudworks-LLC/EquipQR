@@ -167,9 +167,11 @@ Deno.serve(async (req) => {
       logStep("Failed to decrypt refresh token", { errorType, errorMessage, organizationId });
       
       // Distinguish between token corruption (key works but token is bad) vs configuration issues
-      // Configuration issues are caught earlier, so this is specifically token corruption
+      // Configuration issues (missing/invalid TOKEN_ENCRYPTION_KEY) are caught earlier (lines 143-154),
+      // so this error specifically indicates token corruption or key mismatch.
+      // The error message explicitly distinguishes this from configuration issues to help admins troubleshoot.
       return createErrorResponse(
-        "Failed to decrypt stored Google Workspace credentials. The stored token may be corrupted or was encrypted with a different key than currently configured. Please reconnect Google Workspace to generate new credentials. If this persists, verify that TOKEN_ENCRYPTION_KEY matches the key used when credentials were originally stored.",
+        "Failed to decrypt stored Google Workspace credentials. This error indicates the stored token data is corrupted or was encrypted with a different encryption key than currently configured. This is distinct from configuration issues (missing TOKEN_ENCRYPTION_KEY), which are handled separately. Please reconnect Google Workspace to generate new credentials. If this persists, verify that TOKEN_ENCRYPTION_KEY matches the key used when credentials were originally stored.",
         500
       );
     }

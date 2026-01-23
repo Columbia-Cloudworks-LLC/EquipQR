@@ -26,6 +26,11 @@
  * The stub component shown here is ONLY for demonstrating the test structure without
  * requiring the full application context. It should NEVER be used as a pattern for
  * actual test implementations.
+ * 
+ * IMPORTANT: When writing real journey tests, always import actual page components
+ * from src/pages/ and test them with real user workflows. The stub component pattern
+ * shown in this example file is for demonstration purposes only and should not be
+ * replicated in production test code.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';

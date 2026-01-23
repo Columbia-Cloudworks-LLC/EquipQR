@@ -226,9 +226,24 @@ Deno.serve(async (req) => {
       logStep("ERROR", { message: "Missing GOOGLE_WORKSPACE_CLIENT_ID or GOOGLE_WORKSPACE_CLIENT_SECRET" });
       const rawProductionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
       // Validate PRODUCTION_URL to prevent open redirect attacks
-      const fallbackProductionUrl = isTrustedDomain(rawProductionUrl)
-        ? rawProductionUrl
-        : "https://equipqr.app";
+      // Use isTrustedDomain() to ensure the URL points to a trusted domain
+      let fallbackProductionUrl: string;
+      if (isTrustedDomain(rawProductionUrl)) {
+        // Additional validation: ensure the URL is well-formed and uses https
+        try {
+          const validatedUrl = new URL(rawProductionUrl);
+          if (validatedUrl.protocol === "https:" || validatedUrl.protocol === "http:") {
+            fallbackProductionUrl = rawProductionUrl;
+          } else {
+            fallbackProductionUrl = "https://equipqr.app";
+          }
+        } catch {
+          // Invalid URL format, use safe fallback
+          fallbackProductionUrl = "https://equipqr.app";
+        }
+      } else {
+        fallbackProductionUrl = "https://equipqr.app";
+      }
       const errorCode = "oauth_failed";
       const userMessage =
         "Google Workspace OAuth is not configured. Please contact your administrator.";
@@ -494,9 +509,23 @@ Deno.serve(async (req) => {
     }
     
     // Safely extract domain from email with explicit check for split result
+    // Note: emailParts is guaranteed to have at least one element after split("@")
+    // but we validate length === 2 to ensure proper email format (local@domain)
     const emailParts = userEmail.split("@");
-    const emailDomain = emailParts.length === 2 ? emailParts[1] : "";
-    const userDomain = userinfo.hd || emailDomain;
+    let emailDomain: string;
+    if (emailParts.length === 2) {
+      emailDomain = emailParts[1];
+    } else {
+      emailDomain = "";
+    }
+    
+    // Use hosted domain from Google if available, otherwise fall back to email domain
+    let userDomain: string;
+    if (userinfo.hd) {
+      userDomain = userinfo.hd;
+    } else {
+      userDomain = emailDomain;
+    }
     
     // Defensive check: ensure we have a valid domain after extraction
     if (!userDomain) {
