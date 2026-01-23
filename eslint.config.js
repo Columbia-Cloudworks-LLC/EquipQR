@@ -46,7 +46,7 @@ export default tseslint.config(
           patterns: [
             {
               group: ["@/hooks/*", "@/features/*/hooks/*", "@/features/*/hooks/**"],
-              message: "Journey tests should not import hooks directly from these paths. This rule only applies to direct imports whose source matches these patterns; nested hook usage via imported components is allowed. Render the page component instead and let it use its hooks internally."
+              message: "Journey tests should render page components, not import hooks directly. Hooks used within components are allowed."
             },
             {
               group: ["@/test/utils/test-utils"],

@@ -11,7 +11,7 @@ triggers: ["/supabase-audit"]
 ## Phase 1: Context & Remote Diagnostics (MCP)
 
 1. **Fetch Preview Logs:**
-    * **Tool Usage:** Use available **Supabase MCP tools** (e.g., `get_project_logs`, `get_deployment_status`) to retrieve the latest build/runtime logs from the `preview` environment.
+    * **Tool Usage:** Use available **Supabase MCP tools** (for example, tools that fetch project logs and deployment status; replace this with the actual tool names exposed by your Supabase MCP server) to retrieve the latest build/runtime logs from the `preview` environment.
     * **Analysis:** Parse logs for specific error patterns:
         * `P0001` (Raise Exception)
         * `42P07` (Duplicate Table/Relation)

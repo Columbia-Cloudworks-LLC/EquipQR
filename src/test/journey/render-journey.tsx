@@ -174,6 +174,8 @@ export function renderJourney(options: RenderJourneyOptions): RenderJourneyResul
 
 /**
  * @deprecated This helper is intentionally deprecated and no longer usable.
+ * This function always throws an error to make usage fail loudly so tests are updated.
+ * 
  * Journey tests should use React Testing Library's `waitFor()` with explicit
  * assertions instead of relying on a global "query idle" helper.
  * 
@@ -184,7 +186,7 @@ export function renderJourney(options: RenderJourneyOptions): RenderJourneyResul
  * });
  * ```
  * 
- * This function throws an error to make usage fail loudly so tests are updated.
+ * @throws {Error} Always throws to indicate this function is no longer supported
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function waitForQueryIdle(_timeoutMs = 5000): Promise<void> {

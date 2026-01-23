@@ -12,10 +12,14 @@ import { toast } from 'sonner';
 /**
  * Helper function for shallow object comparison.
  * Compares two objects by checking if they have the same keys and values.
+ * 
+ * Note: If shallow comparison is needed elsewhere in the codebase, consider
+ * extracting this to a shared utility module (e.g., @/utils/object-utils) or
+ * using a well-tested library like fast-deep-equal.
  */
 function shallowEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
-  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
+  if (a == null || b == null || typeof a !== 'object' || typeof b !== 'object') {
     return false;
   }
   const keysA = Object.keys(a);

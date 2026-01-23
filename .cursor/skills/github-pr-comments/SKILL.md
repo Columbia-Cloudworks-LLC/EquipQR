@@ -7,6 +7,31 @@ description: Fetches GitHub PR review comments, categorizes them as resolved or 
 
 Fetches all review comments from a GitHub pull request, presents them organized by resolution status, and guides systematic resolution of unresolved comments.
 
+## Included scripts
+
+This skill includes an optional `scripts/` directory that can be executed by the agent to automate fetching/categorizing review threads.
+
+- **Prereqs check**: `scripts/check-prereqs.ps1`
+- **Discover PR (owner/repo/number)**: `scripts/discover-pr.mjs`
+- **Fetch review threads (GraphQL + pagination)**: `scripts/fetch-review-threads.mjs`
+- **Normalize to a stable JSON shape**: `scripts/normalize-threads.mjs`
+- **Render a markdown summary**: `scripts/render-summary.mjs`
+- **Post a PR comment**: `scripts/post-pr-comment.mjs`
+
+### Example pipeline (local / agent)
+
+```powershell
+# From repo root (requires gh auth)
+cd .cursor/skills/github-pr-comments
+pwsh ./scripts/check-prereqs.ps1
+
+node ./scripts/discover-pr.mjs `
+  | node ./scripts/fetch-review-threads.mjs `
+  | node ./scripts/normalize-threads.mjs `
+  | node ./scripts/render-summary.mjs `
+  | Out-File -Encoding utf8 pr-review-comments-summary.md
+```
+
 ## Workflow
 
 ### Step 1: Identify PR
