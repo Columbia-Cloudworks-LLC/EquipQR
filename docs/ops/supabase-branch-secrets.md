@@ -54,7 +54,7 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 | Secret Name | Required For | Example Value | Notes |
 |------------|--------------|---------------|-------|
 | `TOKEN_ENCRYPTION_KEY` | Google Workspace OAuth functions | Base64 string | **Required.** Encrypts OAuth refresh tokens at rest. Generate with: `openssl rand -base64 32` |
-| `KDF_SALT` | Google Workspace OAuth functions | Base64 string | **Optional but recommended.** Deployment-specific salt for PBKDF2 key derivation. Provides defense-in-depth. Generate with: `openssl rand -base64 32`. ⚠️ Once set, do NOT change. |
+| `KDF_SALT` | Google Workspace OAuth functions | Base64 string | **Optional but recommended.** Deployment-specific salt for PBKDF2 key derivation. Provides defense-in-depth. Generate with: `openssl rand -base64 32`. ⚠️ **Do not change during normal operations.** If rotation is required (e.g., suspected compromise), first deploy a migration that can derive keys with both the old and new salt, re-encrypt all existing tokens with the new parameters, and only then update this secret. Changing `KDF_SALT` without a migration will make existing encrypted tokens unreadable. |
 
 ### Google Maps Integration
 

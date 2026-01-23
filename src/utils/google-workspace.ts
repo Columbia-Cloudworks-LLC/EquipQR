@@ -75,13 +75,15 @@ function loadConsumerGoogleDomains(): readonly string[] {
     const envValue = process.env?.CONSUMER_GOOGLE_DOMAINS;
 
     if (envValue) {
-      // If this is executing in a browser, having a runtime environment variable here
-      // indicates a build configuration issue (env should be injected at build time).
+      // Note: This check only runs in server-side contexts (Edge Functions, SSR) because
+      // it's inside the isServerEnvironment() guard. In browser contexts, process.env is
+      // undefined and this block is skipped. The warning below would never fire in browsers
+      // because isServerEnvironment() returns false, so this is purely defensive for SSR scenarios.
       if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
         logWarning(
           '[google-workspace] CONSUMER_GOOGLE_DOMAINS is set at runtime in a browser environment. ' +
-            'This likely indicates a build configuration issue. Prefer build-time configuration ' +
-            'via Vite\'s import.meta.env or a server-provided domain list instead of relying on process.env in the browser.'
+            'This indicates a build configuration issue. In browser contexts, process.env is not available. ' +
+            'Prefer build-time configuration via Vite\'s import.meta.env or a server-provided domain list.'
         );
       }
 

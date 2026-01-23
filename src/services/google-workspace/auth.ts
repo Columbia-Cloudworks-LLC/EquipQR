@@ -45,7 +45,14 @@ export async function generateGoogleWorkspaceAuthUrl(
     throw new Error(`Invalid OAuth redirect base URL: "${oauthRedirectBaseUrl}"`);
   }
 
-  const originUrl = config.originUrl || (typeof window !== 'undefined' ? window.location.origin : null);
+  const originUrl = config.originUrl ?? (typeof window !== 'undefined' ? window.location.origin : null);
+
+  if (!originUrl) {
+    throw new Error(
+      'originUrl is required when generating the Google Workspace auth URL in a non-browser context. ' +
+      'Provide originUrl in the config parameter when calling from Edge Functions or server-side code.'
+    );
+  }
 
   const { data: sessionData, error: sessionError } = await supabase.rpc(
     'create_google_workspace_oauth_session',

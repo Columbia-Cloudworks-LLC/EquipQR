@@ -148,10 +148,27 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         default_pm_template_id: initialData.default_pm_template_id ?? null
       };
 
+      // Helper function for shallow object comparison
+      const shallowEqual = (a: unknown, b: unknown): boolean => {
+        if (a === b) return true;
+        if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
+          return false;
+        }
+        const keysA = Object.keys(a);
+        const keysB = Object.keys(b);
+        if (keysA.length !== keysB.length) return false;
+        for (const key of keysA) {
+          if (!(key in b) || (a as Record<string, unknown>)[key] !== (b as Record<string, unknown>)[key]) {
+            return false;
+          }
+        }
+        return true;
+      };
+
       const equipmentData = Object.entries(normalizedData).reduce((acc, [key, value]) => {
         const initialValue = normalizedInitial[key as keyof typeof normalizedInitial];
-        const isEqual = typeof value === 'object'
-          ? JSON.stringify(value) === JSON.stringify(initialValue)
+        const isEqual = typeof value === 'object' && value !== null && typeof initialValue === 'object' && initialValue !== null
+          ? shallowEqual(value, initialValue)
           : value === initialValue;
 
         if (!isEqual) {
@@ -165,7 +182,10 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         equipmentData.last_maintenance_work_order_id = null;
       }
 
+      // If no changes detected, still complete the mutation to ensure callbacks run
       if (Object.keys(equipmentData).length === 0) {
+        // Return initialData but ensure mutation callbacks are still called
+        // The mutation will complete successfully with no-op
         return initialData;
       }
 

@@ -33,7 +33,7 @@ globalThis.vi = vi;
 // and ensure deterministic behavior. Tests don't need the real application version, so
 // we intentionally stub Vite's __APP_VERSION__ define to a value derived from the
 // package version to keep versioning centralized in package.json.
-const TEST_APP_VERSION = `test-harness-v${process.env.npm_package_version ?? 'unknown'}`;
+const TEST_APP_VERSION = `test-harness-v${process.env.npm_package_version ?? '0.0.0-test'}`;
 vi.stubGlobal('__APP_VERSION__', TEST_APP_VERSION);
 
 // Cleanup after each test case

@@ -27,7 +27,7 @@ import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 const WorkspaceOnboarding = () => {
   const { user } = useAuth();
   const { refreshSession } = useSession();
-  const { switchOrganization, currentOrganization, organizations } = useOrganization();
+  const { switchOrganization } = useOrganization();
   const { toast } = useAppToast();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();

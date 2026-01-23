@@ -118,9 +118,13 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     
     // Sort: non-personal orgs first, then by role priority
     const prioritized = [...orgs].sort((a, b) => {
+      // Normalize isPersonal: treat only explicit true as personal, everything else as non-personal
+      const aIsPersonal = a.isPersonal === true;
+      const bIsPersonal = b.isPersonal === true;
+
       // Non-personal orgs first (workspace orgs)
-      if (a.isPersonal !== b.isPersonal) {
-        return a.isPersonal ? 1 : -1;
+      if (aIsPersonal !== bIsPersonal) {
+        return aIsPersonal ? 1 : -1;
       }
       // Then by role: owner > admin > member
       const roleWeight = { owner: 3, admin: 2, member: 1 };
