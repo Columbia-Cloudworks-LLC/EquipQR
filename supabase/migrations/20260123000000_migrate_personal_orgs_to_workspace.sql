@@ -85,6 +85,7 @@ DECLARE
   v_pm_count int;
   v_customer_count int;
   v_work_order_count int;
+  v_equipment_count int;
   v_user_stats jsonb;
   v_is_personal_org boolean;
 BEGIN
