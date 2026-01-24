@@ -66,7 +66,11 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   const [importSheetOpen, setImportSheetOpen] = useState(false);
   
   // Check if Google Workspace is connected to show import button
-  const { isConnected: isGwsConnected, domain: gwsDomain } = useGoogleWorkspaceConnectionStatus();
+  // Only query when user can invite members to avoid unnecessary network calls
+  const { isConnected: isGwsConnected, domain: gwsDomain } = useGoogleWorkspaceConnectionStatus({
+    organizationId,
+    enabled: canInviteMembers,
+  });
   
   const { data: invitations = [] } = useOrganizationInvitations(organizationId);
   const { data: gwsClaims = [] } = useGoogleWorkspaceMemberClaims(organizationId);

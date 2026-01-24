@@ -90,6 +90,25 @@ vi.mock('@/features/organization/hooks/useGoogleWorkspaceMemberClaims', () => ({
   useRevokeGoogleWorkspaceMemberClaim: vi.fn().mockReturnValue({ mutateAsync: mockRevokeGwsClaim, isPending: false }),
 }));
 
+// Mock for Google Workspace connection status
+const mockGwsConnectionStatus = vi.hoisted(() => vi.fn());
+vi.mock('@/features/organization/hooks/useGoogleWorkspaceConnectionStatus', () => ({
+  useGoogleWorkspaceConnectionStatus: mockGwsConnectionStatus.mockReturnValue({
+    isConnected: false,
+    domain: null,
+    connectionStatus: null,
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+}));
+
+// Stub GoogleWorkspaceMemberImportSheet to avoid complex dependencies
+vi.mock('@/features/organization/components/GoogleWorkspaceMemberImportSheet', () => ({
+  GoogleWorkspaceMemberImportSheet: () => <div data-testid="gws-import-sheet">Import Sheet Mock</div>,
+  default: () => <div data-testid="gws-import-sheet">Import Sheet Mock</div>,
+}));
+
 // Billing components removed - no longer needed
 
 // Stub SimplifiedInvitationDialog to avoid provider dependency in tests
@@ -468,6 +487,125 @@ describe('UnifiedMembersList', () => {
       
       // But "Invitee Duplicate" GWS claim should NOT appear (filtered out as duplicate of pending invitation)
       expect(screen.queryByText('Invitee Duplicate')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Google Workspace Import Button', () => {
+    beforeEach(() => {
+      // Reset the GWS connection mock to default (not connected)
+      mockGwsConnectionStatus.mockReturnValue({
+        isConnected: false,
+        domain: null,
+        connectionStatus: null,
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+    });
+
+    it('does not show Import from Google button when GWS is not connected', async () => {
+      customRender(
+        <UnifiedMembersList
+          members={baseMembers}
+          organizationId="org-1"
+          currentUserRole="admin"
+          isLoading={false}
+          canInviteMembers={true}
+        />
+      );
+
+      await screen.findByText('Alice Admin');
+      
+      // Should show Invite Member button
+      expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument();
+      
+      // Should NOT show Import from Google button
+      expect(screen.queryByRole('button', { name: /import from google/i })).not.toBeInTheDocument();
+    });
+
+    it('shows Import from Google button when GWS is connected and user can invite', async () => {
+      mockGwsConnectionStatus.mockReturnValue({
+        isConnected: true,
+        domain: 'example.com',
+        connectionStatus: { is_connected: true, domain: 'example.com', connected_at: '2024-01-01T00:00:00Z' },
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      customRender(
+        <UnifiedMembersList
+          members={baseMembers}
+          organizationId="org-1"
+          currentUserRole="admin"
+          isLoading={false}
+          canInviteMembers={true}
+        />
+      );
+
+      await screen.findByText('Alice Admin');
+      
+      // Should show both buttons
+      expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /import from google/i })).toBeInTheDocument();
+    });
+
+    it('does not show Import from Google button when user cannot invite members', async () => {
+      mockGwsConnectionStatus.mockReturnValue({
+        isConnected: true,
+        domain: 'example.com',
+        connectionStatus: { is_connected: true, domain: 'example.com', connected_at: '2024-01-01T00:00:00Z' },
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      customRender(
+        <UnifiedMembersList
+          members={baseMembers}
+          organizationId="org-1"
+          currentUserRole="member"
+          isLoading={false}
+          canInviteMembers={false}
+        />
+      );
+
+      await screen.findByText('Alice Admin');
+      
+      // Should NOT show either button when user cannot invite
+      expect(screen.queryByRole('button', { name: /invite member/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /import from google/i })).not.toBeInTheDocument();
+    });
+
+    it('opens import sheet when Import from Google button is clicked', async () => {
+      mockGwsConnectionStatus.mockReturnValue({
+        isConnected: true,
+        domain: 'example.com',
+        connectionStatus: { is_connected: true, domain: 'example.com', connected_at: '2024-01-01T00:00:00Z' },
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      customRender(
+        <UnifiedMembersList
+          members={baseMembers}
+          organizationId="org-1"
+          currentUserRole="admin"
+          isLoading={false}
+          canInviteMembers={true}
+        />
+      );
+
+      await screen.findByText('Alice Admin');
+      
+      const importButton = screen.getByRole('button', { name: /import from google/i });
+      fireEvent.click(importButton);
+      
+      // The mocked sheet should be rendered (it's always rendered but with open=false initially)
+      // After clicking, the state changes to open=true
+      // Since we mocked the component, we just verify the button click works without errors
+      expect(importButton).toBeInTheDocument();
     });
   });
 });

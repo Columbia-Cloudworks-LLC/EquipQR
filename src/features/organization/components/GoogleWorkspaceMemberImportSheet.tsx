@@ -64,13 +64,14 @@ export const GoogleWorkspaceMemberImportSheet = ({
   const { data: existingClaims = [] } = useGoogleWorkspaceMemberClaims(organizationId);
 
   // Get emails that are already in the organization or pending
+  // Normalize with trim().toLowerCase() for consistent matching
   const existingEmails = useMemo(() => {
     const emails = new Set<string>();
     existingMembers.forEach(m => {
-      if (m.email) emails.add(m.email.toLowerCase());
+      if (m.email) emails.add(m.email.trim().toLowerCase());
     });
     existingClaims.forEach(c => {
-      emails.add(c.email.toLowerCase());
+      emails.add(c.email.trim().toLowerCase());
     });
     return emails;
   }, [existingMembers, existingClaims]);
@@ -78,7 +79,7 @@ export const GoogleWorkspaceMemberImportSheet = ({
   // Filter directory users to only show those not already in org
   const availableUsers = useMemo(() => {
     return directoryUsers.filter(user => {
-      const email = user.primary_email.toLowerCase();
+      const email = user.primary_email.trim().toLowerCase();
       // Filter out existing members/claims
       if (existingEmails.has(email)) return false;
       // Filter out suspended users
@@ -277,12 +278,7 @@ export const GoogleWorkspaceMemberImportSheet = ({
                     <TableRow>
                       <TableHead className="w-12">
                         <Checkbox
-                          checked={allSelected}
-                          ref={(el) => {
-                            if (el) {
-                              (el as HTMLButtonElement & { indeterminate?: boolean }).indeterminate = someSelected;
-                            }
-                          }}
+                          checked={someSelected ? 'indeterminate' : allSelected}
                           onCheckedChange={(checked) => toggleSelectAll(Boolean(checked))}
                           aria-label="Select all"
                         />
