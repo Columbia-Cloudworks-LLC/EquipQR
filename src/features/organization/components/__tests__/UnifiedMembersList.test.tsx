@@ -104,9 +104,14 @@ vi.mock('@/features/organization/hooks/useGoogleWorkspaceConnectionStatus', () =
 }));
 
 // Stub GoogleWorkspaceMemberImportSheet to avoid complex dependencies
-vi.mock('@/features/organization/components/GoogleWorkspaceMemberImportSheet', () => ({
-  GoogleWorkspaceMemberImportSheet: () => <div data-testid="gws-import-sheet">Import Sheet Mock</div>,
-  default: () => <div data-testid="gws-import-sheet">Import Sheet Mock</div>,
+// Use relative path to match how UnifiedMembersList imports it
+vi.mock('../GoogleWorkspaceMemberImportSheet', () => ({
+  GoogleWorkspaceMemberImportSheet: ({ open }: { open: boolean }) => (
+    open ? <div data-testid="gws-import-sheet">Import Sheet Mock</div> : null
+  ),
+  default: ({ open }: { open: boolean }) => (
+    open ? <div data-testid="gws-import-sheet">Import Sheet Mock</div> : null
+  ),
 }));
 
 // Billing components removed - no longer needed
@@ -599,13 +604,14 @@ describe('UnifiedMembersList', () => {
 
       await screen.findByText('Alice Admin');
       
+      // Sheet should not be visible initially
+      expect(screen.queryByTestId('gws-import-sheet')).not.toBeInTheDocument();
+      
       const importButton = screen.getByRole('button', { name: /import from google/i });
       fireEvent.click(importButton);
       
-      // The mocked sheet should be rendered (it's always rendered but with open=false initially)
-      // After clicking, the state changes to open=true
-      // Since we mocked the component, we just verify the button click works without errors
-      expect(importButton).toBeInTheDocument();
+      // After clicking, the sheet should be visible (our mock renders conditionally based on `open` prop)
+      expect(await screen.findByTestId('gws-import-sheet')).toBeInTheDocument();
     });
   });
 });

@@ -60,8 +60,9 @@ export const GoogleWorkspaceMemberImportSheet = ({
   });
 
   // Fetch existing members and claims to filter them out
-  const { data: existingMembers = [] } = useOrganizationMembersQuery(organizationId);
-  const { data: existingClaims = [] } = useGoogleWorkspaceMemberClaims(organizationId);
+  // Only run these queries when the sheet is open to avoid background refetches
+  const { data: existingMembers = [] } = useOrganizationMembersQuery(open ? organizationId : '');
+  const { data: existingClaims = [] } = useGoogleWorkspaceMemberClaims(open ? organizationId : '');
 
   // Get emails that are already in the organization or pending
   // Normalize with trim().toLowerCase() for consistent matching
@@ -198,8 +199,18 @@ export const GoogleWorkspaceMemberImportSheet = ({
   const allSelected = availableUsers.length > 0 && selectedEmails.size === availableUsers.length;
   const someSelected = selectedEmails.size > 0 && selectedEmails.size < availableUsers.length;
 
+  // Reset local state when the sheet is closed to avoid stale selections
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setSelectedEmails(new Set());
+      setAdminEmails(new Set());
+      setSearchQuery('');
+    }
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className="sm:max-w-xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
