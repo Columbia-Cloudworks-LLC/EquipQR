@@ -114,6 +114,27 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 **Purpose:** Generate repository snapshot for AI context
 
+### 7. Export Database Schema (`export-schema.yml`)
+
+**Trigger:** Push to `main` branch, or manual dispatch
+
+**Purpose:** Export the database schema from the preview Supabase project and commit it to the repository
+
+**What it does:**
+- Uses Supabase CLI to dump schema from preview project
+- Exports `public`, `storage`, and `auth` schemas
+- Commits `supabase/schema.sql` if changed (with `[skip ci]` to prevent loops)
+
+**Benefits:**
+- Instant visibility into current database structure
+- No need to mentally reconstruct schema from 160+ migration files
+- Useful for onboarding and documentation
+- Easy schema review in PRs
+
+**Required Secret:** `PREVIEW_DATABASE_URL`
+- Format: `postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
+- Obtain from: Supabase Dashboard → Preview Project → Settings → Database → Connection string (URI)
+
 ---
 
 ## External Services
@@ -268,6 +289,7 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 | `VITE_SUPABASE_URL` | Supabase project URL | Supabase Dashboard → Settings → API |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | Supabase Dashboard → Settings → API |
 | `SUPABASE_ACCESS_TOKEN` | Management API auth | Supabase Dashboard → Account → Access Tokens |
+| `PREVIEW_DATABASE_URL` | Preview DB connection for schema export | Supabase Dashboard → Preview Project → Settings → Database → Connection string (URI) |
 | `CODECOV_TOKEN` | Coverage reporting | Codecov dashboard |
 | `GITHUB_TOKEN` | Auto-provided by GitHub | N/A |
 
@@ -335,6 +357,7 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 | `.github/workflows/version-tag.yml` | Auto-create git tags on version bump |
 | `.github/workflows/deployment-status.yml` | Log deployment status from Vercel |
 | `.github/workflows/repomix.yml` | Generate repository snapshot |
+| `.github/workflows/export-schema.yml` | Export database schema from preview to `supabase/schema.sql` |
 | `.github/runner-config.yml` | Runner type configuration |
 | `vercel.json` | Vercel deployment configuration |
 | `supabase/config.toml` | Supabase CLI configuration |
