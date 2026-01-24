@@ -1,0 +1,62 @@
+name: Export Database Schema
+
+# Automatically exports the database schema from the preview Supabase project
+# whenever code is pushed to main. This captures the "last known good" schema
+# that has been tested in preview and is production-ready.
+#
+# The schema file (supabase/schema.sql) provides:
+# - Instant visibility into current database structure
+# - Easy schema review without reading 160+ migration files
+# - Documentation for onboarding and reference
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'supabase/schema.sql' # Prevent loop when this workflow commits schema changes
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  export-schema:
+    name: Export Schema from Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Skip if triggered by bot commit (belt-and-suspenders with paths-ignore)
+    if: github.actor != 'github-actions[bot]'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.72.8
+
+      - name: Export schema from preview project
+        run: |
+          echo "Exporting schema from preview Supabase project..."
+          supabase db dump --db-url "$DATABASE_URL" \
+            --schema public,storage,auth \
+            > supabase/schema.sql
+          echo "Schema exported to supabase/schema.sql"
+        env:
+          DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+
+      - name: Commit schema if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add supabase/schema.sql
+          if git diff --cached --quiet; then
+            echo "No schema changes detected"
+          else
+            git commit -m "chore: update schema.sql [skip ci]"
+            git push
+            echo "Schema changes committed and pushed"
+          fi
