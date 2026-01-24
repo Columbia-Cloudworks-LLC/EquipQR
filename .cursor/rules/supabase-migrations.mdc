@@ -14,7 +14,7 @@ globs: "supabase/migrations/*.sql"
 - **Indexes:** explicitly name indexes: `idx_<table_name>_<column_name>`.
 - **Snake Case:** Use `snake_case` for all table names, column names, and function names.
 - **Comments:** Add SQL comments (`COMMENT ON TABLE ...`) for complex tables or critical columns.
-- **Deployment:** Do NOT deploy the migrations to supabase remotely. ONLY TEST LOCALLY.
+- **Deployment:** Always run and validate migrations locally first. Do **not** run migrations directly against production/remote databases from your local CLI; instead, deploy them to remote environments via the approved CI/CD pipeline or Supabase migration tooling.
 
 ## Row Level Security (RLS)
 - **Default Secure:** ENABLE RLS on every table immediately after creation: `ALTER TABLE "public"."table_name" ENABLE ROW LEVEL SECURITY;`.

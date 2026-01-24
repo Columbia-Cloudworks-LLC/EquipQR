@@ -20,7 +20,7 @@ EquipQR uses **Supabase Postgres**. When applying these rules in this repo:
 
 - **Migrations live in**: `supabase/migrations/*.sql` (follow our migration standards: timestamped filenames, enable RLS by default, avoid overly complex RLS joins, etc.).
 - **RLS is mandatory**: Never add permissive “always true” policies without explicit, documented justification.
-- **Service role usage**: Avoid `service_role` in Edge Functions unless absolutely necessary; prefer policies + least privilege.
+- **Service role usage**: Edge Functions (including Google Workspace integrations) must rely on RLS by default. Use `service_role` only in narrowly scoped, backend-only functions where you (1) validate the JWT, (2) enforce `organization_id` scoping on every query, and (3) perform explicit permission checks at least as strict as equivalent RLS policies. Never use `service_role` as a shortcut to bypass RLS.
 - **App code boundaries**: UI components should not issue raw SQL; changes here typically translate into migrations, RPCs, or changes to query patterns in services.
 
 ## When to Apply

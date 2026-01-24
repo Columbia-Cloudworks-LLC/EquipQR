@@ -55,7 +55,8 @@ const WorkOrders = () => {
     updateFilter
   } = useWorkOrderFilters(allWorkOrders, currentUser?.id);
 
-  // Apply URL parameter filters on initial load
+  // Apply URL parameter filters on initial load.
+  // updateFilter and applyQuickFilter are stable (useCallback in useWorkOrderFilters).
   useEffect(() => {
     if (initializedFromUrl.current) return;
     const date = searchParams.get('date');

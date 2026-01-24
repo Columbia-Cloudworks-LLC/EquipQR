@@ -35,6 +35,7 @@ export default tseslint.config(
     },
   },
   // Journey test guardrails - prevent hook-mocking anti-patterns
+  // Existing journey tests must not use renderHook* or import hooks directly; run lint to verify.
   {
     files: ["src/tests/journeys/**/*.{ts,tsx}"],
     rules: {
