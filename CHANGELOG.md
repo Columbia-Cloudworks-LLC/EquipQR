@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.2] - 2026-01-24
+
+### Added
+
+- **Automatic Schema Export**: New GitHub Actions workflow that exports the database schema from the preview Supabase project whenever code is pushed to `main`
+  - Schema saved to `supabase/schema.sql` for easy reference
+  - Eliminates need to mentally reconstruct schema from 160+ migration files
+  - Useful for onboarding, documentation, and quick schema review
+
+### Fixed
+
+- **Google Workspace Organization Reuse**: Fixed `auto_provision_workspace_organization` being too restrictive when connecting Google Workspace (#519)
+  - Previously only reused orgs with "Organization" in the name
+  - If a user manually created an org with a custom name (e.g., "Columbia Cloud Works"), connecting Google Workspace would create a NEW org instead of reusing their existing one
+  - Now reuses ANY non-personal org the user owns, regardless of its name
+
 ## [2.1.1] - 2026-01-24
 
 ### Fixed
