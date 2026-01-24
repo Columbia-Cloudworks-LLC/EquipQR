@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Mail, UserMinus, UserPlus, Users, Clock, CheckCircle, XCircle, Database } from 'lucide-react';
+import { MoreHorizontal, Mail, UserMinus, UserPlus, Users, Clock, CheckCircle, XCircle, Database, CloudCog } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -19,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/features/organization/hooks/useOrganizationInvitations';
 import { useUpdateMemberRole, useRemoveMember } from '@/features/organization/hooks/useOrganizationMembers';
 import { useRequestWorkspaceMerge } from '@/features/organization/hooks/useWorkspacePersonalOrgMerge';
+import { useGoogleWorkspaceMemberClaims, useRevokeGoogleWorkspaceMemberClaim } from '@/features/organization/hooks/useGoogleWorkspaceMemberClaims';
 import { useUpdateQuickBooksPermission } from '@/hooks/useQuickBooksAccess';
 import { useAuth } from '@/hooks/useAuth';
 import type { OrganizationMember } from '@/features/organization/types/organization';
@@ -36,10 +37,10 @@ interface UnifiedMember {
   name: string;
   email: string;
   organizationRole: 'owner' | 'admin' | 'member';
-  status: 'active' | 'pending_invite';
+  status: 'active' | 'pending_invite' | 'pending_gws';
   joinedDate?: string;
   invitedDate?: string;
-  type: 'member' | 'invitation';
+  type: 'member' | 'invitation' | 'gws_claim';
   canManageQuickBooks?: boolean;
 }
 
@@ -62,10 +63,12 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   
   const { data: invitations = [] } = useOrganizationInvitations(organizationId);
+  const { data: gwsClaims = [] } = useGoogleWorkspaceMemberClaims(organizationId);
   const resendInvitation = useResendInvitation(organizationId);
   const cancelInvitation = useCancelInvitation(organizationId);
   const updateMemberRole = useUpdateMemberRole(organizationId);
   const removeMember = useRemoveMember(organizationId);
+  const revokeGwsClaim = useRevokeGoogleWorkspaceMemberClaim(organizationId);
   const updateQuickBooksPermission = useUpdateQuickBooksPermission(organizationId);
   const requestWorkspaceMerge = useRequestWorkspaceMerge();
   const { user } = useAuth();
@@ -74,7 +77,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   const isOwner = currentUserRole === 'owner';
   const quickBooksEnabled = isQuickBooksEnabled();
 
-  // Combine members and pending invitations into unified list
+  // Combine members, pending invitations, and GWS claims into unified list
   const unifiedMembers: UnifiedMember[] = useMemo(() => {
     // Note: we currently do not have per-user team membership data available in this component.
     // We cannot accurately count or display team memberships for organization members.
@@ -104,16 +107,39 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
         type: 'invitation' as const
       }));
 
-    // Sort by status (active first), then by name
-    return [...activeMembers, ...pendingInvitations].sort((a, b) => {
+    // Get emails of active members and pending invites to filter out GWS claims
+    const existingEmails = new Set([
+      ...activeMembers.map(m => m.email.toLowerCase()),
+      ...pendingInvitations.map(i => i.email.toLowerCase()),
+    ]);
+
+    // Add pending GWS claims (users selected from Google Workspace who haven't signed up yet)
+    const pendingGwsClaims: UnifiedMember[] = gwsClaims
+      .filter(claim => !existingEmails.has(claim.email.toLowerCase()))
+      .map(claim => ({
+        id: claim.id,
+        name: claim.fullName || 'Pending (Google Workspace)',
+        email: claim.email,
+        organizationRole: 'member' as const, // GWS-selected users start as members
+        status: 'pending_gws' as const,
+        invitedDate: claim.createdAt,
+        type: 'gws_claim' as const,
+      }));
+
+    // Sort by status (active first, then pending invite, then pending GWS), then by name
+    return [...activeMembers, ...pendingInvitations, ...pendingGwsClaims].sort((a, b) => {
+      const statusOrder = { active: 0, pending_invite: 1, pending_gws: 2 };
       if (a.status !== b.status) {
-        return a.status === 'active' ? -1 : 1;
+        return statusOrder[a.status] - statusOrder[b.status];
       }
-      if (a.name === 'Pending Invite' && b.name !== 'Pending Invite') return 1;
-      if (a.name !== 'Pending Invite' && b.name === 'Pending Invite') return -1;
+      // Sort pending items to the end within their group
+      const isPendingA = a.name.startsWith('Pending');
+      const isPendingB = b.name.startsWith('Pending');
+      if (isPendingA && !isPendingB) return 1;
+      if (!isPendingA && isPendingB) return -1;
       return a.name.localeCompare(b.name);
     });
-  }, [members, invitations]);
+  }, [members, invitations, gwsClaims]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -121,6 +147,8 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'pending_invite':
         return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'pending_gws':
+        return <CloudCog className="h-4 w-4 text-blue-500" />;
       default:
         return <CheckCircle className="h-4 w-4" />;
     }
@@ -132,8 +160,23 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
         return 'default';
       case 'pending_invite':
         return 'secondary';
+      case 'pending_gws':
+        return 'outline';
       default:
         return 'outline';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Active';
+      case 'pending_invite':
+        return 'Pending Invite';
+      case 'pending_gws':
+        return 'Awaiting Sign-up';
+      default:
+        return status;
     }
   };
 
@@ -170,6 +213,14 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
       toast.success('Invitation cancelled successfully');
     } catch {
       toast.error('Failed to cancel invitation');
+    }
+  };
+
+  const handleRevokeGwsClaim = async (claimId: string) => {
+    try {
+      await revokeGwsClaim.mutateAsync(claimId);
+    } catch {
+      // Error already handled by mutation
     }
   };
 
@@ -263,7 +314,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="text-xs">
-                          {member.name === 'Pending Invite' 
+                          {member.name === 'Pending Invite' || member.name === 'Pending (Google Workspace)'
                             ? '?' 
                             : member.name.split(' ').map(n => n[0]).join('').slice(0, 2)
                           }
@@ -278,7 +329,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                         )}
                         {member.invitedDate && (
                           <div className="text-xs text-muted-foreground">
-                            Invited {new Date(member.invitedDate).toLocaleDateString()}
+                            {member.type === 'gws_claim' ? 'Added' : 'Invited'} {new Date(member.invitedDate).toLocaleDateString()}
                           </div>
                         )}
                       </div>
@@ -306,12 +357,30 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize">
-                      <div className="flex items-center gap-1">
-                        {getStatusIcon(member.status)}
-                        {member.status === 'pending_invite' ? 'Pending' : 'Active'}
-                      </div>
-                    </Badge>
+                    {member.status === 'pending_gws' ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize cursor-help">
+                              <div className="flex items-center gap-1">
+                                {getStatusIcon(member.status)}
+                                {getStatusLabel(member.status)}
+                              </div>
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">Selected from Google Workspace. They will be automatically added when they sign up with their Google account.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize">
+                        <div className="flex items-center gap-1">
+                          {getStatusIcon(member.status)}
+                          {getStatusLabel(member.status)}
+                        </div>
+                      </Badge>
+                    )}
                   </TableCell>
                   {isOwner && quickBooksEnabled && (
                     <TableCell>
@@ -382,6 +451,16 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                                   Cancel Invitation
                                 </DropdownMenuItem>
                               </>
+                            )}
+                            {member.type === 'gws_claim' && (
+                              <DropdownMenuItem
+                                onClick={() => handleRevokeGwsClaim(member.id)}
+                                disabled={revokeGwsClaim.isPending}
+                                className="text-destructive"
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Remove Pending Member
+                              </DropdownMenuItem>
                             )}
                             {member.type === 'member' && (
                               <>
