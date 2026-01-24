@@ -132,8 +132,8 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
                 Sync Directory
               </Button>
               <Button variant="outline" asChild>
-                <a href="/dashboard/onboarding/workspace">
-                  Manage Members
+                <a href="/dashboard/organization">
+                  View Members
                 </a>
               </Button>
             </div>
