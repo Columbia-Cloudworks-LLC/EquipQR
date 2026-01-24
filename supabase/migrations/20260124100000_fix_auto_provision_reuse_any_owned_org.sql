@@ -9,7 +9,7 @@
 -- This fix removes the name restriction so the function reuses ANY non-personal
 -- org the user owns, regardless of its name.
 --
--- REVERT: Re-add `AND o.name LIKE '%Organization%'` to the query on line 48-56
+-- REVERT: Re-add `AND o.name LIKE '%Organization%'` to the org selection query below
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.auto_provision_workspace_organization(
@@ -72,10 +72,20 @@ BEGIN
   LIMIT 1;
 
   IF v_existing_org_id IS NOT NULL THEN
-    -- Reuse existing org, just claim domain for it
+    -- Reuse existing org, just claim domain for it (without overwriting existing mapping)
     INSERT INTO public.workspace_domains (domain, organization_id)
     VALUES (v_domain, v_existing_org_id)
-    ON CONFLICT (domain) DO UPDATE SET organization_id = v_existing_org_id;
+    ON CONFLICT (domain) DO NOTHING;
+    
+    -- If insert conflicted, another user claimed this domain concurrently - use their mapping
+    IF NOT FOUND THEN
+      SELECT d.organization_id INTO v_existing_org_id
+      FROM public.workspace_domains d
+      WHERE d.domain = v_domain;
+    END IF;
+    
+    -- Migrate any personal organizations for users with this domain into the workspace org
+    PERFORM public.migrate_personal_orgs_to_workspace(v_existing_org_id, v_domain);
     
     organization_id := v_existing_org_id;
     domain := v_domain;
@@ -103,6 +113,9 @@ BEGIN
   -- Create workspace_domains entry
   INSERT INTO public.workspace_domains (domain, organization_id)
   VALUES (v_domain, v_org_id);
+
+  -- Migrate any personal organizations for users with this domain into the new workspace org
+  PERFORM public.migrate_personal_orgs_to_workspace(v_org_id, v_domain);
 
   organization_id := v_org_id;
   domain := v_domain;

@@ -12,6 +12,8 @@ name: Export Database Schema
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'supabase/schema.sql' # Prevent loop when this workflow commits schema changes
   workflow_dispatch: # Allow manual trigger
 
 permissions:
@@ -22,6 +24,8 @@ jobs:
     name: Export Schema from Preview
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Skip if triggered by bot commit (belt-and-suspenders with paths-ignore)
+    if: github.actor != 'github-actions[bot]'
 
     steps:
       - name: Checkout code
@@ -32,7 +36,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.72.8
 
       - name: Export schema from preview project
         run: |
