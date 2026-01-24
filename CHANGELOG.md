@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-01-24
+
+### Fixed
+
+- **Google Workspace Members Not Appearing** (#515): Users selected from Google Workspace directory who hadn't signed up yet were not appearing in the organization members list, causing admins to think they needed to send email invites
+  - Added `useGoogleWorkspaceMemberClaims` hook to fetch pending GWS member claims
+  - Updated `UnifiedMembersList` to display pending GWS members with "Awaiting Sign-up" status
+  - Added tooltip explaining that users will be automatically added when they sign up with their Google account
+  - Added ability for admins to revoke pending GWS member claims
+  - Smart filtering to avoid duplicates if user already exists as member or has email invite
+
 ## [2.1.0] - 2026-01-14
 
 ### Added

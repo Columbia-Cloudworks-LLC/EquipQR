@@ -80,6 +80,11 @@ vi.mock('@/features/organization/hooks/useOrganizationMembers', () => ({
   useRemoveMember: vi.fn().mockReturnValue({ mutateAsync: mockRemoveMember, isPending: false }),
 }));
 
+vi.mock('@/features/organization/hooks/useGoogleWorkspaceMemberClaims', () => ({
+  useGoogleWorkspaceMemberClaims: vi.fn().mockReturnValue({ data: [], isLoading: false }),
+  useRevokeGoogleWorkspaceMemberClaim: vi.fn().mockReturnValue({ mutateAsync: vi.fn(), isPending: false }),
+}));
+
 // Billing components removed - no longer needed
 
 // Stub SimplifiedInvitationDialog to avoid provider dependency in tests
@@ -126,8 +131,9 @@ describe('UnifiedMembersList', () => {
 
     // Active member
     expect(await screen.findByText('Alice Admin')).toBeInTheDocument();
-    // Pending invitation row
-    expect(screen.getByText('Pending Invite')).toBeInTheDocument();
+    // Pending invitation row - "Pending Invite" appears in both name and status columns
+    const pendingInviteElements = screen.getAllByText('Pending Invite');
+    expect(pendingInviteElements.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('invitee@example.com')).toBeInTheDocument();
   });
 
