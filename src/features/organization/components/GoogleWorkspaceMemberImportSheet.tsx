@@ -160,15 +160,29 @@ export const GoogleWorkspaceMemberImportSheet = ({
     }
   };
 
+  // Reset local state when the sheet is closed to avoid stale selections
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setSelectedEmails(new Set());
+      setAdminEmails(new Set());
+      setSearchQuery('');
+    }
+    onOpenChange(nextOpen);
+  };
+
   const handleAddMembers = async () => {
     if (selectedEmails.size === 0) return;
 
     setIsAdding(true);
     try {
+      // Normalize emails to trim/lowercase before sending to ensure consistency
+      const normalizedSelected = Array.from(selectedEmails).map(e => e.trim().toLowerCase());
+      const normalizedAdmins = Array.from(adminEmails).map(e => e.trim().toLowerCase());
+
       const result = await selectGoogleWorkspaceMembers(
         organizationId,
-        Array.from(selectedEmails),
-        Array.from(adminEmails)
+        normalizedSelected,
+        normalizedAdmins
       );
 
       toast({
@@ -177,16 +191,12 @@ export const GoogleWorkspaceMemberImportSheet = ({
         variant: 'success',
       });
 
-      // Clear selections
-      setSelectedEmails(new Set());
-      setAdminEmails(new Set());
-
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ['gws-member-claims', organizationId] });
       await queryClient.invalidateQueries({ queryKey: ['organization-members', organizationId] });
 
-      // Close the sheet
-      onOpenChange(false);
+      // Close the sheet via the wrapper to ensure local state is reset
+      handleOpenChange(false);
     } catch (error) {
       toast({
         title: 'Failed to add members',
@@ -198,18 +208,17 @@ export const GoogleWorkspaceMemberImportSheet = ({
     }
   };
 
-  const allSelected = availableUsers.length > 0 && selectedEmails.size === availableUsers.length;
-  const someSelected = selectedEmails.size > 0 && selectedEmails.size < availableUsers.length;
+  // Compute selection states based on visible users to handle filtered state correctly
+  const visibleSelectedCount = useMemo(
+    () =>
+      availableUsers.reduce((count, user) => {
+        return selectedEmails.has(user.primary_email) ? count + 1 : count;
+      }, 0),
+    [availableUsers, selectedEmails]
+  );
 
-  // Reset local state when the sheet is closed to avoid stale selections
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
-      setSelectedEmails(new Set());
-      setAdminEmails(new Set());
-      setSearchQuery('');
-    }
-    onOpenChange(nextOpen);
-  };
+  const allSelected = availableUsers.length > 0 && visibleSelectedCount === availableUsers.length;
+  const someSelected = visibleSelectedCount > 0 && visibleSelectedCount < availableUsers.length;
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -249,7 +258,7 @@ export const GoogleWorkspaceMemberImportSheet = ({
             <Alert>
               <CheckCircle2 className="h-4 w-4" />
               <AlertDescription>
-                {existingEmails.size} user{existingEmails.size !== 1 ? 's' : ''} already in organization (hidden).
+                {existingEmails.size} user{existingEmails.size !== 1 ? 's' : ''} already in organization or pending claim (hidden).
               </AlertDescription>
             </Alert>
           )}
