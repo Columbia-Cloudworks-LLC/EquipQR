@@ -79,12 +79,13 @@ export const useGoogleWorkspaceMemberClaims = (organizationId: string) => {
         // Continue with empty names rather than failing the whole query
       }
 
+      // Normalize emails consistently (trim + lowercase) for map keys and lookups
       const directoryMap = new Map(
-        (directoryUsers || []).map(u => [u.primary_email.toLowerCase(), u])
+        (directoryUsers || []).map(u => [u.primary_email.trim().toLowerCase(), u])
       );
 
       return data.map(claim => {
-        const directoryUser = directoryMap.get(claim.email.toLowerCase());
+        const directoryUser = directoryMap.get(claim.email.trim().toLowerCase());
         return {
           id: claim.id,
           organizationId: claim.organization_id,

@@ -80,9 +80,14 @@ vi.mock('@/features/organization/hooks/useOrganizationMembers', () => ({
   useRemoveMember: vi.fn().mockReturnValue({ mutateAsync: mockRemoveMember, isPending: false }),
 }));
 
+// Hoisted mocks for GWS claims
+const { mockRevokeGwsClaim } = vi.hoisted(() => ({
+  mockRevokeGwsClaim: vi.fn().mockResolvedValue({}),
+}));
+
 vi.mock('@/features/organization/hooks/useGoogleWorkspaceMemberClaims', () => ({
   useGoogleWorkspaceMemberClaims: vi.fn().mockReturnValue({ data: [], isLoading: false }),
-  useRevokeGoogleWorkspaceMemberClaim: vi.fn().mockReturnValue({ mutateAsync: vi.fn(), isPending: false }),
+  useRevokeGoogleWorkspaceMemberClaim: vi.fn().mockReturnValue({ mutateAsync: mockRevokeGwsClaim, isPending: false }),
 }));
 
 // Billing components removed - no longer needed
@@ -95,6 +100,7 @@ vi.mock('@/features/organization/components/SimplifiedInvitationDialog', () => (
 
 // Import component after mocks to ensure they take effect
 import UnifiedMembersList from '../UnifiedMembersList';
+import { useGoogleWorkspaceMemberClaims } from '@/features/organization/hooks/useGoogleWorkspaceMemberClaims';
 
 describe('UnifiedMembersList', () => {
   const baseMembers: RealOrganizationMember[] = [
@@ -189,5 +195,218 @@ describe('UnifiedMembersList', () => {
         expect(bobRow).toHaveTextContent('member');
       }
     }
+  });
+
+  describe('Google Workspace Claims', () => {
+    const gwsClaims = [
+      {
+        id: 'gws-claim-1',
+        organizationId: 'org-1',
+        email: 'pending.user@workspace.example.com',
+        source: 'google_workspace',
+        status: 'selected' as const,
+        createdBy: 'admin-user',
+        createdAt: '2024-02-01T00:00:00Z',
+        fullName: 'Pending User',
+        givenName: 'Pending',
+        familyName: 'User',
+      },
+      {
+        id: 'gws-claim-2',
+        organizationId: 'org-1',
+        email: 'noname@workspace.example.com',
+        source: 'google_workspace',
+        status: 'selected' as const,
+        createdBy: 'admin-user',
+        createdAt: '2024-02-02T00:00:00Z',
+        // No fullName - should fall back to 'Pending (Google Workspace)'
+      },
+    ];
+
+    beforeEach(() => {
+      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue({
+        data: gwsClaims,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isPending: false,
+        isSuccess: true,
+        status: 'success',
+        dataUpdatedAt: Date.now(),
+        errorUpdatedAt: 0,
+        failureCount: 0,
+        failureReason: null,
+        errorUpdateCount: 0,
+        fetchStatus: 'idle',
+        isFetched: true,
+        isFetchedAfterMount: true,
+        isFetching: false,
+        isInitialLoading: false,
+        isLoadingError: false,
+        isPaused: false,
+        isPlaceholderData: false,
+        isRefetchError: false,
+        isRefetching: false,
+        isStale: false,
+        refetch: vi.fn(),
+        promise: Promise.resolve(gwsClaims),
+      });
+    });
+
+    afterEach(() => {
+      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+        isError: false,
+        isPending: false,
+        isSuccess: true,
+        status: 'success',
+        dataUpdatedAt: Date.now(),
+        errorUpdatedAt: 0,
+        failureCount: 0,
+        failureReason: null,
+        errorUpdateCount: 0,
+        fetchStatus: 'idle',
+        isFetched: true,
+        isFetchedAfterMount: true,
+        isFetching: false,
+        isInitialLoading: false,
+        isLoadingError: false,
+        isPaused: false,
+        isPlaceholderData: false,
+        isRefetchError: false,
+        isRefetching: false,
+        isStale: false,
+        refetch: vi.fn(),
+        promise: Promise.resolve([]),
+      });
+    });
+
+    it('renders pending Google Workspace claims with name and Awaiting Sign-up status', async () => {
+      customRender(
+        <UnifiedMembersList
+          members={baseMembers}
+          organizationId="org-1"
+          currentUserRole="admin"
+          isLoading={false}
+          canInviteMembers={true}
+        />
+      );
+
+      // Should show the GWS claim with full name
+      expect(await screen.findByText('Pending User')).toBeInTheDocument();
+      expect(screen.getByText('pending.user@workspace.example.com')).toBeInTheDocument();
+      
+      // Should show "Awaiting Sign-up" status
+      const awaitingSignupBadges = screen.getAllByText('Awaiting Sign-up');
+      expect(awaitingSignupBadges.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('renders GWS claims without name as "Pending (Google Workspace)"', async () => {
+      customRender(
+        <UnifiedMembersList
+          members={baseMembers}
+          organizationId="org-1"
+          currentUserRole="admin"
+          isLoading={false}
+          canInviteMembers={true}
+        />
+      );
+
+      // Should show the fallback name for claim without fullName
+      expect(await screen.findByText('Pending (Google Workspace)')).toBeInTheDocument();
+      expect(screen.getByText('noname@workspace.example.com')).toBeInTheDocument();
+    });
+
+    it('shows actions dropdown for GWS claims with remove action available', async () => {
+      customRender(
+        <UnifiedMembersList
+          members={baseMembers}
+          organizationId="org-1"
+          currentUserRole="admin"
+          isLoading={false}
+          canInviteMembers={true}
+        />
+      );
+
+      // Wait for GWS claim to render
+      await screen.findByText('Pending User');
+      
+      // Find the row for the GWS claim
+      const gwsRow = screen.getByText('Pending User').closest('tr');
+      expect(gwsRow).toBeInTheDocument();
+      
+      // Verify the actions dropdown button exists for GWS claims
+      // GWS claims are not owners, so they should have an actions dropdown
+      if (gwsRow) {
+        const actionsButton = gwsRow.querySelector('button[aria-haspopup="menu"]');
+        expect(actionsButton).toBeInTheDocument();
+        // The dropdown menu content renders in a portal, which makes it difficult
+        // to test in jsdom. We verify the button exists and the component structure
+        // is correct - the actual dropdown interaction is better tested in e2e tests.
+      }
+    });
+
+    it('does not show GWS claims that are already active members', async () => {
+      // Add a claim with the same email as an existing member
+      const claimsWithDuplicate = [
+        ...gwsClaims,
+        {
+          id: 'gws-claim-duplicate',
+          organizationId: 'org-1',
+          email: 'alice@example.com', // Same as Alice Admin
+          source: 'google_workspace',
+          status: 'selected' as const,
+          createdBy: 'admin-user',
+          createdAt: '2024-02-03T00:00:00Z',
+          fullName: 'Alice Duplicate',
+        },
+      ];
+
+      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue({
+        data: claimsWithDuplicate,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isPending: false,
+        isSuccess: true,
+        status: 'success',
+        dataUpdatedAt: Date.now(),
+        errorUpdatedAt: 0,
+        failureCount: 0,
+        failureReason: null,
+        errorUpdateCount: 0,
+        fetchStatus: 'idle',
+        isFetched: true,
+        isFetchedAfterMount: true,
+        isFetching: false,
+        isInitialLoading: false,
+        isLoadingError: false,
+        isPaused: false,
+        isPlaceholderData: false,
+        isRefetchError: false,
+        isRefetching: false,
+        isStale: false,
+        refetch: vi.fn(),
+        promise: Promise.resolve(claimsWithDuplicate),
+      });
+
+      customRender(
+        <UnifiedMembersList
+          members={baseMembers}
+          organizationId="org-1"
+          currentUserRole="admin"
+          isLoading={false}
+          canInviteMembers={true}
+        />
+      );
+
+      // Alice Admin should appear (the active member)
+      expect(await screen.findByText('Alice Admin')).toBeInTheDocument();
+      
+      // But "Alice Duplicate" should NOT appear (filtered out as duplicate)
+      expect(screen.queryByText('Alice Duplicate')).not.toBeInTheDocument();
+    });
   });
 });
