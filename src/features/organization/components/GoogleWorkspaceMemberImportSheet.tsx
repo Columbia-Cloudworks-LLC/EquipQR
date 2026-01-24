@@ -104,6 +104,7 @@ export const GoogleWorkspaceMemberImportSheet = ({
       toast({
         title: 'Directory synced',
         description: `${result.usersSynced} users loaded from Google Workspace.`,
+        variant: 'success',
       });
       await refetchDirectory();
     } catch (error) {
@@ -173,6 +174,7 @@ export const GoogleWorkspaceMemberImportSheet = ({
       toast({
         title: 'Members added',
         description: `${result.members_added} members added. ${result.admin_applied} admins applied; ${result.admin_pending} pending.`,
+        variant: 'success',
       });
 
       // Clear selections
