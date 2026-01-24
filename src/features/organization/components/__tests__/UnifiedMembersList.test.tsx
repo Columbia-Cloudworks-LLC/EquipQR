@@ -408,5 +408,66 @@ describe('UnifiedMembersList', () => {
       // But "Alice Duplicate" should NOT appear (filtered out as duplicate)
       expect(screen.queryByText('Alice Duplicate')).not.toBeInTheDocument();
     });
+
+    it('does not show GWS claims that duplicate pending invitations', async () => {
+      // Add a claim with the same email as a pending invitation (invitee@example.com)
+      const claimsWithInviteDuplicate = [
+        ...gwsClaims,
+        {
+          id: 'gws-claim-invite-duplicate',
+          organizationId: 'org-1',
+          email: 'invitee@example.com', // Same as the pending invitation
+          source: 'google_workspace',
+          status: 'selected' as const,
+          createdBy: 'admin-user',
+          createdAt: '2024-02-04T00:00:00Z',
+          fullName: 'Invitee Duplicate',
+        },
+      ];
+
+      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue({
+        data: claimsWithInviteDuplicate,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isPending: false,
+        isSuccess: true,
+        status: 'success',
+        dataUpdatedAt: Date.now(),
+        errorUpdatedAt: 0,
+        failureCount: 0,
+        failureReason: null,
+        errorUpdateCount: 0,
+        fetchStatus: 'idle',
+        isFetched: true,
+        isFetchedAfterMount: true,
+        isFetching: false,
+        isInitialLoading: false,
+        isLoadingError: false,
+        isPaused: false,
+        isPlaceholderData: false,
+        isRefetchError: false,
+        isRefetching: false,
+        isStale: false,
+        refetch: vi.fn(),
+        promise: Promise.resolve(claimsWithInviteDuplicate),
+      });
+
+      customRender(
+        <UnifiedMembersList
+          members={baseMembers}
+          organizationId="org-1"
+          currentUserRole="admin"
+          isLoading={false}
+          canInviteMembers={true}
+        />
+      );
+
+      // The pending invitation should appear
+      expect(await screen.findByText('invitee@example.com')).toBeInTheDocument();
+      
+      // But "Invitee Duplicate" GWS claim should NOT appear (filtered out as duplicate of pending invitation)
+      expect(screen.queryByText('Invitee Duplicate')).not.toBeInTheDocument();
+    });
   });
 });
