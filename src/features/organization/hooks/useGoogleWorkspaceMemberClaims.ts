@@ -39,7 +39,7 @@ export const useGoogleWorkspaceMemberClaims = (organizationId: string) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
 
-      // Fetch pending claims (status = 'selected') with directory user info
+      // Fetch pending claims (status = 'selected', source = 'google_workspace')
       const { data, error } = await supabase
         .from('organization_member_claims')
         .select(`
@@ -54,6 +54,7 @@ export const useGoogleWorkspaceMemberClaims = (organizationId: string) => {
           claimed_at
         `)
         .eq('organization_id', organizationId)
+        .eq('source', 'google_workspace')
         .eq('status', 'selected')
         .order('created_at', { ascending: false });
 
@@ -65,12 +66,18 @@ export const useGoogleWorkspaceMemberClaims = (organizationId: string) => {
       if (!data || data.length === 0) return [];
 
       // Fetch directory user info for names
-      const emails = data.map(claim => claim.email);
-      const { data: directoryUsers } = await supabase
+      // Normalize emails (trim + lowercase) for consistent matching
+      const normalizedEmails = [...new Set(data.map(claim => claim.email.trim().toLowerCase()))];
+      const { data: directoryUsers, error: directoryError } = await supabase
         .from('google_workspace_directory_users')
         .select('primary_email, full_name, given_name, family_name')
         .eq('organization_id', organizationId)
-        .in('primary_email', emails);
+        .in('primary_email', normalizedEmails);
+
+      if (directoryError) {
+        logger.error('Error fetching Google Workspace directory users', directoryError);
+        // Continue with empty names rather than failing the whole query
+      }
 
       const directoryMap = new Map(
         (directoryUsers || []).map(u => [u.primary_email.toLowerCase(), u])

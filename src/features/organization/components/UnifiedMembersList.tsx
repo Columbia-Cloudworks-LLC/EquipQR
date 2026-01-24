@@ -141,7 +141,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
     });
   }, [members, invitations, gwsClaims]);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: UnifiedMember['status']) => {
     switch (status) {
       case 'active':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -149,12 +149,10 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
         return <Clock className="h-4 w-4 text-yellow-500" />;
       case 'pending_gws':
         return <CloudCog className="h-4 w-4 text-blue-500" />;
-      default:
-        return <CheckCircle className="h-4 w-4" />;
     }
   };
 
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeVariant = (status: UnifiedMember['status']) => {
     switch (status) {
       case 'active':
         return 'default';
@@ -162,12 +160,10 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
         return 'secondary';
       case 'pending_gws':
         return 'outline';
-      default:
-        return 'outline';
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: UnifiedMember['status']) => {
     switch (status) {
       case 'active':
         return 'Active';
@@ -175,8 +171,6 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
         return 'Pending Invite';
       case 'pending_gws':
         return 'Awaiting Sign-up';
-      default:
-        return status;
     }
   };
 
@@ -285,6 +279,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
             </p>
           </div>
         ) : (
+          <TooltipProvider>
           <Table>
             <TableHeader>
               <TableRow>
@@ -294,14 +289,12 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                 <TableHead>Status</TableHead>
                 {isOwner && quickBooksEnabled && (
                   <TableHead>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger className="cursor-help">QuickBooks</TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">Allow admin to manage QuickBooks integration (connect, disconnect, export invoices)</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help">QuickBooks</TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">Allow admin to manage QuickBooks integration (connect, disconnect, export invoices)</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </TableHead>
                 )}
                 {canManageMembers && <TableHead className="text-right">Actions</TableHead>}
@@ -358,21 +351,19 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                   </TableCell>
                   <TableCell>
                     {member.status === 'pending_gws' ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize cursor-help">
-                              <div className="flex items-center gap-1">
-                                {getStatusIcon(member.status)}
-                                {getStatusLabel(member.status)}
-                              </div>
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">Selected from Google Workspace. They will be automatically added when they sign up with their Google account.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize cursor-help">
+                            <div className="flex items-center gap-1">
+                              {getStatusIcon(member.status)}
+                              {getStatusLabel(member.status)}
+                            </div>
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">Selected from Google Workspace. They will be automatically added when they sign up with their Google account.</p>
+                        </TooltipContent>
+                      </Tooltip>
                     ) : (
                       <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize">
                         <div className="flex items-center gap-1">
@@ -385,39 +376,35 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                   {isOwner && quickBooksEnabled && (
                     <TableCell>
                       {member.type === 'member' && member.organizationRole === 'admin' ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div>
-                                <Switch
-                                  checked={member.canManageQuickBooks ?? false}
-                                  onCheckedChange={(checked) => {
-                                    if (!member.userId) {
-                                      return;
-                                    }
-                                    handleQuickBooksToggle(member.userId, checked);
-                                  }}
-                                  disabled={updateQuickBooksPermission.isPending}
-                                  aria-label="Toggle QuickBooks management permission"
-                                />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{member.canManageQuickBooks ? 'Revoke QuickBooks access' : 'Grant QuickBooks access'}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <Switch
+                                checked={member.canManageQuickBooks ?? false}
+                                onCheckedChange={(checked) => {
+                                  if (!member.userId) {
+                                    return;
+                                  }
+                                  handleQuickBooksToggle(member.userId, checked);
+                                }}
+                                disabled={updateQuickBooksPermission.isPending}
+                                aria-label="Toggle QuickBooks management permission"
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{member.canManageQuickBooks ? 'Revoke QuickBooks access' : 'Grant QuickBooks access'}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       ) : member.organizationRole === 'owner' ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="text-xs text-muted-foreground italic">Always</div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Owners always have QuickBooks management permission</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-xs text-muted-foreground italic">Always</div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Owners always have QuickBooks management permission</p>
+                          </TooltipContent>
+                        </Tooltip>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
@@ -490,6 +477,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
               ))}
             </TableBody>
           </Table>
+          </TooltipProvider>
         )}
 
         <SimplifiedInvitationDialog
