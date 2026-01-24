@@ -81,7 +81,7 @@ BEGIN
     IF NOT FOUND THEN
       SELECT d.organization_id INTO v_existing_org_id
       FROM public.workspace_domains d
-      WHERE d.domain = v_domain;
+      WHERE public.normalize_domain(d.domain) = v_domain;
     END IF;
     
     -- Migrate any personal organizations for users with this domain into the workspace org
@@ -110,9 +110,34 @@ BEGIN
   VALUES (v_org_id, p_user_id, 'owner', 'active')
   ON CONFLICT DO NOTHING;
 
-  -- Create workspace_domains entry
+  -- Create workspace_domains entry (handle race with another transaction)
   INSERT INTO public.workspace_domains (domain, organization_id)
-  VALUES (v_domain, v_org_id);
+  VALUES (v_domain, v_org_id)
+  ON CONFLICT (domain) DO NOTHING;
+
+  -- Re-check which organization actually owns this domain after potential conflict
+  SELECT d.organization_id INTO v_existing_org_id
+  FROM public.workspace_domains d
+  WHERE public.normalize_domain(d.domain) = v_domain;
+
+  IF v_existing_org_id IS NOT NULL AND v_existing_org_id <> v_org_id THEN
+    -- Another transaction claimed this domain first; clean up the newly created org
+    DELETE FROM public.organization_members
+    WHERE organization_id = v_org_id;
+
+    DELETE FROM public.organizations
+    WHERE id = v_org_id;
+
+    -- Migrate personal orgs into the existing organization (not the one we just deleted)
+    PERFORM public.migrate_personal_orgs_to_workspace(v_existing_org_id, v_domain);
+
+    -- Return the existing organization, mirroring the earlier "domain already claimed" path
+    organization_id := v_existing_org_id;
+    domain := v_domain;
+    already_existed := true;
+    RETURN NEXT;
+    RETURN;
+  END IF;
 
   -- Migrate any personal organizations for users with this domain into the new workspace org
   PERFORM public.migrate_personal_orgs_to_workspace(v_org_id, v_domain);
