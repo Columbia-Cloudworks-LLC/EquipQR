@@ -54,9 +54,9 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
 
     setIsOpen(false);
 
-    // Handle ownership transfer notifications - switch to the target org and navigate
-    if (notification.type === 'ownership_transfer_request') {
-      const targetOrgId = notification.data?.organization_id;
+    // Handle ownership transfer and workspace merge notifications - switch to the target org and navigate
+    if (notification.type === 'ownership_transfer_request' || notification.type === 'workspace_merge_request') {
+      const targetOrgId = notification.data?.organization_id || notification.data?.workspace_org_id;
       if (targetOrgId && targetOrgId !== organizationId) {
         // Switch to the organization first, then navigate to settings
         await switchOrganization(targetOrgId);
@@ -67,9 +67,11 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
 
     if (notification.type === 'ownership_transfer_accepted' || 
         notification.type === 'ownership_transfer_rejected' ||
-        notification.type === 'ownership_transfer_cancelled') {
+        notification.type === 'ownership_transfer_cancelled' ||
+        notification.type === 'workspace_merge_accepted' ||
+        notification.type === 'workspace_merge_rejected') {
       // These are informational - navigate to organization page
-      const targetOrgId = notification.data?.organization_id;
+      const targetOrgId = notification.data?.organization_id || notification.data?.workspace_org_id;
       if (targetOrgId && targetOrgId !== organizationId) {
         await switchOrganization(targetOrgId);
       }
@@ -122,6 +124,12 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
         return '🚫';
       case 'ownership_transfer_cancelled':
         return '↩️';
+      case 'workspace_merge_request':
+        return '🧩';
+      case 'workspace_merge_accepted':
+        return '✅';
+      case 'workspace_merge_rejected':
+        return '🚫';
       case 'member_removed':
         return '👋';
       default:
@@ -173,8 +181,9 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
             <div className="space-y-1">
               {recentNotifications.map((notification) => {
                 const hasAction = notification.data?.work_order_id || 
-                  notification.type.startsWith('ownership_transfer');
-                const isTransferRequest = notification.type === 'ownership_transfer_request';
+                  notification.type.startsWith('ownership_transfer') ||
+                  notification.type.startsWith('workspace_merge');
+                const isTransferRequest = notification.type === 'ownership_transfer_request' || notification.type === 'workspace_merge_request';
                 
                 return (
                   <DropdownMenuItem

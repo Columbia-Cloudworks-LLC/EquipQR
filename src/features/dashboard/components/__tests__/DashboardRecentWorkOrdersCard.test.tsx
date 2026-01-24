@@ -52,7 +52,7 @@ describe('DashboardRecentWorkOrdersCard', () => {
     it('renders the card title', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} />
+          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -62,29 +62,39 @@ describe('DashboardRecentWorkOrdersCard', () => {
     it('renders the card description', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} />
+          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
       expect(screen.getByText('Latest work order activity')).toBeInTheDocument();
     });
 
-    it('renders view all link', () => {
+    it('renders view all link when more items exist', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} />
+          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} hasMore={true} />
         </MemoryRouter>
       );
 
-      const viewAllLink = screen.getByText('View all');
+      const viewAllLink = screen.getByRole('link', { name: /view all/i });
       expect(viewAllLink).toBeInTheDocument();
-      expect(viewAllLink.closest('a')).toHaveAttribute('href', '/dashboard/work-orders');
+      expect(viewAllLink).toHaveAttribute('href', '/dashboard/work-orders');
+    });
+
+    it('does not render view all link when there are not more items', () => {
+      render(
+        <MemoryRouter>
+          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} hasMore={false} />
+        </MemoryRouter>
+      );
+
+      expect(screen.queryByText('View all')).not.toBeInTheDocument();
     });
 
     it('has proper aria-labelledby for accessibility', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} />
+          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -97,7 +107,7 @@ describe('DashboardRecentWorkOrdersCard', () => {
     it('renders loading skeletons when loading', () => {
       const { container } = render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={true} />
+          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={true} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -108,7 +118,7 @@ describe('DashboardRecentWorkOrdersCard', () => {
     it('does not render work orders when loading', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={true} />
+          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={true} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -120,7 +130,7 @@ describe('DashboardRecentWorkOrdersCard', () => {
     it('renders empty message when no work orders', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} />
+          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -132,7 +142,7 @@ describe('DashboardRecentWorkOrdersCard', () => {
     it('renders work order titles', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={false} />
+          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -144,7 +154,7 @@ describe('DashboardRecentWorkOrdersCard', () => {
     it('renders priority and assignee info', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={false} />
+          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -156,7 +166,7 @@ describe('DashboardRecentWorkOrdersCard', () => {
     it('shows "Unassigned" when assigneeName is null', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={false} />
+          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -166,7 +176,7 @@ describe('DashboardRecentWorkOrdersCard', () => {
     it('renders status badges with formatted status', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={false} />
+          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -179,7 +189,7 @@ describe('DashboardRecentWorkOrdersCard', () => {
     it('renders links to work order detail pages', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={false} />
+          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 

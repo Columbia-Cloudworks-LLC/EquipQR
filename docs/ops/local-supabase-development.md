@@ -148,10 +148,19 @@ PRODUCTION_URL=http://localhost:8080
 # CRITICAL: Must match VITE_QB_OAUTH_REDIRECT_BASE_URL in client .env
 QB_OAUTH_REDIRECT_BASE_URL=http://localhost:54321
 
+# Google Workspace Integration (if testing locally)
+GOOGLE_OAUTH_CLIENT_ID=<your-google-oauth-client-id>
+GOOGLE_OAUTH_CLIENT_SECRET=<your-google-oauth-client-secret>
+GW_OAUTH_REDIRECT_BASE_URL=http://localhost:54321
+TOKEN_ENCRYPTION_KEY=<generate-with-openssl-rand-base64-32>
+KDF_SALT=<generate-unique-salt-with-openssl-rand-base64-32>
+
 # Other required secrets
 RESEND_API_KEY=<your-resend-key>
 HCAPTCHA_SECRET_KEY=<your-hcaptcha-secret>
 ```
+
+> **📋 Full Reference**: See `env.example` in the project root for a complete list of all environment variables with descriptions and file references.
 
 ## Working on Edge Functions Locally
 

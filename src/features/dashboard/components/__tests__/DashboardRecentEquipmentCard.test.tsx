@@ -45,7 +45,7 @@ describe('DashboardRecentEquipmentCard', () => {
     it('renders the card title', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentEquipmentCard equipment={[]} isLoading={false} />
+          <DashboardRecentEquipmentCard equipment={[]} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -55,17 +55,17 @@ describe('DashboardRecentEquipmentCard', () => {
     it('renders the card description', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentEquipmentCard equipment={[]} isLoading={false} />
+          <DashboardRecentEquipmentCard equipment={[]} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
       expect(screen.getByText('Latest equipment in your fleet')).toBeInTheDocument();
     });
 
-    it('renders view all link', () => {
+    it('renders view all link when more items exist', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentEquipmentCard equipment={[]} isLoading={false} />
+          <DashboardRecentEquipmentCard equipment={[]} isLoading={false} hasMore={true} />
         </MemoryRouter>
       );
 
@@ -74,10 +74,20 @@ describe('DashboardRecentEquipmentCard', () => {
       expect(viewAllLink.closest('a')).toHaveAttribute('href', '/dashboard/equipment');
     });
 
+    it('does not render view all link when there are not more items', () => {
+      render(
+        <MemoryRouter>
+          <DashboardRecentEquipmentCard equipment={[]} isLoading={false} hasMore={false} />
+        </MemoryRouter>
+      );
+
+      expect(screen.queryByText('View all')).not.toBeInTheDocument();
+    });
+
     it('has proper aria-labelledby for accessibility', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentEquipmentCard equipment={[]} isLoading={false} />
+          <DashboardRecentEquipmentCard equipment={[]} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -90,7 +100,7 @@ describe('DashboardRecentEquipmentCard', () => {
     it('renders loading skeletons when loading', () => {
       const { container } = render(
         <MemoryRouter>
-          <DashboardRecentEquipmentCard equipment={[]} isLoading={true} />
+          <DashboardRecentEquipmentCard equipment={[]} isLoading={true} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -101,7 +111,7 @@ describe('DashboardRecentEquipmentCard', () => {
     it('does not render equipment when loading', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentEquipmentCard equipment={mockEquipment} isLoading={true} />
+          <DashboardRecentEquipmentCard equipment={mockEquipment} isLoading={true} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -113,7 +123,7 @@ describe('DashboardRecentEquipmentCard', () => {
     it('renders empty message when no equipment', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentEquipmentCard equipment={[]} isLoading={false} />
+          <DashboardRecentEquipmentCard equipment={[]} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -125,7 +135,7 @@ describe('DashboardRecentEquipmentCard', () => {
     it('renders equipment names', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentEquipmentCard equipment={mockEquipment} isLoading={false} />
+          <DashboardRecentEquipmentCard equipment={mockEquipment} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -136,7 +146,7 @@ describe('DashboardRecentEquipmentCard', () => {
     it('renders manufacturer and model', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentEquipmentCard equipment={mockEquipment} isLoading={false} />
+          <DashboardRecentEquipmentCard equipment={mockEquipment} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -147,7 +157,7 @@ describe('DashboardRecentEquipmentCard', () => {
     it('renders status badges', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentEquipmentCard equipment={mockEquipment} isLoading={false} />
+          <DashboardRecentEquipmentCard equipment={mockEquipment} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 
@@ -158,7 +168,7 @@ describe('DashboardRecentEquipmentCard', () => {
     it('renders links to equipment detail pages', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentEquipmentCard equipment={mockEquipment} isLoading={false} />
+          <DashboardRecentEquipmentCard equipment={mockEquipment} isLoading={false} hasMore={false} />
         </MemoryRouter>
       );
 

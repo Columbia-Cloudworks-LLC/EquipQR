@@ -6,15 +6,19 @@
 BEGIN;
 
 -- ============================================================================
--- PART 1: Create model_match_type enum
+-- PART 1: Create model_match_type enum (idempotent)
 -- ============================================================================
 
-CREATE TYPE model_match_type AS ENUM (
-  'any',       -- Match any model from this manufacturer (model is NULL)
-  'exact',     -- Exact match on model (current behavior)
-  'prefix',    -- Model starts with pattern (e.g., "JL-" matches "JL-100", "JL-200")
-  'wildcard'   -- Simple wildcard pattern (e.g., "JL-*" or "*-100")
-);
+DO $$ BEGIN
+    CREATE TYPE model_match_type AS ENUM (
+      'any',       -- Match any model from this manufacturer (model is NULL)
+      'exact',     -- Exact match on model (current behavior)
+      'prefix',    -- Model starts with pattern (e.g., "JL-" matches "JL-100", "JL-200")
+      'wildcard'   -- Simple wildcard pattern (e.g., "JL-*" or "*-100")
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- ============================================================================
 -- PART 2: Add new columns to part_compatibility_rules

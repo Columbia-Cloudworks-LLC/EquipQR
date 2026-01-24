@@ -3,17 +3,20 @@
  * 
  * Generates a multi-worksheet Excel export for work orders with all related data.
  * Uses SheetJS (xlsx) for Excel generation.
+ * Uses user-scoped client so RLS policies apply.
  */
 
-import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // @deno-types="https://cdn.sheetjs.com/xlsx-0.20.3/package/types/index.d.ts"
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import {
+  createUserSupabaseClient,
+  requireUser,
+  verifyOrgAdmin,
+  createErrorResponse,
+  handleCorsPreflightIfNeeded,
+} from "../_shared/supabase-clients.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 // Maximum rows per export to prevent abuse
 const MAX_WORK_ORDERS = 5000;
@@ -213,12 +216,13 @@ function truncateId(id: string): string {
 // Rate Limiting
 // ============================================
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
+// NOTE: supabase client is now created per-request (see serve function below)
 
-async function checkRateLimit(userId: string, organizationId: string): Promise<boolean> {
+async function checkRateLimit(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
   const { error: tableCheckError } = await supabase
     .from('export_request_log')
     .select('id')
@@ -256,6 +260,7 @@ async function checkRateLimit(userId: string, organizationId: string): Promise<b
 // ============================================
 
 async function fetchWorkOrdersWithData(
+  supabase: SupabaseClient,
   organizationId: string,
   filters: WorkOrderExcelFilters
 ) {
@@ -717,64 +722,42 @@ function generateWorkbook(allRows: ReturnType<typeof buildAllRows>): Uint8Array 
 // Main Handler
 // ============================================
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     if (req.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+      return createErrorResponse('Method not allowed', 405);
     }
+
+    // Create user-scoped client (RLS enforced)
+    const supabase = createUserSupabaseClient(req);
+
+    // Validate user authentication
+    const auth = await requireUser(req, supabase);
+    if ("error" in auth) {
+      return createErrorResponse(auth.error, auth.status);
+    }
+
+    const { user } = auth;
 
     const body: ExportRequest = await req.json();
     const { organizationId, filters } = body;
 
     if (!organizationId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required field: organizationId' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return createErrorResponse('Missing required field: organizationId', 400);
     }
 
-    // Get user from auth header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check user's role
-    const { data: membership } = await supabase
-      .from('organization_members')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', organizationId)
-      .eq('status', 'active')
-      .single();
-
-    if (!membership || !['owner', 'admin'].includes(membership.role)) {
-      return new Response(
-        JSON.stringify({ error: 'Forbidden: Only owners and admins can export reports' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Verify user has admin/owner role in the organization (RLS also applies)
+    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
+    if (!isAdmin) {
+      return createErrorResponse('Forbidden: Only owners and admins can export reports', 403);
     }
 
     // Check rate limit
-    const rateLimitOk = await checkRateLimit(user.id, organizationId);
+    const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
     if (!rateLimitOk) {
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded. Please wait before requesting another export.' }),
@@ -799,7 +782,7 @@ serve(async (req) => {
 
     try {
       // Fetch all data
-      const data = await fetchWorkOrdersWithData(organizationId, filters);
+      const data = await fetchWorkOrdersWithData(supabase, organizationId, filters);
 
       if (data.workOrders.length === 0) {
         if (exportLogId) {
@@ -851,10 +834,9 @@ serve(async (req) => {
       throw exportError;
     }
   } catch (error) {
-    console.error('Export error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // Log the full error server-side for debugging
+    console.error('[EXPORT-WORK-ORDERS-EXCEL] Export error:', error);
+    // Return generic message to client - never expose error.message directly
+    return createErrorResponse("An unexpected error occurred", 500);
   }
 });

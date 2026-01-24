@@ -55,15 +55,27 @@ const WorkOrders = () => {
     updateFilter
   } = useWorkOrderFilters(allWorkOrders, currentUser?.id);
 
-  // Apply URL parameter filters on initial load
+  // Apply URL parameter filters on initial load.
+  // updateFilter and applyQuickFilter are stable (useCallback in useWorkOrderFilters).
   useEffect(() => {
     if (initializedFromUrl.current) return;
     const date = searchParams.get('date');
+    const team = searchParams.get('team');
+    let didApply = false;
+
+    if (team) {
+      updateFilter('teamFilter', team);
+      didApply = true;
+    }
     if (date === 'overdue') {
       applyQuickFilter('overdue');
+      didApply = true;
+    }
+
+    if (didApply) {
       initializedFromUrl.current = true;
     }
-  }, [searchParams, applyQuickFilter]);
+  }, [searchParams, applyQuickFilter, updateFilter]);
 
   // Check for unassigned work orders in single-user organization
   const unassignedCount = allWorkOrders.filter(order => 

@@ -6,6 +6,7 @@
   "compilerOptions": {
     "lib": ["deno.window"],
     "strict": true
-  }
+  },
+  "unstable": ["decorator"]
 }
 

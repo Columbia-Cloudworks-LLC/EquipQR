@@ -459,9 +459,13 @@ serve(async (req) => {
       headers: corsHeaders 
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in webhook", { message: errorMessage });
-    return new Response(`Webhook error: ${errorMessage}`, { 
+    // Log the full error server-side for debugging
+    logStep("ERROR in webhook", { 
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    // Return generic message to client - never expose error.message directly
+    return new Response("Webhook processing failed", { 
       status: 400,
       headers: corsHeaders 
     });

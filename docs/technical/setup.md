@@ -43,55 +43,71 @@ Visit `http://localhost:8080` to see the application running!
 
 ## Environment Configuration
 
-### Required Environment Variables
+> **📋 Source of Truth**: The `env.example` file in the project root is the authoritative reference for all environment variables. It contains detailed descriptions, file references, and generation commands for each variable.
+
+### Environment Variable Categories
+
+EquipQR uses three categories of environment variables:
+
+| Category | Prefix | Where to Set | Access |
+|----------|--------|--------------|--------|
+| **Client (Vite)** | `VITE_` | `.env` or `.env.local` | Exposed to browser |
+| **Server (Edge Functions)** | None | `supabase/functions/.env` (local) | Server-side only |
+| **Edge Function Secrets** | None | Supabase Dashboard | Production/Preview only |
+
+### Required Environment Variables (Client)
 
 ```env
-# Supabase Configuration (Required)
+# Supabase Configuration (Required for frontend)
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### Optional Environment Variables
+### Optional Client Variables
 
 ```env
-# Optional Development Settings
-VITE_APP_TITLE=EquipQR™ Development
-VITE_ENABLE_DEVTOOLS=true
-VITE_LOG_LEVEL=debug
+# hCaptcha for sign-up form (optional for local dev)
+VITE_HCAPTCHA_SITEKEY=your-hcaptcha-site-key
 
-# Optional Production Settings
-VITE_SENTRY_DSN=your-sentry-dsn
-VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_key
-VITE_GOOGLE_MAPS_API_KEY=your_maps_key
+# Super admin access (for internal tools)
+VITE_SUPER_ADMIN_ORG_ID=your-org-id
+
+# Feature flags
+VITE_ENABLE_QUICKBOOKS=false
+VITE_ENABLE_QB_PDF_ATTACHMENT=false
+
+# Google Maps (for equipment location features)
+VITE_GOOGLE_MAPS_API_KEY=your-maps-key
 ```
 
-### Configuration Management
+### Edge Function Secrets (Production/Preview)
 
-```typescript
-// src/lib/config.ts
-export const config = {
-  app: {
-    title: import.meta.env.VITE_APP_TITLE || 'EquipQR™',
-    version: import.meta.env.VITE_APP_VERSION || '1.0.0',
-  },
-  supabase: {
-    url: import.meta.env.VITE_SUPABASE_URL,
-    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-  },
-  services: {
-    stripe: {
-      publishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
-    },
-    maps: {
-      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    },
-  },
-  features: {
-    enableDevTools: import.meta.env.VITE_ENABLE_DEVTOOLS === 'true',
-    enableAnalytics: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',
-  },
-};
+Edge Functions require secrets configured in the Supabase Dashboard. See the complete reference:
+
+👉 **[Supabase Branch Secrets Configuration](../ops/supabase-branch-secrets.md)**
+
+Key secrets include:
+
+- `SUPABASE_SERVICE_ROLE_KEY` - Privileged database operations
+- `RESEND_API_KEY` - Email sending
+- `TOKEN_ENCRYPTION_KEY` - OAuth token encryption (Google Workspace)
+- `KDF_SALT` - Deployment-specific encryption salt
+- Integration-specific secrets (QuickBooks, Google Workspace, etc.)
+
+### Local Edge Function Development
+
+For local Edge Function development, create `supabase/functions/.env`:
+
+```env
+# Copy values from 'npx supabase status' output
+SUPABASE_URL=http://localhost:54321
+SUPABASE_SERVICE_ROLE_KEY=<local-service-role-key>
+SUPABASE_ANON_KEY=<local-anon-key>
+
+# Add integration secrets as needed (see env.example for full list)
 ```
+
+See **[Local Supabase Development Guide](../ops/local-supabase-development.md)** for complete setup instructions.
 
 ### Setting Up Supabase
 
@@ -633,9 +649,11 @@ npm run test:coverage -- --reporter=html
 ### Resources
 
 - **Documentation**: Check the `docs/` folder
+- **Environment Variables**: `env.example` (source of truth for all env vars)
+- **Edge Function Secrets**: `docs/ops/supabase-branch-secrets.md`
 - **API Reference**: `docs/technical/api-reference.md`
 - **Architecture Guide**: `docs/technical/architecture.md`
-- **Agents Guide**: `../../.cursor/agents.md` (development workflow)
+- **Local Development**: `docs/ops/local-supabase-development.md`
 
 ### Team Communication
 
@@ -656,10 +674,10 @@ npm run size-check    # Check bundle size
 ## Next Steps
 
 1. **Explore the Codebase**: Start with `src/App.tsx` and follow the component tree
-2. **Read the Documentation**: Review `docs/features.md` and `docs/technical/architecture.md`
+2. **Read the Documentation**: Review `docs/technical/architecture.md` and `docs/README.md`
 3. **Run Tests**: Execute `npm run test` to understand the testing patterns
 4. **Make a Small Change**: Try updating a component or adding a new feature
 5. **Join the Team**: Participate in code reviews and team discussions
 
-Welcome to the EquipQR™ development team! 🎉
+Welcome to the EquipQR™ development team!
 

@@ -6,6 +6,7 @@ import { TeamProvider } from '@/contexts/TeamContext';
 import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvider'; // Fixed import path
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard';
 
 // Critical components loaded eagerly to prevent loading issues for unauthenticated users
 import Auth from '@/pages/Auth';
@@ -41,10 +42,10 @@ const Notifications = lazy(() => import('@/pages/Notifications'));
 const InvitationAccept = lazy(() => import('@/pages/InvitationAccept'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
+const WorkspaceOnboarding = lazy(() => import('@/pages/WorkspaceOnboarding'));
 // const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
 // const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin'));
 const PMTemplateView = lazy(() => import('@/features/pm-templates/pages/PMTemplateView'));
-const PartPicker = lazy(() => import('@/features/part-picker/pages/PartPicker'));
 const InventoryList = lazy(() => import('@/features/inventory/pages/InventoryList'));
 const InventoryItemDetail = lazy(() => import('@/features/inventory/pages/InventoryItemDetail'));
 const PartLookup = lazy(() => import('@/features/inventory/pages/PartLookup'));
@@ -76,7 +77,6 @@ function App() {
         <Route path="/" element={<SmartLanding />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/debug-auth" element={<DebugAuth />} />
-        <Route path="/part-picker" element={<Navigate to="/dashboard/part-picker" replace />} />
         
         {/* Other public routes with suspense for lazy loading */}
         <Route path="/solutions/repair-shops" element={<Suspense fallback={<div>Loading...</div>}><RepairShops /></Suspense>} />
@@ -119,8 +119,9 @@ function App() {
             element={
               <ProtectedRoute>
                 <SimpleOrganizationProvider>
-                  <TeamProvider>
-                    <SidebarProvider>
+                  <WorkspaceOnboardingGuard>
+                    <TeamProvider>
+                      <SidebarProvider>
                       <div className="flex min-h-screen w-full">
                         <Suspense fallback={
                           <div className="w-64 border-r bg-sidebar">
@@ -164,8 +165,8 @@ function App() {
                                 <Route path="/pm-templates/:templateId/view" element={<PMTemplateView />} />
                                 <Route path="/notifications" element={<Notifications />} />
                                 <Route path="/settings" element={<Settings />} />
+                                <Route path="/onboarding/workspace" element={<WorkspaceOnboarding />} />
                                 <Route path="/reports" element={<Reports />} />
-                                <Route path="/part-picker" element={<PartPicker />} />
                                 <Route path="/inventory" element={<InventoryList />} />
                                 <Route path="/inventory/:itemId" element={<InventoryItemDetail />} />
                                 <Route path="/part-lookup" element={<PartLookup />} />
@@ -184,8 +185,9 @@ function App() {
                           </Suspense>
                         </SidebarInset>
                       </div>
-                    </SidebarProvider>
-                  </TeamProvider>
+                      </SidebarProvider>
+                    </TeamProvider>
+                  </WorkspaceOnboardingGuard>
                 </SimpleOrganizationProvider>
               </ProtectedRoute>
             }

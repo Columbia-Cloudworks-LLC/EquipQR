@@ -11,7 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Download, FileSpreadsheet, Loader2, AlertCircle } from 'lucide-react';
-import { ColumnSelector, getSavedColumnPreferences, saveColumnPreferences, clearColumnPreferences } from './ColumnSelector';
+import { ColumnSelector } from './ColumnSelector';
+import {
+  getSavedColumnPreferences,
+  saveColumnPreferences,
+  clearColumnPreferences,
+} from '@/features/reports/utils/column-preferences';
 import { getColumnsForReportType, getDefaultColumns } from '@/features/reports/constants/reportColumns';
 import type { ReportType, ExportFilters } from '@/features/reports/types/reports';
 

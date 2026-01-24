@@ -9,6 +9,119 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-01-14
+
+### Added
+
+- **Google Workspace Integration**: Allow organization owners to import users from their Google Workspace directory
+  - Self-service domain verification via Google Admin SDK - Workspace admins can instantly connect
+  - OAuth integration using Google Admin SDK for directory user synchronization
+  - Selective member import - admins can browse directory and choose which users to import
+  - Automatic membership provisioning for new sign-ups matching claimed domains
+  - Email verification gating for admin role grants (members don't require verification)
+  - New onboarding flow for Google Workspace users during first sign-up
+  - New `WorkspaceOnboardingGuard` component for routing new users to onboarding
+  - New `GoogleWorkspaceIntegration` component in organization settings
+  - New `WorkspaceOnboarding` page for first-time Workspace connection and organization setup
+  - New `src/services/google-workspace/` service layer for OAuth flow and API calls
+  - New `src/utils/google-workspace.ts` utility functions
+  - New shared `_shared/crypto.ts` for secure token encryption/decryption
+  - New database tables: `workspace_domains`, `google_workspace_oauth_sessions`, `google_workspace_credentials`, `google_workspace_directory_users`, `organization_member_claims`, `organization_role_grants_pending`, `personal_organizations`
+  - New Edge Functions: `google-workspace-oauth-callback`, `google-workspace-sync-users`
+  - New RPCs: `get_workspace_onboarding_state`, `create_workspace_organization_for_domain`, `auto_provision_workspace_organization`, `create_google_workspace_oauth_session`, `validate_google_workspace_oauth_session`, `get_google_workspace_connection_status`, `select_google_workspace_members`, `apply_pending_admin_grants_for_user`, `is_user_google_oauth_verified`
+  - Helper functions: `normalize_email`, `normalize_domain` for consistent email/domain handling
+  - Updated `handle_new_user` trigger to create personal organizations and apply pending workspace memberships and role grants
+  - New `TOKEN_ENCRYPTION_KEY` environment variable for OAuth token encryption
+
+- **Migration Baseline**: New baseline migration for faster fresh environment setup
+  - Generated `supabase/migrations/20260114000000_baseline.sql` (13,000+ lines) containing complete schema snapshot
+  - New `docs/database/migration-squashing.md` with validation checklist and regeneration instructions
+  - All historical migrations remain in `supabase/migrations/` for compatibility with existing databases
+
+- **Edge Function Shared Auth Utilities**: Standardized authentication patterns for Edge Functions
+  - New `supabase/functions/_shared/supabase-clients.ts` with client creation helpers
+  - `createUserSupabaseClient(req)` - Uses anon key + forwards JWT (RLS enforced)
+  - `createAdminSupabaseClient()` - Service role for system operations only
+  - `requireUser()`, `verifyOrgMembership()`, `verifyOrgAdmin()` helper functions
+  - `createErrorResponse()`, `createJsonResponse()`, `handleCorsPreflightIfNeeded()` response helpers
+
+- **Edge Function RLS Documentation**: Comprehensive security documentation
+  - New `docs/edge-functions/auth-patterns.md` documenting authorized service role usage
+  - New `docs/edge-functions/rls-audit-checklist.md` with pre-deployment and testing checklists
+  - Grep commands for quick security audits
+
+- `src/tests/journeys/README.md` with guidance for writing journey tests
+- `src/tests/journeys/example.test.tsx` demonstrating correct journey test patterns
+- Exported Supabase scenario mock utilities: `resetSupabaseMock()`, `seedSupabaseMock()`, `setSupabaseError()`
+- Exported entity fixtures from journey harness for convenient test data access
+
+### Changed
+
+- **AuthContext**: Updated Google OAuth to request offline access with consent prompt for refresh tokens
+- **SmartLanding**: Enhanced onboarding logic and error handling for workspace users
+- **Journey-First Testing Strategy**: Shifted testing approach to prioritize integration/E2E-style journey tests over implementation-detail unit tests
+  - New `docs/technical/testing-guidelines.md` documenting the journey-first testing philosophy
+  - Updated `CONTRIBUTING.md` testing section with journey test template
+  - New `src/test/journey/` harness module with `renderJourney()` helper for standardized persona + route rendering
+  - New `src/test/mocks/supabase-scenario.ts` providing scenario-driven Supabase mock with per-test seeding
+  - Added `test:journeys` npm script to run only journey tests
+  - ESLint guardrails for `src/tests/journeys/**` to discourage hook-mocking anti-patterns
+
+### Security
+
+- **Google Workspace Credentials**: OAuth refresh tokens are encrypted at the application layer before storage
+- **RLS Policies**: All new tables have Row Level Security policies restricting access appropriately
+- **OAuth Sessions**: Short-lived CSRF tokens with 1-hour expiration; clients cannot read/update/delete directly
+- **Edge Function RLS Hardening**: Refactored user-facing Edge Functions to use JWT-scoped clients instead of service role
+  - `geocode-location` - Now validates org membership and uses user-scoped client
+  - `send-invitation-email` - Now validates caller has admin access before sending
+  - `import-equipment-csv` - Uses user-scoped client with RLS enforcement
+  - `export-report` - Uses user-scoped client with RLS enforcement
+  - `export-work-orders-excel` - Uses user-scoped client with RLS enforcement
+  - `resolve-inventory-scan` - Uses user-scoped client with RLS enforcement
+  - `check-subscription` - Hybrid: user auth + admin for self-referential writes only
+  - `purchase-user-licenses` - Uses user-scoped client with RLS enforcement
+
+- **Locked Down Previously Public Endpoints**: Updated `supabase/config.toml` to require JWT authentication
+  - `parts-search` - Now requires JWT (already deprecated, returns 410 Gone)
+
+- **Improved Admin Validation Typing**: Updated `supabase/functions/_shared/admin-validation.ts` with proper SupabaseClient typing
+
+### Removed
+
+- Removed 7 low-value journey tests that were mocking hooks instead of testing real UI flows:
+  - `work-order-lifecycle.test.tsx`
+  - `equipment-management.test.tsx`
+  - `onboarding.test.tsx`
+  - `qr-scanning-workflow.test.tsx`
+  - `inventory-management.test.tsx`
+  - `pm-template.test.tsx`
+  - `equipment-csv-import.test.tsx`
+
+- **Part Picker Feature**: Removed deprecated Part Picker feature (replaced by comprehensive inventory with Part Alternate Groups)
+  - Deleted `src/features/part-picker/` (11 files: pages, components, hooks, services, types)
+  - Removed `/part-picker` and `/dashboard/part-picker` routes from `src/App.tsx`
+  - Deleted `src/services/__tests__/partsService.test.ts`
+
+- **Part Picker Edge Functions**: Removed deprecated Supabase Edge Functions
+  - Deleted `supabase/functions/parts-search/` (was already returning 410 Gone)
+  - Deleted `supabase/functions/part-detail/`
+  - Removed function entries from `supabase/config.toml`
+
+- **Typesense Infrastructure**: Removed unused Typesense search infrastructure
+  - Deleted scripts: `typesense-ensure-collections.ts`, `index-parts.ts`, `seed-parts.ts`, `test-typesense.mjs`
+  - Deleted `search/typesense/` folder (schema definitions)
+  - Deleted `docker/typesense/` folder (Docker Compose config)
+  - Removed npm scripts: `typesense:up`, `typesense:ensure`, `seed:parts`, `index:parts`
+  - Removed `typesense` devDependency from `package.json`
+  - Removed `TYPESENSE_*` environment variables from `env.example`
+
+### Database Migrations
+
+- `20260118090000_google_workspace_onboarding.sql`: Domain claims, OAuth sessions, credentials, directory cache, member claims, pending role grants
+- `20260118090500_update_handle_new_user_for_workspace.sql`: Updated trigger for personal org creation and workspace claim processing
+- `20260119000000_google_workspace_improvements.sql`: NULL handling for normalize functions, improved documentation
+
 ## [2.0.0] - 2026-01-13
 
 ### Added
@@ -419,7 +532,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.8.1...v2.0.0
 [1.8.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.13...v1.8.0

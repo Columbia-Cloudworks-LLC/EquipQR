@@ -1,40 +1,25 @@
 ---
-description: Code style, TypeScript, and performance standards.
-globs: src/**/*.{ts,tsx}
-alwaysApply: true
+description: "Code Style, Structure & Naming Conventions"
+globs: "**/*.{ts,tsx}"
 ---
 # Coding Standards
 
-## TypeScript & Types
-
-- **Strict Typing**: No `any`. Use `unknown` if necessary, but prefer explicit interfaces.
-- **Interfaces**: Define in `src/types/`. Name them `PascalCase` (e.g., `interface Equipment`).
-- **Props**: Explicitly type component props (e.g., `React.FC<EquipmentProps>`).
+## Folder Structure
+- **Feature-Based:** Organize code by feature in `src/features/<feature-name>/`.
+  - `components/`: Feature-specific UI
+  - `hooks/`: Logic and state
+  - `services/`: API/Supabase interaction
+  - `types/`: Domain interfaces
+- **Shared:** Generic UI goes in `src/components/ui` or `src/components/common`.
 
 ## Naming Conventions
+- **Components:** PascalCase (e.g., `WorkOrderCard.tsx`)
+- **Hooks:** camelCase with `use` prefix (e.g., `useWorkOrderData.ts`)
+- **Functions:** camelCase (e.g., `calculateTotalCost`)
+- **Types:** PascalCase, no `I` prefix (e.g., `interface WorkOrder`)
 
-- **Variables/Functions**: `camelCase` (`fetchEquipment`).
-- **Constants**: `UPPER_SNAKE_CASE` (`DEFAULT_STALE_TIME`).
-- **Query Keys**: Array format with dependencies (`['equipment', orgId, { status }]`).
-
-## Error Handling
-
-- **Services**: Use `try/catch`. Throw descriptive errors.
-- **UI**: Use `useAppToast` for user feedback.
-
-  ```typescript
-  const { toast } = useAppToast();
-  // ... onError: () => toast({ title: "Error", variant: "destructive" })
-  ```
-
-## Performance
-
-- **Memoization**: Use useMemo for expensive calculations and useCallback for stable function references passed to children.
-- **Imports**: Avoid circular dependencies. Use absolute imports @/ configured in tsconfig.json.
-- **Query Optimization**: In Supabase queries, always use .select('id, name, ...') to fetch only needed fields.
-
-## Linting
-
-- Ensure code passes eslint.config.js.
-- No unused variables.
-- React Hooks dependencies must be exhaustive.
+## Best Practices
+- **Strict Typing:** No `any`. Use `unknown` if necessary and narrow types.
+- **Imports:** Use absolute imports (e.g., `import { Button } from "@/components/ui/button"`).
+- **Exports:** Use named exports, avoid default exports for components.
+- **Logic Separation:** Extract complex logic from UI components into custom hooks.

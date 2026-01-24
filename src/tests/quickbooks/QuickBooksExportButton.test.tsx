@@ -39,12 +39,10 @@ vi.mock('@/hooks/useQuickBooksAccess', () => ({
 // Mock the QuickBooks service
 const mockGetConnectionStatus = vi.fn();
 const mockGetTeamCustomerMapping = vi.fn();
-const mockGetLastSuccessfulExport = vi.fn();
 
 vi.mock('@/services/quickbooks', () => ({
   getConnectionStatus: (...args: unknown[]) => mockGetConnectionStatus(...args),
   getTeamCustomerMapping: (...args: unknown[]) => mockGetTeamCustomerMapping(...args),
-  getLastSuccessfulExport: (...args: unknown[]) => mockGetLastSuccessfulExport(...args),
 }));
 
 // Mock the export hook
@@ -58,9 +56,17 @@ const mockUseExportToQuickBooks = vi.fn(() => ({
   error: null,
   data: undefined,
 }));
+const mockUseQuickBooksLastExport = vi.fn(() => ({
+  data: null,
+}));
+const mockUseQuickBooksExportLogs = vi.fn(() => ({
+  data: [],
+}));
 
 vi.mock('@/hooks/useExportToQuickBooks', () => ({
   useExportToQuickBooks: (...args: unknown[]) => mockUseExportToQuickBooks(...args),
+  useQuickBooksLastExport: (...args: unknown[]) => mockUseQuickBooksLastExport(...args),
+  useQuickBooksExportLogs: (...args: unknown[]) => mockUseQuickBooksExportLogs(...args),
 }));
 
 // Mock toast
@@ -87,6 +93,7 @@ const renderComponent = (props = {
   teamId: 'team-456',
   workOrderStatus: 'completed' as const,
   asMenuItem: false,
+  showStatusDetails: false,
 }) => {
   const queryClient = createTestQueryClient();
   
@@ -115,7 +122,12 @@ describe('QuickBooksExportButton Component', () => {
       quickbooks_customer_id: 'qb-cust-123',
       display_name: 'Test Customer',
     });
-    mockGetLastSuccessfulExport.mockResolvedValue(null);
+    mockUseQuickBooksLastExport.mockReturnValue({
+      data: null,
+    });
+    mockUseQuickBooksExportLogs.mockReturnValue({
+      data: [],
+    });
     mockUseExportToQuickBooks.mockReturnValue({
       mutate: mockMutate,
       isPending: false,
@@ -297,10 +309,12 @@ describe('QuickBooksExportButton Component', () => {
 
   describe('Already Exported', () => {
     beforeEach(() => {
-      mockGetLastSuccessfulExport.mockResolvedValue({
-        quickbooks_invoice_id: 'inv-123',
-        quickbooks_invoice_number: '1001',
-        quickbooks_environment: 'sandbox',
+      mockUseQuickBooksLastExport.mockReturnValue({
+        data: {
+          quickbooks_invoice_id: 'inv-123',
+          quickbooks_invoice_number: '1001',
+          quickbooks_environment: 'sandbox',
+        },
       });
     });
 
@@ -316,10 +330,12 @@ describe('QuickBooksExportButton Component', () => {
     it('should call mutate when updating existing export', async () => {
       renderComponent();
       
+      // Wait for button to be visible and enabled (queries resolved)
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Update Invoice 1001/i })).toBeInTheDocument();
-      });
-      
+        const button = screen.getByRole('button', { name: /Update Invoice 1001/i });
+        expect(button).not.toBeDisabled();
+      }, { timeout: 3000 });
+
       const button = screen.getByRole('button', { name: /Update Invoice 1001/i });
       fireEvent.click(button);
       
@@ -336,6 +352,143 @@ describe('QuickBooksExportButton Component', () => {
       await waitFor(() => {
         // Should have external link button
         expect(screen.getByRole('button', { name: /View invoice in QuickBooks/i })).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Status Details Popover', () => {
+    it('should not show status button when showStatusDetails is false', async () => {
+      mockUseQuickBooksExportLogs.mockReturnValue({
+        data: [
+          {
+            id: 'log-1',
+            organization_id: 'org-123',
+            work_order_id: 'wo-123',
+            realm_id: 'realm-1',
+            quickbooks_invoice_id: 'inv-123',
+            quickbooks_invoice_number: '1001',
+            quickbooks_environment: 'sandbox',
+            status: 'success',
+            error_message: null,
+            exported_at: '2024-01-01T10:00:00.000Z',
+            created_at: '2024-01-01T09:00:00.000Z',
+            updated_at: '2024-01-01T10:00:00.000Z',
+            intuit_tid: 'tid-123',
+            pdf_attachment_status: 'success',
+            pdf_attachment_error: null,
+            pdf_attachment_intuit_tid: 'tid-pdf-456',
+          },
+        ],
+      });
+
+      renderComponent({
+        workOrderId: 'wo-123',
+        teamId: 'team-456',
+        workOrderStatus: 'completed',
+        asMenuItem: false,
+        showStatusDetails: false,
+      });
+
+      await waitFor(() => {
+        // The export button should exist
+        expect(screen.getByRole('button', { name: /Export to QuickBooks|Update Invoice/i })).toBeInTheDocument();
+      });
+
+      // Status details button should NOT be present when showStatusDetails is false
+      expect(screen.queryByRole('button', { name: /QuickBooks export status/i })).not.toBeInTheDocument();
+    });
+
+    it('should show status details when enabled', async () => {
+      mockUseQuickBooksExportLogs.mockReturnValue({
+        data: [
+          {
+            id: 'log-1',
+            organization_id: 'org-123',
+            work_order_id: 'wo-123',
+            realm_id: 'realm-1',
+            quickbooks_invoice_id: 'inv-123',
+            quickbooks_invoice_number: '1001',
+            quickbooks_environment: 'sandbox',
+            status: 'error',
+            error_message: 'Something went wrong',
+            exported_at: '2024-01-01T10:00:00.000Z',
+            created_at: '2024-01-01T09:00:00.000Z',
+            updated_at: '2024-01-01T10:00:00.000Z',
+            intuit_tid: 'tid-123',
+            pdf_attachment_status: 'failed',
+            pdf_attachment_error: 'PDF failed',
+            pdf_attachment_intuit_tid: 'tid-pdf-456',
+          },
+        ],
+      });
+
+      renderComponent({
+        workOrderId: 'wo-123',
+        teamId: 'team-456',
+        workOrderStatus: 'completed',
+        asMenuItem: false,
+        showStatusDetails: true,
+      });
+
+      const statusButton = await waitFor(() => {
+        const button = screen.getByRole('button', { name: /QuickBooks export status/i });
+        expect(button).toBeInTheDocument();
+        return button;
+      });
+
+      fireEvent.click(statusButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Last export/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/Error/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/PDF attachment/i)).toBeInTheDocument();
+        expect(screen.getByText(/Open in QuickBooks/i)).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: /Copy/i })).toHaveLength(2);
+      });
+    });
+
+    it('should show pending status badge for pending exports', async () => {
+      mockUseQuickBooksExportLogs.mockReturnValue({
+        data: [
+          {
+            id: 'log-2',
+            organization_id: 'org-123',
+            work_order_id: 'wo-123',
+            realm_id: 'realm-1',
+            quickbooks_invoice_id: null,
+            quickbooks_invoice_number: null,
+            quickbooks_environment: null,
+            status: 'pending',
+            error_message: null,
+            exported_at: null,
+            created_at: '2024-01-02T09:00:00.000Z',
+            updated_at: '2024-01-02T09:00:00.000Z',
+            intuit_tid: null,
+            pdf_attachment_status: 'disabled',
+            pdf_attachment_error: null,
+            pdf_attachment_intuit_tid: null,
+          },
+        ],
+      });
+
+      renderComponent({
+        workOrderId: 'wo-123',
+        teamId: 'team-456',
+        workOrderStatus: 'completed',
+        asMenuItem: false,
+        showStatusDetails: true,
+      });
+
+      const statusButton = await waitFor(() => {
+        const button = screen.getByRole('button', { name: /QuickBooks export status/i });
+        expect(button).toBeInTheDocument();
+        return button;
+      });
+
+      fireEvent.click(statusButton);
+
+      await waitFor(() => {
+        expect(screen.getAllByText(/Pending/i).length).toBeGreaterThan(0);
       });
     });
   });

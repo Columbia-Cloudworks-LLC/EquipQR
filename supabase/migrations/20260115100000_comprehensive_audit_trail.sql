@@ -79,6 +79,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_work_orders
 ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
 
 -- Users can only view audit logs for their active organizations
+DROP POLICY IF EXISTS "Users can view audit logs for their organizations" ON public.audit_log;
 CREATE POLICY "Users can view audit logs for their organizations"
   ON public.audit_log
   FOR SELECT
@@ -94,6 +95,7 @@ CREATE POLICY "Users can view audit logs for their organizations"
 
 -- Only system/triggers can insert audit logs (via SECURITY DEFINER functions)
 -- No direct inserts from authenticated users
+DROP POLICY IF EXISTS "System can insert audit logs" ON public.audit_log;
 CREATE POLICY "System can insert audit logs"
   ON public.audit_log
   FOR INSERT

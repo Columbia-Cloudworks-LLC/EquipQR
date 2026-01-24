@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
   getStatusColor, 
   EQUIPMENT_STATUS_OPTIONS 
 } from "@/features/equipment/utils/equipmentHelpers";
+import { applyEquipmentUpdateRules } from "@/utils/object-utils";
 
 type Equipment = Tables<'equipment'>;
 
@@ -46,9 +48,11 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
       if (process.env.NODE_ENV === 'development') {
         logger.debug(`Updating equipment field`, { field: String(field), value });
       }
+      // Apply business rules (e.g., clearing work order ID when last_maintenance changes)
+      const updateData = applyEquipmentUpdateRules({ [field]: value } as Partial<Equipment>);
       await updateEquipmentMutation.mutateAsync({
         id: equipment.id,
-        data: { [field]: value }
+        data: updateData
       });
       toast.success(`${String(field)} updated successfully`);
     } catch (error) {
@@ -74,6 +78,14 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
       throw error;
     }
   };
+
+  const lastMaintenanceLink = equipment.last_maintenance_work_order_id && equipment.last_maintenance
+    ? `/dashboard/work-orders/${equipment.last_maintenance_work_order_id}`
+    : null;
+
+  const lastMaintenanceDisplay = equipment.last_maintenance
+    ? format(new Date(equipment.last_maintenance), 'PPP')
+    : 'Not set';
 
   // Handle team assignment
   const handleTeamAssignment = async (teamId: string) => {
@@ -375,6 +387,17 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                   type="date"
                   placeholder="Select last maintenance date"
                   className="text-base"
+                  displayNode={
+                    lastMaintenanceLink ? (
+                      <Link
+                        to={lastMaintenanceLink}
+                        className="text-primary hover:underline"
+                        aria-label="View work order for last maintenance"
+                      >
+                        {lastMaintenanceDisplay}
+                      </Link>
+                    ) : undefined
+                  }
                 />
               </div>
             </div>

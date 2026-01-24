@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from '@/App';
 
 // Mock auth hook to bypass provider requirement
@@ -66,11 +67,30 @@ vi.mock('@/components/layout/TopBar', () => ({
   default: () => <div data-testid="top-bar">TopBar</div>
 }));
 
-vi.mock('@/components/providers/AppProviders', () => ({
-  AppProviders: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="app-providers">{children}</div>
-  )
-}));
+// Factory function to create a fresh QueryClient instance for each test
+// to avoid state leakage and keep test cache isolated
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+    mutations: { retry: false },
+  },
+});
+
+// Test-scoped QueryClient instance – reset/recreated in beforeEach to avoid cross-test state leakage
+let testQueryClient: QueryClient;
+
+vi.mock('@/components/providers/AppProviders', () => {
+  return {
+    AppProviders: ({ children }: { children: React.ReactNode }) => {
+      // testQueryClient is reset in beforeEach, so it's always available
+      return (
+        <QueryClientProvider client={testQueryClient}>
+          <div data-testid="app-providers">{children}</div>
+        </QueryClientProvider>
+      );
+    },
+  };
+});
 
 // Mock react-router-dom components
 vi.mock('react-router-dom', async () => {
@@ -86,6 +106,8 @@ vi.mock('react-router-dom', async () => {
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset QueryClient between tests to prevent state leakage
+    testQueryClient = createTestQueryClient();
   });
 
   const renderApp = (initialEntries = ['/']) => {

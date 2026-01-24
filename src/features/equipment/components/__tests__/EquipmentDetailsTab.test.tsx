@@ -58,9 +58,19 @@ vi.mock('../QRCodeDisplay', () => ({
 }));
 
 vi.mock('../InlineEditField', () => ({
-  default: ({ value, onSave, canEdit }: { value: string; onSave: (value: string) => void; canEdit: boolean }) => (
+  default: ({
+    value,
+    onSave,
+    canEdit,
+    displayNode
+  }: {
+    value: string;
+    onSave: (value: string) => void;
+    canEdit: boolean;
+    displayNode?: React.ReactNode;
+  }) => (
     <div data-testid="inline-edit-field">
-      <span>{value}</span>
+      <span>{displayNode ?? value}</span>
       {canEdit && <button onClick={() => onSave('new value')}>Save</button>}
     </div>
   )
@@ -93,6 +103,7 @@ const mockEquipment: Tables<'equipment'> = {
   installation_date: '2024-01-15',
   warranty_expiration: '2025-12-31',
   last_maintenance: '2024-06-01',
+  last_maintenance_work_order_id: null,
   notes: 'Test notes',
   custom_attributes: { key1: 'value1' },
   image_url: 'https://example.com/image.jpg',
@@ -175,6 +186,18 @@ describe('EquipmentDetailsTab', () => {
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalled();
       });
+    });
+
+    it('renders last maintenance as a link when it comes from a work order', () => {
+      const equipmentWithWorkOrder = {
+        ...mockEquipment,
+        last_maintenance_work_order_id: 'wo-123'
+      };
+
+      render(<EquipmentDetailsTab equipment={equipmentWithWorkOrder} />);
+
+      const link = screen.getByRole('link', { name: /view work order for last maintenance/i });
+      expect(link).toHaveAttribute('href', '/dashboard/work-orders/wo-123');
     });
   });
 

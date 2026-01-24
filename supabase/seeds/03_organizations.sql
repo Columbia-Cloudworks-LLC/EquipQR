@@ -17,7 +17,7 @@ INSERT INTO public.organizations (
   (
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
     'Apex Construction Company',
-    'premium'::organization_plan,
+    'premium'::public.organization_plan,
     5,
     50,
     ARRAY['Equipment Management', 'Work Orders', 'Team Management', 'Fleet Tracking', 'Preventive Maintenance'],
@@ -28,7 +28,7 @@ INSERT INTO public.organizations (
   (
     '660e8400-e29b-41d4-a716-446655440001'::uuid,
     'Metro Equipment Services', 
-    'premium'::organization_plan,
+    'premium'::public.organization_plan,
     4,
     50,
     ARRAY['Equipment Management', 'Work Orders', 'Team Management', 'Fleet Tracking'],
@@ -39,7 +39,7 @@ INSERT INTO public.organizations (
   (
     '660e8400-e29b-41d4-a716-446655440002'::uuid,
     'Valley Landscaping',
-    'free'::organization_plan,
+    'free'::public.organization_plan,
     3,
     5,
     ARRAY['Equipment Management', 'Work Orders', 'Team Management'],
@@ -50,7 +50,7 @@ INSERT INTO public.organizations (
   (
     '660e8400-e29b-41d4-a716-446655440003'::uuid,
     'Industrial Rentals Corp',
-    'premium'::organization_plan,
+    'premium'::public.organization_plan,
     3,
     50,
     ARRAY['Equipment Management', 'Work Orders', 'Team Management', 'Fleet Tracking', 'Rental Tracking'],
@@ -64,7 +64,7 @@ INSERT INTO public.organizations (
   (
     '660e8400-e29b-41d4-a716-446655440004'::uuid,
     'Amanda''s Equipment Services',
-    'free'::organization_plan,
+    'free'::public.organization_plan,
     1,
     5,
     ARRAY['Equipment Management', 'Work Orders', 'Team Management'],
@@ -75,7 +75,7 @@ INSERT INTO public.organizations (
   (
     '660e8400-e29b-41d4-a716-446655440005'::uuid,
     'Tom''s Field Services',
-    'free'::organization_plan,
+    'free'::public.organization_plan,
     1,
     5,
     ARRAY['Equipment Management', 'Work Orders', 'Team Management'],
@@ -86,7 +86,7 @@ INSERT INTO public.organizations (
   (
     '660e8400-e29b-41d4-a716-446655440006'::uuid,
     'Mike''s Repair Shop',
-    'free'::organization_plan,
+    'free'::public.organization_plan,
     1,
     5,
     ARRAY['Equipment Management', 'Work Orders', 'Team Management'],
@@ -97,7 +97,7 @@ INSERT INTO public.organizations (
   (
     '660e8400-e29b-41d4-a716-446655440007'::uuid,
     'Multi Org Consulting',
-    'free'::organization_plan,
+    'free'::public.organization_plan,
     1,
     5,
     ARRAY['Equipment Management', 'Work Orders', 'Team Management'],

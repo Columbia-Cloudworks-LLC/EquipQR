@@ -11,14 +11,16 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Mail, UserMinus, UserPlus, Users, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { MoreHorizontal, Mail, UserMinus, UserPlus, Users, Clock, CheckCircle, XCircle, Database } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } from '@/features/organization/hooks/useOrganizationInvitations';
 import { useUpdateMemberRole, useRemoveMember } from '@/features/organization/hooks/useOrganizationMembers';
+import { useRequestWorkspaceMerge } from '@/features/organization/hooks/useWorkspacePersonalOrgMerge';
 import { useUpdateQuickBooksPermission } from '@/hooks/useQuickBooksAccess';
+import { useAuth } from '@/hooks/useAuth';
 import type { OrganizationMember } from '@/features/organization/types/organization';
 import { getRoleBadgeVariant } from '@/utils/badgeVariants';
 import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
@@ -65,6 +67,8 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   const updateMemberRole = useUpdateMemberRole(organizationId);
   const removeMember = useRemoveMember(organizationId);
   const updateQuickBooksPermission = useUpdateQuickBooksPermission(organizationId);
+  const requestWorkspaceMerge = useRequestWorkspaceMerge();
+  const { user } = useAuth();
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin';
   const isOwner = currentUserRole === 'owner';
@@ -173,6 +177,17 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
     await updateQuickBooksPermission.mutateAsync({
       targetUserId: userId,
       canManageQuickBooks: canManage,
+    });
+  };
+
+  const handleRequestDataMerge = (member: UnifiedMember) => {
+    if (!member.userId) {
+      return;
+    }
+
+    requestWorkspaceMerge.mutate({
+      workspaceOrgId: organizationId,
+      targetUserId: member.userId,
     });
   };
 
@@ -369,14 +384,23 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                               </>
                             )}
                             {member.type === 'member' && (
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => handleRemoveMember(member.id, member.name)}
-                                disabled={removeMember.isPending}
-                              >
-                                <UserMinus className="mr-2 h-4 w-4" />
-                                Remove Member
-                              </DropdownMenuItem>
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => handleRequestDataMerge(member)}
+                                  disabled={requestWorkspaceMerge.isPending || member.userId === user?.id}
+                                >
+                                  <Database className="mr-2 h-4 w-4" />
+                                  Request Data Merge
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleRemoveMember(member.id, member.name)}
+                                  disabled={removeMember.isPending}
+                                >
+                                  <UserMinus className="mr-2 h-4 w-4" />
+                                  Remove Member
+                                </DropdownMenuItem>
+                              </>
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>

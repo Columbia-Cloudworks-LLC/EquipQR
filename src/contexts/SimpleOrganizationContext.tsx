@@ -13,6 +13,8 @@ export interface SimpleOrganization {
   backgroundColor?: string;
   userRole: 'owner' | 'admin' | 'member';
   userStatus: 'active' | 'pending' | 'inactive';
+  /** True if this is the user's personal (default) organization */
+  isPersonal?: boolean;
 }
 
 export interface SimpleOrganizationContextType {

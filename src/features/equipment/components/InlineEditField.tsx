@@ -15,6 +15,7 @@ interface InlineEditFieldProps {
   selectOptions?: { value: string; label: string }[];
   placeholder?: string;
   className?: string;
+  displayNode?: React.ReactNode;
 }
 
 const InlineEditField: React.FC<InlineEditFieldProps> = ({
@@ -24,7 +25,8 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
   type = 'text',
   selectOptions,
   placeholder,
-  className = ''
+  className = '',
+  displayNode
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
@@ -96,14 +98,16 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
     return value;
   };
 
+  const resolvedDisplayNode = displayNode ?? getDisplayValue();
+
   if (!canEdit) {
-    return <span className={className}>{getDisplayValue()}</span>;
+    return <span className={className}>{resolvedDisplayNode}</span>;
   }
 
   if (!isEditing) {
     return (
       <div className={`group flex items-center gap-2 ${className}`}>
-        <span>{getDisplayValue()}</span>
+        <span>{resolvedDisplayNode}</span>
         <Button
           variant="ghost"
           size="sm"

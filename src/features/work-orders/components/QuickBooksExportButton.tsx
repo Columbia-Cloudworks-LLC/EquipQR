@@ -16,19 +16,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { FileSpreadsheet, RefreshCw, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import { FileSpreadsheet, RefreshCw, CheckCircle, AlertTriangle, ExternalLink, Info, Copy } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useQuery } from '@tanstack/react-query';
 import { 
   getConnectionStatus,
   getTeamCustomerMapping,
-  getLastSuccessfulExport
 } from '@/services/quickbooks';
 import { getQuickBooksInvoiceUrl } from '@/services/quickbooks/types';
 import { useExportToQuickBooks } from '@/hooks/useExportToQuickBooks';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
+import { useQuickBooksExportLogs, useQuickBooksLastExport } from '@/hooks/useExportToQuickBooks';
+import { useAppToast } from '@/hooks/useAppToast';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import type { QuickBooksExportLog } from '@/services/quickbooks/quickbooksService';
 
 interface QuickBooksExportButtonProps {
   workOrderId: string;
@@ -50,6 +54,8 @@ interface QuickBooksExportButtonProps {
   asMenuItem?: boolean;
   /** Called after successful export */
   onExportSuccess?: () => void;
+  /** Show export status and history in a popover */
+  showStatusDetails?: boolean;
 }
 
 export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
@@ -57,9 +63,11 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   teamId,
   workOrderStatus,
   asMenuItem = false,
-  onExportSuccess
+  onExportSuccess,
+  showStatusDetails = false
 }) => {
   const { currentOrganization } = useOrganization();
+  const { success: showSuccessToast, error: showErrorToast } = useAppToast();
 
   // Check if feature is enabled
   const featureEnabled = isQuickBooksEnabled();
@@ -83,12 +91,19 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   });
 
   // Query for existing export
-  const { data: existingExport } = useQuery({
-    queryKey: ['quickbooks', 'export', workOrderId],
-    queryFn: () => getLastSuccessfulExport(workOrderId),
-    enabled: !!workOrderId && canExport && featureEnabled && connectionStatus?.isConnected,
-    staleTime: 30 * 1000,
-  });
+  const { data: existingExport } = useQuickBooksLastExport(
+    workOrderId,
+    !!workOrderId && canExport && featureEnabled && connectionStatus?.isConnected
+  );
+
+  const shouldLoadStatusDetails = Boolean(
+    showStatusDetails && !asMenuItem && workOrderId && canExport && featureEnabled && connectionStatus?.isConnected
+  );
+
+  const { data: exportLogs = [] } = useQuickBooksExportLogs(
+    workOrderId,
+    shouldLoadStatusDetails
+  );
 
   // Export mutation using the hook
   const exportMutation = useExportToQuickBooks();
@@ -157,7 +172,229 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
 
   // Use hasInvoiceIdentifiers for display consistency - malformed exports show as new export
   const showAsUpdate = alreadyExported && hasInvoiceIdentifiers;
-  
+
+  const latestLog = exportLogs[0] ?? null;
+
+  const getStatusBadgeClass = (status?: QuickBooksExportLog['status']) => {
+    switch (status) {
+      case 'success':
+        return 'bg-green-50 text-green-700 border-green-200';
+      case 'error':
+        return 'bg-red-50 text-red-700 border-red-200';
+      case 'pending':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      default:
+        return 'bg-muted text-muted-foreground border-border';
+    }
+  };
+
+  const getStatusLabel = (status?: QuickBooksExportLog['status']) => {
+    switch (status) {
+      case 'success':
+        return 'Success';
+      case 'error':
+        return 'Error';
+      case 'pending':
+        return 'Pending';
+      default:
+        return 'Not exported';
+    }
+  };
+
+  const formatTimestamp = (log: QuickBooksExportLog) => {
+    const timestamp = log.exported_at ?? log.created_at;
+    return timestamp ? new Date(timestamp).toLocaleString() : 'Unknown';
+  };
+
+  const handleCopy = async (label: string, value?: string | null) => {
+    if (!value) {
+      return;
+    }
+
+    if (!navigator?.clipboard?.writeText) {
+      showErrorToast({
+        title: 'Copy not supported',
+        description: 'Your browser does not support clipboard access.',
+      });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      showSuccessToast({
+        title: `${label} copied`,
+        description: value,
+      });
+    } catch {
+      showErrorToast({
+        title: `Failed to copy ${label.toLowerCase()}`,
+      });
+    }
+  };
+
+  const renderStatusDetails = () => {
+    if (!showStatusDetails || asMenuItem) {
+      return null;
+    }
+
+    const statusLabel = getStatusLabel(latestLog?.status);
+    const invoiceIdentifier = latestLog?.quickbooks_invoice_number || latestLog?.quickbooks_invoice_id;
+    const hasInvoiceLink = latestLog?.quickbooks_invoice_id && latestLog?.quickbooks_environment;
+    const historyLogs = exportLogs.slice(0, 3);
+
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" aria-label="QuickBooks export status">
+            <Info className="h-4 w-4" />
+            <span>QB Status</span>
+            <Badge variant="outline" className={getStatusBadgeClass(latestLog?.status)}>
+              {statusLabel}
+            </Badge>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-96">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <div className="text-sm font-medium">Last export</div>
+              {latestLog ? (
+                <div className="text-sm text-muted-foreground">
+                  {statusLabel} • {formatTimestamp(latestLog)}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">Not exported yet</div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Invoice</div>
+              {invoiceIdentifier ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{invoiceIdentifier}</span>
+                  {hasInvoiceLink ? (
+                    <Button variant="link" size="sm" asChild>
+                      <a
+                        href={getQuickBooksInvoiceUrl(
+                          latestLog!.quickbooks_invoice_id!,
+                          latestLog!.quickbooks_environment!
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Open in QuickBooks
+                      </a>
+                    </Button>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">No invoice created yet</div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-sm font-medium">PDF attachment</div>
+              {latestLog?.pdf_attachment_status ? (
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className={getStatusBadgeClass(
+                        latestLog.pdf_attachment_status === 'success'
+                          ? 'success'
+                          : latestLog.pdf_attachment_status === 'failed'
+                          ? 'error'
+                          : undefined
+                      )}
+                    >
+                      {latestLog.pdf_attachment_status === 'disabled'
+                        ? 'Disabled'
+                        : latestLog.pdf_attachment_status}
+                    </Badge>
+                    {latestLog.pdf_attachment_status === 'failed' && latestLog.pdf_attachment_error ? (
+                      <span className="text-xs text-muted-foreground">
+                        {latestLog.pdf_attachment_error}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">Not applicable</div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Troubleshooting</div>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center justify-between gap-2">
+                  <span>Intuit trace ID</span>
+                  {latestLog?.intuit_tid ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy('Intuit trace ID', latestLog.intuit_tid)}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copy
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Not available</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span>PDF trace ID</span>
+                  {latestLog?.pdf_attachment_intuit_tid ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy('PDF trace ID', latestLog.pdf_attachment_intuit_tid)}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copy
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Not available</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {historyLogs.length > 0 ? (
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Recent exports</div>
+                <div className="space-y-2">
+                  {historyLogs.map((log) => (
+                    <div key={log.id} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={getStatusBadgeClass(log.status)}>
+                          {getStatusLabel(log.status)}
+                        </Badge>
+                        <span className="text-muted-foreground">
+                          {log.quickbooks_invoice_number || log.quickbooks_invoice_id || 'Draft'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{formatTimestamp(log)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                disabled={isDisabled || isLoading}
+              >
+                {isDisabled ? 'Unavailable' : 'Retry export'}
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
+  };
+
   const buttonContent = (
     <>
       {isLoading ? (
@@ -243,6 +480,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        {renderStatusDetails()}
       </div>
     );
   }
@@ -266,6 +504,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
           <p className="max-w-xs">{tooltipMessage}</p>
         </TooltipContent>
       </Tooltip>
+      {renderStatusDetails()}
     </TooltipProvider>
   );
 };

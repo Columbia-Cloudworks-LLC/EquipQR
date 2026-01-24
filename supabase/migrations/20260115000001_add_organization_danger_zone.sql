@@ -117,6 +117,7 @@ ALTER TABLE public.user_departure_queue ENABLE ROW LEVEL SECURITY;
 -- ============================================================================
 
 -- Owners and admins can view transfer requests for their organization
+DROP POLICY IF EXISTS "org_admins_view_transfer_requests" ON public.ownership_transfer_requests;
 CREATE POLICY "org_admins_view_transfer_requests"
   ON public.ownership_transfer_requests
   FOR SELECT
@@ -132,6 +133,7 @@ CREATE POLICY "org_admins_view_transfer_requests"
   );
 
 -- Users can view transfer requests where they are the target
+DROP POLICY IF EXISTS "users_view_own_transfer_requests" ON public.ownership_transfer_requests;
 CREATE POLICY "users_view_own_transfer_requests"
   ON public.ownership_transfer_requests
   FOR SELECT
@@ -139,6 +141,7 @@ CREATE POLICY "users_view_own_transfer_requests"
   USING (to_user_id = auth.uid());
 
 -- Only owners can create transfer requests (enforced by RPC)
+DROP POLICY IF EXISTS "service_role_manage_transfer_requests" ON public.ownership_transfer_requests;
 CREATE POLICY "service_role_manage_transfer_requests"
   ON public.ownership_transfer_requests
   FOR ALL
@@ -151,6 +154,7 @@ CREATE POLICY "service_role_manage_transfer_requests"
 -- ============================================================================
 
 -- Only service role can manage departure queue (batch processing)
+DROP POLICY IF EXISTS "service_role_manage_departure_queue" ON public.user_departure_queue;
 CREATE POLICY "service_role_manage_departure_queue"
   ON public.user_departure_queue
   FOR ALL
@@ -159,6 +163,7 @@ CREATE POLICY "service_role_manage_departure_queue"
   WITH CHECK (auth.role() = 'service_role');
 
 -- Admins can view departure queue for their org (for monitoring)
+DROP POLICY IF EXISTS "org_admins_view_departure_queue" ON public.user_departure_queue;
 CREATE POLICY "org_admins_view_departure_queue"
   ON public.user_departure_queue
   FOR SELECT

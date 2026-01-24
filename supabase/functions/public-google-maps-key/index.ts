@@ -46,10 +46,11 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
+    // Log the full error server-side for debugging
     console.error("[public-google-maps-key] Function error:", error);
+    // Return generic message to client - never expose error.message directly
     return new Response(JSON.stringify({ 
-      error: "Internal server error",
-      details: error instanceof Error ? error.message : "Unknown error"
+      error: "Internal server error"
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
