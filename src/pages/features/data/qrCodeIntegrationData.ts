@@ -46,7 +46,7 @@ export const steps: Step[] = [
     number: 2,
     title: 'Scan in the Field',
     description:
-      'Use your phone camera or the in-app QR scanner to scan any label. You're redirected directly to that equipment's or item's page—no login required for public links when configured.',
+      'Use your phone camera or the in-app QR scanner to scan any label. You\'re redirected directly to that equipment\'s or item\'s page—no login required for public links when configured.',
   },
   {
     number: 3,
