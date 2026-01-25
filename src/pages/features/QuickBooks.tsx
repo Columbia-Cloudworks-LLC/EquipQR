@@ -3,54 +3,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   ArrowRight,
-  ArrowLeft,
   Receipt,
   FileSpreadsheet,
   Link2,
   RefreshCw,
 } from 'lucide-react';
-import LandingHeader from '@/components/landing/LandingHeader';
-import LegalFooter from '@/components/layout/LegalFooter';
+import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
+import { FeatureHero } from '@/components/landing/features/FeatureHero';
 
 const QuickBooksFeature = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <LandingHeader />
-      <main>
-        {/* Hero Section */}
-        <section className="relative pt-32 pb-24 bg-gradient-to-br from-background via-background to-primary/5">
-          <div className="container px-4 mx-auto">
-            <div className="max-w-4xl mx-auto">
-              <Link
-                to="/landing#features"
-                className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Features
-              </Link>
-
-              <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 rounded-lg bg-primary/10">
-                  <Receipt className="h-10 w-10 text-primary" />
-                </div>
-                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground">
-                  QuickBooks
-                </h1>
-              </div>
-
-              <p className="text-xl sm:text-2xl text-muted-foreground mb-8 max-w-3xl">
-                Connect QuickBooks Online and export completed work orders as draft invoices. Map teams to customers and streamline billing from EquipQR™.
-              </p>
-
-              <Button asChild size="lg" className="text-lg px-8 py-6">
-                <Link to="/auth?tab=signup">
-                  Start Using QuickBooks Integration Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+    <FeaturePageLayout>
+      <FeatureHero
+        icon={Receipt}
+        title="QuickBooks"
+        description="Connect QuickBooks Online and export completed work orders as draft invoices. Map teams to customers and streamline billing from EquipQR™."
+        ctaText="Start Using QuickBooks Integration Free"
+      />
 
         {/* Key Benefits Section */}
         <section className="py-24 bg-muted/30">
@@ -251,9 +220,7 @@ const QuickBooksFeature = () => {
             </div>
           </div>
         </section>
-      </main>
-      <LegalFooter />
-    </div>
+    </FeaturePageLayout>
   );
 };
 

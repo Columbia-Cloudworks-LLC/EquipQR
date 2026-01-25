@@ -12,7 +12,7 @@ import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard
 import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';
 import DebugAuth from '@/pages/DebugAuth';
-const Landing = lazy(() => import('@/pages/Landing'));
+import Landing from '@/pages/Landing';
 const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
 const PMTemplatesFeature = lazy(() => import('@/pages/features/PMTemplates'));
 const InventoryManagementFeature = lazy(() => import('@/pages/features/InventoryManagement'));

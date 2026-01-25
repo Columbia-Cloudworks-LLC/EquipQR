@@ -16,6 +16,13 @@ Uploads screenshots to Supabase Storage for use in documentation.
 
    Or use `VITE_SUPABASE_URL` instead of `SUPABASE_URL`.
 
+   ⚠️ **Security Warning**: `SUPABASE_SERVICE_ROLE_KEY` is a highly privileged secret that bypasses Row Level Security (RLS) and has full database access. **Never**:
+   - Commit it to version control
+   - Share it publicly or in client-side code
+   - Use it in production client applications
+   
+   For local development, use a dedicated environment file (e.g., `.env.local`) that is excluded from git, or use a secret manager. This key should only be used in server-side scripts or secure backend environments.
+
 2. **Supabase Storage Bucket**:
    - Ensure the `landing-page-images` bucket exists
    - Create it via: Supabase Dashboard → Storage → New bucket
