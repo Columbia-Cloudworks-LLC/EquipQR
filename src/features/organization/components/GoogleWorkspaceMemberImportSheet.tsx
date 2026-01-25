@@ -51,18 +51,18 @@ export const GoogleWorkspaceMemberImportSheet = ({
   const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch directory users
+  // Fetch directory users - only select fields needed for this UI
   const { data: directoryUsers = [], isLoading: isLoadingDirectory, refetch: refetchDirectory } = useQuery({
     queryKey: ['google-workspace', 'directory-users', organizationId],
-    queryFn: () => listWorkspaceDirectoryUsers(organizationId),
+    queryFn: () => listWorkspaceDirectoryUsers(organizationId, 'id,primary_email,full_name,suspended'),
     enabled: !!organizationId && open,
     staleTime: 60 * 1000,
   });
 
   // Fetch existing members and claims to filter them out
-  // Only run these queries when the sheet is open to avoid background refetches
-  const { data: existingMembers = [] } = useOrganizationMembersQuery(open ? organizationId : '');
-  const { data: existingClaims = [] } = useGoogleWorkspaceMemberClaims(open ? organizationId : '');
+  // Let these queries stay cached between sheet openings for consistency
+  const { data: existingMembers = [] } = useOrganizationMembersQuery(organizationId);
+  const { data: existingClaims = [] } = useGoogleWorkspaceMemberClaims(organizationId);
 
   // Get emails that are already in the organization or pending
   // Normalize with trim().toLowerCase() for consistent matching

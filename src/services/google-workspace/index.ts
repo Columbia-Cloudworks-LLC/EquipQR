@@ -107,10 +107,18 @@ export async function syncGoogleWorkspaceUsers(organizationId: string): Promise<
   return { usersSynced: data.usersSynced || 0 };
 }
 
-export async function listWorkspaceDirectoryUsers(organizationId: string): Promise<WorkspaceDirectoryUser[]> {
+/**
+ * List Google Workspace directory users for an organization.
+ * @param organizationId - The organization ID
+ * @param fields - Optional comma-separated list of fields to select (defaults to all)
+ */
+export async function listWorkspaceDirectoryUsers(
+  organizationId: string,
+  fields?: string
+): Promise<WorkspaceDirectoryUser[]> {
   const { data, error } = await supabase
     .from('google_workspace_directory_users')
-    .select('*')
+    .select(fields || '*')
     .eq('organization_id', organizationId)
     .order('primary_email', { ascending: true });
 
