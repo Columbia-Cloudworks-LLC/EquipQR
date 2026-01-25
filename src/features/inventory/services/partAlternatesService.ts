@@ -63,16 +63,21 @@ export const getAlternatesForPartNumber = async (
 
     return (data || []) as AlternatePartResult[];
   } catch (error) {
-    // Silently handle abort/cancellation errors - these are expected when user types fast
-    if (error instanceof Error) {
-      const errorMessage = (error.message ?? '').toLowerCase();
-      if (
-        error.name === 'AbortError' ||
-        errorMessage.includes('abort') ||
-        errorMessage.includes('cancel')
-      ) {
-        return [];
-      }
+    // Silently handle abort/cancellation errors - these are expected when user types fast.
+    // Check both Error instances and plain objects (Supabase can reject with plain { message }).
+    const msg = typeof error === 'object' && error !== null && 'message' in error
+      ? String((error as { message?: unknown }).message ?? '')
+      : error instanceof Error
+        ? (error.message ?? '')
+        : '';
+    const name = typeof error === 'object' && error !== null && 'name' in error
+      ? (error as { name?: unknown }).name
+      : error instanceof Error
+        ? error.name
+        : undefined;
+    const lower = msg.toLowerCase();
+    if (name === 'AbortError' || lower.includes('abort') || lower.includes('cancel')) {
+      return [];
     }
     // Only log actual errors, not cancellations
     logger.error('Error looking up alternates for part number:', error);

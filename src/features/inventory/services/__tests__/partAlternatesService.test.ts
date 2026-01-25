@@ -196,6 +196,24 @@ describe('partAlternatesService', () => {
         expect(logger.error).not.toHaveBeenCalled();
       });
 
+      it('silently handles plain-object abort when RPC rejects (not returns) with { message }', async () => {
+        vi.mocked(supabase.rpc).mockRejectedValue({ message: 'request aborted' });
+
+        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+
+        expect(result).toEqual([]);
+        expect(logger.error).not.toHaveBeenCalled();
+      });
+
+      it('silently handles plain-object cancel when RPC rejects with { message }', async () => {
+        vi.mocked(supabase.rpc).mockRejectedValue({ message: 'Operation cancelled by user' });
+
+        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+
+        expect(result).toEqual([]);
+        expect(logger.error).not.toHaveBeenCalled();
+      });
+
       it('silently handles exception with abort in message', async () => {
         const error = new Error('Network request aborted due to timeout');
         vi.mocked(supabase.rpc).mockRejectedValue(error);
@@ -232,6 +250,15 @@ describe('partAlternatesService', () => {
         await expect(getAlternatesForPartNumber('org-1', 'TEST'))
           .rejects.toThrow('Invalid signal format detected');
         expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);
+      });
+
+      it('does not silently handle plain-object reject without abort/cancel', async () => {
+        const plainError = { message: 'Database connection failed' };
+        vi.mocked(supabase.rpc).mockRejectedValue(plainError);
+
+        await expect(getAlternatesForPartNumber('org-1', 'TEST'))
+          .rejects.toEqual(plainError);
+        expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', plainError);
       });
 
       it('handles Error object with undefined message safely', async () => {
