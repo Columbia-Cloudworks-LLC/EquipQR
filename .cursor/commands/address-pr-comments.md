@@ -7,7 +7,7 @@ triggers: ["/pr-comments", "/fix-pr-comments", "/address-review"]
 
 ## Overview
 
-Automatically fetch all review comments from the PR associated with the current branch, categorize them by resolution status, create todos for unresolved items, address each one, then commit, push, and leave a summary comment on the PR.
+Automatically fetch all review comments from the PR associated with the current branch, categorize them by resolution status, create todos for unresolved items, delegate each todo to a subagent for parallel execution, wait for all fixes to complete, then commit, push, and leave a summary comment on the PR.
 
 This command is **idempotent** — it can be run repeatedly on the same PR and will only create todos for comments that are still unresolved and not outdated.
 
@@ -123,14 +123,56 @@ Example todo list:
 - [ ] [src/services/api.ts:39] Missing unit tests for cancellation behavior
 ```
 
-### Step 6: Address Each Todo
+### Step 6: Delegate Each Todo to Subagents (Parallel Execution)
 
-For each todo item:
+**CRITICAL**: Each todo must be delegated to a subagent to work on in parallel. Do NOT process todos sequentially.
 
-1. **Read the file** at the specified path and line
-2. **Understand the comment** — what change is requested?
-3. **Apply the fix** following project standards (see `.cursor/rules/`)
-4. **Mark todo complete**
+**Implementation Strategy:**
+
+1. **For each todo item**, create a separate subagent task that will work independently:
+   - Each subagent receives one specific todo with all context:
+     - File path and line number
+     - Full comment text
+     - Comment URL
+     - Todo ID
+
+2. **Invoke ALL subagents simultaneously** - Do not wait for one to complete before starting the next. Structure the delegation so all subagents begin working in parallel.
+
+3. **Each subagent's task**:
+   - Read the file at the specified path and line
+   - Understand the comment — what change is requested?
+   - Apply the fix following project standards (see `.cursor/rules/`)
+   - Mark the todo complete when finished
+
+4. **Wait for completion**: After all subagent invocations are made, monitor the todo list status. Only proceed to Step 7 when ALL todos have been marked as `completed`. Use the todo tracking system to verify completion status.
+
+**How to delegate in Cursor:**
+
+Use agent references to delegate work. For each todo, create an agent invocation like:
+
+```
+Invoke @code-reviewer with task:
+"Address PR review comment for {path}:{line}
+Comment: {comment_body}
+URL: {url}
+Todo ID: {todo_id}
+
+Instructions:
+1. Read {path} at line {line}
+2. Understand the requested change: {comment_body}
+3. Apply the fix following .cursor/rules/ standards
+4. Mark todo {todo_id} as complete"
+```
+
+**Example of parallel delegation structure:**
+
+When you have 3 todos, create 3 simultaneous agent invocations:
+
+- Agent 1: `@code-reviewer` → Todo: `[src/services/api.ts:57] Case-sensitive abort detection`
+- Agent 2: `@code-reviewer` → Todo: `[src/services/api.ts:72] Signal check too broad`  
+- Agent 3: `@code-reviewer` → Todo: `[src/services/api.ts:39] Missing unit tests`
+
+All three agents work concurrently, not sequentially.
 
 ### Step 7: Verify Changes
 
@@ -223,8 +265,11 @@ CallMcpTool({
    - [pending] src/features/inventory/services/partAlternatesService.ts:72 - remove signal check
    - [pending] src/features/inventory/services/partAlternatesService.ts:39 - add unit tests
 
-5. Address each todo:
-   - Read file, apply fix, mark complete
+5. Delegate each todo to subagents in parallel:
+   - @code-reviewer: Address [src/features/inventory/services/partAlternatesService.ts:57] lowercase abort detection
+   - @code-reviewer: Address [src/features/inventory/services/partAlternatesService.ts:72] remove signal check
+   - @code-reviewer: Address [src/features/inventory/services/partAlternatesService.ts:39] add unit tests
+   - Wait for all subagents to complete their fixes
    
 6. npm run type-check && npm run lint
    → All passed
