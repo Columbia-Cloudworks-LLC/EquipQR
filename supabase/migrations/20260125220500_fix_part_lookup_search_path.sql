@@ -204,6 +204,7 @@ BEGIN
   )
   SELECT * FROM combined_results cr
   ORDER BY
+    (cr.group_id IS NULL) ASC,  -- Group alternates first, then direct matches
     cr.group_name NULLS LAST,
     cr.is_primary DESC,
     cr.is_in_stock DESC,  -- In-stock first

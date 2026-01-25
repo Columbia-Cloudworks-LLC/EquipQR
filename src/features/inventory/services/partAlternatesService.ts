@@ -54,8 +54,13 @@ export const getAlternatesForPartNumber = async (
         throw new Error('Access denied');
       }
       // Silently ignore abort errors (request cancelled due to new search)
+      // Check signal.aborted first, then check for AbortError name/message
+      if (signal?.aborted) {
+        return [];
+      }
       const errorMessage = (error.message ?? '').toLowerCase();
-      if (errorMessage.includes('abort') || errorMessage.includes('cancel')) {
+      const errorName = (error as { name?: string }).name;
+      if (errorName === 'AbortError' || errorMessage.includes('abort')) {
         return [];
       }
       throw error;
@@ -76,7 +81,9 @@ export const getAlternatesForPartNumber = async (
         ? error.name
         : undefined;
     const lower = msg.toLowerCase();
-    if (name === 'AbortError' || lower.includes('abort') || lower.includes('cancel')) {
+    // Check for AbortError specifically - avoid broad "cancel" substring checks
+    // that could hide legitimate errors (e.g., "canceling statement due to statement timeout")
+    if (name === 'AbortError' || lower.includes('abort')) {
       return [];
     }
     // Only log actual errors, not cancellations
