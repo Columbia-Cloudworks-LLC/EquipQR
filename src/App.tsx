@@ -11,6 +11,7 @@ import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard
 // Critical components loaded eagerly to prevent loading issues for unauthenticated users
 import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';
+import Landing from '@/pages/Landing';
 import DebugAuth from '@/pages/DebugAuth';
 const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
 const PMTemplatesFeature = lazy(() => import('@/pages/features/PMTemplates'));
@@ -86,6 +87,8 @@ function App() {
       <Routes>
         {/* Public routes - no suspense needed, loaded eagerly */}
         <Route path="/" element={<SmartLanding />} />
+        {/* Direct landing page route - bypasses SmartLanding redirect for authenticated users */}
+        <Route path="/landing" element={<Landing />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/debug-auth" element={<DebugAuth />} />
         

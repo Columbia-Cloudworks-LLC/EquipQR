@@ -6,7 +6,11 @@ Uploads screenshots to Supabase Storage for use in documentation.
 
 1. **Environment Variables** (set in your shell or `.env`):
    ```bash
+   # Standard Supabase domain
    export SUPABASE_URL=https://your-project-ref.supabase.co
+   # Or custom Supabase domain
+   export SUPABASE_URL=https://supabase.yourdomain.com
+   
    export SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
    ```
 
@@ -79,8 +83,10 @@ The `screenshot-capture` subagent **does not** upload screenshots automatically.
 - Set environment variable: `export SUPABASE_SERVICE_ROLE_KEY=your_key`
 
 ### "Invalid Supabase URL format"
-- URL must start with `https://` and contain `.supabase.co`
-- Example: `https://ymxkzronkhwxzcdcbnwq.supabase.co`
+- URL must start with `https://` and be a valid Supabase project URL
+- Examples:
+  - Standard: `https://ymxkzronkhwxzcdcbnwq.supabase.co`
+  - Custom domain: `https://supabase.equipqr.app`
 
 ### File size limits
 - Supabase Storage enforces a per-bucket `file_size_limit` (configured in your Supabase project)

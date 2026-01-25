@@ -25,7 +25,7 @@ const navigation: NavigationItem[] = [
 const LandingHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const isOnLandingPage = location.pathname === '/';
+  const isOnLandingPage = location.pathname === '/' || location.pathname === '/landing';
 
   const handleNavClick = (e: MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('#')) {
@@ -35,8 +35,8 @@ const LandingHeader = () => {
         const element = document.querySelector(href);
         element?.scrollIntoView({ behavior: 'smooth' });
       } else {
-        // If on other pages, navigate to landing page with anchor
-        navigate(`/${href}`);
+        // If on other pages, navigate to /landing with anchor (bypasses SmartLanding redirect)
+        navigate(`/landing${href}`);
       }
     }
   };

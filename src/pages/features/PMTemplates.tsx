@@ -69,7 +69,7 @@ const PMTemplatesFeature = () => {
           <div className="container px-4 mx-auto">
             <div className="max-w-4xl mx-auto">
               <Link 
-                to="/#features" 
+                to="/landing#features" 
                 className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -383,7 +383,7 @@ const PMTemplatesFeature = () => {
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
-                  <Link to="/#features">
+                  <Link to="/landing#features">
                     Explore More Features
                   </Link>
                 </Button>

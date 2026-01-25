@@ -47,16 +47,44 @@ if (args.length < 2) {
 
 const [filePath, storagePath, bucketName = DEFAULT_BUCKET] = args;
 
+// When JSON output mode is enabled, suppress human-readable logs for early errors too
+const isJsonModeEarly = process.env.OUTPUT_JSON === 'true';
+
 // Validate environment variables
 if (!SUPABASE_URL) {
-  console.error('❌ SUPABASE_URL or VITE_SUPABASE_URL environment variable is required');
-  console.error('   Set it via: export SUPABASE_URL=https://<project-ref>.supabase.co');
+  if (isJsonModeEarly) {
+    console.log(JSON.stringify({ success: false, error: 'SUPABASE_URL or VITE_SUPABASE_URL environment variable is required' }));
+  } else {
+    console.error('❌ SUPABASE_URL or VITE_SUPABASE_URL environment variable is required');
+    console.error('   Set it via: export SUPABASE_URL=https://<project-ref>.supabase.co');
+    console.error('   Or for custom domains: export SUPABASE_URL=https://supabase.yourdomain.com');
+  }
   process.exit(1);
 }
 
-if (!SUPABASE_URL.startsWith('https://') || !SUPABASE_URL.includes('.supabase.co')) {
-  console.error('❌ Invalid Supabase URL format. Expected: https://<project-ref>.supabase.co');
-  console.error(`   Received: ${SUPABASE_URL}`);
+if (!SUPABASE_URL.startsWith('https://')) {
+  if (isJsonModeEarly) {
+    console.log(JSON.stringify({ success: false, error: 'Invalid Supabase URL format. Must start with https://' }));
+  } else {
+    console.error('❌ Invalid Supabase URL format. Must start with https://');
+    console.error(`   Received: ${SUPABASE_URL}`);
+    console.error('   Examples:');
+    console.error('     - https://<project-ref>.supabase.co');
+    console.error('     - https://supabase.yourdomain.com');
+  }
+  process.exit(1);
+}
+
+// Validate URL is parseable
+try {
+  new URL(SUPABASE_URL);
+} catch {
+  if (isJsonModeEarly) {
+    console.log(JSON.stringify({ success: false, error: 'Invalid Supabase URL. Not a valid URL format.' }));
+  } else {
+    console.error('❌ Invalid Supabase URL. Not a valid URL format.');
+    console.error(`   Received: ${SUPABASE_URL}`);
+  }
   process.exit(1);
 }
 
@@ -86,17 +114,10 @@ if (!validExtensions.includes(ext)) {
 const stats = fs.statSync(filePath);
 const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
 
-// When JSON output mode is enabled, suppress human-readable logs
-const isJsonMode = process.env.OUTPUT_JSON === 'true';
+// Use the already-defined JSON mode flag for runtime logs
+const isJsonMode = isJsonModeEarly;
 const log = (...args: unknown[]) => {
   if (!isJsonMode) console.log(...args);
-};
-const logError = (...args: unknown[]) => {
-  if (isJsonMode) {
-    console.error(...args);
-  } else {
-    console.error(...args);
-  }
 };
 
 log(`📤 Uploading screenshot...`);
