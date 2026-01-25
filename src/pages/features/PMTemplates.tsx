@@ -3,10 +3,19 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, ArrowLeft, FileCheck, CheckCircle2, Settings2, ClipboardCheck, Wrench, Truck } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import LandingHeader from '@/components/landing/LandingHeader';
 import LegalFooter from '@/components/layout/LegalFooter';
 
-const builtInTemplates = [
+interface BuiltInTemplate {
+  name: string;
+  items: number;
+  sections: number;
+  description: string;
+  icon: LucideIcon;
+}
+
+const builtInTemplates: BuiltInTemplate[] = [
   {
     name: 'Forklift PM',
     items: 103,

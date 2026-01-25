@@ -32,11 +32,11 @@ if (args.length < 2) {
   console.error('❌ Missing required arguments');
   console.error('');
   console.error('Usage:');
-  console.error('  ts-node scripts/upload-screenshot.ts <file-path> <storage-path> [bucket-name]');
+  console.error('  npx tsx scripts/upload-screenshot.ts <file-path> <storage-path> [bucket-name]');
   console.error('');
   console.error('Examples:');
-  console.error('  ts-node scripts/upload-screenshot.ts tmp/screenshot.png features/qr-code-integration/hero.png');
-  console.error('  ts-node scripts/upload-screenshot.ts tmp/step-1.png tutorials/image-upload/step-1.png landing-page-images');
+  console.error('  npx tsx scripts/upload-screenshot.ts tmp/screenshot.png features/qr-code-integration/hero.png');
+  console.error('  npx tsx scripts/upload-screenshot.ts tmp/step-1.png tutorials/image-upload/step-1.png landing-page-images');
   console.error('');
   console.error('Arguments:');
   console.error('  file-path     Local file path to upload');
@@ -103,11 +103,10 @@ async function uploadScreenshot() {
   try {
     // Read file
     const fileBuffer = fs.readFileSync(filePath);
-    const fileName = path.basename(filePath);
     const mimeType = getMimeType(ext);
 
     // Upload to storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(storagePath, fileBuffer, {
         contentType: mimeType,

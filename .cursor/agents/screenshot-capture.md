@@ -44,13 +44,15 @@ You are a documentation screenshot specialist for EquipQR. Your job is to captur
 
 3. **Type email** (use ref from snapshot for email input):
    ```json
-   { "server": "user-playwright", "toolName": "browser_type", "arguments": { "ref": "<email-input-ref>", "text": "owner@apex.test" } }
+   { "server": "user-playwright", "toolName": "browser_type", "arguments": { "ref": "<email-input-ref>", "text": "<TEST_USER_EMAIL>" } }
    ```
+   **Note**: Replace `<TEST_USER_EMAIL>` with credentials from your environment variables or secure credential storage.
 
 4. **Type password** (use ref from snapshot for password input):
    ```json
-   { "server": "user-playwright", "toolName": "browser_type", "arguments": { "ref": "<password-input-ref>", "text": "password123" } }
+   { "server": "user-playwright", "toolName": "browser_type", "arguments": { "ref": "<password-input-ref>", "text": "<TEST_USER_PASSWORD>" } }
    ```
+   **Note**: Replace `<TEST_USER_PASSWORD>` with credentials from your environment variables or secure credential storage.
 
 5. **Click sign in button** (use ref from snapshot):
    ```json

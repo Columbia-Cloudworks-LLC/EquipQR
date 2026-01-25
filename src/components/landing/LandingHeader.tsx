@@ -44,7 +44,7 @@ const LandingHeader = () => {
     }
   };
 
-  const activeSection = useActiveSection(['features', 'about']);
+  const activeSection = useActiveSection(['features', 'pricing', 'about']);
   const activeSectionToUse = isOnLandingPage ? activeSection : null;
   return (
     <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
