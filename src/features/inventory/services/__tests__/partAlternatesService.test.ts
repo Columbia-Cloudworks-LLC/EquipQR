@@ -78,7 +78,7 @@ describe('partAlternatesService', () => {
       expect(supabase.rpc).toHaveBeenCalledWith('get_alternates_for_part_number', {
         p_organization_id: 'org-1',
         p_part_number: 'CAT-1R-0750'
-      });
+      }, { signal: undefined });
     });
 
     it('returns alternate parts from RPC', async () => {

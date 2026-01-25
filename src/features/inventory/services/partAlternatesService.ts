@@ -20,32 +20,61 @@ import type {
  * 
  * @param organizationId - Organization ID for access control
  * @param partNumber - Part number to search for
+ * @param signal - Optional AbortSignal for request cancellation
  * @returns Array of alternate parts with inventory and group info
  */
 export const getAlternatesForPartNumber = async (
   organizationId: string,
-  partNumber: string
+  partNumber: string,
+  signal?: AbortSignal
 ): Promise<AlternatePartResult[]> => {
   try {
     if (!partNumber.trim()) {
       return [];
     }
 
+    // Check if already aborted before making request
+    if (signal?.aborted) {
+      return [];
+    }
+
     const { data, error } = await supabase.rpc('get_alternates_for_part_number', {
       p_organization_id: organizationId,
       p_part_number: partNumber.trim()
-    });
+    }, { signal });
+
+    // If request was aborted, return empty result silently
+    if (signal?.aborted) {
+      return [];
+    }
 
     if (error) {
       // Handle permission errors
       if (error.code === '42501') {
         throw new Error('Access denied');
       }
+      // Silently ignore abort errors (request cancelled due to new search)
+      if (error.message?.includes('abort') || error.message?.includes('cancel')) {
+        return [];
+      }
       throw error;
     }
 
     return (data || []) as AlternatePartResult[];
   } catch (error) {
+    // Silently handle abort/cancellation errors - these are expected when user types fast
+    if (error instanceof Error) {
+      const errorMessage = error.message.toLowerCase();
+      if (
+        error.name === 'AbortError' ||
+        errorMessage.includes('abort') ||
+        errorMessage.includes('cancel') ||
+        errorMessage.includes('signal')
+      ) {
+        return [];
+      }
+    }
+    // Only log actual errors, not cancellations
     logger.error('Error looking up alternates for part number:', error);
     throw error;
   }
