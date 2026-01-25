@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, ArrowLeft, FileCheck, CheckCircle2, Settings2, ClipboardCheck, Wrench, Truck } from 'lucide-react';
+import { ArrowRight, FileCheck, CheckCircle2, Settings2, ClipboardCheck, Wrench, Truck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import LandingHeader from '@/components/landing/LandingHeader';
-import LegalFooter from '@/components/layout/LegalFooter';
+import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
+import { FeatureHero } from '@/components/landing/features/FeatureHero';
 
 interface BuiltInTemplate {
   name: string;
@@ -61,43 +61,13 @@ const builtInTemplates: BuiltInTemplate[] = [
 
 const PMTemplatesFeature = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <LandingHeader />
-      <main>
-        {/* Hero Section */}
-        <section className="relative pt-32 pb-24 bg-gradient-to-br from-background via-background to-primary/5">
-          <div className="container px-4 mx-auto">
-            <div className="max-w-4xl mx-auto">
-              <Link 
-                to="/landing#features" 
-                className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Features
-              </Link>
-              
-              <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 rounded-lg bg-primary/10">
-                  <FileCheck className="h-10 w-10 text-primary" />
-                </div>
-                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground">
-                  PM Templates
-                </h1>
-              </div>
-              
-              <p className="text-xl sm:text-2xl text-muted-foreground mb-8 max-w-3xl">
-                Standardize preventative maintenance across your fleet with pre-built checklists for common equipment types, or create custom templates tailored to your specific needs.
-              </p>
-              
-              <Button asChild size="lg" className="text-lg px-8 py-6">
-                <Link to="/auth?tab=signup">
-                  Start Using PM Templates Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+    <FeaturePageLayout>
+      <FeatureHero
+        icon={FileCheck}
+        title="PM Templates"
+        description="Standardize preventative maintenance across your fleet with pre-built checklists for common equipment types, or create custom templates tailored to your specific needs."
+        ctaText="Start Using PM Templates Free"
+      />
 
         {/* Key Benefits Section */}
         <section className="py-24 bg-muted/30">
@@ -391,9 +361,7 @@ const PMTemplatesFeature = () => {
             </div>
           </div>
         </section>
-      </main>
-      <LegalFooter />
-    </div>
+    </FeaturePageLayout>
   );
 };
 

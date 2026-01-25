@@ -3,54 +3,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   ArrowRight,
-  ArrowLeft,
   ClipboardList,
   UserCheck,
   Calendar,
   ListChecks,
 } from 'lucide-react';
-import LandingHeader from '@/components/landing/LandingHeader';
-import LegalFooter from '@/components/layout/LegalFooter';
+import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
+import { FeatureHero } from '@/components/landing/features/FeatureHero';
 
 const WorkOrderManagementFeature = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <LandingHeader />
-      <main>
-        {/* Hero Section */}
-        <section className="relative pt-32 pb-24 bg-gradient-to-br from-background via-background to-primary/5">
-          <div className="container px-4 mx-auto">
-            <div className="max-w-4xl mx-auto">
-              <Link
-                to="/landing#features"
-                className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Features
-              </Link>
-
-              <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 rounded-lg bg-primary/10">
-                  <ClipboardList className="h-10 w-10 text-primary" />
-                </div>
-                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground">
-                  Work Order Management
-                </h1>
-              </div>
-
-              <p className="text-xl sm:text-2xl text-muted-foreground mb-8 max-w-3xl">
-                Create, assign, and track work orders with intelligent workflows. Monitor progress and ensure nothing falls through the cracks—from request to completion.
-              </p>
-
-              <Button asChild size="lg" className="text-lg px-8 py-6">
-                <Link to="/auth?tab=signup">
-                  Start Using Work Orders Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+    <FeaturePageLayout>
+      <FeatureHero
+        icon={ClipboardList}
+        title="Work Order Management"
+        description="Create, assign, and track work orders with intelligent workflows. Monitor progress and ensure nothing falls through the cracks—from request to completion."
+        ctaText="Start Using Work Orders Free"
+      />
 
         {/* Key Benefits Section */}
         <section className="py-24 bg-muted/30">
@@ -297,9 +266,7 @@ const WorkOrderManagementFeature = () => {
             </div>
           </div>
         </section>
-      </main>
-      <LegalFooter />
-    </div>
+    </FeaturePageLayout>
   );
 };
 
