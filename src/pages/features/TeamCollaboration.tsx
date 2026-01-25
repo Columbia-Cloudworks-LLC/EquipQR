@@ -77,7 +77,7 @@ const TeamCollaborationFeature = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">
-                    Create teams that span your organization or map to locations, divisions, or crews. Assign equipment and work orders to teams so members see only what’s relevant to them.
+                    Create teams that span your organization or map to locations, divisions, or crews. Assign equipment and work orders to teams so members see only what's relevant to them.
                   </p>
                   <ul className="mt-4 space-y-2">
                     <li className="text-sm text-muted-foreground flex items-center">
@@ -241,22 +241,30 @@ const TeamCollaborationFeature = () => {
 
             <div className="max-w-5xl mx-auto space-y-12">
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Teams list and members</p>
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/team-list.png"
+                    alt="Teams list showing all teams with member counts and roles"
+                    className="w-full h-auto"
+                  />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Teams List & Members</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Organization Teams</h3>
                 <p className="text-muted-foreground">
-                  View all teams, members, and roles. Create teams, invite members, and assign equipment. Each team has a dedicated view for equipment and work orders.
+                  View all teams in your organization at a glance. See team descriptions, member counts, and quickly identify who belongs to each team. Create new teams or manage existing ones from a single dashboard.
                 </p>
               </div>
 
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Team detail and workload</p>
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/team-detail.png"
+                    alt="Team detail page showing role assignments for team members"
+                    className="w-full h-auto"
+                  />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Team Detail & Workload</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Role-Based Team Access</h3>
                 <p className="text-muted-foreground">
-                  Drill into a team to see its equipment, work orders, and members. Monitor workload distribution and reassign work as needed. Role-based access ensures everyone sees only what they’re allowed to.
+                  Assign specific roles to each team member—manager, technician, requestor, or viewer. Managers oversee the team, technicians perform work, requestors submit work orders, and viewers have read-only access. Fine-grained permissions ensure everyone has exactly the access they need.
                 </p>
               </div>
             </div>
