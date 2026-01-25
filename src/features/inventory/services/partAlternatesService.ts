@@ -54,7 +54,8 @@ export const getAlternatesForPartNumber = async (
         throw new Error('Access denied');
       }
       // Silently ignore abort errors (request cancelled due to new search)
-      if (error.message?.includes('abort') || error.message?.includes('cancel')) {
+      const errorMessage = (error.message ?? '').toLowerCase();
+      if (errorMessage.includes('abort') || errorMessage.includes('cancel')) {
         return [];
       }
       throw error;
@@ -68,8 +69,7 @@ export const getAlternatesForPartNumber = async (
       if (
         error.name === 'AbortError' ||
         errorMessage.includes('abort') ||
-        errorMessage.includes('cancel') ||
-        errorMessage.includes('signal')
+        errorMessage.includes('cancel')
       ) {
         return [];
       }

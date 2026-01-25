@@ -36,6 +36,7 @@ vi.mock('@/utils/logger', () => ({
 }));
 
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 import {
   getAlternatesForPartNumber,
   getAlternatesForInventoryItem,
@@ -120,6 +121,117 @@ describe('partAlternatesService', () => {
 
       await expect(getAlternatesForPartNumber('org-1', 'TEST'))
         .rejects.toThrow('Access denied');
+    });
+
+    describe('cancellation behavior', () => {
+      it('returns empty array when signal is already aborted before RPC call', async () => {
+        const abortedSignal = { aborted: true } as AbortSignal;
+
+        const result = await getAlternatesForPartNumber('org-1', 'TEST', abortedSignal);
+
+        expect(result).toEqual([]);
+        expect(supabase.rpc).not.toHaveBeenCalled();
+      });
+
+      it('returns empty array when signal is aborted after RPC call', async () => {
+        const abortedSignal = { aborted: false } as AbortSignal;
+        vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null });
+        
+        // Simulate signal being aborted after the call
+        Object.defineProperty(abortedSignal, 'aborted', {
+          get: () => true,
+          configurable: true
+        });
+
+        const result = await getAlternatesForPartNumber('org-1', 'TEST', abortedSignal);
+
+        expect(result).toEqual([]);
+      });
+
+      it('silently handles abort error from RPC error object (lowercase)', async () => {
+        vi.mocked(supabase.rpc).mockResolvedValue({
+          data: null,
+          error: { message: 'request aborted' }
+        });
+
+        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+
+        expect(result).toEqual([]);
+        expect(logger.error).not.toHaveBeenCalled();
+      });
+
+      it('silently handles abort error from RPC error object (uppercase)', async () => {
+        vi.mocked(supabase.rpc).mockResolvedValue({
+          data: null,
+          error: { message: 'Request Aborted' }
+        });
+
+        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+
+        expect(result).toEqual([]);
+        expect(logger.error).not.toHaveBeenCalled();
+      });
+
+      it('silently handles cancel error from RPC error object', async () => {
+        vi.mocked(supabase.rpc).mockResolvedValue({
+          data: null,
+          error: { message: 'request cancelled' }
+        });
+
+        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+
+        expect(result).toEqual([]);
+        expect(logger.error).not.toHaveBeenCalled();
+      });
+
+      it('silently handles AbortError exception', async () => {
+        const abortError = new Error('The operation was aborted');
+        abortError.name = 'AbortError';
+        vi.mocked(supabase.rpc).mockRejectedValue(abortError);
+
+        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+
+        expect(result).toEqual([]);
+        expect(logger.error).not.toHaveBeenCalled();
+      });
+
+      it('silently handles exception with abort in message', async () => {
+        const error = new Error('Network request aborted due to timeout');
+        vi.mocked(supabase.rpc).mockRejectedValue(error);
+
+        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+
+        expect(result).toEqual([]);
+        expect(logger.error).not.toHaveBeenCalled();
+      });
+
+      it('silently handles exception with cancel in message', async () => {
+        const error = new Error('Operation cancelled by user');
+        vi.mocked(supabase.rpc).mockRejectedValue(error);
+
+        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+
+        expect(result).toEqual([]);
+        expect(logger.error).not.toHaveBeenCalled();
+      });
+
+      it('does not silently handle non-abort errors', async () => {
+        const error = new Error('Database connection failed');
+        vi.mocked(supabase.rpc).mockRejectedValue(error);
+
+        await expect(getAlternatesForPartNumber('org-1', 'TEST'))
+          .rejects.toThrow('Database connection failed');
+        expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);
+      });
+
+      it('does not silently handle errors with "signal" in message (not abort/cancel)', async () => {
+        const error = new Error('Invalid signal format detected');
+        vi.mocked(supabase.rpc).mockRejectedValue(error);
+
+        await expect(getAlternatesForPartNumber('org-1', 'TEST'))
+          .rejects.toThrow('Invalid signal format detected');
+        expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);
+      });
     });
   });
 
