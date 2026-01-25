@@ -242,8 +242,12 @@ const WorkOrderManagementFeature = () => {
 
             <div className="max-w-5xl mx-auto space-y-12">
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Work orders list and filters</p>
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/work-orders-list.png"
+                    alt="Work orders list with filters by status, priority, and assignee"
+                    className="w-full h-auto"
+                  />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Work Orders List</h3>
                 <p className="text-muted-foreground">
@@ -252,8 +256,12 @@ const WorkOrderManagementFeature = () => {
               </div>
 
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Work order detail and PM checklist</p>
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/work-order-details.png"
+                    alt="Work order detail page with equipment info, assignee, and PM checklist"
+                    className="w-full h-auto"
+                  />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Work Order Detail & PM Checklist</h3>
                 <p className="text-muted-foreground">

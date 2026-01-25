@@ -245,7 +245,7 @@ const QRCodeIntegrationFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img 
-                    src="https://olsdirkvvfegvclbpgrg.supabase.co/storage/v1/object/public/landing-page-images/features/qr-code-integration/equipment-qr-code.png"
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/equipment-qr-codes.png"
                     alt="EquipQR Equipment QR Code modal showing scannable QR code with equipment URL and download options"
                     className="w-full h-auto"
                     loading="lazy"
@@ -261,7 +261,7 @@ const QRCodeIntegrationFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img 
-                    src="https://olsdirkvvfegvclbpgrg.supabase.co/storage/v1/object/public/landing-page-images/features/qr-code-integration/qr-code-modal.png"
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/generate-and-print-qr-labels.png"
                     alt="EquipQR QR Code generation modal with download and print options"
                     className="w-full h-auto"
                     loading="lazy"
@@ -277,7 +277,7 @@ const QRCodeIntegrationFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img 
-                    src="https://olsdirkvvfegvclbpgrg.supabase.co/storage/v1/object/public/landing-page-images/features/qr-code-integration/equipment-list.png"
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/qr-quick-access-from-equipment-list.png"
                     alt="EquipQR Equipment list showing QR code buttons on each equipment card"
                     className="w-full h-auto"
                     loading="lazy"
@@ -293,7 +293,7 @@ const QRCodeIntegrationFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img 
-                    src="https://olsdirkvvfegvclbpgrg.supabase.co/storage/v1/object/public/landing-page-images/features/qr-code-integration/equipment-detail.png"
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/equipment-details-at-a-glance.png"
                     alt="EquipQR Equipment detail page with QR code button and full equipment information"
                     className="w-full h-auto"
                     loading="lazy"
