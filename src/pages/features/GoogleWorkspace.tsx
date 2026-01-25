@@ -242,8 +242,12 @@ const GoogleWorkspaceFeature = () => {
 
             <div className="max-w-5xl mx-auto space-y-12">
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Google Workspace connect and sync</p>
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/google-workspace-connect.png"
+                    alt="Organization Settings showing Google Workspace integration with connected domain"
+                    className="w-full h-auto"
+                  />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Connect & Sync Directory</h3>
                 <p className="text-muted-foreground">
@@ -252,8 +256,12 @@ const GoogleWorkspaceFeature = () => {
               </div>
 
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Import from Google Workspace sheet</p>
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/google-workspace-import.png"
+                    alt="Import from Google Workspace dialog showing directory sync and user import"
+                    className="w-full h-auto"
+                  />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Import from Google Workspace</h3>
                 <p className="text-muted-foreground">

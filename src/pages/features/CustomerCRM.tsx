@@ -256,8 +256,12 @@ const CustomerCRMFeature = () => {
               </div>
 
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Equipment detail with customer and service history</p>
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/customer-crm-detail.png"
+                    alt="Equipment detail page showing customer assignment and service history"
+                    className="w-full h-auto"
+                  />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Equipment Detail & Service History</h3>
                 <p className="text-muted-foreground">

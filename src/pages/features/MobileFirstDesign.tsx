@@ -242,22 +242,39 @@ const MobileFirstDesignFeature = () => {
 
             <div className="max-w-5xl mx-auto space-y-12">
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Mobile work order and PM checklist</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="rounded-lg overflow-hidden border border-border">
+                    <img
+                      src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-1.png"
+                      alt="Mobile work order view"
+                      className="w-full h-auto"
+                    />
+                  </div>
+                  <div className="rounded-lg overflow-hidden border border-border">
+                    <img
+                      src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-status.png"
+                      alt="Mobile work order status update"
+                      className="w-full h-auto"
+                    />
+                  </div>
+                  <div className="rounded-lg overflow-hidden border border-border">
+                    <img
+                      src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-PM-checklist.png"
+                      alt="Mobile PM checklist view"
+                      className="w-full h-auto"
+                    />
+                  </div>
+                  <div className="rounded-lg overflow-hidden border border-border">
+                    <img
+                      src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-PM-checklist-input.png"
+                      alt="Mobile PM checklist input"
+                      className="w-full h-auto"
+                    />
+                  </div>
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Mobile Work Order & PM Checklist</h3>
                 <p className="text-muted-foreground">
                   View and complete work orders on a phone. PM checklists are easy to work through with touch-friendly controls. Add notes, mark items OK or flag issues, and sync when back online.
-                </p>
-              </div>
-
-              <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Responsive layout on phone vs desktop</p>
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Responsive Layout</h3>
-                <p className="text-muted-foreground">
-                  The same app adapts to screen size—compact on phones, expanded on tablets and desktops. Navigate between equipment, work orders, and PMs with a consistent experience everywhere.
                 </p>
               </div>
             </div>
