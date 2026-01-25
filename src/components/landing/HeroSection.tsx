@@ -7,7 +7,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+    <section className="relative min-h-screen flex items-center justify-center pt-20 bg-gradient-to-br from-background via-background to-primary/5">
       <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,transparent,black)] dark:bg-grid-slate-800"></div>
       
       <div className="container relative z-10 px-4 mx-auto">
