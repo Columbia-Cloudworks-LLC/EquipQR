@@ -150,7 +150,7 @@ BEGIN
   -- Direct inventory matches (items NOT in any alternate group)
   direct_inventory_matches AS (
     SELECT
-      NULL::UUID AS group_id,
+      ii.id AS group_id,  -- Use inventory item ID as stable identifier for direct matches
       'Direct Match (No Alternates Defined)'::TEXT AS group_name,
       'unverified'::public.verification_status AS group_status,  -- Fully qualified cast
       FALSE AS group_verified,
