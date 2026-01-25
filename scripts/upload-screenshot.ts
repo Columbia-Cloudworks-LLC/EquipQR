@@ -6,11 +6,11 @@
  * Uploads a screenshot file to the Supabase Storage bucket for use in documentation.
  * 
  * Usage:
- *   ts-node scripts/upload-screenshot.ts <file-path> <storage-path> [bucket-name]
+ *   npx tsx scripts/upload-screenshot.ts <file-path> <storage-path> [bucket-name]
  * 
  * Examples:
- *   ts-node scripts/upload-screenshot.ts tmp/screenshot.png features/qr-code-integration/hero.png
- *   ts-node scripts/upload-screenshot.ts tmp/step-1.png tutorials/image-upload/step-1.png landing-page-images
+ *   npx tsx scripts/upload-screenshot.ts tmp/screenshot.png features/qr-code-integration/hero.png
+ *   npx tsx scripts/upload-screenshot.ts tmp/step-1.png tutorials/image-upload/step-1.png landing-page-images
  * 
  * Environment Variables Required:
  *   - SUPABASE_URL or VITE_SUPABASE_URL

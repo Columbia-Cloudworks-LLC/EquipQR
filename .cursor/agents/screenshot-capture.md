@@ -20,13 +20,15 @@ You are a documentation screenshot specialist for EquipQR. Your job is to captur
 
 ### Local Development
 - **URL**: `http://localhost:8080` or `http://localhost:5173`
-- **Test Account**: `owner@apex.test` / `password123`
+- **Auth**: Use test account credentials from your local environment or password manager
 - **Method**: Email/password login via `/auth?tab=signin`
+- **Note**: Do not hardcode credentials in this file. Reference environment variables or secure credential storage.
 
 ### Preview/Staging
 - **URL**: `https://preview.equipqr.app`
-- **Test Account**: `nicholas.king@columbiacloudworks.com` (Google OAuth)
+- **Auth**: Sign in using your assigned staging Google Workspace/SSO account via Google OAuth
 - **Method**: Google OAuth (may require manual intervention)
+- **Note**: Do not reference specific individual accounts. Use generic authentication instructions or refer to internal documentation.
 
 ### Authentication Steps
 

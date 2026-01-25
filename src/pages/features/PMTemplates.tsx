@@ -82,7 +82,7 @@ const PMTemplatesFeature = () => {
               </p>
               
               <Button asChild size="lg" className="text-lg px-8 py-6">
-                <Link to="/auth?mode=signup">
+                <Link to="/auth?tab=signup">
                   Start Using PM Templates Free
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
@@ -216,8 +216,8 @@ const PMTemplatesFeature = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {builtInTemplates.map((template, index) => (
-                <Card key={index} className="border-border bg-card hover:bg-card/80 transition-colors">
+              {builtInTemplates.map((template) => (
+                <Card key={template.name} className="border-border bg-card hover:bg-card/80 transition-colors">
                   <CardHeader>
                     <div className="flex items-center gap-3 mb-2">
                       <template.icon className="h-6 w-6 text-primary" />
@@ -369,7 +369,7 @@ const PMTemplatesFeature = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild size="lg" className="text-lg px-8 py-6">
-                  <Link to="/auth?mode=signup">
+                  <Link to="/auth?tab=signup">
                     Create Free Account
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>

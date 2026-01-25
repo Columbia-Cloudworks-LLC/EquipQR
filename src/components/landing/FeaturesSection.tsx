@@ -154,13 +154,13 @@ const FeaturesSection = ({ id }: { id?: string }) => {
             
             if (feature.link) {
               return (
-                <Link key={index} to={feature.link} className="block">
+                <Link key={feature.title} to={feature.link} className="block">
                   {cardContent}
                 </Link>
               );
             }
             
-            return <div key={index}>{cardContent}</div>;
+            return <div key={feature.title}>{cardContent}</div>;
           })}
         </div>
       </div>

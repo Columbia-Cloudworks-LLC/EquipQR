@@ -83,5 +83,5 @@ The `screenshot-capture` subagent uses this script automatically:
 - Example: `https://ymxkzronkhwxzcdcbnwq.supabase.co`
 
 ### File size limits
-- Default bucket limit: 5MB (configured in `supabase/config.toml`)
-- For larger files, update bucket configuration
+- Supabase Storage enforces a per-bucket `file_size_limit` (configured in your Supabase project)
+- If uploads fail due to size, either reduce the image size or increase the bucket's `file_size_limit` in Supabase Dashboard

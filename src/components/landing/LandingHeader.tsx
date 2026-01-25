@@ -10,10 +10,16 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 
-const navigation = [
+interface NavigationItem {
+  name: string;
+  href: string;
+  isInternalRoute?: boolean;
+}
+
+const navigation: NavigationItem[] = [
   { name: 'Features', href: '#features' },
   { name: 'About', href: '#about' },
-  { name: 'Support', href: '/support' },
+  { name: 'Support', href: '/support', isInternalRoute: true },
 ];
 
 const LandingHeader = () => {
@@ -21,7 +27,7 @@ const LandingHeader = () => {
   const navigate = useNavigate();
   const isOnLandingPage = location.pathname === '/';
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string, isInternalRoute?: boolean) => {
     if (href.startsWith('#')) {
       e.preventDefault();
       if (isOnLandingPage) {
@@ -32,6 +38,9 @@ const LandingHeader = () => {
         // If on other pages, navigate to landing page with anchor
         navigate(`/${href}`);
       }
+    } else if (isInternalRoute) {
+      e.preventDefault();
+      navigate(href);
     }
   };
 
@@ -58,6 +67,23 @@ const LandingHeader = () => {
               if (isOnLandingPage && isHash) {
                 isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
               }
+              
+              if (item.isInternalRoute) {
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={[
+                      'transition-colors',
+                      'text-muted-foreground hover:text-foreground',
+                      isActive ? 'text-foreground font-semibold' : ''
+                    ].join(' ')}
+                  >
+                    {item.name}
+                  </Link>
+                );
+              }
+              
               return (
                 <a
                   key={item.name}
@@ -67,7 +93,7 @@ const LandingHeader = () => {
                     'text-muted-foreground hover:text-foreground',
                     isActive ? 'text-foreground font-semibold' : ''
                   ].join(' ')}
-                  onClick={(e) => handleNavClick(e, item.href)}
+                  onClick={(e) => handleNavClick(e, item.href, item.isInternalRoute)}
                 >
                   {item.name}
                 </a>
@@ -101,6 +127,23 @@ const LandingHeader = () => {
                     if (isOnLandingPage && isHash) {
                       isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
                     }
+                    
+                    if (item.isInternalRoute) {
+                      return (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          className={[
+                            'text-lg font-medium transition-colors',
+                            'text-muted-foreground hover:text-foreground',
+                            isActive ? 'text-foreground font-semibold' : ''
+                          ].join(' ')}
+                        >
+                          {item.name}
+                        </Link>
+                      );
+                    }
+                    
                     return (
                       <a
                         key={item.name}
@@ -110,7 +153,7 @@ const LandingHeader = () => {
                           'text-muted-foreground hover:text-foreground',
                           isActive ? 'text-foreground font-semibold' : ''
                         ].join(' ')}
-                        onClick={(e) => handleNavClick(e, item.href)}
+                        onClick={(e) => handleNavClick(e, item.href, item.isInternalRoute)}
                       >
                         {item.name}
                       </a>

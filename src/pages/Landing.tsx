@@ -21,7 +21,9 @@ const Landing = () => {
       <main>
         <HeroSection />
         <FeaturesSection id="features" />
-        <SocialProofSection />
+        <div id="pricing">
+          <SocialProofSection />
+        </div>
         <div id="about">
           <CTASection />
         </div>
