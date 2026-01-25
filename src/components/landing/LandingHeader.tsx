@@ -1,4 +1,4 @@
-import React from 'react';
+import type { MouseEvent } from 'react';
 import { useActiveSection } from '@/hooks/useActiveSection';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -6,6 +6,7 @@ import Logo from '@/components/ui/Logo';
 import { Menu } from 'lucide-react';
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet';
@@ -27,7 +28,7 @@ const LandingHeader = () => {
   const navigate = useNavigate();
   const isOnLandingPage = location.pathname === '/';
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string, isInternalRoute?: boolean) => {
+  const handleNavClick = (e: MouseEvent<HTMLAnchorElement>, href: string, isInternalRoute?: boolean) => {
     if (href.startsWith('#')) {
       e.preventDefault();
       if (isOnLandingPage) {
@@ -130,42 +131,48 @@ const LandingHeader = () => {
                     
                     if (item.isInternalRoute) {
                       return (
-                        <Link
-                          key={item.name}
-                          to={item.href}
+                        <SheetClose asChild key={item.name}>
+                          <Link
+                            to={item.href}
+                            className={[
+                              'text-lg font-medium transition-colors',
+                              'text-muted-foreground hover:text-foreground',
+                              isActive ? 'text-foreground font-semibold' : ''
+                            ].join(' ')}
+                          >
+                            {item.name}
+                          </Link>
+                        </SheetClose>
+                      );
+                    }
+                    
+                    return (
+                      <SheetClose asChild key={item.name}>
+                        <a
+                          href={item.href}
                           className={[
                             'text-lg font-medium transition-colors',
                             'text-muted-foreground hover:text-foreground',
                             isActive ? 'text-foreground font-semibold' : ''
                           ].join(' ')}
+                          onClick={(e) => handleNavClick(e, item.href, item.isInternalRoute)}
                         >
                           {item.name}
-                        </Link>
-                      );
-                    }
-                    
-                    return (
-                      <a
-                        key={item.name}
-                        href={item.href}
-                        className={[
-                          'text-lg font-medium transition-colors',
-                          'text-muted-foreground hover:text-foreground',
-                          isActive ? 'text-foreground font-semibold' : ''
-                        ].join(' ')}
-                        onClick={(e) => handleNavClick(e, item.href, item.isInternalRoute)}
-                      >
-                        {item.name}
-                      </a>
+                        </a>
+                      </SheetClose>
                     );
                   })}
                   <div className="pt-4 border-t border-border space-y-2">
-                    <Button asChild variant="ghost" className="w-full justify-start">
-                      <Link to="/auth">Sign In</Link>
-                    </Button>
-                    <Button asChild className="w-full">
-                      <Link to="/auth">Get Started</Link>
-                    </Button>
+                    <SheetClose asChild>
+                      <Button asChild variant="ghost" className="w-full justify-start">
+                        <Link to="/auth">Sign In</Link>
+                      </Button>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Button asChild className="w-full">
+                        <Link to="/auth">Get Started</Link>
+                      </Button>
+                    </SheetClose>
                   </div>
                 </div>
               </SheetContent>
