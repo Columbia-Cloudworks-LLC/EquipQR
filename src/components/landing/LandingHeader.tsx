@@ -23,7 +23,7 @@ const navigation: NavigationItem[] = [
 ];
 
 // Stable constant for section IDs to avoid unnecessary re-renders
-const SECTION_IDS = ['features', 'pricing', 'about'] as const;
+const SECTION_IDS: string[] = ['features', 'pricing', 'about'];
 
 const LandingHeader = () => {
   const location = useLocation();
