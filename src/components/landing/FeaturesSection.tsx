@@ -8,7 +8,9 @@ import {
   BarChart3, 
   Smartphone,
   UserCircle,
-  FileCheck
+  FileCheck,
+  Warehouse,
+  Search
 } from 'lucide-react';
 
 const features = [
@@ -56,6 +58,18 @@ const features = [
     benefits: ['Pre-built templates', 'Custom checklists', 'Standardized maintenance']
   },
   {
+    icon: Warehouse,
+    title: 'Inventory Management',
+    description: 'Track parts and supplies with real-time stock levels, low stock alerts, and transaction history. Link inventory to equipment for compatibility tracking.',
+    benefits: ['Stock level tracking', 'Low stock alerts', 'Transaction history', 'Equipment compatibility']
+  },
+  {
+    icon: Search,
+    title: 'Part Lookup & Alternates',
+    description: 'Quickly find parts by part number and discover interchangeable alternatives. Search inventory, external catalogs, and alternate part groups.',
+    benefits: ['Fast part number search', 'Alternate part discovery', 'Stock availability', 'Cost comparison']
+  },
+  {
     icon: Smartphone,
     title: 'Mobile-First Design',
     description: 'Native mobile experience for field technicians. Work offline and sync when connected. Optimized for all devices.',
@@ -72,7 +86,7 @@ const FeaturesSection = ({ id }: { id?: string }) => {
             Complete Equipment Management Platform
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Everything you need to manage your fleet efficiently, from QR code tracking to advanced analytics. Built for scale and security.
+            Everything you need to manage your fleet efficiently, from QR code tracking and inventory management to work orders and advanced analytics. Built for scale and security.
           </p>
         </div>
         

@@ -24,7 +24,7 @@ const HeroSection = () => {
           
           {/* Subheadline */}
           <p className="text-xl sm:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            The completely free, enterprise-grade platform for repair shops and rental operations. Track equipment with QR codes, manage work orders, and organize your team without spending a dime.
+            The completely free, enterprise-grade platform for repair shops and rental operations. Track equipment with QR codes, manage inventory and parts, handle work orders, and organize your team without spending a dime.
           </p>
           
           {/* Key Features */}

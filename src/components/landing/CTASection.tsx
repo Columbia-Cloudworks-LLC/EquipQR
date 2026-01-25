@@ -12,7 +12,7 @@ const CTASection = () => {
             Ready to Streamline Your Heavy Equipment Operations?
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join repair shops and rental operations using EquipQR™ to track equipment and manage maintenance. 
+            Join repair shops and rental operations using EquipQR™ to track equipment, manage inventory and parts, and handle maintenance workflows. 
             Completely free to use with unlimited team members.
           </p>
           
