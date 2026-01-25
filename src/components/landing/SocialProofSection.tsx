@@ -61,8 +61,8 @@ const SocialProofSection = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center max-w-4xl mx-auto">
           <div>
-            <div className="text-3xl font-bold text-foreground mb-2">Zero</div>
-            <div className="text-sm text-muted-foreground">Licensing Fees</div>
+            <div className="text-3xl font-bold text-foreground mb-2">Enterprise-grade</div>
+            <div className="text-sm text-muted-foreground">Platform</div>
           </div>
           <div>
             <div className="text-3xl font-bold text-foreground mb-2">Unlimited</div>

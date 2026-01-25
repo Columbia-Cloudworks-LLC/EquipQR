@@ -1,4 +1,4 @@
-import React from 'react';
+import type { MouseEvent } from 'react';
 import { useActiveSection } from '@/hooks/useActiveSection';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -6,23 +6,31 @@ import Logo from '@/components/ui/Logo';
 import { Menu } from 'lucide-react';
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet';
 
-const navigation = [
+interface NavigationItem {
+  name: string;
+  href: string;
+}
+
+const navigation: NavigationItem[] = [
   { name: 'Features', href: '#features' },
-  { name: 'Pricing', href: '#pricing' },
   { name: 'About', href: '#about' },
-  { name: 'Support', href: '/support' },
+  { name: 'Field-Tested', href: '#pricing' },
 ];
+
+// Stable constant for section IDs to avoid unnecessary re-renders
+const SECTION_IDS: string[] = ['features', 'pricing', 'about'];
 
 const LandingHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const isOnLandingPage = location.pathname === '/';
+  const isOnLandingPage = location.pathname === '/' || location.pathname === '/landing';
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+  const handleNavClick = (e: MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('#')) {
       e.preventDefault();
       if (isOnLandingPage) {
@@ -30,13 +38,13 @@ const LandingHeader = () => {
         const element = document.querySelector(href);
         element?.scrollIntoView({ behavior: 'smooth' });
       } else {
-        // If on other pages, navigate to landing page with anchor
-        navigate(`/${href}`);
+        // If on other pages, navigate to /landing with anchor (bypasses SmartLanding redirect)
+        navigate(`/landing${href}`);
       }
     }
   };
 
-  const activeSection = useActiveSection(['features', 'pricing', 'about']);
+  const activeSection = useActiveSection(isOnLandingPage ? SECTION_IDS : []);
   const activeSectionToUse = isOnLandingPage ? activeSection : null;
   return (
     <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -44,7 +52,7 @@ const LandingHeader = () => {
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/landing" className="flex items-center gap-2">
               <Logo size="sm" />
               <span className="font-bold text-xl text-foreground">EquipQR™</span>
             </Link>
@@ -59,6 +67,7 @@ const LandingHeader = () => {
               if (isOnLandingPage && isHash) {
                 isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
               }
+              
               return (
                 <a
                   key={item.name}
@@ -79,10 +88,10 @@ const LandingHeader = () => {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center space-x-4">
             <Button asChild variant="ghost">
-              <Link to="/auth">Sign In</Link>
+              <Link to="/auth?tab=signin">Sign In</Link>
             </Button>
             <Button asChild>
-              <Link to="/auth">Get Started</Link>
+              <Link to="/auth?tab=signup">Get Started</Link>
             </Button>
           </div>
 
@@ -102,28 +111,37 @@ const LandingHeader = () => {
                     if (isOnLandingPage && isHash) {
                       isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
                     }
+                    
+                    // For hash links, prepend /landing when not on landing page
+                    const href = isHash && !isOnLandingPage ? `/landing${item.href}` : item.href;
+                    
                     return (
-                      <a
-                        key={item.name}
-                        href={item.href}
-                        className={[
-                          'text-lg font-medium transition-colors',
-                          'text-muted-foreground hover:text-foreground',
-                          isActive ? 'text-foreground font-semibold' : ''
-                        ].join(' ')}
-                        onClick={(e) => handleNavClick(e, item.href)}
-                      >
-                        {item.name}
-                      </a>
+                      <SheetClose asChild key={item.name}>
+                        <a
+                          href={href}
+                          className={[
+                            'text-lg font-medium transition-colors',
+                            'text-muted-foreground hover:text-foreground',
+                            isActive ? 'text-foreground font-semibold' : ''
+                          ].join(' ')}
+                          onClick={(e) => handleNavClick(e, item.href)}
+                        >
+                          {item.name}
+                        </a>
+                      </SheetClose>
                     );
                   })}
                   <div className="pt-4 border-t border-border space-y-2">
-                    <Button asChild variant="ghost" className="w-full justify-start">
-                      <Link to="/auth">Sign In</Link>
-                    </Button>
-                    <Button asChild className="w-full">
-                      <Link to="/auth">Get Started</Link>
-                    </Button>
+                    <SheetClose asChild>
+                      <Button asChild variant="ghost" className="w-full justify-start">
+                        <Link to="/auth?tab=signin">Sign In</Link>
+                      </Button>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Button asChild className="w-full">
+                        <Link to="/auth?tab=signup">Get Started</Link>
+                      </Button>
+                    </SheetClose>
                   </div>
                 </div>
               </SheetContent>
