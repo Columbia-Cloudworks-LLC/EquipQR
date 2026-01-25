@@ -242,8 +242,12 @@ const CustomerCRMFeature = () => {
 
             <div className="max-w-5xl mx-auto space-y-12">
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Customers list and equipment per customer</p>
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/customer-crm-list.png"
+                    alt="Teams list showing customers with member counts and team details"
+                    className="w-full h-auto"
+                  />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Customers & Linked Equipment</h3>
                 <p className="text-muted-foreground">

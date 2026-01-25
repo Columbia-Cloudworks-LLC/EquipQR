@@ -308,8 +308,12 @@ const InventoryManagementFeature = () => {
 
             <div className="max-w-5xl mx-auto space-y-12">
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Inventory list view</p>
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/inventory-list.png"
+                    alt="Inventory list view showing parts with stock levels, SKUs, and low stock indicators"
+                    className="w-full h-auto"
+                  />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Inventory List View</h3>
                 <p className="text-muted-foreground">
@@ -319,8 +323,12 @@ const InventoryManagementFeature = () => {
               </div>
 
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Item detail & transactions</p>
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/inventory-detail.png"
+                    alt="Inventory item detail page showing stock information and transaction history"
+                    className="w-full h-auto"
+                  />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Item Detail & Transaction History</h3>
                 <p className="text-muted-foreground">
