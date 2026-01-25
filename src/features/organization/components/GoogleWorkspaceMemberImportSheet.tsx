@@ -77,6 +77,14 @@ export const GoogleWorkspaceMemberImportSheet = ({
     return emails;
   }, [existingMembers, existingClaims]);
 
+  // Count how many directory users are hidden because they're already in org or have pending claims
+  const hiddenCount = useMemo(() => {
+    return directoryUsers.filter(user => {
+      const email = user.primary_email.trim().toLowerCase();
+      return existingEmails.has(email);
+    }).length;
+  }, [directoryUsers, existingEmails]);
+
   // Filter directory users to only show those not already in org
   const availableUsers = useMemo(() => {
     return directoryUsers.filter(user => {
@@ -265,11 +273,11 @@ export const GoogleWorkspaceMemberImportSheet = ({
           </div>
 
           {/* Info about filtered users */}
-          {existingEmails.size > 0 && (
+          {hiddenCount > 0 && (
             <Alert>
               <CheckCircle2 className="h-4 w-4" />
               <AlertDescription>
-                {existingEmails.size} user{existingEmails.size !== 1 ? 's' : ''} already in organization or pending claim (hidden).
+                {hiddenCount} user{hiddenCount !== 1 ? 's' : ''} already in organization or pending claim (hidden).
               </AlertDescription>
             </Alert>
           )}
