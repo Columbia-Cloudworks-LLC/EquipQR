@@ -153,7 +153,18 @@ export const GoogleWorkspaceMemberImportSheet = ({
 
   const toggleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedEmails(new Set(availableUsers.map(u => u.primary_email)));
+      const newSelectedEmails = new Set(availableUsers.map(u => u.primary_email));
+      setSelectedEmails(newSelectedEmails);
+      // Reconcile adminEmails to only include emails that are in the new selected set
+      setAdminEmails(prev => {
+        const reconciled = new Set<string>();
+        prev.forEach(email => {
+          if (newSelectedEmails.has(email)) {
+            reconciled.add(email);
+          }
+        });
+        return reconciled;
+      });
     } else {
       setSelectedEmails(new Set());
       setAdminEmails(new Set());
