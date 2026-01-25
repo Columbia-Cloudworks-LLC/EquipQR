@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { RefreshCw, Search, Users, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAppToast } from '@/hooks/useAppToast';
 import {
-  listWorkspaceDirectoryUsers,
+  listWorkspaceDirectoryUsersLight,
   selectGoogleWorkspaceMembers,
   syncGoogleWorkspaceUsers,
 } from '@/services/google-workspace';
@@ -51,16 +51,16 @@ export const GoogleWorkspaceMemberImportSheet = ({
   const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch directory users - only select fields needed for this UI
+  // Fetch directory users - uses light function with only essential fields
   const { data: directoryUsers = [], isLoading: isLoadingDirectory, refetch: refetchDirectory } = useQuery({
-    queryKey: ['google-workspace', 'directory-users', organizationId],
-    queryFn: () => listWorkspaceDirectoryUsers(organizationId, 'id,primary_email,full_name,suspended'),
+    queryKey: ['google-workspace', 'directory-users-light', organizationId],
+    queryFn: () => listWorkspaceDirectoryUsersLight(organizationId),
     enabled: !!organizationId && open,
     staleTime: 60 * 1000,
   });
 
   // Fetch existing members and claims to filter them out
-  // Let these queries stay cached between sheet openings for consistency
+  // These will only run when the component is mounted (controlled by parent)
   const { data: existingMembers = [] } = useOrganizationMembersQuery(organizationId);
   const { data: existingClaims = [] } = useGoogleWorkspaceMemberClaims(organizationId);
 

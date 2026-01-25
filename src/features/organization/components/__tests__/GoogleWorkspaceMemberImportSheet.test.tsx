@@ -35,12 +35,12 @@ vi.mock('@/integrations/supabase/client', () => {
 // Mock google-workspace services
 const mockSyncUsers = vi.fn();
 const mockSelectMembers = vi.fn();
-const mockListDirectoryUsers = vi.fn();
+const mockListDirectoryUsersLight = vi.fn();
 
 vi.mock('@/services/google-workspace', () => ({
   syncGoogleWorkspaceUsers: (...args: unknown[]) => mockSyncUsers(...args),
   selectGoogleWorkspaceMembers: (...args: unknown[]) => mockSelectMembers(...args),
-  listWorkspaceDirectoryUsers: (...args: unknown[]) => mockListDirectoryUsers(...args),
+  listWorkspaceDirectoryUsersLight: (...args: unknown[]) => mockListDirectoryUsersLight(...args),
 }));
 
 // Mock organization members query
@@ -74,7 +74,7 @@ describe('GoogleWorkspaceMemberImportSheet', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockListDirectoryUsers.mockResolvedValue(mockDirectoryUsers);
+    mockListDirectoryUsersLight.mockResolvedValue(mockDirectoryUsers);
     mockSyncUsers.mockResolvedValue({ usersSynced: 5 });
     mockSelectMembers.mockResolvedValue({ members_added: 2, admin_applied: 1, admin_pending: 0 });
     

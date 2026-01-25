@@ -503,7 +503,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
           onOpenChange={setInviteDialogOpen}
         />
 
-        {isGwsConnected && (
+        {isGwsConnected && importSheetOpen && (
           <GoogleWorkspaceMemberImportSheet
             open={importSheetOpen}
             onOpenChange={setImportSheetOpen}
