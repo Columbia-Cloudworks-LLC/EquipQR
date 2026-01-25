@@ -85,10 +85,10 @@ const LandingHeader = () => {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center space-x-4">
             <Button asChild variant="ghost">
-              <Link to="/auth">Sign In</Link>
+              <Link to="/auth?tab=signin">Sign In</Link>
             </Button>
             <Button asChild>
-              <Link to="/auth">Get Started</Link>
+              <Link to="/auth?tab=signup">Get Started</Link>
             </Button>
           </div>
 
@@ -131,12 +131,12 @@ const LandingHeader = () => {
                   <div className="pt-4 border-t border-border space-y-2">
                     <SheetClose asChild>
                       <Button asChild variant="ghost" className="w-full justify-start">
-                        <Link to="/auth">Sign In</Link>
+                        <Link to="/auth?tab=signin">Sign In</Link>
                       </Button>
                     </SheetClose>
                     <SheetClose asChild>
                       <Button asChild className="w-full">
-                        <Link to="/auth">Get Started</Link>
+                        <Link to="/auth?tab=signup">Get Started</Link>
                       </Button>
                     </SheetClose>
                   </div>

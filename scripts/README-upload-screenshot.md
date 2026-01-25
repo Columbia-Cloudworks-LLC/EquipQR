@@ -52,6 +52,42 @@ The script outputs:
 - 📎 Public URL to the uploaded image
 - 📝 Markdown reference for use in documentation
 
+### JSON Output Mode
+
+For programmatic use, enable JSON-only output by setting the `OUTPUT_JSON=true` environment variable:
+
+```bash
+OUTPUT_JSON=true npx tsx scripts/upload-screenshot.ts tmp/screenshot.png features/qr-code/hero.png
+```
+
+When JSON mode is enabled, the script outputs a single JSON object with the following fields:
+
+- `success`: `boolean` - Whether the upload succeeded
+- `publicUrl`: `string` - Public URL to the uploaded image (only present on success)
+- `storagePath`: `string` - Storage path used for the upload
+- `bucket`: `string` - Bucket name used
+- `fileSize`: `number` - File size in bytes (only present on success)
+- `error`: `string` - Error message (only present on failure)
+
+**Example JSON output (success):**
+```json
+{
+  "success": true,
+  "publicUrl": "https://ymxkzronkhwxzcdcbnwq.supabase.co/storage/v1/object/public/landing-page-images/features/qr-code/hero.png",
+  "storagePath": "features/qr-code/hero.png",
+  "bucket": "landing-page-images",
+  "fileSize": 471859
+}
+```
+
+**Example JSON output (error):**
+```json
+{
+  "success": false,
+  "error": "File not found: tmp/screenshot.png"
+}
+```
+
 ## Example Output
 
 ```

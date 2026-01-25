@@ -138,20 +138,11 @@ if (!validExtensions.includes(ext)) {
   process.exit(1);
 }
 
-// Get file stats
-const stats = fs.statSync(filePath);
-const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
-
 // Use the already-defined JSON mode flag for runtime logs
 const isJsonMode = isJsonModeEarly;
 const log = (...args: unknown[]) => {
   if (!isJsonMode) console.log(...args);
 };
-
-log(`📤 Uploading screenshot...`);
-log(`   File: ${filePath} (${fileSizeMB} MB)`);
-log(`   Storage path: ${storagePath}`);
-log(`   Bucket: ${bucketName}`);
 
 // Create Supabase client with service role key
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
@@ -162,6 +153,30 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
 });
 
 async function uploadScreenshot() {
+  let stats: fs.Stats;
+  let fileSizeMB: string;
+  
+  try {
+    // Get file stats (moved inside try/catch for proper error handling)
+    stats = fs.statSync(filePath);
+    fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+  } catch (error) {
+    if (isJsonModeEarly) {
+      console.log(JSON.stringify({
+        success: false,
+        error: `Failed to read file stats for: ${filePath}`,
+      }));
+    } else {
+      console.error(`❌ Failed to read file stats for: ${filePath}`);
+    }
+    process.exit(1);
+  }
+
+  log(`📤 Uploading screenshot...`);
+  log(`   File: ${filePath} (${fileSizeMB} MB)`);
+  log(`   Storage path: ${storagePath}`);
+  log(`   Bucket: ${bucketName}`);
+
   try {
     // Read file
     const fileBuffer = fs.readFileSync(filePath);
