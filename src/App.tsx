@@ -13,6 +13,7 @@ import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';
 import DebugAuth from '@/pages/DebugAuth';
 const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
+const PMTemplatesFeature = lazy(() => import('@/pages/features/PMTemplates'));
 
 // Dashboard components can be lazy-loaded since they're only needed after auth
 const AppSidebar = lazy(() => import('@/components/layout/AppSidebar'));
@@ -80,6 +81,7 @@ function App() {
         
         {/* Other public routes with suspense for lazy loading */}
         <Route path="/solutions/repair-shops" element={<Suspense fallback={<div>Loading...</div>}><RepairShops /></Suspense>} />
+        <Route path="/features/pm-templates" element={<Suspense fallback={<div>Loading...</div>}><PMTemplatesFeature /></Suspense>} />
         <Route path="/support" element={<Suspense fallback={<div>Loading...</div>}><Support /></Suspense>} />
         <Route path="/invitation/:token" element={<Suspense fallback={<div>Loading...</div>}><InvitationAccept /></Suspense>} />
         <Route path="/qr/inventory/:itemId" element={<Suspense fallback={<div>Loading...</div>}><InventoryQRRedirect /></Suspense>} />

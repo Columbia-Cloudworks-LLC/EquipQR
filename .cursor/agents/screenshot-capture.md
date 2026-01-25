@@ -29,67 +29,117 @@ You are a documentation screenshot specialist for EquipQR. Your job is to captur
 - **Method**: Google OAuth (may require manual intervention)
 
 ### Authentication Steps
-1. Navigate to `/auth?tab=signin`
-2. Use `browser_snapshot` to understand the page structure
-3. Fill email field using `browser_type` or `browser_fill_form`
-4. Fill password field
-5. Click sign in button using `browser_click`
-6. Wait for navigation using `browser_wait_for` (wait for URL change or dashboard elements)
+
+1. **Navigate to auth page:**
+   ```json
+   { "server": "user-playwright", "toolName": "browser_navigate", "arguments": { "url": "http://localhost:8080/auth?tab=signin" } }
+   ```
+
+2. **Get element refs with snapshot:**
+   ```json
+   { "server": "user-playwright", "toolName": "browser_snapshot", "arguments": {} }
+   ```
+
+3. **Type email** (use ref from snapshot for email input):
+   ```json
+   { "server": "user-playwright", "toolName": "browser_type", "arguments": { "ref": "<email-input-ref>", "text": "owner@apex.test" } }
+   ```
+
+4. **Type password** (use ref from snapshot for password input):
+   ```json
+   { "server": "user-playwright", "toolName": "browser_type", "arguments": { "ref": "<password-input-ref>", "text": "password123" } }
+   ```
+
+5. **Click sign in button** (use ref from snapshot):
+   ```json
+   { "server": "user-playwright", "toolName": "browser_click", "arguments": { "ref": "<signin-button-ref>", "element": "Sign In button" } }
+   ```
+
+6. **Wait for navigation:**
+   ```json
+   { "server": "user-playwright", "toolName": "browser_wait_for", "arguments": { "text": "Dashboard" } }
+   ```
 
 ## Screenshot Capture Process
 
 For each screenshot you need:
 
 ### 1. Navigate to Target
-- Use `browser_navigate` to go to the target page
-- Use `browser_snapshot` to understand page structure
-- Wait for page to fully load
 
-### 2. Annotate Active Element
-Before taking a screenshot, annotate the active/relevant element:
+```json
+{ "server": "user-playwright", "toolName": "browser_navigate", "arguments": { "url": "http://localhost:8080/dashboard/pm-templates" } }
+```
 
-**JavaScript Injection Pattern:**
-```javascript
-// Store previous state
-const prevEl = window.__eqrOutlinedEl;
-const prevOutline = window.__eqrPrevOutline;
+Then get a snapshot to understand the page:
+```json
+{ "server": "user-playwright", "toolName": "browser_snapshot", "arguments": {} }
+```
 
-// Get active element
-const activeEl = document.activeElement;
-if (activeEl && activeEl !== document.body && activeEl instanceof HTMLElement) {
-  // Save previous outline
-  window.__eqrPrevOutline = activeEl.style.outline;
-  window.__eqrOutlinedEl = activeEl;
-  // Apply red border
-  activeEl.style.outline = '3px solid red';
-} else {
-  // If no active element, find the most relevant element
-  // (e.g., the button/input you just interacted with)
-  const targetEl = document.querySelector('[data-focused]') || 
-                   document.querySelector('button:focus') ||
-                   document.querySelector('input:focus');
-  if (targetEl instanceof HTMLElement) {
-    window.__eqrPrevOutline = targetEl.style.outline;
-    window.__eqrOutlinedEl = targetEl;
-    targetEl.style.outline = '3px solid red';
+### 2. Annotate Element (Optional)
+Before taking a screenshot, you can annotate a specific element with a red border:
+
+**Use `browser_evaluate` with the `user-playwright` MCP server:**
+
+To add a red border to a specific element by selector:
+```json
+{
+  "server": "user-playwright",
+  "toolName": "browser_evaluate",
+  "arguments": {
+    "function": "() => { const el = document.querySelector('[data-testid=\"pm-templates-list\"]') || document.querySelector('main'); if (el) { window.__eqrPrevOutline = el.style.outline; window.__eqrOutlinedEl = el; el.style.outline = '3px solid red'; } }"
   }
 }
 ```
 
-**Execute via browser console:**
-- Use `browser_evaluate` or inject via `browser_press_key` with F12 → console
+To annotate a specific element by ref (from snapshot):
+```json
+{
+  "server": "user-playwright",
+  "toolName": "browser_evaluate",
+  "arguments": {
+    "function": "(el) => { window.__eqrPrevOutline = el.style.outline; window.__eqrOutlinedEl = el; el.style.outline = '3px solid red'; }",
+    "ref": "S1E5",
+    "element": "PM Templates card"
+  }
+}
+```
 
 ### 3. Take Screenshot
-- Use `browser_take_screenshot` from `user-playwright` MCP server
-- Save screenshot data temporarily (you'll upload it next)
+Use `browser_take_screenshot` from `user-playwright` MCP server:
+
+```json
+{
+  "server": "user-playwright",
+  "toolName": "browser_take_screenshot",
+  "arguments": {
+    "type": "png",
+    "filename": "tmp/pm-templates-list.png"
+  }
+}
+```
+
+For full-page screenshots:
+```json
+{
+  "server": "user-playwright",
+  "toolName": "browser_take_screenshot",
+  "arguments": {
+    "type": "png",
+    "filename": "tmp/pm-templates-full.png",
+    "fullPage": true
+  }
+}
+```
 
 ### 4. Remove Annotation
-```javascript
-// Restore previous outline
-if (window.__eqrOutlinedEl) {
-  window.__eqrOutlinedEl.style.outline = window.__eqrPrevOutline || '';
-  window.__eqrOutlinedEl = null;
-  window.__eqrPrevOutline = null;
+Use `browser_evaluate` to restore the previous outline:
+```json
+{
+  "server": "user-playwright",
+  "toolName": "browser_evaluate",
+  "arguments": {
+    "function": "() => { if (window.__eqrOutlinedEl) { window.__eqrOutlinedEl.style.outline = window.__eqrPrevOutline || ''; window.__eqrOutlinedEl = null; window.__eqrPrevOutline = null; } }"
+  }
 }
 ```
 
@@ -145,16 +195,29 @@ Organize images in Supabase Storage by feature/purpose:
 
 ## MCP Playwright Tools Reference
 
-| Tool | Purpose | Example |
-|------|---------|---------|
-| `browser_navigate` | Navigate to URL | `{ "url": "http://localhost:8080/auth" }` |
-| `browser_snapshot` | Get accessibility tree | `{}` |
-| `browser_take_screenshot` | Capture screenshot | `{}` |
-| `browser_click` | Click element | `{ "element": "Sign In button", "ref": "button-ref" }` |
-| `browser_type` | Type text | `{ "element": "Email input", "ref": "input-ref", "text": "owner@apex.test" }` |
-| `browser_fill_form` | Fill multiple fields | `{ "fields": [{"name": "email", "value": "..."}, {"name": "password", "value": "..."}] }` |
-| `browser_wait_for` | Wait for condition | `{ "condition": "url", "value": "/dashboard" }` |
-| `browser_evaluate` | Execute JavaScript | `{ "expression": "document.activeElement.style.outline = '3px solid red'" }` |
+**IMPORTANT**: Use the `user-playwright` MCP server (NOT `cursor-ide-browser`).
+
+| Tool | Purpose | Required Args | Example |
+|------|---------|---------------|---------|
+| `browser_navigate` | Navigate to URL | `url` | `{ "url": "http://localhost:8080/auth" }` |
+| `browser_snapshot` | Get accessibility tree with element refs | (none) | `{}` |
+| `browser_take_screenshot` | Capture screenshot | `type` | `{ "type": "png", "filename": "tmp/screenshot.png" }` |
+| `browser_click` | Click element | `ref` | `{ "ref": "S1E2", "element": "Sign In button" }` |
+| `browser_type` | Type text | `ref`, `text` | `{ "ref": "S1E3", "text": "owner@apex.test" }` |
+| `browser_evaluate` | Execute JavaScript | `function` | `{ "function": "() => { document.querySelector('main').style.outline = '3px solid red'; }" }` |
+| `browser_wait_for` | Wait for condition | varies | `{ "text": "Dashboard" }` |
+
+### Key Usage Notes
+
+1. **Always call `browser_snapshot` first** to get element `ref` values
+2. The `ref` values come from the snapshot (e.g., "S1E2", "B5", "I3")
+3. For `browser_take_screenshot`:
+   - `type` is REQUIRED: "png" or "jpeg"
+   - Use `filename` to save locally (e.g., `"filename": "tmp/pm-templates-list.png"`)
+   - Use `fullPage: true` for full page screenshots
+4. For `browser_evaluate`:
+   - Use `function` parameter (not `expression`)
+   - Format: `"function": "() => { /* code */ }"`
 
 ## Best Practices
 

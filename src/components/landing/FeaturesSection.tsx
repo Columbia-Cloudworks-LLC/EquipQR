@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   QrCode, 
@@ -10,10 +11,21 @@ import {
   UserCircle,
   FileCheck,
   Warehouse,
-  Search
+  Search,
+  ArrowRight
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-const features = [
+interface Feature {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  benefits: string[];
+  developmentNotice?: string;
+  link?: string;
+}
+
+const features: Feature[] = [
   {
     icon: QrCode,
     title: 'QR Code Integration',
@@ -55,7 +67,8 @@ const features = [
     icon: FileCheck,
     title: 'PM Templates',
     description: 'Use built-in checklists for Excavators, Forklifts, and Trailers, or build your own custom templates.',
-    benefits: ['Pre-built templates', 'Custom checklists', 'Standardized maintenance']
+    benefits: ['Pre-built templates', 'Custom checklists', 'Standardized maintenance'],
+    link: '/features/pm-templates'
   },
   {
     icon: Warehouse,
@@ -97,36 +110,57 @@ const FeaturesSection = ({ id }: { id?: string }) => {
               return colors[index % colors.length];
             };
             
-            return (
-              <Card key={index} className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+            const cardContent = (
+              <Card className={`border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors h-full ${feature.link ? 'cursor-pointer hover:border-primary/50' : ''}`}>
                 <CardHeader className="pb-4">
-                  <div className="mb-4">
+                  <div className="mb-4 flex items-center justify-between">
                     <feature.icon className={`h-8 w-8 ${getIconColor(index)}`} />
+                    {feature.link && (
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    )}
                   </div>
-                <CardTitle className="text-xl">{feature.title}</CardTitle>
-                <CardDescription className="text-sm">
-                  {feature.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {feature.benefits.map((benefit, i) => (
-                    <li key={i} className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      {benefit}
-                    </li>
-                  ))}
-                </ul>
-                {feature.developmentNotice && (
-                  <div className="mt-4 pt-3 border-t border-border">
-                    <p className="text-xs text-muted-foreground/70 italic">
-                      {feature.developmentNotice}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                  <CardDescription className="text-sm">
+                    {feature.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {feature.benefits.map((benefit, i) => (
+                      <li key={i} className="text-sm text-muted-foreground flex items-center">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
+                        {benefit}
+                      </li>
+                    ))}
+                  </ul>
+                  {feature.developmentNotice && (
+                    <div className="mt-4 pt-3 border-t border-border">
+                      <p className="text-xs text-muted-foreground/70 italic">
+                        {feature.developmentNotice}
+                      </p>
+                    </div>
+                  )}
+                  {feature.link && (
+                    <div className="mt-4 pt-3 border-t border-border">
+                      <p className="text-sm text-primary font-medium flex items-center">
+                        Learn more
+                        <ArrowRight className="h-3 w-3 ml-1" />
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             );
+            
+            if (feature.link) {
+              return (
+                <Link key={index} to={feature.link} className="block">
+                  {cardContent}
+                </Link>
+              );
+            }
+            
+            return <div key={index}>{cardContent}</div>;
           })}
         </div>
       </div>
