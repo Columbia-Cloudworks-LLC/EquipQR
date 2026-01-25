@@ -74,13 +74,15 @@ const features: Feature[] = [
     icon: Warehouse,
     title: 'Inventory Management',
     description: 'Track parts and supplies with real-time stock levels, low stock alerts, and transaction history. Link inventory to equipment for compatibility tracking.',
-    benefits: ['Stock level tracking', 'Low stock alerts', 'Transaction history', 'Equipment compatibility']
+    benefits: ['Stock level tracking', 'Low stock alerts', 'Transaction history', 'Equipment compatibility'],
+    link: '/features/inventory'
   },
   {
     icon: Search,
     title: 'Part Lookup & Alternates',
     description: 'Quickly find parts by part number and discover interchangeable alternatives. Search inventory, external catalogs, and alternate part groups.',
-    benefits: ['Fast part number search', 'Alternate part discovery', 'Stock availability', 'Cost comparison']
+    benefits: ['Fast part number search', 'Alternate part discovery', 'Stock availability', 'Cost comparison'],
+    link: '/features/part-lookup-alternates'
   },
   {
     icon: Smartphone,
