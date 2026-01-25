@@ -3,6 +3,7 @@ import LandingHeader from '@/components/landing/LandingHeader';
 import HeroSection from '@/components/landing/HeroSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import SocialProofSection from '@/components/landing/SocialProofSection';
+import AboutSection from '@/components/landing/AboutSection';
 import CTASection from '@/components/landing/CTASection';
 import LegalFooter from '@/components/layout/LegalFooter';
 
@@ -24,9 +25,8 @@ const Landing = () => {
         <div id="pricing">
           <SocialProofSection />
         </div>
-        <div id="about">
-          <CTASection />
-        </div>
+        <AboutSection id="about" />
+        <CTASection />
       </main>
       <LegalFooter />
     </div>

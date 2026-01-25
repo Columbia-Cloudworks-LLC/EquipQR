@@ -19,7 +19,7 @@ interface NavigationItem {
 const navigation: NavigationItem[] = [
   { name: 'Features', href: '#features' },
   { name: 'About', href: '#about' },
-  { name: 'Support', href: '/support', isInternalRoute: true },
+  { name: 'Field-Tested', href: '#pricing' },
 ];
 
 const LandingHeader = () => {

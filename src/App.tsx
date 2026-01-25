@@ -16,6 +16,14 @@ const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
 const PMTemplatesFeature = lazy(() => import('@/pages/features/PMTemplates'));
 const InventoryManagementFeature = lazy(() => import('@/pages/features/InventoryManagement'));
 const PartLookupAlternatesFeature = lazy(() => import('@/pages/features/PartLookupAlternates'));
+const QRCodeIntegrationFeature = lazy(() => import('@/pages/features/QRCodeIntegration'));
+const GoogleWorkspaceFeature = lazy(() => import('@/pages/features/GoogleWorkspace'));
+const QuickBooksFeature = lazy(() => import('@/pages/features/QuickBooks'));
+const WorkOrderManagementFeature = lazy(() => import('@/pages/features/WorkOrderManagement'));
+const TeamCollaborationFeature = lazy(() => import('@/pages/features/TeamCollaboration'));
+const FleetVisualizationFeature = lazy(() => import('@/pages/features/FleetVisualization'));
+const CustomerCRMFeature = lazy(() => import('@/pages/features/CustomerCRM'));
+const MobileFirstDesignFeature = lazy(() => import('@/pages/features/MobileFirstDesign'));
 
 // Dashboard components can be lazy-loaded since they're only needed after auth
 const AppSidebar = lazy(() => import('@/components/layout/AppSidebar'));
@@ -86,6 +94,14 @@ function App() {
         <Route path="/features/pm-templates" element={<Suspense fallback={<div>Loading...</div>}><PMTemplatesFeature /></Suspense>} />
         <Route path="/features/inventory" element={<Suspense fallback={<div>Loading...</div>}><InventoryManagementFeature /></Suspense>} />
         <Route path="/features/part-lookup-alternates" element={<Suspense fallback={<div>Loading...</div>}><PartLookupAlternatesFeature /></Suspense>} />
+        <Route path="/features/qr-code-integration" element={<Suspense fallback={<div>Loading...</div>}><QRCodeIntegrationFeature /></Suspense>} />
+        <Route path="/features/google-workspace" element={<Suspense fallback={<div>Loading...</div>}><GoogleWorkspaceFeature /></Suspense>} />
+        <Route path="/features/quickbooks" element={<Suspense fallback={<div>Loading...</div>}><QuickBooksFeature /></Suspense>} />
+        <Route path="/features/work-order-management" element={<Suspense fallback={<div>Loading...</div>}><WorkOrderManagementFeature /></Suspense>} />
+        <Route path="/features/team-collaboration" element={<Suspense fallback={<div>Loading...</div>}><TeamCollaborationFeature /></Suspense>} />
+        <Route path="/features/fleet-visualization" element={<Suspense fallback={<div>Loading...</div>}><FleetVisualizationFeature /></Suspense>} />
+        <Route path="/features/customer-crm" element={<Suspense fallback={<div>Loading...</div>}><CustomerCRMFeature /></Suspense>} />
+        <Route path="/features/mobile-first-design" element={<Suspense fallback={<div>Loading...</div>}><MobileFirstDesignFeature /></Suspense>} />
         <Route path="/support" element={<Suspense fallback={<div>Loading...</div>}><Support /></Suspense>} />
         <Route path="/invitation/:token" element={<Suspense fallback={<div>Loading...</div>}><InvitationAccept /></Suspense>} />
         <Route path="/qr/inventory/:itemId" element={<Suspense fallback={<div>Loading...</div>}><InventoryQRRedirect /></Suspense>} />

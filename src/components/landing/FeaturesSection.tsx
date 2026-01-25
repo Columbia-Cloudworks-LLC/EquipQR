@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { 
   QrCode, 
+  Building2,
+  Receipt,
   ClipboardList, 
   Users, 
   Map, 
@@ -31,25 +33,43 @@ const features: Feature[] = [
     icon: QrCode,
     title: 'QR Code Integration',
     description: 'Instantly access equipment details, work orders, and maintenance history with QR code scanning. Generate labels and streamline field operations.',
-    benefits: ['Instant equipment access', 'Automated tracking', 'Mobile-optimized scanning']
+    benefits: ['Instant equipment access', 'Automated tracking', 'Mobile-optimized scanning'],
+    link: '/features/qr-code-integration'
+  },
+  {
+    icon: Building2,
+    title: 'Google Workspace',
+    description: 'Connect your Google Workspace to import users from your directory. Sync members, assign roles, and let users sign in with Google for seamless access.',
+    benefits: ['Directory sync', 'Import members', 'Google sign-in'],
+    link: '/features/google-workspace'
+  },
+  {
+    icon: Receipt,
+    title: 'QuickBooks',
+    description: 'Connect QuickBooks Online and export completed work orders as draft invoices. Map teams to customers and streamline billing from EquipQR™.',
+    benefits: ['Export to invoices', 'Team–customer mapping', 'OAuth connect'],
+    link: '/features/quickbooks'
   },
   {
     icon: ClipboardList,
     title: 'Work Order Management',
     description: 'Create, assign, and track work orders with intelligent workflows. Monitor progress and ensure nothing falls through the cracks.',
-    benefits: ['Smart assignment rules', 'Progress tracking', 'Due date management']
+    benefits: ['Smart assignment rules', 'Progress tracking', 'Due date management'],
+    link: '/features/work-order-management'
   },
   {
     icon: Users,
     title: 'Team Collaboration',
     description: 'Organize teams across multiple organizations with role-based access control. Track performance and distribute workload efficiently.',
-    benefits: ['Cross-organizational teams', 'Role-based permissions', 'Workload balancing']
+    benefits: ['Cross-organizational teams', 'Role-based permissions', 'Workload balancing'],
+    link: '/features/team-collaboration'
   },
   {
     icon: Map,
     title: 'Fleet Visualization',
     description: 'Interactive maps showing equipment locations, status, and maintenance routes. Optimize operations with geographic insights.',
-    benefits: ['Real-time tracking', 'Route optimization', 'Geographic analytics']
+    benefits: ['Real-time tracking', 'Route optimization', 'Geographic analytics'],
+    link: '/features/fleet-visualization'
   },
   {
     icon: BarChart3,
@@ -62,7 +82,8 @@ const features: Feature[] = [
     icon: UserCircle,
     title: 'Customer CRM',
     description: 'Link equipment to specific customers. Maintain a permanent service history for every client asset.',
-    benefits: ['Customer profiles', 'Service history tracking', 'Equipment ownership']
+    benefits: ['Customer profiles', 'Service history tracking', 'Equipment ownership'],
+    link: '/features/customer-crm'
   },
   {
     icon: FileCheck,
@@ -89,7 +110,8 @@ const features: Feature[] = [
     icon: Smartphone,
     title: 'Mobile-First Design',
     description: 'Native mobile experience for field technicians. Work offline and sync when connected. Optimized for all devices.',
-    benefits: ['Offline capability', 'Touch-optimized UI', 'Cross-platform']
+    benefits: ['Offline capability', 'Touch-optimized UI', 'Cross-platform'],
+    link: '/features/mobile-first-design'
   }
 ];
 
