@@ -227,42 +227,6 @@ const QuickBooksFeature = () => {
           </div>
         </section>
 
-        {/* Screenshots Section */}
-        <section className="py-24 bg-muted/30">
-          <div className="container px-4 mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-                See QuickBooks Integration in Action
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                Here&apos;s what connecting QuickBooks and exporting invoices looks like in the EquipQR™ app.
-              </p>
-            </div>
-
-            <div className="max-w-5xl mx-auto space-y-12">
-              <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — QuickBooks connect and team–customer mapping</p>
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Connect & Customer Mapping</h3>
-                <p className="text-muted-foreground">
-                  Connect QuickBooks in Organization Settings. View connection status and disconnect if needed. In team settings, map each team to a QuickBooks customer for invoice export.
-                </p>
-              </div>
-
-              <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Export to QuickBooks from work order</p>
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Export from Work Order</h3>
-                <p className="text-muted-foreground">
-                  On a completed work order, use the export action to send it to QuickBooks as a draft invoice. View export status and history, and open the invoice in QuickBooks when needed.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* CTA Section */}
         <section className="py-24">
           <div className="container px-4 mx-auto">

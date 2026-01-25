@@ -227,42 +227,6 @@ const FleetVisualizationFeature = () => {
           </div>
         </section>
 
-        {/* Screenshots Section */}
-        <section className="py-24 bg-muted/30">
-          <div className="container px-4 mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-                See Fleet Visualization in Action
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                Here&apos;s what the fleet map looks like in the EquipQR™ app.
-              </p>
-            </div>
-
-            <div className="max-w-5xl mx-auto space-y-12">
-              <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Fleet map with equipment markers</p>
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Interactive Fleet Map</h3>
-                <p className="text-muted-foreground">
-                  View all equipment with locations on a map. Filter by team, status, or type. Click any marker to open equipment details, work orders, and PM status. Pan and zoom to explore.
-                </p>
-              </div>
-
-              <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="rounded-lg overflow-hidden mb-4 border border-border bg-muted aspect-video flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Screenshot placeholder — Map filters and equipment detail popup</p>
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Filters & Equipment Popup</h3>
-                <p className="text-muted-foreground">
-                  Use filters to show only equipment due for PM, with open work orders, or belonging to specific teams. Click a marker to see a summary and link through to full equipment detail.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* CTA Section */}
         <section className="py-24">
           <div className="container px-4 mx-auto">
