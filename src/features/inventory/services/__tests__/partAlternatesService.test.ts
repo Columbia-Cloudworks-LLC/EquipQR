@@ -150,85 +150,106 @@ describe('partAlternatesService', () => {
       });
 
       it('silently handles abort error from RPC error object (lowercase)', async () => {
+        const abortController = new AbortController();
+        const { signal } = abortController;
+
         vi.mocked(supabase.rpc).mockResolvedValue({
           data: null,
           error: { message: 'request aborted' }
         });
 
-        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+        const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
         expect(result).toEqual([]);
         expect(logger.error).not.toHaveBeenCalled();
       });
 
       it('silently handles abort error from RPC error object (uppercase)', async () => {
+        const abortController = new AbortController();
+        const { signal } = abortController;
+
         vi.mocked(supabase.rpc).mockResolvedValue({
           data: null,
           error: { message: 'Request Aborted' }
         });
 
-        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+        const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
         expect(result).toEqual([]);
         expect(logger.error).not.toHaveBeenCalled();
       });
 
       it('silently handles cancel error from RPC error object', async () => {
+        const abortController = new AbortController();
+        const { signal } = abortController;
+
         vi.mocked(supabase.rpc).mockResolvedValue({
           data: null,
           error: { message: 'request cancelled' }
         });
 
-        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+        const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
         expect(result).toEqual([]);
         expect(logger.error).not.toHaveBeenCalled();
       });
 
       it('silently handles AbortError exception', async () => {
+        const abortController = new AbortController();
+        const { signal } = abortController;
         const abortError = new Error('The operation was aborted');
         abortError.name = 'AbortError';
         vi.mocked(supabase.rpc).mockRejectedValue(abortError);
 
-        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+        const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
         expect(result).toEqual([]);
         expect(logger.error).not.toHaveBeenCalled();
       });
 
       it('silently handles plain-object abort when RPC rejects (not returns) with { message }', async () => {
+        const abortController = new AbortController();
+        const { signal } = abortController;
+
         vi.mocked(supabase.rpc).mockRejectedValue({ message: 'request aborted' });
 
-        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+        const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
         expect(result).toEqual([]);
         expect(logger.error).not.toHaveBeenCalled();
       });
 
       it('silently handles plain-object cancel when RPC rejects with { message }', async () => {
+        const abortController = new AbortController();
+        const { signal } = abortController;
+
         vi.mocked(supabase.rpc).mockRejectedValue({ message: 'Operation cancelled by user' });
 
-        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+        const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
         expect(result).toEqual([]);
         expect(logger.error).not.toHaveBeenCalled();
       });
 
       it('silently handles exception with abort in message', async () => {
+        const abortController = new AbortController();
+        const { signal } = abortController;
         const error = new Error('Network request aborted due to timeout');
         vi.mocked(supabase.rpc).mockRejectedValue(error);
 
-        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+        const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
         expect(result).toEqual([]);
         expect(logger.error).not.toHaveBeenCalled();
       });
 
       it('silently handles exception with cancel in message', async () => {
+        const abortController = new AbortController();
+        const { signal } = abortController;
         const error = new Error('Operation cancelled by user');
         vi.mocked(supabase.rpc).mockRejectedValue(error);
 
-        const result = await getAlternatesForPartNumber('org-1', 'TEST');
+        const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
         expect(result).toEqual([]);
         expect(logger.error).not.toHaveBeenCalled();
@@ -240,6 +261,54 @@ describe('partAlternatesService', () => {
 
         await expect(getAlternatesForPartNumber('org-1', 'TEST'))
           .rejects.toThrow('Database connection failed');
+        expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);
+      });
+
+      it('does not silently handle abort-like errors when no signal is provided', async () => {
+        // Real backend errors that happen to contain "abort" should not be silently swallowed
+        const error = new Error('Transaction aborted due to constraint violation');
+        vi.mocked(supabase.rpc).mockRejectedValue(error);
+
+        await expect(getAlternatesForPartNumber('org-1', 'TEST'))
+          .rejects.toThrow('Transaction aborted due to constraint violation');
+        expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);
+      });
+
+      it('does not silently handle cancel-like errors when no signal is provided', async () => {
+        // Real backend errors that happen to contain "cancel" should not be silently swallowed
+        const error = new Error('Operation cancelled due to invalid input');
+        vi.mocked(supabase.rpc).mockRejectedValue(error);
+
+        await expect(getAlternatesForPartNumber('org-1', 'TEST'))
+          .rejects.toThrow('Operation cancelled due to invalid input');
+        expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);
+      });
+
+      it('does not silently handle RPC error object with abort message when no signal is provided', async () => {
+        // Real backend errors that happen to contain "abort" should not be silently swallowed
+        const error = { message: 'Transaction aborted due to constraint violation' };
+        vi.mocked(supabase.rpc).mockResolvedValue({
+          data: null,
+          error
+        });
+
+        await expect(getAlternatesForPartNumber('org-1', 'TEST'))
+          .rejects.toEqual(error);
+        // Error is thrown from error branch, then caught and logged in catch block
+        expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);
+      });
+
+      it('does not silently handle RPC error object with cancel message when no signal is provided', async () => {
+        // Real backend errors that happen to contain "cancel" should not be silently swallowed
+        const error = { message: 'Operation cancelled due to invalid input' };
+        vi.mocked(supabase.rpc).mockResolvedValue({
+          data: null,
+          error
+        });
+
+        await expect(getAlternatesForPartNumber('org-1', 'TEST'))
+          .rejects.toEqual(error);
+        // Error is thrown from error branch, then caught and logged in catch block
         expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);
       });
 

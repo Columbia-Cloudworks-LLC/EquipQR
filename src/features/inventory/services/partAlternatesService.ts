@@ -14,6 +14,50 @@ import type {
 // ============================================
 
 /**
+ * Determines if an error represents a request cancellation/abort.
+ * Only treats errors as cancellations when a signal was provided (to avoid false positives).
+ * 
+ * @param error - The error to check (Error instance or plain object)
+ * @param signal - Optional AbortSignal that was used for the request
+ * @returns true if the error represents a cancellation
+ */
+function isCancellation(error: unknown, signal?: AbortSignal): boolean {
+  // If signal was aborted, it's definitely a cancellation
+  if (signal?.aborted) {
+    return true;
+  }
+
+  // If no signal was provided, don't treat any error as a cancellation
+  // (to avoid silently swallowing real errors)
+  if (!signal) {
+    return false;
+  }
+
+  // Extract error name and message
+  const name = typeof error === 'object' && error !== null && 'name' in error
+    ? (error as { name?: unknown }).name
+    : error instanceof Error
+      ? error.name
+      : undefined;
+
+  const msg = typeof error === 'object' && error !== null && 'message' in error
+    ? String((error as { message?: unknown }).message ?? '')
+    : error instanceof Error
+      ? (error.message ?? '')
+      : '';
+
+  const lower = msg.toLowerCase();
+
+  // Check for well-known cancellation types
+  // Only check message substrings when signal is present (to avoid false positives)
+  return (
+    name === 'AbortError' ||
+    lower.includes('abort') ||
+    lower.includes('cancel')
+  );
+}
+
+/**
  * Look up alternate/interchangeable parts by part number.
  * Searches part_identifiers and inventory_items (by SKU/external_id),
  * then returns all members of matching alternate groups with stock info.
@@ -54,13 +98,8 @@ export const getAlternatesForPartNumber = async (
         throw new Error('Access denied');
       }
       // Silently ignore abort errors (request cancelled due to new search)
-      // Check signal.aborted first, then check for AbortError name/message
-      if (signal?.aborted) {
-        return [];
-      }
-      const errorMessage = (error.message ?? '').toLowerCase();
-      const errorName = (error as { name?: string }).name;
-      if (errorName === 'AbortError' || errorMessage.includes('abort')) {
+      // Only treat as cancellation if signal was provided
+      if (isCancellation(error, signal)) {
         return [];
       }
       throw error;
@@ -69,22 +108,8 @@ export const getAlternatesForPartNumber = async (
     return (data || []) as AlternatePartResult[];
   } catch (error) {
     // Silently handle abort/cancellation errors - these are expected when user types fast.
-    // Check both Error instances and plain objects (Supabase can reject with plain { message }).
-    const msg = typeof error === 'object' && error !== null && 'message' in error
-      ? String((error as { message?: unknown }).message ?? '')
-      : error instanceof Error
-        ? (error.message ?? '')
-        : '';
-    const name = typeof error === 'object' && error !== null && 'name' in error
-      ? (error as { name?: unknown }).name
-      : error instanceof Error
-        ? error.name
-        : undefined;
-    const lower = msg.toLowerCase();
-    // Check for AbortError specifically, and also handle cancellation messages
-    // We check for "abort" and "cancel" in the message to handle user-initiated cancellations
-    // Note: This may catch some edge cases, but user cancellations should be silent
-    if (name === 'AbortError' || lower.includes('abort') || lower.includes('cancel')) {
+    // Only treat as cancellation if signal was provided (to avoid silently swallowing real errors)
+    if (isCancellation(error, signal)) {
       return [];
     }
     // Only log actual errors, not cancellations
