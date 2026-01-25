@@ -22,6 +22,9 @@ const navigation: NavigationItem[] = [
   { name: 'Field-Tested', href: '#pricing' },
 ];
 
+// Stable constant for section IDs to avoid unnecessary re-renders
+const SECTION_IDS = ['features', 'pricing', 'about'] as const;
+
 const LandingHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -41,7 +44,7 @@ const LandingHeader = () => {
     }
   };
 
-  const activeSection = useActiveSection(['features', 'pricing', 'about']);
+  const activeSection = useActiveSection(isOnLandingPage ? SECTION_IDS : []);
   const activeSectionToUse = isOnLandingPage ? activeSection : null;
   return (
     <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -49,7 +52,7 @@ const LandingHeader = () => {
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/landing" className="flex items-center gap-2">
               <Logo size="sm" />
               <span className="font-bold text-xl text-foreground">EquipQR™</span>
             </Link>

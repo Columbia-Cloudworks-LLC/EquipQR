@@ -264,6 +264,13 @@ function getMimeType(ext: string): string {
 
 // Run upload
 uploadScreenshot().catch((error) => {
-  console.error('❌ Fatal error:', error);
+  if (isJsonModeEarly) {
+    console.log(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    }));
+  } else {
+    console.error('❌ Fatal error:', error);
+  }
   process.exit(1);
 });
