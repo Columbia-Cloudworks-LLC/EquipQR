@@ -5,6 +5,7 @@ import {
   getGoogleWorkspaceConnectionStatus,
   syncGoogleWorkspaceUsers,
   listWorkspaceDirectoryUsers,
+  listWorkspaceDirectoryUsersLight,
   selectGoogleWorkspaceMembers,
 } from './index';
 
@@ -222,6 +223,63 @@ describe('Google Workspace Service Functions', () => {
       fromMock.mockReturnValue({ select: selectMock });
 
       await expect(listWorkspaceDirectoryUsers('org-123')).rejects.toThrow('Query failed');
+    });
+  });
+
+  describe('listWorkspaceDirectoryUsersLight', () => {
+    it('returns list of directory users with only essential fields', async () => {
+      const mockUsers = [
+        {
+          id: 'user-1',
+          primary_email: 'alice@example.com',
+          full_name: 'Alice Smith',
+          suspended: false,
+        },
+        {
+          id: 'user-2',
+          primary_email: 'bob@example.com',
+          full_name: 'Bob Jones',
+          suspended: false,
+        },
+      ];
+
+      const selectMock = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: mockUsers, error: null }),
+        }),
+      });
+      fromMock.mockReturnValue({ select: selectMock });
+
+      const result = await listWorkspaceDirectoryUsersLight('org-123');
+
+      expect(fromMock).toHaveBeenCalledWith('google_workspace_directory_users');
+      expect(selectMock).toHaveBeenCalledWith('id, primary_email, full_name, suspended');
+      expect(result).toEqual(mockUsers);
+      expect(result).toHaveLength(2);
+    });
+
+    it('returns empty array when no users found', async () => {
+      const selectMock = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      });
+      fromMock.mockReturnValue({ select: selectMock });
+
+      const result = await listWorkspaceDirectoryUsersLight('org-123');
+
+      expect(result).toEqual([]);
+    });
+
+    it('throws an error on query failure', async () => {
+      const selectMock = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: null, error: { message: 'Query failed' } }),
+        }),
+      });
+      fromMock.mockReturnValue({ select: selectMock });
+
+      await expect(listWorkspaceDirectoryUsersLight('org-123')).rejects.toThrow('Query failed');
     });
   });
 
