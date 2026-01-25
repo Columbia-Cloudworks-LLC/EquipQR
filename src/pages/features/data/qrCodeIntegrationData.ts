@@ -1,4 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
 import { ScanLine, Smartphone, Tags } from 'lucide-react';
 import type { Benefit, Step, Screenshot } from './inventoryManagementData';
 

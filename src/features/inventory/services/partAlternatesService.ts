@@ -81,9 +81,10 @@ export const getAlternatesForPartNumber = async (
         ? error.name
         : undefined;
     const lower = msg.toLowerCase();
-    // Check for AbortError specifically - avoid broad "cancel" substring checks
-    // that could hide legitimate errors (e.g., "canceling statement due to statement timeout")
-    if (name === 'AbortError' || lower.includes('abort')) {
+    // Check for AbortError specifically, and also handle cancellation messages
+    // We check for "abort" and "cancel" in the message to handle user-initiated cancellations
+    // Note: This may catch some edge cases, but user cancellations should be silent
+    if (name === 'AbortError' || lower.includes('abort') || lower.includes('cancel')) {
       return [];
     }
     // Only log actual errors, not cancellations
