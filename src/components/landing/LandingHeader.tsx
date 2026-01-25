@@ -109,10 +109,13 @@ const LandingHeader = () => {
                       isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
                     }
                     
+                    // For hash links, prepend /landing when not on landing page
+                    const href = isHash && !isOnLandingPage ? `/landing${item.href}` : item.href;
+                    
                     return (
                       <SheetClose asChild key={item.name}>
                         <a
-                          href={item.href}
+                          href={href}
                           className={[
                             'text-lg font-medium transition-colors',
                             'text-muted-foreground hover:text-foreground',
