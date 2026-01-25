@@ -52,7 +52,12 @@ export const GoogleWorkspaceMemberImportSheet = ({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch directory users - uses light function with only essential fields
-  const { data: directoryUsers = [], isLoading: isLoadingDirectory, refetch: refetchDirectory } = useQuery({
+  const {
+    data: directoryUsers = [],
+    isLoading: isLoadingDirectory,
+    error: directoryError,
+    refetch: refetchDirectory,
+  } = useQuery({
     queryKey: ['google-workspace', 'directory-users-light', organizationId],
     queryFn: () => listWorkspaceDirectoryUsersLight(organizationId),
     enabled: !!organizationId && open,
@@ -256,9 +261,34 @@ export const GoogleWorkspaceMemberImportSheet = ({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-4">
-          {/* Sync Button */}
-          <div className="flex items-center gap-2">
+        {/* Error state for directory users query */}
+        {directoryError && (
+          <div className="mt-6 space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {directoryError instanceof Error
+                  ? directoryError.message
+                  : 'An unexpected error occurred while fetching directory users.'}
+              </AlertDescription>
+            </Alert>
+            <Button
+              variant="outline"
+              onClick={() => {
+                void refetchDirectory();
+              }}
+              disabled={isLoadingDirectory}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingDirectory ? 'animate-spin' : ''}`} />
+              Retry
+            </Button>
+          </div>
+        )}
+
+        {!directoryError && (
+          <div className="mt-6 space-y-4">
+            {/* Sync Button */}
+            <div className="flex items-center gap-2">
             <Button onClick={handleSyncDirectory} disabled={isSyncing} variant="outline" size="sm">
               {isSyncing ? (
                 <RefreshCw className="h-4 w-4 animate-spin mr-2" />
@@ -386,7 +416,8 @@ export const GoogleWorkspaceMemberImportSheet = ({
               </p>
             </>
           )}
-        </div>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

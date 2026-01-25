@@ -39,7 +39,12 @@ export const useGoogleWorkspaceConnectionStatus = (
 
   const { data, isLoading, error, refetch } = useQuery<WorkspaceConnectionStatus, Error>({
     queryKey: ['google-workspace', 'connection', organizationId],
-    queryFn: () => getGoogleWorkspaceConnectionStatus(organizationId!),
+    queryFn: () => {
+      if (!organizationId) {
+        throw new Error('Organization ID is required to check Google Workspace connection status');
+      }
+      return getGoogleWorkspaceConnectionStatus(organizationId);
+    },
     enabled: !!organizationId && enabledOption,
     staleTime: 60 * 1000, // 1 minute
   });
