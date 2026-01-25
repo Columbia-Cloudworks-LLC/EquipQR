@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -247,6 +246,7 @@ const GoogleWorkspaceFeature = () => {
                     src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/google-workspace-connect.png"
                     alt="Organization Settings showing Google Workspace integration with connected domain"
                     className="w-full h-auto"
+                    loading="lazy"
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Connect & Sync Directory</h3>
@@ -261,6 +261,7 @@ const GoogleWorkspaceFeature = () => {
                     src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/google-workspace-import.png"
                     alt="Import from Google Workspace dialog showing directory sync and user import"
                     className="w-full h-auto"
+                    loading="lazy"
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Import from Google Workspace</h3>

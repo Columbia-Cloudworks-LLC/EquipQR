@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -247,6 +246,7 @@ const WorkOrderManagementFeature = () => {
                     src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/work-orders-list.png"
                     alt="Work orders list with filters by status, priority, and assignee"
                     className="w-full h-auto"
+                    loading="lazy"
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Work Orders List</h3>
@@ -261,6 +261,7 @@ const WorkOrderManagementFeature = () => {
                     src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/work-order-details.png"
                     alt="Work order detail page with equipment info, assignee, and PM checklist"
                     className="w-full h-auto"
+                    loading="lazy"
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Work Order Detail & PM Checklist</h3>

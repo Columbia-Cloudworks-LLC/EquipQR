@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -245,8 +244,9 @@ const CustomerCRMFeature = () => {
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
                     src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/customer-crm-list.png"
-                    alt="Teams list showing customers with member counts and team details"
+                    alt="Customer list showing each customer with location, contact details, and linked equipment count"
                     className="w-full h-auto"
+                    loading="lazy"
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Customers & Linked Equipment</h3>
@@ -261,6 +261,7 @@ const CustomerCRMFeature = () => {
                     src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/customer-crm-detail.png"
                     alt="Equipment detail page showing customer assignment and service history"
                     className="w-full h-auto"
+                    loading="lazy"
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Equipment Detail & Service History</h3>

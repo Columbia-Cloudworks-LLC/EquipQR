@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -246,6 +245,7 @@ const TeamCollaborationFeature = () => {
                     src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/team-list.png"
                     alt="Teams list showing all teams with member counts and roles"
                     className="w-full h-auto"
+                    loading="lazy"
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Organization Teams</h3>
@@ -260,6 +260,7 @@ const TeamCollaborationFeature = () => {
                     src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/team-detail.png"
                     alt="Team detail page showing role assignments for team members"
                     className="w-full h-auto"
+                    loading="lazy"
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Role-Based Team Access</h3>

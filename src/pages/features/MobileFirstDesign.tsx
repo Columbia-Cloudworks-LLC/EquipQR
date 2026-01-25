@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -248,6 +247,7 @@ const MobileFirstDesignFeature = () => {
                       src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-1.png"
                       alt="Mobile work order view"
                       className="w-full h-auto"
+                      loading="lazy"
                     />
                   </div>
                   <div className="rounded-lg overflow-hidden border border-border">
@@ -255,6 +255,7 @@ const MobileFirstDesignFeature = () => {
                       src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-status.png"
                       alt="Mobile work order status update"
                       className="w-full h-auto"
+                      loading="lazy"
                     />
                   </div>
                   <div className="rounded-lg overflow-hidden border border-border">
@@ -262,6 +263,7 @@ const MobileFirstDesignFeature = () => {
                       src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-PM-checklist.png"
                       alt="Mobile PM checklist view"
                       className="w-full h-auto"
+                      loading="lazy"
                     />
                   </div>
                   <div className="rounded-lg overflow-hidden border border-border">
@@ -269,6 +271,7 @@ const MobileFirstDesignFeature = () => {
                       src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-PM-checklist-input.png"
                       alt="Mobile PM checklist input"
                       className="w-full h-auto"
+                      loading="lazy"
                     />
                   </div>
                 </div>

@@ -25,30 +25,37 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const DEFAULT_BUCKET = 'landing-page-images';
 
+// When JSON output mode is enabled, suppress human-readable logs for early errors too
+const isJsonModeEarly = process.env.OUTPUT_JSON === 'true';
+
 // Parse command line arguments
 const args = process.argv.slice(2);
 
 if (args.length < 2) {
-  console.error('❌ Missing required arguments');
-  console.error('');
-  console.error('Usage:');
-  console.error('  npx tsx scripts/upload-screenshot.ts <file-path> <storage-path> [bucket-name]');
-  console.error('');
-  console.error('Examples:');
-  console.error('  npx tsx scripts/upload-screenshot.ts tmp/screenshot.png features/qr-code-integration/hero.png');
-  console.error('  npx tsx scripts/upload-screenshot.ts tmp/step-1.png tutorials/image-upload/step-1.png landing-page-images');
-  console.error('');
-  console.error('Arguments:');
-  console.error('  file-path     Local file path to upload');
-  console.error('  storage-path Path in Supabase Storage (e.g., features/qr-code/hero.png)');
-  console.error('  bucket-name  Storage bucket name (default: landing-page-images)');
+  if (isJsonModeEarly) {
+    console.log(JSON.stringify({
+      success: false,
+      error: 'Missing required arguments. Usage: npx tsx scripts/upload-screenshot.ts <file-path> <storage-path> [bucket-name]',
+    }));
+  } else {
+    console.error('❌ Missing required arguments');
+    console.error('');
+    console.error('Usage:');
+    console.error('  npx tsx scripts/upload-screenshot.ts <file-path> <storage-path> [bucket-name]');
+    console.error('');
+    console.error('Examples:');
+    console.error('  npx tsx scripts/upload-screenshot.ts tmp/screenshot.png features/qr-code-integration/hero.png');
+    console.error('  npx tsx scripts/upload-screenshot.ts tmp/step-1.png tutorials/image-upload/step-1.png landing-page-images');
+    console.error('');
+    console.error('Arguments:');
+    console.error('  file-path     Local file path to upload');
+    console.error('  storage-path Path in Supabase Storage (e.g., features/qr-code/hero.png)');
+    console.error('  bucket-name  Storage bucket name (default: landing-page-images)');
+  }
   process.exit(1);
 }
 
 const [filePath, storagePath, bucketName = DEFAULT_BUCKET] = args;
-
-// When JSON output mode is enabled, suppress human-readable logs for early errors too
-const isJsonModeEarly = process.env.OUTPUT_JSON === 'true';
 
 // Validate environment variables
 if (!SUPABASE_URL) {
@@ -89,15 +96,29 @@ try {
 }
 
 if (!SUPABASE_SERVICE_KEY) {
-  console.error('❌ SUPABASE_SERVICE_ROLE_KEY environment variable is required');
-  console.error('   Set it via: export SUPABASE_SERVICE_ROLE_KEY=your_key');
-  console.error('   Get it from: Supabase Dashboard → Settings → API → service_role secret');
+  if (isJsonModeEarly) {
+    console.log(JSON.stringify({
+      success: false,
+      error: 'SUPABASE_SERVICE_ROLE_KEY environment variable is required',
+    }));
+  } else {
+    console.error('❌ SUPABASE_SERVICE_ROLE_KEY environment variable is required');
+    console.error('   Set it via: export SUPABASE_SERVICE_ROLE_KEY=your_key');
+    console.error('   Get it from: Supabase Dashboard → Settings → API → service_role secret');
+  }
   process.exit(1);
 }
 
 // Validate file exists
 if (!fs.existsSync(filePath)) {
-  console.error(`❌ File not found: ${filePath}`);
+  if (isJsonModeEarly) {
+    console.log(JSON.stringify({
+      success: false,
+      error: `File not found: ${filePath}`,
+    }));
+  } else {
+    console.error(`❌ File not found: ${filePath}`);
+  }
   process.exit(1);
 }
 
@@ -105,8 +126,15 @@ if (!fs.existsSync(filePath)) {
 const ext = path.extname(filePath).toLowerCase();
 const validExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif'];
 if (!validExtensions.includes(ext)) {
-  console.error(`❌ Invalid file type: ${ext}`);
-  console.error(`   Supported formats: ${validExtensions.join(', ')}`);
+  if (isJsonModeEarly) {
+    console.log(JSON.stringify({
+      success: false,
+      error: `Invalid file type: ${ext}. Supported formats: ${validExtensions.join(', ')}`,
+    }));
+  } else {
+    console.error(`❌ Invalid file type: ${ext}`);
+    console.error(`   Supported formats: ${validExtensions.join(', ')}`);
+  }
   process.exit(1);
 }
 

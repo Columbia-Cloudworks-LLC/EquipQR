@@ -313,6 +313,7 @@ const InventoryManagementFeature = () => {
                     src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/inventory-list.png"
                     alt="Inventory list view showing parts with stock levels, SKUs, and low stock indicators"
                     className="w-full h-auto"
+                    loading="lazy"
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Inventory List View</h3>
@@ -328,6 +329,7 @@ const InventoryManagementFeature = () => {
                     src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/inventory-detail.png"
                     alt="Inventory item detail page showing stock information and transaction history"
                     className="w-full h-auto"
+                    loading="lazy"
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Item Detail & Transaction History</h3>
