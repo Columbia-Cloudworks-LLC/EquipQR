@@ -134,18 +134,19 @@ describe('partAlternatesService', () => {
       });
 
       it('returns empty array when signal is aborted after RPC call', async () => {
-        const abortedSignal = { aborted: false } as AbortSignal;
-        vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null });
-        
-        // Simulate signal being aborted after the call
-        Object.defineProperty(abortedSignal, 'aborted', {
-          get: () => true,
-          configurable: true
+        const abortController = new AbortController();
+        const { signal } = abortController;
+
+        vi.mocked(supabase.rpc).mockImplementation(async () => {
+          // Abort after the RPC call has been initiated
+          queueMicrotask(() => abortController.abort());
+          return { data: [], error: null } as { data: unknown; error: null };
         });
 
-        const result = await getAlternatesForPartNumber('org-1', 'TEST', abortedSignal);
+        const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
         expect(result).toEqual([]);
+        expect(supabase.rpc).toHaveBeenCalled();
       });
 
       it('silently handles abort error from RPC error object (lowercase)', async () => {
