@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
   QrCode, 
   ClipboardList, 
@@ -21,7 +22,7 @@ interface Feature {
   title: string;
   description: string;
   benefits: string[];
-  developmentNotice?: string;
+  statusBadge?: string;
   link?: string;
 }
 
@@ -55,7 +56,7 @@ const features: Feature[] = [
     title: 'Analytics & Reports',
     description: 'Comprehensive dashboards and reports providing insights into equipment utilization, maintenance costs, and team performance.',
     benefits: ['Performance metrics', 'Cost analysis', 'Predictive insights'],
-    developmentNotice: 'Currently under active development'
+    statusBadge: 'Coming Soon'
   },
   {
     icon: UserCircle,
@@ -113,21 +114,31 @@ const FeaturesSection = ({ id }: { id?: string }) => {
             };
             
             const cardContent = (
-              <Card className={`border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors h-full ${feature.link ? 'cursor-pointer hover:border-primary/50' : ''}`}>
-                <CardHeader className="pb-4">
+              <Card className={`relative border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors h-full flex flex-col ${feature.link ? 'cursor-pointer hover:border-primary/50' : ''}`}>
+                {feature.statusBadge && (
+                  <Badge 
+                    variant="outline" 
+                    className="absolute top-4 right-4 text-muted-foreground/70 border-muted-foreground/30 bg-background/80 backdrop-blur-sm z-10"
+                  >
+                    {feature.statusBadge}
+                  </Badge>
+                )}
+                <CardHeader className="pb-4 flex-shrink-0">
                   <div className="mb-4 flex items-center justify-between">
                     <feature.icon className={`h-8 w-8 ${getIconColor(index)}`} />
-                    {feature.link && (
+                    {feature.link && !feature.statusBadge && (
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     )}
                   </div>
                   <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  <CardDescription className="text-sm">
-                    {feature.description}
-                  </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
+                <CardContent className="flex flex-col flex-grow pb-6">
+                  <div className="flex-grow min-h-[4rem] mb-4">
+                    <CardDescription className="text-sm">
+                      {feature.description}
+                    </CardDescription>
+                  </div>
+                  <ul className="space-y-2 flex-shrink-0">
                     {feature.benefits.map((benefit, i) => (
                       <li key={i} className="text-sm text-muted-foreground flex items-center">
                         <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
@@ -135,15 +146,8 @@ const FeaturesSection = ({ id }: { id?: string }) => {
                       </li>
                     ))}
                   </ul>
-                  {feature.developmentNotice && (
-                    <div className="mt-4 pt-3 border-t border-border">
-                      <p className="text-xs text-muted-foreground/70 italic">
-                        {feature.developmentNotice}
-                      </p>
-                    </div>
-                  )}
                   {feature.link && (
-                    <div className="mt-4 pt-3 border-t border-border">
+                    <div className="mt-4 pt-3 border-t border-border flex-shrink-0">
                       <p className="text-sm text-primary font-medium flex items-center">
                         Learn more
                         <ArrowRight className="h-3 w-3 ml-1" />
