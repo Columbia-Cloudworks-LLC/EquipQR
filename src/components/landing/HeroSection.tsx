@@ -26,10 +26,15 @@ const HeroSection = () => {
             The enterprise-grade platform for repair shops and rental operations. Track equipment with QR codes, manage inventory and parts, handle work orders, and organize your team efficiently.
           </p>
           
-          {/* Dashboard Screenshot Placeholder */}
+          {/* Dashboard Screenshot */}
           <div className="mb-10 flex justify-center">
-            <div className="w-full max-w-5xl aspect-video rounded-xl border border-white/10 bg-background/50 backdrop-blur-sm shadow-2xl shadow-primary/10">
-              {/* Placeholder for UI dashboard screenshot */}
+            <div className="w-full max-w-5xl rounded-xl border border-white/10 bg-background/50 backdrop-blur-sm shadow-2xl shadow-primary/10 overflow-hidden">
+              <img 
+                src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/equipqr-banner-image.jpg"
+                alt="EquipQR Dashboard - Equipment tracking and management platform"
+                className="w-full h-auto"
+                loading="eager"
+              />
             </div>
           </div>
           
