@@ -107,7 +107,13 @@ export async function syncGoogleWorkspaceUsers(organizationId: string): Promise<
   return { usersSynced: data.usersSynced || 0 };
 }
 
-export async function listWorkspaceDirectoryUsers(organizationId: string): Promise<WorkspaceDirectoryUser[]> {
+/**
+ * List Google Workspace directory users for an organization.
+ * @param organizationId - The organization ID
+ */
+export async function listWorkspaceDirectoryUsers(
+  organizationId: string
+): Promise<WorkspaceDirectoryUser[]> {
   const { data, error } = await supabase
     .from('google_workspace_directory_users')
     .select('*')
@@ -119,6 +125,38 @@ export async function listWorkspaceDirectoryUsers(organizationId: string): Promi
   }
 
   return (data || []) as WorkspaceDirectoryUser[];
+}
+
+/**
+ * Light-weight directory user type for import UI.
+ * Only includes fields needed for the member import sheet.
+ */
+export interface WorkspaceDirectoryUserLight {
+  id: string;
+  primary_email: string;
+  full_name: string | null;
+  suspended: boolean;
+}
+
+/**
+ * List Google Workspace directory users with only essential fields for import UI.
+ * Returns a lighter payload than listWorkspaceDirectoryUsers.
+ * @param organizationId - The organization ID
+ */
+export async function listWorkspaceDirectoryUsersLight(
+  organizationId: string
+): Promise<WorkspaceDirectoryUserLight[]> {
+  const { data, error } = await supabase
+    .from('google_workspace_directory_users')
+    .select('id, primary_email, full_name, suspended')
+    .eq('organization_id', organizationId)
+    .order('primary_email', { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data || []) as WorkspaceDirectoryUserLight[];
 }
 
 export async function selectGoogleWorkspaceMembers(

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -132,9 +133,9 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
                 Sync Directory
               </Button>
               <Button variant="outline" asChild>
-                <a href="/dashboard/onboarding/workspace">
-                  Manage Members
-                </a>
+                <Link to="/dashboard/organization">
+                  View Members
+                </Link>
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">

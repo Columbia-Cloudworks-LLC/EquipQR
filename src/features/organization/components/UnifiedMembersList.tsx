@@ -20,8 +20,10 @@ import { useOrganizationInvitations, useResendInvitation, useCancelInvitation } 
 import { useUpdateMemberRole, useRemoveMember } from '@/features/organization/hooks/useOrganizationMembers';
 import { useRequestWorkspaceMerge } from '@/features/organization/hooks/useWorkspacePersonalOrgMerge';
 import { useGoogleWorkspaceMemberClaims, useRevokeGoogleWorkspaceMemberClaim } from '@/features/organization/hooks/useGoogleWorkspaceMemberClaims';
+import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
 import { useUpdateQuickBooksPermission } from '@/hooks/useQuickBooksAccess';
 import { useAuth } from '@/hooks/useAuth';
+import { GoogleWorkspaceMemberImportSheet } from './GoogleWorkspaceMemberImportSheet';
 import type { OrganizationMember } from '@/features/organization/types/organization';
 import { getRoleBadgeVariant } from '@/utils/badgeVariants';
 import { SimplifiedInvitationDialog } from './SimplifiedInvitationDialog';
@@ -61,6 +63,14 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
 }) => {
   
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [importSheetOpen, setImportSheetOpen] = useState(false);
+  
+  // Check if Google Workspace is connected to show import button
+  // Only query when user can invite members to avoid unnecessary network calls
+  const { isConnected: isGwsConnected, domain: gwsDomain } = useGoogleWorkspaceConnectionStatus({
+    organizationId,
+    enabled: canInviteMembers,
+  });
   
   const { data: invitations = [] } = useOrganizationInvitations(organizationId);
   const { data: gwsClaims = [] } = useGoogleWorkspaceMemberClaims(organizationId);
@@ -259,10 +269,18 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
             </CardTitle>
           </div>
           {canInviteMembers && (
-            <Button onClick={() => setInviteDialogOpen(true)} size="sm">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Invite Member
-            </Button>
+            <div className="flex items-center gap-2">
+              {isGwsConnected && (
+                <Button onClick={() => setImportSheetOpen(true)} size="sm" variant="outline">
+                  <Users className="mr-2 h-4 w-4" />
+                  Import from Google
+                </Button>
+              )}
+              <Button onClick={() => setInviteDialogOpen(true)} size="sm">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Invite Member
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>
@@ -484,6 +502,15 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
           open={inviteDialogOpen}
           onOpenChange={setInviteDialogOpen}
         />
+
+        {isGwsConnected && importSheetOpen && (
+          <GoogleWorkspaceMemberImportSheet
+            open={importSheetOpen}
+            onOpenChange={setImportSheetOpen}
+            organizationId={organizationId}
+            domain={gwsDomain}
+          />
+        )}
       </CardContent>
     </Card>
   );

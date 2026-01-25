@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.3] - 2026-01-24
+
+### Fixed
+
+- **Google Workspace Member Management Navigation**: Fixed "Manage Members" button on organization settings redirecting to onboarding page instead of the organization members tab
+  - Changed navigation from `/dashboard/onboarding/workspace` to `/dashboard/organization`
+  - Renamed button to "View Members" for clarity
+
+### Added
+
+- **Import from Google Workspace Button**: Added ability to import members directly from the Organization Members tab when Google Workspace is connected
+  - New "Import from Google" button appears next to "Invite Member" when GWS is connected
+  - Opens a sheet with directory sync, search filtering, and bulk member selection
+  - Filters out users already in the organization or with pending claims
+  - Supports marking selected users as admins during import
+  - New `GoogleWorkspaceMemberImportSheet` component with full import workflow
+  - New `useGoogleWorkspaceConnectionStatus` hook for checking GWS connection state
+
 ## [2.1.2] - 2026-01-24
 
 ### Added
