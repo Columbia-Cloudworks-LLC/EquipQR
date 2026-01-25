@@ -65,7 +65,7 @@ export const getAlternatesForPartNumber = async (
   } catch (error) {
     // Silently handle abort/cancellation errors - these are expected when user types fast
     if (error instanceof Error) {
-      const errorMessage = error.message.toLowerCase();
+      const errorMessage = (error.message ?? '').toLowerCase();
       if (
         error.name === 'AbortError' ||
         errorMessage.includes('abort') ||

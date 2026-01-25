@@ -233,6 +233,17 @@ describe('partAlternatesService', () => {
           .rejects.toThrow('Invalid signal format detected');
         expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);
       });
+
+      it('handles Error object with undefined message safely', async () => {
+        const error = new Error();
+        error.message = undefined as unknown as string; // Simulate undefined message
+        vi.mocked(supabase.rpc).mockRejectedValue(error);
+
+        // Should not throw TypeError, should log and rethrow the error
+        await expect(getAlternatesForPartNumber('org-1', 'TEST'))
+          .rejects.toBe(error);
+        expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);
+      });
     });
   });
 
