@@ -60,12 +60,12 @@ The script outputs:
 
 ## Integration with Screenshot Capture Subagent
 
-The `screenshot-capture` subagent uses this script automatically:
+The `screenshot-capture` subagent **does not** upload screenshots automatically. Instead, use this script as part of a manual workflow:
 
-1. Takes screenshot via Playwright MCP tools
-2. Saves to temporary file (e.g., `tmp/screenshot-{timestamp}.png`)
-3. Calls this script to upload
-4. Uses returned public URL in documentation
+1. The subagent takes a screenshot via Playwright MCP tools
+2. It saves the image to a temporary file (e.g., `tmp/screenshot-{timestamp}.png`)
+3. You manually run this script with that file path and desired storage path
+4. You then use the returned public URL or Markdown reference in your documentation
 
 ## Troubleshooting
 

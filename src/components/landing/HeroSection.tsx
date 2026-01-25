@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -42,10 +41,16 @@ const HeroSection = () => {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="text-lg px-8 py-6">
-              <Link to="#about">
-                How It Works
-              </Link>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="text-lg px-8 py-6"
+              onClick={() => {
+                const element = document.querySelector('#about');
+                element?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              How It Works
             </Button>
           </div>
           

@@ -86,10 +86,23 @@ if (!validExtensions.includes(ext)) {
 const stats = fs.statSync(filePath);
 const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
 
-console.log(`📤 Uploading screenshot...`);
-console.log(`   File: ${filePath} (${fileSizeMB} MB)`);
-console.log(`   Storage path: ${storagePath}`);
-console.log(`   Bucket: ${bucketName}`);
+// When JSON output mode is enabled, suppress human-readable logs
+const isJsonMode = process.env.OUTPUT_JSON === 'true';
+const log = (...args: unknown[]) => {
+  if (!isJsonMode) console.log(...args);
+};
+const logError = (...args: unknown[]) => {
+  if (isJsonMode) {
+    console.error(...args);
+  } else {
+    console.error(...args);
+  }
+};
+
+log(`📤 Uploading screenshot...`);
+log(`   File: ${filePath} (${fileSizeMB} MB)`);
+log(`   Storage path: ${storagePath}`);
+log(`   Bucket: ${bucketName}`);
 
 // Create Supabase client with service role key
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
@@ -114,10 +127,19 @@ async function uploadScreenshot() {
       });
 
     if (uploadError) {
-      console.error('❌ Upload failed:', uploadError.message);
-      if (uploadError.message.includes('Bucket not found')) {
-        console.error(`   Make sure the bucket "${bucketName}" exists in Supabase Storage`);
-        console.error('   Create it via: Supabase Dashboard → Storage → New bucket');
+      if (isJsonMode) {
+        console.log(JSON.stringify({
+          success: false,
+          error: uploadError.message,
+          storagePath,
+          bucket: bucketName,
+        }));
+      } else {
+        console.error('❌ Upload failed:', uploadError.message);
+        if (uploadError.message.includes('Bucket not found')) {
+          console.error(`   Make sure the bucket "${bucketName}" exists in Supabase Storage`);
+          console.error('   Create it via: Supabase Dashboard → Storage → New bucket');
+        }
       }
       process.exit(1);
     }
@@ -127,18 +149,9 @@ async function uploadScreenshot() {
       .from(bucketName)
       .getPublicUrl(storagePath);
 
-    console.log('');
-    console.log('✅ Upload successful!');
-    console.log('');
-    console.log('📎 Public URL:');
-    console.log(`   ${publicUrl}`);
-    console.log('');
-    console.log('📝 Markdown reference:');
-    console.log(`   ![Screenshot](${publicUrl})`);
-    console.log('');
-
-    // Output JSON for programmatic use
-    if (process.env.OUTPUT_JSON === 'true') {
+    // Output based on mode
+    if (isJsonMode) {
+      // JSON-only output for programmatic use
       console.log(JSON.stringify({
         success: true,
         publicUrl,
@@ -146,9 +159,29 @@ async function uploadScreenshot() {
         bucket: bucketName,
         fileSize: stats.size,
       }));
+    } else {
+      // Human-readable output
+      console.log('');
+      console.log('✅ Upload successful!');
+      console.log('');
+      console.log('📎 Public URL:');
+      console.log(`   ${publicUrl}`);
+      console.log('');
+      console.log('📝 Markdown reference:');
+      console.log(`   ![Screenshot](${publicUrl})`);
+      console.log('');
     }
   } catch (error) {
-    console.error('❌ Unexpected error:', error);
+    if (isJsonMode) {
+      console.log(JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        storagePath,
+        bucket: bucketName,
+      }));
+    } else {
+      console.error('❌ Unexpected error:', error);
+    }
     process.exit(1);
   }
 }
