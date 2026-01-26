@@ -9,6 +9,106 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-01-26
+
+### Added
+
+- **Web Push Notifications**: Complete push notification system for PWA users
+  - Service worker registration for receiving push notifications in background
+  - `usePushNotifications` hook for subscribing/unsubscribing from push notifications
+  - `useNotificationSettings` hook for managing notification preferences
+  - VAPID key generation script (`npm run generate:vapid-keys`)
+  - New Edge Function `send-push-notification` for delivering push notifications
+  - Database trigger automatically sends push notifications when notifications are inserted
+  - Push notification preferences in user settings (can disable push notifications)
+  - Support for multiple device subscriptions per user
+  - Automatic cleanup of expired push subscriptions
+  - New `push_subscriptions` table for storing Web Push subscription endpoints
+  - Notification broadcast infrastructure using Supabase Realtime Broadcast
+  - Service worker handles notification clicks and navigation to relevant pages
+  - Environment variables: `VITE_VAPID_PUBLIC_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
+
+- **Team Stats and Activity**: Enhanced team details page with comprehensive statistics
+  - New `TeamQuickActions` component for quick navigation to team resources
+  - `TeamActivitySummary` component showing team overview statistics
+  - `TeamRecentEquipment` component displaying recently updated equipment
+  - `TeamRecentWorkOrders` component showing recent work orders
+  - New `useTeamStats` hook for fetching team statistics
+  - New `teamStatsService` for team data aggregation
+  - Team stats query keys added to `queryKeys.ts`
+
+- **Mobile Bottom Navigation**: New bottom navigation bar for mobile devices
+  - `BottomNav` component with quick access to main sections
+  - Only visible on mobile devices (hidden on desktop)
+  - Improved mobile navigation UX
+
+- **Design System Enhancements**:
+  - New shadow elevation system (`shadow-elevation-2`) for consistent card shadows
+  - Status-based border colors for equipment cards (`getEquipmentStatusBorderClass`)
+  - Enhanced empty states with gradient backgrounds and improved styling
+  - Improved button variants with touch manipulation and active scale effects
+  - Card component updates with `touch-manipulation` for better mobile interaction
+  - Sheet overlay improvements with backdrop blur and proper z-index layering
+  - Skeleton loading components updated to use shimmer animations instead of pulse
+
+- **Work Order UI Improvements**:
+  - Enhanced work order detail headers with gradient backgrounds on desktop
+  - Improved work order card styling with elevation shadows
+  - Work order status manager component updates
+  - Work order costs section with improved loading states
+  - Work order notes section with better card styling
+  - PM checklist component with animated collapsible sections
+  - Improved back button styling with hover underline effects
+
+- **Part Lookup Performance**: Optimized part alternates search query
+  - Disabled retries for search queries (user will type more and trigger new query)
+  - Added stale time caching (30 seconds) for search results
+  - Added AbortSignal support for request cancellation
+  - Improved error handling for cancelled requests
+
+- **QuickBooks Integration**: Enhanced invoice export with audit logging
+  - New `intuit_tid` capture for improved troubleshooting support
+  - Audit logging migration for invoice export operations
+
+### Changed
+
+- **Card Component**: Updated default styling with `shadow-card` and `touch-manipulation` classes
+- **Card Title**: Updated to use `font-display` for improved typography
+- **Button Variants**: Enhanced with `transition-all duration-fast` and `active:scale-[0.98]` for better touch feedback
+- **Empty State Component**: Redesigned with gradient backgrounds, improved icon styling, and better typography
+- **Sheet Component**: Enhanced overlay with backdrop blur and improved z-index management
+- **Work Order Primary Action Button**: Changed button variants from `default` to `secondary` for better visual hierarchy
+- **Equipment Card**: Added status-based border colors for visual status indication
+- **Work Order Details Desktop Header**: Redesigned with gradient background and improved layout
+- **Work Order Details Mobile Header**: Enhanced back button with hover underline effect
+- **Part Lookup Page**: Improved query configuration for better performance and user experience
+- **Service Worker**: Automatic registration in production builds with periodic update checks
+- **Content Security Policy**: Updated to allow WebSocket connections and Google Fonts
+- **ESLint Configuration**: Added `tmp` directory to ignore patterns
+
+### Fixed
+
+- **Part Lookup Search Path**: Fixed database search path issue in part lookup functionality
+- **Test Skeleton Selectors**: Updated all test files to use new skeleton loading selectors (`animate-shimmer`, `bg-muted.rounded-md`) instead of deprecated `animate-pulse`
+- **Invoice Export Audit Logging**: Added comprehensive audit trail for QuickBooks invoice exports
+
+### Security
+
+- **Push Notification Security**: 
+  - RLS policies on `push_subscriptions` table ensuring users can only manage their own subscriptions
+  - Service role access restricted to Edge Function for sending push notifications
+  - VAPID keys stored securely in environment variables
+  - User notification preferences respected before sending push notifications
+- **Notification Broadcast**: RLS policy on `realtime.messages` ensuring users only receive broadcasts on their own private channels
+- **Error Message Allowlist**: Added push notification error patterns to safe error allowlist
+
+### Database Migrations
+
+- `20260125220500_fix_part_lookup_search_path.sql`: Fixed search path for part lookup queries
+- `20260126000000_add_invoice_export_audit_logging.sql`: Added audit logging for QuickBooks invoice exports
+- `20260126040526_add_notification_broadcast.sql`: Added notification broadcast infrastructure with Realtime Broadcast and push notification triggers
+- `20260126040527_add_push_subscriptions.sql`: Added `push_subscriptions` table with RLS policies for Web Push notification subscriptions
+
 ## [2.1.3] - 2026-01-24
 
 ### Fixed
@@ -577,7 +677,11 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.1.3...v2.2.0
+[2.1.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.1.2...v2.1.3
+[2.1.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.1.1...v2.1.2
+[2.1.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.8.1...v2.0.0
 [1.8.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.8.0...v1.8.1
