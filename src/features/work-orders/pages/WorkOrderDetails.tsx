@@ -654,7 +654,7 @@ const WorkOrderDetails = () => {
 
       {/* Mobile floating Complete PM CTA */}
       {showFloatingCTA && (
-        <div className="fixed bottom-0 left-0 right-0 z-modal-backdrop border-t bg-background p-4 pb-safe-bottom lg:hidden">
+        <div className="fixed bottom-[70px] left-0 right-0 z-fixed border-t bg-background p-4 pb-safe-bottom lg:hidden">
           <Button
             className="h-12 w-full min-h-[44px] font-medium"
             size="lg"
