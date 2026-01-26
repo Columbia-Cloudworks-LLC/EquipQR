@@ -106,6 +106,11 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   // Google Workspace configuration errors
   /^Google Workspace encryption is not properly configured/,
   /^Failed to decrypt stored credentials\. The stored token may be corrupted/,
+  
+  // Push notification errors
+  /^Failed to send push notification$/,
+  /^Failed to fetch push subscriptions$/,
+  /^Missing required fields: user_id, title, body$/,
 ];
 
 /**
