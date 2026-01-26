@@ -46,7 +46,6 @@ vi.mock('react-router-dom', async () => {
 });
 
 import { WorkOrderQuickActions } from '@/features/work-orders/components/WorkOrderQuickActions';
-import { isQuickBooksEnabled } from '@/lib/flags';
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -84,7 +83,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
 
   describe('Feature Flag', () => {
     it('should not show QuickBooks menu item when feature flag is disabled', async () => {
-      vi.mocked(isQuickBooksEnabled).mockReturnValue(false);
+      mockIsQuickBooksEnabled.mockReturnValue(false);
       mockUseQuickBooksAccess.mockReturnValue({
         data: true, // Has permission but feature disabled
         isLoading: false,
@@ -101,7 +100,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
     });
 
     it('should show QuickBooks menu item when feature flag is enabled and user has permission', async () => {
-      vi.mocked(isQuickBooksEnabled).mockReturnValue(true);
+      mockIsQuickBooksEnabled.mockReturnValue(true);
       mockUseQuickBooksAccess.mockReturnValue({
         data: true,
         isLoading: false,
@@ -221,7 +220,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
 
   describe('Combined Conditions', () => {
     it('should not show QuickBooks menu item when feature disabled even with permission', async () => {
-      vi.mocked(isQuickBooksEnabled).mockReturnValue(false);
+      mockIsQuickBooksEnabled.mockReturnValue(false);
       mockUseQuickBooksAccess.mockReturnValue({
         data: true,
         isLoading: false,
@@ -254,7 +253,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
     });
 
     it('should show QuickBooks menu item only when both feature enabled AND has permission', async () => {
-      vi.mocked(isQuickBooksEnabled).mockReturnValue(true);
+      mockIsQuickBooksEnabled.mockReturnValue(true);
       mockUseQuickBooksAccess.mockReturnValue({
         data: true,
         isLoading: false,
