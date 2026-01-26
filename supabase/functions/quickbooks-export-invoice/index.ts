@@ -26,6 +26,17 @@ const getIntuitTid = (response: Response): string | null => {
   return response.headers.get('intuit_tid') || null;
 };
 
+/**
+ * Extracts the client IP address from request headers.
+ * Checks x-forwarded-for (first IP in comma-separated list) and x-real-ip.
+ * Returns null if no IP address is found.
+ */
+const getClientIpAddress = (req: Request): string | null => {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
+         req.headers.get("x-real-ip") || 
+         null;
+};
+
 // QuickBooks API endpoints
 const QUICKBOOKS_API_BASE_SANDBOX = "https://sandbox-quickbooks.api.intuit.com";
 const QUICKBOOKS_API_BASE_PRODUCTION = "https://quickbooks.api.intuit.com";
@@ -1147,10 +1158,6 @@ serve(async (req) => {
 
         // Audit log: Track invoice update for compliance
         try {
-          const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
-                             req.headers.get("x-real-ip") || 
-                             null;
-          
           await supabaseClient.rpc('log_invoice_export_audit', {
             p_organization_id: workOrder.organization_id,
             p_work_order_id: work_order_id,
@@ -1158,7 +1165,8 @@ serve(async (req) => {
             p_quickbooks_invoice_id: invoiceId,
             p_quickbooks_invoice_number: invoiceNumber,
             p_realm_id: credentials.realm_id,
-            p_ip_address: ipAddress
+            p_ip_address: getClientIpAddress(req),
+            p_actor_id: user.id
           });
         } catch (auditError) {
           // Log audit error but don't fail the export
@@ -1315,10 +1323,6 @@ serve(async (req) => {
 
         // Audit log: Track invoice creation for compliance
         try {
-          const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
-                             req.headers.get("x-real-ip") || 
-                             null;
-          
           await supabaseClient.rpc('log_invoice_export_audit', {
             p_organization_id: workOrder.organization_id,
             p_work_order_id: work_order_id,
@@ -1326,7 +1330,8 @@ serve(async (req) => {
             p_quickbooks_invoice_id: invoiceId,
             p_quickbooks_invoice_number: invoiceNumber,
             p_realm_id: credentials.realm_id,
-            p_ip_address: ipAddress
+            p_ip_address: getClientIpAddress(req),
+            p_actor_id: user.id
           });
         } catch (auditError) {
           // Log audit error but don't fail the export

@@ -18,7 +18,8 @@ CREATE OR REPLACE FUNCTION public.log_invoice_export_audit(
   p_quickbooks_invoice_id TEXT,
   p_quickbooks_invoice_number TEXT,
   p_realm_id TEXT,
-  p_ip_address TEXT DEFAULT NULL
+  p_ip_address TEXT DEFAULT NULL,
+  p_actor_id UUID DEFAULT NULL -- Optional: explicitly pass user ID when called from service-role context
 )
 RETURNS UUID
 LANGUAGE plpgsql
@@ -32,14 +33,44 @@ DECLARE
   v_entity_name TEXT;
   v_changes JSONB;
   v_metadata JSONB;
+  v_user_id UUID;
+  v_name TEXT;
+  v_email TEXT;
 BEGIN
-  -- Get actor info
-  SELECT * INTO v_actor FROM public.get_audit_actor_info();
+  -- Get actor info: use explicit p_actor_id if provided, otherwise fall back to auth.uid()
+  IF p_actor_id IS NOT NULL THEN
+    -- Use explicitly provided actor ID (for service-role context)
+    v_user_id := p_actor_id;
+    -- Fetch user details
+    SELECT p.name, u.email 
+    INTO v_name, v_email
+    FROM public.profiles p
+    JOIN auth.users u ON u.id = p.id
+    WHERE p.id = v_user_id;
+    
+    IF v_name IS NULL THEN
+      v_name := COALESCE(v_email, 'Unknown User');
+    END IF;
+    
+    v_actor.actor_id := v_user_id;
+    v_actor.actor_name := v_name;
+    v_actor.actor_email := v_email;
+  ELSE
+    -- Fall back to get_audit_actor_info() which uses auth.uid()
+    SELECT * INTO v_actor FROM public.get_audit_actor_info();
+  END IF;
   
-  -- Get work order title for entity name
+  -- Get work order title for entity name, scoped to organization
   SELECT title INTO v_work_order_title
   FROM public.work_orders
-  WHERE id = p_work_order_id;
+  WHERE id = p_work_order_id
+    AND organization_id = p_organization_id;
+  
+  -- Validate that work order exists and belongs to the organization
+  IF v_work_order_title IS NULL THEN
+    RAISE EXCEPTION 'Work order % does not exist or does not belong to organization %', 
+      p_work_order_id, p_organization_id;
+  END IF;
   
   v_entity_name := COALESCE(v_work_order_title, 'Work Order ' || p_work_order_id::TEXT);
   

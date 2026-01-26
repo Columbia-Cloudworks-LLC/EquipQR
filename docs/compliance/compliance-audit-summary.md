@@ -192,4 +192,4 @@ This document summarizes the compliance audit and remediation work performed for
 - [Access Control Policy](../ops/access-control-policy.md)
 - [Change Management Policy](../../CONTRIBUTING.md#change-management-policy)
 - [Disaster Recovery Plan](../ops/disaster-recovery.md)
-- [RLS Migration](../supabase/migrations/20260113210000_fix_rls_cross_tenant_vulnerabilities.sql)
+- [RLS Migration](../../supabase/migrations/20260113210000_fix_rls_cross_tenant_vulnerabilities.sql)
