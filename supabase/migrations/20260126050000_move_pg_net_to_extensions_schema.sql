@@ -70,8 +70,11 @@ END
 $$;
 
 -- =============================================================================
--- PART 2: Verify extension is in correct schema
+-- PART 2: Verify extension exists and is in correct schema
 -- =============================================================================
+-- After the DO block, verify that pg_net exists before proceeding.
+-- If it doesn't exist, abort the migration with a clear error message
+-- rather than failing later when functions try to call net.http_post().
 
 DO $$
 DECLARE
@@ -83,9 +86,11 @@ BEGIN
   WHERE e.extname = 'pg_net';
   
   IF v_schema_name IS NULL THEN
-    RAISE WARNING 'pg_net extension not found. Please enable it via Supabase Dashboard > Database > Extensions.';
+    -- Fail fast: pg_net is required for functions that call net.http_post()
+    RAISE EXCEPTION 'pg_net extension not found. Please enable it via Supabase Dashboard > Database > Extensions before running this migration.';
   ELSIF v_schema_name != 'extensions' THEN
-    RAISE WARNING 'pg_net extension is in % schema, not extensions schema. Please move it manually via Supabase Dashboard > Database > Extensions.', v_schema_name;
+    -- Fail fast: extension must be in extensions schema for security
+    RAISE EXCEPTION 'pg_net extension is in % schema, not extensions schema. Please move it manually via Supabase Dashboard > Database > Extensions before running this migration.', v_schema_name;
   ELSE
     RAISE NOTICE 'pg_net extension verified in extensions schema';
   END IF;

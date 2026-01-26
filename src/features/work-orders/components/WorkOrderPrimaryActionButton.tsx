@@ -35,6 +35,13 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
   const { data: pmData } = usePMByWorkOrderId(workOrder.id);
   const { isManager, isTechnician } = useWorkOrderPermissionLevels();
   const { user } = useAuth();
+  
+  // Guard: organizationId is required for status updates
+  // Return null if no organization ID is available (component will be disabled/hidden)
+  // This prevents errors when useUpdateWorkOrderStatus is called with empty string
+  if (!organizationId) {
+    return null;
+  }
 
   const handleStatusChange = async (newStatus: string) => {
     // Check if trying to complete work order with incomplete PM
