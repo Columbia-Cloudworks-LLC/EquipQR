@@ -1,18 +1,23 @@
-
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
-import { ArrowLeft, Settings, Users, Trash2, Plus, Edit } from 'lucide-react';
+import { ArrowLeft, Settings, Users, Trash2, Plus, Edit, Forklift, ClipboardList } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeam, useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTeamStats } from '@/features/teams/hooks/useTeamStats';
 import TeamMembersList from '@/features/teams/components/TeamMembersList';
 import TeamMetadataEditor from '@/features/teams/components/TeamMetadataEditor';
 import AddTeamMemberDialog from '@/features/teams/components/AddTeamMemberDialog';
 import { QuickBooksCustomerMapping } from '@/features/teams/components/QuickBooksCustomerMapping';
+import TeamQuickActions from '@/features/teams/components/TeamQuickActions';
+import TeamActivitySummary from '@/features/teams/components/TeamActivitySummary';
+import TeamRecentEquipment from '@/features/teams/components/TeamRecentEquipment';
+import TeamRecentWorkOrders from '@/features/teams/components/TeamRecentWorkOrders';
 
 const TeamDetails = () => {
   const { teamId } = useParams<{ teamId: string }>();
@@ -25,10 +30,22 @@ const TeamDetails = () => {
   const { data: team, isLoading: teamLoading } = useTeam(teamId);
   const { deleteTeam } = useTeamMutations();
   const permissions = usePermissions();
+  
+  // Fetch team statistics (equipment, work orders, recent items)
+  const {
+    equipmentStats,
+    workOrderStats,
+    recentEquipment,
+    recentWorkOrders,
+    isLoadingEquipmentStats,
+    isLoadingWorkOrderStats,
+    isLoadingRecentEquipment,
+    isLoadingRecentWorkOrders,
+  } = useTeamStats(teamId, currentOrganization?.id);
 
   if (isLoading || teamLoading || !currentOrganization || !teamId) {
     return (
-      <div className="space-y-6">
+      <div className="container mx-auto py-6 px-4 sm:px-6 space-y-6">
         <div className="h-8 bg-muted animate-pulse rounded" />
         <div className="grid gap-6">
           <Card>
@@ -43,7 +60,7 @@ const TeamDetails = () => {
 
   if (!team) {
     return (
-      <div className="space-y-6">
+      <div className="container mx-auto py-6 px-4 sm:px-6 space-y-6">
         <Button
           variant="ghost"
           onClick={() => navigate('/dashboard/teams')}
@@ -87,54 +104,66 @@ const TeamDetails = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <div className="container mx-auto py-6 px-4 sm:px-6 space-y-6">
+      {/* Header - Mobile: stacked, Desktop: horizontal */}
+      <header className="space-y-4">
+        {/* Top row: Back button + Actions */}
+        <div className="flex items-center justify-between">
           <Button
             variant="ghost"
+            size="sm"
             onClick={() => navigate('/dashboard/teams')}
-            className="flex items-center gap-2"
+            className="text-muted-foreground hover:text-foreground -ml-2"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Teams
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Back to Teams</span>
+            <span className="sm:hidden">Back</span>
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-              <Users className="h-8 w-8 text-blue-600" />
-              {team.name}
-            </h1>
-            <p className="text-muted-foreground">
-              {team.member_count} members
-            </p>
+          
+          <div className="flex items-center gap-1 sm:gap-2">
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMetadataEditor(true)}
+                className="gap-1.5"
+              >
+                <Edit className="h-4 w-4" />
+                <span className="hidden sm:inline">Edit Team</span>
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteTeam}
+                className="text-destructive hover:text-destructive gap-1.5"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="hidden md:inline">Delete Team</span>
+              </Button>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {canEdit && (
-            <Button
-              variant="outline"
-              onClick={() => setShowMetadataEditor(true)}
-              className="flex items-center gap-2"
-            >
-              <Edit className="h-4 w-4" />
-              Edit Team
-            </Button>
-          )}
-          {canDelete && (
-            <Button
-              variant="outline"
-              onClick={handleDeleteTeam}
-              className="flex items-center gap-2 text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete Team
-            </Button>
-          )}
+        
+        {/* Team title - centered on mobile, left-aligned on desktop */}
+        <div className="text-center sm:text-left">
+          <div className="inline-flex items-center gap-3 mb-1">
+            <div className="p-2 rounded-xl bg-primary/10">
+              <Users className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+            </div>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              {team.name}
+            </h1>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {team.member_count} {team.member_count === 1 ? 'member' : 'members'}
+          </p>
         </div>
-      </div>
+      </header>
 
       {/* Team Overview */}
-      <Card>
+      <Card className="shadow-elevation-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
@@ -147,20 +176,49 @@ const TeamDetails = () => {
             <p className="text-sm">{team.description || 'No description provided'}</p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Total Members</h4>
-              <p className="text-2xl font-bold text-blue-600">{team.members.length}</p>
+          {/* Stats grid - responsive: 2 cols on mobile, 3 on tablet, 5 on desktop */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            <div className="p-3 rounded-lg bg-muted/30">
+              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Members</h4>
+              <p className="text-xl sm:text-2xl font-bold text-primary mt-1">{team.members.length}</p>
             </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Team Created</h4>
-              <p className="text-sm text-muted-foreground">
+            <Link 
+              to={`/dashboard/equipment?team=${team.id}`}
+              className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
+            >
+              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1 group-hover:text-primary transition-colors">
+                <Forklift className="h-3 w-3" />
+                Equipment
+              </h4>
+              {isLoadingEquipmentStats ? (
+                <Skeleton className="h-7 w-10 mt-1" />
+              ) : (
+                <p className="text-xl sm:text-2xl font-bold text-primary mt-1">{equipmentStats?.totalEquipment ?? 0}</p>
+              )}
+            </Link>
+            <Link 
+              to={`/dashboard/work-orders?team=${team.id}`}
+              className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
+            >
+              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1 group-hover:text-primary transition-colors">
+                <ClipboardList className="h-3 w-3" />
+                Work Orders
+              </h4>
+              {isLoadingWorkOrderStats ? (
+                <Skeleton className="h-7 w-10 mt-1" />
+              ) : (
+                <p className="text-xl sm:text-2xl font-bold text-primary mt-1">{workOrderStats?.activeWorkOrders ?? 0}</p>
+              )}
+            </Link>
+            <div className="p-3 rounded-lg bg-muted/30">
+              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Created</h4>
+              <p className="text-sm text-foreground mt-1">
                 {new Date(team.created_at).toLocaleDateString()}
               </p>
             </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Team Status</h4>
-              <Badge className="bg-green-100 text-green-800 border-green-200">
+            <div className="p-3 rounded-lg bg-muted/30">
+              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</h4>
+              <Badge className="bg-success/20 text-success border-success/30 mt-1">
                 Active
               </Badge>
             </div>
@@ -168,11 +226,36 @@ const TeamDetails = () => {
         </CardContent>
       </Card>
 
+      {/* Quick Actions */}
+      <TeamQuickActions teamId={team.id} teamName={team.name} />
+
+      {/* Team Activity Summary */}
+      <TeamActivitySummary
+        teamId={team.id}
+        equipmentStats={equipmentStats}
+        workOrderStats={workOrderStats}
+        isLoading={isLoadingEquipmentStats || isLoadingWorkOrderStats}
+      />
+
+      {/* Recent Equipment - Only show if has equipment or loading */}
+      <TeamRecentEquipment
+        teamId={team.id}
+        equipment={recentEquipment}
+        isLoading={isLoadingRecentEquipment}
+      />
+
+      {/* Recent Work Orders - Only show if has work orders or loading */}
+      <TeamRecentWorkOrders
+        teamId={team.id}
+        workOrders={recentWorkOrders}
+        isLoading={isLoadingRecentWorkOrders}
+      />
+
       {/* QuickBooks Customer Mapping */}
       <QuickBooksCustomerMapping teamId={team.id} teamName={team.name} />
 
       {/* Team Members */}
-      <Card>
+      <Card className="shadow-elevation-2">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>

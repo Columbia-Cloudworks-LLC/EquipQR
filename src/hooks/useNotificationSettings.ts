@@ -201,6 +201,9 @@ export const useNotificationSubscription = (organizationId: string) => {
         // Set auth for private channels (required for Realtime Authorization)
         await supabase.realtime.setAuth();
 
+        // Check again after async operations - component may have unmounted
+        if (!isMounted) return;
+
         // Create private channel for this user's notifications
         const channel = supabase
           .channel(`notifications:user:${userId}`, {
@@ -225,6 +228,13 @@ export const useNotificationSubscription = (organizationId: string) => {
               logger.warn('Notification broadcast subscription timed out');
             }
           });
+
+        // Final check before storing channel reference - prevent race condition
+        if (!isMounted) {
+          // Component unmounted during setup, clean up the channel we just created
+          await supabase.removeChannel(channel);
+          return;
+        }
 
         channelRef.current = channel;
       } catch (error) {
