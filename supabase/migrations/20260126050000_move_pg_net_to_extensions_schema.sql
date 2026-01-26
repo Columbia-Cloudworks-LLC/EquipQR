@@ -99,9 +99,9 @@ COMMENT ON EXTENSION pg_net IS
 -- PART 3: Update functions to use fully qualified schema name
 -- =============================================================================
 -- Functions with SET search_path = '' need fully qualified names to access
--- extensions.net.http_post() after the extension is moved to extensions schema.
+-- net.http_post() after the extension is moved to extensions schema.
 
--- Update invoke_quickbooks_token_refresh() to use extensions.net.http_post()
+-- Update invoke_quickbooks_token_refresh() to use net.http_post()
 CREATE OR REPLACE FUNCTION public.invoke_quickbooks_token_refresh()
 RETURNS void
 LANGUAGE plpgsql
@@ -154,8 +154,8 @@ BEGIN
     RETURN;
   END IF;
   -- Call the edge function and capture request ID
-  -- Use fully qualified name: extensions.net.http_post()
-  SELECT extensions.net.http_post(
+  -- Use fully qualified name: net.http_post() (net is the schema for pg_net)
+  SELECT net.http_post(
     url := supabase_url || '/functions/v1/quickbooks-refresh-tokens',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
@@ -173,9 +173,9 @@ $$;
 COMMENT ON FUNCTION public.invoke_quickbooks_token_refresh() IS 
   'Calls the quickbooks-refresh-tokens edge function using credentials stored in vault.secrets. '
   'This function is secured and can only be called by pg_cron scheduler (postgres superuser) '
-  'or other authorized superusers. Updated to use extensions.net.http_post() after moving pg_net to extensions schema.';
+  'or other authorized superusers. Updated to use net.http_post() after moving pg_net to extensions schema.';
 
--- Update broadcast_notification() to use extensions.net.http_post()
+-- Update broadcast_notification() to use net.http_post()
 CREATE OR REPLACE FUNCTION public.broadcast_notification()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -227,9 +227,9 @@ BEGIN
       IF v_supabase_url !~ '^(https://[A-Za-z0-9.-]+\.supabase\.co|http://localhost(:[0-9]+)?)/?$' THEN
         RAISE WARNING 'Push notification skipped: invalid supabase_url format in vault secrets';
       ELSE
-        -- Use extensions.net.http_post with timeout to prevent blocking
-        -- Use fully qualified name: extensions.net.http_post()
-        SELECT extensions.net.http_post(
+        -- Use net.http_post with timeout to prevent blocking
+        -- Use fully qualified name: net.http_post() (net is the schema for pg_net)
+        SELECT net.http_post(
           url := v_supabase_url || '/functions/v1/send-push-notification',
           headers := jsonb_build_object(
             'Authorization', 'Bearer ' || v_service_role_key,
@@ -275,6 +275,6 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.broadcast_notification() IS 
-  'Trigger function that broadcasts a lightweight signal when a notification is inserted. Uses Supabase Realtime Broadcast for scalable delivery to connected clients. Updated to use extensions.net.http_post() after moving pg_net to extensions schema.';
+  'Trigger function that broadcasts a lightweight signal when a notification is inserted. Uses Supabase Realtime Broadcast for scalable delivery to connected clients. Updated to use net.http_post() after moving pg_net to extensions schema.';
 
 COMMIT;

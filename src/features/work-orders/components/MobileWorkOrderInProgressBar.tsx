@@ -104,11 +104,14 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
           {timerDisplay && (
             <button 
               onClick={onToggleTimer}
+              disabled={!onToggleTimer}
+              aria-disabled={!onToggleTimer}
               className={cn(
                 "flex items-center gap-1.5 px-2 py-1 rounded-md text-sm font-mono transition-colors",
                 isTimerRunning 
                   ? "bg-primary/10 text-primary" 
-                  : "bg-muted text-muted-foreground"
+                  : "bg-muted text-muted-foreground",
+                !onToggleTimer && "opacity-50 cursor-not-allowed"
               )}
             >
               <Timer className={cn("h-3.5 w-3.5", isTimerRunning && "animate-pulse")} />

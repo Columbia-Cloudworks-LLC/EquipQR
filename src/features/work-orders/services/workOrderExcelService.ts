@@ -75,7 +75,10 @@ interface WorkOrderFullData {
 
 /**
  * Fetch all data needed for a single work order export
- * @internal - Currently unused, kept for potential future use
+ * 
+ * @internal - Currently unused. Kept for potential future bulk export functionality
+ * that would generate multi-worksheet workbooks with summary, labor, costs, PM, timeline, and equipment sheets.
+ * The current implementation (generateSingleWorkOrderExcel) only exports cost items.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function fetchWorkOrderData(
@@ -227,6 +230,11 @@ async function fetchWorkOrderData(
 // ============================================
 // Data Transformation
 // ============================================
+// NOTE: The functions below (buildSummaryRow, buildLaborRows, buildCostRows, etc.)
+// are currently unused but kept for potential future bulk export functionality
+// that would generate multi-worksheet workbooks. The current implementation
+// (generateSingleWorkOrderExcel) only exports cost items in a single worksheet.
+// If bulk export is not planned, these functions can be removed to reduce maintenance burden.
 
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return '';
@@ -658,21 +666,31 @@ export async function generateSingleWorkOrderExcel(
     const teamName = equipment?.teams?.name || 'Unassigned';
 
     // Fetch costs
-    const { data: costs } = await supabase
+    const { data: costs, error: costsError } = await supabase
       .from('work_order_costs')
       .select('*')
       .eq('work_order_id', workOrderId)
       .order('created_at', { ascending: true });
+
+    if (costsError) {
+      logger.error('Failed to fetch work order costs:', costsError);
+      throw new Error('Failed to fetch work order costs');
+    }
 
     // Get creator names for costs
     const costCreatorIds = [...new Set((costs || []).map(c => c.created_by))];
     let costsWithCreators: WorkOrderCost[] = [];
     
     if (costCreatorIds.length > 0) {
-      const { data: costProfiles } = await supabase
+      const { data: costProfiles, error: costProfilesError } = await supabase
         .from('profiles')
         .select('id, name')
         .in('id', costCreatorIds);
+
+      if (costProfilesError) {
+        logger.error('Failed to fetch cost creator profiles:', costProfilesError);
+        throw new Error('Failed to fetch cost creator profiles');
+      }
       
       const costProfileMap = new Map(costProfiles?.map(p => [p.id, p.name]) || []);
       
