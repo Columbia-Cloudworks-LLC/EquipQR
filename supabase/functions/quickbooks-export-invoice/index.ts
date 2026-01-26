@@ -1158,7 +1158,7 @@ serve(async (req) => {
 
         // Audit log: Track invoice update for compliance
         try {
-          await supabaseClient.rpc('log_invoice_export_audit', {
+          const { error: auditError } = await supabaseClient.rpc('log_invoice_export_audit', {
             p_organization_id: workOrder.organization_id,
             p_work_order_id: work_order_id,
             p_action: 'UPDATE',
@@ -1168,9 +1168,16 @@ serve(async (req) => {
             p_ip_address: getClientIpAddress(req),
             p_actor_id: user.id
           });
+          
+          if (auditError) {
+            // Log audit error but don't fail the export
+            logStep("Warning: Audit logging failed", { 
+              error: auditError.message 
+            });
+          }
         } catch (auditError) {
-          // Log audit error but don't fail the export
-          logStep("Warning: Audit logging failed", { 
+          // Log unexpected exceptions (network/runtime errors)
+          logStep("Warning: Audit logging failed with exception", { 
             error: auditError instanceof Error ? auditError.message : String(auditError) 
           });
         }
@@ -1323,7 +1330,7 @@ serve(async (req) => {
 
         // Audit log: Track invoice creation for compliance
         try {
-          await supabaseClient.rpc('log_invoice_export_audit', {
+          const { error: auditError } = await supabaseClient.rpc('log_invoice_export_audit', {
             p_organization_id: workOrder.organization_id,
             p_work_order_id: work_order_id,
             p_action: 'CREATE',
@@ -1333,9 +1340,16 @@ serve(async (req) => {
             p_ip_address: getClientIpAddress(req),
             p_actor_id: user.id
           });
+          
+          if (auditError) {
+            // Log audit error but don't fail the export
+            logStep("Warning: Audit logging failed", { 
+              error: auditError.message 
+            });
+          }
         } catch (auditError) {
-          // Log audit error but don't fail the export
-          logStep("Warning: Audit logging failed", { 
+          // Log unexpected exceptions (network/runtime errors)
+          logStep("Warning: Audit logging failed with exception", { 
             error: auditError instanceof Error ? auditError.message : String(auditError) 
           });
         }

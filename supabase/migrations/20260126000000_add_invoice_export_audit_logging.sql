@@ -36,9 +36,33 @@ DECLARE
   v_user_id UUID;
   v_name TEXT;
   v_email TEXT;
+  v_is_service_role BOOLEAN;
+  v_actor_belongs_to_org BOOLEAN;
 BEGIN
-  -- Get actor info: use explicit p_actor_id if provided, otherwise fall back to auth.uid()
+  -- Security: Only service_role can call this function directly
+  -- This prevents authenticated clients from bypassing permission checks
+  v_is_service_role := (auth.role() = 'service_role');
+  
+  IF NOT v_is_service_role THEN
+    RAISE EXCEPTION 'Access denied: This function can only be called by service_role';
+  END IF;
+  
+  -- Authorization: If p_actor_id is provided, verify the actor belongs to the organization
   IF p_actor_id IS NOT NULL THEN
+    -- Verify that the actor is a member of the organization
+    SELECT EXISTS (
+      SELECT 1
+      FROM public.organization_members om
+      WHERE om.organization_id = p_organization_id
+        AND om.user_id = p_actor_id
+        AND om.status = 'active'
+    ) INTO v_actor_belongs_to_org;
+    
+    IF NOT v_actor_belongs_to_org THEN
+      RAISE EXCEPTION 'Access denied: Actor % is not a member of organization %', 
+        p_actor_id, p_organization_id;
+    END IF;
+    
     -- Use explicitly provided actor ID (for service-role context)
     v_user_id := p_actor_id;
     -- Fetch user details
@@ -57,6 +81,7 @@ BEGIN
     v_actor.actor_email := v_email;
   ELSE
     -- Fall back to get_audit_actor_info() which uses auth.uid()
+    -- Note: In service-role context, auth.uid() will be NULL, so this will create a System entry
     SELECT * INTO v_actor FROM public.get_audit_actor_info();
   END IF;
   
@@ -120,10 +145,20 @@ $$;
 
 COMMENT ON FUNCTION public.log_invoice_export_audit IS 
   'Logs audit entry when a work order is exported to QuickBooks as an invoice. '
-  'Tracks user_id, action (CREATE/UPDATE), timestamp, and IP address for compliance.';
+  'Tracks user_id, action (CREATE/UPDATE), timestamp, and IP address for compliance. '
+  'This function is restricted to service_role only to prevent unauthorized audit log forging.';
 
 -- ============================================================================
--- PART 2: Add 'invoice_export' as a tracked entity type (optional enhancement)
+-- PART 2: Restrict EXECUTE privileges to service_role only
+-- ============================================================================
+-- Revoke default EXECUTE privileges from anon and authenticated roles
+-- Only service_role (used by edge functions) can call this function
+
+REVOKE EXECUTE ON FUNCTION public.log_invoice_export_audit FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.log_invoice_export_audit TO service_role;
+
+-- ============================================================================
+-- PART 3: Add 'invoice_export' as a tracked entity type (optional enhancement)
 -- ============================================================================
 -- Note: We're using 'work_order' entity type for invoice exports since invoices
 -- are created in QuickBooks, not our database. The audit log tracks the export
