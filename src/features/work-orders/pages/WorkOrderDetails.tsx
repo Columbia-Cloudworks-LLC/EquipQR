@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Navigate, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clipboard, CheckCircle } from 'lucide-react';
@@ -57,7 +57,6 @@ const WorkOrderDetails = () => {
 
   // State for mobile action sheet
   const [showMobileActionSheet, setShowMobileActionSheet] = useState(false);
-  const navigate = useNavigate();
 
   // Use custom hooks for data and actions
   const {
