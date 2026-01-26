@@ -244,10 +244,11 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
       {workOrder.has_pm && (
         <Card 
           className={cn(
-            "shadow-elevation-2 cursor-pointer transition-colors hover:bg-muted/50",
+            "shadow-elevation-2 transition-colors",
+            onScrollToPM && "cursor-pointer hover:bg-muted/50",
             workOrder.pm_status === 'completed' && "border-green-200 dark:border-green-800"
           )}
-          onClick={onScrollToPM}
+          onClick={onScrollToPM ? () => onScrollToPM() : undefined}
         >
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
