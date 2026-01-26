@@ -5,7 +5,7 @@
  * Useful for showing offline indicators and managing offline-first UX.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface UseOnlineStatusResult {
   /** Whether the browser is currently online */
@@ -25,18 +25,31 @@ export const useOnlineStatus = (): UseOnlineStatusResult => {
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );
   const [isSyncing, setIsSyncing] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
       // Brief syncing state when coming back online
       setIsSyncing(true);
-      setTimeout(() => setIsSyncing(false), 2000);
+      // Clear any existing timeout before setting a new one
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        setIsSyncing(false);
+        timeoutRef.current = null;
+      }, 2000);
     };
 
     const handleOffline = () => {
       setIsOnline(false);
       setIsSyncing(false);
+      // Clear timeout when going offline
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
 
     window.addEventListener('online', handleOnline);
@@ -45,13 +58,25 @@ export const useOnlineStatus = (): UseOnlineStatusResult => {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      // Cleanup timeout on unmount
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
   }, []);
 
   const triggerSync = useCallback(() => {
     if (isOnline) {
       setIsSyncing(true);
-      setTimeout(() => setIsSyncing(false), 2000);
+      // Clear any existing timeout before setting a new one
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        setIsSyncing(false);
+        timeoutRef.current = null;
+      }, 2000);
     }
   }, [isOnline]);
 

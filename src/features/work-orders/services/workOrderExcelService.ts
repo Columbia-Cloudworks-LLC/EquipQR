@@ -1,8 +1,8 @@
 /**
  * Work Order Excel Export Service
  * 
- * Client-side service for generating multi-worksheet Excel exports
- * for single work orders. Uses SheetJS (xlsx) library.
+ * Client-side service for generating Excel exports of work order cost items.
+ * Uses SheetJS (xlsx) library.
  */
 
 import * as XLSX from 'xlsx';
@@ -39,9 +39,12 @@ function formatDateTime(dateString: string | null | undefined): string {
 // ============================================
 
 /**
- * Generate and download an Excel workbook for a single work order
+ * Generate and download an Excel workbook containing cost items for a single work order.
  * 
- * @param workOrderId - The work order ID to export
+ * The export includes a single "Cost Items" worksheet with work order, equipment, and team
+ * context columns along with detailed cost item information.
+ * 
+ * @param workOrderId - The work order ID to export cost items for
  * @param organizationId - The organization ID for security validation
  */
 export async function generateSingleWorkOrderExcel(

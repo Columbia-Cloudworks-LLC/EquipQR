@@ -9,7 +9,7 @@ import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOr
 import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import { useAuth } from '@/hooks/useAuth';
-import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
+import { useSimpleOrganizationSafe } from '@/hooks/useSimpleOrganization';
 import { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 
@@ -28,7 +28,11 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
   workOrder,
   organizationId: propOrganizationId
 }) => {
-  const { organizationId: contextOrganizationId } = useSimpleOrganization();
+  // Use safe hook that doesn't throw - maintains backward compatibility
+  // If organizationId is provided via props, it takes precedence
+  // If not provided, we try to get it from context (if available)
+  const context = useSimpleOrganizationSafe();
+  const contextOrganizationId = context?.organizationId ?? null;
   const organizationId = propOrganizationId || contextOrganizationId || '';
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
   const updateStatusMutation = useUpdateWorkOrderStatus();
