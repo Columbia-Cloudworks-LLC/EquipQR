@@ -9,6 +9,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-01-26
+
+### Added
+
+- **Online Status Hook**: New `useOnlineStatus` hook for tracking browser online/offline status
+  - Useful for showing offline indicators and managing offline-first UX
+  - Includes syncing state and manual sync trigger
+
+- **QuickBooks Developer Skill**: New `.cursor/skills/intuit-qbo-dev/SKILL.md` guide for QuickBooks Online API development
+  - Covers OAuth2 authentication, query language, and common operations
+  - Debugging guide for common errors (Business Validation, Stale Object, etc.)
+
+### Changed
+
+- **QuickBooks Permission Model**: Migrated from role-based to permission-based access control
+  - Now uses `useQuickBooksAccess` hook checking `can_manage_quickbooks` permission
+  - Updated `QuickBooksIntegration`, `QuickBooksCustomerMapping`, and `WorkOrderQuickActions` components
+  - Admins must have explicit billing permissions to access QuickBooks features
+
+- **Mobile Work Order Header**: Refactored to use action sheet pattern
+  - Replaced individual PDF/Excel buttons with unified "More actions" menu
+  - Cleaner mobile UX with consolidated export options
+
+- **Bottom Navigation**: Added short label "Orders" for Work Orders on small screens
+  - Prevents text overflow on narrow mobile displays
+
+- **Dropdown Menu Z-Index**: Changed from `z-50` to `z-popover` semantic token for consistent layering
+
+- **Mobile Sidebar Menu**: Added `modal={!isMobile}` to prevent viewport scroll issues on touch devices
+
+- **Excel Export Toasts**: Changed variant from `'destructive'` to `'error'` for consistency with design system
+
+### Fixed
+
+- **Service Worker Push Resubscription**: Added error handling for `pushsubscriptionchange` event
+  - Logs subscription failures for debugging
+  - Re-throws errors to ensure proper event handling
+
+- **Excel Export Error Handling**: Improved logging and user-facing error messages
+  - Added organization ID validation with helpful error message
+  - Enhanced debug logging for troubleshooting export failures
+
+- **Work Order Excel Export Button**: Added tooltip explaining when organization ID is required for export
+
+### Database Migrations
+
+- `20260126050000_move_pg_net_to_extensions_schema.sql`: Moved pg_net extension to extensions schema for proper organization
+
 ## [2.2.0] - 2026-01-26
 
 ### Added
@@ -677,7 +725,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.1.3...v2.2.0
 [2.1.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.1.2...v2.1.3
 [2.1.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.1.1...v2.1.2
