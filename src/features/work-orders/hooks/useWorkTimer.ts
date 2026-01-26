@@ -89,8 +89,9 @@ const secondsToHours = (seconds: number): number => {
 /**
  * Hook for tracking time spent working on a work order.
  * Persists to localStorage and can be converted to hours for notes.
+ * If workOrderId is undefined or empty, the hook will no-op to prevent state bleeding.
  */
-export const useWorkTimer = (workOrderId: string): UseWorkTimerResult => {
+export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResult => {
   const [isRunning, setIsRunning] = useState(false);
   const [accumulatedSeconds, setAccumulatedSeconds] = useState(0);
   const [currentSessionSeconds, setCurrentSessionSeconds] = useState(0);
@@ -99,6 +100,15 @@ export const useWorkTimer = (workOrderId: string): UseWorkTimerResult => {
 
   // Load initial state from localStorage
   useEffect(() => {
+    if (!workOrderId) {
+      // No-op when workOrderId is empty/undefined to prevent state bleeding
+      setIsRunning(false);
+      setAccumulatedSeconds(0);
+      setCurrentSessionSeconds(0);
+      startTimeRef.current = null;
+      return;
+    }
+
     const savedState = loadState(workOrderId);
     if (savedState) {
       setAccumulatedSeconds(savedState.accumulatedSeconds);
@@ -108,7 +118,18 @@ export const useWorkTimer = (workOrderId: string): UseWorkTimerResult => {
         startTimeRef.current = savedState.startTime;
         setCurrentSessionSeconds(elapsedSinceStart);
         setIsRunning(true);
+      } else {
+        // Saved state exists but timer is not running; ensure current session is cleared
+        setCurrentSessionSeconds(0);
+        startTimeRef.current = null;
+        setIsRunning(false);
       }
+    } else {
+      // No saved state for this work order; reset timer state so previous work order data doesn't leak
+      setIsRunning(false);
+      setAccumulatedSeconds(0);
+      setCurrentSessionSeconds(0);
+      startTimeRef.current = null;
     }
   }, [workOrderId]);
 
@@ -131,6 +152,7 @@ export const useWorkTimer = (workOrderId: string): UseWorkTimerResult => {
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
+    if (!workOrderId) return; // No-op if no work order ID
     if (isRunning && startTimeRef.current) {
       saveState({
         workOrderId,
@@ -149,14 +171,16 @@ export const useWorkTimer = (workOrderId: string): UseWorkTimerResult => {
   }, [workOrderId, isRunning, accumulatedSeconds]);
 
   const start = useCallback(() => {
+    if (!workOrderId) return; // No-op if no work order ID
     if (!isRunning) {
       startTimeRef.current = Date.now();
       setCurrentSessionSeconds(0);
       setIsRunning(true);
     }
-  }, [isRunning]);
+  }, [workOrderId, isRunning]);
 
   const pause = useCallback(() => {
+    if (!workOrderId) return; // No-op if no work order ID
     if (isRunning) {
       // Add current session to accumulated
       const sessionSeconds = Math.floor((Date.now() - startTimeRef.current!) / 1000);
@@ -165,9 +189,10 @@ export const useWorkTimer = (workOrderId: string): UseWorkTimerResult => {
       startTimeRef.current = null;
       setIsRunning(false);
     }
-  }, [isRunning]);
+  }, [workOrderId, isRunning]);
 
   const stopAndGetHours = useCallback((): number => {
+    if (!workOrderId) return 0; // No-op if no work order ID
     let totalSeconds = accumulatedSeconds;
     
     if (isRunning && startTimeRef.current) {
@@ -186,6 +211,7 @@ export const useWorkTimer = (workOrderId: string): UseWorkTimerResult => {
   }, [workOrderId, isRunning, accumulatedSeconds]);
 
   const reset = useCallback(() => {
+    if (!workOrderId) return; // No-op if no work order ID
     setIsRunning(false);
     setAccumulatedSeconds(0);
     setCurrentSessionSeconds(0);

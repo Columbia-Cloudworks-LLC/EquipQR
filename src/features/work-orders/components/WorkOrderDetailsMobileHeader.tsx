@@ -26,7 +26,6 @@ interface WorkOrderDetailsMobileHeaderProps {
     };
   };
   canEdit: boolean;
-  organizationId: string;
   /** @deprecated No longer used - Excel export moved to action sheet */
   organizationName?: string;
   onEditClick: () => void;
@@ -40,7 +39,6 @@ interface WorkOrderDetailsMobileHeaderProps {
 export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeaderProps> = ({
   workOrder,
   canEdit,
-  organizationId,
   onEditClick,
   onToggleSidebar,
   onOpenActionSheet,
@@ -103,7 +101,6 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
             {/* Primary Action Button */}
             <WorkOrderPrimaryActionButton 
               workOrder={workOrder}
-              organizationId={organizationId}
             />
           </div>
 

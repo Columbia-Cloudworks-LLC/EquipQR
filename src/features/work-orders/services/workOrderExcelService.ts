@@ -665,11 +665,12 @@ export async function generateSingleWorkOrderExcel(
     } | null;
     const teamName = equipment?.teams?.name || 'Unassigned';
 
-    // Fetch costs
+    // Fetch costs with organization_id constraint via work_orders join
     const { data: costs, error: costsError } = await supabase
       .from('work_order_costs')
-      .select('*')
+      .select('*, work_orders!inner(organization_id)')
       .eq('work_order_id', workOrderId)
+      .eq('work_orders.organization_id', organizationId)
       .order('created_at', { ascending: true });
 
     if (costsError) {

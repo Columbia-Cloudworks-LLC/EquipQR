@@ -215,7 +215,7 @@ const WorkOrderDetails = () => {
   const updateStatusMutation = useUpdateWorkOrderStatus();
 
   // Timer hook for tracking work time (mobile in-progress bar)
-  const workTimer = useWorkTimer(workOrderId || '');
+  const workTimer = useWorkTimer(workOrderId);
 
   // Online status for offline indicator
   const { isOnline, isSyncing } = useOnlineStatus();
@@ -353,7 +353,6 @@ const WorkOrderDetails = () => {
           created_at: workOrder.createdAt
         }}
         canEdit={canEdit}
-        organizationId={currentOrganization.id}
         onEditClick={handleEditWorkOrder}
         onToggleSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
         onOpenActionSheet={() => setShowMobileActionSheet(true)}
