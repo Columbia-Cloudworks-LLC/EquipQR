@@ -93,9 +93,14 @@ export function usePushNotifications() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return null;
 
+      // Check if service worker is registered before accessing ready
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      const activeRegistration = registrations.find(r => r.active?.scriptURL.includes('sw.js'));
+      
+      if (!activeRegistration) return null;
+
       // Get current push subscription from browser
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
+      const subscription = await activeRegistration.pushManager.getSubscription();
       
       if (!subscription) return null;
 
@@ -251,9 +256,17 @@ export function usePushNotifications() {
         throw new Error('You must be logged in');
       }
 
+      // Check if service worker is registered before accessing ready
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      const activeRegistration = registrations.find(r => r.active?.scriptURL.includes('sw.js'));
+      
+      if (!activeRegistration) {
+        // No active service worker, nothing to unsubscribe
+        return;
+      }
+
       // Get current subscription
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
+      const subscription = await activeRegistration.pushManager.getSubscription();
 
       if (subscription) {
         // Remove from database
