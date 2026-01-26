@@ -58,7 +58,7 @@ export async function getTeamEquipmentStats(
     const { data, error } = await supabase
       .from('equipment')
       .select('status')
-      .eq('organization_id', organizationId)
+      .eq('organization_id', organizationId) // Explicit organization filter (defense-in-depth with RLS)
       .eq('team_id', teamId);
 
     if (error) {

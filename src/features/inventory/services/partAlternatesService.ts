@@ -22,17 +22,18 @@ import type {
  * @returns true if the error represents a cancellation
  */
 function isCancellation(error: unknown, signal?: AbortSignal): boolean {
-  // If signal was aborted, it's definitely a cancellation
-  if (signal?.aborted) {
-    return true;
-  }
-
   // If no signal was provided, don't treat any error as a cancellation
-  // (to avoid silently swallowing real errors)
+  // (to avoid silently swallowing real errors that happen to contain "abort" or "cancel")
   if (!signal) {
     return false;
   }
 
+  // If signal was aborted, it's definitely a cancellation
+  if (signal.aborted) {
+    return true;
+  }
+
+  // Only check error message content when signal exists (to avoid false positives)
   // Extract error name and message
   const name = typeof error === 'object' && error !== null && 'name' in error
     ? (error as { name?: unknown }).name
@@ -49,7 +50,7 @@ function isCancellation(error: unknown, signal?: AbortSignal): boolean {
   const lower = msg.toLowerCase();
 
   // Check for well-known cancellation types
-  // Only check message substrings when signal is present (to avoid false positives)
+  // These checks only run when signal is present, preventing false positives
   return (
     name === 'AbortError' ||
     lower.includes('abort') ||

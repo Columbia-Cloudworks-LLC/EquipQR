@@ -47,7 +47,14 @@ BEGIN
     RAISE EXCEPTION 'Access denied: This function can only be called by service_role';
   END IF;
   
-  -- Authorization: If p_actor_id is provided, verify the actor belongs to the organization
+  -- Security: In service_role context, p_actor_id must be provided to ensure proper attribution
+  -- This prevents anonymous audit log entries and ensures we can track who performed the action
+  IF p_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Access denied: p_actor_id is required when called from service_role context';
+  END IF;
+  
+  -- Authorization: Verify the actor belongs to the organization
+  -- This ensures that service_role callers cannot forge audit entries for arbitrary organizations
   IF p_actor_id IS NOT NULL THEN
     -- Verify that the actor is a member of the organization
     SELECT EXISTS (

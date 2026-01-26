@@ -9,15 +9,36 @@
  * - Supports notification actions (view, dismiss)
  */
 
-// Cache name for any future caching needs
-const CACHE_NAME = 'equipqr-v1';
+/**
+ * Check if we're in development environment
+ */
+function isDevelopment() {
+  return self.location.origin.includes('localhost') || 
+         self.location.origin.includes('127.0.0.1') ||
+         self.location.origin.includes('192.168.');
+}
+
+/**
+ * Conditional logging - only in development
+ */
+function log(...args) {
+  if (isDevelopment()) {
+    console.log(...args);
+  }
+}
+
+function logError(...args) {
+  if (isDevelopment()) {
+    console.error(...args);
+  }
+}
 
 /**
  * Push event handler
  * Receives push messages from the server and displays them as notifications
  */
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push received:', event);
+  log('[SW] Push received:', event);
 
   let data = {
     title: 'EquipQR',
@@ -30,7 +51,7 @@ self.addEventListener('push', (event) => {
     try {
       data = { ...data, ...event.data.json() };
     } catch (e) {
-      console.error('[SW] Failed to parse push data:', e);
+      logError('[SW] Failed to parse push data:', e);
       // Try as text
       data.body = event.data.text() || data.body;
     }
@@ -76,7 +97,7 @@ self.addEventListener('push', (event) => {
  * Opens the app and navigates to the relevant page
  */
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event);
+  log('[SW] Notification clicked:', event);
 
   // Close the notification
   event.notification.close();
@@ -118,7 +139,7 @@ self.addEventListener('notificationclick', (event) => {
  * Can be used for analytics or cleanup
  */
 self.addEventListener('notificationclose', (event) => {
-  console.log('[SW] Notification closed:', event.notification.tag);
+  log('[SW] Notification closed:', event.notification.tag);
   // Could send analytics about dismissed notifications here
 });
 
@@ -126,7 +147,7 @@ self.addEventListener('notificationclose', (event) => {
  * Service worker install event
  */
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
+  log('[SW] Installing service worker...');
   // Skip waiting to activate immediately
   self.skipWaiting();
 });
@@ -135,7 +156,7 @@ self.addEventListener('install', (event) => {
  * Service worker activate event
  */
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Service worker activated');
+  log('[SW] Service worker activated');
   // Take control of all pages immediately
   event.waitUntil(clients.claim());
 });
@@ -144,7 +165,7 @@ self.addEventListener('activate', (event) => {
  * Handle push subscription change (when browser renews subscription)
  */
 self.addEventListener('pushsubscriptionchange', (event) => {
-  console.log('[SW] Push subscription changed');
+  log('[SW] Push subscription changed');
   
   // Re-subscribe and update the server
   event.waitUntil(
@@ -153,7 +174,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
     }).then((newSubscription) => {
       // Send the new subscription to the server
       // This would need to call an endpoint to update the subscription
-      console.log('[SW] New subscription:', newSubscription.endpoint);
+      log('[SW] New subscription:', newSubscription.endpoint);
       // Note: The client-side hook should handle re-syncing subscriptions
       // when the user next opens the app
     })

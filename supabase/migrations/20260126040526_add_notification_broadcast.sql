@@ -98,7 +98,9 @@ BEGIN
     -- Only attempt push if configuration is available
     IF v_supabase_url IS NOT NULL AND v_service_role_key IS NOT NULL THEN
       -- Basic validation of Supabase URL (defense-in-depth against SSRF)
-      IF v_supabase_url !~ '^https://[A-Za-z0-9.-]+\.supabase\.co/?$' THEN
+      -- Allows: https://*.supabase.co (production) and http://localhost:* (development)
+      -- Since URL comes from trusted vault, this is primarily for safety
+      IF v_supabase_url !~ '^(https://[A-Za-z0-9.-]+\.supabase\.co|http://localhost(:[0-9]+)?)/?$' THEN
         RAISE WARNING 'Push notification skipped: invalid supabase_url format in vault secrets';
       ELSE
         -- Use net.http_post with timeout to prevent blocking

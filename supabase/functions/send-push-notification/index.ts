@@ -111,6 +111,33 @@ async function sendToSubscription(
   }
 }
 
+/**
+ * Validate that the request is authenticated with service role key.
+ * This function is called from the database via pg_net, which passes the service role key.
+ * 
+ * @param req - The incoming request
+ * @returns true if authenticated with service role key, false otherwise
+ */
+function validateServiceRoleAuth(req: Request): boolean {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return false;
+  }
+
+  // Extract Bearer token
+  const parts = authHeader.trim().split(/\s+/);
+  if (parts.length !== 2 || parts[0]?.toLowerCase() !== "bearer") {
+    return false;
+  }
+
+  const token = parts[1];
+  const expectedServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  // Validate that the token matches the service role key
+  // This ensures only trusted database triggers can call this function
+  return expectedServiceRoleKey !== undefined && token === expectedServiceRoleKey;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -121,6 +148,14 @@ Deno.serve(async (req) => {
 
     if (req.method !== "POST") {
       return createErrorResponse("Method not allowed", 405);
+    }
+
+    // Security: Validate that request is authenticated with service role key
+    // This function is called from database triggers via pg_net, which passes the service role key
+    // This prevents unauthorized external callers from triggering push notifications
+    if (!validateServiceRoleAuth(req)) {
+      logStep("Authentication failed - invalid or missing service role key");
+      return createErrorResponse("Unauthorized", 401);
     }
 
     // Initialize VAPID
