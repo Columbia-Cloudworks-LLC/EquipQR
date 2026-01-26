@@ -47,6 +47,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Logs subscription failures for debugging
   - Re-throws errors to ensure proper event handling
 
+- **Excel Export Simplification**: Simplified work order Excel export to focus on cost items
+  - Changed from multi-worksheet export (Summary, Labor Detail, Materials & Costs, PM Checklists, Timeline, Equipment) to single "Cost Items" worksheet
+  - Export now includes work order, equipment, and team context columns along with detailed cost item information
+  - This change improves export performance and focuses on the most commonly needed data
+
 - **Excel Export Error Handling**: Improved logging and user-facing error messages
   - Added organization ID validation with helpful error message
   - Enhanced debug logging for troubleshooting export failures
