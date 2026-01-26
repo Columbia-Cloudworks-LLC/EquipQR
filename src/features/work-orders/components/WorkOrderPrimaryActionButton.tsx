@@ -90,7 +90,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
             label: 'Accept', 
             action: () => handleStatusChange('accepted'), 
             icon: CheckCircle,
-            variant: 'default' as const
+            variant: 'secondary' as const
           };
         }
         return null;
@@ -101,7 +101,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
             label: 'Start Work', 
             action: () => handleStatusChange('in_progress'), 
             icon: Play,
-            variant: 'default' as const
+            variant: 'secondary' as const
           };
         }
         return null;
@@ -112,7 +112,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
             label: 'Start Work', 
             action: () => handleStatusChange('in_progress'), 
             icon: Play,
-            variant: 'default' as const
+            variant: 'secondary' as const
           };
         }
         return null;
@@ -136,7 +136,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
             label: 'Resume', 
             action: () => handleStatusChange('in_progress'), 
             icon: Play,
-            variant: 'default' as const
+            variant: 'secondary' as const
           };
         }
         return null;

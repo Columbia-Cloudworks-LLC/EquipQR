@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Navigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clipboard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Clipboard, CheckCircle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useWorkOrderDetailsData } from '@/features/work-orders/components/hooks/useWorkOrderDetailsData';
 import { useWorkOrderDetailsActions } from '@/features/work-orders/hooks/useWorkOrderDetailsActions';
@@ -29,6 +30,7 @@ import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMa
 import { toast } from 'sonner';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
 import { HistoryTab } from '@/components/audit';
+import { cn } from '@/lib/utils';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -40,6 +42,7 @@ const WorkOrderDetails = () => {
   const shouldAutoOpenNoteForm = actionParam === 'add-note';
   const shouldAutoOpenPDFDialog = actionParam === 'download-pdf';
   const notesSectionRef = useRef<HTMLDivElement>(null);
+  const pmSectionRef = useRef<HTMLDivElement>(null);
   const actionHandledRef = useRef(false);
 
   // State for selected equipment (for multi-equipment work orders)
@@ -74,6 +77,17 @@ const WorkOrderDetails = () => {
       setSelectedEquipmentId(workOrder.equipment_id);
     }
   }, [workOrder?.equipment_id, selectedEquipmentId]);
+
+  // Stagger animation: always run hooks (must be before any early returns)
+  const [hasAnimated, setHasAnimated] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setHasAnimated(true), 500);
+    return () => clearTimeout(t);
+  }, []);
+  const stagger = (i: number) =>
+    !hasAnimated
+      ? { className: 'animate-stagger-in', style: { animationDelay: `${i * 60}ms` } as React.CSSProperties }
+      : {};
 
   // Auto-initialize PM if work order has_pm=true but no PM record exists
   // Use ref to prevent multiple initializations
@@ -286,8 +300,22 @@ const WorkOrderDetails = () => {
     organizationId: currentOrganization.id 
   });
 
+  const showFloatingCTA =
+    isMobile &&
+    !!workOrder.has_pm &&
+    !!pmData &&
+    pmData.status !== 'completed' &&
+    (permissionLevels.isManager || permissionLevels.isTechnician) &&
+    !isWorkOrderLocked &&
+    workOrder.status !== 'completed' &&
+    workOrder.status !== 'cancelled';
+
+  const scrollToPMSection = () => {
+    pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background texture-grain">
       {/* Mobile Header */}
       <WorkOrderDetailsMobileHeader
         workOrder={{
@@ -339,9 +367,14 @@ const WorkOrderDetails = () => {
         onStatusUpdate={handleStatusUpdate}
       />
 
-      <div className={`${isMobile ? 'block' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'} p-4 lg:p-6`}>
+      <div className={cn('p-4 lg:p-6', isMobile ? 'block' : 'grid grid-cols-1 lg:grid-cols-3 gap-6')}>
         {/* Main Content */}
-        <div className={`${isMobile ? 'space-y-4' : 'lg:col-span-2 space-y-6'}`}>
+        <div
+          className={cn(
+            isMobile ? 'space-y-4' : 'lg:col-span-2 space-y-6',
+            showFloatingCTA && 'pb-24'
+          )}
+        >
           {/* Equipment Selector for Multi-Equipment Work Orders */}
           {linkedEquipment.length > 1 && (
             <WorkOrderEquipmentSelector
@@ -355,7 +388,8 @@ const WorkOrderDetails = () => {
           {isMobile ? (
             <>
               {/* Mobile Work Order Details */}
-              <WorkOrderDetailsMobile
+              <div {...stagger(0)}>
+                <WorkOrderDetailsMobile
                 workOrder={{
                   ...workOrder,
                   created_at: workOrder.createdAt,
@@ -399,48 +433,56 @@ const WorkOrderDetails = () => {
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
                 costs={undefined} // TODO: Add costs data
               />
+              </div>
 
               {/* PM Checklist - Responsive */}
-              {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
-                <PMChecklistComponent
-                  pm={pmData}
-                  onUpdate={() => {
-                    // Refresh PM data after updates
-                    // PM data has been updated
-                  }}
-                  readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
-                  isAdmin={permissionLevels.isManager}
-                  workOrder={workOrder}
-                  equipment={equipment}
-                  team={workOrder.team}
-                  organization={currentOrganization}
-                  assignee={workOrder.assignee}
-                />
-              )}
-
-              {/* Mobile PM Loading State */}
-              {workOrder.has_pm && pmLoading && (permissionLevels.isManager || permissionLevels.isTechnician) && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clipboard className="h-5 w-5" />
-                      Loading PM Checklist...
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-32 bg-muted animate-pulse rounded" />
-                  </CardContent>
-                </Card>
+              {workOrder.has_pm && (permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <div {...stagger(1)}>
+                <div ref={pmSectionRef}>
+                  {pmData && (
+                    <PMChecklistComponent
+                      pm={pmData}
+                      onUpdate={() => {
+                        // Refresh PM data after updates
+                        // PM data has been updated
+                      }}
+                      readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
+                      isAdmin={permissionLevels.isManager}
+                      workOrder={workOrder}
+                      equipment={equipment}
+                      team={workOrder.team}
+                      organization={currentOrganization}
+                      assignee={workOrder.assignee}
+                    />
+                  )}
+                  {pmLoading && (
+                    <Card className="shadow-elevation-2">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Clipboard className="h-5 w-5" />
+                          Loading PM Checklist...
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-32 bg-muted animate-pulse rounded" />
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+                </div>
               )}
 
               {/* Mobile PM Info for Requestors */}
+              <div {...stagger(2)}>
               <WorkOrderDetailsPMInfo 
                 workOrder={workOrder}
                 pmData={pmData}
                 permissionLevels={permissionLevels}
               />
+              </div>
 
               {/* Mobile Notes Section */}
+              <div {...stagger(3)}>
               <div ref={notesSectionRef}>
                 <WorkOrderNotesMobile 
                   workOrderId={workOrder.id}
@@ -449,22 +491,28 @@ const WorkOrderDetails = () => {
                   autoOpenForm={shouldAutoOpenNoteForm}
                 />
               </div>
+              </div>
 
               {/* Mobile Images Section */}
+              <div {...stagger(4)}>
               <WorkOrderImagesSection 
                 workOrderId={workOrder.id}
                 canUpload={canUpload}
               />
+              </div>
 
               {/* Mobile Timeline */}
+              <div {...stagger(5)}>
               <WorkOrderTimeline 
                 workOrder={workOrder} 
                 showDetailedHistory={permissionLevels.isManager}
               />
+              </div>
 
               {/* Mobile Audit History */}
               {permissionLevels.isManager && currentOrganization && (
-                <Card>
+                <div {...stagger(6)}>
+                <Card className="shadow-elevation-2">
                   <CardHeader>
                     <CardTitle>Change History</CardTitle>
                   </CardHeader>
@@ -476,25 +524,31 @@ const WorkOrderDetails = () => {
                     />
                   </CardContent>
                 </Card>
+                </div>
               )}
             </>
           ) : (
             <>
               {/* Desktop Layout - Keep existing structure */}
-              <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
+              <div {...stagger(0)}>
+                <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
+              </div>
 
               {/* Costs Section - Now positioned above PM checklist and only show to managers and technicians */}
               {(permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <div {...stagger(1)}>
                 <WorkOrderCostsSection 
                   workOrderId={workOrder.id}
                   canAddCosts={canAddCosts && !isWorkOrderLocked}
                   canEditCosts={canEditCosts && !isWorkOrderLocked}
                   primaryEquipmentId={workOrder.equipment_id}
                 />
+                </div>
               )}
 
               {/* PM Checklist Section - Now positioned after costs */}
               {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <div {...stagger(2)}>
                 <PMChecklistComponent 
                   key={selectedEquipmentId} // Force re-render on equipment change
                   pm={pmData} 
@@ -507,11 +561,13 @@ const WorkOrderDetails = () => {
                   organization={currentOrganization}
                   assignee={{ name: workOrder.assigneeName }}
                 />
+                </div>
               )}
 
               {/* PM Loading State */}
               {workOrder.has_pm && pmLoading && (permissionLevels.isManager || permissionLevels.isTechnician) && (
-                <Card>
+                <div {...stagger(2)}>
+                <Card className="shadow-elevation-2">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Clipboard className="h-5 w-5" />
@@ -522,16 +578,20 @@ const WorkOrderDetails = () => {
                     <div className="h-32 bg-muted animate-pulse rounded" />
                   </CardContent>
                 </Card>
+                </div>
               )}
 
               {/* PM Info for Requestors */}
+              <div {...stagger(3)}>
               <WorkOrderDetailsPMInfo 
                 workOrder={workOrder}
                 pmData={pmData}
                 permissionLevels={permissionLevels}
               />
+              </div>
 
               {/* Notes Section */}
+              <div {...stagger(4)}>
               <div ref={notesSectionRef}>
                 <WorkOrderNotesSection 
                   workOrderId={workOrder.id}
@@ -540,22 +600,28 @@ const WorkOrderDetails = () => {
                   autoOpenForm={shouldAutoOpenNoteForm}
                 />
               </div>
+              </div>
 
               {/* Images Section */}
+              <div {...stagger(5)}>
               <WorkOrderImagesSection 
                 workOrderId={workOrder.id}
                 canUpload={canUpload}
               />
+              </div>
 
               {/* Timeline - Show appropriate level of detail based on permissions */}
+              <div {...stagger(6)}>
               <WorkOrderTimeline 
                 workOrder={workOrder} 
                 showDetailedHistory={permissionLevels.isManager}
               />
+              </div>
 
               {/* Audit History - Only visible to managers */}
               {permissionLevels.isManager && currentOrganization && (
-                <Card>
+                <div {...stagger(7)}>
+                <Card className="shadow-elevation-2">
                   <CardHeader>
                     <CardTitle>Change History</CardTitle>
                   </CardHeader>
@@ -567,6 +633,7 @@ const WorkOrderDetails = () => {
                     />
                   </CardContent>
                 </Card>
+                </div>
               )}
             </>
           )}
@@ -584,6 +651,20 @@ const WorkOrderDetails = () => {
           onCloseMobileSidebar={() => setShowMobileSidebar(false)}
         />
       </div>
+
+      {/* Mobile floating Complete PM CTA */}
+      {showFloatingCTA && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background p-4 pb-safe-bottom lg:hidden">
+          <Button
+            className="h-12 w-full min-h-[44px] font-medium"
+            size="lg"
+            onClick={scrollToPMSection}
+          >
+            <CheckCircle className="h-5 w-5 mr-2" />
+            Complete PM
+          </Button>
+        </div>
+      )}
 
       {/* Edit Work Order Form - Pass workOrder for edit mode */}
       <WorkOrderForm

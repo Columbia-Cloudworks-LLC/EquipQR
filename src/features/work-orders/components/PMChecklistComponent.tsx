@@ -729,7 +729,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   }
 
   return (
-    <Card>
+    <Card className="shadow-elevation-2">
       <CardHeader>
         {isMobile ? (
           // Mobile: Multi-row layout with stacked elements
@@ -859,7 +859,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                     </Button>
                   </div>
                 </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 pt-2">
+              <CollapsibleContent
+                className="pm-collapsible-animate space-y-3 pt-2 overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 data-[state=open]:duration-200 data-[state=closed]:duration-200"
+              >
                 {checklist.filter(item => item.section === section).map((item) => (
                   <div key={item.id} className={`p-4 border rounded-lg ${getItemBorderClass(item)}`}>
                     <div className="space-y-3">

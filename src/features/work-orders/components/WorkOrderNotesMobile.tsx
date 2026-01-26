@@ -69,7 +69,7 @@ export const WorkOrderNotesMobile: React.FC<WorkOrderNotesMobileProps> = ({
   };
 
   return (
-    <Card data-workorder-id={workOrderId}>
+    <Card data-workorder-id={workOrderId} className="shadow-elevation-2">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />

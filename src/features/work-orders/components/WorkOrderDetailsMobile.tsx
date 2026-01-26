@@ -81,7 +81,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
   return (
     <div className="space-y-4">
       {/* Quick Actions Card */}
-      <Card>
+      <Card className="shadow-elevation-2">
         <CardContent className="p-4">
           <WorkOrderQuickActions
             workOrderId={workOrder.id}
@@ -92,7 +92,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
       </Card>
 
       {/* Work Order Details Card */}
-      <Card>
+      <Card className="shadow-elevation-2">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Clipboard className="h-5 w-5" />

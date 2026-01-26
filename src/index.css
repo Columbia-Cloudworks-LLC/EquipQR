@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,15 +11,12 @@
    This is the source of truth for the visual identity.
 */
 
-/* ============================================
-   Typography: Space Grotesk (Display) + System Stack (Body)
-   ============================================ */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+/* Typography: Plus Jakarta Sans (Display) + System Stack (Body). Alternative: Sora. */
 
 @layer base {
   :root {
     /* Font families */
-    --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
@@ -463,7 +462,8 @@
     .animate-stagger-in,
     .animate-empty-state-in,
     .card-lift,
-    .btn-press-feedback {
+    .btn-press-feedback,
+    .pm-collapsible-animate {
       animation: none !important;
       transform: none !important;
       transition: none !important;

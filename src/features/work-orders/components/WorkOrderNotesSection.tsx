@@ -154,7 +154,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="shadow-elevation-2">
         <CardContent className="p-6">
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
@@ -170,7 +170,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     <div className="space-y-6">
       {/* Add Note Form - Always show if no notes exist or explicitly requested */}
       {canAddNotes && (visibleNotes.length === 0 || showForm) && (
-        <Card>
+        <Card className="shadow-elevation-2">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>{visibleNotes.length === 0 ? 'Add Your First Note' : 'Add Note'}</span>
@@ -223,7 +223,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
 
       {/* Empty State - Show when no notes, no form, and user cannot add notes */}
       {visibleNotes.length === 0 && !showForm && !canAddNotes && (
-        <Card>
+        <Card className="shadow-elevation-2">
           <CardContent className="p-6">
             <div className="text-center text-muted-foreground">
               <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -235,7 +235,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
 
       {/* Notes List - Only show when there are notes */}
       {visibleNotes.length > 0 && (
-        <Card>
+        <Card className="shadow-elevation-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
