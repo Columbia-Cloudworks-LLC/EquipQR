@@ -365,6 +365,65 @@ describe('Feature Journey', () => {
 - Include inline comments for complex logic
 - Reference architecture docs when applicable
 
+## Change Management Policy
+
+**CRITICAL**: All code changes to EquipQR must follow this Change Management Policy to ensure security, quality, and compliance.
+
+### Requirements
+
+1. **All Changes Require Pull Requests**
+   - No direct commits to `main` or `preview` branches (except emergency hotfixes with post-merge review)
+   - All changes must go through a Pull Request (PR) workflow
+   - PRs must be created from feature branches (`feat/`, `fix/`, etc.)
+
+2. **Pull Request Approval Required**
+   - At least **one maintainer approval** is required before merging
+   - PRs cannot be merged by the author without approval
+   - Maintainers must review code for:
+     - Security implications (RLS policies, authentication, authorization)
+     - Code quality and adherence to standards
+     - Test coverage
+     - Documentation updates
+
+3. **CI/CD Checks Must Pass**
+   - All CI checks must pass before merge:
+     - Linting (ESLint)
+     - Type checking (TypeScript)
+     - Unit tests with coverage thresholds
+     - Build validation
+     - Security scans (npm audit)
+
+4. **Database Changes**
+   - All database migrations must be reviewed for:
+     - RLS policy correctness
+     - Performance implications
+     - Data migration safety
+   - Migrations must be idempotent and reversible (where possible)
+
+5. **Security Review**
+   - Changes affecting authentication, authorization, or data access require security review
+   - RLS policy changes must be verified for tenant isolation
+   - New API endpoints must have proper authentication and authorization
+
+6. **Documentation**
+   - Code changes that affect user-facing features require documentation updates
+   - API changes require API documentation updates
+   - Breaking changes require migration guides
+
+### Emergency Hotfixes
+
+In rare cases, emergency hotfixes may bypass normal PR approval:
+- Only for critical production issues (security vulnerabilities, data loss, service outages)
+- Must be followed by immediate post-merge review
+- Must include explanation of why normal process was bypassed
+- Must be documented in the PR description
+
+### Enforcement
+
+- GitHub branch protection rules enforce these policies
+- Automated CI/CD pipelines block merges that don't meet requirements
+- Manual review by maintainers ensures compliance
+
 ## Pull Request Guidelines
 
 ### Before Submitting

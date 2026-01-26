@@ -1145,6 +1145,28 @@ serve(async (req) => {
         
         logStep("Invoice updated", { invoiceId, invoiceNumber, intuit_tid: intuitTid });
 
+        // Audit log: Track invoice update for compliance
+        try {
+          const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
+                             req.headers.get("x-real-ip") || 
+                             null;
+          
+          await supabaseClient.rpc('log_invoice_export_audit', {
+            p_organization_id: workOrder.organization_id,
+            p_work_order_id: work_order_id,
+            p_action: 'UPDATE',
+            p_quickbooks_invoice_id: invoiceId,
+            p_quickbooks_invoice_number: invoiceNumber,
+            p_realm_id: credentials.realm_id,
+            p_ip_address: ipAddress
+          });
+        } catch (auditError) {
+          // Log audit error but don't fail the export
+          logStep("Warning: Audit logging failed", { 
+            error: auditError instanceof Error ? auditError.message : String(auditError) 
+          });
+        }
+
         // Handle PDF attachment if enabled
         if (ENABLE_PDF_ATTACHMENT) {
           try {
@@ -1290,6 +1312,28 @@ serve(async (req) => {
         invoiceNumber = createResult.Invoice.DocNumber;
         
         logStep("Invoice created", { invoiceId, invoiceNumber, intuit_tid: intuitTid });
+
+        // Audit log: Track invoice creation for compliance
+        try {
+          const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
+                             req.headers.get("x-real-ip") || 
+                             null;
+          
+          await supabaseClient.rpc('log_invoice_export_audit', {
+            p_organization_id: workOrder.organization_id,
+            p_work_order_id: work_order_id,
+            p_action: 'CREATE',
+            p_quickbooks_invoice_id: invoiceId,
+            p_quickbooks_invoice_number: invoiceNumber,
+            p_realm_id: credentials.realm_id,
+            p_ip_address: ipAddress
+          });
+        } catch (auditError) {
+          // Log audit error but don't fail the export
+          logStep("Warning: Audit logging failed", { 
+            error: auditError instanceof Error ? auditError.message : String(auditError) 
+          });
+        }
 
         // Handle PDF attachment if enabled
         if (ENABLE_PDF_ATTACHMENT) {
