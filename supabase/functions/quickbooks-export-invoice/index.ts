@@ -26,6 +26,17 @@ const getIntuitTid = (response: Response): string | null => {
   return response.headers.get('intuit_tid') || null;
 };
 
+/**
+ * Extracts the client IP address from request headers.
+ * Checks x-forwarded-for (first IP in comma-separated list) and x-real-ip.
+ * Returns null if no IP address is found.
+ */
+const getClientIpAddress = (req: Request): string | null => {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
+         req.headers.get("x-real-ip") || 
+         null;
+};
+
 // QuickBooks API endpoints
 const QUICKBOOKS_API_BASE_SANDBOX = "https://sandbox-quickbooks.api.intuit.com";
 const QUICKBOOKS_API_BASE_PRODUCTION = "https://quickbooks.api.intuit.com";
@@ -1145,6 +1156,32 @@ serve(async (req) => {
         
         logStep("Invoice updated", { invoiceId, invoiceNumber, intuit_tid: intuitTid });
 
+        // Audit log: Track invoice update for compliance
+        try {
+          const { error: auditError } = await supabaseClient.rpc('log_invoice_export_audit', {
+            p_organization_id: workOrder.organization_id,
+            p_work_order_id: work_order_id,
+            p_action: 'UPDATE',
+            p_quickbooks_invoice_id: invoiceId,
+            p_quickbooks_invoice_number: invoiceNumber,
+            p_realm_id: credentials.realm_id,
+            p_ip_address: getClientIpAddress(req),
+            p_actor_id: user.id
+          });
+          
+          if (auditError) {
+            // Log audit error but don't fail the export
+            logStep("Warning: Audit logging failed", { 
+              error: auditError.message 
+            });
+          }
+        } catch (auditError) {
+          // Log unexpected exceptions (network/runtime errors)
+          logStep("Warning: Audit logging failed with exception", { 
+            error: auditError instanceof Error ? auditError.message : String(auditError) 
+          });
+        }
+
         // Handle PDF attachment if enabled
         if (ENABLE_PDF_ATTACHMENT) {
           try {
@@ -1290,6 +1327,32 @@ serve(async (req) => {
         invoiceNumber = createResult.Invoice.DocNumber;
         
         logStep("Invoice created", { invoiceId, invoiceNumber, intuit_tid: intuitTid });
+
+        // Audit log: Track invoice creation for compliance
+        try {
+          const { error: auditError } = await supabaseClient.rpc('log_invoice_export_audit', {
+            p_organization_id: workOrder.organization_id,
+            p_work_order_id: work_order_id,
+            p_action: 'CREATE',
+            p_quickbooks_invoice_id: invoiceId,
+            p_quickbooks_invoice_number: invoiceNumber,
+            p_realm_id: credentials.realm_id,
+            p_ip_address: getClientIpAddress(req),
+            p_actor_id: user.id
+          });
+          
+          if (auditError) {
+            // Log audit error but don't fail the export
+            logStep("Warning: Audit logging failed", { 
+              error: auditError.message 
+            });
+          }
+        } catch (auditError) {
+          // Log unexpected exceptions (network/runtime errors)
+          logStep("Warning: Audit logging failed with exception", { 
+            error: auditError instanceof Error ? auditError.message : String(auditError) 
+          });
+        }
 
         // Handle PDF attachment if enabled
         if (ENABLE_PDF_ATTACHMENT) {

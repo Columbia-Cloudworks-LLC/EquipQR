@@ -7,6 +7,8 @@ description: Fetches GitHub PR review comments, categorizes them, and guides res
 
 Fetches review comments from a PR, categorizes by resolution status, and guides systematic fixes.
 
+**Cursor Command:** Use `/pr-comments` (or `/fix-pr-comments`, `/address-review`) for the full automated workflow. See `.cursor/commands/address-pr-comments.md`.
+
 **Alternative:** If MCP tools fail, use `scripts/` pipeline (requires `gh` CLI auth).
 
 ## Workflow

@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import Teams from '@/features/teams/pages/Teams';
 import type { Team } from '@/features/teams/hooks/useTeams';
 
@@ -131,11 +132,15 @@ describe('Teams Page', () => {
     expect(screen.getByTestId('team-form-modal')).toBeInTheDocument();
   });
 
-  it('navigates to team details when manage team button is clicked', () => {
+  it('navigates to team details when team card is clicked', async () => {
+    const user = userEvent.setup();
     mockUseTeams.mockReturnValue({ teams: [mockTeam], managedTeams: [], isLoading: false, error: null });
     renderTeamsPage();
-    const manageButton = screen.getByRole('button', { name: /manage team/i });
-    fireEvent.click(manageButton);
+    
+    // The card itself is clickable and navigates to team details
+    // Click on the team name which is inside the clickable card
+    const teamName = screen.getByText('Engineering Team');
+    await user.click(teamName);
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/teams/team-1');
   });
 });

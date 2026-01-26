@@ -38,7 +38,7 @@ interface StatusAction {
   label: string;
   action: () => void;
   icon: React.ComponentType<{ className?: string }>;
-  variant: 'default' | 'destructive' | 'outline';
+  variant: 'default' | 'destructive' | 'outline' | 'secondary';
   description: string;
   disabled?: boolean;
 }
@@ -117,7 +117,7 @@ const getStatusActions = (): StatusAction[] => {
             label: 'Accept', 
             action: () => handleStatusChange('accepted'), 
             icon: CheckCircle,
-            variant: 'default' as const,
+            variant: 'secondary' as const,
             description: 'Accept this work order and proceed with planning'
           });
         }
@@ -138,7 +138,7 @@ const getStatusActions = (): StatusAction[] => {
             label: 'Assign & Start', 
             action: () => handleStatusChange('in_progress'), 
             icon: Play,
-            variant: 'default' as const,
+            variant: 'secondary' as const,
             description: 'Assign to team member and start work'
           },
           { 
@@ -157,7 +157,7 @@ const getStatusActions = (): StatusAction[] => {
             label: 'Start Work', 
             action: () => handleStatusChange('in_progress'), 
             icon: Play,
-            variant: 'default' as const,
+            variant: 'secondary' as const,
             description: 'Begin working on this order'
           },
           { 
@@ -196,7 +196,7 @@ const getStatusActions = (): StatusAction[] => {
             label: 'Resume', 
             action: () => handleStatusChange('in_progress'), 
             icon: Play,
-            variant: 'default' as const,
+            variant: 'secondary' as const,
             description: 'Resume work on this order'
           },
           { 

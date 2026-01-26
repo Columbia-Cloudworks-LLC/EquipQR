@@ -174,7 +174,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
   const timelineEvents = getTimelineEvents();
 
   return (
-    <Card>
+    <Card className="shadow-elevation-2">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />

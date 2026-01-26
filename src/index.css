@@ -1,11 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
+/* ============================================
+   EquipQR Design System
+   ============================================
+   All colors, gradients, fonts, shadows, and animations are defined here.
+   This is the source of truth for the visual identity.
+*/
+
+/* Typography: Plus Jakarta Sans (Display) + System Stack (Body). Alternative: Sora. */
 
 @layer base {
   :root {
+    /* Font families */
+    --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
@@ -27,7 +41,7 @@
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
-    /* Subtle color accents */
+    /* Semantic color accents */
     --success: 142 76% 36%;
     --success-foreground: 210 40% 98%;
     --info: 217 91% 60%;
@@ -37,6 +51,32 @@
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+
+    /* Work Order Status Colors - Distinctive and accessible */
+    --status-open: 210 40% 50%;
+    --status-open-foreground: 210 40% 98%;
+    --status-assigned: 217 91% 60%;
+    --status-assigned-foreground: 210 40% 98%;
+    --status-in-progress: 38 92% 50%;
+    --status-in-progress-foreground: 222.2 84% 4.9%;
+    --status-completed: 142 76% 36%;
+    --status-completed-foreground: 210 40% 98%;
+    --status-cancelled: 0 0% 45%;
+    --status-cancelled-foreground: 210 40% 98%;
+    --status-overdue: 0 84.2% 50%;
+    --status-overdue-foreground: 210 40% 98%;
+    
+    /* Equipment Status Colors */
+    --equipment-operational: 142 76% 36%;
+    --equipment-maintenance: 38 92% 50%;
+    --equipment-repair: 0 84.2% 60.2%;
+    --equipment-retired: 0 0% 45%;
+
+    /* Priority Colors */
+    --priority-low: 210 40% 50%;
+    --priority-medium: 38 92% 50%;
+    --priority-high: 25 95% 53%;
+    --priority-critical: 0 84.2% 50%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
@@ -50,12 +90,30 @@
     --content-padding-xs: 0.75rem; /* p-3 */
     --content-padding-lg: 2rem; /* p-8 */
 
-    /* Shadow tokens */
+    /* Shadow tokens - Enhanced elevation system */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    
+    /* Elevation system for mobile-optimized depth */
+    --shadow-elevation-1: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
+    --shadow-elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.12), 0 8px 10px -6px rgb(0 0 0 / 0.12);
+    
+    /* Colored shadows for brand elements */
+    --shadow-primary: 0 4px 14px -3px hsl(258 82% 57% / 0.25);
+    --shadow-primary-lg: 0 10px 25px -5px hsl(258 82% 57% / 0.3);
+    --shadow-success: 0 4px 14px -3px hsl(142 76% 36% / 0.25);
+    --shadow-warning: 0 4px 14px -3px hsl(38 92% 50% / 0.25);
+    --shadow-destructive: 0 4px 14px -3px hsl(0 84.2% 60.2% / 0.25);
+    
+    /* Card interaction shadows */
+    --shadow-card: var(--shadow-elevation-1);
+    --shadow-card-hover: var(--shadow-elevation-2);
+    --shadow-card-active: var(--shadow-elevation-3);
 
     /* Z-index scale */
     --z-dropdown: 1000;
@@ -72,20 +130,25 @@
     --focus-ring-offset: 2px;
     --focus-ring-color: hsl(var(--ring));
 
-    /* Typography scale */
+    /* Typography scale - Mobile-first with responsive scaling using clamp() */
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-base: 1rem;
-    --font-size-lg: 1.125rem;
-    --font-size-xl: 1.25rem;
-    --font-size-2xl: 1.5rem;
-    --font-size-3xl: 1.875rem;
+    --font-size-lg: clamp(1.125rem, 1.1rem + 0.125vw, 1.25rem);
+    --font-size-xl: clamp(1.25rem, 1.2rem + 0.25vw, 1.5rem);
+    --font-size-2xl: clamp(1.5rem, 1.4rem + 0.5vw, 1.875rem);
+    --font-size-3xl: clamp(1.875rem, 1.7rem + 0.875vw, 2.5rem);
+    --font-size-4xl: clamp(2.25rem, 2rem + 1.25vw, 3rem);
+    --font-size-5xl: clamp(3rem, 2.5rem + 2.5vw, 4rem);
 
     --line-height-tight: 1.25;
     --line-height-snug: 1.375;
     --line-height-normal: 1.5;
     --line-height-relaxed: 1.625;
     --line-height-loose: 2;
+    
+    /* Mobile-optimized line heights for body text */
+    --line-height-body: 1.7;
 
     /* Icon size tokens */
     --icon-xs: 0.75rem; /* 12px */
@@ -150,16 +213,60 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
+    /* Dark mode Work Order Status Colors */
+    --status-open: 210 50% 60%;
+    --status-open-foreground: 222.2 84% 4.9%;
+    --status-assigned: 217 91% 70%;
+    --status-assigned-foreground: 222.2 84% 4.9%;
+    --status-in-progress: 38 92% 60%;
+    --status-in-progress-foreground: 222.2 84% 4.9%;
+    --status-completed: 142 69% 58%;
+    --status-completed-foreground: 222.2 84% 4.9%;
+    --status-cancelled: 0 0% 55%;
+    --status-cancelled-foreground: 210 40% 98%;
+    --status-overdue: 0 84.2% 60%;
+    --status-overdue-foreground: 210 40% 98%;
+    
+    /* Dark mode Equipment Status Colors */
+    --equipment-operational: 142 69% 58%;
+    --equipment-maintenance: 38 92% 60%;
+    --equipment-repair: 0 84.2% 60%;
+    --equipment-retired: 0 0% 55%;
+
+    /* Dark mode Priority Colors */
+    --priority-low: 210 50% 60%;
+    --priority-medium: 38 92% 60%;
+    --priority-high: 25 95% 58%;
+    --priority-critical: 0 84.2% 60%;
+
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
 
-    /* Dark mode shadows */
+    /* Dark mode shadows - Enhanced elevation */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
     --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+    
+    /* Dark mode elevation system */
+    --shadow-elevation-1: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    --shadow-elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.35), 0 2px 4px -2px rgb(0 0 0 / 0.35);
+    --shadow-elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.45), 0 8px 10px -6px rgb(0 0 0 / 0.45);
+    
+    /* Dark mode colored shadows */
+    --shadow-primary: 0 4px 14px -3px hsl(258 82% 67% / 0.3);
+    --shadow-primary-lg: 0 10px 25px -5px hsl(258 82% 67% / 0.35);
+    --shadow-success: 0 4px 14px -3px hsl(142 69% 58% / 0.3);
+    --shadow-warning: 0 4px 14px -3px hsl(38 92% 60% / 0.3);
+    --shadow-destructive: 0 4px 14px -3px hsl(0 62.8% 30.6% / 0.3);
+    
+    /* Card interaction shadows */
+    --shadow-card: var(--shadow-elevation-1);
+    --shadow-card-hover: var(--shadow-elevation-2);
+    --shadow-card-active: var(--shadow-elevation-3);
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -178,11 +285,195 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body;
+    font-feature-settings: 'liga' 1, 'kern' 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Display font for headings */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
   }
 }
 
 @layer utilities {
+  /* ============================================
+     Subtle Textures
+     ============================================ */
+  
+  /* Grain texture overlay - very subtle (0.5-1% opacity) */
+  .texture-grain {
+    position: relative;
+  }
+  
+  .texture-grain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.015;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    z-index: 0;
+  }
+  
+  .texture-grain > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* ============================================
+     Gradient Washes
+     ============================================ */
+  
+  /* Subtle primary gradient for empty states and headers */
+  .gradient-primary {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary) / 0.03) 0%,
+      transparent 50%,
+      hsl(var(--primary) / 0.02) 100%
+    );
+  }
+  
+  /* Radial gradient for hero sections and empty states */
+  .gradient-radial-primary {
+    background: radial-gradient(
+      ellipse at top,
+      hsl(var(--primary) / 0.05) 0%,
+      transparent 50%
+    );
+  }
+  
+  /* Sidebar gradient for visual differentiation */
+  .gradient-sidebar {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--sidebar-background)) 0%,
+      hsl(var(--sidebar-background) / 0.95) 100%
+    );
+  }
+  
+  /* Subtle ambient gradient for card backgrounds */
+  .gradient-card-ambient {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--card) / 0.98) 100%
+    );
+  }
+  
+  /* Success state gradient */
+  .gradient-success {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--success) / 0.05) 0%,
+      transparent 100%
+    );
+  }
+  
+  /* Warning state gradient */
+  .gradient-warning {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--warning) / 0.05) 0%,
+      transparent 100%
+    );
+  }
+  
+  /* ============================================
+     Touch Feedback & Interactions
+     ============================================ */
+  
+  /* Remove 300ms tap delay on touch devices */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+  
+  /* Button press feedback */
+  .btn-press-feedback {
+    @apply transition-all duration-fast;
+  }
+  
+  .btn-press-feedback:active {
+    transform: scale(0.98);
+  }
+  
+  /* Card lift effect on hover */
+  .card-lift {
+    @apply transition-all duration-normal;
+  }
+  
+  .card-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+  }
+  
+  .card-lift:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-card-active);
+  }
+  
+  /* Smooth status transitions */
+  .status-transition {
+    @apply transition-colors duration-normal;
+  }
+  
+  /* ============================================
+     Animation Utilities
+     ============================================ */
+  
+  /* Staggered reveal animation for lists */
+  .animate-stagger-in {
+    animation: stagger-fade-in 0.3s ease-out forwards;
+    opacity: 0;
+  }
+  
+  @keyframes stagger-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Entrance animation for empty states */
+  .animate-empty-state-in {
+    animation: empty-state-entrance 0.4s ease-out forwards;
+  }
+  
+  @keyframes empty-state-entrance {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-stagger-in,
+    .animate-empty-state-in,
+    .card-lift,
+    .btn-press-feedback,
+    .pm-collapsible-animate {
+      animation: none !important;
+      transform: none !important;
+      transition: none !important;
+    }
+  }
+  
+  /* ============================================
+     Construction Border (Existing)
+     ============================================ */
+
   /* Construction border pattern for "In Development" features */
   .border-construction {
     position: relative;

@@ -1,6 +1,9 @@
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface NotificationSetting {
   id: string;
@@ -162,43 +165,102 @@ export const useRealTimeNotifications = (organizationId: string) => {
   });
 };
 
-// Hook to set up real-time subscription for notifications
-// Listens for all user notifications (including global ones) and invalidates the query
+/**
+ * Hook to set up real-time subscription for notifications using Supabase Broadcast.
+ * 
+ * This uses the scalable Broadcast pattern instead of postgres_changes:
+ * - Private channel per user: `notifications:user:<user_id>`
+ * - Lightweight broadcast payloads trigger query invalidation
+ * - Requires Realtime Authorization (RLS on realtime.messages)
+ * 
+ * @param organizationId - Current organization ID (used for query invalidation)
+ */
 export const useNotificationSubscription = (organizationId: string) => {
   const queryClient = useQueryClient();
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const userIdRef = useRef<string | null>(null);
 
-  return useQuery({
-    queryKey: ['notification-subscription', organizationId],
-    queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return null;
+  useEffect(() => {
+    let isMounted = true;
 
-      // Set up real-time subscription for all user notifications
-      // This will trigger for both org-specific and global notifications
-      const channel = supabase
-        .channel(`notifications-${userData.user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${userData.user.id}`
-          },
-          () => {
-            // Invalidate notifications query when changes occur
-            // This covers both org-specific and global notifications
+    const setupSubscription = async () => {
+      try {
+        // Get current user
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user || !isMounted) return;
+
+        const userId = userData.user.id;
+        userIdRef.current = userId;
+
+        // Clean up any existing channel for this user
+        if (channelRef.current) {
+          await supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+
+        // Set auth for private channels (required for Realtime Authorization)
+        await supabase.realtime.setAuth();
+
+        // Check again after async operations - component may have unmounted
+        if (!isMounted) return;
+
+        // Create private channel for this user's notifications
+        const channel = supabase
+          .channel(`notifications:user:${userId}`, {
+            config: { private: true }
+          })
+          .on('broadcast', { event: 'new_notification' }, (payload) => {
+            if (!isMounted) return;
+            
+            logger.debug('Received notification broadcast', payload);
+            
+            // Invalidate notifications queries to refetch fresh data
+            // This keeps broadcast payloads small while ensuring UI updates
             queryClient.invalidateQueries({ queryKey: ['notifications', organizationId] });
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
-          }
-        )
-        .subscribe();
+          })
+          .subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+              logger.debug('Subscribed to notification broadcast channel', { userId });
+            } else if (status === 'CHANNEL_ERROR') {
+              logger.error('Notification broadcast channel error', err);
+            } else if (status === 'TIMED_OUT') {
+              logger.warn('Notification broadcast subscription timed out');
+            }
+          });
 
-      return channel;
-    },
-    enabled: !!organizationId,
-    staleTime: Infinity, // This subscription should stay active
-  });
+        // Final check before storing channel reference - prevent race condition
+        if (!isMounted) {
+          // Component unmounted during setup, clean up the channel we just created
+          await supabase.removeChannel(channel);
+          return;
+        }
+
+        channelRef.current = channel;
+      } catch (error) {
+        logger.error('Error setting up notification subscription', error);
+      }
+    };
+
+    if (organizationId) {
+      setupSubscription();
+    }
+
+    // Cleanup on unmount or when organizationId changes
+    return () => {
+      isMounted = false;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [organizationId, queryClient]);
+
+  // Return channel info for debugging (optional)
+  return {
+    isSubscribed: !!channelRef.current,
+    userId: userIdRef.current,
+  };
 };
 
 // Hook to mark all notifications as read

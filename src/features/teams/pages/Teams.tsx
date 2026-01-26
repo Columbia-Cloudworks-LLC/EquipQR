@@ -4,7 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Users, Plus, Search, Settings, UserCheck, Eye, Wrench } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Users, Plus, Search, Settings, UserCheck, Eye, Wrench, Forklift, ClipboardList, MoreVertical } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeams } from '@/features/teams/hooks/useTeams';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -151,7 +158,11 @@ const Teams = () => {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredTeams.map((team) => (
-            <Card key={team.id} className="hover:shadow-md transition-shadow cursor-pointer group">
+            <Card 
+              key={team.id} 
+              className="hover:shadow-md transition-shadow cursor-pointer group"
+              onClick={() => navigate(`/dashboard/teams/${team.id}`)}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
@@ -216,16 +227,50 @@ const Teams = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="pt-2 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/dashboard/teams/${team.id}`)}
-                    className="w-full"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Manage Team
-                  </Button>
+                <div className="pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="h-4 w-4 mr-2" />
+                        Quick Actions
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/dashboard/teams/${team.id}`);
+                        }}
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        View Team Details
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/dashboard/equipment?team=${team.id}`);
+                        }}
+                      >
+                        <Forklift className="h-4 w-4 mr-2" />
+                        View Equipment
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/dashboard/work-orders?team=${team.id}`);
+                        }}
+                      >
+                        <ClipboardList className="h-4 w-4 mr-2" />
+                        View Work Orders
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardContent>
             </Card>

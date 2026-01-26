@@ -20,6 +20,15 @@ export const team = (teamId: string) => ({
   managerCheck: (userId: string) => ['team', teamId, 'manager', userId] as const,
 });
 
+// Team stats keys
+export const teamStats = {
+  all: (orgId: string, teamId: string) => ['team-stats', orgId, teamId] as const,
+  equipment: (orgId: string, teamId: string) => ['team-stats', orgId, teamId, 'equipment'] as const,
+  workOrders: (orgId: string, teamId: string) => ['team-stats', orgId, teamId, 'work-orders'] as const,
+  recentEquipment: (orgId: string, teamId: string) => ['team-stats', orgId, teamId, 'recent-equipment'] as const,
+  recentWorkOrders: (orgId: string, teamId: string) => ['team-stats', orgId, teamId, 'recent-work-orders'] as const,
+};
+
 export const teams = (orgId: string) => ({
   root: ['teams', orgId] as const,
   optimized: () => ['teams', orgId, 'optimized'] as const,
@@ -82,6 +91,7 @@ export const queryKeys = {
   organization,
   team,
   teams,
+  teamStats,
   equipment,
   workOrders,
   pmTemplates,

@@ -33,7 +33,7 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
   const workingHours = workOrder.equipment_working_hours_at_creation ?? currentWorkingHours;
 
   return (
-    <Card>
+    <Card className="shadow-elevation-2">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />

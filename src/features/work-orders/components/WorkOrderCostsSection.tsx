@@ -36,7 +36,7 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="shadow-elevation-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
@@ -51,7 +51,7 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
   }
 
   return (
-    <Card>
+    <Card className="shadow-elevation-2">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <DollarSign className="h-5 w-5" />

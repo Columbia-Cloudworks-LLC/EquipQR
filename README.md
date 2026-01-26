@@ -6,7 +6,7 @@
 
 ## 🚜 Fleet Equipment Management Platform 🚧
 
-![Version](https://img.shields.io/badge/version-2.1.3-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.2.0-blue?style=for-the-badge)
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)

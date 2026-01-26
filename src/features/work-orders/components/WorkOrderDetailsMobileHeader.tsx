@@ -51,7 +51,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
       <div className="p-4 space-y-3">
         {/* Top Row: Minimal Back Button and Actions */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" asChild className="p-2">
+          <Button variant="ghost" size="sm" asChild className="p-2 text-secondary hover:underline">
             <Link to="/dashboard/work-orders">
               <ArrowLeft className="h-4 w-4" />
             </Link>

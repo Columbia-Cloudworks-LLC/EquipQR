@@ -289,12 +289,9 @@ describe('Dashboard', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Welcome back to Test Organization')).toBeInTheDocument();
     
-    // Should show loading cards
-    const cards = screen.getAllByRole('generic');
-    const loadingCards = cards.filter(card => 
-      card.className?.includes('animate-pulse')
-    );
-    expect(loadingCards.length).toBeGreaterThan(0);
+    // Should show loading skeletons
+    const skeletons = document.querySelectorAll('[class*="animate-shimmer"], .bg-muted.rounded-md');
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it('shows equipment statistics when data is available', () => {
@@ -466,12 +463,9 @@ describe('Dashboard', () => {
 
         render(<Dashboard />);
         
-        // Should show loading cards with animation
-        const cards = screen.getAllByRole('generic');
-        const loadingCards = cards.filter(card => 
-          card.className?.includes('animate-pulse')
-        );
-        expect(loadingCards.length).toBeGreaterThan(0);
+        // Should show loading skeletons with animation
+        const skeletons = document.querySelectorAll('[class*="animate-shimmer"], .bg-muted.rounded-md');
+        expect(skeletons.length).toBeGreaterThan(0);
       });
     });
   });

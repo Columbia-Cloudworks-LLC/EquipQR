@@ -74,17 +74,22 @@ const PartLookup: React.FC = () => {
   }, [manufacturersData, manufacturer]);
   
   // Part number alternates query
+  // Disable retries for this query since we're searching as user types
+  // and failed requests (cancelled, network errors) shouldn't spam the console
   const { 
     data: alternates = [], 
     isLoading: isLoadingAlternates,
     refetch: refetchAlternates
   } = useQuery({
     queryKey: ['part-alternates', currentOrganization?.id, debouncedPartNumber],
-    queryFn: () => getAlternatesForPartNumber(
+    queryFn: ({ signal }) => getAlternatesForPartNumber(
       currentOrganization!.id, 
-      debouncedPartNumber
+      debouncedPartNumber,
+      signal
     ),
-    enabled: !!currentOrganization?.id && debouncedPartNumber.length >= 2
+    enabled: !!currentOrganization?.id && debouncedPartNumber.length >= 2,
+    retry: false, // Don't retry - user will type more and trigger new query
+    staleTime: 30 * 1000, // Cache results for 30 seconds
   });
   
   // Make/Model compatible parts query

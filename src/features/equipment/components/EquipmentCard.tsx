@@ -4,7 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { QrCode, MapPin, Calendar, Forklift, Clock } from 'lucide-react';
+import { cn } from "@/lib/utils";
 import { getEquipmentCardDisplayModel } from "@/features/equipment/utils/getEquipmentCardDisplayModel";
+import { getEquipmentStatusBorderClass } from "@/lib/status-colors";
 
 interface Equipment {
   id: string;
@@ -31,6 +33,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const display = getEquipmentCardDisplayModel(equipment);
+  const statusBorderClass = getEquipmentStatusBorderClass(equipment.status);
 
   const handleCardClick = () => {
     navigate(`/dashboard/equipment/${equipment.id}`);
@@ -43,7 +46,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
 
   return (
     <Card 
-      className="hover:shadow-lg transition-shadow cursor-pointer"
+      className={cn("hover:shadow-lg transition-all duration-normal cursor-pointer", statusBorderClass)}
       onClick={handleCardClick}
     >
       {/* Mobile: compact horizontal list item */}

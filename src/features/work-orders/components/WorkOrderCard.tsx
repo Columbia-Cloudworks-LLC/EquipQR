@@ -29,6 +29,7 @@ import {
   formatDate,
   isOverdue 
 } from '@/features/work-orders/utils/workOrderHelpers';
+import { getWorkOrderStatusBorderWithOverdue } from '@/lib/status-colors';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import PMProgressIndicator from './PMProgressIndicator';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
@@ -113,9 +114,13 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
   const dueDateValue = workOrder.due_date ?? workOrder.dueDate;
   const estimatedHoursValue = workOrder.estimated_hours ?? workOrder.estimatedHours;
   const completedDateValue = workOrder.completed_date ?? workOrder.completedDate;
+  
+  // Get status border with overdue check
+  const isWorkOrderOverdue = isOverdue(dueDateValue, workOrder.status);
+  const statusBorderClass = getWorkOrderStatusBorderWithOverdue(workOrder.status, isWorkOrderOverdue);
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className={cn("hover:shadow-md transition-all duration-normal", statusBorderClass)}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
@@ -282,11 +287,16 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
   }, [assigneeName]);
 
   const isInteractive = Boolean(onNavigate);
+  
+  // Get status border with overdue check
+  const isWorkOrderOverdue = isOverdue(dueDateValue, workOrder.status);
+  const statusBorderClass = getWorkOrderStatusBorderWithOverdue(workOrder.status, isWorkOrderOverdue);
 
   return (
     <Card
       className={cn(
-        "transition-shadow",
+        "transition-all duration-normal",
+        statusBorderClass,
         isInteractive && "hover:shadow-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       )}
       role={isInteractive ? "button" : undefined}
@@ -379,12 +389,13 @@ const CompactCard: React.FC<WorkOrderCardProps> = memo(({
     return {
       isOverdue: overdueStatus,
       formattedDueDate: formatDate(workOrder.dueDate ?? workOrder.due_date),
-      formattedCreatedDate: formatDate(workOrder.createdDate ?? workOrder.created_date)
+      formattedCreatedDate: formatDate(workOrder.createdDate ?? workOrder.created_date),
+      statusBorderClass: getWorkOrderStatusBorderWithOverdue(workOrder.status, overdueStatus)
     };
   }, [workOrder.status, workOrder.dueDate, workOrder.due_date, workOrder.createdDate, workOrder.created_date]);
 
   return (
-    <Card className="h-full hover:shadow-md transition-shadow">
+    <Card className={cn("h-full hover:shadow-md transition-all duration-normal", computedData.statusBorderClass)}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
