@@ -119,6 +119,7 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
     const savedState = loadState(workOrderId);
     if (savedState) {
       // Restore original start time from saved state (if available, for backward compatibility)
+      // Note: We keep this for backward compatibility but don't use it for elapsed time calculations
       if (savedState.originalStartTime) {
         originalStartTimeRef.current = savedState.originalStartTime;
       } else if (savedState.isRunning && savedState.startTime > 0) {
@@ -126,22 +127,22 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
         originalStartTimeRef.current = savedState.startTime;
       }
       
-      if (savedState.isRunning && savedState.startTime > 0 && originalStartTimeRef.current) {
-        // Resume running timer
+      if (savedState.isRunning && savedState.startTime > 0) {
+        // Resume running timer - only track active time
         const now = Date.now();
-        const totalElapsed = Math.floor((now - originalStartTimeRef.current) / 1000);
+        // Current session elapsed since the saved start time
         const sessionElapsed = Math.floor((now - savedState.startTime) / 1000);
         startTimeRef.current = savedState.startTime;
         setCurrentSessionSeconds(sessionElapsed);
-        // Update accumulated to be total minus current session
-        setAccumulatedSeconds(Math.max(0, totalElapsed - sessionElapsed));
+        // Use saved accumulatedSeconds (active time from previous sessions)
+        setAccumulatedSeconds(savedState.accumulatedSeconds || 0);
         setIsRunning(true);
       } else {
         // Saved state exists but timer is not running
         setAccumulatedSeconds(savedState.accumulatedSeconds);
         setCurrentSessionSeconds(0);
         startTimeRef.current = null;
-        // Keep originalStartTime if we have it, so resume continues correctly
+        // Keep originalStartTime if we have it, for backward compatibility only
         if (!savedState.originalStartTime) {
           originalStartTimeRef.current = null;
         }
@@ -161,18 +162,13 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
 
   // Tick interval when running
   useEffect(() => {
-    if (isRunning && startTimeRef.current && originalStartTimeRef.current) {
+    if (isRunning && startTimeRef.current) {
       intervalRef.current = window.setInterval(() => {
         const now = Date.now();
-        // Calculate total elapsed time from original start, including all gaps
-        // This gives us wall clock time (total elapsed since first start), not just active work time
-        const totalElapsed = Math.floor((now - originalStartTimeRef.current!) / 1000);
         // Current session is the time since the last resume
+        // We only track active work time here; accumulatedSeconds is updated on pause/stop
         const sessionElapsed = Math.floor((now - startTimeRef.current!) / 1000);
         setCurrentSessionSeconds(sessionElapsed);
-        // Update accumulated to be total minus current session
-        // This ensures accumulatedSeconds + currentSessionSeconds = total elapsed (including gaps)
-        setAccumulatedSeconds(totalElapsed - sessionElapsed);
       }, 1000);
     }
 
@@ -251,9 +247,10 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
     if (!workOrderId) return 0; // No-op if no work order ID
     let totalSeconds = accumulatedSeconds;
     
-    if (isRunning && startTimeRef.current && originalStartTimeRef.current) {
-      // Calculate total elapsed time from original start
-      totalSeconds = Math.floor((Date.now() - originalStartTimeRef.current) / 1000);
+    if (isRunning && startTimeRef.current) {
+      // Calculate only active work time: accumulated from previous sessions + current session
+      const currentSessionSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      totalSeconds = accumulatedSeconds + currentSessionSeconds;
     }
 
     // Clear state
