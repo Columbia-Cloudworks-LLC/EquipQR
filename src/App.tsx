@@ -30,6 +30,7 @@ const MobileFirstDesignFeature = lazy(() => import('@/pages/features/MobileFirst
 const AppSidebar = lazy(() => import('@/components/layout/AppSidebar'));
 const TopBar = lazy(() => import('@/components/layout/TopBar'));
 const LegalFooter = lazy(() => import('@/components/layout/LegalFooter'));
+const BottomNav = lazy(() => import('@/components/navigation/BottomNav'));
 const Dashboard = lazy(() => import('@/features/dashboard/pages/Dashboard'));
 const Equipment = lazy(() => import('@/features/equipment/pages/Equipment'));
 const EquipmentDetails = lazy(() => import('@/features/equipment/pages/EquipmentDetails'));
@@ -163,7 +164,7 @@ function App() {
                           }>
                             <BrandedTopBar />
                           </Suspense>
-                          <main className="flex-1 overflow-auto min-w-0">
+                          <main className="flex-1 overflow-auto min-w-0 pb-16 md:pb-0">
                             <Suspense fallback={
                               <div className="flex items-center justify-center h-64">
                                 <div className="text-center">
@@ -209,6 +210,10 @@ function App() {
                             <LegalFooter />
                           </Suspense>
                         </SidebarInset>
+                        {/* Mobile bottom navigation - only visible on mobile */}
+                        <Suspense fallback={null}>
+                          <BottomNav />
+                        </Suspense>
                       </div>
                       </SidebarProvider>
                     </TeamProvider>

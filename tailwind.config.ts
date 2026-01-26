@@ -28,6 +28,12 @@ export default {
 			'2xl': '1536px',
 		},
 		extend: {
+			fontFamily: {
+				display: ['var(--font-display)'],
+				body: ['var(--font-body)'],
+				sans: ['var(--font-body)'],
+				mono: ['var(--font-mono)'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -87,6 +93,29 @@ export default {
 				brand: {
 					DEFAULT: 'hsl(var(--brand))',
 					foreground: 'hsl(var(--brand-foreground))'
+				},
+				// Work Order Status Colors
+				status: {
+					open: 'hsl(var(--status-open))',
+					assigned: 'hsl(var(--status-assigned))',
+					'in-progress': 'hsl(var(--status-in-progress))',
+					completed: 'hsl(var(--status-completed))',
+					cancelled: 'hsl(var(--status-cancelled))',
+					overdue: 'hsl(var(--status-overdue))',
+				},
+				// Equipment Status Colors
+				equipment: {
+					operational: 'hsl(var(--equipment-operational))',
+					maintenance: 'hsl(var(--equipment-maintenance))',
+					repair: 'hsl(var(--equipment-repair))',
+					retired: 'hsl(var(--equipment-retired))',
+				},
+				// Priority Colors
+				priority: {
+					low: 'hsl(var(--priority-low))',
+					medium: 'hsl(var(--priority-medium))',
+					high: 'hsl(var(--priority-high))',
+					critical: 'hsl(var(--priority-critical))',
 				}
 			},
 			borderRadius: {
@@ -110,6 +139,21 @@ export default {
 				'md': 'var(--shadow-md)',
 				'lg': 'var(--shadow-lg)',
 				'xl': 'var(--shadow-xl)',
+				// Elevation system
+				'elevation-1': 'var(--shadow-elevation-1)',
+				'elevation-2': 'var(--shadow-elevation-2)',
+				'elevation-3': 'var(--shadow-elevation-3)',
+				'elevation-4': 'var(--shadow-elevation-4)',
+				// Colored shadows
+				'primary': 'var(--shadow-primary)',
+				'primary-lg': 'var(--shadow-primary-lg)',
+				'success': 'var(--shadow-success)',
+				'warning': 'var(--shadow-warning)',
+				'destructive': 'var(--shadow-destructive)',
+				// Card states
+				'card': 'var(--shadow-card)',
+				'card-hover': 'var(--shadow-card-hover)',
+				'card-active': 'var(--shadow-card-active)',
 			},
 			zIndex: {
 				'dropdown': 'var(--z-dropdown)',
@@ -129,6 +173,8 @@ export default {
 				'xl': ['var(--font-size-xl)', { lineHeight: 'var(--line-height-normal)' }],
 				'2xl': ['var(--font-size-2xl)', { lineHeight: 'var(--line-height-snug)' }],
 				'3xl': ['var(--font-size-3xl)', { lineHeight: 'var(--line-height-tight)' }],
+				'4xl': ['var(--font-size-4xl)', { lineHeight: 'var(--line-height-tight)' }],
+				'5xl': ['var(--font-size-5xl)', { lineHeight: '1.1' }],
 			},
 			lineHeight: {
 				'tight': 'var(--line-height-tight)',
@@ -163,11 +209,76 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				// Page transition animations
+				'fade-in': {
+					from: { opacity: '0' },
+					to: { opacity: '1' }
+				},
+				'fade-out': {
+					from: { opacity: '1' },
+					to: { opacity: '0' }
+				},
+				'slide-in-right': {
+					from: { transform: 'translateX(100%)', opacity: '0' },
+					to: { transform: 'translateX(0)', opacity: '1' }
+				},
+				'slide-out-left': {
+					from: { transform: 'translateX(0)', opacity: '1' },
+					to: { transform: 'translateX(-100%)', opacity: '0' }
+				},
+				'slide-in-left': {
+					from: { transform: 'translateX(-100%)', opacity: '0' },
+					to: { transform: 'translateX(0)', opacity: '1' }
+				},
+				'slide-out-right': {
+					from: { transform: 'translateX(0)', opacity: '1' },
+					to: { transform: 'translateX(100%)', opacity: '0' }
+				},
+				// Bottom sheet animation
+				'slide-up': {
+					from: { transform: 'translateY(100%)' },
+					to: { transform: 'translateY(0)' }
+				},
+				'slide-down': {
+					from: { transform: 'translateY(0)' },
+					to: { transform: 'translateY(100%)' }
+				},
+				// Stagger animation for lists
+				'stagger-in': {
+					from: { opacity: '0', transform: 'translateY(8px)' },
+					to: { opacity: '1', transform: 'translateY(0)' }
+				},
+				// Skeleton shimmer
+				'shimmer': {
+					'0%': { backgroundPosition: '-200% 0' },
+					'100%': { backgroundPosition: '200% 0' }
+				},
+				// Pulse for status changes
+				'status-pulse': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.7' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				// Page transitions
+				'fade-in': 'fade-in 0.2s ease-out',
+				'fade-out': 'fade-out 0.2s ease-out',
+				'slide-in-right': 'slide-in-right 0.3s ease-out',
+				'slide-out-left': 'slide-out-left 0.3s ease-out',
+				'slide-in-left': 'slide-in-left 0.3s ease-out',
+				'slide-out-right': 'slide-out-right 0.3s ease-out',
+				// Bottom sheet
+				'slide-up': 'slide-up 0.3s ease-out',
+				'slide-down': 'slide-down 0.3s ease-out',
+				// List stagger
+				'stagger-in': 'stagger-in 0.3s ease-out forwards',
+				// Skeleton
+				'shimmer': 'shimmer 2s infinite linear',
+				// Status pulse
+				'status-pulse': 'status-pulse 0.5s ease-in-out'
 			}
 		}
 	},
