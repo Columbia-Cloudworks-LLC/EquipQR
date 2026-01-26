@@ -128,30 +128,44 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                   <Download className="h-4 w-4" />
                   <span>Download PDF</span>
                 </Button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button
-                        variant="outline"
-                        onClick={() => exportSingle(workOrder.id)}
-                        disabled={isExportingSingle || !organizationId}
-                        className="flex items-center gap-2"
-                      >
-                        {isExportingSingle ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <FileSpreadsheet className="h-4 w-4" />
-                        )}
-                        <span>Export Excel</span>
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {!organizationId && (
+                {!organizationId ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          variant="outline"
+                          onClick={() => exportSingle(workOrder.id)}
+                          disabled={isExportingSingle || !organizationId}
+                          className="flex items-center gap-2"
+                        >
+                          {isExportingSingle ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileSpreadsheet className="h-4 w-4" />
+                          )}
+                          <span>Export Excel</span>
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
                     <TooltipContent>
                       <p>Organization ID is required to export</p>
                     </TooltipContent>
-                  )}
-                </Tooltip>
+                  </Tooltip>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => exportSingle(workOrder.id)}
+                    disabled={isExportingSingle || !organizationId}
+                    className="flex items-center gap-2"
+                  >
+                    {isExportingSingle ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="h-4 w-4" />
+                    )}
+                    <span>Export Excel</span>
+                  </Button>
+                )}
                 <QuickBooksExportButton
                   workOrderId={workOrder.id}
                   teamId={equipmentTeamId ?? null}

@@ -26,12 +26,8 @@ interface WorkOrderDetailsMobileHeaderProps {
     };
   };
   canEdit: boolean;
-  /** @deprecated No longer used - Excel export moved to action sheet */
-  organizationName?: string;
   onEditClick: () => void;
   onToggleSidebar: () => void;
-  /** @deprecated No longer used - PDF download moved to action sheet */
-  onDownloadPDF?: () => void;
   /** Callback to open the action sheet */
   onOpenActionSheet: () => void;
 }
