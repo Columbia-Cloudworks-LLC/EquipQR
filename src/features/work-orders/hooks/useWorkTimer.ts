@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 interface WorkTimerState {
   workOrderId: string;
   startTime: number;
-  originalStartTime: number; // First start time - used to calculate total elapsed including gaps
+  originalStartTime: number; // First start time - kept for backward compatibility with saved state
   accumulatedSeconds: number;
   isRunning: boolean;
 }
@@ -98,10 +98,10 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
   const [currentSessionSeconds, setCurrentSessionSeconds] = useState(0);
   const startTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<number | null>(null);
-  // Track the original start time to calculate total elapsed time including gaps
-  // When we pause and resume, we adjust this to account for the pause duration
+  // Track the original start time for backward compatibility with saved state
+  // Note: We only track active work time (accumulatedSeconds + currentSessionSeconds),
+  // not total elapsed time including gaps
   const originalStartTimeRef = useRef<number | null>(null);
-  const pauseStartTimeRef = useRef<number | null>(null);
 
   // Load initial state from localStorage
   useEffect(() => {
@@ -112,7 +112,6 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
       setCurrentSessionSeconds(0);
       startTimeRef.current = null;
       originalStartTimeRef.current = null;
-      pauseStartTimeRef.current = null;
       return;
     }
 
@@ -146,7 +145,6 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
         if (!savedState.originalStartTime) {
           originalStartTimeRef.current = null;
         }
-        pauseStartTimeRef.current = null;
         setIsRunning(false);
       }
     } else {
@@ -156,7 +154,6 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
       setCurrentSessionSeconds(0);
       startTimeRef.current = null;
       originalStartTimeRef.current = null;
-      pauseStartTimeRef.current = null;
     }
   }, [workOrderId]);
 
@@ -208,18 +205,10 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
     if (!isRunning) {
       const now = Date.now();
       
-      // If this is the first start, set the original start time
-      // If resuming from a pause, keep the original start time (don't reset it)
-      // This ensures (now - originalStartTime) gives total elapsed time including all gaps
+      // If this is the first start, set the original start time for backward compatibility
       if (originalStartTimeRef.current === null) {
-        // First time starting - set the original start time
         originalStartTimeRef.current = now;
       }
-      // If resuming, originalStartTimeRef.current is already set from when we first started
-      // or from localStorage, so we don't change it
-      
-      // Clear pause tracking
-      pauseStartTimeRef.current = null;
       
       startTimeRef.current = now;
       setCurrentSessionSeconds(0);
@@ -231,10 +220,7 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
     if (!workOrderId) return; // No-op if no work order ID
     if (isRunning) {
       const now = Date.now();
-      // Track when we paused so we can adjust for the gap when resuming
-      pauseStartTimeRef.current = now;
-      
-      // Add current session to accumulated
+      // Add current session to accumulated (only tracks active work time)
       const sessionSeconds = Math.floor((now - startTimeRef.current!) / 1000);
       setAccumulatedSeconds((prev) => prev + sessionSeconds);
       setCurrentSessionSeconds(0);
@@ -259,7 +245,6 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
     setCurrentSessionSeconds(0);
     startTimeRef.current = null;
     originalStartTimeRef.current = null;
-    pauseStartTimeRef.current = null;
     clearState(workOrderId);
 
     return secondsToHours(totalSeconds);
@@ -272,7 +257,6 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
     setCurrentSessionSeconds(0);
     startTimeRef.current = null;
     originalStartTimeRef.current = null;
-    pauseStartTimeRef.current = null;
     clearState(workOrderId);
   }, [workOrderId]);
 

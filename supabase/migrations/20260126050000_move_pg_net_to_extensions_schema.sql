@@ -64,7 +64,7 @@ BEGIN
 EXCEPTION
   WHEN OTHERS THEN
     -- If we can't move it (e.g., extension is in use), log a warning
-    -- but don't fail the migration - this can be fixed manually via Dashboard
+    -- PART 2 will detect if extension is still in public schema and log a warning instead of failing
     RAISE WARNING 'Could not move pg_net extension: % (SQLSTATE: %). Please move it manually via Supabase Dashboard > Database > Extensions.', SQLERRM, SQLSTATE;
 END
 $$;
@@ -73,24 +73,33 @@ $$;
 -- PART 2: Verify extension exists and is in correct schema
 -- =============================================================================
 -- After the DO block, verify that pg_net exists before proceeding.
--- If it doesn't exist, abort the migration with a clear error message
--- rather than failing later when functions try to call net.http_post().
+-- If PART 1 failed to move the extension, we skip the hard failure and
+-- log a warning instead (allowing manual fix via Dashboard).
 
 DO $$
 DECLARE
   v_schema_name TEXT;
 BEGIN
+  -- Check if PART 1 had an error by looking for the extension
+  -- If extension is still in public schema, PART 1 likely failed - log warning instead of failing
   SELECT n.nspname INTO v_schema_name
   FROM pg_extension e
   JOIN pg_namespace n ON e.extnamespace = n.oid
   WHERE e.extname = 'pg_net';
   
   IF v_schema_name IS NULL THEN
-    -- Fail fast: pg_net is required for functions that call net.http_post()
+    -- Extension doesn't exist - this is a hard failure as it's required
     RAISE EXCEPTION 'pg_net extension not found. Please enable it via Supabase Dashboard > Database > Extensions before running this migration.';
   ELSIF v_schema_name != 'extensions' THEN
-    -- Fail fast: extension must be in extensions schema for security
-    RAISE EXCEPTION 'pg_net extension is in % schema, not extensions schema. Please move it manually via Supabase Dashboard > Database > Extensions before running this migration.', v_schema_name;
+    -- Extension is in wrong schema - if PART 1 failed, we already logged a warning
+    -- Check if it's in public schema (the case PART 1 was trying to fix)
+    IF v_schema_name = 'public' THEN
+      -- PART 1 likely failed - log warning instead of failing
+      RAISE WARNING 'pg_net extension is still in public schema. Please move it manually via Supabase Dashboard > Database > Extensions. Migration will continue but this should be fixed for security.';
+    ELSE
+      -- Extension is in some other unexpected schema - fail hard
+      RAISE EXCEPTION 'pg_net extension is in % schema, not extensions schema. Please move it manually via Supabase Dashboard > Database > Extensions before running this migration.', v_schema_name;
+    END IF;
   ELSE
     RAISE NOTICE 'pg_net extension verified in extensions schema';
   END IF;
@@ -177,8 +186,8 @@ $$;
 
 COMMENT ON FUNCTION public.invoke_quickbooks_token_refresh() IS 
   'Calls the quickbooks-refresh-tokens edge function using credentials stored in vault.secrets. '
-  'This function is secured and can only be called by pg_cron scheduler (postgres superuser) '
-  'or other authorized superusers. Updated to use net.http_post() after moving pg_net to extensions schema.';
+  'This function is secured and can only be called by the pg_cron scheduler running as the postgres superuser. '
+  'Updated to use net.http_post() after moving pg_net to extensions schema.';
 
 -- Update broadcast_notification() to use net.http_post()
 CREATE OR REPLACE FUNCTION public.broadcast_notification()
