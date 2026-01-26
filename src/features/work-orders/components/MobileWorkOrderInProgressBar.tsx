@@ -145,8 +145,8 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
             </>
           )}
 
-          {/* Pause/Resume Button */}
-          {canChangeStatus && (
+          {/* Pause Button (only when in progress; resume uses primary "Resume Work" below) */}
+          {canChangeStatus && isInProgress && (
             <Button
               variant="outline"
               size="sm"
@@ -156,8 +156,6 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
             >
               {isUpdatingStatus ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isOnHold ? (
-                <Play className="h-4 w-4" />
               ) : (
                 <Pause className="h-4 w-4" />
               )}
