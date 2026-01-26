@@ -52,7 +52,14 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
           
           <div className="flex items-center gap-1">
             {canEdit && (
-              <Button variant="outline" size="sm" onClick={onEditClick} className="px-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onEditClick} 
+                className="px-3"
+                aria-label="Edit work order"
+                title="Edit work order"
+              >
                 <Edit className="h-4 w-4" />
               </Button>
             )}

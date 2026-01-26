@@ -139,6 +139,8 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
                 size="sm"
                 className="h-11"
                 onClick={onAddPhoto}
+                aria-label="Add photo"
+                title="Add photo"
               >
                 <Camera className="h-4 w-4" />
               </Button>
@@ -153,6 +155,8 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
               className="h-11"
               onClick={onPauseResume}
               disabled={isUpdatingStatus}
+              aria-label={isUpdatingStatus ? "Updating status" : "Pause work order"}
+              title={isUpdatingStatus ? "Updating status" : "Pause work order"}
             >
               {isUpdatingStatus ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
