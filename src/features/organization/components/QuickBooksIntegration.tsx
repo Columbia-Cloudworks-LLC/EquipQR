@@ -122,6 +122,26 @@ export const QuickBooksIntegration = ({
     return null;
   }
 
+  // Show loading state while checking permissions
+  if (permissionLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-5 w-5" />
+            QuickBooks Online Integration
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Checking permissions...
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Don't render if user doesn't have permission
   if (!canManage) {
     return null;
@@ -168,7 +188,7 @@ export const QuickBooksIntegration = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {statusLoading || permissionLoading ? (
+        {statusLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <RefreshCw className="h-4 w-4 animate-spin" />
             Checking connection status...

@@ -136,8 +136,33 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
     }
   };
 
-  // Don't render if feature is disabled or user doesn't have permission
-  if (!featureEnabled || !canManage) {
+  // Don't render if feature is disabled
+  if (!featureEnabled) {
+    return null;
+  }
+
+  // Show loading state while checking permissions
+  if (permissionLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Link2 className="h-4 w-4" />
+            QuickBooks Customer
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Loading...
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Don't render if user doesn't have permission
+  if (!canManage) {
     return null;
   }
 
@@ -161,7 +186,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {mappingLoading || permissionLoading ? (
+          {mappingLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin" />
               Loading...
