@@ -767,29 +767,40 @@ const WorkOrderDetails = () => {
           }}
           onPauseResume={() => {
             const newStatus = workOrder.status === 'on_hold' ? 'in_progress' : 'on_hold';
-            // Pause/resume timer along with work order status
-            if (newStatus === 'on_hold') {
-              workTimer.pause();
-            } else {
-              workTimer.start();
-            }
-            updateStatusMutation.mutate({
-              workOrderId: workOrder.id,
-              status: newStatus,
-              organizationId: currentOrganization.id,
-            });
+            updateStatusMutation.mutate(
+              {
+                workOrderId: workOrder.id,
+                status: newStatus,
+                organizationId: currentOrganization.id,
+              },
+              {
+                onSuccess: () => {
+                  if (newStatus === 'on_hold') {
+                    workTimer.pause();
+                  } else {
+                    workTimer.start();
+                  }
+                },
+              }
+            );
           }}
           onComplete={() => {
-            // Stop timer and get hours worked for potential note creation
-            const hoursWorked = workTimer.stopAndGetHours();
-            if (hoursWorked > 0) {
-              toast.success(`Timer stopped: ${hoursWorked.toFixed(2)} hours worked`);
-            }
-            updateStatusMutation.mutate({
-              workOrderId: workOrder.id,
-              status: 'completed',
-              organizationId: currentOrganization.id,
-            });
+            const hoursWorked = Math.round((workTimer.elapsedSeconds / 3600) * 100) / 100;
+            updateStatusMutation.mutate(
+              {
+                workOrderId: workOrder.id,
+                status: 'completed',
+                organizationId: currentOrganization.id,
+              },
+              {
+                onSuccess: () => {
+                  workTimer.stopAndGetHours();
+                  if (hoursWorked > 0) {
+                    toast.success(`Timer stopped: ${hoursWorked.toFixed(2)} hours worked`);
+                  }
+                },
+              }
+            );
           }}
           onToggleTimer={() => {
             if (workTimer.isRunning) {
