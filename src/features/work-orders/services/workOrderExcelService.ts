@@ -49,9 +49,9 @@ interface WorkOrderFullData {
       serial_number: string | null;
       location: string | null;
       status: string;
-    } | null;
-    teams: {
-      name: string;
+      teams: {
+        name: string;
+      } | null;
     } | null;
   };
   notes: WorkOrderNote[];
@@ -81,7 +81,7 @@ async function fetchWorkOrderData(
   organizationId: string
 ): Promise<WorkOrderFullData | null> {
   try {
-    // Fetch work order with equipment and team
+    // Fetch work order with equipment and team (team comes through equipment)
     const { data: workOrder, error: woError } = await supabase
       .from('work_orders')
       .select(`
@@ -102,10 +102,10 @@ async function fetchWorkOrderData(
           model,
           serial_number,
           location,
-          status
-        ),
-        teams:team_id (
-          name
+          status,
+          teams:team_id (
+            name
+          )
         )
       `)
       .eq('id', workOrderId)
@@ -289,7 +289,7 @@ function buildSummaryRow(
     totalMaterialCost,
     pmStatus: pmData?.status?.replace(/_/g, ' ').toUpperCase() || 'N/A',
     assignee: workOrder.assignee_name || 'Unassigned',
-    team: workOrder.teams?.name || 'Unassigned',
+    team: workOrder.equipment?.teams?.name || 'Unassigned',
   };
 }
 

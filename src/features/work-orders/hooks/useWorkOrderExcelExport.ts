@@ -161,7 +161,7 @@ export function useWorkOrderExcelExport(
       toast({
         title: 'Export Failed',
         description: error instanceof Error ? error.message : 'Failed to export work orders',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -176,7 +176,7 @@ export function useWorkOrderExcelExport(
         toast({
           title: 'Export Failed',
           description: 'Organization ID is required. Please refresh the page and try again.',
-          variant: 'destructive',
+          variant: 'error',
         });
         return;
       }
@@ -186,7 +186,7 @@ export function useWorkOrderExcelExport(
         toast({
           title: 'Export Failed',
           description: 'Work Order ID is required.',
-          variant: 'destructive',
+          variant: 'error',
         });
         return;
       }
@@ -206,7 +206,7 @@ export function useWorkOrderExcelExport(
         toast({
           title: 'Export Failed',
           description: errorMessage,
-          variant: 'destructive',
+          variant: 'error',
         });
       } finally {
         setIsExportingSingle(false);
