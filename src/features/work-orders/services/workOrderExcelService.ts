@@ -75,7 +75,9 @@ interface WorkOrderFullData {
 
 /**
  * Fetch all data needed for a single work order export
+ * @internal - Currently unused, kept for potential future use
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function fetchWorkOrderData(
   workOrderId: string,
   organizationId: string
@@ -256,6 +258,7 @@ function calculateDaysOpen(createdDate: string, completedDate: string | null): n
   return Math.floor((completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildSummaryRow(
   data: WorkOrderFullData
 ): WorkOrderSummaryRow {
@@ -293,6 +296,7 @@ function buildSummaryRow(
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildLaborRows(data: WorkOrderFullData): LaborDetailRow[] {
   const { workOrder, notes } = data;
   
@@ -311,6 +315,7 @@ function buildLaborRows(data: WorkOrderFullData): LaborDetailRow[] {
     }));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildCostRows(data: WorkOrderFullData): MaterialCostRow[] {
   const { workOrder, costs } = data;
   
@@ -335,6 +340,7 @@ function buildCostRows(data: WorkOrderFullData): MaterialCostRow[] {
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildPMChecklistRows(data: WorkOrderFullData): PMChecklistRow[] {
   const { workOrder, pmData } = data;
   
@@ -371,6 +377,7 @@ function buildPMChecklistRows(data: WorkOrderFullData): PMChecklistRow[] {
   }));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildTimelineRows(data: WorkOrderFullData): TimelineRow[] {
   const { workOrder, history } = data;
   
@@ -385,6 +392,7 @@ function buildTimelineRows(data: WorkOrderFullData): TimelineRow[] {
   }));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildEquipmentRow(data: WorkOrderFullData): EquipmentRow | null {
   const { workOrder, notes, costs } = data;
   
@@ -451,6 +459,7 @@ function createWorksheet<T extends Record<string, unknown>>(
   return worksheet;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildSummarySheet(summaryRow: WorkOrderSummaryRow): XLSX.WorkSheet {
   return createWorksheet(
     WORKSHEET_HEADERS.SUMMARY,
@@ -564,6 +573,7 @@ function buildTimelineSheet(timelineRows: TimelineRow[]): XLSX.WorkSheet {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildEquipmentSheet(equipmentRow: EquipmentRow | null): XLSX.WorkSheet {
   const rows = equipmentRow ? [equipmentRow] : [];
   return createWorksheet(
