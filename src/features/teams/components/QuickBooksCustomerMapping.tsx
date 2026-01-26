@@ -37,7 +37,7 @@ import {
   type QuickBooksCustomer
 } from '@/services/quickbooks';
 import { isQuickBooksEnabled } from '@/lib/flags';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { toast } from 'sonner';
 
 interface QuickBooksCustomerMappingProps {
@@ -51,13 +51,12 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
 }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
-  const permissions = usePermissions();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<QuickBooksCustomer | null>(null);
 
-  // Check permissions
-  const canManage = permissions.hasRole(['owner', 'admin']);
+  // Use the QuickBooks access hook which checks can_manage_quickbooks permission
+  const { data: canManage = false, isLoading: permissionLoading } = useQuickBooksAccess();
 
   // Check if feature is enabled
   const featureEnabled = isQuickBooksEnabled();
@@ -162,7 +161,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {mappingLoading ? (
+          {mappingLoading || permissionLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin" />
               Loading...

@@ -29,21 +29,24 @@ import {
   manualTokenRefresh
 } from '@/services/quickbooks';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { toast } from 'sonner';
 
 interface QuickBooksIntegrationProps {
-  currentUserRole: 'owner' | 'admin' | 'member';
+  /** @deprecated - No longer used. Permission is now derived from useQuickBooksAccess hook. */
+  currentUserRole?: 'owner' | 'admin' | 'member';
 }
 
 export const QuickBooksIntegration = ({
-  currentUserRole
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  currentUserRole: _currentUserRole
 }: QuickBooksIntegrationProps) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Check if user can manage QuickBooks (admin/owner only)
-  const canManage = currentUserRole === 'owner' || currentUserRole === 'admin';
+  // Use the QuickBooks access hook which checks can_manage_quickbooks permission
+  const { data: canManage = false, isLoading: permissionLoading } = useQuickBooksAccess();
 
   // Check for feature flag
   const featureEnabled = isQuickBooksEnabled();
@@ -165,7 +168,7 @@ export const QuickBooksIntegration = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {statusLoading ? (
+        {statusLoading || permissionLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <RefreshCw className="h-4 w-4 animate-spin" />
             Checking connection status...

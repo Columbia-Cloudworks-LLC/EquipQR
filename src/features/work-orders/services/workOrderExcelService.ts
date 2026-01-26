@@ -263,7 +263,12 @@ function buildSummaryRow(
   
   const totalLaborHours = notes.reduce((sum, note) => sum + (note.hours_worked || 0), 0);
   const totalMaterialCost = costs.reduce(
-    (sum, cost) => sum + (cost.total_price_cents || cost.quantity * cost.unit_price_cents),
+    (sum, cost) => {
+      const unitPriceCents = cost.unit_price_cents ?? 0;
+      const quantity = cost.quantity ?? 0;
+      const totalPriceCents = cost.total_price_cents ?? (quantity * unitPriceCents);
+      return sum + totalPriceCents;
+    },
     0
   ) / 100;
 
@@ -309,18 +314,25 @@ function buildLaborRows(data: WorkOrderFullData): LaborDetailRow[] {
 function buildCostRows(data: WorkOrderFullData): MaterialCostRow[] {
   const { workOrder, costs } = data;
   
-  return costs.map(cost => ({
-    workOrderId: workOrder.id.slice(0, 4) + '...' + workOrder.id.slice(-4),
-    workOrderTitle: workOrder.title,
-    equipmentName: workOrder.equipment?.name || '',
-    itemDescription: cost.description,
-    quantity: cost.quantity,
-    unitPrice: cost.unit_price_cents / 100,
-    totalPrice: (cost.total_price_cents || cost.quantity * cost.unit_price_cents) / 100,
-    fromInventory: !!cost.inventory_item_id,
-    dateAdded: formatDateTime(cost.created_at),
-    addedBy: cost.created_by_name || 'Unknown',
-  }));
+  return costs.map(cost => {
+    // Defensive checks for cost fields
+    const unitPriceCents = cost.unit_price_cents ?? 0;
+    const quantity = cost.quantity ?? 0;
+    const totalPriceCents = cost.total_price_cents ?? (quantity * unitPriceCents);
+    
+    return {
+      workOrderId: workOrder.id.slice(0, 4) + '...' + workOrder.id.slice(-4),
+      workOrderTitle: workOrder.title,
+      equipmentName: workOrder.equipment?.name || '',
+      itemDescription: cost.description || '',
+      quantity,
+      unitPrice: unitPriceCents / 100,
+      totalPrice: totalPriceCents / 100,
+      fromInventory: !!cost.inventory_item_id,
+      dateAdded: formatDateTime(cost.created_at),
+      addedBy: cost.created_by_name || 'Unknown',
+    };
+  });
 }
 
 function buildPMChecklistRows(data: WorkOrderFullData): PMChecklistRow[] {
@@ -382,7 +394,12 @@ function buildEquipmentRow(data: WorkOrderFullData): EquipmentRow | null {
 
   const totalLaborHours = notes.reduce((sum, note) => sum + (note.hours_worked || 0), 0);
   const totalMaterialsCost = costs.reduce(
-    (sum, cost) => sum + (cost.total_price_cents || cost.quantity * cost.unit_price_cents),
+    (sum, cost) => {
+      const unitPriceCents = cost.unit_price_cents ?? 0;
+      const quantity = cost.quantity ?? 0;
+      const totalPriceCents = cost.total_price_cents ?? (quantity * unitPriceCents);
+      return sum + totalPriceCents;
+    },
     0
   ) / 100;
 
@@ -581,50 +598,70 @@ export async function generateSingleWorkOrderExcel(
   workOrderId: string,
   organizationId: string
 ): Promise<void> {
-  logger.info('Generating Excel export for work order', { workOrderId });
+  logger.info('Generating Excel export for work order', { workOrderId, organizationId });
 
-  // Fetch all data
-  const data = await fetchWorkOrderData(workOrderId, organizationId);
-  
-  if (!data) {
-    throw new Error('Failed to fetch work order data');
+  try {
+    // Fetch all data
+    const data = await fetchWorkOrderData(workOrderId, organizationId);
+    
+    if (!data) {
+      throw new Error('Failed to fetch work order data');
+    }
+
+    logger.info('Work order data fetched', { 
+      hasCosts: data.costs.length > 0, 
+      costCount: data.costs.length,
+      hasNotes: data.notes.length > 0,
+      hasPM: !!data.pmData
+    });
+
+    // Build worksheet data
+    const summaryRow = buildSummaryRow(data);
+    const laborRows = buildLaborRows(data);
+    const costRows = buildCostRows(data);
+    const pmRows = buildPMChecklistRows(data);
+    const timelineRows = buildTimelineRows(data);
+    const equipmentRow = buildEquipmentRow(data);
+
+    logger.info('Worksheet data built', { 
+      costRowCount: costRows.length,
+      laborRowCount: laborRows.length,
+      pmRowCount: pmRows.length
+    });
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+
+    // Add worksheets
+    XLSX.utils.book_append_sheet(workbook, buildSummarySheet(summaryRow), WORKSHEET_NAMES.SUMMARY);
+    XLSX.utils.book_append_sheet(workbook, buildLaborSheet(laborRows), WORKSHEET_NAMES.LABOR);
+    XLSX.utils.book_append_sheet(workbook, buildCostsSheet(costRows), WORKSHEET_NAMES.COSTS);
+    
+    if (pmRows.length > 0) {
+      XLSX.utils.book_append_sheet(workbook, buildPMChecklistSheet(pmRows), WORKSHEET_NAMES.PM_CHECKLISTS);
+    }
+    
+    XLSX.utils.book_append_sheet(workbook, buildTimelineSheet(timelineRows), WORKSHEET_NAMES.TIMELINE);
+    XLSX.utils.book_append_sheet(workbook, buildEquipmentSheet(equipmentRow), WORKSHEET_NAMES.EQUIPMENT);
+
+    // Generate filename
+    const safeTitle = data.workOrder.title
+      .replace(/[^a-z0-9]/gi, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 40);
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    const filename = `WorkOrder-${safeTitle}-${dateStr}.xlsx`;
+
+    logger.info('Writing Excel file', { filename });
+
+    // Download file
+    XLSX.writeFile(workbook, filename);
+    
+    logger.info('Excel export completed', { filename });
+  } catch (error) {
+    logger.error('Error generating Excel export', { error, workOrderId, organizationId });
+    throw error;
   }
-
-  // Build worksheet data
-  const summaryRow = buildSummaryRow(data);
-  const laborRows = buildLaborRows(data);
-  const costRows = buildCostRows(data);
-  const pmRows = buildPMChecklistRows(data);
-  const timelineRows = buildTimelineRows(data);
-  const equipmentRow = buildEquipmentRow(data);
-
-  // Create workbook
-  const workbook = XLSX.utils.book_new();
-
-  // Add worksheets
-  XLSX.utils.book_append_sheet(workbook, buildSummarySheet(summaryRow), WORKSHEET_NAMES.SUMMARY);
-  XLSX.utils.book_append_sheet(workbook, buildLaborSheet(laborRows), WORKSHEET_NAMES.LABOR);
-  XLSX.utils.book_append_sheet(workbook, buildCostsSheet(costRows), WORKSHEET_NAMES.COSTS);
-  
-  if (pmRows.length > 0) {
-    XLSX.utils.book_append_sheet(workbook, buildPMChecklistSheet(pmRows), WORKSHEET_NAMES.PM_CHECKLISTS);
-  }
-  
-  XLSX.utils.book_append_sheet(workbook, buildTimelineSheet(timelineRows), WORKSHEET_NAMES.TIMELINE);
-  XLSX.utils.book_append_sheet(workbook, buildEquipmentSheet(equipmentRow), WORKSHEET_NAMES.EQUIPMENT);
-
-  // Generate filename
-  const safeTitle = data.workOrder.title
-    .replace(/[^a-z0-9]/gi, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 40);
-  const dateStr = format(new Date(), 'yyyy-MM-dd');
-  const filename = `WorkOrder-${safeTitle}-${dateStr}.xlsx`;
-
-  // Download file
-  XLSX.writeFile(workbook, filename);
-  
-  logger.info('Excel export completed', { filename });
 }
 
 /**

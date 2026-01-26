@@ -28,6 +28,16 @@ vi.mock('@/contexts/OrganizationContext', () => ({
   })),
 }));
 
+// Mock the QuickBooks access hook (used for permission checking)
+const mockUseQuickBooksAccess = vi.fn(() => ({
+  data: true, // Has permission by default
+  isLoading: false,
+}));
+
+vi.mock('@/hooks/useQuickBooksAccess', () => ({
+  useQuickBooksAccess: () => mockUseQuickBooksAccess(),
+}));
+
 // Mock the QuickBooks service
 const mockGetConnectionStatus = vi.fn();
 const mockGenerateQuickBooksAuthUrl = vi.fn();
@@ -73,6 +83,11 @@ describe('QuickBooksIntegration Component', () => {
     mockGetConnectionStatus.mockResolvedValue({
       isConnected: false,
     });
+    // Reset permission mock to true (has access)
+    mockUseQuickBooksAccess.mockReturnValue({
+      data: true,
+      isLoading: false,
+    });
   });
 
   describe('Feature Flag', () => {
@@ -96,13 +111,25 @@ describe('QuickBooksIntegration Component', () => {
   });
 
   describe('Permission Checks', () => {
-    it('should not render for member role', () => {
-      const { container } = renderComponent({ currentUserRole: 'member' as 'owner' | 'admin' | 'member' });
+    it('should not render for users without can_manage_quickbooks permission', () => {
+      // User does not have QuickBooks permission
+      mockUseQuickBooksAccess.mockReturnValue({
+        data: false,
+        isLoading: false,
+      });
+      
+      const { container } = renderComponent();
       
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('should render for admin role', async () => {
+    it('should render for users with can_manage_quickbooks permission (admin)', async () => {
+      // Admin with QuickBooks permission
+      mockUseQuickBooksAccess.mockReturnValue({
+        data: true,
+        isLoading: false,
+      });
+      
       renderComponent({ currentUserRole: 'admin' });
       
       await waitFor(() => {
@@ -110,7 +137,13 @@ describe('QuickBooksIntegration Component', () => {
       });
     });
 
-    it('should render for owner role', async () => {
+    it('should render for users with can_manage_quickbooks permission (owner)', async () => {
+      // Owner always has QuickBooks permission
+      mockUseQuickBooksAccess.mockReturnValue({
+        data: true,
+        isLoading: false,
+      });
+      
       renderComponent({ currentUserRole: 'owner' });
       
       await waitFor(() => {

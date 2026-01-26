@@ -221,12 +221,12 @@ const AppSidebar = () => {
         <SidebarFooter className="p-2 sm:p-3">
           <SidebarMenu>
             <SidebarMenuItem>
-              <DropdownMenu>
+              <DropdownMenu modal={!isMobile}>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton
                     size="lg"
                     className={cn(
-                      "transition-colors",
+                      "transition-colors touch-manipulation",
                       textColorClass,
                       hasCustomBranding ? '' : 'data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground',
                       hasCustomBranding && isLightBrand ? 'data-[state=open]:bg-black/10' : '',
