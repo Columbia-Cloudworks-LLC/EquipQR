@@ -598,66 +598,233 @@ export async function generateSingleWorkOrderExcel(
   workOrderId: string,
   organizationId: string
 ): Promise<void> {
-  logger.info('Generating Excel export for work order', { workOrderId, organizationId });
+  logger.info('Generating Excel export for work order cost items', { workOrderId, organizationId });
 
   try {
-    // Fetch all data
-    const data = await fetchWorkOrderData(workOrderId, organizationId);
-    
-    if (!data) {
+    // Fetch work order with equipment and team info
+    const { data: workOrder, error: woError } = await supabase
+      .from('work_orders')
+      .select(`
+        id,
+        title,
+        description,
+        status,
+        priority,
+        created_date,
+        due_date,
+        completed_date,
+        assignee_name,
+        equipment:equipment_id (
+          id,
+          name,
+          manufacturer,
+          model,
+          serial_number,
+          location,
+          teams:team_id (
+            name
+          )
+        )
+      `)
+      .eq('id', workOrderId)
+      .eq('organization_id', organizationId)
+      .single();
+
+    if (woError || !workOrder) {
+      logger.error('Failed to fetch work order:', woError);
       throw new Error('Failed to fetch work order data');
     }
 
-    logger.info('Work order data fetched', { 
-      hasCosts: data.costs.length > 0, 
-      costCount: data.costs.length,
-      hasNotes: data.notes.length > 0,
-      hasPM: !!data.pmData
+    // Extract equipment and team info
+    const equipment = workOrder.equipment as {
+      id: string;
+      name: string;
+      manufacturer: string | null;
+      model: string | null;
+      serial_number: string | null;
+      location: string | null;
+      teams: { name: string } | null;
+    } | null;
+    const teamName = equipment?.teams?.name || 'Unassigned';
+
+    // Fetch costs
+    const { data: costs } = await supabase
+      .from('work_order_costs')
+      .select('*')
+      .eq('work_order_id', workOrderId)
+      .order('created_at', { ascending: true });
+
+    // Get creator names for costs
+    const costCreatorIds = [...new Set((costs || []).map(c => c.created_by))];
+    let costsWithCreators: WorkOrderCost[] = [];
+    
+    if (costCreatorIds.length > 0) {
+      const { data: costProfiles } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', costCreatorIds);
+      
+      const costProfileMap = new Map(costProfiles?.map(p => [p.id, p.name]) || []);
+      
+      costsWithCreators = (costs || []).map(cost => ({
+        ...cost,
+        created_by_name: costProfileMap.get(cost.created_by) || 'Unknown',
+      }));
+    }
+
+    logger.info('Cost data fetched', { 
+      costCount: costsWithCreators.length
     });
 
-    // Build worksheet data
-    const summaryRow = buildSummaryRow(data);
-    const laborRows = buildLaborRows(data);
-    const costRows = buildCostRows(data);
-    const pmRows = buildPMChecklistRows(data);
-    const timelineRows = buildTimelineRows(data);
-    const equipmentRow = buildEquipmentRow(data);
+    // Helper to format status for display
+    const formatStatus = (status: string) => status.replace(/_/g, ' ').toUpperCase();
 
-    logger.info('Worksheet data built', { 
-      costRowCount: costRows.length,
-      laborRowCount: laborRows.length,
-      pmRowCount: pmRows.length
+    // Build cost rows with work order, equipment, and team context
+    const costRows = costsWithCreators.map(cost => {
+      // Defensive checks for cost fields
+      const unitPriceCents = cost.unit_price_cents ?? 0;
+      const quantity = cost.quantity ?? 0;
+      const totalPriceCents = cost.total_price_cents ?? (quantity * unitPriceCents);
+      
+      return {
+        // Work Order context
+        workOrderId: workOrder.id,
+        workOrderTitle: workOrder.title,
+        workOrderStatus: formatStatus(workOrder.status),
+        workOrderPriority: workOrder.priority.toUpperCase(),
+        workOrderCreatedDate: formatDate(workOrder.created_date),
+        workOrderDueDate: formatDate(workOrder.due_date),
+        workOrderCompletedDate: formatDate(workOrder.completed_date),
+        workOrderAssignee: workOrder.assignee_name || 'Unassigned',
+        // Team context
+        teamName,
+        // Equipment context
+        equipmentName: equipment?.name || '',
+        equipmentSerialNumber: equipment?.serial_number || '',
+        equipmentManufacturer: equipment?.manufacturer || '',
+        equipmentModel: equipment?.model || '',
+        equipmentLocation: equipment?.location || '',
+        // Cost item details
+        itemDescription: cost.description || '',
+        quantity,
+        unitPrice: unitPriceCents / 100,
+        totalPrice: totalPriceCents / 100,
+        fromInventory: !!cost.inventory_item_id,
+        dateAdded: formatDateTime(cost.created_at),
+        addedBy: cost.created_by_name || 'Unknown',
+      };
     });
 
-    // Create workbook
+    // Create workbook with the costs sheet
     const workbook = XLSX.utils.book_new();
 
-    // Add worksheets
-    XLSX.utils.book_append_sheet(workbook, buildSummarySheet(summaryRow), WORKSHEET_NAMES.SUMMARY);
-    XLSX.utils.book_append_sheet(workbook, buildLaborSheet(laborRows), WORKSHEET_NAMES.LABOR);
-    XLSX.utils.book_append_sheet(workbook, buildCostsSheet(costRows), WORKSHEET_NAMES.COSTS);
-    
-    if (pmRows.length > 0) {
-      XLSX.utils.book_append_sheet(workbook, buildPMChecklistSheet(pmRows), WORKSHEET_NAMES.PM_CHECKLISTS);
+    // Create costs worksheet with context columns
+    const costHeaders = [
+      // Work Order context
+      'Work Order ID',
+      'Work Order Title',
+      'WO Status',
+      'WO Priority',
+      'WO Created Date',
+      'WO Due Date',
+      'WO Completed Date',
+      'WO Assignee',
+      // Team context
+      'Team',
+      // Equipment context
+      'Equipment Name',
+      'Serial Number',
+      'Manufacturer',
+      'Model',
+      'Location',
+      // Cost item details
+      'Item Description',
+      'Quantity',
+      'Unit Price',
+      'Total Price',
+      'From Inventory',
+      'Date Added',
+      'Added By',
+    ];
+
+    const costData: (string | number | boolean)[][] = [
+      costHeaders,
+      ...costRows.map(row => [
+        row.workOrderId,
+        row.workOrderTitle,
+        row.workOrderStatus,
+        row.workOrderPriority,
+        row.workOrderCreatedDate,
+        row.workOrderDueDate,
+        row.workOrderCompletedDate,
+        row.workOrderAssignee,
+        row.teamName,
+        row.equipmentName,
+        row.equipmentSerialNumber,
+        row.equipmentManufacturer,
+        row.equipmentModel,
+        row.equipmentLocation,
+        row.itemDescription,
+        row.quantity,
+        row.unitPrice,
+        row.totalPrice,
+        row.fromInventory ? 'Yes' : 'No',
+        row.dateAdded,
+        row.addedBy,
+      ]),
+    ];
+
+    // Add totals row if there are costs (aligned to the cost columns)
+    if (costRows.length > 0) {
+      const totalQuantity = costRows.reduce((sum, row) => sum + row.quantity, 0);
+      const totalCost = costRows.reduce((sum, row) => sum + row.totalPrice, 0);
+      // Empty cells for context columns, then totals in cost columns
+      costData.push([
+        '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+        'TOTAL', totalQuantity, '', totalCost, '', '', ''
+      ]);
     }
-    
-    XLSX.utils.book_append_sheet(workbook, buildTimelineSheet(timelineRows), WORKSHEET_NAMES.TIMELINE);
-    XLSX.utils.book_append_sheet(workbook, buildEquipmentSheet(equipmentRow), WORKSHEET_NAMES.EQUIPMENT);
+
+    const costsSheet = XLSX.utils.aoa_to_sheet(costData);
+
+    // Calculate column widths
+    const colWidths = costHeaders.map((header, colIndex) => {
+      let maxWidth = header.length;
+      costRows.forEach((_, rowIndex) => {
+        const cellValue = costData[rowIndex + 1][colIndex];
+        const cellLength = String(cellValue ?? '').length;
+        if (cellLength > maxWidth) {
+          maxWidth = cellLength;
+        }
+      });
+      // Check totals row if it exists
+      if (costRows.length > 0 && costData[costData.length - 1]) {
+        const totalsCellValue = costData[costData.length - 1][colIndex];
+        const totalsCellLength = String(totalsCellValue ?? '').length;
+        if (totalsCellLength > maxWidth) {
+          maxWidth = totalsCellLength;
+        }
+      }
+      return { wch: Math.min(maxWidth + 2, 50) };
+    });
+    costsSheet['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(workbook, costsSheet, 'Cost Items');
 
     // Generate filename
-    const safeTitle = data.workOrder.title
+    const safeTitle = workOrder.title
       .replace(/[^a-z0-9]/gi, '-')
       .replace(/-+/g, '-')
       .slice(0, 40);
     const dateStr = format(new Date(), 'yyyy-MM-dd');
-    const filename = `WorkOrder-${safeTitle}-${dateStr}.xlsx`;
+    const filename = `WorkOrder-${safeTitle}-Costs-${dateStr}.xlsx`;
 
     logger.info('Writing Excel file', { filename });
 
     // Download file
     XLSX.writeFile(workbook, filename);
     
-    logger.info('Excel export completed', { filename });
+    logger.info('Excel export completed', { filename, costCount: costRows.length });
   } catch (error) {
     logger.error('Error generating Excel export', { error, workOrderId, organizationId });
     throw error;
