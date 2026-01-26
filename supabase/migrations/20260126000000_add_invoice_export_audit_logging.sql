@@ -151,9 +151,11 @@ COMMENT ON FUNCTION public.log_invoice_export_audit IS
 -- ============================================================================
 -- PART 2: Restrict EXECUTE privileges to service_role only
 -- ============================================================================
--- Revoke default EXECUTE privileges from anon and authenticated roles
--- Only service_role (used by edge functions) can call this function
+-- Revoke default EXECUTE privileges from PUBLIC (which includes anon and authenticated)
+-- Then explicitly grant only to service_role (used by edge functions)
+-- This prevents authenticated clients from forging audit log entries
 
+REVOKE EXECUTE ON FUNCTION public.log_invoice_export_audit FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.log_invoice_export_audit FROM anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.log_invoice_export_audit TO service_role;
 
