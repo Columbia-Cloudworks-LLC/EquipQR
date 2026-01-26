@@ -160,7 +160,7 @@ describe('PartsManagersSheet', () => {
 
       render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
 
-      const skeletons = document.querySelectorAll('.animate-pulse');
+      const skeletons = document.querySelectorAll('[class*="animate-shimmer"], .bg-muted.rounded-md');
       expect(skeletons.length).toBeGreaterThan(0);
     });
 

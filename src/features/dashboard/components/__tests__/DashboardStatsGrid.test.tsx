@@ -116,7 +116,7 @@ describe('DashboardStatsGrid', () => {
         </MemoryRouter>
       );
 
-      const skeletons = container.querySelectorAll('.animate-pulse');
+      const skeletons = container.querySelectorAll('[class*="animate-shimmer"], .bg-muted.rounded-md');
       expect(skeletons.length).toBeGreaterThan(0);
     });
 
