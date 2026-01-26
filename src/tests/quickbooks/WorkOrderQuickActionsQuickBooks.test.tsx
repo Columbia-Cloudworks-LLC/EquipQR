@@ -72,6 +72,8 @@ const renderComponent = (props = {
 };
 
 describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
+  let user: ReturnType<typeof userEvent.setup>;
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsQuickBooksEnabled.mockReturnValue(true);
@@ -79,6 +81,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       data: false,
       isLoading: false,
     });
+    user = userEvent.setup();
   });
 
   describe('Feature Flag', () => {
@@ -92,7 +95,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       renderComponent();
       
       const trigger = screen.getByLabelText('Quick actions');
-      await userEvent.click(trigger);
+      await user.click(trigger);
 
       await waitFor(() => {
         expect(screen.queryByTestId('quickbooks-export-button')).not.toBeInTheDocument();
@@ -109,7 +112,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       renderComponent();
       
       const trigger = screen.getByLabelText('Quick actions');
-      await userEvent.click(trigger);
+      await user.click(trigger);
 
       await waitFor(() => {
         expect(screen.getByTestId('quickbooks-export-button')).toBeInTheDocument();
@@ -127,7 +130,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       renderComponent();
       
       const trigger = screen.getByLabelText('Quick actions');
-      await userEvent.click(trigger);
+      await user.click(trigger);
 
       await waitFor(() => {
         expect(screen.getByTestId('quickbooks-export-button')).toBeInTheDocument();
@@ -143,7 +146,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       renderComponent();
       
       const trigger = screen.getByLabelText('Quick actions');
-      await userEvent.click(trigger);
+      await user.click(trigger);
 
       await waitFor(() => {
         expect(screen.queryByTestId('quickbooks-export-button')).not.toBeInTheDocument();
@@ -161,7 +164,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       renderComponent();
       
       const trigger = screen.getByLabelText('Quick actions');
-      await userEvent.click(trigger);
+      await user.click(trigger);
 
       await waitFor(() => {
         expect(screen.getByTestId('quickbooks-export-button')).toBeInTheDocument();
@@ -177,7 +180,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       renderComponent();
       
       const trigger = screen.getByLabelText('Quick actions');
-      await userEvent.click(trigger);
+      await user.click(trigger);
 
       await waitFor(() => {
         expect(screen.getByTestId('quickbooks-export-button')).toBeInTheDocument();
@@ -193,7 +196,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       renderComponent();
       
       const trigger = screen.getByLabelText('Quick actions');
-      await userEvent.click(trigger);
+      await user.click(trigger);
 
       await waitFor(() => {
         expect(screen.queryByTestId('quickbooks-export-button')).not.toBeInTheDocument();
@@ -210,7 +213,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       renderComponent();
       
       const trigger = screen.getByLabelText('Quick actions');
-      await userEvent.click(trigger);
+      await user.click(trigger);
 
       await waitFor(() => {
         expect(screen.queryByTestId('quickbooks-export-button')).not.toBeInTheDocument();
@@ -229,7 +232,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       renderComponent();
       
       const trigger = screen.getByLabelText('Quick actions');
-      await userEvent.click(trigger);
+      await user.click(trigger);
 
       await waitFor(() => {
         expect(screen.queryByTestId('quickbooks-export-button')).not.toBeInTheDocument();
@@ -245,7 +248,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       renderComponent();
       
       const trigger = screen.getByLabelText('Quick actions');
-      await userEvent.click(trigger);
+      await user.click(trigger);
 
       await waitFor(() => {
         expect(screen.queryByTestId('quickbooks-export-button')).not.toBeInTheDocument();
@@ -262,7 +265,7 @@ describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
       renderComponent();
       
       const trigger = screen.getByLabelText('Quick actions');
-      await userEvent.click(trigger);
+      await user.click(trigger);
 
       await waitFor(() => {
         expect(screen.getByTestId('quickbooks-export-button')).toBeInTheDocument();
