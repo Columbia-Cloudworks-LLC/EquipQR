@@ -75,14 +75,14 @@ BEGIN
     IF v_name IS NULL THEN
       v_name := COALESCE(v_email, 'Unknown User');
     END IF;
-    
-    v_actor.actor_id := v_user_id;
-    v_actor.actor_name := v_name;
-    v_actor.actor_email := v_email;
   ELSE
     -- Fall back to get_audit_actor_info() which uses auth.uid()
     -- Note: In service-role context, auth.uid() will be NULL, so this will create a System entry
     SELECT * INTO v_actor FROM public.get_audit_actor_info();
+    -- Extract values from v_actor for consistent handling
+    v_user_id := v_actor.actor_id;
+    v_name := v_actor.actor_name;
+    v_email := v_actor.actor_email;
   END IF;
   
   -- Get work order title for entity name, scoped to organization
@@ -113,7 +113,7 @@ BEGIN
     'ip_address', p_ip_address
   );
   
-  -- Insert audit record
+  -- Insert audit record using variables directly (avoids RECORD type issues)
   INSERT INTO public.audit_log (
     organization_id,
     entity_type,
@@ -131,9 +131,9 @@ BEGIN
     p_work_order_id,
     v_entity_name,
     'UPDATE', -- Always use UPDATE since we're modifying work order by exporting invoice
-    v_actor.actor_id,
-    COALESCE(v_actor.actor_name, 'System'),
-    v_actor.actor_email,
+    v_user_id,
+    COALESCE(v_name, 'System'),
+    v_email,
     v_changes,
     v_metadata
   )
