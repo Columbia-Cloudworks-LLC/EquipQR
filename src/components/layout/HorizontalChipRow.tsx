@@ -83,11 +83,6 @@ export const HorizontalChipRow: React.FC<HorizontalChipRowProps> = ({
           'flex flex-nowrap overflow-x-auto pb-1 scrollbar-none',
           gap
         )}
-        style={{
-          // Hide scrollbar across browsers
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}
       >
         {children}
       </div>
