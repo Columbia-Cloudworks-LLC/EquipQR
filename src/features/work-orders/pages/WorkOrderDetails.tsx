@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Navigate, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clipboard, CheckCircle } from 'lucide-react';
@@ -7,6 +7,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useWorkOrderDetailsData } from '@/features/work-orders/components/hooks/useWorkOrderDetailsData';
 import { useWorkOrderDetailsActions } from '@/features/work-orders/hooks/useWorkOrderDetailsActions';
 import { useWorkOrderEquipment } from '@/features/work-orders/hooks/useWorkOrderEquipment';
+import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
+import { useWorkOrderExcelExport } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
 import { logNavigationEvent } from '@/utils/navigationDebug';
 import WorkOrderDetailsInfo from '@/features/work-orders/components/WorkOrderDetailsInfo';
 import WorkOrderTimeline from '@/features/work-orders/components/WorkOrderTimeline';
@@ -25,6 +27,10 @@ import { WorkOrderDetailsSidebar } from '@/features/work-orders/components/WorkO
 import { WorkOrderDetailsMobile } from '@/features/work-orders/components/WorkOrderDetailsMobile';
 import { WorkOrderNotesMobile } from '@/features/work-orders/components/WorkOrderNotesMobile';
 import { WorkOrderPDFExportDialog } from '@/features/work-orders/components/WorkOrderPDFExportDialog';
+import { MobileWorkOrderActionSheet } from '@/features/work-orders/components/MobileWorkOrderActionSheet';
+import { MobileWorkOrderInProgressBar } from '@/features/work-orders/components/MobileWorkOrderInProgressBar';
+import { useWorkTimer } from '@/features/work-orders/hooks/useWorkTimer';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useInitializePMChecklist';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
@@ -48,6 +54,9 @@ const WorkOrderDetails = () => {
   // State for selected equipment (for multi-equipment work orders)
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
   const [pmInitializing, setPmInitializing] = useState(false);
+
+  // State for mobile action sheet
+  const [showMobileActionSheet, setShowMobileActionSheet] = useState(false);
 
   // Use custom hooks for data and actions
   const {
@@ -196,6 +205,21 @@ const WorkOrderDetails = () => {
   // State for PDF export dialog (used for both mobile and quick action navigation)
   const [showMobilePDFDialog, setShowMobilePDFDialog] = useState(false);
 
+  // Excel export hook for mobile action sheet
+  const { exportSingle, isExportingSingle } = useWorkOrderExcelExport(
+    currentOrganization?.id || '',
+    currentOrganization?.name || ''
+  );
+
+  // Status update mutation for in-progress bar
+  const updateStatusMutation = useUpdateWorkOrderStatus();
+
+  // Timer hook for tracking work time (mobile in-progress bar)
+  const workTimer = useWorkTimer(workOrderId);
+
+  // Online status for offline indicator
+  const { isOnline, isSyncing } = useOnlineStatus();
+
   // Handle quick action navigation (scroll to notes section and/or open PDF dialog)
   useEffect(() => {
     // Only handle once per navigation
@@ -329,11 +353,9 @@ const WorkOrderDetails = () => {
           created_at: workOrder.createdAt
         }}
         canEdit={canEdit}
-        organizationId={currentOrganization.id}
-        organizationName={currentOrganization.name}
         onEditClick={handleEditWorkOrder}
         onToggleSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
-        onDownloadPDF={() => setShowMobilePDFDialog(true)}
+        onOpenActionSheet={() => setShowMobileActionSheet(true)}
       />
 
       {/* Desktop Header */}
@@ -431,7 +453,7 @@ const WorkOrderDetails = () => {
                 } : undefined}
                 team={workOrder.teamName ? { id: workOrder.team_id || '', name: workOrder.teamName } : undefined}
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
-                costs={undefined} // TODO: Add costs data
+                onScrollToPM={scrollToPMSection}
               />
               </div>
 
@@ -695,6 +717,100 @@ const WorkOrderDetails = () => {
         isExporting={isMobilePDFGenerating}
         showCostsOption={permissionLevels.isManager}
       />
+
+      {/* Mobile Action Sheet */}
+      {isMobile && (
+        <MobileWorkOrderActionSheet
+          open={showMobileActionSheet}
+          onOpenChange={setShowMobileActionSheet}
+          workOrderId={workOrder.id}
+          workOrderStatus={workOrder.status}
+          equipmentTeamId={equipment?.team_id}
+          canAddNotes={canAddNotes}
+          canUploadImages={canUpload}
+          isManager={permissionLevels.isManager}
+          onAddNote={() => {
+            notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+          onAddPhoto={() => {
+            // Navigate to images section - for now just scroll to notes
+            notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+          onDownloadPDF={() => setShowMobilePDFDialog(true)}
+          onExportExcel={() => exportSingle(workOrder.id)}
+          isExportingExcel={isExportingSingle}
+        />
+      )}
+
+      {/* Mobile In-Progress Bar */}
+      {isMobile && 
+        (workOrder.status === 'in_progress' || workOrder.status === 'on_hold') && 
+        (permissionLevels.isManager || permissionLevels.isTechnician) &&
+        !isWorkOrderLocked &&
+        !showFloatingCTA && (
+        <MobileWorkOrderInProgressBar
+          workOrderId={workOrder.id}
+          workOrderStatus={workOrder.status}
+          canComplete={!workOrder.has_pm || (pmData?.status === 'completed')}
+          canChangeStatus={permissionLevels.isManager || permissionLevels.isTechnician}
+          canAddNotes={canAddNotes}
+          isUpdatingStatus={updateStatusMutation.isPending}
+          timerDisplay={workTimer.displayTime}
+          isTimerRunning={workTimer.isRunning}
+          isOnline={isOnline}
+          isSyncing={isSyncing}
+          onAddNote={() => {
+            notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+          onAddPhoto={() => {
+            notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+          onPauseResume={() => {
+            const newStatus = workOrder.status === 'on_hold' ? 'in_progress' : 'on_hold';
+            updateStatusMutation.mutate(
+              {
+                workOrderId: workOrder.id,
+                status: newStatus,
+                organizationId: currentOrganization.id,
+              },
+              {
+                onSuccess: () => {
+                  if (newStatus === 'on_hold') {
+                    workTimer.pause();
+                  } else {
+                    workTimer.start();
+                  }
+                },
+              }
+            );
+          }}
+          onComplete={() => {
+            const hoursWorked = Math.round((workTimer.elapsedSeconds / 3600) * 100) / 100;
+            updateStatusMutation.mutate(
+              {
+                workOrderId: workOrder.id,
+                status: 'completed',
+                organizationId: currentOrganization.id,
+              },
+              {
+                onSuccess: () => {
+                  workTimer.stopAndGetHours();
+                  if (hoursWorked > 0) {
+                    toast.success(`Timer stopped: ${hoursWorked.toFixed(2)} hours worked`);
+                  }
+                },
+              }
+            );
+          }}
+          onToggleTimer={() => {
+            if (workTimer.isRunning) {
+              workTimer.pause();
+            } else {
+              workTimer.start();
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Plus, Download } from 'lucide-react';
 import { QuickBooksExportButton } from './QuickBooksExportButton';
+import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
+import { isQuickBooksEnabled } from '@/lib/flags';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 
 interface WorkOrderQuickActionsProps {
@@ -31,6 +33,11 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   equipmentTeamId,
 }) => {
   const navigate = useNavigate();
+  
+  // Check if user has QuickBooks access (billing admin permission)
+  const { data: canManageQuickBooks = false } = useQuickBooksAccess();
+  const quickBooksEnabled = isQuickBooksEnabled();
+  const showQuickBooks = quickBooksEnabled && canManageQuickBooks;
 
   const handleAddNote = () => {
     navigate(`/dashboard/work-orders/${workOrderId}?action=add-note`);
@@ -63,13 +70,17 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
           <Download className="h-4 w-4 mr-2" />
           Download PDF
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <QuickBooksExportButton
-          workOrderId={workOrderId}
-          teamId={equipmentTeamId ?? null}
-          workOrderStatus={workOrderStatus}
-          asMenuItem
-        />
+        {showQuickBooks && (
+          <>
+            <DropdownMenuSeparator />
+            <QuickBooksExportButton
+              workOrderId={workOrderId}
+              teamId={equipmentTeamId ?? null}
+              workOrderStatus={workOrderStatus}
+              asMenuItem
+            />
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

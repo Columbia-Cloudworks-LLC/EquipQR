@@ -161,7 +161,7 @@ export function useWorkOrderExcelExport(
       toast({
         title: 'Export Failed',
         description: error instanceof Error ? error.message : 'Failed to export work orders',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -169,34 +169,50 @@ export function useWorkOrderExcelExport(
   // Function for single work order export (client-side)
   const exportSingle = useCallback(
     async (workOrderId: string) => {
+      logger.info('Export Excel button clicked', { workOrderId, organizationId, organizationName });
+      
       if (!organizationId) {
+        logger.error('Export failed: Organization ID missing', { workOrderId });
         toast({
-          title: 'Error',
-          description: 'Organization ID is required',
-          variant: 'destructive',
+          title: 'Export Failed',
+          description: 'Organization ID is required. Please refresh the page and try again.',
+          variant: 'error',
+        });
+        return;
+      }
+
+      if (!workOrderId) {
+        logger.error('Export failed: Work Order ID missing');
+        toast({
+          title: 'Export Failed',
+          description: 'Work Order ID is required.',
+          variant: 'error',
         });
         return;
       }
 
       setIsExportingSingle(true);
       try {
+        logger.info('Starting Excel export', { workOrderId, organizationId });
         await generateSingleWorkOrderExcel(workOrderId, organizationId);
+        logger.info('Excel export succeeded', { workOrderId });
         toast({
           title: 'Export Complete',
           description: 'Your work order Excel file has been downloaded.',
         });
       } catch (error) {
-        logger.error('Single WO export error', error);
+        logger.error('Single WO export error', { error, workOrderId, organizationId });
+        const errorMessage = error instanceof Error ? error.message : 'Failed to export work order';
         toast({
           title: 'Export Failed',
-          description: error instanceof Error ? error.message : 'Failed to export work order',
-          variant: 'destructive',
+          description: errorMessage,
+          variant: 'error',
         });
       } finally {
         setIsExportingSingle(false);
       }
     },
-    [organizationId, toast]
+    [organizationId, organizationName, toast]
   );
 
   return {

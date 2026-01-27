@@ -29,21 +29,24 @@ import {
   manualTokenRefresh
 } from '@/services/quickbooks';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { toast } from 'sonner';
 
 interface QuickBooksIntegrationProps {
-  currentUserRole: 'owner' | 'admin' | 'member';
+  /** @deprecated - No longer used. Permission is now derived from useQuickBooksAccess hook. */
+  currentUserRole?: 'owner' | 'admin' | 'member';
 }
 
 export const QuickBooksIntegration = ({
-  currentUserRole
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  currentUserRole: _currentUserRole
 }: QuickBooksIntegrationProps) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Check if user can manage QuickBooks (admin/owner only)
-  const canManage = currentUserRole === 'owner' || currentUserRole === 'admin';
+  // Use the QuickBooks access hook which checks can_manage_quickbooks permission
+  const { data: canManage = false, isLoading: permissionLoading } = useQuickBooksAccess();
 
   // Check for feature flag
   const featureEnabled = isQuickBooksEnabled();
@@ -117,6 +120,26 @@ export const QuickBooksIntegration = ({
   // Don't render if feature is disabled
   if (!featureEnabled) {
     return null;
+  }
+
+  // Show loading state while checking permissions
+  if (permissionLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-5 w-5" />
+            QuickBooks Online Integration
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Checking permissions...
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   // Don't render if user doesn't have permission

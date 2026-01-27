@@ -26,6 +26,7 @@ import { useSidebar } from '@/components/ui/sidebar-context';
 
 interface NavItem {
   label: string;
+  shortLabel?: string; // Optional shorter label for small screens
   href: string;
   icon: LucideIcon;
 }
@@ -33,7 +34,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: Home },
   { label: 'Equipment', href: '/dashboard/equipment', icon: Forklift },
-  { label: 'Work Orders', href: '/dashboard/work-orders', icon: ClipboardList },
+  { label: 'Work Orders', shortLabel: 'Orders', href: '/dashboard/work-orders', icon: ClipboardList },
   { label: 'Inventory', href: '/dashboard/inventory', icon: Warehouse },
 ];
 
@@ -110,7 +111,10 @@ const BottomNav: React.FC = () => {
                   />
                 )}
               </div>
-              <span className="mt-0.5">{item.label}</span>
+              <span className="mt-0.5 whitespace-nowrap">
+                <span className="hidden sm:inline">{item.label}</span>
+                <span className="sm:hidden">{item.shortLabel || item.label}</span>
+              </span>
             </Link>
           );
         })}

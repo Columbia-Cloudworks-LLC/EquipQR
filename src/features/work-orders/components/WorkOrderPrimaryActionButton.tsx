@@ -9,6 +9,7 @@ import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOr
 import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import { useAuth } from '@/hooks/useAuth';
+import { useSimpleOrganizationSafe } from '@/hooks/useSimpleOrganization';
 import { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 
@@ -20,18 +21,31 @@ interface WorkOrderPrimaryActionButtonProps {
     assignee_id?: string;
     created_by?: string;
   };
-  organizationId: string;
+  organizationId?: string; // Optional for backward compatibility, but will use context if not provided
 }
 
 export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButtonProps> = ({
   workOrder,
-  organizationId
+  organizationId: propOrganizationId
 }) => {
+  // Use safe hook that doesn't throw - maintains backward compatibility
+  // If organizationId is provided via props, it takes precedence
+  // If not provided, we try to get it from context (if available)
+  const context = useSimpleOrganizationSafe();
+  const contextOrganizationId = context?.organizationId ?? null;
+  const organizationId = propOrganizationId || contextOrganizationId || '';
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const { data: pmData } = usePMByWorkOrderId(workOrder.id);
   const { isManager, isTechnician } = useWorkOrderPermissionLevels();
   const { user } = useAuth();
+  
+  // Guard: organizationId is required for status updates
+  // Return null if no organization ID is available (component will be disabled/hidden)
+  // This prevents errors when useUpdateWorkOrderStatus is called with empty string
+  if (!organizationId) {
+    return null;
+  }
 
   const handleStatusChange = async (newStatus: string) => {
     // Check if trying to complete work order with incomplete PM

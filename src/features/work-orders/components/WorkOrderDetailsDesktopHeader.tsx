@@ -84,24 +84,24 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   };
 
   return (
-    <div className="hidden lg:block">
-      <header className="gradient-primary rounded-b-xl -mb-6 p-6 relative z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" asChild className="text-secondary hover:underline">
-              <Link to="/dashboard/work-orders">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Work Orders
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">{workOrder.title}</h1>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <p>Work Order #{workOrder.id}</p>
-                <span className="text-muted-foreground">•</span>
-                <span className="capitalize">{formatPriority(workOrder.priority)} priority</span>
-                {formMode === 'requestor' && !permissionLevels.isManager && (
-                  <TooltipProvider>
+    <TooltipProvider>
+      <div className="hidden lg:block">
+        <header className="gradient-primary rounded-b-xl -mb-6 p-6 relative z-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" asChild className="text-secondary hover:underline">
+                <Link to="/dashboard/work-orders">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Work Orders
+                </Link>
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">{workOrder.title}</h1>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <p>Work Order #{workOrder.id}</p>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="capitalize">{formatPriority(workOrder.priority)} priority</span>
+                  {formMode === 'requestor' && !permissionLevels.isManager && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -110,64 +110,89 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                         <p>You have limited access to this work order</p>
                       </TooltipContent>
                     </Tooltip>
-                  </TooltipProvider>
-                )}
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge className={getStatusColor(workOrder.status)}>
-              {formatStatus(workOrder.status)}
-            </Badge>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowPDFDialog(true)}
-                disabled={isGenerating}
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                <span>Download PDF</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => exportSingle(workOrder.id)}
-                disabled={isExportingSingle || !organizationId}
-                className="flex items-center gap-2"
-              >
-                {isExportingSingle ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+              <Badge className={getStatusColor(workOrder.status)}>
+                {formatStatus(workOrder.status)}
+              </Badge>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPDFDialog(true)}
+                  disabled={isGenerating}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download PDF</span>
+                </Button>
+                {!organizationId ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          variant="outline"
+                          onClick={() => exportSingle(workOrder.id)}
+                          disabled={isExportingSingle || !organizationId}
+                          className="flex items-center gap-2"
+                        >
+                          {isExportingSingle ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileSpreadsheet className="h-4 w-4" />
+                          )}
+                          <span>Export Excel</span>
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Organization ID is required to export</p>
+                    </TooltipContent>
+                  </Tooltip>
                 ) : (
-                  <FileSpreadsheet className="h-4 w-4" />
+                  <Button
+                    variant="outline"
+                    onClick={() => exportSingle(workOrder.id)}
+                    disabled={isExportingSingle || !organizationId}
+                    className="flex items-center gap-2"
+                  >
+                    {isExportingSingle ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="h-4 w-4" />
+                    )}
+                    <span>Export Excel</span>
+                  </Button>
                 )}
-                <span>Export Excel</span>
-              </Button>
-              <QuickBooksExportButton
-                workOrderId={workOrder.id}
-                teamId={equipmentTeamId ?? null}
-                workOrderStatus={workOrder.status}
-                showStatusDetails
-              />
+                <QuickBooksExportButton
+                  workOrderId={workOrder.id}
+                  teamId={equipmentTeamId ?? null}
+                  workOrderStatus={workOrder.status}
+                  showStatusDetails
+                />
+              </div>
+              {canEdit && (
+                <Button variant="outline" onClick={onEditClick}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  {formMode === 'requestor' ? 'Edit Request' : 'Edit'}
+                </Button>
+              )}
             </div>
-            {canEdit && (
-              <Button variant="outline" onClick={onEditClick}>
-                <Edit className="h-4 w-4 mr-2" />
-                {formMode === 'requestor' ? 'Edit Request' : 'Edit'}
-              </Button>
-            )}
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* PDF Export Dialog */}
-      <WorkOrderPDFExportDialog
-        open={showPDFDialog}
-        onOpenChange={setShowPDFDialog}
-        onExport={handlePDFExport}
-        isExporting={isGenerating}
-        showCostsOption={permissionLevels.isManager}
-      />
-    </div>
+        {/* PDF Export Dialog */}
+        <WorkOrderPDFExportDialog
+          open={showPDFDialog}
+          onOpenChange={setShowPDFDialog}
+          onExport={handlePDFExport}
+          isExporting={isGenerating}
+          showCostsOption={permissionLevels.isManager}
+        />
+      </div>
+    </TooltipProvider>
   );
 };
 

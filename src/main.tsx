@@ -14,6 +14,7 @@ if ('serviceWorker' in navigator) {
       });
       
       if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
         console.log('[SW] Service worker registered:', registration.scope);
       }
       
@@ -24,6 +25,7 @@ if ('serviceWorker' in navigator) {
     } catch (error) {
       // Service worker registration failed - non-critical for app functionality
       if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
         console.warn('[SW] Service worker registration failed:', error);
       }
     }

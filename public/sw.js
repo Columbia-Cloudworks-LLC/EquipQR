@@ -177,6 +177,12 @@ self.addEventListener('pushsubscriptionchange', (event) => {
       log('[SW] New subscription:', newSubscription.endpoint);
       // Note: The client-side hook should handle re-syncing subscriptions
       // when the user next opens the app
+    }).catch((error) => {
+      // Log subscription failure for debugging
+      logError('[SW] Failed to re-subscribe to push notifications:', error);
+      // Re-throw to ensure the waitUntil promise is rejected
+      // This helps with debugging and ensures the event is properly handled
+      throw error;
     })
   );
 });
