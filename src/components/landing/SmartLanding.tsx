@@ -40,7 +40,7 @@ const SmartLanding = () => {
           path="/"
           keywords="fleet management, equipment tracking, QR code, work orders, CMMS, maintenance management, team collaboration, mobile-first, enterprise"
         />
-        <Landing />
+        <Landing skipSEO />
       </>
     );
   }

@@ -8,7 +8,12 @@ import AboutSection from '@/components/landing/AboutSection';
 import CTASection from '@/components/landing/CTASection';
 import LegalFooter from '@/components/layout/LegalFooter';
 
-const Landing = () => {
+interface LandingProps {
+  /** When true, skip rendering PageSEO (used when embedded in SmartLanding) */
+  skipSEO?: boolean;
+}
+
+const Landing: React.FC<LandingProps> = ({ skipSEO = false }) => {
   useEffect(() => {
     const hash = window.location.hash;
     if (hash) {
@@ -19,12 +24,14 @@ const Landing = () => {
 
   return (
     <>
-      <PageSEO
-        title="EquipQR - Fleet Equipment Management Platform"
-        description="Streamline equipment operations with QR code tracking, intelligent work order management, and enterprise-grade team collaboration. Trusted by industry leaders."
-        path="/landing"
-        keywords="fleet management, equipment tracking, QR code, work orders, CMMS, maintenance management, team collaboration, mobile-first, enterprise"
-      />
+      {!skipSEO && (
+        <PageSEO
+          title="EquipQR - Fleet Equipment Management Platform"
+          description="Streamline equipment operations with QR code tracking, intelligent work order management, and enterprise-grade team collaboration. Trusted by industry leaders."
+          path="/landing"
+          keywords="fleet management, equipment tracking, QR code, work orders, CMMS, maintenance management, team collaboration, mobile-first, enterprise"
+        />
+      )}
       <div className="min-h-screen bg-background">
         <LandingHeader />
       <main>
