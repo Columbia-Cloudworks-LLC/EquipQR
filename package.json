@@ -30,7 +30,8 @@
     "type-check": "tsc --noEmit",
     "deploy:vercel": "vercel --prod",
     "deploy:netlify": "netlify deploy --prod",
-    "generate:vapid-keys": "node scripts/generate-vapid-keys.mjs"
+    "generate:vapid-keys": "node scripts/generate-vapid-keys.mjs",
+    "generate:large-inventory": "npx tsx scripts/generate-large-inventory-seed.ts > supabase/seeds/26_large_inventory.sql"
   },
   "dependencies": {
     "@hcaptcha/react-hcaptcha": "^1.12.0",
