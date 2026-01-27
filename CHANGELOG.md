@@ -41,6 +41,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Organization persistence on refresh**: Selected organization no longer switches when users with multiple orgs refresh the page
+  - Session/session storage is no longer cleared during auth boot (e.g. on reload); clear only on explicit sign-out
+  - `useSessionManager` now waits for auth to finish (`waitForAuth`) before initializing; avoids clearing org preference and session cache while `user` is temporarily `null`
+  - Removed 24-hour expiry for organization preference in `sessionPersistence`; selection persists until the user explicitly switches or signs out
+  - Organization stays persistent unless the user switches via the org switcher or the app auto-switches when accessing another org’s data (e.g. QR redirect)
+
 - **Mobile Modal Scrolling**: Prevented input modals from exceeding the viewport height on mobile devices
   - Standardized dialogs/sheets to use dynamic viewport height (`dvh`) and internal scrolling
   - Fixes being unable to scroll to complete longer forms (e.g., inventory item create/edit)

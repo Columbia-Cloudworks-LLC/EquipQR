@@ -8,11 +8,19 @@ import { logger } from '@/utils/logger';
 
 interface UseSessionManagerProps {
   user: User | null;
+  authLoading: boolean;
   onSessionUpdate: (data: SessionData) => void;
   onError: (error: string) => void;
 }
 
-export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSessionManagerProps) => {
+export interface InitializeSessionResult {
+  waitForAuth?: boolean;
+  shouldLoadFromCache?: boolean;
+  cachedData?: SessionData | null;
+  needsRefresh?: boolean;
+}
+
+export const useSessionManager = ({ user, authLoading, onSessionUpdate, onError }: UseSessionManagerProps) => {
   const [lastRefreshTime, setLastRefreshTime] = useState<string | null>(null);
 
   const createSessionData = useCallback((
@@ -130,8 +138,11 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
     return lastRefresh < thirtyMinutesAgo;
   }, [user, lastRefreshTime]);
 
-  const initializeSession = useCallback(() => {
+  const initializeSession = useCallback((): InitializeSessionResult => {
     if (!user) {
+      if (authLoading) {
+        return { waitForAuth: true };
+      }
       SessionStorageService.clearSessionStorage();
       return { shouldLoadFromCache: false, cachedData: null };
     }
@@ -142,9 +153,9 @@ export const useSessionManager = ({ user, onSessionUpdate, onError }: UseSession
       const needsRefresh = shouldRefreshSession(cachedData.lastUpdated);
       return { shouldLoadFromCache: true, cachedData, needsRefresh };
     }
-    
+
     return { shouldLoadFromCache: false, cachedData: null };
-  }, [user]);
+  }, [user, authLoading]);
 
   return {
     refreshSession,

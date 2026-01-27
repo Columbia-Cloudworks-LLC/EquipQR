@@ -101,7 +101,7 @@ describe('SessionContext', () => {
       shouldRefreshOnVisibility: vi.fn().mockReturnValue(false),
     };
 
-    mockUseAuth.mockReturnValue({ user: mockUser });
+    mockUseAuth.mockReturnValue({ user: mockUser, isLoading: false });
     mockUsePageVisibility.mockImplementation(({ onVisibilityChange }) => {
       // Store the callback for testing
       mockUsePageVisibility.mockVisibilityCallback = onVisibilityChange;
@@ -177,6 +177,24 @@ describe('SessionContext', () => {
     );
 
     expect(mockSessionManager.refreshSession).toHaveBeenCalledWith(true);
+  });
+
+  it('should not fetch or clear when waitForAuth (auth still loading)', async () => {
+    mockUseAuth.mockReturnValue({ user: null, isLoading: true });
+    mockSessionManager.initializeSession.mockReturnValue({ waitForAuth: true });
+
+    const { result } = renderHook(
+      () => React.useContext(SessionContext),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(mockSessionManager.initializeSession).toHaveBeenCalled();
+    });
+
+    expect(mockSessionManager.refreshSession).not.toHaveBeenCalled();
+    expect(result.current?.sessionData).toBe(null);
+    expect(result.current?.isLoading).toBe(true);
   });
 
   it('should provide session management functions', async () => {
@@ -302,7 +320,7 @@ describe('SessionContext', () => {
     mockSessionManager.refreshSession.mockClear();
 
     // Change user
-    mockUseAuth.mockReturnValue({ user: { id: 'user-2', email: 'user2@example.com' } });
+    mockUseAuth.mockReturnValue({ user: { id: 'user-2', email: 'user2@example.com' }, isLoading: false });
 
     rerender();
 

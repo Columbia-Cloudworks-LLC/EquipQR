@@ -54,7 +54,7 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 export { SessionContext };
 
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +67,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     initializeSession
   } = useSessionManager({
     user,
+    authLoading,
     onSessionUpdate: setSessionData,
     onError: setError
   });
@@ -121,25 +122,26 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     debounceMs: 2000 // Increased debounce for better performance
   });
 
-  // Initialize session on mount or user change
+  // Initialize session on mount or user change. Do not clear storage while auth is loading
+  // (e.g. on refresh) so that org preference and session cache persist across page reloads.
   useEffect(() => {
-    const { shouldLoadFromCache, cachedData, needsRefresh } = initializeSession();
-    
-    if (shouldLoadFromCache && cachedData) {
-      // Loading session from cache
-      setSessionData(cachedData);
+    const result = initializeSession();
+
+    if (result.waitForAuth) {
+      return;
+    }
+
+    if (result.shouldLoadFromCache && result.cachedData) {
+      setSessionData(result.cachedData);
       setIsLoading(false);
-      
-      // Refresh in background if needed
-      if (needsRefresh) {
-        // Background refresh needed
+
+      if (result.needsRefresh) {
         Promise.resolve(managerRefresh(false)).finally(() => setIsLoading(false));
       }
     } else {
-      // No valid cache, fetching fresh session data
       Promise.resolve(managerRefresh(true)).finally(() => setIsLoading(false));
     }
-  }, [user?.id, initializeSession, managerRefresh]); // Depend on managerRefresh as well
+  }, [user?.id, authLoading, initializeSession, managerRefresh]);
 
   return (
     <SessionContext.Provider value={{
