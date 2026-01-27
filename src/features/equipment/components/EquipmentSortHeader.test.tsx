@@ -25,7 +25,7 @@ describe('EquipmentSortHeader', () => {
       render(<EquipmentSortHeader {...defaultProps} />);
       
       const countText = screen.getAllByText((_, element) => {
-        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 25 of 100 equipment items';
+        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 25 of 100 equipment';
       });
       expect(countText.length).toBeGreaterThan(0);
     });
@@ -144,7 +144,7 @@ describe('EquipmentSortHeader', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={0} totalCount={0} />);
       
       const countText = screen.getAllByText((_, element) => {
-        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 0 of 0 equipment items';
+        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 0 of 0 equipment';
       });
       expect(countText.length).toBeGreaterThan(0);
     });
@@ -153,7 +153,7 @@ describe('EquipmentSortHeader', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={1} totalCount={1} />);
       
       const countText = screen.getAllByText((_, element) => {
-        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 1 of 1 equipment items';
+        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 1 of 1 equipment';
       });
       expect(countText.length).toBeGreaterThan(0);
     });
@@ -194,7 +194,7 @@ describe('EquipmentSortHeader', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={-1} totalCount={-1} />);
       
       const countText = screen.getAllByText((_, element) => {
-        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing -1 of -1 equipment items';
+        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing -1 of -1 equipment';
       });
       expect(countText.length).toBeGreaterThan(0);
     });

@@ -101,7 +101,7 @@ const InventoryQRCodeDisplay: React.FC<InventoryQRCodeDisplayProps> = ({ open, o
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className={`max-w-md ${isMobile ? 'max-h-[90vh] overflow-y-auto p-4' : ''}`}>
+      <DialogContent className={`max-w-md ${isMobile ? 'max-h-[calc(100dvh-2rem)] overflow-y-auto p-4' : ''}`}>
         <DialogHeader>
           <DialogTitle>Inventory Item QR Code</DialogTitle>
           <DialogDescription className="sr-only">

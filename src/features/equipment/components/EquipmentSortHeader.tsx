@@ -42,31 +42,35 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
       <ArrowDown className="h-4 w-4" />;
   };
 
+  // Get display label for current direction
+  const getDirectionLabel = () => {
+    return sortConfig.direction === 'asc' ? 'A-Z' : 'Z-A';
+  };
+
   return (
     <div className={`${isMobile ? 'flex flex-col gap-3' : 'flex items-center justify-between'} mb-4 md:mb-6`}>
       <div className={`${isMobile ? 'flex items-center justify-between gap-2' : 'flex items-center gap-4'}`}>
         <div className={`${isMobile ? 'min-w-0 truncate' : ''} text-sm text-muted-foreground`}>
           Showing <span className="font-medium text-foreground">{resultCount}</span> of{' '}
-          <span className="font-medium text-foreground">{totalCount}</span> equipment items
+          <span className="font-medium text-foreground">{totalCount}</span> equipment
         </div>
 
         {isMobile && (
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
+            {/* Combined sort control with clear labeling */}
             <Select value={sortConfig.field} onValueChange={onSortChange}>
-              <SelectTrigger className="h-9 w-[140px]">
+              <SelectTrigger 
+                className="h-9 w-auto min-w-[120px] gap-1"
+                aria-label={`Sort by ${sortOptions.find(o => o.value === sortConfig.field)?.label}`}
+              >
+                <span className="text-muted-foreground text-xs mr-1">Sort:</span>
                 <SelectValue />
+                {getSortIcon(sortConfig.field)}
               </SelectTrigger>
               <SelectContent>
                 {sortOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    <div className="flex w-full items-center justify-between">
-                      {option.label}
-                      {sortConfig.field === option.value && (
-                        <div className="ml-2">
-                          {getSortIcon(option.value)}
-                        </div>
-                      )}
-                    </div>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -74,12 +78,13 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
 
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={() => onSortChange(sortConfig.field)}
-              className="h-9 w-9"
-              aria-label="Toggle sort direction"
+              className="h-9 px-2 text-xs gap-1"
+              aria-label={`Toggle sort direction, currently ${sortConfig.direction === 'asc' ? 'ascending' : 'descending'}`}
             >
               {getSortIcon(sortConfig.field)}
+              <span className="hidden xs:inline">{getDirectionLabel()}</span>
             </Button>
           </div>
         )}
@@ -113,10 +118,11 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
             variant="outline"
             size="sm"
             onClick={() => onSortChange(sortConfig.field)}
-            className="px-3"
-            aria-label="Toggle sort direction"
+            className="px-3 gap-1"
+            aria-label={`Toggle sort direction, currently ${sortConfig.direction === 'asc' ? 'ascending' : 'descending'}`}
           >
             {getSortIcon(sortConfig.field)}
+            <span>{getDirectionLabel()}</span>
           </Button>
         </div>
       )}

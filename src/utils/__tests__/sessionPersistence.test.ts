@@ -87,33 +87,41 @@ describe('sessionPersistence', () => {
       expect(result).toBeNull();
     });
 
-    it('should return preference when valid and recent', () => {
-      const recentTimestamp = new Date().toISOString();
+    it('should return preference when valid', () => {
+      const timestamp = new Date().toISOString();
       const stored = JSON.stringify({
         selectedOrgId: 'org-123',
-        selectionTimestamp: recentTimestamp,
+        selectionTimestamp: timestamp,
       });
-      
+
       vi.mocked(localStorage.getItem).mockReturnValueOnce(stored);
 
       const result = getOrganizationPreference();
       expect(result?.selectedOrgId).toBe('org-123');
     });
 
-    it('should return null and clear when preference is expired (> 24 hours)', () => {
+    it('should return preference even when old (no expiry)', () => {
       const oldTimestamp = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
       const stored = JSON.stringify({
         selectedOrgId: 'org-123',
         selectionTimestamp: oldTimestamp,
       });
-      
+
       vi.mocked(localStorage.getItem).mockReturnValueOnce(stored);
 
       const result = getOrganizationPreference();
-      
+      expect(result?.selectedOrgId).toBe('org-123');
+    });
+
+    it('should return null when selectedOrgId is not a string', () => {
+      const stored = JSON.stringify({
+        selectedOrgId: null,
+        selectionTimestamp: new Date().toISOString(),
+      });
+      vi.mocked(localStorage.getItem).mockReturnValueOnce(stored);
+
+      const result = getOrganizationPreference();
       expect(result).toBeNull();
-      expect(localStorage.removeItem).toHaveBeenCalled();
-      expect(logger.info).toHaveBeenCalledWith('Organization preference expired, clearing');
     });
 
     it('should handle invalid JSON gracefully', () => {

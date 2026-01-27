@@ -6,7 +6,10 @@ applyTo: "supabase/migrations/**/*.sql"
 
 ## Purpose
 
-Standards for PostgreSQL migrations in the EquipQR Supabase project.
+This is a **reviewer checklist** for PostgreSQL migrations. For comprehensive documentation, see:
+- **[Full Migration Guide](../../docs/ops/migrations.md)** - Complete rules and examples
+- **[Quick Reference](../../docs/ops/migration-rules-quick-reference.md)** - One-page checklist
+
 Migrations are **immutable after deployment** - never modify applied migrations.
 
 ## What CI Does NOT Check

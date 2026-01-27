@@ -1,4 +1,5 @@
 import { QrCode } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { FeatureSection } from '@/components/landing/features/FeatureSection';
@@ -10,7 +11,14 @@ import { benefits, steps, screenshots } from './data/qrCodeIntegrationData';
 
 const QRCodeIntegrationFeature = () => {
   return (
-    <FeaturePageLayout>
+    <>
+      <PageSEO
+        title="QR Code Integration - EquipQR"
+        description="Instantly access equipment details, work orders, and maintenance history with QR code scanning. Generate labels and streamline field operations from any device."
+        path="/features/qr-code-integration"
+        keywords="QR code tracking, equipment QR codes, QR code scanning, asset tracking QR codes, maintenance QR codes"
+      />
+      <FeaturePageLayout>
       <FeatureHero
         icon={QrCode}
         title="QR Code Integration"
@@ -69,7 +77,8 @@ const QRCodeIntegrationFeature = () => {
         description="Start using QR Code Integration today—completely free. Create your account, generate labels, and scan your way to faster workflows."
         primaryCtaText="Create Free Account"
       />
-    </FeaturePageLayout>
+      </FeaturePageLayout>
+    </>
   );
 };
 

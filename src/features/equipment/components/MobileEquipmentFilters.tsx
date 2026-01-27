@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Filter, X } from 'lucide-react';
+import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
 
 interface Team {
@@ -88,7 +88,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             </Button>
           </SheetTrigger>
 
-          <SheetContent side="bottom" className="h-[90vh] p-0">
+          <SheetContent side="bottom" className="h-[calc(100dvh-2rem)] p-0">
           <div className="p-6 pb-0">
             <SheetHeader className="pb-4">
               <SheetTitle>Filter Equipment</SheetTitle>
@@ -98,7 +98,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             </SheetHeader>
           </div>
 
-          <ScrollArea className="h-[calc(90vh-100px)] px-6">
+          <ScrollArea className="h-[calc(100dvh-2rem-100px)] px-6">
             <div className="space-y-4 pb-6">
               <div className="space-y-4">
                 <h3 className="text-sm font-medium">Filters</h3>
@@ -186,8 +186,8 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
         </Sheet>
       </div>
 
-      {/* Quick Filters */}
-      <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+      {/* Quick Filters with scroll hint */}
+      <HorizontalChipRow ariaLabel="Quick filter options">
         {[
           { label: 'Maintenance Due', value: 'maintenance-due' },
           { label: 'Warranty Expiring', value: 'warranty-expiring' },
@@ -207,17 +207,19 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             {preset.label}
           </Button>
         ))}
-      </div>
+      </HorizontalChipRow>
 
-      {/* Active Filter Summary */}
+      {/* Active Filter Summary with Clear All */}
       {activeFilterCount > 0 && (
-        <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">Active:</span>
           {filters.status !== 'all' && (
             <Badge variant="secondary" className="flex shrink-0 items-center gap-1 whitespace-nowrap">
               Status: {filters.status}
               <X
-                className="h-3 w-3 cursor-pointer"
+                className="h-3 w-3 cursor-pointer hover:text-foreground"
                 onClick={() => onFilterChange('status', 'all')}
+                aria-label="Clear status filter"
               />
             </Badge>
           )}
@@ -225,8 +227,9 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             <Badge variant="secondary" className="flex shrink-0 items-center gap-1 whitespace-nowrap">
               Manufacturer: {filters.manufacturer}
               <X
-                className="h-3 w-3 cursor-pointer"
+                className="h-3 w-3 cursor-pointer hover:text-foreground"
                 onClick={() => onFilterChange('manufacturer', 'all')}
+                aria-label="Clear manufacturer filter"
               />
             </Badge>
           )}
@@ -234,8 +237,9 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             <Badge variant="secondary" className="flex shrink-0 items-center gap-1 whitespace-nowrap">
               Location: {filters.location}
               <X
-                className="h-3 w-3 cursor-pointer"
+                className="h-3 w-3 cursor-pointer hover:text-foreground"
                 onClick={() => onFilterChange('location', 'all')}
+                aria-label="Clear location filter"
               />
             </Badge>
           )}
@@ -243,11 +247,20 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             <Badge variant="secondary" className="flex shrink-0 items-center gap-1 whitespace-nowrap">
               Team: {filterOptions.teams.find(t => t.id === filters.team)?.name || filters.team}
               <X
-                className="h-3 w-3 cursor-pointer"
+                className="h-3 w-3 cursor-pointer hover:text-foreground"
                 onClick={() => onFilterChange('team', 'all')}
+                aria-label="Clear team filter"
               />
             </Badge>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={onClearFilters}
+          >
+            Clear all
+          </Button>
         </div>
       )}
     </div>

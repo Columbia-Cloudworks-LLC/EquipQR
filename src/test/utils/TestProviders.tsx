@@ -4,6 +4,7 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { 
   MockAuthProvider, 
@@ -50,23 +51,25 @@ export const TestProviders = ({
   const orgValue = persona ? createMockSimpleOrgForPersona(persona) : undefined;
 
   return (
-    <MemoryRouter initialEntries={initialEntries || ['/']}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <MockAuthProvider value={authValue}>
-            <MockSessionProvider value={sessionValue}>
-              <MockSessionProvider2>
-                <MockUserProvider>
-                  <MockSimpleOrganizationProvider value={orgValue}>
-                    {children}
-                  </MockSimpleOrganizationProvider>
-                </MockUserProvider>
-              </MockSessionProvider2>
-            </MockSessionProvider>
-          </MockAuthProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </MemoryRouter>
+    <HelmetProvider>
+      <MemoryRouter initialEntries={initialEntries || ['/']}>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <MockAuthProvider value={authValue}>
+              <MockSessionProvider value={sessionValue}>
+                <MockSessionProvider2>
+                  <MockUserProvider>
+                    <MockSimpleOrganizationProvider value={orgValue}>
+                      {children}
+                    </MockSimpleOrganizationProvider>
+                  </MockUserProvider>
+                </MockSessionProvider2>
+              </MockSessionProvider>
+            </MockAuthProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </MemoryRouter>
+    </HelmetProvider>
   );
 };
 

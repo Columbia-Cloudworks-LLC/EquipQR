@@ -8,12 +8,20 @@ import {
   Route,
   BarChart2,
 } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 
 const FleetVisualizationFeature = () => {
   return (
-    <FeaturePageLayout>
+    <>
+      <PageSEO
+        title="Fleet Visualization - EquipQR"
+        description="Interactive maps showing equipment locations, status, and maintenance routes. Optimize operations with geographic insights."
+        path="/features/fleet-visualization"
+        keywords="fleet visualization, equipment maps, fleet tracking, GPS fleet management, equipment location tracking, fleet mapping"
+      />
+      <FeaturePageLayout>
       <FeatureHero
         icon={Map}
         title="Fleet Visualization"
@@ -220,7 +228,8 @@ const FleetVisualizationFeature = () => {
             </div>
           </div>
         </section>
-    </FeaturePageLayout>
+      </FeaturePageLayout>
+    </>
   );
 };
 

@@ -6,8 +6,13 @@ applyTo: "**/*"
 
 ## Purpose
 
-Prioritized code review guidelines. Focus on what CI **cannot** catch.
+This is a **prioritized reviewer checklist**. Focus on what CI **cannot** catch.
 Priority order: Multi-tenancy > Security/RBAC > Query Patterns > Accessibility > Style.
+
+For comprehensive documentation, see:
+- **[Permissions Guide](../../docs/guides/permissions.md)** - RBAC and role-based access
+- **[Coding Standards](../../docs/technical/standards.md)** - Full coding standards
+- **[Architecture](../../docs/technical/architecture.md)** - System design patterns
 
 ## What CI Already Catches (Skip These)
 

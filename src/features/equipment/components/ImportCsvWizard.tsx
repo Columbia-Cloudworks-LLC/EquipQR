@@ -368,7 +368,7 @@ const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
   if (state.importProgress.completed) {
     return (
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
           <CSVSuccessStep
             importProgress={state.importProgress}
             organizationName={organizationName}
@@ -388,7 +388,7 @@ const ImportCsvWizard: React.FC<ImportCsvWizardProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5" />

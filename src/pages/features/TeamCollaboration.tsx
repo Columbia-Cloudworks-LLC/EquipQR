@@ -7,12 +7,20 @@ import {
   Shield,
   BarChart2,
 } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 
 const TeamCollaborationFeature = () => {
   return (
-    <FeaturePageLayout>
+    <>
+      <PageSEO
+        title="Team Collaboration - EquipQR"
+        description="Organize teams across multiple organizations with role-based access control. Track performance and distribute workload efficiently."
+        path="/features/team-collaboration"
+        keywords="team collaboration, role-based access control, equipment management teams, fleet management teams, CMMS collaboration"
+      />
+      <FeaturePageLayout>
       <FeatureHero
         icon={Users}
         title="Team Collaboration"
@@ -265,7 +273,8 @@ const TeamCollaborationFeature = () => {
             </div>
           </div>
         </section>
-    </FeaturePageLayout>
+      </FeaturePageLayout>
+    </>
   );
 };
 

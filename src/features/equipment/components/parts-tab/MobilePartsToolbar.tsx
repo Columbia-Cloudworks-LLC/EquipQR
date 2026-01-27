@@ -115,7 +115,7 @@ export const MobilePartsToolbar: React.FC<MobilePartsToolbarProps> = ({
             </Button>
           </SheetTrigger>
 
-          <SheetContent side="bottom" className="h-[60vh] p-0">
+          <SheetContent side="bottom" className="h-[60dvh] p-0">
             <div className="p-6 pb-0">
               <SheetHeader className="pb-4">
                 <SheetTitle>Filter Parts</SheetTitle>
@@ -125,7 +125,7 @@ export const MobilePartsToolbar: React.FC<MobilePartsToolbarProps> = ({
               </SheetHeader>
             </div>
 
-            <ScrollArea className="h-[calc(60vh-120px)] px-6">
+            <ScrollArea className="h-[calc(60dvh-120px)] px-6">
               <div className="space-y-6 pb-6">
                 {/* Stock Status Filter */}
                 <div>

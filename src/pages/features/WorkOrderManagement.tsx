@@ -8,12 +8,20 @@ import {
   Calendar,
   ListChecks,
 } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 
 const WorkOrderManagementFeature = () => {
   return (
-    <FeaturePageLayout>
+    <>
+      <PageSEO
+        title="Work Order Management - EquipQR"
+        description="Create, assign, and track work orders with intelligent workflows. Monitor progress and ensure nothing falls through the cracks—from request to completion."
+        path="/features/work-order-management"
+        keywords="work order management, maintenance work orders, CMMS work orders, equipment repair tracking, work order software"
+      />
+      <FeaturePageLayout>
       <FeatureHero
         icon={ClipboardList}
         title="Work Order Management"
@@ -266,7 +274,8 @@ const WorkOrderManagementFeature = () => {
             </div>
           </div>
         </section>
-    </FeaturePageLayout>
+      </FeaturePageLayout>
+    </>
   );
 };
 

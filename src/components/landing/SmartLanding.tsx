@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { PageSEO } from '@/components/seo/PageSEO';
 import Landing from '@/pages/Landing';
 
 /**
@@ -31,7 +32,17 @@ const SmartLanding = () => {
 
   // Show landing page only for unauthenticated users
   if (!user) {
-    return <Landing />;
+    return (
+      <>
+        <PageSEO
+          title="EquipQR"
+          description="Streamline equipment operations with QR code tracking, intelligent work order management, and enterprise-grade team collaboration. Trusted by industry leaders. Start your free trial today."
+          path="/"
+          keywords="fleet management, equipment tracking, QR code, work orders, CMMS, maintenance management, team collaboration, mobile-first, enterprise"
+        />
+        <Landing skipSEO />
+      </>
+    );
   }
 
   // Return null while redirecting authenticated users

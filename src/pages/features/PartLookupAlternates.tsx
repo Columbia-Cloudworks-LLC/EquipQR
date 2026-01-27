@@ -13,6 +13,7 @@ import {
   Link2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 
@@ -52,7 +53,14 @@ const capabilities: Capability[] = [
 
 const PartLookupAlternatesFeature = () => {
   return (
-    <FeaturePageLayout>
+    <>
+      <PageSEO
+        title="Part Lookup & Alternates - EquipQR"
+        description="Find compatible parts quickly with intelligent search. Discover OEM, aftermarket, and cross-reference alternatives. Link parts to equipment for instant compatibility."
+        path="/features/part-lookup-alternates"
+        keywords="part lookup, part alternates, OEM parts, aftermarket parts, part compatibility, parts search, equipment parts"
+      />
+      <FeaturePageLayout>
       <FeatureHero
         icon={Search}
         title="Part Lookup & Alternates"
@@ -290,7 +298,8 @@ const PartLookupAlternatesFeature = () => {
             </div>
           </div>
         </section>
-    </FeaturePageLayout>
+      </FeaturePageLayout>
+    </>
   );
 };
 

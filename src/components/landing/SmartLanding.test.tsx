@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { HelmetProvider } from 'react-helmet-async';
 import SmartLanding from './SmartLanding';
 
 const mockNavigate = vi.fn();
@@ -35,7 +36,11 @@ describe('SmartLanding', () => {
       isLoading: false,
     });
 
-    render(<SmartLanding />);
+    render(
+      <HelmetProvider>
+        <SmartLanding />
+      </HelmetProvider>
+    );
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
@@ -48,7 +53,11 @@ describe('SmartLanding', () => {
       isLoading: false,
     });
 
-    render(<SmartLanding />);
+    render(
+      <HelmetProvider>
+        <SmartLanding />
+      </HelmetProvider>
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('landing-page')).toBeInTheDocument();
@@ -62,7 +71,11 @@ describe('SmartLanding', () => {
       isLoading: true,
     });
 
-    const { container } = render(<SmartLanding />);
+    const { container } = render(
+      <HelmetProvider>
+        <SmartLanding />
+      </HelmetProvider>
+    );
 
     expect(container.firstChild).toBeNull();
     expect(mockNavigate).not.toHaveBeenCalled();

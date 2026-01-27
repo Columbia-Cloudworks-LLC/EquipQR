@@ -9,6 +9,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-01-27
+
+### Added
+
+- **SEO Improvements**: Comprehensive SEO enhancements for better search engine visibility
+  - XML sitemap generation script (`scripts/generate-sitemap.mjs`) automatically creates sitemap.xml during build
+  - Sitemap includes all public marketing routes with proper priorities and change frequencies
+  - `PageSEO` component for per-route metadata management using `react-helmet-async`
+  - Unique title, description, canonical URL, and Open Graph tags for each marketing page
+  - Per-route SEO metadata added to all feature pages (`/features/*`), solution pages (`/solutions/*`), and landing pages
+  - `X-Robots-Tag: noindex, nofollow` headers for protected routes (`/dashboard/*`, `/auth*`, `/invitation/*`, `/qr/*`, `/debug-*`) to prevent indexing of authenticated/dynamic content
+  - Updated `robots.txt` to reference sitemap location
+
+- **HorizontalChipRow Component**: New reusable component for horizontally scrollable chip/button rows
+  - Automatic scroll hint gradients on left/right edges when content overflows
+  - Configurable gap spacing and custom aria-labels for accessibility
+  - Used across Work Orders, Equipment, and Inventory filter UIs for consistent scroll affordances
+
+### Changed
+
+- **PageHeader Component**: Enhanced mobile responsiveness and meta content support
+  - Actions now stack below title on small screens to prevent clipping
+  - New optional `meta` prop for badges/labels (e.g., "Admin" access badge) separate from description
+  - Improved responsive typography and spacing
+
+- **Inventory Page UI Improvements**:
+  - Header actions: "Parts Managers" moved to overflow dropdown menu on mobile for cleaner layout
+  - Filters: Replaced "Low Stock Only" button with Switch control (inline on desktop, in filter sheet on mobile)
+  - Active filter summary: Added clearable filter badges with "Clear all" button
+  - Mobile cards: Replaced emoji location marker with `MapPin` icon, improved metadata ordering (location → quantity) for better scanability
+
+- **Work Orders Page UI Improvements**:
+  - Admin access badge: Moved "(organization admin access)" from subtitle to separate badge using PageHeader `meta` prop
+  - Quick filters: Now use `HorizontalChipRow` with scroll hint gradients
+  - Active filter summary: Enhanced with "Clear all" button and improved accessibility labels
+
+- **Equipment Page UI Improvements**:
+  - Quick filters: Now use `HorizontalChipRow` with scroll hint gradients
+  - Active filter summary: Enhanced with "Clear all" button
+  - Sort controls: Improved clarity with "Sort:" prefix and direction labels (A-Z/Z-A) on mobile
+
+### Fixed
+
+- **Organization persistence on refresh**: Selected organization no longer switches when users with multiple orgs refresh the page
+  - Session/session storage is no longer cleared during auth boot (e.g. on reload); clear only on explicit sign-out
+  - `useSessionManager` now waits for auth to finish (`waitForAuth`) before initializing; avoids clearing org preference and session cache while `user` is temporarily `null`
+  - Removed 24-hour expiry for organization preference in `sessionPersistence`; selection persists until the user explicitly switches or signs out
+  - Organization stays persistent unless the user switches via the org switcher or the app auto-switches when accessing another org’s data (e.g. QR redirect)
+
+- **Mobile Modal Scrolling**: Prevented input modals from exceeding the viewport height on mobile devices
+  - Standardized dialogs/sheets to use dynamic viewport height (`dvh`) and internal scrolling
+
+### Documentation
+
+- **Node.js Version References**: Updated from "v18.x or v20.x" to "v22.x recommended, v20.x supported" across all setup docs
+  - `docs/getting-started/developer-onboarding.md`
+  - `docs/technical/setup.md`
+  - `docs/ops/local-supabase-development.md`
+
+- **Test Coverage Baseline**: Corrected coverage threshold from 51% to 70% to match CI configuration
+  - `.github/copilot-instructions.md`
+  - `docs/ops/ci-cd-pipeline.md`
+
+- **Versioning Workflow**: Updated `CONTRIBUTING.md` to accurately document automatic version tagging
+  - Replaced "Manual Version Bump workflow" references with correct `version-tag.yml` behavior
+  - Fixed broken link to non-existent `docs/deployment/versioning-system.md` (now points to `docs/ops/ci-cd-pipeline.md`)
+
+- **Documentation Hierarchy**: Added source-of-truth table to `docs/README.md`
+  - Clarifies which docs are canonical for each topic (setup, migrations, troubleshooting, etc.)
+  - Added Getting Started section to documentation structure
+  - Updated quick navigation to prioritize `developer-onboarding.md` for new developers
+
+- **Cross-References**: Added links from `.github/instructions/*.md` to full documentation
+  - `supabase-migrations.instructions.md` → `docs/ops/migrations.md`
+  - `typescript-react.instructions.md` → `docs/technical/standards.md`
+  - `edge-functions.instructions.md` → `docs/edge-functions/auth-patterns.md`
+  - `code-review.instructions.md` → `docs/guides/permissions.md`
+  - `.github/copilot-instructions.md` → Added testing, CI/CD, and permissions links
+  - Fixes being unable to scroll to complete longer forms (e.g., inventory item create/edit)
+
 ## [2.2.1] - 2026-01-26
 
 ### Added
@@ -147,7 +227,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **Push Notification Security**: 
+- **Push Notification Security**:
   - RLS policies on `push_subscriptions` table ensuring users can only manage their own subscriptions
   - Service role access restricted to Edge Function for sending push notifications
   - VAPID keys stored securely in environment variables
@@ -730,7 +810,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.1...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.2...HEAD
+[2.2.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.1.3...v2.2.0
 [2.1.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.1.2...v2.1.3

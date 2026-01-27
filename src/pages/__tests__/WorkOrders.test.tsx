@@ -209,7 +209,7 @@ describe('WorkOrders Page', () => {
     expect(screen.getByText(/no team assignments - contact your administrator/i)).toBeInTheDocument();
   });
 
-  it('shows admin access message for managers', () => {
+  it('shows admin access badge for managers', () => {
     vi.mocked(useTeamBasedWorkOrdersModule.useTeamBasedAccess).mockReturnValue({
       userTeamIds: [],
       hasTeamAccess: true,
@@ -219,7 +219,11 @@ describe('WorkOrders Page', () => {
 
     render(<WorkOrders />);
     
-    expect(screen.getByText(/showing all work orders \(organization admin access\)/i)).toBeInTheDocument();
+    // Admin access is now shown as a badge + simplified description
+    // Badge is rendered twice (for mobile and desktop responsive views)
+    expect(screen.getByText(/showing all work orders/i)).toBeInTheDocument();
+    const adminBadges = screen.getAllByText('Admin');
+    expect(adminBadges.length).toBeGreaterThan(0);
   });
 
   it('displays create work order button', () => {
