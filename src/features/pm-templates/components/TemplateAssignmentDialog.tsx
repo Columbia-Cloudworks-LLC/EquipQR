@@ -87,7 +87,7 @@ export const TemplateAssignmentDialog: React.FC<TemplateAssignmentDialogProps> =
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Assign Default PM Template: {template.name}</DialogTitle>
           <DialogDescription>

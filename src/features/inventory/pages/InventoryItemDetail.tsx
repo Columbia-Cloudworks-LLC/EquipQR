@@ -1273,7 +1273,7 @@ const InventoryItemDetail = () => {
 
         {/* Add/Manage Equipment Compatibility Dialog */}
         <Dialog open={showAddEquipmentDialog} onOpenChange={setShowAddEquipmentDialog}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Manage Compatible Equipment</DialogTitle>
               <DialogDescription>
@@ -1381,7 +1381,7 @@ const InventoryItemDetail = () => {
 
         {/* Edit Compatibility Rules Dialog */}
         <Dialog open={showEditRules} onOpenChange={setShowEditRules}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Compatibility Rules</DialogTitle>
               <DialogDescription>

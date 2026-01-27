@@ -450,7 +450,7 @@ const PMTemplates = () => {
 
       {editingTemplate && (
         <Dialog open={!!editingTemplate} onOpenChange={(open) => !open && handleCloseEditor()}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+          <DialogContent className="max-w-6xl max-h-[calc(100dvh-2rem)] overflow-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingTemplate === 'new' ? 'Create PM Template' : 'Edit PM Template'}

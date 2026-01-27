@@ -251,7 +251,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[90vh] p-3' : 'max-w-4xl max-h-[80vh]'} flex flex-col`}>
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[calc(100dvh-2rem)] p-3' : 'max-w-4xl max-h-[calc(100dvh-2rem)]'} flex flex-col`}>
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className={isMobile ? 'text-lg' : ''}>Working Hours Timeline</DialogTitle>
           <DialogDescription className={isMobile ? 'text-sm' : ''}>

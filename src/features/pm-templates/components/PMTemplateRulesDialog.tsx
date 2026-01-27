@@ -84,7 +84,7 @@ export const PMTemplateRulesDialog: React.FC<PMTemplateRulesDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
+      <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] overflow-auto">
         <DialogHeader>
           <DialogTitle>Configure Compatibility Rules</DialogTitle>
           <DialogDescription>

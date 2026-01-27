@@ -88,7 +88,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             </Button>
           </SheetTrigger>
 
-          <SheetContent side="bottom" className="h-[90vh] p-0">
+          <SheetContent side="bottom" className="h-[calc(100dvh-2rem)] p-0">
           <div className="p-6 pb-0">
             <SheetHeader className="pb-4">
               <SheetTitle>Filter Equipment</SheetTitle>
@@ -98,7 +98,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             </SheetHeader>
           </div>
 
-          <ScrollArea className="h-[calc(90vh-100px)] px-6">
+          <ScrollArea className="h-[calc(100dvh-2rem-100px)] px-6">
             <div className="space-y-4 pb-6">
               <div className="space-y-4">
                 <h3 className="text-sm font-medium">Filters</h3>

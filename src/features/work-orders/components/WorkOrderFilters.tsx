@@ -90,7 +90,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                 </div>
               </Button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="h-[90vh]">
+            <SheetContent side="bottom" className="max-h-[calc(100dvh-2rem)] overflow-y-auto pb-safe-bottom">
               <SheetHeader className="pb-4">
                 <SheetTitle>Filter Work Orders</SheetTitle>
                 <SheetDescription>

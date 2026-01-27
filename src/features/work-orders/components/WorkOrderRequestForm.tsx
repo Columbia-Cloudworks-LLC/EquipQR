@@ -156,7 +156,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Request Work Order</DialogTitle>
           <DialogDescription>
@@ -205,7 +205,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
                   value={form.values.dueDate as string || ''}
                   onChange={(e) => form.setValue('dueDate', e.target.value)}
                 />
-                <p className="text-xs text-muted-fore ground">
+                <p className="text-xs text-muted-foreground">
                   Optional - This is a preference, final scheduling will be determined by the assigned team
                 </p>
               </div>
