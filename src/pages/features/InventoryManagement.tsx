@@ -1,4 +1,5 @@
 import { Warehouse } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { FeatureSection } from '@/components/landing/features/FeatureSection';
@@ -16,7 +17,14 @@ import {
 
 const InventoryManagementFeature = () => {
   return (
-    <FeaturePageLayout>
+    <>
+      <PageSEO
+        title="Inventory Management - EquipQR"
+        description="Track parts, materials, and supplies with real-time stock levels, location management, and equipment compatibility rules. Never run out of critical parts."
+        path="/features/inventory"
+        keywords="inventory management, parts tracking, equipment parts, stock management, CMMS inventory, parts inventory software"
+      />
+      <FeaturePageLayout>
       <FeatureHero
         icon={Warehouse}
         title="Inventory Management"
@@ -82,7 +90,8 @@ const InventoryManagementFeature = () => {
         description="Start using Inventory Management today—completely free. Create your account and begin tracking stock right away."
         primaryCtaText="Create Free Account"
       />
-    </FeaturePageLayout>
+      </FeaturePageLayout>
+    </>
   );
 };
 

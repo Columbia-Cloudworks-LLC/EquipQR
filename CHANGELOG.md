@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **SEO Improvements**: Comprehensive SEO enhancements for better search engine visibility
+  - XML sitemap generation script (`scripts/generate-sitemap.mjs`) automatically creates sitemap.xml during build
+  - Sitemap includes all public marketing routes with proper priorities and change frequencies
+  - `PageSEO` component for per-route metadata management using `react-helmet-async`
+  - Unique title, description, canonical URL, and Open Graph tags for each marketing page
+  - Per-route SEO metadata added to all feature pages (`/features/*`), solution pages (`/solutions/*`), and landing pages
+  - `X-Robots-Tag: noindex, nofollow` headers for protected routes (`/dashboard/*`, `/auth*`, `/invitation/*`, `/qr/*`, `/debug-*`) to prevent indexing of authenticated/dynamic content
+  - Updated `robots.txt` to reference sitemap location
+
 - **HorizontalChipRow Component**: New reusable component for horizontally scrollable chip/button rows
   - Automatic scroll hint gradients on left/right edges when content overflows
   - Configurable gap spacing and custom aria-labels for accessibility

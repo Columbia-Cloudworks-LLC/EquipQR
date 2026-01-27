@@ -8,12 +8,20 @@ import {
   RefreshCw,
   Shield,
 } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 
 const GoogleWorkspaceFeature = () => {
   return (
-    <FeaturePageLayout>
+    <>
+      <PageSEO
+        title="Google Workspace Integration - EquipQR"
+        description="Connect your Google Workspace to import users from your directory. Sync members, assign roles, and let users sign in with Google for seamless access."
+        path="/features/google-workspace"
+        keywords="Google Workspace integration, Google Workspace SSO, Google Workspace directory sync, enterprise SSO, Google sign in"
+      />
+      <FeaturePageLayout>
       <FeatureHero
         icon={Building2}
         title="Google Workspace"
@@ -266,7 +274,8 @@ const GoogleWorkspaceFeature = () => {
             </div>
           </div>
         </section>
-    </FeaturePageLayout>
+      </FeaturePageLayout>
+    </>
   );
 };
 

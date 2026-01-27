@@ -8,12 +8,20 @@ import {
   Link2,
   RefreshCw,
 } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 
 const QuickBooksFeature = () => {
   return (
-    <FeaturePageLayout>
+    <>
+      <PageSEO
+        title="QuickBooks Integration - EquipQR"
+        description="Connect QuickBooks Online and export completed work orders as draft invoices. Map teams to customers and streamline billing from EquipQR™."
+        path="/features/quickbooks"
+        keywords="QuickBooks integration, work order billing, invoice export, QuickBooks Online, equipment management billing, CMMS QuickBooks"
+      />
+      <FeaturePageLayout>
       <FeatureHero
         icon={Receipt}
         title="QuickBooks"
@@ -220,7 +228,8 @@ const QuickBooksFeature = () => {
             </div>
           </div>
         </section>
-    </FeaturePageLayout>
+      </FeaturePageLayout>
+    </>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import LandingHeader from '@/components/landing/LandingHeader';
 import HeroSection from '@/components/landing/HeroSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
@@ -17,8 +18,15 @@ const Landing = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <LandingHeader />
+    <>
+      <PageSEO
+        title="EquipQR - Fleet Equipment Management Platform"
+        description="Streamline equipment operations with QR code tracking, intelligent work order management, and enterprise-grade team collaboration. Trusted by industry leaders."
+        path="/landing"
+        keywords="fleet management, equipment tracking, QR code, work orders, CMMS, maintenance management, team collaboration, mobile-first, enterprise"
+      />
+      <div className="min-h-screen bg-background">
+        <LandingHeader />
       <main>
         <HeroSection />
         <FeaturesSection id="features" />
@@ -29,7 +37,8 @@ const Landing = () => {
         <CTASection />
       </main>
       <LegalFooter />
-    </div>
+      </div>
+    </>
   );
 };
 

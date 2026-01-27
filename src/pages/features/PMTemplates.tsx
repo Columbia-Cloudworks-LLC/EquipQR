@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, FileCheck, CheckCircle2, Settings2, ClipboardCheck, Wrench, Truck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 
@@ -61,7 +62,14 @@ const builtInTemplates: BuiltInTemplate[] = [
 
 const PMTemplatesFeature = () => {
   return (
-    <FeaturePageLayout>
+    <>
+      <PageSEO
+        title="PM Templates - EquipQR"
+        description="Create reusable preventative maintenance templates with checklists, schedules, and equipment compatibility rules. Standardize maintenance procedures across your fleet."
+        path="/features/pm-templates"
+        keywords="PM templates, preventative maintenance, maintenance checklists, equipment maintenance, CMMS templates, maintenance scheduling"
+      />
+      <FeaturePageLayout>
       <FeatureHero
         icon={FileCheck}
         title="PM Templates"
@@ -361,7 +369,8 @@ const PMTemplatesFeature = () => {
             </div>
           </div>
         </section>
-    </FeaturePageLayout>
+      </FeaturePageLayout>
+    </>
   );
 };
 

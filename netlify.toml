@@ -21,6 +21,32 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(self)"
 
+# Prevent indexing of authenticated/dynamic routes
+[[headers]]
+  for = "/dashboard/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/auth*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/invitation/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/qr/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/debug-*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
 # Environment variables for Netlify
 # Set these in your Netlify dashboard under Site Settings > Environment Variables
 # VITE_SUPABASE_URL

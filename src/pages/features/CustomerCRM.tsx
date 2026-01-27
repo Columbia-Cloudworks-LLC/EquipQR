@@ -8,12 +8,20 @@ import {
   History,
   Wrench,
 } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 
 const CustomerCRMFeature = () => {
   return (
-    <FeaturePageLayout>
+    <>
+      <PageSEO
+        title="Customer CRM - EquipQR"
+        description="Link equipment to specific customers. Maintain a permanent service history for every client asset."
+        path="/features/customer-crm"
+        keywords="customer CRM, equipment customer tracking, service history, customer equipment management, repair shop CRM"
+      />
+      <FeaturePageLayout>
       <FeatureHero
         icon={UserCircle}
         title="Customer CRM"
@@ -266,7 +274,8 @@ const CustomerCRMFeature = () => {
             </div>
           </div>
         </section>
-    </FeaturePageLayout>
+      </FeaturePageLayout>
+    </>
   );
 };
 
