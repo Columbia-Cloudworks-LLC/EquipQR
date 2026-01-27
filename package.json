@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "2.2.1",
+  "version": "2.2.2",
   "type": "module",
   "engines": {
     "node": "^20.17.0 || >=22.9.0"
