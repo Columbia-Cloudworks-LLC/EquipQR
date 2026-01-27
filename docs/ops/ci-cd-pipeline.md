@@ -64,7 +64,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 **Quality Gates:**
 - Build size must be < 12MB total
 - Individual JS bundles must be < 500KB gzipped
-- Test coverage must meet baseline (51%)
+- Test coverage must meet baseline (70%)
 
 ### 2. Deploy Workflow (`deploy.yml`)
 

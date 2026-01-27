@@ -58,35 +58,26 @@ EquipQR uses a three-branch strategy to maintain code quality and controlled rel
    - Emergency fixes can go directly to `main`
    - Should be rare; prefer the normal flow
 
-**Note**: Versions are created manually using the Manual Version Bump workflow after deployments are verified, not automatically on merge.
+**Note**: Version tags are created automatically when `package.json` is updated on `main`. See [Versioning & Release Process](#versioning--release-process) below.
 
 ## Versioning & Release Process
 
-EquipQR uses **manual semantic versioning** with git tags and GitHub releases.
+EquipQR uses **semantic versioning** with automatic git tag creation via GitHub Actions.
 
 ### How It Works
 
-Versions are created manually by maintainers through a GitHub Actions workflow:
+1. **Update the version in `package.json`**:
+   - Edit the `"version"` field (e.g., `"1.2.3"` → `"1.3.0"`)
+   - Commit with message: `chore: bump version to X.Y.Z`
 
-1. **Navigate to the workflow**:
-   - Go to **Actions** → **Manual Version Bump**
-   - Click **Run workflow**
-   - Select the branch (typically `main` or `preview`)
-
-2. **Enter version information**:
-   - **Version**: Enter the new version number (e.g., `1.2.3` - without `v` prefix)
-   - **Message**: Optional release message (defaults to "Release vX.Y.Z")
-   - The workflow displays current version and suggested bumps in the job summary
+2. **Merge to `main`**:
+   - When the PR is merged to `main`, the `version-tag.yml` workflow runs automatically
 
 3. **Workflow automatically**:
-   - Validates version format
-   - Checks if tag already exists
-   - Updates `package.json` with new version
-   - Commits the change: `chore: bump version to X.Y.Z`
-   - Creates git tag: `vX.Y.Z`
-   - Pushes commit and tag to the repository
-   - Creates GitHub Release with auto-generated notes
-   - Triggers deployment with the new version
+   - Reads version from `package.json`
+   - Validates semver format (x.y.z)
+   - Creates annotated git tag `vX.Y.Z` (if it doesn't already exist)
+   - Pushes the tag to origin
 
 ### Semantic Versioning Guidelines
 
@@ -123,7 +114,7 @@ git push origin <branch>
 
 ### Reference Documentation
 
-For technical details, see [`docs/deployment/versioning-system.md`](./docs/deployment/versioning-system.md).
+For technical details on CI/CD workflows including version tagging, see [`docs/ops/ci-cd-pipeline.md`](./docs/ops/ci-cd-pipeline.md).
 
 ## Development Workflow
 
@@ -468,7 +459,7 @@ In rare cases, emergency hotfixes may bypass normal PR approval:
 5. Make requested changes
 6. Maintainer approves and merges
 7. Deployment triggered
-8. After successful deployment, maintainer manually creates version using the Manual Version Bump workflow
+8. After successful deployment, maintainer updates version in `package.json` (tag is created automatically on merge to `main`)
 
 ### Merge Strategy
 

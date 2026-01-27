@@ -155,7 +155,7 @@ Before you begin, ensure you have the following installed on your development ma
 
 ### Required Software
 
-- **Node.js** (v18.x or v20.x) - [Download here](https://nodejs.org/)
+- **Node.js** (v22.x recommended, v20.x supported) - [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively (no yarn/pnpm/bun)
 - **Git** - [Download here](https://git-scm.com/)
 - **Modern Code Editor** - We recommend [VS Code](https://code.visualstudio.com/)

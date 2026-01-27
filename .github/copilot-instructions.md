@@ -17,7 +17,7 @@ The following are automatically flagged by our CI pipeline—Copilot should **no
 - **CodeQL**: Hardcoded secrets, SQL injection, XSS vulnerabilities
 - **npm-audit-ci**: Dependency vulnerabilities
 - **Quality Gates**: Bundle size limits (12MB total, 500KB gzipped per bundle)
-- **Vitest**: Test coverage (51% baseline)
+- **Vitest**: Test coverage (70% baseline)
 
 Focus review time on **domain-specific patterns** that automated tools cannot detect.
 
@@ -186,4 +186,7 @@ useMutation({
 
 - `docs/technical/architecture.md` - Full architecture details
 - `docs/technical/standards.md` - Complete design system and UI guidelines
+- `docs/technical/testing-guidelines.md` - Test patterns and coverage expectations
 - `docs/ops/migrations.md` - Database migration guidelines
+- `docs/ops/ci-cd-pipeline.md` - CI/CD pipeline and quality gates
+- `docs/guides/permissions.md` - RBAC and permissions system

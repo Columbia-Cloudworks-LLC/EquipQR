@@ -6,7 +6,7 @@ This guide covers setting up your local environment to work with Supabase, inclu
 
 ### Required Software
 
-- **Node.js** (v18.x or v20.x) - [Download here](https://nodejs.org/)
+- **Node.js** (v22.x recommended, v20.x supported) - [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively
 - **Docker** - Required for local Supabase instance ([Download here](https://www.docker.com/products/docker-desktop))
 - **Git** - [Download here](https://git-scm.com/)

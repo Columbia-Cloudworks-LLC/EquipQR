@@ -6,7 +6,11 @@ applyTo: "supabase/functions/**/*.ts"
 
 ## Purpose
 
-Standards for Deno-based Edge Functions in the EquipQR Supabase project.
+This is a **reviewer checklist** for Edge Functions. For comprehensive documentation, see:
+- **[Edge Functions Auth Patterns](../../docs/edge-functions/auth-patterns.md)** - Authentication patterns
+- **[Local Supabase Development](../../docs/ops/local-supabase-development.md)** - Local testing and secrets
+- **[Supabase Branch Secrets](../../docs/ops/supabase-branch-secrets.md)** - Production secrets configuration
+
 Edge Functions run on Deno Deploy with TypeScript support.
 
 ## What CI Does NOT Check

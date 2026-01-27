@@ -6,7 +6,10 @@ applyTo: "**/*.{ts,tsx}"
 
 ## Purpose
 
-Standards for TypeScript and React code in the EquipQR codebase.
+This is a **reviewer checklist** for TypeScript/React code. For comprehensive documentation, see:
+- **[Coding Standards](../../docs/technical/standards.md)** - Full coding standards and patterns
+- **[Architecture](../../docs/technical/architecture.md)** - System architecture and component design
+
 Uses React 18.3+, TypeScript 5.6+, TanStack Query v5, and shadcn/ui.
 
 ## What CI Already Catches
