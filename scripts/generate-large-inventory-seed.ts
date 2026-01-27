@@ -357,7 +357,7 @@ interface GeneratedAlternateGroup {
   organization_id: string;
   name: string;
   description: string;
-  status: 'verified' | 'unverified' | 'disputed';
+  status: 'verified' | 'unverified' | 'deprecated';
   notes: string | null;
   evidence_url: string | null;
   created_by: string;
@@ -482,9 +482,9 @@ function generatePartIdentifiersAndGroups(
     const template = randomChoice(PART_TEMPLATES);
     const variation = template.variations ? randomChoice(template.variations) : template.category;
     
-    // Determine verification status (60% verified, 30% unverified, 10% disputed)
+    // Determine verification status (60% verified, 30% unverified, 10% deprecated)
     const statusRoll = seededRandom();
-    let status: 'verified' | 'unverified' | 'disputed';
+    let status: 'verified' | 'unverified' | 'deprecated';
     let verifiedBy: string | null = null;
     
     if (statusRoll < 0.60) {
@@ -493,7 +493,7 @@ function generatePartIdentifiersAndGroups(
     } else if (statusRoll < 0.90) {
       status = 'unverified';
     } else {
-      status = 'disputed';
+      status = 'deprecated';
     }
     
     // Group name
