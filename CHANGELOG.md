@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Mobile Modal Scrolling**: Prevented input modals from exceeding the viewport height on mobile devices
+  - Standardized dialogs/sheets to use dynamic viewport height (`dvh`) and internal scrolling
+  - Fixes being unable to scroll to complete longer forms (e.g., inventory item create/edit)
+
 ## [2.2.1] - 2026-01-26
 
 ### Added
@@ -147,7 +153,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **Push Notification Security**: 
+- **Push Notification Security**:
   - RLS policies on `push_subscriptions` table ensuring users can only manage their own subscriptions
   - Service role access restricted to Edge Function for sending push notifications
   - VAPID keys stored securely in environment variables
