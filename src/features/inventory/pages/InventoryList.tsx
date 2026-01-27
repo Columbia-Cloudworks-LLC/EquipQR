@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Package, AlertTriangle, Users } from 'lucide-react';
+import { Plus, Search, Package, AlertTriangle, Users, MoreVertical, Filter, X, MapPin } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useInventoryItems } from '@/features/inventory/hooks/useInventory';
 import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
@@ -8,8 +8,24 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { InventoryItemForm } from '@/features/inventory/components/InventoryItemForm';
@@ -90,47 +106,191 @@ const InventoryList = () => {
           title="Inventory"
           description={`Manage inventory items for ${currentOrganization.name}`}
           actions={
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              {/* Desktop: Show Parts Managers button inline */}
               {canManage && (
-                <Button variant="outline" onClick={() => setShowManagersSheet(true)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowManagersSheet(true)}
+                  className="hidden sm:inline-flex"
+                >
                   <Users className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Parts Managers</span>
-                  <span className="sm:hidden">Managers</span>
+                  Parts Managers
                 </Button>
               )}
+              
+              {/* Primary action - always visible */}
               {canCreate && (
                 <Button onClick={handleAddItem}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Item
+                  <span className="hidden sm:inline">Add Item</span>
+                  <span className="sm:hidden">Add</span>
                 </Button>
+              )}
+              
+              {/* Mobile: Overflow menu for secondary actions */}
+              {canManage && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="sm:hidden h-10 w-10"
+                      aria-label="More options"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setShowManagersSheet(true)}>
+                      <Users className="h-4 w-4 mr-2" />
+                      Parts Managers
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           }
         />
 
         {/* Filters */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search by name, SKU, or external ID..."
-                  value={filters.search || ''}
-                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  className="pl-9"
-                />
-              </div>
+        <div className="space-y-3">
+          {/* Search + Filter Controls */}
+          <Card>
+            <CardContent className="pt-6">
+              {isMobile ? (
+                // Mobile: Search bar + Filter icon button
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search by name, SKU, or external ID..."
+                      value={filters.search || ''}
+                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                      className="pl-9 h-10"
+                    />
+                  </div>
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="relative h-10 w-10 flex-shrink-0"
+                        aria-label="Open filters"
+                      >
+                        <Filter className="h-4 w-4" />
+                        {filters.lowStockOnly && (
+                          <Badge
+                            variant="secondary"
+                            className="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px]"
+                          >
+                            1
+                          </Badge>
+                        )}
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="bottom" className="h-auto max-h-[50vh]">
+                      <SheetHeader className="pb-4">
+                        <SheetTitle>Filter Inventory</SheetTitle>
+                        <SheetDescription>
+                          Use the options below to filter inventory items.
+                        </SheetDescription>
+                      </SheetHeader>
+                      <div className="space-y-4 pb-6">
+                        <div className="flex items-center justify-between py-3 border-b">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                            <Label htmlFor="low-stock-mobile" className="text-base font-medium">
+                              Low Stock Only
+                            </Label>
+                          </div>
+                          <Switch
+                            id="low-stock-mobile"
+                            checked={filters.lowStockOnly}
+                            onCheckedChange={(checked) => 
+                              setFilters({ ...filters, lowStockOnly: checked })
+                            }
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => setFilters({ search: '', lowStockOnly: false })}
+                          className="w-full h-12"
+                          disabled={!filters.search && !filters.lowStockOnly}
+                        >
+                          Clear All Filters
+                        </Button>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+              ) : (
+                // Desktop: Search bar + inline Switch
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search by name, SKU, or external ID..."
+                      value={filters.search || ''}
+                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                      className="pl-9"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3 px-3 py-2 rounded-md border bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                      <Label htmlFor="low-stock-desktop" className="text-sm font-medium whitespace-nowrap cursor-pointer">
+                        Low Stock Only
+                      </Label>
+                    </div>
+                    <Switch
+                      id="low-stock-desktop"
+                      checked={filters.lowStockOnly}
+                      onCheckedChange={(checked) => 
+                        setFilters({ ...filters, lowStockOnly: checked })
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Active Filter Summary */}
+          {(filters.search || filters.lowStockOnly) && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground">Active filters:</span>
+              {filters.search && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  Search: "{filters.search.length > 15 ? `${filters.search.slice(0, 15)}...` : filters.search}"
+                  <X
+                    className="h-3 w-3 cursor-pointer hover:text-foreground"
+                    onClick={() => setFilters({ ...filters, search: '' })}
+                    aria-label="Clear search filter"
+                  />
+                </Badge>
+              )}
+              {filters.lowStockOnly && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  Low Stock
+                  <X
+                    className="h-3 w-3 cursor-pointer hover:text-foreground"
+                    onClick={() => setFilters({ ...filters, lowStockOnly: false })}
+                    aria-label="Clear low stock filter"
+                  />
+                </Badge>
+              )}
               <Button
-                variant={filters.lowStockOnly ? 'default' : 'outline'}
-                onClick={() => setFilters({ ...filters, lowStockOnly: !filters.lowStockOnly })}
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => setFilters({ search: '', lowStockOnly: false })}
               >
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                Low Stock Only
+                Clear all
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </div>
 
         {/* Inventory List */}
         {items.length === 0 ? (
@@ -161,33 +321,41 @@ const InventoryList = () => {
                 onClick={() => handleViewItem(item.id)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{item.name}</h3>
+                  {/* Header: Name + Low Stock badge */}
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold truncate">{item.name}</h3>
                       {item.sku && (
-                        <p className="text-sm text-muted-foreground">SKU: {item.sku}</p>
-                      )}
-                      {item.external_id && (
-                        <p className="text-sm text-muted-foreground">External ID: {item.external_id}</p>
+                        <p className="text-sm text-muted-foreground truncate">SKU: {item.sku}</p>
                       )}
                     </div>
                     {item.isLowStock && (
-                      <Badge variant="destructive" className="ml-2">
+                      <Badge variant="destructive" className="flex-shrink-0">
                         <AlertTriangle className="h-3 w-3 mr-1" />
                         Low Stock
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Quantity: </span>
-                      <span className="font-medium">{item.quantity_on_hand}</span>
-                    </div>
-                    {item.location && (
-                      <div className="text-muted-foreground">
-                        📍 {item.location}
+                  
+                  {/* Metadata row: Location -> Quantity (most scanned info first) */}
+                  <div className="flex items-center justify-between text-sm pt-2 border-t border-border/50">
+                    {/* Location on the left for quick scanning */}
+                    {item.location ? (
+                      <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
+                        <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{item.location}</span>
                       </div>
+                    ) : (
+                      <div className="text-muted-foreground text-xs">No location</div>
                     )}
+                    
+                    {/* Quantity on the right, prominently displayed */}
+                    <div className="flex-shrink-0 ml-2">
+                      <span className="text-muted-foreground">Qty: </span>
+                      <span className={item.isLowStock ? 'font-semibold text-destructive' : 'font-medium'}>
+                        {item.quantity_on_hand}
+                      </span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

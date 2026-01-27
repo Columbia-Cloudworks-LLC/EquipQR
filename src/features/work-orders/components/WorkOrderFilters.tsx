@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Search, Filter, Calendar, User, X, Users } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/workOrder';
 
 interface Team {
@@ -51,8 +52,8 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
           />
         </div>
 
-        {/* Quick Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        {/* Quick Filters with scroll hint */}
+        <HorizontalChipRow ariaLabel="Quick filter options">
           {[
             { label: 'My Work', value: 'my-work' },
             { label: 'Urgent', value: 'urgent' },
@@ -63,7 +64,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
               key={preset.value}
               size="sm"
               variant="outline"
-              className="whitespace-nowrap"
+              className="whitespace-nowrap flex-shrink-0"
               onClick={() => {
                 onQuickFilter(preset.value);
                 onShowMobileFiltersChange(false);
@@ -72,24 +73,23 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
               {preset.label}
             </Button>
           ))}
-        </div>
+        </HorizontalChipRow>
 
         {/* Filter Button with Active Count */}
-        <div className="flex gap-2">
-          <Sheet open={showMobileFilters} onOpenChange={onShowMobileFiltersChange}>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="flex-1 h-12 justify-between">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  <span>Filters</span>
-                  {activeFilterCount > 0 && (
-                    <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-xs">
-                      {activeFilterCount}
-                    </Badge>
-                  )}
-                </div>
-              </Button>
-            </SheetTrigger>
+        <Sheet open={showMobileFilters} onOpenChange={onShowMobileFiltersChange}>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="w-full h-11 justify-between">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-xs">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </div>
+            </Button>
+          </SheetTrigger>
             <SheetContent side="bottom" className="max-h-[calc(100dvh-2rem)] overflow-y-auto pb-safe-bottom">
               <SheetHeader className="pb-4">
                 <SheetTitle>Filter Work Orders</SheetTitle>
@@ -196,18 +196,19 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                 </div>
               </div>
             </SheetContent>
-          </Sheet>
-        </div>
+        </Sheet>
 
-        {/* Active Filter Summary */}
+        {/* Active Filter Summary with Clear All */}
         {activeFilterCount > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">Active:</span>
             {filters.statusFilter !== 'all' && (
               <Badge variant="secondary" className="flex items-center gap-1">
                 Status: {filters.statusFilter}
                 <X
-                  className="h-3 w-3 cursor-pointer"
+                  className="h-3 w-3 cursor-pointer hover:text-foreground"
                   onClick={() => onFilterChange('statusFilter', 'all')}
+                  aria-label="Clear status filter"
                 />
               </Badge>
             )}
@@ -215,8 +216,9 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
               <Badge variant="secondary" className="flex items-center gap-1">
                 Assignee: {filters.assigneeFilter === 'mine' ? 'Mine' : filters.assigneeFilter}
                 <X
-                  className="h-3 w-3 cursor-pointer"
+                  className="h-3 w-3 cursor-pointer hover:text-foreground"
                   onClick={() => onFilterChange('assigneeFilter', 'all')}
+                  aria-label="Clear assignee filter"
                 />
               </Badge>
             )}
@@ -224,8 +226,9 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
               <Badge variant="secondary" className="flex items-center gap-1">
                 Priority: {filters.priorityFilter}
                 <X
-                  className="h-3 w-3 cursor-pointer"
+                  className="h-3 w-3 cursor-pointer hover:text-foreground"
                   onClick={() => onFilterChange('priorityFilter', 'all')}
+                  aria-label="Clear priority filter"
                 />
               </Badge>
             )}
@@ -233,8 +236,9 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
               <Badge variant="secondary" className="flex items-center gap-1">
                 Due: {filters.dueDateFilter}
                 <X
-                  className="h-3 w-3 cursor-pointer"
+                  className="h-3 w-3 cursor-pointer hover:text-foreground"
                   onClick={() => onFilterChange('dueDateFilter', 'all')}
+                  aria-label="Clear due date filter"
                 />
               </Badge>
             )}
@@ -242,11 +246,20 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
               <Badge variant="secondary" className="flex items-center gap-1">
                 Team: {teams.find(t => t.id === filters.teamFilter)?.name || filters.teamFilter}
                 <X
-                  className="h-3 w-3 cursor-pointer"
+                  className="h-3 w-3 cursor-pointer hover:text-foreground"
                   onClick={() => onFilterChange('teamFilter', 'all')}
+                  aria-label="Clear team filter"
                 />
               </Badge>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={onClearFilters}
+            >
+              Clear all
+            </Button>
           </div>
         )}
       </div>

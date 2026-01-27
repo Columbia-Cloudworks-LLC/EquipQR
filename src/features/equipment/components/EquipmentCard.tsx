@@ -50,9 +50,10 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
       onClick={handleCardClick}
     >
       {/* Mobile: compact horizontal list item */}
-      <div className="md:hidden">
-        <div className="flex">
-          <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-l-md bg-muted">
+      <div className="md:hidden overflow-hidden">
+        <div className="flex min-w-0">
+          {/* Image area with status badge overlay */}
+          <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-l-md bg-muted">
             {equipment.image_url ? (
               <img
                 src={equipment.image_url}
@@ -67,10 +68,19 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
                 <Forklift className="h-8 w-8 text-muted-foreground/50" />
               </div>
             )}
+            {/* Status badge overlaid on image - only for non-active statuses */}
+            {display.showStatusBadge && (
+              <Badge 
+                className={`${display.statusClassName} absolute bottom-1 left-1 px-1.5 py-0 text-[10px]`} 
+                variant="outline"
+              >
+                {display.statusText}
+              </Badge>
+            )}
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col justify-between p-3">
-            <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 flex-1 flex-col justify-between p-3 overflow-hidden">
+            <div className="flex items-start justify-between gap-2 min-w-0">
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold">{equipment.name}</div>
                 <div className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -89,18 +99,9 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
               </Button>
             </div>
 
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-                <span className="truncate text-xs text-muted-foreground">{equipment.location}</span>
-              </div>
-
-              {/* Only show badge for non-active statuses */}
-              {display.showStatusBadge && (
-                <Badge className={`${display.statusClassName} px-1.5 py-0 text-[10px]`} variant="outline">
-                  {display.statusText}
-                </Badge>
-              )}
+            <div className="mt-2 flex items-center gap-1.5 min-w-0">
+              <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+              <span className="truncate text-xs text-muted-foreground">{equipment.location}</span>
             </div>
           </div>
         </div>

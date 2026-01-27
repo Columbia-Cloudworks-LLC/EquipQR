@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, ShieldCheck, Users } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedWorkOrders, useTeamBasedAccess } from '@/features/teams/hooks/useTeamBasedWorkOrders';
 import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
@@ -12,6 +12,7 @@ import { useTeams } from '@/features/teams/hooks/useTeamManagement';
 import { useUser } from '@/contexts/useUser';
 import { WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import WorkOrderForm from '@/features/work-orders/components/WorkOrderForm';
@@ -148,12 +149,32 @@ const WorkOrders = () => {
   // Generate appropriate subtitle based on user's access level
   const getSubtitle = () => {
     if (isManager) {
-      return 'Showing all work orders (organization admin access)';
+      return 'Showing all work orders';
     } else if (userTeamIds.length > 0) {
       return `Showing work orders for your ${userTeamIds.length} team${userTeamIds.length === 1 ? '' : 's'}`;
     } else {
       return 'No team assignments - contact your administrator for access';
     }
+  };
+
+  // Generate meta badge based on access level
+  const getAccessBadge = () => {
+    if (isManager) {
+      return (
+        <Badge variant="secondary" className="text-xs gap-1">
+          <ShieldCheck className="h-3 w-3" />
+          Admin
+        </Badge>
+      );
+    } else if (userTeamIds.length > 0) {
+      return (
+        <Badge variant="outline" className="text-xs gap-1">
+          <Users className="h-3 w-3" />
+          {userTeamIds.length} team{userTeamIds.length === 1 ? '' : 's'}
+        </Badge>
+      );
+    }
+    return null;
   };
 
   return (
@@ -162,10 +183,12 @@ const WorkOrders = () => {
         <PageHeader 
           title="Work Orders" 
           description={getSubtitle()}
+          meta={getAccessBadge()}
           actions={
             <Button onClick={() => setShowForm(true)} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
-              Create Work Order
+              <span className="hidden sm:inline">Create Work Order</span>
+              <span className="sm:hidden">Create</span>
             </Button>
           }
         />

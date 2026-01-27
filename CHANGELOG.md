@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **HorizontalChipRow Component**: New reusable component for horizontally scrollable chip/button rows
+  - Automatic scroll hint gradients on left/right edges when content overflows
+  - Configurable gap spacing and custom aria-labels for accessibility
+  - Used across Work Orders, Equipment, and Inventory filter UIs for consistent scroll affordances
+
+### Changed
+
+- **PageHeader Component**: Enhanced mobile responsiveness and meta content support
+  - Actions now stack below title on small screens to prevent clipping
+  - New optional `meta` prop for badges/labels (e.g., "Admin" access badge) separate from description
+  - Improved responsive typography and spacing
+
+- **Inventory Page UI Improvements**:
+  - Header actions: "Parts Managers" moved to overflow dropdown menu on mobile for cleaner layout
+  - Filters: Replaced "Low Stock Only" button with Switch control (inline on desktop, in filter sheet on mobile)
+  - Active filter summary: Added clearable filter badges with "Clear all" button
+  - Mobile cards: Replaced emoji location marker with `MapPin` icon, improved metadata ordering (location → quantity) for better scanability
+
+- **Work Orders Page UI Improvements**:
+  - Admin access badge: Moved "(organization admin access)" from subtitle to separate badge using PageHeader `meta` prop
+  - Quick filters: Now use `HorizontalChipRow` with scroll hint gradients
+  - Active filter summary: Enhanced with "Clear all" button and improved accessibility labels
+
+- **Equipment Page UI Improvements**:
+  - Quick filters: Now use `HorizontalChipRow` with scroll hint gradients
+  - Active filter summary: Enhanced with "Clear all" button
+  - Sort controls: Improved clarity with "Sort:" prefix and direction labels (A-Z/Z-A) on mobile
+
 ### Fixed
 
 - **Mobile Modal Scrolling**: Prevented input modals from exceeding the viewport height on mobile devices
