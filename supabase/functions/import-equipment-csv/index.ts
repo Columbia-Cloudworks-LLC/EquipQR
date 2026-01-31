@@ -224,133 +224,181 @@ async function handleImport(
   importId: string,
   teamId: string | null
 ) {
+  // NOTE: CSV parsing is done client-side with papaparse; this function receives parsed rows.
   let created = 0;
   let merged = 0;
   let failed = 0;
   const failures: Array<{ row: number; reason: string }> = [];
 
+  // Phase 1: Map and validate all rows, check for existing equipment
+  interface PreparedRow {
+    rowIndex: number;
+    mappedRow: MappedRow;
+    existing: Awaited<ReturnType<typeof findExistingEquipment>> | null;
+  }
+  const preparedRows: PreparedRow[] = [];
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const mappedRow = mapRow(row, mappings);
 
-    try {
-      const validation = validateRow(mappedRow);
-      if (!validation.valid) {
-        failed++;
-        failures.push({
-          row: i + 1,
-          reason: validation.error || "Invalid row",
-        });
-        continue;
-      }
+    const validation = validateRow(mappedRow);
+    if (!validation.valid) {
+      failed++;
+      failures.push({
+        row: i + 1,
+        reason: validation.error || "Invalid row",
+      });
+      continue;
+    }
 
+    try {
       const existing = await findExistingEquipment(
         supabase,
         organizationId,
         mappedRow
       );
-
-      if (existing) {
-        // Merge logic
-        const updateData: Record<
-          string,
-          string | Record<string, string | number | boolean | null>
-        > = {
-          updated_at: new Date().toISOString(),
-        };
-
-        // Update name if provided
-        if (mappedRow.name && mappedRow.name.trim() !== "") {
-          updateData.name = mappedRow.name.trim();
-        }
-
-        // Update location if provided
-        if (mappedRow.location && mappedRow.location.trim() !== "") {
-          updateData.location = mappedRow.location.trim();
-        }
-
-        // Merge custom attributes
-        if (Object.keys(mappedRow.customAttributes).length > 0) {
-          updateData.custom_attributes = {
-            ...((existing.custom_attributes as Record<
-              string,
-              string | number | boolean | null
-            >) || {}),
-            ...mappedRow.customAttributes,
-          };
-        }
-
-        // Update last_maintenance if newer
-        if (mappedRow.last_maintenance) {
-          const newDate = new Date(mappedRow.last_maintenance);
-          const existingDate = existing.last_maintenance
-            ? new Date(existing.last_maintenance as string)
-            : null;
-
-          if (!existingDate || newDate > existingDate) {
-            updateData.last_maintenance = mappedRow.last_maintenance;
-            // When last_maintenance is overridden from CSV data, clear any existing
-            // last_maintenance_work_order_id link to avoid keeping a stale work order
-            // reference that no longer matches the source of the maintenance date.
-            updateData.last_maintenance_work_order_id = null;
-          }
-        }
-
-        // RLS will ensure user can only update equipment in their org
-        const { error: updateError } = await supabase
-          .from("equipment")
-          .update(updateData)
-          .eq("id", existing.id);
-
-        if (updateError) {
-          throw new Error(updateError.message);
-        }
-
-        merged++;
-      } else {
-        // Create new equipment
-        const insertData: Record<
-          string,
-          string | Record<string, string | number | boolean | null> | null
-        > = {
-          organization_id: organizationId,
-          name:
-            mappedRow.name ||
-            `${mappedRow.manufacturer || ""} ${mappedRow.model || ""}`.trim() ||
-            "Imported Equipment",
-          manufacturer: mappedRow.manufacturer || "",
-          model: mappedRow.model || "",
-          serial_number: mappedRow.serial || "",
-          status: "active",
-          location: mappedRow.location || "Unknown",
-          installation_date: new Date().toISOString().split("T")[0],
-          custom_attributes: mappedRow.customAttributes,
-          import_id: importId,
-          team_id: teamId,
-        };
-
-        if (mappedRow.last_maintenance) {
-          insertData.last_maintenance = mappedRow.last_maintenance;
-          // When last_maintenance is set from CSV data, set last_maintenance_work_order_id
-          // to null since the maintenance date comes from external data, not a work order.
-          insertData.last_maintenance_work_order_id = null;
-        }
-
-        // RLS will ensure user can only insert into their org
-        const { error: insertError } = await supabase
-          .from("equipment")
-          .insert(insertData);
-
-        if (insertError) {
-          throw new Error(insertError.message);
-        }
-
-        created++;
-      }
+      preparedRows.push({ rowIndex: i, mappedRow, existing });
     } catch (error) {
       failed++;
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       failures.push({ row: i + 1, reason: errorMsg });
+    }
+  }
+
+  // Phase 2: Separate into inserts and updates
+  const toInsert: Array<
+    Record<
+      string,
+      string | Record<string, string | number | boolean | null> | null
+    >
+  > = [];
+  const toInsertRowIndices: number[] = [];
+
+  interface UpdateOp {
+    rowIndex: number;
+    existingId: string;
+    updateData: Record<
+      string,
+      string | Record<string, string | number | boolean | null> | null
+    >;
+  }
+  const updateOps: UpdateOp[] = [];
+
+  for (const { rowIndex, mappedRow, existing } of preparedRows) {
+    if (existing) {
+      // Build update payload
+      const updateData: Record<
+        string,
+        string | Record<string, string | number | boolean | null> | null
+      > = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (mappedRow.name && mappedRow.name.trim() !== "") {
+        updateData.name = mappedRow.name.trim();
+      }
+
+      if (mappedRow.location && mappedRow.location.trim() !== "") {
+        updateData.location = mappedRow.location.trim();
+      }
+
+      if (Object.keys(mappedRow.customAttributes).length > 0) {
+        updateData.custom_attributes = {
+          ...((existing.custom_attributes as Record<
+            string,
+            string | number | boolean | null
+          >) || {}),
+          ...mappedRow.customAttributes,
+        };
+      }
+
+      if (mappedRow.last_maintenance) {
+        const newDate = new Date(mappedRow.last_maintenance);
+        const existingDate = existing.last_maintenance
+          ? new Date(existing.last_maintenance as string)
+          : null;
+
+        if (!existingDate || newDate > existingDate) {
+          updateData.last_maintenance = mappedRow.last_maintenance;
+          updateData.last_maintenance_work_order_id = null;
+        }
+      }
+
+      updateOps.push({ rowIndex, existingId: existing.id as string, updateData });
+    } else {
+      // Build insert payload
+      const insertData: Record<
+        string,
+        string | Record<string, string | number | boolean | null> | null
+      > = {
+        organization_id: organizationId,
+        name:
+          mappedRow.name ||
+          `${mappedRow.manufacturer || ""} ${mappedRow.model || ""}`.trim() ||
+          "Imported Equipment",
+        manufacturer: mappedRow.manufacturer || "",
+        model: mappedRow.model || "",
+        serial_number: mappedRow.serial || "",
+        status: "active",
+        location: mappedRow.location || "Unknown",
+        installation_date: new Date().toISOString().split("T")[0],
+        custom_attributes: mappedRow.customAttributes,
+        import_id: importId,
+        team_id: teamId,
+      };
+
+      if (mappedRow.last_maintenance) {
+        insertData.last_maintenance = mappedRow.last_maintenance;
+        insertData.last_maintenance_work_order_id = null;
+      }
+
+      toInsert.push(insertData);
+      toInsertRowIndices.push(rowIndex);
+    }
+  }
+
+  // Phase 3: Bulk insert all new equipment in a single DB call
+  if (toInsert.length > 0) {
+    const { error: insertError } = await supabase
+      .from("equipment")
+      .insert(toInsert);
+
+    if (insertError) {
+      // Bulk insert failed; mark all insert rows as failed
+      for (const rowIndex of toInsertRowIndices) {
+        failed++;
+        failures.push({ row: rowIndex + 1, reason: insertError.message });
+      }
+    } else {
+      created = toInsert.length;
+    }
+  }
+
+  // Phase 4: Run updates in parallel for better performance
+  if (updateOps.length > 0) {
+    const updateResults = await Promise.allSettled(
+      updateOps.map(async ({ rowIndex, existingId, updateData }) => {
+        const { error: updateError } = await supabase
+          .from("equipment")
+          .update(updateData)
+          .eq("id", existingId);
+
+        if (updateError) {
+          throw { rowIndex, message: updateError.message };
+        }
+        return { rowIndex };
+      })
+    );
+
+    for (const result of updateResults) {
+      if (result.status === "fulfilled") {
+        merged++;
+      } else {
+        failed++;
+        const reason = result.reason as { rowIndex: number; message: string };
+        failures.push({ row: reason.rowIndex + 1, reason: reason.message });
+      }
     }
   }
 

@@ -4,8 +4,33 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, ExternalLink, Clock, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { formatDate, getRelativeTime } from '@/utils/basicDateFormatter';
+import { format, formatDistanceToNow, isValid, parseISO } from 'date-fns';
+import { DATE_DISPLAY_FORMAT } from '@/config/date-formats';
 import { logger } from '@/utils/logger';
+
+/** Formats a date string to a readable date format, returns 'Invalid date' on error */
+function formatDate(dateString: string): string {
+  try {
+    const date = parseISO(dateString);
+    if (!isValid(date)) return 'Invalid date';
+    return format(date, DATE_DISPLAY_FORMAT);
+  } catch {
+    return 'Invalid date';
+  }
+}
+
+/** Returns a relative time string (e.g., "2 hours ago") */
+function getRelativeTime(dateString: string): string {
+  try {
+    const date = parseISO(dateString);
+    if (!isValid(date)) return 'Invalid date';
+    const diffInMinutes = Math.abs(Date.now() - date.getTime()) / (1000 * 60);
+    if (diffInMinutes < 1) return 'just now';
+    return formatDistanceToNow(date, { addSuffix: true });
+  } catch {
+    return 'Invalid date';
+  }
+}
 
 interface EquipmentLocation {
   id: string;

@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **README Prerequisites**: New "Prerequisites (Accounts & Services)" section documenting required and optional external services (Supabase, Resend, Google, QuickBooks, Maps, hCaptcha, Web Push) with links to `env.example` and setup guide
+- **LegalFooter Changelog Link**: Version number in footer is now a clickable link to the release-specific CHANGELOG on GitHub; `getChangelogHref` resolves the correct ref for tagged releases vs dev builds
+- **SUPPORT.md**: New support documentation covering how to get help, where to report issues, and links to troubleshooting and docs
+- **Centralized Date Formats**: New `src/config/date-formats.ts` with `DATE_DISPLAY_FORMAT` and `DATE_TIME_DISPLAY_FORMAT` constants for consistent date formatting
+
+### Changed
+
+- **Work Order Form**: Migrated `useWorkOrderForm` from `useFormValidation` to `react-hook-form` with `zodResolver`; backward-compatible adapter preserves existing API; added error toast on form submission failure
+- **Equipment CSV Import**: Refactored `import-equipment-csv` Edge Function to a phased approach—map/validate, separate inserts vs updates, bulk insert for new equipment, parallel updates for merges—improving import performance
+- **Fleet Map Date Formatting**: Replaced `basicDateFormatter` usage with `date-fns` (`format`, `formatDistanceToNow`, `parseISO`) and `DATE_DISPLAY_FORMAT` from config
+
+### Removed
+
+- **basicDateFormatter**: Removed `src/utils/basicDateFormatter.ts` and its test file; date formatting consolidated into `date-fns` usage and `src/config/date-formats.ts`
+
 ## [2.2.2] - 2026-01-27
 
 ### Added
