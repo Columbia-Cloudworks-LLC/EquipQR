@@ -21,8 +21,8 @@ interface FormAdapter<T> {
   isSubmitting: boolean;
   setValue: <K extends keyof T>(field: K, value: T[K]) => void;
   setValues: (values: Partial<T>) => void;
-  validate: () => { isValid: boolean; errors: Record<string, string> };
-  validateField: (field: keyof T) => boolean;
+  validate: () => Promise<{ isValid: boolean; errors: Record<string, string> }>;
+  validateField: (field: keyof T) => Promise<boolean>;
   reset: () => void;
   handleSubmit: (onSubmit: (values: T) => Promise<void> | void) => Promise<void>;
 }
@@ -107,17 +107,24 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     trigger();
   }, [rhfSetValue, trigger]);
 
-  // Create validate adapter
-  const validateAdapter = useCallback((): { isValid: boolean; errors: Record<string, string> } => {
-    trigger();
-    return { isValid: formState.isValid, errors: flatErrors };
-  }, [trigger, formState.isValid, flatErrors]);
+  // Create validate adapter (async to properly await validation)
+  const validateAdapter = useCallback(async (): Promise<{ isValid: boolean; errors: Record<string, string> }> => {
+    const isValid = await trigger();
+    // Re-read errors from getValues context after trigger completes
+    const currentErrors: Record<string, string> = {};
+    for (const [key, error] of Object.entries(rhf.formState.errors)) {
+      if (error?.message) {
+        currentErrors[key] = error.message as string;
+      }
+    }
+    return { isValid, errors: currentErrors };
+  }, [trigger, rhf.formState.errors]);
 
-  // Create validateField adapter
-  const validateFieldAdapter = useCallback((field: keyof WorkOrderFormData): boolean => {
-    trigger(field);
-    return !formState.errors[field];
-  }, [trigger, formState.errors]);
+  // Create validateField adapter (async to properly await validation)
+  const validateFieldAdapter = useCallback(async (field: keyof WorkOrderFormData): Promise<boolean> => {
+    const isValid = await trigger(field);
+    return isValid;
+  }, [trigger]);
 
   // Create reset adapter
   const resetAdapter = useCallback(() => {
