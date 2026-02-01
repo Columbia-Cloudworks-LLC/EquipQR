@@ -51,7 +51,7 @@ interface WorkOrderExcelExportDialogProps {
   /** Whether the organization has Google Workspace connected */
   isGoogleWorkspaceConnected?: boolean;
   /** Handler for exporting to Google Sheets (only called if isGoogleWorkspaceConnected) */
-  onExportToSheets?: (filters: WorkOrderExcelFilters) => void;
+  onExportToSheets?: (filters: WorkOrderExcelFilters) => Promise<void>;
   /** Whether a Google Sheets export is in progress */
   isExportingToSheets?: boolean;
 }
@@ -134,9 +134,14 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
     await onExport(buildFilters());
   };
 
-  const handleExportToSheets = () => {
-    if (onExportToSheets) {
-      onExportToSheets(buildFilters());
+  const handleExportToSheets = async () => {
+    if (!onExportToSheets) return;
+    try {
+      await onExportToSheets(buildFilters());
+      onOpenChange(false);
+    } catch {
+      // Keep dialog open on error so user can retry.
+      // Error toast is already handled by the export hook.
     }
   };
 

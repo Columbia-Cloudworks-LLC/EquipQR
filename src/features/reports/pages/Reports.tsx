@@ -242,6 +242,7 @@ const Reports: React.FC = () => {
     isBulkExporting,
     bulkExportError,
     exportToSheets,
+    exportToSheetsAsync,
     isExportingToSheets,
   } = useWorkOrderExcelExport(currentOrganization?.id, currentOrganization?.name ?? '');
   
@@ -331,12 +332,16 @@ const Reports: React.FC = () => {
     setExcelExportDialogOpen(false);
   }, [bulkExport]);
   
-  const handleExportToSheets = useCallback((newFilters: WorkOrderExcelFilters) => {
+  const handleExportToSheets = useCallback(async (newFilters: WorkOrderExcelFilters) => {
     setExcelFilters(newFilters);
-    exportToSheets(newFilters);
-    // Don't close dialog immediately - let the user see the loading state
-    // The dialog will be closed when they click Cancel or the export completes
-  }, [exportToSheets]);
+    try {
+      await exportToSheetsAsync(newFilters);
+      setExcelExportDialogOpen(false);
+    } catch {
+      // Keep dialog open on error so user can retry.
+      // Error toast is already handled by the export hook.
+    }
+  }, [exportToSheetsAsync]);
   
   // Get title for selected report type
   const getReportTitle = (type: ReportType) => {
