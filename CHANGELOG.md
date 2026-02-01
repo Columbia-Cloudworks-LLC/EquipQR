@@ -11,12 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Google Workspace Export Integration**: Work order exports can now be sent directly to Google Workspace when the organization has Google Workspace connected
+  - **Export to Google Sheets**: New `export-work-orders-to-google-sheets` Edge Function creates a multi-worksheet spreadsheet (Summary, Labor Detail, Materials & Costs, PM Checklists, Timeline, Equipment) in Google Sheets
+  - **Save PDF to Google Drive**: New `upload-to-google-drive` Edge Function uploads work order PDFs to the user's Google Drive
+  - Work Order Excel Export Dialog: Added "Export to Google Sheets" button when Google Workspace is connected
+  - Work Order PDF Export Dialog: Added "Save to Google Drive" button when Google Workspace is connected
+  - Reports page: Work Orders Excel export supports Google Sheets export
+  - Shared `_shared/google-workspace-token.ts` for Edge Functions to obtain Google Workspace access tokens
+  - Shared `_shared/work-orders-export-data.ts` for data fetching and row building reused by Excel and Google Sheets exports
+
 - **README Prerequisites**: New "Prerequisites (Accounts & Services)" section documenting required and optional external services (Supabase, Resend, Google, QuickBooks, Maps, hCaptcha, Web Push) with links to `env.example` and setup guide
 - **LegalFooter Changelog Link**: Version number in footer is now a clickable link to the release-specific CHANGELOG on GitHub; `getChangelogHref` resolves the correct ref for tagged releases vs dev builds
 - **SUPPORT.md**: New support documentation covering how to get help, where to report issues, and links to troubleshooting and docs
 - **Centralized Date Formats**: New `src/config/date-formats.ts` with `DATE_DISPLAY_FORMAT` and `DATE_TIME_DISPLAY_FORMAT` constants for consistent date formatting
 
 ### Changed
+
+- **Google Workspace OAuth Scopes**: Expanded default OAuth scopes to include `spreadsheets` and `drive.file` for work order export features
+  - Organizations that connected before these scopes were added must reconnect Google Workspace in Organization Settings to use Export to Google Sheets and Save to Google Drive
 
 - **Work Order Form**: Migrated `useWorkOrderForm` from `useFormValidation` to `react-hook-form` with `zodResolver`; backward-compatible adapter preserves existing API; added error toast on form submission failure
 - **Equipment CSV Import**: Refactored `import-equipment-csv` Edge Function to a phased approach—map/validate, separate inserts vs updates, bulk insert for new equipment, parallel updates for merges—improving import performance

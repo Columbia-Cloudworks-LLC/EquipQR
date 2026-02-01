@@ -15,6 +15,7 @@ import { QuickBooksExportButton } from './QuickBooksExportButton';
 import { WorkOrderPDFExportDialog } from './WorkOrderPDFExportDialog';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
 import { useWorkOrderExcelExport } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
+import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 interface WorkOrderDetailsDesktopHeaderProps {
@@ -55,7 +56,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   const [showPDFDialog, setShowPDFDialog] = useState(false);
 
   // PDF generation hook
-  const { downloadPDF, isGenerating } = useWorkOrderPDF({
+  const { downloadPDF, isGenerating, saveToDrive, isSavingToDrive } = useWorkOrderPDF({
     workOrder,
     equipment: equipment ? {
       id: equipment.id,
@@ -75,12 +76,22 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     organizationId,
     organizationName ?? ''
   );
+  
+  // Google Workspace connection status (for showing "Save to Google Drive" option)
+  const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
+    organizationId,
+  });
 
   // Handle PDF export with options from dialog
   const handlePDFExport = async (options: { includeCosts: boolean }) => {
     // Let errors propagate so the dialog can detect failures and stay open for retry.
     // The useWorkOrderPDF hook already logs and shows a toast on error.
     await downloadPDF(options);
+  };
+
+  // Handle save to Drive with options from dialog
+  const handleSaveToDrive = async (options: { includeCosts: boolean }) => {
+    await saveToDrive(options);
   };
 
   return (
@@ -190,6 +201,9 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           onExport={handlePDFExport}
           isExporting={isGenerating}
           showCostsOption={permissionLevels.isManager}
+          isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
+          onSaveToDrive={handleSaveToDrive}
+          isSavingToDrive={isSavingToDrive}
         />
       </div>
     </TooltipProvider>

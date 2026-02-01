@@ -783,9 +783,41 @@ export class WorkOrderReportPDFGenerator {
       throw error;
     }
   }
+
+  /**
+   * Generate the PDF and return it as a Blob with a suggested filename.
+   * Useful for uploading to cloud storage (e.g., Google Drive) instead of downloading.
+   */
+  public static async generateAndGetBlob(data: WorkOrderPDFData): Promise<{ blob: Blob; filename: string }> {
+    try {
+      const generator = new WorkOrderReportPDFGenerator();
+      const pdf = await generator.generatePDF(data);
+      
+      // Create filename from work order title
+      const safeTitle = data.workOrder.title
+        .replace(/[^a-z0-9]/gi, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 50);
+      const dateStr = new Date().toISOString().split('T')[0];
+      const filename = `WorkOrder-${safeTitle}-${dateStr}.pdf`;
+      
+      // Get the PDF as a Blob
+      const blob = pdf.output('blob');
+      
+      return { blob, filename };
+    } catch (error) {
+      logger.error('Error generating work order PDF blob:', error);
+      throw error;
+    }
+  }
 }
 
 /**
  * Convenience function to generate and download a work order PDF
  */
 export const generateWorkOrderPDF = WorkOrderReportPDFGenerator.generateAndDownload;
+
+/**
+ * Convenience function to generate a work order PDF and return it as a Blob
+ */
+export const generateWorkOrderPDFBlob = WorkOrderReportPDFGenerator.generateAndGetBlob;

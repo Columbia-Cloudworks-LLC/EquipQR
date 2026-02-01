@@ -33,6 +33,7 @@ import { ReportExportDialog } from '@/features/reports/components/ReportExportDi
 import { WorkOrderExcelExportDialog } from '@/features/work-orders/components/WorkOrderExcelExportDialog';
 import { useReportRecordCount, useReportExportDialog } from '@/features/reports/hooks/useReportExport';
 import { useWorkOrderExcelExport, useWorkOrderExcelCount } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
+import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
 import { REPORT_CARDS, getDefaultColumns } from '@/features/reports/constants/reportColumns';
 import type { ReportType, ExportFilters } from '@/features/reports/types/reports';
 import type { WorkOrderExcelFilters } from '@/features/work-orders/types/workOrderExcel';
@@ -240,7 +241,14 @@ const Reports: React.FC = () => {
     bulkExport,
     isBulkExporting,
     bulkExportError,
+    exportToSheets,
+    isExportingToSheets,
   } = useWorkOrderExcelExport(currentOrganization?.id, currentOrganization?.name ?? '');
+  
+  // Google Workspace connection status (for showing "Export to Google Sheets" option)
+  const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
+    organizationId: currentOrganization?.id,
+  });
   
   // CSV Export dialog handler
   const { handleExport } = useReportExportDialog(
@@ -318,13 +326,17 @@ const Reports: React.FC = () => {
   }, [currentOrganization, handleExport, selectedReportType, filters]);
   
   const handleExcelExport = useCallback(async (newFilters: WorkOrderExcelFilters) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/dece0c0f-f48c-4b45-82b0-a159d2db0b86',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Reports.tsx:handleExcelExport',message:'Excel export triggered',data:{filters:newFilters},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     setExcelFilters(newFilters);
     bulkExport(newFilters);
     setExcelExportDialogOpen(false);
   }, [bulkExport]);
+  
+  const handleExportToSheets = useCallback((newFilters: WorkOrderExcelFilters) => {
+    setExcelFilters(newFilters);
+    exportToSheets(newFilters);
+    // Don't close dialog immediately - let the user see the loading state
+    // The dialog will be closed when they click Cancel or the export completes
+  }, [exportToSheets]);
   
   // Get title for selected report type
   const getReportTitle = (type: ReportType) => {
@@ -471,6 +483,9 @@ const Reports: React.FC = () => {
         onExport={handleExcelExport}
         isExporting={isBulkExporting}
         exportError={bulkExportError}
+        isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
+        onExportToSheets={handleExportToSheets}
+        isExportingToSheets={isExportingToSheets}
       />
     </Page>
   );
