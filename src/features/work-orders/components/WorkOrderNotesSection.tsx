@@ -152,6 +152,9 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     return note.author_id === user?.id;
   });
 
+  // Derive user display name for clipboard paste fallback
+  const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+
   if (isLoading) {
     return (
       <Card className="shadow-elevation-2">
@@ -203,6 +206,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
               disabled={createNoteMutation.isPending}
               isSubmitting={createNoteMutation.isPending}
               placeholder="Enter your note..."
+              userDisplayName={userDisplayName}
             />
           </CardContent>
         </Card>

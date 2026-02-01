@@ -156,6 +156,9 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     return numHours > 0 ? `${numHours}h` : '';
   };
 
+  // Derive user display name for clipboard paste fallback
+  const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+
   if (notesLoading) {
     return (
       <Card>
@@ -207,6 +210,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
               disabled={createNoteMutation.isPending}
               isSubmitting={createNoteMutation.isPending}
               placeholder="Enter your note..."
+              userDisplayName={userDisplayName}
             />
           </CardContent>
         </Card>

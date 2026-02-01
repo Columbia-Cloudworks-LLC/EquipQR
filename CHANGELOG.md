@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Clipboard Image Paste for Notes**: InlineNoteComposer now supports pasting images directly from the clipboard (GitHub-style), enabling technicians to paste screenshots or mixed content from PDFs and Word documents into Equipment Records and Work Order notes
+  - Intercept paste event on the notes textarea; extract image files from `clipboardData.items`
+  - Reuse existing file validation (type, size, max images) and thumbnail display
+  - Mixed content: append pasted text alongside images when both are present
+  - Fallback message when pasting images only: `"{n} image(s) uploaded on {timestamp} by {user}"`
+  - Works in Equipment Notes, Work Order Notes (desktop and mobile)
+
 - **Google Workspace Export Integration**: Work order exports can now be sent directly to Google Workspace when the organization has Google Workspace connected
   - **Export to Google Sheets**: New `export-work-orders-to-google-sheets` Edge Function creates a multi-worksheet spreadsheet (Summary, Labor Detail, Materials & Costs, PM Checklists, Timeline, Equipment) in Google Sheets
   - **Save PDF to Google Drive**: New `upload-to-google-drive` Edge Function uploads work order PDFs to the user's Google Drive

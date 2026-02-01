@@ -89,6 +89,8 @@ export interface InlineNoteComposerProps {
   acceptedImageTypes?: string[];
   /** Maximum file size in bytes (default: 10MB) */
   maxFileSize?: number;
+  /** User display name for fallback message when pasting images without text */
+  userDisplayName?: string;
 }
 
 const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
@@ -107,6 +109,7 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
   maxImages = 5,
   acceptedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
   maxFileSize = 10 * 1024 * 1024, // 10MB
+  userDisplayName,
 }) => {
   const [hoursWorked, setHoursWorked] = useState<number>(0);
   const [machineHours, setMachineHours] = useState<number>(0);
@@ -173,6 +176,61 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
     handleFilesAdd(files);
   }, [handleFilesAdd]);
 
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    // Don't process paste when disabled
+    if (disabled || isSubmitting) return;
+
+    const clipboardData = e.clipboardData;
+    if (!clipboardData) return;
+
+    // Extract image files from clipboard
+    const imageFiles: File[] = [];
+    for (let i = 0; i < clipboardData.items.length; i++) {
+      const item = clipboardData.items[i];
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          // Normalize filename for clipboard images (often have empty or generic names)
+          const normalizedFile = file.name && file.name !== 'image.png'
+            ? file
+            : new File([file], `pasted-image-${Date.now()}.${file.type.split('/')[1] || 'png'}`, { type: file.type });
+          imageFiles.push(normalizedFile);
+        }
+      }
+    }
+
+    // If no images in clipboard, allow default text paste
+    if (imageFiles.length === 0) return;
+
+    // Prevent default paste behavior when images are present
+    e.preventDefault();
+
+    // Extract text from clipboard
+    const pastedText = clipboardData.getData('text/plain');
+
+    // Add images via existing handler (validates type, size, maxImages)
+    handleFilesAdd(imageFiles);
+
+    // Handle text content
+    if (pastedText) {
+      // Append text with proper line break if needed
+      const separator = value && !value.endsWith('\n') ? '\n' : '';
+      onChange(value + separator + pastedText);
+    } else if (userDisplayName) {
+      // Generate fallback string when pasting images only (no text)
+      const imageCount = imageFiles.length;
+      const timestamp = new Date().toISOString();
+      const fallbackText = imageCount === 1
+        ? `1 image uploaded on ${timestamp} by ${userDisplayName}`
+        : `${imageCount} images uploaded on ${timestamp} by ${userDisplayName}`;
+      
+      // Only set fallback if note is currently empty
+      if (!value.trim()) {
+        onChange(fallbackText);
+      }
+    }
+  }, [disabled, isSubmitting, handleFilesAdd, value, onChange, userDisplayName]);
+
   const handleRemoveImage = useCallback((index: number) => {
     onImageRemove?.(index);
   }, [onImageRemove]);
@@ -227,6 +285,7 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onPaste={handlePaste}
           placeholder={placeholder}
           disabled={disabled || isSubmitting}
           rows={3}
