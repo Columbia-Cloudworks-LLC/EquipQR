@@ -17,7 +17,7 @@ Review all of the unresolved comments on the pull request. Use a cursor subagent
    - For the remaining issues, sort them by priority using a table
 
 3. **Launch Subagents**
-   - For each issue, launch a seperate subagent to address it
+   - For each issue, launch a separate subagent to address it
 
 4. **Test Changes**
    - Run all tests and fix any warnings, failures, or issues present.
