@@ -24,7 +24,7 @@ Review all of the unresolved comments on the pull request. Use a cursor subagent
 
 5. **Commit & Push**
    - Once all of the issues have been addressed, commit the changes.
-   - Once the changes have been commited, push the changes to the remote repository.
+   - Once the changes have been committed, push the changes to the remote repository.
 
 6. **Generate PR Comment**
    - Summarize the changes that were made.
