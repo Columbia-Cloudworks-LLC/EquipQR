@@ -29,6 +29,7 @@ export interface EquipmentData {
   serial_number?: string;
   status: 'active' | 'maintenance' | 'inactive';
   location?: string;
+  team_id?: string | null;
 }
 
 export interface PMData {

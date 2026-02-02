@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { 
   CheckCircle, 
   Play, 
@@ -11,11 +13,14 @@ import {
   User, 
   Users, 
   AlertTriangle,
-  Clipboard
+  Clipboard,
+  Shield
 } from 'lucide-react';
 import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
+import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
 import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
+import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 import { useAuth } from '@/hooks/useAuth';
 
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
@@ -32,6 +37,10 @@ type StatusWorkOrder = {
   teamName?: string | null;
   acceptance_date?: string | null;
   completed_date?: string | null;
+  // Required for contextual assignment
+  organization_id?: string;
+  equipment_id?: string;
+  equipmentTeamId?: string | null;
 };
 
 interface StatusAction {
@@ -53,10 +62,21 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   organizationId
 }) => {
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
+  const [selectedAssigneeForStart, setSelectedAssigneeForStart] = useState<string>('');
   const updateStatusMutation = useUpdateWorkOrderStatus();
+  const acceptanceMutation = useWorkOrderAcceptance();
   const { data: pmData } = usePMByWorkOrderId(workOrder.id);
   const { isManager, isTechnician } = useWorkOrderPermissionLevels();
   const { user } = useAuth();
+  
+  // Build context for contextual assignment - needed for accepted status
+  const assignmentContext: AssignmentWorkOrderContext = {
+    id: workOrder.id,
+    organization_id: workOrder.organization_id || organizationId,
+    equipment_id: workOrder.equipment_id,
+    equipmentTeamId: workOrder.equipmentTeamId
+  };
+  const { assignmentOptions, isLoading: assignmentLoading, equipmentHasNoTeam } = useWorkOrderContextualAssignment(assignmentContext);
 
   const handleStatusChange = async (newStatus: WorkOrderStatus) => {
     // Check if trying to complete work order with incomplete PM
@@ -83,16 +103,34 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     }
   };
 
-  const handleAcceptanceComplete = async () => {
+  const handleAcceptanceComplete = async (assigneeId?: string) => {
     try {
-      await updateStatusMutation.mutateAsync({
+      // Use the acceptance mutation which properly handles assignee assignment
+      await acceptanceMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: 'accepted',
-        organizationId
+        organizationId,
+        assigneeId
       });
       setShowAcceptanceModal(false);
     } catch (error) {
       console.error('Error accepting work order:', error);
+    }
+  };
+
+  // Handler for assigning and starting work order from accepted status
+  const handleAssignAndStart = async () => {
+    if (!selectedAssigneeForStart) return;
+    
+    try {
+      await updateStatusMutation.mutateAsync({
+        workOrderId: workOrder.id,
+        status: 'in_progress',
+        organizationId,
+        assigneeId: selectedAssigneeForStart
+      });
+      setSelectedAssigneeForStart(''); // Reset after successful update
+    } catch (error) {
+      console.error('Error assigning and starting work order:', error);
     }
   };
 
@@ -132,15 +170,10 @@ const getStatusActions = (): StatusAction[] => {
       }
 
       case 'accepted':
+        // For accepted status, we render the assignment UI separately (dropdown + Start button)
+        // Only return the Cancel action here
         if (!isManager && !isTechnician) return [];
         return [
-          { 
-            label: 'Assign & Start', 
-            action: () => handleStatusChange('in_progress'), 
-            icon: Play,
-            variant: 'secondary' as const,
-            description: 'Assign to team member and start work'
-          },
           { 
             label: 'Cancel', 
             action: () => handleStatusChange('cancelled'), 
@@ -292,6 +325,65 @@ const getStatusActions = (): StatusAction[] => {
             </Alert>
           )}
 
+          {/* Inline Assignment + Start for Accepted Status */}
+          {workOrder.status === 'accepted' && (isManager || isTechnician) && (
+            <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Assign to start work</Label>
+                {equipmentHasNoTeam && (
+                  <p className="text-xs text-muted-foreground">
+                    Equipment has no team. Showing organization admins.
+                  </p>
+                )}
+                <Select
+                  value={selectedAssigneeForStart}
+                  onValueChange={setSelectedAssigneeForStart}
+                  disabled={assignmentLoading || updateStatusMutation.isPending}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={assignmentLoading ? "Loading..." : "Select assignee..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assignmentOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        <div className="flex items-center gap-2">
+                          {option.role === 'owner' || option.role === 'admin' ? (
+                            <Shield className="h-4 w-4" />
+                          ) : (
+                            <User className="h-4 w-4" />
+                          )}
+                          <div>
+                            <span>{option.name}</span>
+                            {option.role && (
+                              <span className="text-xs text-muted-foreground ml-1">
+                                ({option.role})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                onClick={handleAssignAndStart}
+                disabled={!selectedAssigneeForStart || updateStatusMutation.isPending}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                {updateStatusMutation.isPending ? 'Starting...' : 'Start Work'}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                {selectedAssigneeForStart 
+                  ? 'Click "Start Work" to assign and begin working on this order'
+                  : 'Select an assignee to enable starting work'}
+              </p>
+            </div>
+          )}
+
           {/* Status Actions */}
           {statusActions.length > 0 && (
             <div className="space-y-2">
@@ -306,7 +398,7 @@ const getStatusActions = (): StatusAction[] => {
                         size="sm"
                         className="w-full justify-start"
                         onClick={action.action}
-                        disabled={updateStatusMutation.isPending || action.disabled}
+                        disabled={updateStatusMutation.isPending || acceptanceMutation.isPending || action.disabled}
                       >
                         <IconComponent className="h-4 w-4 mr-2" />
                         {action.label}

@@ -277,16 +277,19 @@ export const useUpdateWorkOrderStatus = () => {
     mutationFn: async ({
       workOrderId,
       status,
-      organizationId
+      organizationId,
+      assigneeId
     }: {
       workOrderId: string;
       status: string;
       organizationId: string;
+      assigneeId?: string | null;
     }) => {
       const service = new WorkOrderService(organizationId);
       const response = await service.updateStatus(
         workOrderId, 
-        status as 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
+        status as 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled',
+        assigneeId
       );
 
       if (!response.success) {

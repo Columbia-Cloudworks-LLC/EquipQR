@@ -45,6 +45,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **basicDateFormatter**: Removed `src/utils/basicDateFormatter.ts` and its test file; date formatting consolidated into `date-fns` usage and `src/config/date-formats.ts`
 
+### Fixed
+
+- **Assign & Start Work Orders** (#537): Resolved assignment and start flow issues on work order details
+  - **Accept flow**: Work Order Details sidebar now uses `useWorkOrderAcceptance` so the assignee selected in the Accept modal is persisted (previously ignored)
+  - **Assign & Start**: Replaced single "Assign & Start" button with inline assignee dropdown and "Start Work" button; assignment is required before starting (Start disabled until assignee selected)
+  - **Status update with assignee**: `useUpdateWorkOrderStatus` and `WorkOrderService.updateStatus` now accept optional `assigneeId` so assign + start updates both in one call
+  - **Equipment with no team**: `useWorkOrderContextualAssignment` now returns organization admins when equipment has no team (previously showed only "Unassign"), matching WorkOrderAcceptanceModal behavior
+  - **Equipment context**: Work Order Details sidebar passes `equipmentTeamId` to WorkOrderStatusManager for contextual assignment
+
 ## [2.2.2] - 2026-01-27
 
 ### Added
