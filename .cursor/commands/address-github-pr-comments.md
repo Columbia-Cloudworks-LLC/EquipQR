@@ -1,4 +1,4 @@
-# Adress GitHub PR Comments
+# Address GitHub PR Comments
 
 ## Overview
 
