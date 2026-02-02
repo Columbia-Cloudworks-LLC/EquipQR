@@ -590,15 +590,19 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
         notes?: string;
       }> = [];
 
+      const rawData = woPM.checklist_data;
       try {
-        const rawData = woPM.checklist_data;
         if (typeof rawData === 'string') {
           checklistItems = JSON.parse(rawData);
         } else if (Array.isArray(rawData)) {
           checklistItems = rawData;
         }
-      } catch {
-        console.error('Error parsing PM checklist data');
+      } catch (error) {
+        console.error('Error parsing PM checklist data', {
+          workOrderId: wo.id,
+          rawType: typeof rawData,
+          error,
+        });
       }
 
       for (const item of checklistItems) {
