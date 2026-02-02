@@ -380,7 +380,7 @@ export class WorkOrderService extends BaseService {
         updated_at: new Date().toISOString()
       };
 
-      // Set assignee_id if provided
+      // Set assignee_id if provided (undefined = don't change; null = unassign; string = assign)
       if (assigneeId !== undefined) {
         updateData.assignee_id = assigneeId;
       }
@@ -390,8 +390,9 @@ export class WorkOrderService extends BaseService {
         updateData.completed_date = new Date().toISOString();
       }
 
-      // Set acceptance_date if transitioning to accepted or assigned with assignee
-      if (status === 'accepted' || (status === 'assigned' && assigneeId)) {
+      // Set acceptance_date when transitioning to accepted, or when assigning to a valid assignee
+      const hasValidAssignee = assigneeId != null && assigneeId !== '';
+      if (status === 'accepted' || (status === 'assigned' && hasValidAssignee)) {
         updateData.acceptance_date = new Date().toISOString();
       }
 

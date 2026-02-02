@@ -40,7 +40,8 @@ BEGIN
   FROM equipment
   WHERE id = p_equipment_id AND organization_id = p_organization_id;
 
-  -- If equipment has no team, only org admins (already allowed above) are valid; others are not
+  -- If equipment has no team: only org admins/owners (already allowed above) are valid.
+  -- Regular team members (manager/technician) cannot be assigned when equipment has no team.
   IF v_team_id IS NULL THEN
     RETURN FALSE;
   END IF;

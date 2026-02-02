@@ -223,7 +223,7 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
       const imageCount = imageFiles.length;
       const timestamp = format(new Date(), DATE_TIME_DISPLAY_FORMAT);
       const fallbackText = imageCount === 1
-        ? `1 image uploaded on ${timestamp} by ${userDisplayName}`
+        ? `Image uploaded on ${timestamp} by ${userDisplayName}`
         : `${imageCount} images uploaded on ${timestamp} by ${userDisplayName}`;
       
       // Only set fallback if note is currently empty

@@ -9,12 +9,10 @@ function getChangelogHref(appVersion: string) {
   const trimmed = (appVersion || '').trim();
 
   let ref = 'main';
-  if (/^v\d+\.\d+\.\d+$/.test(trimmed)) {
-    ref = trimmed;
-  } else if (/^\d+\.\d+\.\d+$/.test(trimmed)) {
-    ref = `v${trimmed}`;
+  if (/^v?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(trimmed)) {
+    ref = trimmed.startsWith('v') ? trimmed : `v${trimmed}`;
   } else {
-    const m = trimmed.match(/^v?(\d+\.\d+\.\d+)/);
+    const m = trimmed.match(/^v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/);
     if (m?.[1]) ref = `v${m[1]}`;
   }
 
