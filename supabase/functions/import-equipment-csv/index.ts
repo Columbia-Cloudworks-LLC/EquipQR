@@ -365,10 +365,12 @@ async function handleImport(
       .insert(toInsert);
 
     if (insertError) {
+      const detailParts = [insertError.message, insertError.details, insertError.hint].filter(Boolean);
+      const bulkReason = `Bulk insert failed: ${detailParts.join(' | ')}`;
       // Bulk insert failed; mark all insert rows as failed
       for (const rowIndex of toInsertRowIndices) {
         failed++;
-        failures.push({ row: rowIndex + 1, reason: insertError.message });
+        failures.push({ row: rowIndex + 1, reason: bulkReason });
       }
     } else {
       created = toInsert.length;

@@ -8,7 +8,6 @@
  * Uses raw fetch to Google Sheets API to keep bundle size small.
  */
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
   createUserSupabaseClient,
   createAdminSupabaseClient,

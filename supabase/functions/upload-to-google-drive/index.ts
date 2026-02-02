@@ -25,7 +25,6 @@ import {
 } from "../_shared/google-workspace-token.ts";
 
 const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
-const DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files";
 
 // Maximum file size: 15 MB (base64 adds ~33% overhead, so ~11 MB original)
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
@@ -279,7 +278,10 @@ Deno.serve(async (req) => {
       const binaryString = atob(contentBase64);
       fileBytes = Uint8Array.from(binaryString, c => c.charCodeAt(0));
     } catch {
-      return createErrorResponse("Invalid base64 content", 400);
+      return createErrorResponse(
+        "Invalid base64 content. The file data may be corrupted or incorrectly encoded.",
+        400
+      );
     }
     
     logStep("Uploading file to Drive", { filename: sanitizedFilename, size: fileBytes.length });
