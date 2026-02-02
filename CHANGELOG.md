@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Voice-to-Text for Technician Notes** (#531): Native browser speech-to-text for hands-free note entry, designed for technicians with dirty hands or gloves
+  - Mic button appears next to "Description/Notes" label in Equipment form and "Description" field in Work Order Request form
+  - Uses browser's native Web Speech API (100% client-side, no external API costs)
+  - Real-time interim transcript overlay while speaking; final transcript appended to existing text
+  - Toggle button shows "Voice" / "Stop" with `Mic` / `MicOff` icons
+  - Graceful degradation: button hidden in unsupported browsers (Firefox)
+  - Clear error messages for permission denied, no microphone, etc.
+  - New `useSpeechToText` hook encapsulates feature detection, start/stop controls, and cleanup
+  - TypeScript declarations added for Web Speech API (`src/types/speech-recognition.d.ts`)
+
 - **Clipboard Image Paste for Notes**: InlineNoteComposer now supports pasting images directly from the clipboard (GitHub-style), enabling technicians to paste screenshots or mixed content from PDFs and Word documents into Equipment Records and Work Order notes
   - Intercept paste event on the notes textarea; extract image files from `clipboardData.items`
   - Reuse existing file validation (type, size, max images) and thumbnail display

@@ -15,6 +15,7 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String) {
           path
           line
           originalLine
+          diffHunk
           comments(first: 50) {
             nodes {
               id
