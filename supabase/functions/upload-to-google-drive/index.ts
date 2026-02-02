@@ -209,10 +209,18 @@ Deno.serve(async (req) => {
     
     const { organizationId, filename, contentBase64, mimeType = "application/pdf" } = body;
     
-    // Validate required fields
+    // Validate organizationId first (before verifyOrgAdmin)
     if (!organizationId) {
       return createErrorResponse("Missing required field: organizationId", 400);
     }
+    
+    // Verify user has admin/owner role in the organization
+    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
+    if (!isAdmin) {
+      return createErrorResponse("Forbidden: Only owners and admins can upload to Drive", 403);
+    }
+    
+    // Validate other required fields
     if (!filename) {
       return createErrorResponse("Missing required field: filename", 400);
     }
@@ -234,12 +242,6 @@ Deno.serve(async (req) => {
       mimeType,
       contentLength: contentBase64.length,
     });
-    
-    // Verify user has admin/owner role in the organization
-    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can upload to Drive", 403);
-    }
     
     // Get Google Workspace access token
     const adminClient = createAdminSupabaseClient();

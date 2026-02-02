@@ -589,6 +589,7 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
         required: boolean;
         notes?: string;
       }> = [];
+      let parseError: Error | null = null;
 
       const rawData = woPM.checklist_data;
       try {
@@ -598,10 +599,37 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
           checklistItems = rawData;
         }
       } catch (error) {
+        parseError = error instanceof Error ? error : new Error(String(error));
+        const rawDataSnippet = typeof rawData === 'string' 
+          ? rawData.substring(0, 200) 
+          : String(rawData).substring(0, 200);
+        
         console.error('Error parsing PM checklist data', {
           workOrderId: wo.id,
+          workOrderTitle: wo.title,
           rawType: typeof rawData,
-          error,
+          rawDataLength: typeof rawData === 'string' ? rawData.length : 'N/A',
+          rawDataSnippet,
+          errorMessage: parseError.message,
+          errorStack: parseError.stack,
+        });
+      }
+
+      // If parsing failed, add a warning row to indicate the issue
+      if (parseError) {
+        pmRows.push({
+          workOrderId: truncateId(wo.id),
+          workOrderTitle: wo.title,
+          equipmentName: equipment?.name || '',
+          pmStatus: woPM.status?.replace(/_/g, ' ').toUpperCase() || '',
+          completedDate: formatDateTime(woPM.completed_at),
+          section: 'PARSE ERROR',
+          itemTitle: 'Unable to parse checklist data',
+          condition: null,
+          conditionText: 'Not Rated',
+          required: false,
+          itemNotes: `Parse error: ${parseError.message}`,
+          generalNotes: woPM.notes ? `${woPM.notes}\n\n[WARNING: Checklist data could not be parsed]` : '[WARNING: Checklist data could not be parsed]',
         });
       }
 

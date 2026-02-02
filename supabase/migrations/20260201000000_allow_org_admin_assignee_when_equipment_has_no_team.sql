@@ -5,7 +5,7 @@
 -- FALSE when equipment had no team before checking org admin, which caused assignment
 -- to fail silently (trigger raised, update rolled back).
 --
--- Option A: Check org admin/owner first; if true, return TRUE regardless of equipment team.
+-- Approach: Check org admin/owner first; if true, return TRUE regardless of equipment team.
 
 CREATE OR REPLACE FUNCTION public.is_valid_work_order_assignee(
   p_equipment_id UUID,
@@ -59,6 +59,16 @@ BEGIN
   RETURN FALSE;
 END;
 $$;
+
+-- RLS Policy Verification Note:
+-- This function is used by the trigger trg_validate_work_order_assignee (via validate_work_order_assignee())
+-- to validate work order assignees before INSERT/UPDATE operations. While this function is SECURITY DEFINER
+-- and properly validates assignment rules, ensure that:
+-- 1. RLS policies on the work_orders table allow updates when this validation function returns TRUE
+-- 2. The trigger trg_validate_work_order_assignee properly blocks invalid assignments by raising exceptions
+-- 3. The trigger function validate_work_order_assignee() correctly calls this function and handles its return value
+-- The trigger raises a check_violation exception when validation fails, which should prevent invalid assignments
+-- even if RLS policies would otherwise allow the update.
 
 -- Keep existing grant and comment
 GRANT EXECUTE ON FUNCTION public.is_valid_work_order_assignee(UUID, UUID, UUID) TO authenticated;

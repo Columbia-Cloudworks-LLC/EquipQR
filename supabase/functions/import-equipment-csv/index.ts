@@ -366,7 +366,8 @@ async function handleImport(
 
     if (insertError) {
       const detailParts = [insertError.message, insertError.details, insertError.hint].filter(Boolean);
-      const bulkReason = `Bulk insert failed: ${detailParts.join(' | ')}`;
+      const errorDetails = detailParts.join(' | ');
+      const bulkReason = `Bulk insert failed for ${toInsert.length} row${toInsert.length === 1 ? '' : 's'}. Error: ${errorDetails}. All rows in this batch were affected.`;
       // Bulk insert failed; mark all insert rows as failed
       for (const rowIndex of toInsertRowIndices) {
         failed++;
