@@ -369,21 +369,29 @@ export class WorkOrderService extends BaseService {
 
   /**
    * Update work order status
+   * @param id - Work order ID
+   * @param status - New status
+   * @param assigneeId - Optional assignee ID to set alongside status update
    */
-  async updateStatus(id: string, status: WorkOrder['status']): Promise<ApiResponse<WorkOrder>> {
+  async updateStatus(id: string, status: WorkOrder['status'], assigneeId?: string | null): Promise<ApiResponse<WorkOrder>> {
     try {
       const updateData: Partial<WorkOrderRow> = { 
         status,
         updated_at: new Date().toISOString()
       };
 
+      // Set assignee_id if provided
+      if (assigneeId !== undefined) {
+        updateData.assignee_id = assigneeId;
+      }
+
       // Set completed_date if transitioning to completed
       if (status === 'completed') {
         updateData.completed_date = new Date().toISOString();
       }
 
-      // Set acceptance_date if transitioning to accepted
-      if (status === 'accepted') {
+      // Set acceptance_date if transitioning to accepted or assigned with assignee
+      if (status === 'accepted' || (status === 'assigned' && assigneeId)) {
         updateData.acceptance_date = new Date().toISOString();
       }
 

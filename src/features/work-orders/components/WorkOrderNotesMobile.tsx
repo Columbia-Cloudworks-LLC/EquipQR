@@ -9,6 +9,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import InlineNoteComposer from '@/components/common/InlineNoteComposer';
+import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 
 interface WorkOrderNotesMobileProps {
@@ -27,10 +28,14 @@ export const WorkOrderNotesMobile: React.FC<WorkOrderNotesMobileProps> = ({
   onAddNote,
   autoOpenForm = false
 }) => {
+  const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(autoOpenForm);
   const [noteContent, setNoteContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Derive user display name for clipboard paste fallback
+  const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
 
   const handleNoteSubmit = async (data: {
     content: string;
@@ -109,6 +114,7 @@ export const WorkOrderNotesMobile: React.FC<WorkOrderNotesMobileProps> = ({
                 disabled={isSubmitting}
                 isSubmitting={isSubmitting}
                 placeholder="Enter your note..."
+                userDisplayName={userDisplayName}
               />
             </CollapsibleContent>
           </Collapsible>

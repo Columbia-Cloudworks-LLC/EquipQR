@@ -2,15 +2,32 @@ import { useCallback, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { supabase } from '@/integrations/supabase/client';
 import { getWorkOrderNotesWithImages } from '@/features/work-orders/services/workOrderNotesService';
 import { getWorkOrderCosts } from '@/features/work-orders/services/workOrderCostsService';
 import { 
-  generateWorkOrderPDF, 
+  generateWorkOrderPDF,
+  generateWorkOrderPDFBlob,
   type WorkOrderPDFData,
   type WorkOrderForPDF,
   type EquipmentForPDF
 } from '@/features/work-orders/services/workOrderReportPDFService';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
+
+/** Response from the upload-to-google-drive edge function */
+interface GoogleDriveUploadResponse {
+  id: string;
+  name: string;
+  mimeType: string;
+  webViewLink?: string;
+  webContentLink?: string;
+}
+
+/** Error response with optional code for handling insufficient scopes */
+interface DriveUploadErrorResponse {
+  error: string;
+  code?: string;
+}
 
 export interface UseWorkOrderPDFOptions {
   workOrder: WorkOrderForPDF;
@@ -28,8 +45,12 @@ export interface DownloadPDFOptions {
 export interface UseWorkOrderPDFReturn {
   /** Generate and download the PDF. Accepts optional options for customization. */
   downloadPDF: (options?: DownloadPDFOptions) => Promise<void>;
-  /** Whether PDF generation is in progress */
+  /** Generate the PDF and upload it to Google Drive. Requires Google Workspace connection. */
+  saveToDrive: (options?: DownloadPDFOptions) => Promise<void>;
+  /** Whether PDF generation/download is in progress */
   isGenerating: boolean;
+  /** Whether Google Drive upload is in progress */
+  isSavingToDrive: boolean;
 }
 
 /**
@@ -54,12 +75,13 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
   const organizationId = organization?.id;
   
   const [isGenerating, setIsGenerating] = useState(false);
-  // Use ref for the re-entry guard to avoid stale closure issues.
-  // The ref always has the current value, unlike state captured in callback closure.
-  // Note: The ref is reset in the finally block after PDF generation completes/fails.
-  // If the dialog is closed and reopened while generation is in progress, the guard
-  // will correctly block new requests until the current generation finishes.
+  const [isSavingToDrive, setIsSavingToDrive] = useState(false);
+  
+  // Use refs for the re-entry guards to avoid stale closure issues.
+  // The refs always have the current value, unlike state captured in callback closure.
+  // Note: The refs are reset in the finally blocks after operations complete/fail.
   const isGeneratingRef = useRef(false);
+  const isSavingToDriveRef = useRef(false);
 
   const downloadPDF = useCallback(async (downloadOptions?: DownloadPDFOptions) => {
     // Use ref for guard check to prevent race conditions from rapid clicks.
@@ -118,8 +140,124 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     }
   }, [workOrder, equipment, pmData, organizationName, organizationId]);
 
+  const saveToDrive = useCallback(async (downloadOptions?: DownloadPDFOptions) => {
+    // Use ref for guard check to prevent race conditions from rapid clicks.
+    if (isSavingToDriveRef.current) return;
+    
+    const { includeCosts = false } = downloadOptions || {};
+    
+    // Update both ref (for guard) and state (for UI)
+    isSavingToDriveRef.current = true;
+    setIsSavingToDrive(true);
+    
+    try {
+      // Fetch notes and costs (same as downloadPDF)
+      const notesPromise = getWorkOrderNotesWithImages(workOrder.id, organizationId).catch(err => {
+        logger.warn('Failed to fetch notes for PDF:', err);
+        return [];
+      });
+      
+      const costsPromise = includeCosts 
+        ? getWorkOrderCosts(workOrder.id, organizationId).catch(err => {
+            logger.warn('Failed to fetch costs for PDF:', err);
+            return [];
+          })
+        : Promise.resolve([]);
+
+      const [notes, costs] = await Promise.all([notesPromise, costsPromise]);
+
+      // Prepare PDF data
+      const pdfData: WorkOrderPDFData = {
+        workOrder,
+        equipment,
+        organizationName,
+        notes,
+        costs,
+        pmData,
+        includeCosts
+      };
+
+      // Generate the PDF as a blob
+      const { blob, filename } = await generateWorkOrderPDFBlob(pdfData);
+      
+      // Convert blob to base64 for upload
+      const arrayBuffer = await blob.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const contentBase64 = btoa(binary);
+      
+      // Get auth token for the request
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('Not authenticated');
+      }
+      
+      if (!organizationId) {
+        throw new Error('Organization ID is required');
+      }
+      
+      // Upload to Google Drive via edge function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/upload-to-google-drive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          organizationId,
+          filename,
+          contentBase64,
+          mimeType: 'application/pdf',
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData: DriveUploadErrorResponse = await response.json().catch(() => ({ error: 'Unknown error' }));
+        
+        // Handle insufficient scopes error
+        if (errorData.code === 'insufficient_scopes' || errorData.code === 'not_connected') {
+          toast.error('Google Workspace Permissions Required', {
+            description: 'Please reconnect Google Workspace in Organization Settings to enable this feature.',
+          });
+          throw new Error(errorData.error);
+        }
+        
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+      
+      const result: GoogleDriveUploadResponse = await response.json();
+      
+      // Show success toast with link to open the file
+      toast.success('PDF saved to Google Drive', {
+        description: 'Click to open in Drive',
+        action: result.webViewLink ? {
+          label: 'Open',
+          onClick: () => window.open(result.webViewLink, '_blank', 'noopener,noreferrer'),
+        } : undefined,
+      });
+    } catch (error) {
+      logger.error('Error saving PDF to Google Drive:', error);
+      // Only show generic error if we haven't already shown a specific one
+      if (!(error instanceof Error && error.message.includes('Google Workspace'))) {
+        toast.error('Failed to save PDF to Google Drive. Please try again.');
+      }
+      throw error;
+    } finally {
+      isSavingToDriveRef.current = false;
+      setIsSavingToDrive(false);
+    }
+  }, [workOrder, equipment, pmData, organizationName, organizationId]);
+
   return {
     downloadPDF,
-    isGenerating
+    saveToDrive,
+    isGenerating,
+    isSavingToDrive,
   };
 };

@@ -9,6 +9,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Voice-to-Text for Technician Notes** (#531): Native browser speech-to-text for hands-free note entry, designed for technicians with dirty hands or gloves
+  - Mic button appears next to "Description/Notes" label in Equipment form and "Description" field in Work Order Request form
+  - Uses browser's native Web Speech API (100% client-side, no external API costs)
+  - Real-time interim transcript overlay while speaking; final transcript appended to existing text
+  - Toggle button shows "Voice" / "Stop" with `Mic` / `MicOff` icons
+  - Graceful degradation: button hidden in unsupported browsers (Firefox)
+  - Clear error messages for permission denied, no microphone, etc.
+  - New `useSpeechToText` hook encapsulates feature detection, start/stop controls, and cleanup
+  - TypeScript declarations added for Web Speech API (`src/types/speech-recognition.d.ts`)
+
+- **Clipboard Image Paste for Notes**: InlineNoteComposer now supports pasting images directly from the clipboard (GitHub-style), enabling technicians to paste screenshots or mixed content from PDFs and Word documents into Equipment Records and Work Order notes
+  - Intercept paste event on the notes textarea; extract image files from `clipboardData.items`
+  - Reuse existing file validation (type, size, max images) and thumbnail display
+  - Mixed content: append pasted text alongside images when both are present
+  - Fallback message when pasting images only: `"{n} image(s) uploaded on {timestamp} by {user}"`
+  - Works in Equipment Notes, Work Order Notes (desktop and mobile)
+
+- **Google Workspace Export Integration**: Work order exports can now be sent directly to Google Workspace when the organization has Google Workspace connected
+  - **Export to Google Sheets**: New `export-work-orders-to-google-sheets` Edge Function creates a multi-worksheet spreadsheet (Summary, Labor Detail, Materials & Costs, PM Checklists, Timeline, Equipment) in Google Sheets
+  - **Save PDF to Google Drive**: New `upload-to-google-drive` Edge Function uploads work order PDFs to the user's Google Drive
+  - Work Order Excel Export Dialog: Added "Export to Google Sheets" button when Google Workspace is connected
+  - Work Order PDF Export Dialog: Added "Save to Google Drive" button when Google Workspace is connected
+  - Reports page: Work Orders Excel export supports Google Sheets export
+  - Shared `_shared/google-workspace-token.ts` for Edge Functions to obtain Google Workspace access tokens
+  - Shared `_shared/work-orders-export-data.ts` for data fetching and row building reused by Excel and Google Sheets exports
+
+- **README Prerequisites**: New "Prerequisites (Accounts & Services)" section documenting required and optional external services (Supabase, Resend, Google, QuickBooks, Maps, hCaptcha, Web Push) with links to `env.example` and setup guide
+- **LegalFooter Changelog Link**: Version number in footer is now a clickable link to the release-specific CHANGELOG on GitHub; `getChangelogHref` resolves the correct ref for tagged releases vs dev builds
+- **SUPPORT.md**: New support documentation covering how to get help, where to report issues, and links to troubleshooting and docs
+- **Centralized Date Formats**: New `src/config/date-formats.ts` with `DATE_DISPLAY_FORMAT` and `DATE_TIME_DISPLAY_FORMAT` constants for consistent date formatting
+
+### Changed
+
+- **Google Workspace OAuth Scopes**: Expanded default OAuth scopes to include `spreadsheets` and `drive.file` for work order export features
+  - Organizations that connected before these scopes were added must reconnect Google Workspace in Organization Settings to use Export to Google Sheets and Save to Google Drive
+
+- **Work Order Form**: Migrated `useWorkOrderForm` from `useFormValidation` to `react-hook-form` with `zodResolver`; backward-compatible adapter preserves existing API; added error toast on form submission failure
+- **Equipment CSV Import**: Refactored `import-equipment-csv` Edge Function to a phased approach—map/validate, separate inserts vs updates, bulk insert for new equipment, parallel updates for merges—improving import performance
+- **Fleet Map Date Formatting**: Replaced `basicDateFormatter` usage with `date-fns` (`format`, `formatDistanceToNow`, `parseISO`) and `DATE_DISPLAY_FORMAT` from config
+
+### Removed
+
+- **basicDateFormatter**: Removed `src/utils/basicDateFormatter.ts` and its test file; date formatting consolidated into `date-fns` usage and `src/config/date-formats.ts`
+
+### Fixed
+
+- **Assign & Start Work Orders** (#537): Resolved assignment and start flow issues on work order details
+  - **Accept flow**: Work Order Details sidebar now uses `useWorkOrderAcceptance` so the assignee selected in the Accept modal is persisted (previously ignored)
+  - **Assign & Start**: Replaced single "Assign & Start" button with inline assignee dropdown and "Start Work" button; assignment is required before starting (Start disabled until assignee selected)
+  - **Status update with assignee**: `useUpdateWorkOrderStatus` and `WorkOrderService.updateStatus` now accept optional `assigneeId` so assign + start updates both in one call
+  - **Equipment with no team**: `useWorkOrderContextualAssignment` now returns organization admins when equipment has no team (previously showed only "Unassign"), matching WorkOrderAcceptanceModal behavior
+  - **Equipment context**: Work Order Details sidebar passes `equipmentTeamId` to WorkOrderStatusManager for contextual assignment
+
 ## [2.2.2] - 2026-01-27
 
 ### Added

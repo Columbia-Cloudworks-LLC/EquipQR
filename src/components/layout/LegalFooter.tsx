@@ -3,9 +3,28 @@ import { Link } from 'react-router-dom';
 import { ExternalLink } from '@/components/ui/external-link';
 import { APP_VERSION } from '@/lib/version';
 
+function getChangelogHref(appVersion: string) {
+  // Releases are tagged as `vX.Y.Z` by `.github/workflows/version-tag.yml`.
+  // If we're on a dev build or a non-tag-like version string, fall back to `main`.
+  const trimmed = (appVersion || '').trim();
+
+  let ref = 'main';
+  if (/^v\d+\.\d+\.\d+$/.test(trimmed)) {
+    ref = trimmed;
+  } else if (/^\d+\.\d+\.\d+$/.test(trimmed)) {
+    ref = `v${trimmed}`;
+  } else {
+    const m = trimmed.match(/^v?(\d+\.\d+\.\d+)/);
+    if (m?.[1]) ref = `v${m[1]}`;
+  }
+
+  return `https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/${ref}/CHANGELOG.md`;
+}
+
 export default function LegalFooter() {
   const currentYear = new Date().getFullYear();
   const appVersion = APP_VERSION;
+  const changelogHref = getChangelogHref(appVersion);
 
   return (
     <footer className="border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
@@ -14,7 +33,15 @@ export default function LegalFooter() {
           {/* Copyright section - stacked on mobile, inline on larger screens */}
           <div className="text-sm text-muted-foreground text-center sm:text-left">
             <span className="block sm:inline">
-              © {currentYear} EquipQR™ v{appVersion}
+              © {currentYear} EquipQR™{' '}
+              <ExternalLink
+                href={changelogHref}
+                className="text-muted-foreground hover:text-foreground transition-colors items-baseline no-underline hover:underline"
+                showIcon={false}
+                aria-label={`Release notes for EquipQR v${appVersion} (opens in a new tab)`}
+              >
+                v{appVersion}
+              </ExternalLink>
             </span>
             <span className="hidden sm:inline"> by </span>
             <span className="block sm:inline mt-1 sm:mt-0">

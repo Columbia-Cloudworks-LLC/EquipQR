@@ -43,6 +43,7 @@ This folder contains modular seed data files for local development. The files ar
 | `23_pm_template_compatibility_rules.sql` | PM template equipment compatibility |
 | `24_part_compatibility_rules.sql` | Part-equipment compatibility rules (~40 rules) |
 | `25_part_alternate_groups.sql` | Part alternate/interchange groups (10 groups, 30+ identifiers) |
+| `26_large_inventory.sql` | **Large-scale load testing data** (900 items, 150 groups, 623 identifiers) |
 
 ## Test Accounts
 
@@ -188,9 +189,58 @@ If you're seeing duplicate organizations or unexpected default org selection:
 1. Ensure `99_cleanup_trigger_orgs.sql` exists and lists all intended org IDs
 2. Run `npx supabase db reset` (not just `db seed`)
 
+## Large-Scale Load Testing Data
+
+The `26_large_inventory.sql` file contains auto-generated test data for load testing scenarios where organizations have hundreds of parts.
+
+### Data Summary
+
+| Type | Count | Description |
+|------|-------|-------------|
+| Inventory Items | 900 | Realistic parts across 18 categories |
+| Part Alternate Groups | 150 | Groups of interchangeable parts |
+| Part Identifiers | 623 | OEM and aftermarket part numbers |
+| Group Members | 623 | Links between identifiers and groups |
+
+### Distribution by Organization
+
+| Organization | Inventory Items | Alternate Groups |
+|--------------|-----------------|------------------|
+| Apex Construction | 300 | 50 |
+| Metro Equipment | 250 | 40 |
+| Valley Landscaping | 150 | 25 |
+| Industrial Rentals | 200 | 35 |
+
+### Categories (weighted by org type)
+
+- **Apex Construction**: Undercarriage, Hydraulics, Engine, Ground Engaging, Filters
+- **Metro Equipment**: Lift Parts, Batteries, Hydraulics, Safety, Tires & Wheels
+- **Valley Landscaping**: Landscaping, Filters, Fluids, Engine
+- **Industrial Rentals**: Forklift, Batteries, Tires & Wheels, Safety
+
+### Regenerating the Data
+
+To regenerate with different configurations:
+
+```bash
+# Edit CONFIG in scripts/generate-large-inventory-seed.ts, then run:
+npx tsx scripts/generate-large-inventory-seed.ts > supabase/seeds/26_large_inventory.sql
+```
+
+The script uses seeded random numbers for reproducibility - the same config produces identical output.
+
+### UUID Prefixes
+
+| Type | Prefix |
+|------|--------|
+| Inventory Items | `c10e8400` |
+| Part Identifiers | `c20e8400` |
+| Alternate Groups | `c30e8400` |
+| Group Members | `c40e8400` |
+
 ## Adding New Seed Data
 
-1. Create a new numbered file (e.g., `23_new_table.sql`)
+1. Create a new numbered file (e.g., `27_new_table.sql`)
 2. Ensure the number reflects dependency order
 3. Use `ON CONFLICT DO NOTHING` for idempotent inserts
 4. Use consistent UUID patterns (see existing files for prefix conventions)

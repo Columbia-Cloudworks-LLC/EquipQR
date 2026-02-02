@@ -1,7 +1,8 @@
 /**
  * Work Order Excel Export Hook
  * 
- * Provides functionality for both bulk and single work order Excel exports.
+ * Provides functionality for both bulk and single work order Excel exports,
+ * as well as export to Google Sheets for Google Workspace–connected organizations.
  */
 
 import { useState, useCallback } from 'react';
@@ -11,6 +12,19 @@ import { logger } from '@/utils/logger';
 import { useAppToast } from '@/hooks/useAppToast';
 import { generateSingleWorkOrderExcel } from '@/features/work-orders/services/workOrderExcelService';
 import type { WorkOrderExcelFilters } from '@/features/work-orders/types/workOrderExcel';
+
+/** Response from the export-work-orders-to-google-sheets function */
+interface GoogleSheetsExportResponse {
+  spreadsheetId: string;
+  spreadsheetUrl: string;
+  workOrderCount: number;
+}
+
+/** Error response with optional code for handling insufficient scopes */
+interface ExportErrorResponse {
+  error: string;
+  code?: string;
+}
 
 /**
  * Export work orders via edge function (bulk export)
@@ -53,6 +67,47 @@ async function exportWorkOrdersExcel(
   return new Blob([data], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
+}
+
+/**
+ * Export work orders to Google Sheets via edge function
+ */
+async function exportWorkOrdersToGoogleSheets(
+  organizationId: string,
+  filters: WorkOrderExcelFilters
+): Promise<GoogleSheetsExportResponse> {
+  logger.info('Initiating Google Sheets export', { organizationId });
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  
+  if (!accessToken) {
+    throw new Error('Not authenticated');
+  }
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const response = await fetch(`${supabaseUrl}/functions/v1/export-work-orders-to-google-sheets`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      organizationId,
+      filters,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData: ExportErrorResponse = await response.json().catch(() => ({ error: 'Unknown error' }));
+    
+    // Create a custom error that includes the code
+    const error = new Error(errorData.error || `HTTP ${response.status}`) as Error & { code?: string };
+    error.code = errorData.code;
+    throw error;
+  }
+
+  return await response.json();
 }
 
 /**
@@ -166,6 +221,42 @@ export function useWorkOrderExcelExport(
     },
   });
 
+  // Mutation for Google Sheets export
+  const sheetsExportMutation = useMutation({
+    mutationFn: async (filters: WorkOrderExcelFilters) => {
+      if (!organizationId) {
+        throw new Error('Organization ID is required');
+      }
+      return exportWorkOrdersToGoogleSheets(organizationId, filters);
+    },
+    onSuccess: (result) => {
+      // Open the spreadsheet in a new tab
+      window.open(result.spreadsheetUrl, '_blank', 'noopener,noreferrer');
+      toast({
+        title: 'Export Complete',
+        description: `Created Google Sheet with ${result.workOrderCount} work orders.`,
+      });
+    },
+    onError: (error: Error & { code?: string }) => {
+      logger.error('Google Sheets export error', error);
+      
+      // Check if this is an insufficient scopes error
+      if (error.code === 'insufficient_scopes' || error.code === 'not_connected') {
+        toast({
+          title: 'Google Workspace Permissions Required',
+          description: 'Please reconnect Google Workspace in Organization Settings to enable this feature.',
+          variant: 'error',
+        });
+      } else {
+        toast({
+          title: 'Export Failed',
+          description: error.message || 'Failed to export to Google Sheets',
+          variant: 'error',
+        });
+      }
+    },
+  });
+
   // Function for single work order export (client-side)
   const exportSingle = useCallback(
     async (workOrderId: string) => {
@@ -216,7 +307,7 @@ export function useWorkOrderExcelExport(
   );
 
   return {
-    // Bulk export
+    // Bulk export (Excel download)
     bulkExport: bulkExportMutation.mutate,
     bulkExportAsync: bulkExportMutation.mutateAsync,
     isBulkExporting: bulkExportMutation.isPending,
@@ -225,6 +316,12 @@ export function useWorkOrderExcelExport(
     // Single export
     exportSingle,
     isExportingSingle,
+
+    // Google Sheets export
+    exportToSheets: sheetsExportMutation.mutate,
+    exportToSheetsAsync: sheetsExportMutation.mutateAsync,
+    isExportingToSheets: sheetsExportMutation.isPending,
+    exportToSheetsError: sheetsExportMutation.error?.message ?? null,
   };
 }
 
