@@ -108,21 +108,25 @@ interface SpeechGrammarList {
   [index: number]: SpeechGrammar;
 }
 
+// eslint-disable-next-line no-var
 declare var SpeechRecognition: {
   prototype: SpeechRecognition;
   new (): SpeechRecognition;
 };
 
+// eslint-disable-next-line no-var
 declare var webkitSpeechRecognition: {
   prototype: SpeechRecognition;
   new (): SpeechRecognition;
 };
 
+// eslint-disable-next-line no-var
 declare var SpeechGrammarList: {
   prototype: SpeechGrammarList;
   new (): SpeechGrammarList;
 };
 
+// eslint-disable-next-line no-var
 declare var webkitSpeechGrammarList: {
   prototype: SpeechGrammarList;
   new (): SpeechGrammarList;

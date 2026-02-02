@@ -241,7 +241,6 @@ const Reports: React.FC = () => {
     bulkExport,
     isBulkExporting,
     bulkExportError,
-    exportToSheets,
     exportToSheetsAsync,
     isExportingToSheets,
   } = useWorkOrderExcelExport(currentOrganization?.id, currentOrganization?.name ?? '');

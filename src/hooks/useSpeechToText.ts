@@ -204,7 +204,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions): UseSpeechToTex
     // Start recognition
     try {
       recognition.start();
-    } catch (err) {
+    } catch {
       // Handle case where recognition is already started
       setError('Failed to start speech recognition. Please try again.');
       setIsListening(false);
