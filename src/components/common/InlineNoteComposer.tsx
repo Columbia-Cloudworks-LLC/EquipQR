@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Image, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { DATE_TIME_DISPLAY_FORMAT } from '@/config/date-formats';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
 
@@ -219,7 +221,7 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
     } else if (userDisplayName) {
       // Generate fallback string when pasting images only (no text)
       const imageCount = imageFiles.length;
-      const timestamp = new Date().toISOString();
+      const timestamp = format(new Date(), DATE_TIME_DISPLAY_FORMAT);
       const fallbackText = imageCount === 1
         ? `1 image uploaded on ${timestamp} by ${userDisplayName}`
         : `${imageCount} images uploaded on ${timestamp} by ${userDisplayName}`;
