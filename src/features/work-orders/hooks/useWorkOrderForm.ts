@@ -110,15 +110,22 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
   // Create validate adapter (async to properly await validation)
   const validateAdapter = useCallback(async (): Promise<{ isValid: boolean; errors: Record<string, string> }> => {
     const isValid = await trigger();
-    // Re-read errors from getValues context after trigger completes
+    // Use getFieldState to get fresh error state after trigger completes
+    // This avoids reading from stale closure-captured formState.errors
     const currentErrors: Record<string, string> = {};
-    for (const [key, error] of Object.entries(rhf.formState.errors)) {
-      if (error?.message) {
-        currentErrors[key] = error.message as string;
+    const fieldNames: (keyof WorkOrderFormData)[] = [
+      'title', 'description', 'equipmentId', 'priority', 'dueDate',
+      'estimatedHours', 'hasPM', 'pmTemplateId', 'assigneeId', 
+      'isHistorical', 'status', 'historicalStartDate', 'historicalNotes', 'completedDate'
+    ];
+    for (const fieldName of fieldNames) {
+      const fieldState = rhf.getFieldState(fieldName);
+      if (fieldState.error?.message) {
+        currentErrors[fieldName] = fieldState.error.message;
       }
     }
     return { isValid, errors: currentErrors };
-  }, [trigger, rhf.formState.errors]);
+  }, [trigger, rhf]);
 
   // Create validateField adapter (async to properly await validation)
   const validateFieldAdapter = useCallback(async (field: keyof WorkOrderFormData): Promise<boolean> => {

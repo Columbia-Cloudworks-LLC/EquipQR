@@ -16,6 +16,9 @@ import {
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
 
+/** Chunk size for bulk inserts - provides better error isolation while maintaining performance */
+const BULK_INSERT_CHUNK_SIZE = 50;
+
 interface MappedRow {
   name?: string;
   manufacturer?: string;
@@ -358,23 +361,31 @@ async function handleImport(
     }
   }
 
-  // Phase 3: Bulk insert all new equipment in a single DB call
+  // Phase 3: Bulk insert new equipment in chunks for better error isolation
   if (toInsert.length > 0) {
-    const { error: insertError } = await supabase
-      .from("equipment")
-      .insert(toInsert);
+    // Process inserts in chunks to isolate failures
+    for (let chunkStart = 0; chunkStart < toInsert.length; chunkStart += BULK_INSERT_CHUNK_SIZE) {
+      const chunkEnd = Math.min(chunkStart + BULK_INSERT_CHUNK_SIZE, toInsert.length);
+      const chunk = toInsert.slice(chunkStart, chunkEnd);
+      const chunkRowIndices = toInsertRowIndices.slice(chunkStart, chunkEnd);
 
-    if (insertError) {
-      const detailParts = [insertError.message, insertError.details, insertError.hint].filter(Boolean);
-      const errorDetails = detailParts.join(' | ');
-      const bulkReason = `Bulk insert failed for ${toInsert.length} row${toInsert.length === 1 ? '' : 's'}. Error: ${errorDetails}. All rows in this batch were affected.`;
-      // Bulk insert failed; mark all insert rows as failed
-      for (const rowIndex of toInsertRowIndices) {
-        failed++;
-        failures.push({ row: rowIndex + 1, reason: bulkReason });
+      const { error: insertError } = await supabase
+        .from("equipment")
+        .insert(chunk);
+
+      if (insertError) {
+        // Only mark rows in this chunk as failed
+        const detailParts = [insertError.message, insertError.details, insertError.hint].filter(Boolean);
+        const errorDetails = detailParts.join(' | ');
+        const chunkReason = `Bulk insert failed for chunk of ${chunk.length} row${chunk.length === 1 ? '' : 's'} (rows ${chunkRowIndices[0] + 1}-${chunkRowIndices[chunkRowIndices.length - 1] + 1}). Error: ${errorDetails}`;
+        for (const rowIndex of chunkRowIndices) {
+          failed++;
+          failures.push({ row: rowIndex + 1, reason: chunkReason });
+        }
+        // Continue processing remaining chunks
+      } else {
+        created += chunk.length;
       }
-    } else {
-      created = toInsert.length;
     }
   }
 

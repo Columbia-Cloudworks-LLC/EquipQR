@@ -390,7 +390,11 @@ export class WorkOrderService extends BaseService {
         updateData.completed_date = new Date().toISOString();
       }
 
-      // Set acceptance_date when transitioning to accepted, or when assigning to a valid assignee
+      // Set acceptance_date when transitioning to accepted, or when assigning to a valid assignee.
+      // NOTE: This intentionally does NOT update acceptance_date when re-assigning a work order
+      // that is already in 'in_progress' or other later statuses. The acceptance_date represents
+      // when the work order was initially accepted/assigned, not the most recent assignment change.
+      // Re-assignment tracking should be handled separately if needed (e.g., via audit logs).
       const hasValidAssignee = assigneeId != null && assigneeId !== '';
       if (status === 'accepted' || (status === 'assigned' && hasValidAssignee)) {
         updateData.acceptance_date = new Date().toISOString();

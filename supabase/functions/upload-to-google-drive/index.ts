@@ -23,6 +23,7 @@ import {
   GOOGLE_SCOPES,
   hasScope,
 } from "../_shared/google-workspace-token.ts";
+import { checkRateLimit } from "../_shared/work-orders-export-data.ts";
 
 const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
 
@@ -57,23 +58,36 @@ interface DriveFileResponse {
 
 /**
  * Sanitizes a filename to remove potentially dangerous characters.
+ * Only allows alphanumeric, dots, hyphens, underscores, and spaces.
+ * Blocks directory traversal patterns.
  */
 function sanitizeFilename(filename: string): string {
-  // Remove path separators and null bytes
-  let sanitized = filename.replace(/[/\\:\0]/g, "_");
+  // Strip all characters except alphanumeric, dots, hyphens, underscores, and spaces
+  let sanitized = filename.replace(/[^a-zA-Z0-9.\-_ ]/g, "_");
+  
+  // Block directory traversal patterns (.. sequences)
+  sanitized = sanitized.replace(/\.{2,}/g, "_");
   
   // Trim whitespace
   sanitized = sanitized.trim();
   
-  // Limit length
+  // Collapse multiple consecutive underscores/spaces
+  sanitized = sanitized.replace(/[_ ]{2,}/g, "_");
+  
+  // Limit length while preserving extension
   if (sanitized.length > MAX_FILENAME_LENGTH) {
-    const ext = sanitized.substring(sanitized.lastIndexOf("."));
-    const name = sanitized.substring(0, MAX_FILENAME_LENGTH - ext.length - 1);
-    sanitized = name + ext;
+    const lastDot = sanitized.lastIndexOf(".");
+    if (lastDot > 0) {
+      const ext = sanitized.substring(lastDot);
+      const name = sanitized.substring(0, MAX_FILENAME_LENGTH - ext.length - 1);
+      sanitized = name + ext;
+    } else {
+      sanitized = sanitized.substring(0, MAX_FILENAME_LENGTH);
+    }
   }
   
   // Ensure it has some content
-  if (!sanitized || sanitized === "." || sanitized === "..") {
+  if (!sanitized || sanitized === "." || sanitized === "_") {
     sanitized = "uploaded-file";
   }
   
@@ -185,8 +199,8 @@ Deno.serve(async (req) => {
     
     // Check content length header to reject oversized requests early
     const contentLength = req.headers.get("Content-Length");
-    if (contentLength && parseInt(contentLength, 10) > MAX_FILE_SIZE_BYTES) {
-      return createErrorResponse("File too large. Maximum size is 15 MB.", 413);
+    if (contentLength && parseInt(contentLength, 10) >= MAX_FILE_SIZE_BYTES) {
+      return createErrorResponse("File too large. File must be less than 15 MB.", 413);
     }
     
     // Create user-scoped client (RLS enforced)
@@ -220,6 +234,15 @@ Deno.serve(async (req) => {
       return createErrorResponse("Forbidden: Only owners and admins can upload to Drive", 403);
     }
     
+    // Check rate limit to prevent excessive uploads
+    const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
+    if (!rateLimitOk) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Please wait before uploading another file." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     // Validate other required fields
     if (!filename) {
       return createErrorResponse("Missing required field: filename", 400);
@@ -229,8 +252,8 @@ Deno.serve(async (req) => {
     }
     
     // Validate file size (base64 string length)
-    if (contentBase64.length > MAX_FILE_SIZE_BYTES) {
-      return createErrorResponse("File too large. Maximum size is 15 MB.", 413);
+    if (contentBase64.length >= MAX_FILE_SIZE_BYTES) {
+      return createErrorResponse("File too large. File must be less than 15 MB.", 413);
     }
     
     // Sanitize filename

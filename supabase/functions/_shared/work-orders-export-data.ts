@@ -7,7 +7,14 @@
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// Maximum rows per export to prevent abuse
+/**
+ * Maximum rows per export to prevent abuse.
+ * 
+ * IMPORTANT: If more work orders match the filters than this limit,
+ * the export will be truncated to the most recent 5000 work orders.
+ * Users should apply date range or other filters to reduce the result set
+ * if they need complete data for a specific period.
+ */
 export const MAX_WORK_ORDERS = 5000;
 
 // ============================================
@@ -326,6 +333,8 @@ export async function fetchWorkOrdersWithData(
   filters: WorkOrderExcelFilters
 ): Promise<WorkOrdersWithData> {
   // Build work orders query (avoiding embedded relationships due to schema cache issues)
+  // NOTE: Results are capped at MAX_WORK_ORDERS (5000) to prevent abuse.
+  // If more work orders match the filters, only the most recent 5000 are returned.
   let query = supabase
     .from('work_orders')
     .select(`
@@ -410,6 +419,9 @@ export async function fetchWorkOrdersWithData(
   }
 
   // Fetch notes
+  // Defense in depth: work_order_notes table does not have organization_id column.
+  // Security is ensured by: (1) workOrderIds are already filtered by organization_id above,
+  // and (2) RLS policies on work_order_notes enforce access through work_order ownership.
   const { data: notes } = await supabase
     .from('work_order_notes')
     .select('*')
@@ -429,6 +441,9 @@ export async function fetchWorkOrdersWithData(
   }
 
   // Fetch image counts
+  // Defense in depth: work_order_images table does not have organization_id column.
+  // Security is ensured by: (1) workOrderIds are already filtered by organization_id above,
+  // and (2) RLS policies on work_order_images enforce access through work_order ownership.
   const { data: images } = await supabase
     .from('work_order_images')
     .select('note_id')
@@ -442,6 +457,9 @@ export async function fetchWorkOrdersWithData(
   });
 
   // Fetch costs
+  // Defense in depth: work_order_costs table does not have organization_id column.
+  // Security is ensured by: (1) workOrderIds are already filtered by organization_id above,
+  // and (2) RLS policies on work_order_costs enforce access through work_order ownership.
   const { data: costs } = await supabase
     .from('work_order_costs')
     .select('*')
@@ -460,12 +478,17 @@ export async function fetchWorkOrdersWithData(
   }
 
   // Fetch PM data
+  // Defense in depth: preventative_maintenance has organization_id column, so we add explicit filter
   const { data: pmData } = await supabase
     .from('preventative_maintenance')
     .select('work_order_id, status, completed_at, notes, checklist_data')
+    .eq('organization_id', organizationId)
     .in('work_order_id', workOrderIds);
 
   // Fetch status history
+  // Defense in depth: work_order_status_history table does not have organization_id column.
+  // Security is ensured by: (1) workOrderIds are already filtered by organization_id above,
+  // and (2) RLS policies on work_order_status_history enforce access through work_order ownership.
   const { data: history } = await supabase
     .from('work_order_status_history')
     .select(`
