@@ -25,7 +25,7 @@ import { WorkOrderDetailsPMInfo } from '@/features/work-orders/components/WorkOr
 import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 import { WorkOrderDetailsSidebar } from '@/features/work-orders/components/WorkOrderDetailsSidebar';
 import { WorkOrderDetailsMobile } from '@/features/work-orders/components/WorkOrderDetailsMobile';
-import { WorkOrderNotesMobile } from '@/features/work-orders/components/WorkOrderNotesMobile';
+
 import { WorkOrderPDFExportDialog } from '@/features/work-orders/components/WorkOrderPDFExportDialog';
 import { MobileWorkOrderActionSheet } from '@/features/work-orders/components/MobileWorkOrderActionSheet';
 import { MobileWorkOrderInProgressBar } from '@/features/work-orders/components/MobileWorkOrderInProgressBar';
@@ -522,7 +522,7 @@ const WorkOrderDetails = () => {
               {/* Mobile Notes Section */}
               <div {...stagger(3)}>
               <div ref={notesSectionRef}>
-                <WorkOrderNotesMobile 
+                <WorkOrderNotesSection 
                   workOrderId={workOrder.id}
                   canAddNotes={canAddNotes}
                   showPrivateNotes={permissionLevels.isManager}
