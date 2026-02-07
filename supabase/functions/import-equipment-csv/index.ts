@@ -396,7 +396,8 @@ async function handleImport(
         const { error: updateError } = await supabase
           .from("equipment")
           .update(updateData)
-          .eq("id", existingId);
+          .eq("id", existingId)
+          .eq("organization_id", organizationId);
 
         if (updateError) {
           throw { rowIndex, message: updateError.message };

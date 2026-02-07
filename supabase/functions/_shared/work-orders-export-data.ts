@@ -409,13 +409,15 @@ export async function fetchWorkOrdersWithData(
   }
 
   // Fetch teams data separately
+  // Defense in depth: teams table has organization_id column, so we add explicit filter
   const teamIds = [...new Set(workOrders.map(wo => wo.team_id).filter(Boolean))];
   let teamMap = new Map<string, string>();
   if (teamIds.length > 0) {
     const { data: teamsData } = await supabase
       .from('teams')
       .select('id, name')
-      .in('id', teamIds);
+      .in('id', teamIds)
+      .eq('organization_id', organizationId);
     teamMap = new Map((teamsData || []).map(t => [t.id, t.name]));
   }
 
@@ -535,11 +537,35 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
   const timelineRows: TimelineRow[] = [];
   const equipmentAggMap = new Map<string, EquipmentRow>();
 
+  // Pre-index related data by work_order_id for O(1) lookups (avoids O(n*m) filter scans)
+  const notesByWO = new Map<string, typeof data.notes>();
+  for (const n of data.notes) {
+    const arr = notesByWO.get(n.work_order_id) || [];
+    arr.push(n);
+    notesByWO.set(n.work_order_id, arr);
+  }
+  const costsByWO = new Map<string, typeof data.costs>();
+  for (const c of data.costs) {
+    const arr = costsByWO.get(c.work_order_id) || [];
+    arr.push(c);
+    costsByWO.set(c.work_order_id, arr);
+  }
+  const pmByWO = new Map<string, (typeof data.pmData)[number]>();
+  for (const p of data.pmData) {
+    pmByWO.set(p.work_order_id, p);
+  }
+  const historyByWO = new Map<string, typeof data.history>();
+  for (const h of data.history) {
+    const arr = historyByWO.get(h.work_order_id) || [];
+    arr.push(h);
+    historyByWO.set(h.work_order_id, arr);
+  }
+
   for (const wo of data.workOrders) {
-    const woNotes = data.notes.filter(n => n.work_order_id === wo.id);
-    const woCosts = data.costs.filter(c => c.work_order_id === wo.id);
-    const woPM = data.pmData.find(p => p.work_order_id === wo.id);
-    const woHistory = data.history.filter(h => h.work_order_id === wo.id);
+    const woNotes = notesByWO.get(wo.id) || [];
+    const woCosts = costsByWO.get(wo.id) || [];
+    const woPM = pmByWO.get(wo.id);
+    const woHistory = historyByWO.get(wo.id) || [];
 
     // Get equipment from the map
     const equipment = wo.equipment_id ? data.equipmentMap.get(wo.equipment_id) : null;

@@ -80,6 +80,7 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   
   // Validation errors
   /^Method not allowed$/,
+  /^Invalid JSON body$/,
   /^Missing required field/,
   // Single-field validation errors - uses the same allowlist as multi-field to maintain consistency
   // Explicit field name allowlist prevents matching sensitive fields like "password" or "api_key"
@@ -93,6 +94,9 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   
   // OAuth configuration errors
   /^Invalid OAuth redirect (base URL )?configuration$/,
+  
+  // File upload errors
+  /^File too large\./,
   
   // Safe operational messages
   /^Failed to (verify|fetch|store|decrypt|send)/,

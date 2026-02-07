@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env tsx
 /**
  * Generate Large-Scale Inventory Seed Data
  * 
