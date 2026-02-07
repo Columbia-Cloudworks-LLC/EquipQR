@@ -7,9 +7,6 @@
  * 
  * Usage:
  *   npx tsx scripts/generate-large-inventory-seed.ts > supabase/seeds/26_large_inventory.sql
- *   
- * Or run directly against database:
- *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npx tsx scripts/generate-large-inventory-seed.ts --direct
  */
 
 // ============================================================================

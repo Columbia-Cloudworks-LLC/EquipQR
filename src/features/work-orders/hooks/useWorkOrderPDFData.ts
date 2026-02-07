@@ -180,14 +180,28 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       // Generate the PDF as a blob
       const { blob, filename } = await generateWorkOrderPDFBlob(pdfData);
       
-      // Convert blob to base64 for upload
-      const arrayBuffer = await blob.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const contentBase64 = btoa(binary);
+      // Convert blob to base64 for upload using FileReader for better performance
+      const contentBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result;
+          if (typeof result === 'string') {
+            // result is a data URL: "data:application/pdf;base64,...."
+            const [, base64] = result.split(',', 2);
+            if (base64) {
+              resolve(base64);
+            } else {
+              reject(new Error('Failed to extract base64 content from PDF data URL'));
+            }
+          } else {
+            reject(new Error('Failed to read PDF blob as base64'));
+          }
+        };
+        reader.onerror = () => {
+          reject(reader.error ?? new Error('Failed to read PDF blob as base64'));
+        };
+        reader.readAsDataURL(blob);
+      });
       
       // Get auth token for the request
       const { data: sessionData } = await supabase.auth.getSession();

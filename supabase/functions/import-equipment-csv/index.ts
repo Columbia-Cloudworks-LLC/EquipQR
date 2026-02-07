@@ -389,30 +389,35 @@ async function handleImport(
     }
   }
 
-  // Phase 4: Run updates in parallel for better performance
+  // Phase 4: Run updates in batched parallel for better performance
+  // Limit concurrency to avoid overwhelming the database with simultaneous requests
+  const UPDATE_BATCH_SIZE = BULK_INSERT_CHUNK_SIZE;
   if (updateOps.length > 0) {
-    const updateResults = await Promise.allSettled(
-      updateOps.map(async ({ rowIndex, existingId, updateData }) => {
-        const { error: updateError } = await supabase
-          .from("equipment")
-          .update(updateData)
-          .eq("id", existingId)
-          .eq("organization_id", organizationId);
+    for (let batchStart = 0; batchStart < updateOps.length; batchStart += UPDATE_BATCH_SIZE) {
+      const batch = updateOps.slice(batchStart, batchStart + UPDATE_BATCH_SIZE);
+      const updateResults = await Promise.allSettled(
+        batch.map(async ({ rowIndex, existingId, updateData }) => {
+          const { error: updateError } = await supabase
+            .from("equipment")
+            .update(updateData)
+            .eq("id", existingId)
+            .eq("organization_id", organizationId);
 
-        if (updateError) {
-          throw { rowIndex, message: updateError.message };
+          if (updateError) {
+            throw { rowIndex, message: updateError.message };
+          }
+          return { rowIndex };
+        })
+      );
+
+      for (const result of updateResults) {
+        if (result.status === "fulfilled") {
+          merged++;
+        } else {
+          failed++;
+          const reason = result.reason as { rowIndex: number; message: string };
+          failures.push({ row: reason.rowIndex + 1, reason: reason.message });
         }
-        return { rowIndex };
-      })
-    );
-
-    for (const result of updateResults) {
-      if (result.status === "fulfilled") {
-        merged++;
-      } else {
-        failed++;
-        const reason = result.reason as { rowIndex: number; message: string };
-        failures.push({ row: reason.rowIndex + 1, reason: reason.message });
       }
     }
   }

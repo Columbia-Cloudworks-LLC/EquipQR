@@ -232,8 +232,14 @@ export async function checkRateLimit(
     .limit(1);
 
   if (tableCheckError) {
-    console.log('export_request_log table not found, skipping rate limit check');
-    return true;
+    // Only skip rate limiting if the table genuinely doesn't exist.
+    // Fail closed on transient DB errors or permission/RLS misconfigurations.
+    if (tableCheckError.message?.includes('relation') && tableCheckError.message?.includes('does not exist')) {
+      console.log('export_request_log table not found, skipping rate limit check');
+      return true;
+    }
+    console.error('Rate limit check failed unexpectedly:', tableCheckError.message);
+    return false;
   }
 
   const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();

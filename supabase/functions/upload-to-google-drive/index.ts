@@ -158,7 +158,6 @@ async function uploadToDrive(
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": `multipart/related; boundary=${boundary}`,
-      "Content-Length": body.length.toString(),
     },
     body: body,
   });
