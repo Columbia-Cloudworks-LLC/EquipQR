@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
     ];
     if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
       return createErrorResponse(
-        `Unsupported file type. Allowed types: ${ALLOWED_MIME_TYPES.join(", ")}`,
+        `Unsupported format. Allowed types: ${ALLOWED_MIME_TYPES.join(", ")}`,
         400
       );
     }
