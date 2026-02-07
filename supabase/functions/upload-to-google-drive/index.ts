@@ -27,7 +27,7 @@ import { checkRateLimit } from "../_shared/work-orders-export-data.ts";
 
 const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
 
-// Maximum file size: 15 MB (base64 adds ~33% overhead, so ~11 MB original)
+// Maximum decoded file size: 15 MB
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
 const MAX_FILENAME_LENGTH = 255;
 
@@ -197,9 +197,11 @@ Deno.serve(async (req) => {
       return createErrorResponse("Method not allowed", 405);
     }
     
-    // Check content length header to reject oversized requests early
+    // Check content length header to reject oversized requests early.
+    // The request body includes base64-encoded file data (~33% larger than decoded)
+    // plus JSON overhead, so we allow up to 1.4x the max file size for the raw request.
     const contentLength = req.headers.get("Content-Length");
-    if (contentLength && parseInt(contentLength, 10) >= MAX_FILE_SIZE_BYTES) {
+    if (contentLength && parseInt(contentLength, 10) >= MAX_FILE_SIZE_BYTES * 1.4) {
       return createErrorResponse("File too large. File must be less than 15 MB.", 413);
     }
     
@@ -251,8 +253,10 @@ Deno.serve(async (req) => {
       return createErrorResponse("Missing required field: contentBase64", 400);
     }
     
-    // Validate file size (base64 string length)
-    if (contentBase64.length >= MAX_FILE_SIZE_BYTES) {
+    // Validate decoded file size from base64 string length.
+    // Base64 encodes 3 bytes into 4 characters, so decoded size ≈ base64Length * 3/4.
+    const estimatedDecodedSize = Math.ceil(contentBase64.length * 3 / 4);
+    if (estimatedDecodedSize >= MAX_FILE_SIZE_BYTES) {
       return createErrorResponse("File too large. File must be less than 15 MB.", 413);
     }
     

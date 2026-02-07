@@ -403,7 +403,8 @@ export async function fetchWorkOrdersWithData(
     const { data: equipmentData } = await supabase
       .from('equipment')
       .select('id, name, manufacturer, model, serial_number, location, status')
-      .in('id', equipmentIds);
+      .in('id', equipmentIds)
+      .eq('organization_id', organizationId);
     equipmentMap = new Map((equipmentData || []).map(e => [e.id, e]));
   }
 
@@ -424,7 +425,7 @@ export async function fetchWorkOrdersWithData(
   // and (2) RLS policies on work_order_notes enforce access through work_order ownership.
   const { data: notes } = await supabase
     .from('work_order_notes')
-    .select('*')
+    .select('id, work_order_id, content, created_at, author_id, hours_worked, is_private')
     .in('work_order_id', workOrderIds)
     .eq('is_private', false)
     .order('created_at', { ascending: true });
@@ -462,7 +463,7 @@ export async function fetchWorkOrdersWithData(
   // and (2) RLS policies on work_order_costs enforce access through work_order ownership.
   const { data: costs } = await supabase
     .from('work_order_costs')
-    .select('*')
+    .select('id, work_order_id, description, quantity, unit_price_cents, total_price_cents, inventory_item_id, created_at, created_by')
     .in('work_order_id', workOrderIds)
     .order('created_at', { ascending: true });
 
