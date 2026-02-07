@@ -248,7 +248,13 @@ Deno.serve(async (req) => {
     }
     
     // Check rate limit to prevent excessive uploads
-    const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
+    let rateLimitOk: boolean;
+    try {
+      rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
+    } catch (rateLimitError) {
+      console.error("Rate limit check error:", rateLimitError);
+      return createErrorResponse("An internal error occurred", 500);
+    }
     if (!rateLimitOk) {
       return new Response(
         JSON.stringify({ error: "Rate limit exceeded. Please wait before uploading another file." }),
