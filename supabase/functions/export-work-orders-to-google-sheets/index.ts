@@ -325,6 +325,14 @@ Deno.serve(async (req) => {
       return createErrorResponse("Missing required field: organizationId", 400);
     }
 
+    // Validate filters object exists and has a valid dateField (required by fetchWorkOrdersWithData)
+    if (!filters || typeof filters !== "object") {
+      return createErrorResponse("Missing required field: filters", 400);
+    }
+    if (filters.dateField && !["created_date", "completed_date"].includes(filters.dateField)) {
+      return createErrorResponse("Invalid filters.dateField: must be 'created_date' or 'completed_date'", 400);
+    }
+
     // Verify user has admin/owner role in the organization
     const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
