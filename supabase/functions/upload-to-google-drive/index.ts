@@ -224,6 +224,18 @@ Deno.serve(async (req) => {
     
     const { organizationId, filename, contentBase64, mimeType = "application/pdf" } = body;
     
+    // Validate mimeType against allowlist to prevent abuse
+    const ALLOWED_MIME_TYPES = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+    ];
+    if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+      return createErrorResponse(
+        `Unsupported file type. Allowed types: ${ALLOWED_MIME_TYPES.join(", ")}`,
+        400
+      );
+    }
+    
     // Validate organizationId first (before verifyOrgAdmin)
     if (!organizationId) {
       return createErrorResponse("Missing required field: organizationId", 400);

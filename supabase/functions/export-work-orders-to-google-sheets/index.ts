@@ -313,7 +313,12 @@ Deno.serve(async (req) => {
 
     const { user } = auth;
 
-    const body: ExportRequest = await req.json();
+    let body: ExportRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return createErrorResponse("Invalid JSON body", 400);
+    }
     const { organizationId, filters } = body;
 
     if (!organizationId) {
