@@ -1,16 +1,12 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
-export interface TicketMetadata {
-  userAgent: string;
-  currentUrl: string;
-  timestamp: string;
-}
+import { tickets } from '@/lib/queryKeys';
+import type { SessionDiagnostics } from '../utils/sessionDiagnostics';
 
 interface SubmitTicketPayload {
   title: string;
   description: string;
-  metadata: TicketMetadata;
+  metadata: SessionDiagnostics;
 }
 
 interface SubmitTicketResponse {
@@ -24,6 +20,8 @@ interface SubmitTicketResponse {
  * and inserts a record in the tickets table.
  */
 export function useSubmitTicket() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (payload: SubmitTicketPayload): Promise<SubmitTicketResponse> => {
       const { data, error } = await supabase.functions.invoke('create-ticket', {
@@ -42,6 +40,10 @@ export function useSubmitTicket() {
       }
 
       return result;
+    },
+    onSuccess: () => {
+      // Invalidate the My Tickets query so the new ticket appears immediately
+      queryClient.invalidateQueries({ queryKey: tickets.mine() });
     },
   });
 }

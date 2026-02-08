@@ -1,6 +1,11 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { initConsoleErrorCapture } from '@/features/tickets/utils/consoleErrorBuffer';
+
+// Initialize console error capture for bug report diagnostics
+// Must run before React renders so we capture errors during startup
+initConsoleErrorCapture();
 
 createRoot(document.getElementById("root")!).render(<App />);
 

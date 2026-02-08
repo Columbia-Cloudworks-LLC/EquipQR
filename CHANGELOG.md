@@ -11,15 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **In-App Bug Reporting with GitHub Integration** (#529): Users can submit bug reports directly from the application; tickets persist in the database and automatically sync to GitHub Issues
-  - **Report Issue dialog** on the Support page (`SubmitTicketDialog`) captures title, description, and auto-collected debug context (user UUID, browser/OS, current route, timestamp)
-  - **`create-ticket` Edge Function** validates the payload, creates a GitHub Issue in `Columbia-Cloudworks-LLC/EquipQR` (assigned to `viralarchitect`, labeled `user-reported`), and inserts a `tickets` record with the linked issue number
+- **In-App Bug Reporting with GitHub Integration** (#529): Full-featured bug reporting system with transparent ticket tracking, session diagnostics, and real-time GitHub sync
+  - **Report Issue dialog** on the Support page captures title, description, and comprehensive anonymized session diagnostics (app version, browser, route, screen size, org plan/role, recent errors, failed queries, performance metrics)
+  - **My Reported Issues** section on the Support page displays all user-submitted tickets with status badges (Open/In Progress/Closed), expandable details with description, session info, and team response timeline
+  - **`create-ticket` Edge Function** validates payload, enforces rate limits (3/hour), creates a GitHub Issue with diagnostics in a collapsible `<details>` section, and inserts a `tickets` record
+  - **`github-issue-webhook` Edge Function** receives GitHub webhook events (issue status changes, new comments), verifies HMAC-SHA256 signatures, and syncs status/comments to the database in real time
+  - **`ticket_comments` table** stores GitHub issue comments synced via webhook, with `is_from_team` flag and `github_comment_id` UNIQUE constraint for idempotency
+  - **Realtime updates** via Supabase broadcast triggers -- ticket status changes and new comments push to the user's browser instantly
+  - **Console error ring buffer** (`consoleErrorBuffer.ts`) captures last 10 console errors (message only, no stack traces) for inclusion in bug reports
+  - **Session diagnostics collector** (`sessionDiagnostics.ts`) gathers anonymized context at submission time (no PII)
   - **Privacy-first**: GitHub issue body contains only the user's UUID -- no PII/email is exposed
-  - **`tickets` database table** with user-scoped RLS policies (users can view/create their own tickets; service role can insert/update)
-  - New `useSubmitTicket` TanStack Query mutation hook
-  - `tickets` query key factory added to `src/lib/queryKeys.ts` for future "My Tickets" views
-  - Documentation: `docs/features/bug-reporting.md` (feature overview, setup, troubleshooting), updated `docs/ops/supabase-branch-secrets.md` and `docs/edge-functions/auth-patterns.md`
-  - **New secret required**: `GITHUB_PAT` -- a fine-grained GitHub Personal Access Token with Issues Read/Write permission (see `docs/features/bug-reporting.md` for generation instructions)
+  - **Security hardening**: Markdown injection prevention, @mention neutralization, metadata whitelisting, rate limiting, webhook signature verification
+  - **New secrets required**: `GITHUB_PAT` (Issues Read/Write PAT) and `GITHUB_WEBHOOK_SECRET` (webhook HMAC secret). See `docs/features/bug-reporting.md` for setup instructions
 
 ## [2.2.3] - 2026-02-01
 

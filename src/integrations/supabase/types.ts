@@ -3028,35 +3028,82 @@ export type Database = {
           },
         ]
       }
+      ticket_comments: {
+        Row: {
+          author: string
+          body: string
+          created_at: string
+          github_comment_id: number | null
+          id: string
+          is_from_team: boolean | null
+          ticket_id: string
+        }
+        Insert: {
+          author: string
+          body: string
+          created_at?: string
+          github_comment_id?: number | null
+          id?: string
+          is_from_team?: boolean | null
+          ticket_id: string
+        }
+        Update: {
+          author?: string
+          body?: string
+          created_at?: string
+          github_comment_id?: number | null
+          id?: string
+          is_from_team?: boolean | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_comments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
+          closed_at: string | null
           created_at: string
           description: string
           github_issue_number: number | null
+          github_issue_url: string | null
           id: string
           metadata: Json | null
           status: string
           title: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
+          closed_at?: string | null
           created_at?: string
           description: string
           github_issue_number?: number | null
+          github_issue_url?: string | null
           id?: string
           metadata?: Json | null
           status?: string
           title: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
+          closed_at?: string | null
           created_at?: string
           description?: string
           github_issue_number?: number | null
+          github_issue_url?: string | null
           id?: string
           metadata?: Json | null
           status?: string
           title?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

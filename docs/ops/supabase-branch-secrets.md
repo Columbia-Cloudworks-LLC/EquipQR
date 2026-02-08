@@ -78,6 +78,7 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 | Secret Name | Required For | Example Value | Notes |
 |------------|--------------|---------------|-------|
 | `GITHUB_PAT` | `create-ticket` | `github_pat_...` | GitHub Personal Access Token (fine-grained) with **Issues: Read and write** permission scoped to `Columbia-Cloudworks-LLC/EquipQR`. Generate at: [GitHub Settings > Fine-grained tokens](https://github.com/settings/tokens?type=beta) |
+| `GITHUB_WEBHOOK_SECRET` | `github-issue-webhook` | Random hex string | Shared secret for HMAC-SHA256 webhook signature verification. Must match the secret configured in GitHub repo Settings > Webhooks. Generate with: `openssl rand -hex 32` |
 
 ### Stripe Integration (Deprecated - Kept for Rollback)
 
@@ -158,6 +159,11 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 - `GITHUB_PAT` ✅
+
+#### `github-issue-webhook`
+- `SUPABASE_URL` ✅
+- `SUPABASE_SERVICE_ROLE_KEY` ✅
+- `GITHUB_WEBHOOK_SECRET` ✅
 
 ### Other Functions
 

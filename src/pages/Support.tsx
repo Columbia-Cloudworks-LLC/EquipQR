@@ -14,6 +14,7 @@ import SupportTabs from '@/components/support/SupportTabs';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import SubmitTicketDialog from '@/features/tickets/components/SubmitTicketDialog';
+import MyTickets from '@/features/tickets/components/MyTickets';
 
 // Shared Contact Section Component
 const ContactSection: React.FC = () => (
@@ -98,6 +99,9 @@ export const DashboardSupport: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* My Tickets Section -- only renders if the user has tickets */}
+        <MyTickets />
 
         {/* Shared Tabbed Content */}
         <SupportTabs />

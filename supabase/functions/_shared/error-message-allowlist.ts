@@ -124,6 +124,12 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Title must be between \d+ and \d+ characters$/,
   /^Description must be between \d+ and \d+ characters$/,
   /^Rate limit exceeded\. You can submit up to \d+ reports per hour$/,
+
+  // GitHub webhook errors
+  /^Not a user-reported issue$/,
+  /^No issue in payload$/,
+  /^No matching ticket found$/,
+  /^No comment in payload$/,
 ];
 
 /**

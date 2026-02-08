@@ -42,11 +42,46 @@ const MAX_DESCRIPTION_LENGTH = 5000;
 
 /** Maximum metadata string field length */
 const MAX_METADATA_FIELD_LENGTH = 500;
+/** Maximum length for array items in metadata */
+const MAX_METADATA_ARRAY_ITEM_LENGTH = 200;
+/** Maximum number of items in metadata arrays */
+const MAX_METADATA_ARRAY_SIZE = 10;
 
 /** Rate limit: max tickets per user within the rate window */
 const RATE_LIMIT_MAX_TICKETS = 3;
 /** Rate limit window in minutes */
 const RATE_LIMIT_WINDOW_MINUTES = 60;
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface SanitizedMetadata {
+  // Core
+  appVersion: string;
+  userAgent: string;
+  currentUrl: string;
+  timestamp: string;
+  // Environment
+  screenSize: string;
+  devicePixelRatio: number;
+  isOnline: boolean;
+  timezone: string;
+  sessionDuration: number;
+  // Organization context (IDs only)
+  organizationId: string | null;
+  organizationPlan: string | null;
+  userRole: string | null;
+  // Feature flags
+  featureFlags: Record<string, boolean>;
+  // Errors & diagnostics
+  recentErrors: string[];
+  failedQueries: string[];
+  performanceMetrics: {
+    pageLoadTime: number | null;
+    memoryUsage: number | null;
+  };
+}
 
 // =============================================================================
 // Helpers
@@ -59,68 +94,168 @@ function logStep(step: string, details?: Record<string, unknown>) {
 
 /**
  * Sanitize a string for safe embedding in GitHub-flavored markdown.
- *
- * - Neutralizes @mentions by inserting a zero-width space after @
- * - Escapes pipe characters (breaks markdown tables)
- * - Strips HTML tags to prevent rendering in GitHub markdown
- * - Escapes markdown link syntax to prevent phishing links
  */
 function sanitizeForMarkdown(input: string): string {
   return input
-    // Neutralize @mentions: insert zero-width space after @
     .replace(/@/g, "@\u200B")
-    // Strip HTML tags (GitHub renders some HTML in markdown)
     .replace(/<[^>]*>/g, "")
-    // Escape pipe characters that break markdown table layout
     .replace(/\|/g, "\\|")
-    // Escape markdown link syntax [text](url) to prevent phishing links
     .replace(/\[([^\]]*)\]\(([^)]*)\)/g, "\\[$1\\]\\($2\\)");
+}
+
+/** Safely extract a string from raw metadata */
+function safeString(
+  raw: Record<string, unknown>,
+  key: string,
+  maxLen: number,
+  fallback: string
+): string {
+  const val = raw[key];
+  return typeof val === "string" ? val.slice(0, maxLen) : fallback;
+}
+
+/** Safely extract a number from raw metadata */
+function safeNumber(
+  raw: Record<string, unknown>,
+  key: string,
+  fallback: number
+): number {
+  const val = raw[key];
+  return typeof val === "number" && isFinite(val) ? val : fallback;
+}
+
+/** Safely extract a boolean from raw metadata */
+function safeBool(
+  raw: Record<string, unknown>,
+  key: string,
+  fallback: boolean
+): boolean {
+  const val = raw[key];
+  return typeof val === "boolean" ? val : fallback;
+}
+
+/** Safely extract a nullable string */
+function safeNullableString(
+  raw: Record<string, unknown>,
+  key: string,
+  maxLen: number
+): string | null {
+  const val = raw[key];
+  return typeof val === "string" ? val.slice(0, maxLen) : null;
+}
+
+/** Safely extract a string array */
+function safeStringArray(
+  raw: Record<string, unknown>,
+  key: string,
+  maxItems: number,
+  maxItemLen: number
+): string[] {
+  const val = raw[key];
+  if (!Array.isArray(val)) return [];
+  return val
+    .filter((item): item is string => typeof item === "string")
+    .slice(0, maxItems)
+    .map((s) => s.slice(0, maxItemLen));
 }
 
 /**
  * Validate and sanitize metadata from the client.
  * Only whitelisted fields are kept; all values are type-checked and length-capped.
- * Client-supplied metadata is untrusted -- it cannot be verified server-side.
  */
-function sanitizeMetadata(raw: Record<string, unknown>): {
-  userAgent: string;
-  currentUrl: string;
-  timestamp: string;
-} {
+function sanitizeMetadata(raw: Record<string, unknown>): SanitizedMetadata {
+  // Feature flags -- whitelist only known boolean flags
+  const rawFlags = (typeof raw.featureFlags === "object" && raw.featureFlags !== null)
+    ? raw.featureFlags as Record<string, unknown>
+    : {};
+  const featureFlags: Record<string, boolean> = {};
+  for (const key of ["billingEnabled", "quickbooksEnabled"]) {
+    if (typeof rawFlags[key] === "boolean") {
+      featureFlags[key] = rawFlags[key] as boolean;
+    }
+  }
+
+  // Performance metrics
+  const rawPerf = (typeof raw.performanceMetrics === "object" && raw.performanceMetrics !== null)
+    ? raw.performanceMetrics as Record<string, unknown>
+    : {};
+
   return {
-    userAgent:
-      typeof raw.userAgent === "string"
-        ? raw.userAgent.slice(0, MAX_METADATA_FIELD_LENGTH)
-        : "Unknown",
-    currentUrl:
-      typeof raw.currentUrl === "string"
-        ? raw.currentUrl.slice(0, MAX_METADATA_FIELD_LENGTH)
-        : "Unknown",
-    timestamp:
-      typeof raw.timestamp === "string"
-        ? raw.timestamp.slice(0, 50)
-        : new Date().toISOString(),
+    appVersion: safeString(raw, "appVersion", 50, "Unknown"),
+    userAgent: safeString(raw, "userAgent", MAX_METADATA_FIELD_LENGTH, "Unknown"),
+    currentUrl: safeString(raw, "currentUrl", MAX_METADATA_FIELD_LENGTH, "Unknown"),
+    timestamp: safeString(raw, "timestamp", 50, new Date().toISOString()),
+    screenSize: safeString(raw, "screenSize", 20, "Unknown"),
+    devicePixelRatio: safeNumber(raw, "devicePixelRatio", 1),
+    isOnline: safeBool(raw, "isOnline", true),
+    timezone: safeString(raw, "timezone", 100, "Unknown"),
+    sessionDuration: safeNumber(raw, "sessionDuration", 0),
+    organizationId: safeNullableString(raw, "organizationId", 50),
+    organizationPlan: safeNullableString(raw, "organizationPlan", 20),
+    userRole: safeNullableString(raw, "userRole", 20),
+    featureFlags,
+    recentErrors: safeStringArray(raw, "recentErrors", MAX_METADATA_ARRAY_SIZE, MAX_METADATA_ARRAY_ITEM_LENGTH),
+    failedQueries: safeStringArray(raw, "failedQueries", MAX_METADATA_ARRAY_SIZE, MAX_METADATA_ARRAY_ITEM_LENGTH),
+    performanceMetrics: {
+      pageLoadTime: typeof rawPerf.pageLoadTime === "number" && isFinite(rawPerf.pageLoadTime)
+        ? rawPerf.pageLoadTime : null,
+      memoryUsage: typeof rawPerf.memoryUsage === "number" && isFinite(rawPerf.memoryUsage)
+        ? rawPerf.memoryUsage : null,
+    },
   };
 }
 
 /**
  * Build the GitHub issue body with debug context and no PII.
- * All user-supplied content is sanitized before interpolation.
+ * Includes a collapsible diagnostics section for developer context.
  */
 function buildGitHubIssueBody(
   userId: string,
   description: string,
-  metadata: { userAgent: string; currentUrl: string; timestamp: string }
+  metadata: SanitizedMetadata
 ): string {
-  // Sanitize all user-supplied content for safe markdown rendering
   const safeDescription = sanitizeForMarkdown(description);
-  const safeUserAgent = sanitizeForMarkdown(metadata.userAgent);
-  const safeRoute = sanitizeForMarkdown(metadata.currentUrl);
-  // Timestamp is already length-capped; sanitize for table safety
-  const safeTimestamp = sanitizeForMarkdown(metadata.timestamp);
 
-  // Wrap description in a fenced code block to neutralize any remaining
-  // markdown formatting the user may have included
+  // Build diagnostics table rows
+  const diagRows = [
+    `| **App Version** | ${sanitizeForMarkdown(metadata.appVersion)} |`,
+    `| **Browser/OS** | ${sanitizeForMarkdown(metadata.userAgent)} |`,
+    `| **Route** | ${sanitizeForMarkdown(metadata.currentUrl)} |`,
+    `| **Screen** | ${sanitizeForMarkdown(metadata.screenSize)} @${metadata.devicePixelRatio}x |`,
+    `| **Online** | ${metadata.isOnline} |`,
+    `| **Timezone** | ${sanitizeForMarkdown(metadata.timezone)} |`,
+    `| **Session Duration** | ${metadata.sessionDuration}s |`,
+  ];
+
+  if (metadata.organizationPlan) {
+    diagRows.push(`| **Org Plan** | ${sanitizeForMarkdown(metadata.organizationPlan)} |`);
+  }
+  if (metadata.userRole) {
+    diagRows.push(`| **User Role** | ${sanitizeForMarkdown(metadata.userRole)} |`);
+  }
+  if (metadata.performanceMetrics.pageLoadTime !== null) {
+    diagRows.push(`| **Page Load** | ${metadata.performanceMetrics.pageLoadTime}ms |`);
+  }
+  if (metadata.performanceMetrics.memoryUsage !== null) {
+    diagRows.push(`| **Memory** | ${metadata.performanceMetrics.memoryUsage}MB |`);
+  }
+
+  // Build errors section
+  let errorsSection = "";
+  if (metadata.recentErrors.length > 0) {
+    const safeErrors = metadata.recentErrors.map(e => sanitizeForMarkdown(e)).join("\n");
+    errorsSection = `\n**Recent Errors (${metadata.recentErrors.length}):**\n\n\`\`\`\n${safeErrors}\n\`\`\`\n`;
+  }
+
+  // Build failed queries section
+  let queriesSection = "";
+  if (metadata.failedQueries.length > 0) {
+    const safeQueries = metadata.failedQueries
+      .map(q => `- \`${sanitizeForMarkdown(q)}\``)
+      .join("\n");
+    queriesSection = `\n**Failed Queries:**\n\n${safeQueries}\n`;
+  }
+
   return `## User-Reported Issue
 
 **Reported by:** User UUID \`${userId}\`
@@ -131,13 +266,14 @@ function buildGitHubIssueBody(
 ${safeDescription}
 \`\`\`
 
-### Debug Context
+<details>
+<summary>Session Diagnostics</summary>
 
 | Field | Value |
 |-------|-------|
-| **Browser/OS** | ${safeUserAgent} |
-| **Route** | ${safeRoute} |
-| **Timestamp** | ${safeTimestamp} |
+${diagRows.join("\n")}
+${errorsSection}${queriesSection}
+</details>
 
 ---
 *This issue was automatically created via the EquipQR in-app bug reporting system.*`;
@@ -145,7 +281,6 @@ ${safeDescription}
 
 /**
  * Check per-user rate limit by counting recent tickets.
- * Returns true if the user is within the rate limit, false if exceeded.
  */
 async function checkRateLimit(
   adminClient: ReturnType<typeof createAdminSupabaseClient>,
@@ -162,7 +297,6 @@ async function checkRateLimit(
     .gte("created_at", windowStart);
 
   if (error) {
-    // If we can't check, fail open but log the error
     logStep("WARNING: Rate limit check failed, allowing request", {
       error: error.message,
     });
@@ -216,7 +350,6 @@ async function createGitHubIssue(
 // =============================================================================
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
@@ -300,7 +433,6 @@ Deno.serve(async (req) => {
 
     logStep("Creating GitHub issue", { title: trimmedTitle });
 
-    // Sanitize title for GitHub (strip @mentions, no markdown needed for title)
     const sanitizedTitle = sanitizeForMarkdown(trimmedTitle);
 
     let githubIssue: { number: number; html_url: string };
@@ -326,7 +458,7 @@ Deno.serve(async (req) => {
       return createErrorResponse("Failed to create GitHub issue", 500);
     }
 
-    // 7. Insert ticket record using admin client (to set github_issue_number atomically)
+    // 7. Insert ticket record using admin client
     const { data: ticket, error: insertError } = await adminClient
       .from("tickets")
       .insert({
@@ -335,10 +467,8 @@ Deno.serve(async (req) => {
         description: trimmedDescription,
         status: "open",
         github_issue_number: githubIssue.number,
-        metadata: {
-          ...sanitizedMetadata,
-          github_issue_url: githubIssue.html_url,
-        },
+        github_issue_url: githubIssue.html_url,
+        metadata: sanitizedMetadata,
       })
       .select("id")
       .single();
@@ -355,8 +485,7 @@ Deno.serve(async (req) => {
       githubIssueNumber: githubIssue.number,
     });
 
-    // 8. Return success (intentionally omits githubIssueNumber to avoid
-    //    leaking repo info if the repository is public)
+    // 8. Return success
     return createJsonResponse({
       success: true,
       ticketId: ticket.id,

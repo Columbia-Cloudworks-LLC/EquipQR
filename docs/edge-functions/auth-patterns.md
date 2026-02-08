@@ -37,6 +37,7 @@ The following functions are explicitly authorized to use `createAdminSupabaseCli
 |----------|--------|--------|
 | `stripe-license-webhook` | Stripe webhook signature-based auth; no user JWT available | `verify_jwt = false` |
 | `stripe-webhook` | Legacy redirect to stripe-license-webhook | `verify_jwt = false` |
+| `github-issue-webhook` | GitHub webhook HMAC-SHA256 signature auth; syncs issue status and comments to tickets table | `verify_jwt = false` |
 
 ### Cron / Background Jobs
 

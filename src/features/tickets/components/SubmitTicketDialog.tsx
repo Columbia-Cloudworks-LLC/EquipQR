@@ -14,7 +14,10 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSimpleOrganizationSafe } from '@/hooks/useSimpleOrganization';
 import { useSubmitTicket } from '../hooks/useSubmitTicket';
+import { collectSessionDiagnostics } from '../utils/sessionDiagnostics';
 
 interface SubmitTicketDialogProps {
   open: boolean;
@@ -23,7 +26,7 @@ interface SubmitTicketDialogProps {
 
 /**
  * Dialog for submitting in-app bug reports.
- * Automatically gathers debug context (user UUID, browser info, route).
+ * Automatically gathers comprehensive session diagnostics (anonymized, no PII).
  * Creates a GitHub issue and a database record.
  */
 const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
@@ -32,6 +35,8 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
 }) => {
   const { user } = useAuth();
   const { mutate: submitTicket, isPending } = useSubmitTicket();
+  const queryClient = useQueryClient();
+  const orgContext = useSimpleOrganizationSafe();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -62,12 +67,14 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
       return;
     }
 
-    // Gather non-sensitive debug metadata automatically
-    const metadata = {
-      userAgent: navigator.userAgent,
-      currentUrl: window.location.pathname,
-      timestamp: new Date().toISOString(),
-    };
+    // Collect comprehensive session diagnostics (anonymized, no PII)
+    const metadata = collectSessionDiagnostics(
+      orgContext ? {
+        organizationId: orgContext.organizationId,
+        currentOrganization: orgContext.currentOrganization,
+      } : undefined,
+      queryClient,
+    );
 
     submitTicket(
       {
@@ -105,8 +112,8 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
           <DialogTitle>Report an Issue</DialogTitle>
           <DialogDescription>
             Describe the problem you encountered. Our team will be notified and
-            will follow up. Your user ID and basic browser info will be included
-            to help us investigate.
+            will follow up. Session diagnostics are automatically captured to
+            help us investigate faster.
           </DialogDescription>
         </DialogHeader>
 
