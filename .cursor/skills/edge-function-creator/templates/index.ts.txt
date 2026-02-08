@@ -1,0 +1,43 @@
+/**
+ * {{FUNCTION_NAME}} Edge Function
+ *
+ * TODO: Add a description of what this function does.
+ */
+
+import {
+  createUserSupabaseClient,
+  requireUser,
+  createErrorResponse,
+  createJsonResponse,
+  handleCorsPreflightIfNeeded,
+} from "../_shared/supabase-clients.ts";
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
+
+  try {
+    // Create user-scoped client (RLS enforced)
+    const supabase = createUserSupabaseClient(req);
+
+    // Validate user authentication
+    const auth = await requireUser(req, supabase);
+    if ("error" in auth) {
+      return createErrorResponse(auth.error, auth.status);
+    }
+
+    const { user } = auth;
+
+    // Parse request body
+    const body = await req.json();
+
+    // TODO: Implement function logic here
+
+    return createJsonResponse({ success: true });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[{{FUNCTION_NAME}}] Error:", errorMessage);
+    return createErrorResponse("An unexpected error occurred", 500);
+  }
+});

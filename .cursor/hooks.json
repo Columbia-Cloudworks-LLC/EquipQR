@@ -10,6 +10,9 @@
         },
         {
           "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\strict-type-check.ps1"
+        },
+        {
+          "command": "python .\\.cursor\\hooks\\architecture-guard.py"
         }
       ],
       "beforeReadFile": [
@@ -23,6 +26,9 @@
       "beforeSubmitPrompt": [
         {
           "command": "python .\\.cursor\\hooks\\secret-guardian.py"
+        },
+        {
+          "command": "python .\\.cursor\\hooks\\architecture-guard.py"
         }
       ],
       "beforeShellExecution": [
