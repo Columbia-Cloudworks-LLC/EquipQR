@@ -77,16 +77,16 @@ async function verifyWebhookSignature(
 
 /**
  * Sanitize a comment body for storage.
- * Strips @mentions (privacy) and truncates to a reasonable length.
+ * Neutralizes @mentions (privacy) and truncates to a reasonable length.
+ *
+ * Note: We intentionally do NOT HTML-escape here because the frontend renders
+ * comment bodies as plain text via React, which already escapes HTML entities.
+ * Double-escaping would cause users to see "&lt;" instead of "<".
  */
 function sanitizeCommentBody(body: string): string {
   return body
     // Neutralize @mentions
     .replace(/@/g, "@\u200B")
-    // Escape HTML-special characters to prevent HTML/script injection
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
     // Truncate to 5000 chars
     .slice(0, 5000);
 }

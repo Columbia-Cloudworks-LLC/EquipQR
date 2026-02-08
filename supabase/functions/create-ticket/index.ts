@@ -136,6 +136,9 @@ function sanitizeForMarkdown(input: string): string {
       .replace(/\\/g, "\\\\")
       .replace(/\|/g, "\\|")
       .replace(/\[([^\]]*)\]\(([^)]*)\)/g, "\\[$1\\]\\($2\\)")
+      // Escape backtick sequences to prevent breaking out of fenced code blocks.
+      // Insert a zero-width space after the first backtick of any run of 3+.
+      .replace(/`{3,}/g, (match) => "`\u200B" + match.slice(1))
   );
 }
 

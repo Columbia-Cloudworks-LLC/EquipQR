@@ -13,7 +13,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSimpleOrganizationSafe } from '@/hooks/useSimpleOrganization';
 import { useSubmitTicket } from '../hooks/useSubmitTicket';
@@ -33,7 +32,6 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  useAuth();
   const { mutate: submitTicket, isPending } = useSubmitTicket();
   const queryClient = useQueryClient();
   const orgContext = useSimpleOrganizationSafe();
