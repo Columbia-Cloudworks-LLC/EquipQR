@@ -93,16 +93,53 @@ function logStep(step: string, details?: Record<string, unknown>) {
 }
 
 /**
+ * Strip HTML tags recursively to prevent injection via nested tags.
+ * Example: `<scr<script>ipt>` -> after one pass becomes `<script>` -> stripped on next pass.
+ */
+function stripHtmlTags(input: string): string {
+  const tagPattern = /<[^>]*>/g;
+  let result = input;
+  let previous: string;
+  do {
+    previous = result;
+    result = result.replace(tagPattern, "");
+  } while (result !== previous);
+  return result;
+}
+
+/**
  * Sanitize a string for safe embedding in GitHub-flavored markdown.
  */
 function sanitizeForMarkdown(input: string): string {
+  return stripHtmlTags(
+    input
+      .replace(/@/g, "@\u200B")
+      // Escape backslashes first so later escaping uses only literal backslashes.
+      .replace(/\\/g, "\\\\")
+      .replace(/\|/g, "\\|")
+      .replace(/\[([^\]]*)\]\(([^)]*)\)/g, "\\[$1\\]\\($2\\)")
+  );
+}
+
+/**
+ * Redact potential PII from user-provided text before posting to GitHub.
+ * Strips email addresses and phone-like patterns.
+ */
+function redactPII(input: string): string {
   return input
-    .replace(/@/g, "@\u200B")
-    // Escape backslashes first so later escaping uses only literal backslashes.
-    .replace(/\\/g, "\\\\")
-    .replace(/<[^>]*>/g, "")
-    .replace(/\|/g, "\\|")
-    .replace(/\[([^\]]*)\]\(([^)]*)\)/g, "\\[$1\\]\\($2\\)");
+    // Redact email addresses
+    .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, "[email redacted]")
+    // Redact phone numbers (various formats)
+    .replace(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, "[phone redacted]");
+}
+
+/**
+ * Strip query string from a URL path to prevent PII leakage
+ * (query params may contain tokens, emails, etc.)
+ */
+function stripQueryString(url: string): string {
+  const qIndex = url.indexOf("?");
+  return qIndex >= 0 ? url.slice(0, qIndex) : url;
 }
 
 /** Safely extract a string from raw metadata */
@@ -216,13 +253,16 @@ function buildGitHubIssueBody(
   description: string,
   metadata: SanitizedMetadata
 ): string {
-  const safeDescription = sanitizeForMarkdown(description);
+  const safeDescription = sanitizeForMarkdown(redactPII(description));
+
+  // Strip query strings from URL to prevent PII leakage (tokens, emails in params)
+  const safeRoute = stripQueryString(metadata.currentUrl);
 
   // Build diagnostics table rows
   const diagRows = [
     `| **App Version** | ${sanitizeForMarkdown(metadata.appVersion)} |`,
     `| **Browser/OS** | ${sanitizeForMarkdown(metadata.userAgent)} |`,
-    `| **Route** | ${sanitizeForMarkdown(metadata.currentUrl)} |`,
+    `| **Route** | ${sanitizeForMarkdown(safeRoute)} |`,
     `| **Screen** | ${sanitizeForMarkdown(metadata.screenSize)} @${metadata.devicePixelRatio}x |`,
     `| **Online** | ${metadata.isOnline} |`,
     `| **Timezone** | ${sanitizeForMarkdown(metadata.timezone)} |`,
@@ -433,7 +473,7 @@ Deno.serve(async (req) => {
       return createErrorResponse("An unexpected error occurred", 500);
     }
 
-    logStep("Creating GitHub issue", { title: trimmedTitle });
+    logStep("Creating GitHub issue");
 
     const sanitizedTitle = sanitizeForMarkdown(trimmedTitle);
 

@@ -267,6 +267,7 @@ VITE_GOOGLE_MAPS_BROWSER_KEY=<your-google-maps-api-key>
 
 # GitHub Integration (Bug Reporting)
 GITHUB_PAT=<your-github-pat>
+GITHUB_WEBHOOK_SECRET=<your-github-webhook-secret>
 
 # QuickBooks (if enabled)
 INTUIT_CLIENT_ID=<your-intuit-client-id>

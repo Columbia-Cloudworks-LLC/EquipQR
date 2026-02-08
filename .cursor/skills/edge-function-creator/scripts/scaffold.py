@@ -11,7 +11,6 @@ Creates:
 The function name must be lowercase kebab-case (e.g., my-new-function).
 """
 
-import os
 import re
 import sys
 from pathlib import Path

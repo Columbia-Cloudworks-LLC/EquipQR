@@ -51,8 +51,8 @@ const TicketRow: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
 
   return (
     <Collapsible>
-      <CollapsibleTrigger className="w-full text-left">
-        <div className="flex items-start justify-between gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors group">
+      <CollapsibleTrigger className="w-full text-left group">
+        <div className="flex items-start justify-between gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-medium truncate">{ticket.title}</p>

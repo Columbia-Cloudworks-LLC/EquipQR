@@ -101,7 +101,7 @@ export function collectSessionDiagnostics(
   return {
     appVersion: APP_VERSION,
     userAgent: navigator.userAgent,
-    currentUrl: window.location.pathname + window.location.search,
+    currentUrl: window.location.pathname,
     screenSize: `${window.innerWidth}x${window.innerHeight}`,
     devicePixelRatio: window.devicePixelRatio || 1,
     isOnline: navigator.onLine,

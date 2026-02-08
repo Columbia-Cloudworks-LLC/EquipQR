@@ -18,24 +18,47 @@ export function useTicketRealtime() {
   useEffect(() => {
     if (!user?.id) return;
 
-    const channelName = `tickets:user:${user.id}`;
+    let isMounted = true;
+    let channelRef: ReturnType<typeof supabase.channel> | null = null;
 
-    const channel = supabase
-      .channel(channelName, {
-        config: { private: true },
-      })
-      .on('broadcast', { event: 'ticket_update' }, () => {
-        // Invalidate the tickets query to refetch with latest data
-        queryClient.invalidateQueries({ queryKey: tickets.mine() });
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          // Channel ready
-        }
-      });
+    const setupSubscription = async () => {
+      // Set auth for private channels (required for Realtime Authorization)
+      await supabase.realtime.setAuth();
+
+      if (!isMounted) return;
+
+      const channelName = `tickets:user:${user.id}`;
+
+      const channel = supabase
+        .channel(channelName, {
+          config: { private: true },
+        })
+        .on('broadcast', { event: 'ticket_update' }, () => {
+          if (!isMounted) return;
+          // Invalidate the tickets query to refetch with latest data
+          queryClient.invalidateQueries({ queryKey: tickets.mine() });
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            // Channel ready
+          }
+        });
+
+      if (!isMounted) {
+        await supabase.removeChannel(channel);
+        return;
+      }
+
+      channelRef = channel;
+    };
+
+    setupSubscription();
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      if (channelRef) {
+        supabase.removeChannel(channelRef);
+      }
     };
   }, [user?.id, queryClient]);
 }
