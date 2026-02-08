@@ -501,6 +501,14 @@ Deno.serve(async (req) => {
       return createErrorResponse("title and description are required", 400);
     }
 
+    // Coerce metadata to a valid object -- metadata can be explicitly `null`
+    // which bypasses the destructuring default and would crash sanitizeMetadata.
+    if (rawMetadata !== null && rawMetadata !== undefined && typeof rawMetadata !== "object") {
+      return createErrorResponse("metadata must be an object or omitted", 400);
+    }
+    const metadataObj: Record<string, unknown> =
+      typeof rawMetadata === "object" && rawMetadata !== null ? rawMetadata : {};
+
     const trimmedTitle = title.trim();
     const trimmedDescription = description.trim();
 
@@ -525,7 +533,7 @@ Deno.serve(async (req) => {
     }
 
     // 4. Sanitize metadata (whitelist fields, cap lengths, discard unknowns)
-    const sanitizedMetadata = sanitizeMetadata(rawMetadata);
+    const sanitizedMetadata = sanitizeMetadata(metadataObj);
 
     // 5. Rate limit check (before calling GitHub API)
     const adminClient = createAdminSupabaseClient();
