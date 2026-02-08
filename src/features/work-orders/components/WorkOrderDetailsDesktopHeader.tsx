@@ -120,7 +120,9 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <p className="cursor-help">WO-{truncatedId}</p>
+                      <button type="button" className="cursor-help hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm">
+                        WO-{truncatedId}
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="font-mono text-xs">{workOrder.id}</p>
