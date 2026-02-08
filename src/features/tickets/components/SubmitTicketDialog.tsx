@@ -33,7 +33,7 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  const { user } = useAuth();
+  useAuth();
   const { mutate: submitTicket, isPending } = useSubmitTicket();
   const queryClient = useQueryClient();
   const orgContext = useSimpleOrganizationSafe();
