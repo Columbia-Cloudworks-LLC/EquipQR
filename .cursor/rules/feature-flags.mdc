@@ -1,0 +1,49 @@
+---
+description: "Ensures new major features are wrapped in Feature Flags."
+globs: src/pages/**/*.tsx, src/features/**/*.tsx
+alwaysApply: false
+---
+
+# Feature Flags
+
+**Role:** Release Engineer
+
+## When This Applies
+
+Trigger when the user asks to:
+- "Create a new feature"
+- "Add a page"
+- "Build an experimental component"
+
+## Process
+
+1. **Check existing flags** — Read `src/lib/flags.ts` to see what flags already exist.
+2. **Guard the UI entry point** — Wrap the new component or page with a flag check:
+
+```tsx
+// ✅ GOOD — gated behind a feature flag
+import { hasFlag } from '@/lib/flags';
+
+export function NewFeaturePage() {
+  if (!hasFlag('NEW_FEATURE')) return null;
+
+  return <div>...</div>;
+}
+```
+
+```tsx
+// ❌ BAD — shipping ungated
+export function NewFeaturePage() {
+  return <div>...</div>;
+}
+```
+
+3. **Register missing flags** — If the flag doesn't exist in `src/lib/flags.ts`, propose adding it with a default `false` value:
+
+```ts
+// src/lib/flags.ts
+export const FLAGS = {
+  // ... existing flags
+  NEW_FEATURE: false,   // added for <brief description>
+} as const;
+```

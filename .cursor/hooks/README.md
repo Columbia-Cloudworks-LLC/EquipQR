@@ -9,6 +9,10 @@ These hooks are Windows-specific and require PowerShell. They will not work on U
 - `sync-types.ps1` - Syncs TypeScript types after file edits
 - `run-tests.ps1` - Runs tests after file edits
 - `guard-migrations.ps1` - Guards against reading migration files incorrectly
+- `component-check.py` - Fuzzy-searches existing components before the agent creates a new one
+- `strict-type-check.ps1` - Blocks edits that introduce explicit `: any` types in `.ts`/`.tsx` files and runs `tsc --noEmit`
+- `secret-guardian.py` - Scans prompts and shell commands for hardcoded secrets (Stripe keys, Supabase service-role keys, QBO refresh tokens) and blocks the action if detected
+- `architecture-guard.py` - Enforces layered-architecture import rules: blocks UI components from importing features (UI Purity), warns on cross-feature imports (Feature Isolation)
 
 ## Cross-Platform Support
 

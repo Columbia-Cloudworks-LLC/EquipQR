@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4] - 2026-02-08
+
+### Added
+
+- **In-App Bug Reporting with GitHub Integration** (#529): Full-featured bug reporting system with transparent ticket tracking, session diagnostics, and real-time GitHub sync
+  - **Report Issue dialog** on the Support page captures title, description, and comprehensive anonymized session diagnostics (app version, browser, route, screen size, org plan/role, recent errors, failed queries, performance metrics)
+  - **My Reported Issues** section on the Support page displays all user-submitted tickets with status badges (Open/In Progress/Closed), expandable details with description, session info, and team response timeline
+  - **`create-ticket` Edge Function** validates payload, enforces rate limits (3/hour), creates a GitHub Issue with diagnostics in a collapsible `<details>` section, and inserts a `tickets` record
+  - **`github-issue-webhook` Edge Function** receives GitHub webhook events (issue status changes, new comments), verifies HMAC-SHA256 signatures, and syncs status/comments to the database in real time
+  - **`ticket_comments` table** stores GitHub issue comments synced via webhook, with `is_from_team` flag and `github_comment_id` UNIQUE constraint for idempotency
+  - **Realtime updates** via Supabase broadcast triggers -- ticket status changes and new comments push to the user's browser instantly
+  - **Console error ring buffer** (`consoleErrorBuffer.ts`) captures last 10 console errors (message only, no stack traces) for inclusion in bug reports
+  - **Session diagnostics collector** (`sessionDiagnostics.ts`) gathers anonymized context at submission time (no PII)
+  - **Privacy-first**: GitHub issue body contains only the user's UUID -- no PII/email is exposed
+  - **Security hardening**: Markdown injection prevention, @mention neutralization, metadata whitelisting, rate limiting, webhook signature verification
+  - **New secrets required**: `GITHUB_PAT` (Issues Read/Write PAT) and `GITHUB_WEBHOOK_SECRET` (webhook HMAC secret). See `docs/features/bug-reporting.md` for setup instructions
+
 ## [2.2.3] - 2026-02-01
 
 ### Added
@@ -867,7 +884,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.3...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.4...HEAD
+[2.2.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.3...v2.2.4
 [2.2.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.0...v2.2.1

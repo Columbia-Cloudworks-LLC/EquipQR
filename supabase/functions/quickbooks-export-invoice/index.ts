@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// Using Deno.serve (built-in)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { PDFDocument, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 
@@ -682,16 +682,6 @@ async function attachPDFToInvoice(
   try {
     logStep("Uploading PDF attachment via multipart upload", { invoiceId, fileName, size: pdfBytes.length });
 
-    // Convert PDF bytes to base64 (Deno-compatible)
-    let binaryString = '';
-    for (let i = 0; i < pdfBytes.length; i++) {
-      binaryString += String.fromCharCode(pdfBytes[i]);
-    }
-    const base64Pdf = btoa(binaryString);
-
-    // Create a unique boundary for multipart using crypto.randomUUID() for robust uniqueness
-    const boundary = `----EquipQRBoundary${crypto.randomUUID()}`;
-
     // Build the metadata JSON for the attachment
     const metadata = {
       FileName: fileName,
@@ -707,26 +697,23 @@ async function attachPDFToInvoice(
       IncludeOnSend: true,
     };
 
-    // Build multipart body
-    // Part 1: JSON metadata
-    // Part 2: File content (base64)
     const metadataJson = JSON.stringify(metadata);
-    
-    const body = [
-      `--${boundary}`,
-      `Content-Disposition: form-data; name="file_metadata_01"; filename="metadata.json"`,
-      `Content-Type: application/json; charset=UTF-8`,
-      `Content-Transfer-Encoding: 8bit`,
-      ``,
-      metadataJson,
-      `--${boundary}`,
-      `Content-Disposition: form-data; name="file_content_01"; filename="${fileName}"`,
-      `Content-Type: application/pdf`,
-      `Content-Transfer-Encoding: base64`,
-      ``,
-      base64Pdf,
-      `--${boundary}--`,
-    ].join('\r\n');
+
+    // Use FormData to build a proper multipart/form-data request with raw binary.
+    // Previous implementation sent base64-encoded text with Content-Transfer-Encoding
+    // headers (an email MIME concept), which QuickBooks does not interpret — the PDF
+    // content was stored as corrupt base64 text rather than actual binary PDF data.
+    const formData = new FormData();
+    formData.append(
+      'file_metadata_01',
+      new Blob([metadataJson], { type: 'application/json' }),
+      'metadata.json'
+    );
+    formData.append(
+      'file_content_01',
+      new Blob([pdfBytes], { type: 'application/pdf' }),
+      fileName
+    );
 
     // Use the /upload endpoint which properly handles file uploads
     const uploadUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/upload?minorversion=65`;
@@ -736,9 +723,10 @@ async function attachPDFToInvoice(
       headers: {
         "Authorization": `Bearer ${accessToken}`,
         "Accept": "application/json",
-        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+        // Note: Do NOT set Content-Type manually — fetch() auto-sets it with
+        // the correct multipart boundary when using FormData as the body.
       },
-      body: body,
+      body: formData,
     });
 
     const intuitTid = getIntuitTid(response);
@@ -756,6 +744,22 @@ async function attachPDFToInvoice(
     const result = await response.json();
     const attachmentId = result.AttachableResponse?.[0]?.Attachable?.Id;
     
+    // Validate that QuickBooks actually returned an attachment ID.
+    // Previously, success was declared solely on HTTP 200 status, but QBO can
+    // return 200 with an unexpected response structure (e.g., empty AttachableResponse)
+    // resulting in a "successful" upload with no actual attachment.
+    if (!attachmentId) {
+      logStep("Attachment upload returned 200 but no attachment ID in response", {
+        intuit_tid: intuitTid,
+        response_body: JSON.stringify(result).substring(0, 500),
+      });
+      return {
+        success: false,
+        intuitTid,
+        error: 'Upload returned 200 but no attachment ID in response',
+      };
+    }
+
     logStep("PDF attachment uploaded successfully", { attachmentId, intuit_tid: intuitTid });
     
     return {
@@ -774,7 +778,7 @@ async function attachPDFToInvoice(
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

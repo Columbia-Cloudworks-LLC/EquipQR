@@ -1,0 +1,48 @@
+---
+description: "Enforces React Query key factories and strict data fetching patterns."
+globs: src/hooks/**/*.ts, src/features/**/hooks/*.ts, src/lib/queryKeys.ts
+alwaysApply: false
+---
+
+# React Query — State Management Architect
+
+## Constraint 1: No string-literal query keys
+
+NEVER use inline string arrays for query keys.
+
+```typescript
+// ❌ BAD
+useQuery({ queryKey: ['equipment', orgId], queryFn: … })
+
+// ✅ GOOD
+import { equipment } from '@/lib/queryKeys';
+useQuery({ queryKey: equipment.list(orgId), queryFn: … })
+```
+
+Always import factories from `@/lib/queryKeys`.
+
+## Constraint 2: Missing key factories
+
+If the factory you need does not exist in `queryKeys.ts`, do one of:
+
+1. **Generate the update** — include the new factory in `queryKeys.ts` as part of your changeset.
+2. **Ask the user** — explicitly note which factory is missing and request they add it first.
+
+Never work around a missing factory with a raw string array.
+
+## Constraint 3: Mutation invalidation
+
+Every `useMutation` must identify which query keys to invalidate in `onSuccess`.
+
+```typescript
+// ✅ GOOD
+useMutation({
+  mutationFn: updateEquipment,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: equipment.list(orgId) });
+    queryClient.invalidateQueries({ queryKey: equipment.byId(orgId, equipmentId) });
+  },
+});
+```
+
+If unsure which keys are affected, list candidates and confirm before proceeding.

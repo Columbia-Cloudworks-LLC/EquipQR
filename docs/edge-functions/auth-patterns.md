@@ -37,6 +37,7 @@ The following functions are explicitly authorized to use `createAdminSupabaseCli
 |----------|--------|--------|
 | `stripe-license-webhook` | Stripe webhook signature-based auth; no user JWT available | `verify_jwt = false` |
 | `stripe-webhook` | Legacy redirect to stripe-license-webhook | `verify_jwt = false` |
+| `github-issue-webhook` | GitHub webhook HMAC-SHA256 signature auth; syncs issue status and comments to tickets table | `verify_jwt = false` |
 
 ### Cron / Background Jobs
 
@@ -56,6 +57,7 @@ The following functions are explicitly authorized to use `createAdminSupabaseCli
 | Function | Reason | Config |
 |----------|--------|--------|
 | `check-subscription` | Uses user-scoped for auth, admin for subscriber table upsert (self-referential update only) | `verify_jwt = true` |
+| `create-ticket` | Uses `requireUser()` for auth with a user-scoped client, and an admin client for ticket insert (to atomically set `github_issue_number`) | `verify_jwt = false` |
 
 ## Functions Using User-Scoped Client (RLS Enforced)
 
