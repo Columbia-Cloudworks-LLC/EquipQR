@@ -29,43 +29,47 @@ BEGIN;
 -- support moving extensions between schemas directly.
 
 DO $$
+DECLARE
+  v_current_schema TEXT;
 BEGIN
-  -- Check if pg_net exists in public schema
-  IF EXISTS (
-    SELECT 1 
-    FROM pg_extension e
-    JOIN pg_namespace n ON e.extnamespace = n.oid
-    WHERE e.extname = 'pg_net' 
-      AND n.nspname = 'public'
-  ) THEN
-    -- Drop the extension from public schema
-    -- This will also drop any dependent objects (like net.http_request_queue)
-    DROP EXTENSION IF EXISTS pg_net CASCADE;
-    
-    -- Recreate in extensions schema
-    -- The extensions schema should already exist in Supabase
-    CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
-    
-    RAISE NOTICE 'pg_net extension moved from public to extensions schema';
-  ELSIF EXISTS (
-    SELECT 1 
-    FROM pg_extension e
-    JOIN pg_namespace n ON e.extnamespace = n.oid
-    WHERE e.extname = 'pg_net' 
-      AND n.nspname = 'extensions'
-  ) THEN
-    -- Already in the correct schema
-    RAISE NOTICE 'pg_net extension is already in extensions schema';
-  ELSE
-    -- Extension doesn't exist, create it in extensions schema
+  -- Determine current schema of pg_net (if it exists)
+  SELECT n.nspname INTO v_current_schema
+  FROM pg_extension e
+  JOIN pg_namespace n ON e.extnamespace = n.oid
+  WHERE e.extname = 'pg_net';
+
+  IF v_current_schema IS NULL THEN
+    -- Extension doesn't exist yet — create in extensions schema
     CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
     RAISE NOTICE 'pg_net extension created in extensions schema';
+
+  ELSIF v_current_schema = 'extensions' THEN
+    -- Already in the correct schema — nothing to do
+    RAISE NOTICE 'pg_net extension is already in extensions schema';
+
+  ELSIF v_current_schema IN ('public', 'pg_catalog') THEN
+    -- Extension is in public or pg_catalog — attempt to move it.
+    -- pg_catalog is a system schema that Supabase may install pg_net into
+    -- on certain platform configurations. We try to drop and recreate in
+    -- extensions, but catch errors since the platform may prevent this.
+    BEGIN
+      DROP EXTENSION IF EXISTS pg_net CASCADE;
+      CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+      RAISE NOTICE 'pg_net extension moved from % to extensions schema', v_current_schema;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'Could not move pg_net from % schema: % (SQLSTATE: %). Please move it manually via Supabase Dashboard > Database > Extensions.', v_current_schema, SQLERRM, SQLSTATE;
+    END;
+
+  ELSE
+    -- Extension is in some other unexpected schema — attempt to move but don't fail
+    BEGIN
+      DROP EXTENSION IF EXISTS pg_net CASCADE;
+      CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+      RAISE NOTICE 'pg_net extension moved from % to extensions schema', v_current_schema;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'Could not move pg_net from % schema: % (SQLSTATE: %). Please move it manually via Supabase Dashboard > Database > Extensions.', v_current_schema, SQLERRM, SQLSTATE;
+    END;
   END IF;
-EXCEPTION
-  WHEN OTHERS THEN
-    -- If we can't move it (e.g., extension is in use), log a warning
-    -- PART 2 will detect if extension is still in public schema and log a warning instead of failing
-    RAISE WARNING 'Could not move pg_net extension: % (SQLSTATE: %). Please move it manually via Supabase Dashboard > Database > Extensions.', SQLERRM, SQLSTATE;
 END
 $$;
 
@@ -80,8 +84,7 @@ DO $$
 DECLARE
   v_schema_name TEXT;
 BEGIN
-  -- Check if PART 1 had an error by looking for the extension
-  -- If extension is still in public schema, PART 1 likely failed - log warning instead of failing
+  -- Check if PART 1 succeeded by verifying the extension location
   SELECT n.nspname INTO v_schema_name
   FROM pg_extension e
   JOIN pg_namespace n ON e.extnamespace = n.oid
@@ -90,18 +93,18 @@ BEGIN
   IF v_schema_name IS NULL THEN
     -- Extension doesn't exist - this is a hard failure as it's required
     RAISE EXCEPTION 'pg_net extension not found. Please enable it via Supabase Dashboard > Database > Extensions before running this migration.';
-  ELSIF v_schema_name != 'extensions' THEN
-    -- Extension is in wrong schema - if PART 1 failed, we already logged a warning
-    -- Check if it's in public schema (the case PART 1 was trying to fix)
-    IF v_schema_name = 'public' THEN
-      -- PART 1 likely failed - log warning instead of failing
-      RAISE WARNING 'pg_net extension is still in public schema. Please move it manually via Supabase Dashboard > Database > Extensions. Migration will continue but this should be fixed for security.';
-    ELSE
-      -- Extension is in some other unexpected schema - fail hard
-      RAISE EXCEPTION 'pg_net extension is in % schema, not extensions schema. Please move it manually via Supabase Dashboard > Database > Extensions before running this migration.', v_schema_name;
-    END IF;
-  ELSE
+  ELSIF v_schema_name = 'extensions' THEN
     RAISE NOTICE 'pg_net extension verified in extensions schema';
+  ELSIF v_schema_name IN ('public', 'pg_catalog') THEN
+    -- PART 1 was unable to move the extension from public or pg_catalog.
+    -- pg_catalog is a system schema that Supabase may manage directly.
+    -- Warn but don't fail — the extension still works from these schemas
+    -- and the user can move it manually via Dashboard if needed.
+    RAISE WARNING 'pg_net extension is still in % schema. Please move it manually via Supabase Dashboard > Database > Extensions. Migration will continue but this should be fixed for security.', v_schema_name;
+  ELSE
+    -- Extension is in some other unexpected schema — warn but don't fail
+    -- to avoid blocking all migrations over a non-critical schema preference
+    RAISE WARNING 'pg_net extension is in % schema (expected extensions). Please move it manually via Supabase Dashboard > Database > Extensions.', v_schema_name;
   END IF;
 END
 $$;

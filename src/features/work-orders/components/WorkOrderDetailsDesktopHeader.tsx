@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Info, Download, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, Info, Download, FileSpreadsheet, Loader2, MoreHorizontal } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
@@ -11,6 +11,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { QuickBooksExportButton } from './QuickBooksExportButton';
 import { WorkOrderPDFExportDialog } from './WorkOrderPDFExportDialog';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
@@ -94,22 +100,34 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     await saveToDrive(options);
   };
 
+  // Truncate work order UUID to first 8 characters for display (matches invoice format WO-XXXXXXXX)
+  const truncatedId = workOrder.id.substring(0, 8).toUpperCase();
+
   return (
     <TooltipProvider>
       <div className="hidden lg:block">
         <header className="gradient-primary rounded-b-xl -mb-6 p-6 relative z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" asChild className="text-secondary hover:underline">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              <Button variant="ghost" size="sm" asChild className="text-secondary hover:underline shrink-0">
                 <Link to="/dashboard/work-orders">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Work Orders
                 </Link>
               </Button>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">{workOrder.title}</h1>
+              <div className="min-w-0">
+                <h1 className="text-3xl font-bold tracking-tight truncate">{workOrder.title}</h1>
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <p>Work Order #{workOrder.id}</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="cursor-help hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm">
+                        WO-{truncatedId}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-mono text-xs">{workOrder.id}</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <span className="text-muted-foreground">•</span>
                   <span className="capitalize">{formatPriority(workOrder.priority)} priority</span>
                   {formMode === 'requestor' && !permissionLevels.isManager && (
@@ -125,71 +143,49 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end shrink-0">
               <Badge className={getStatusColor(workOrder.status)}>
                 {formatStatus(workOrder.status)}
               </Badge>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowPDFDialog(true)}
-                  disabled={isGenerating}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Download PDF</span>
-                </Button>
-                {!organizationId ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <Button
-                          variant="outline"
-                          onClick={() => exportSingle(workOrder.id)}
-                          disabled={isExportingSingle || !organizationId}
-                          className="flex items-center gap-2"
-                        >
-                          {isExportingSingle ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <FileSpreadsheet className="h-4 w-4" />
-                          )}
-                          <span>Export Excel</span>
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Organization ID is required to export</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => exportSingle(workOrder.id)}
-                    disabled={isExportingSingle || !organizationId}
-                    className="flex items-center gap-2"
-                  >
-                    {isExportingSingle ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <FileSpreadsheet className="h-4 w-4" />
-                    )}
-                    <span>Export Excel</span>
-                  </Button>
-                )}
-                <QuickBooksExportButton
-                  workOrderId={workOrder.id}
-                  teamId={equipmentTeamId ?? null}
-                  workOrderStatus={workOrder.status}
-                  showStatusDetails
-                />
-              </div>
+              <QuickBooksExportButton
+                workOrderId={workOrder.id}
+                teamId={equipmentTeamId ?? null}
+                workOrderStatus={workOrder.status}
+                showStatusDetails
+              />
               {canEdit && (
                 <Button variant="outline" onClick={onEditClick}>
                   <Edit className="h-4 w-4 mr-2" />
                   {formMode === 'requestor' ? 'Edit Request' : 'Edit'}
                 </Button>
               )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" aria-label="More actions">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => setShowPDFDialog(true)}
+                    disabled={isGenerating}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => exportSingle(workOrder.id)}
+                    disabled={isExportingSingle || !organizationId}
+                  >
+                    {isExportingSingle ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    )}
+                    Export Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
