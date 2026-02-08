@@ -87,9 +87,27 @@ interface SanitizedMetadata {
 // Helpers
 // =============================================================================
 
+/** Fields that may contain user-provided PII and must never appear in logs. */
+const REDACTED_LOG_FIELDS = new Set([
+  "title",
+  "description",
+  "body",
+  "name",
+  "email",
+]);
+
 function logStep(step: string, details?: Record<string, unknown>) {
-  const detailsStr = details ? ` | ${JSON.stringify(details)}` : "";
-  console.log(`[CREATE-TICKET] ${step}${detailsStr}`);
+  if (details) {
+    const safeDetails: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(details)) {
+      safeDetails[key] = REDACTED_LOG_FIELDS.has(key.toLowerCase())
+        ? "[REDACTED]"
+        : value;
+    }
+    console.log(`[CREATE-TICKET] ${step} | ${JSON.stringify(safeDetails)}`);
+  } else {
+    console.log(`[CREATE-TICKET] ${step}`);
+  }
 }
 
 /**
@@ -375,16 +393,68 @@ async function createGitHubIssue(
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
     logStep("GitHub API error", {
       status: response.status,
-      body: errorText,
+      statusText: response.statusText,
     });
     throw new Error("GitHub API request failed");
   }
 
   const data = await response.json();
   return { number: data.number, html_url: data.html_url };
+}
+
+/**
+ * Close a GitHub issue as compensation when the DB insert fails.
+ * This is a best-effort operation -- if it fails we log and move on
+ * because we cannot leave the user hanging for a secondary cleanup.
+ */
+async function closeGitHubIssue(
+  issueNumber: number,
+  githubPat: string
+): Promise<void> {
+  const url = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/issues/${issueNumber}`;
+  try {
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${githubPat}`,
+        Accept: "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+        "User-Agent": "EquipQR-BugReporter",
+      },
+      body: JSON.stringify({
+        state: "closed",
+        state_reason: "not_planned",
+        labels: [GITHUB_LABEL, "orphan-cleanup"],
+      }),
+    });
+
+    if (!response.ok) {
+      logStep("WARNING: Failed to close orphan GitHub issue", {
+        issueNumber,
+        status: response.status,
+        statusText: response.statusText,
+      });
+    } else {
+      logStep("Orphan GitHub issue closed successfully", { issueNumber });
+    }
+  } catch (error) {
+    logStep("WARNING: Exception closing orphan GitHub issue", {
+      issueNumber,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/** Maximum number of DB insert retries before compensating */
+const DB_INSERT_MAX_RETRIES = 2;
+/** Delay between DB insert retries in milliseconds */
+const DB_INSERT_RETRY_DELAY_MS = 500;
+
+/** Simple delay helper */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // =============================================================================
@@ -497,28 +567,52 @@ Deno.serve(async (req) => {
       logStep("ERROR: Failed to create GitHub issue", {
         message: error instanceof Error ? error.message : String(error),
       });
-      return createErrorResponse("Failed to create GitHub issue", 500);
+      return createErrorResponse("Failed to submit your report. Please try again later", 500);
     }
 
-    // 7. Insert ticket record using admin client
-    const { data: ticket, error: insertError } = await adminClient
-      .from("tickets")
-      .insert({
-        user_id: user.id,
-        title: trimmedTitle,
-        description: trimmedDescription,
-        status: "open",
-        github_issue_number: githubIssue.number,
-        github_issue_url: githubIssue.html_url,
-        metadata: sanitizedMetadata,
-      })
-      .select("id")
-      .single();
+    // 7. Insert ticket record using admin client (with retry + compensation)
+    //    If the DB insert fails after retries, close the GitHub issue to
+    //    prevent orphan issues in the repository.
+    let ticket: { id: string } | null = null;
+    let lastInsertError: string | undefined;
 
-    if (insertError || !ticket) {
-      logStep("ERROR: Failed to insert ticket", {
-        error: insertError?.message,
+    for (let attempt = 1; attempt <= DB_INSERT_MAX_RETRIES + 1; attempt++) {
+      const { data, error: insertError } = await adminClient
+        .from("tickets")
+        .insert({
+          user_id: user.id,
+          title: trimmedTitle,
+          description: trimmedDescription,
+          status: "open",
+          github_issue_number: githubIssue.number,
+          github_issue_url: githubIssue.html_url,
+          metadata: sanitizedMetadata,
+        })
+        .select("id")
+        .single();
+
+      if (!insertError && data) {
+        ticket = data;
+        break;
+      }
+
+      lastInsertError = insertError?.message;
+      logStep(`DB insert attempt ${attempt} failed`, {
+        error: lastInsertError,
+        willRetry: attempt <= DB_INSERT_MAX_RETRIES,
       });
+
+      if (attempt <= DB_INSERT_MAX_RETRIES) {
+        await delay(DB_INSERT_RETRY_DELAY_MS * attempt);
+      }
+    }
+
+    if (!ticket) {
+      logStep("ERROR: All DB insert attempts failed, compensating by closing GitHub issue", {
+        issueNumber: githubIssue.number,
+        lastError: lastInsertError,
+      });
+      await closeGitHubIssue(githubIssue.number, githubPat);
       return createErrorResponse("Failed to create ticket record", 500);
     }
 
