@@ -83,8 +83,10 @@ function sanitizeCommentBody(body: string): string {
   return body
     // Neutralize @mentions
     .replace(/@/g, "@\u200B")
-    // Strip HTML tags
-    .replace(/<[^>]*>/g, "")
+    // Escape HTML-special characters to prevent HTML/script injection
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
     // Truncate to 5000 chars
     .slice(0, 5000);
 }
