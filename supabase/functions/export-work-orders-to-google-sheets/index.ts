@@ -8,7 +8,6 @@
  * Uses raw fetch to Google Sheets API to keep bundle size small.
  */
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
   createUserSupabaseClient,
   createAdminSupabaseClient,
@@ -314,11 +313,24 @@ Deno.serve(async (req) => {
 
     const { user } = auth;
 
-    const body: ExportRequest = await req.json();
+    let body: ExportRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return createErrorResponse("Invalid JSON body", 400);
+    }
     const { organizationId, filters } = body;
 
     if (!organizationId) {
       return createErrorResponse("Missing required field: organizationId", 400);
+    }
+
+    // Validate filters object exists and has a valid dateField (required by fetchWorkOrdersWithData)
+    if (!filters || typeof filters !== "object") {
+      return createErrorResponse("Missing required field: filters", 400);
+    }
+    if (filters.dateField && !["created_date", "completed_date"].includes(filters.dateField)) {
+      return createErrorResponse("Invalid filters.dateField: must be 'created_date' or 'completed_date'", 400);
     }
 
     // Verify user has admin/owner role in the organization
@@ -328,7 +340,13 @@ Deno.serve(async (req) => {
     }
 
     // Check rate limit
-    const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
+    let rateLimitOk: boolean;
+    try {
+      rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
+    } catch (rateLimitError) {
+      console.error("Rate limit check error:", rateLimitError);
+      return createErrorResponse("An internal error occurred", 500);
+    }
     if (!rateLimitOk) {
       return new Response(
         JSON.stringify({ error: "Rate limit exceeded. Please wait before requesting another export." }),

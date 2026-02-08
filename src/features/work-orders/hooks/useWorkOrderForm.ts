@@ -74,7 +74,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     mode: 'onChange',
   });
 
-  const { formState, watch, setValue: rhfSetValue, reset: rhfReset, trigger, getValues } = rhf;
+  const { formState, watch, setValue: rhfSetValue, reset: rhfReset, trigger, getValues, handleSubmit: rhfHandleSubmit } = rhf;
 
   // Watch all form values for reactivity
   const watchedValues = watch();
@@ -110,15 +110,22 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
   // Create validate adapter (async to properly await validation)
   const validateAdapter = useCallback(async (): Promise<{ isValid: boolean; errors: Record<string, string> }> => {
     const isValid = await trigger();
-    // Re-read errors from getValues context after trigger completes
+    // Use getFieldState to get fresh error state after trigger completes
+    // This avoids reading from stale closure-captured formState.errors
     const currentErrors: Record<string, string> = {};
-    for (const [key, error] of Object.entries(rhf.formState.errors)) {
-      if (error?.message) {
-        currentErrors[key] = error.message as string;
+    const fieldNames: (keyof WorkOrderFormData)[] = [
+      'title', 'description', 'equipmentId', 'priority', 'dueDate',
+      'estimatedHours', 'hasPM', 'pmTemplateId', 'assigneeId', 
+      'isHistorical', 'status', 'historicalStartDate', 'historicalNotes', 'completedDate'
+    ];
+    for (const fieldName of fieldNames) {
+      const fieldState = rhf.getFieldState(fieldName);
+      if (fieldState.error?.message) {
+        currentErrors[fieldName] = fieldState.error.message;
       }
     }
     return { isValid, errors: currentErrors };
-  }, [trigger, rhf.formState.errors]);
+  }, [trigger, rhf]);
 
   // Create validateField adapter (async to properly await validation)
   const validateFieldAdapter = useCallback(async (field: keyof WorkOrderFormData): Promise<boolean> => {
@@ -131,20 +138,21 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     rhfReset(initialValues as WorkOrderFormData);
   }, [rhfReset, initialValues]);
 
-  // Create handleSubmit adapter matching the old signature
+  // Create handleSubmit adapter matching the old signature.
+  // Delegates to rhf.handleSubmit so that formState.isSubmitting is toggled
+  // during submission and RHF's error-focusing behaviour is preserved.
   const handleSubmitAdapter = useCallback(async (
     onSubmit: (values: WorkOrderFormData) => Promise<void> | void
   ) => {
-    const isValid = await trigger();
-    if (!isValid) return;
-
-    try {
-      await onSubmit(getValues() as WorkOrderFormData);
-    } catch (error) {
-      console.error('Form submission error:', error);
-      showErrorToast(error, 'Form Submission');
-    }
-  }, [trigger, getValues]);
+    await rhfHandleSubmit(async (values) => {
+      try {
+        await onSubmit(values);
+      } catch (error) {
+        console.error('Form submission error:', error);
+        showErrorToast(error, 'Form Submission');
+      }
+    })();
+  }, [rhfHandleSubmit]);
 
   // Build the form adapter object that matches the old API
   const form: FormAdapter<WorkOrderFormData> = useMemo(() => ({

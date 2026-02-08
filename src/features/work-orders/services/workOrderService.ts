@@ -380,7 +380,7 @@ export class WorkOrderService extends BaseService {
         updated_at: new Date().toISOString()
       };
 
-      // Set assignee_id if provided
+      // Set assignee_id if provided (undefined = don't change; null = unassign; string = assign)
       if (assigneeId !== undefined) {
         updateData.assignee_id = assigneeId;
       }
@@ -390,8 +390,12 @@ export class WorkOrderService extends BaseService {
         updateData.completed_date = new Date().toISOString();
       }
 
-      // Set acceptance_date if transitioning to accepted or assigned with assignee
-      if (status === 'accepted' || (status === 'assigned' && assigneeId)) {
+      // Set acceptance_date when transitioning to accepted, assigned, or in_progress with a
+      // valid assignee. The in_progress case covers the "Assign & Start" flow where a work order
+      // skips the 'assigned' state and goes directly from 'accepted' to 'in_progress' with an
+      // assigneeId — without this, acceptance_date would remain null.
+      const hasValidAssignee = assigneeId != null && assigneeId !== '';
+      if (status === 'accepted' || ((status === 'assigned' || status === 'in_progress') && hasValidAssignee)) {
         updateData.acceptance_date = new Date().toISOString();
       }
 

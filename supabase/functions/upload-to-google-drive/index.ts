@@ -23,11 +23,11 @@ import {
   GOOGLE_SCOPES,
   hasScope,
 } from "../_shared/google-workspace-token.ts";
+import { checkRateLimit } from "../_shared/work-orders-export-data.ts";
 
 const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
-const DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files";
 
-// Maximum file size: 15 MB (base64 adds ~33% overhead, so ~11 MB original)
+// Maximum decoded file size: 15 MB
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
 const MAX_FILENAME_LENGTH = 255;
 
@@ -58,23 +58,36 @@ interface DriveFileResponse {
 
 /**
  * Sanitizes a filename to remove potentially dangerous characters.
+ * Only allows alphanumeric, dots, hyphens, underscores, and spaces.
+ * Blocks directory traversal patterns.
  */
 function sanitizeFilename(filename: string): string {
-  // Remove path separators and null bytes
-  let sanitized = filename.replace(/[/\\:\0]/g, "_");
+  // Strip all characters except alphanumeric, dots, hyphens, underscores, and spaces
+  let sanitized = filename.replace(/[^a-zA-Z0-9.\-_ ]/g, "_");
+  
+  // Block directory traversal patterns (.. sequences)
+  sanitized = sanitized.replace(/\.{2,}/g, "_");
   
   // Trim whitespace
   sanitized = sanitized.trim();
   
-  // Limit length
+  // Collapse multiple consecutive underscores/spaces
+  sanitized = sanitized.replace(/[_ ]{2,}/g, "_");
+  
+  // Limit length while preserving extension
   if (sanitized.length > MAX_FILENAME_LENGTH) {
-    const ext = sanitized.substring(sanitized.lastIndexOf("."));
-    const name = sanitized.substring(0, MAX_FILENAME_LENGTH - ext.length - 1);
-    sanitized = name + ext;
+    const lastDot = sanitized.lastIndexOf(".");
+    if (lastDot > 0) {
+      const ext = sanitized.substring(lastDot);
+      const name = sanitized.substring(0, MAX_FILENAME_LENGTH - ext.length - 1);
+      sanitized = name + ext;
+    } else {
+      sanitized = sanitized.substring(0, MAX_FILENAME_LENGTH);
+    }
   }
   
   // Ensure it has some content
-  if (!sanitized || sanitized === "." || sanitized === "..") {
+  if (!sanitized || sanitized === "." || sanitized === "_") {
     sanitized = "uploaded-file";
   }
   
@@ -145,7 +158,6 @@ async function uploadToDrive(
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": `multipart/related; boundary=${boundary}`,
-      "Content-Length": body.length.toString(),
     },
     body: body,
   });
@@ -184,10 +196,12 @@ Deno.serve(async (req) => {
       return createErrorResponse("Method not allowed", 405);
     }
     
-    // Check content length header to reject oversized requests early
+    // Check content length header to reject oversized requests early.
+    // The request body includes base64-encoded file data (~33% larger than decoded)
+    // plus JSON overhead, so we allow up to 1.4x the max file size for the raw request.
     const contentLength = req.headers.get("Content-Length");
-    if (contentLength && parseInt(contentLength, 10) > MAX_FILE_SIZE_BYTES) {
-      return createErrorResponse("File too large. Maximum size is 15 MB.", 413);
+    if (contentLength && parseInt(contentLength, 10) >= MAX_FILE_SIZE_BYTES * 1.4) {
+      return createErrorResponse("File too large. File must be less than 15 MB.", 413);
     }
     
     // Create user-scoped client (RLS enforced)
@@ -210,10 +224,45 @@ Deno.serve(async (req) => {
     
     const { organizationId, filename, contentBase64, mimeType = "application/pdf" } = body;
     
-    // Validate required fields
+    // Validate mimeType against allowlist to prevent abuse
+    const ALLOWED_MIME_TYPES = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+    ];
+    if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+      return createErrorResponse(
+        `Unsupported format. Allowed types: ${ALLOWED_MIME_TYPES.join(", ")}`,
+        400
+      );
+    }
+    
+    // Validate organizationId first (before verifyOrgAdmin)
     if (!organizationId) {
       return createErrorResponse("Missing required field: organizationId", 400);
     }
+    
+    // Verify user has admin/owner role in the organization
+    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
+    if (!isAdmin) {
+      return createErrorResponse("Forbidden: Only owners and admins can upload to Drive", 403);
+    }
+    
+    // Check rate limit to prevent excessive uploads
+    let rateLimitOk: boolean;
+    try {
+      rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
+    } catch (rateLimitError) {
+      console.error("Rate limit check error:", rateLimitError);
+      return createErrorResponse("An internal error occurred", 500);
+    }
+    if (!rateLimitOk) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Please wait before uploading another file." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Validate other required fields
     if (!filename) {
       return createErrorResponse("Missing required field: filename", 400);
     }
@@ -221,9 +270,11 @@ Deno.serve(async (req) => {
       return createErrorResponse("Missing required field: contentBase64", 400);
     }
     
-    // Validate file size (base64 string length)
-    if (contentBase64.length > MAX_FILE_SIZE_BYTES) {
-      return createErrorResponse("File too large. Maximum size is 15 MB.", 413);
+    // Validate decoded file size from base64 string length.
+    // Base64 encodes 3 bytes into 4 characters, so decoded size ≈ base64Length * 3/4.
+    const estimatedDecodedSize = Math.ceil(contentBase64.length * 3 / 4);
+    if (estimatedDecodedSize >= MAX_FILE_SIZE_BYTES) {
+      return createErrorResponse("File too large. File must be less than 15 MB.", 413);
     }
     
     // Sanitize filename
@@ -235,12 +286,6 @@ Deno.serve(async (req) => {
       mimeType,
       contentLength: contentBase64.length,
     });
-    
-    // Verify user has admin/owner role in the organization
-    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can upload to Drive", 403);
-    }
     
     // Get Google Workspace access token
     const adminClient = createAdminSupabaseClient();
@@ -279,7 +324,10 @@ Deno.serve(async (req) => {
       const binaryString = atob(contentBase64);
       fileBytes = Uint8Array.from(binaryString, c => c.charCodeAt(0));
     } catch {
-      return createErrorResponse("Invalid base64 content", 400);
+      return createErrorResponse(
+        "Invalid base64 content. The file data may be corrupted or incorrectly encoded.",
+        400
+      );
     }
     
     logStep("Uploading file to Drive", { filename: sanitizedFilename, size: fileBytes.length });

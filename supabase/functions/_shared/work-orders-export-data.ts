@@ -7,7 +7,14 @@
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// Maximum rows per export to prevent abuse
+/**
+ * Maximum rows per export to prevent abuse.
+ * 
+ * IMPORTANT: If more work orders match the filters than this limit,
+ * the export will be truncated to the most recent 5000 work orders.
+ * Users should apply date range or other filters to reduce the result set
+ * if they need complete data for a specific period.
+ */
 export const MAX_WORK_ORDERS = 5000;
 
 // ============================================
@@ -225,8 +232,15 @@ export async function checkRateLimit(
     .limit(1);
 
   if (tableCheckError) {
-    console.log('export_request_log table not found, skipping rate limit check');
-    return true;
+    // Only skip rate limiting if the table genuinely doesn't exist.
+    if (tableCheckError.message?.includes('relation') && tableCheckError.message?.includes('does not exist')) {
+      console.log('export_request_log table not found, skipping rate limit check');
+      return true;
+    }
+    // Throw on unexpected DB/RLS errors so callers can return 500 instead of 429.
+    // Previously this returned false (fail closed), which caused callers to
+    // misreport transient DB errors as "rate limit exceeded".
+    throw new Error(`Rate limit check failed unexpectedly: ${tableCheckError.message}`);
   }
 
   const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
@@ -326,6 +340,8 @@ export async function fetchWorkOrdersWithData(
   filters: WorkOrderExcelFilters
 ): Promise<WorkOrdersWithData> {
   // Build work orders query (avoiding embedded relationships due to schema cache issues)
+  // NOTE: Results are capped at MAX_WORK_ORDERS (5000) to prevent abuse.
+  // If more work orders match the filters, only the most recent 5000 are returned.
   let query = supabase
     .from('work_orders')
     .select(`
@@ -394,25 +410,31 @@ export async function fetchWorkOrdersWithData(
     const { data: equipmentData } = await supabase
       .from('equipment')
       .select('id, name, manufacturer, model, serial_number, location, status')
-      .in('id', equipmentIds);
+      .in('id', equipmentIds)
+      .eq('organization_id', organizationId);
     equipmentMap = new Map((equipmentData || []).map(e => [e.id, e]));
   }
 
   // Fetch teams data separately
+  // Defense in depth: teams table has organization_id column, so we add explicit filter
   const teamIds = [...new Set(workOrders.map(wo => wo.team_id).filter(Boolean))];
   let teamMap = new Map<string, string>();
   if (teamIds.length > 0) {
     const { data: teamsData } = await supabase
       .from('teams')
       .select('id, name')
-      .in('id', teamIds);
+      .in('id', teamIds)
+      .eq('organization_id', organizationId);
     teamMap = new Map((teamsData || []).map(t => [t.id, t.name]));
   }
 
   // Fetch notes
+  // Defense in depth: work_order_notes table does not have organization_id column.
+  // Security is ensured by: (1) workOrderIds are already filtered by organization_id above,
+  // and (2) RLS policies on work_order_notes enforce access through work_order ownership.
   const { data: notes } = await supabase
     .from('work_order_notes')
-    .select('*')
+    .select('id, work_order_id, content, created_at, author_id, hours_worked, is_private')
     .in('work_order_id', workOrderIds)
     .eq('is_private', false)
     .order('created_at', { ascending: true });
@@ -429,6 +451,9 @@ export async function fetchWorkOrdersWithData(
   }
 
   // Fetch image counts
+  // Defense in depth: work_order_images table does not have organization_id column.
+  // Security is ensured by: (1) workOrderIds are already filtered by organization_id above,
+  // and (2) RLS policies on work_order_images enforce access through work_order ownership.
   const { data: images } = await supabase
     .from('work_order_images')
     .select('note_id')
@@ -442,9 +467,12 @@ export async function fetchWorkOrdersWithData(
   });
 
   // Fetch costs
+  // Defense in depth: work_order_costs table does not have organization_id column.
+  // Security is ensured by: (1) workOrderIds are already filtered by organization_id above,
+  // and (2) RLS policies on work_order_costs enforce access through work_order ownership.
   const { data: costs } = await supabase
     .from('work_order_costs')
-    .select('*')
+    .select('id, work_order_id, description, quantity, unit_price_cents, total_price_cents, inventory_item_id, created_at, created_by')
     .in('work_order_id', workOrderIds)
     .order('created_at', { ascending: true });
 
@@ -460,12 +488,17 @@ export async function fetchWorkOrdersWithData(
   }
 
   // Fetch PM data
+  // Defense in depth: preventative_maintenance has organization_id column, so we add explicit filter
   const { data: pmData } = await supabase
     .from('preventative_maintenance')
     .select('work_order_id, status, completed_at, notes, checklist_data')
+    .eq('organization_id', organizationId)
     .in('work_order_id', workOrderIds);
 
   // Fetch status history
+  // Defense in depth: work_order_status_history table does not have organization_id column.
+  // Security is ensured by: (1) workOrderIds are already filtered by organization_id above,
+  // and (2) RLS policies on work_order_status_history enforce access through work_order ownership.
   const { data: history } = await supabase
     .from('work_order_status_history')
     .select(`
@@ -511,11 +544,35 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
   const timelineRows: TimelineRow[] = [];
   const equipmentAggMap = new Map<string, EquipmentRow>();
 
+  // Pre-index related data by work_order_id for O(1) lookups (avoids O(n*m) filter scans)
+  const notesByWO = new Map<string, typeof data.notes>();
+  for (const n of data.notes) {
+    const arr = notesByWO.get(n.work_order_id) || [];
+    arr.push(n);
+    notesByWO.set(n.work_order_id, arr);
+  }
+  const costsByWO = new Map<string, typeof data.costs>();
+  for (const c of data.costs) {
+    const arr = costsByWO.get(c.work_order_id) || [];
+    arr.push(c);
+    costsByWO.set(c.work_order_id, arr);
+  }
+  const pmByWO = new Map<string, (typeof data.pmData)[number]>();
+  for (const p of data.pmData) {
+    pmByWO.set(p.work_order_id, p);
+  }
+  const historyByWO = new Map<string, typeof data.history>();
+  for (const h of data.history) {
+    const arr = historyByWO.get(h.work_order_id) || [];
+    arr.push(h);
+    historyByWO.set(h.work_order_id, arr);
+  }
+
   for (const wo of data.workOrders) {
-    const woNotes = data.notes.filter(n => n.work_order_id === wo.id);
-    const woCosts = data.costs.filter(c => c.work_order_id === wo.id);
-    const woPM = data.pmData.find(p => p.work_order_id === wo.id);
-    const woHistory = data.history.filter(h => h.work_order_id === wo.id);
+    const woNotes = notesByWO.get(wo.id) || [];
+    const woCosts = costsByWO.get(wo.id) || [];
+    const woPM = pmByWO.get(wo.id);
+    const woHistory = historyByWO.get(wo.id) || [];
 
     // Get equipment from the map
     const equipment = wo.equipment_id ? data.equipmentMap.get(wo.equipment_id) : null;
@@ -589,16 +646,48 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
         required: boolean;
         notes?: string;
       }> = [];
+      let parseError: Error | null = null;
 
+      const rawData = woPM.checklist_data;
       try {
-        const rawData = woPM.checklist_data;
         if (typeof rawData === 'string') {
           checklistItems = JSON.parse(rawData);
         } else if (Array.isArray(rawData)) {
           checklistItems = rawData;
         }
-      } catch {
-        console.error('Error parsing PM checklist data');
+      } catch (error) {
+        parseError = error instanceof Error ? error : new Error(String(error));
+        const rawDataSnippet = typeof rawData === 'string' 
+          ? rawData.substring(0, 200) 
+          : String(rawData).substring(0, 200);
+        
+        console.error('Error parsing PM checklist data', {
+          workOrderId: wo.id,
+          workOrderTitle: wo.title,
+          rawType: typeof rawData,
+          rawDataLength: typeof rawData === 'string' ? rawData.length : 'N/A',
+          rawDataSnippet,
+          errorMessage: parseError.message,
+          errorStack: parseError.stack,
+        });
+      }
+
+      // If parsing failed, add a warning row to indicate the issue
+      if (parseError) {
+        pmRows.push({
+          workOrderId: truncateId(wo.id),
+          workOrderTitle: wo.title,
+          equipmentName: equipment?.name || '',
+          pmStatus: woPM.status?.replace(/_/g, ' ').toUpperCase() || '',
+          completedDate: formatDateTime(woPM.completed_at),
+          section: 'PARSE ERROR',
+          itemTitle: 'Unable to parse checklist data',
+          condition: null,
+          conditionText: 'Not Rated',
+          required: false,
+          itemNotes: `Parse error: ${parseError.message}`,
+          generalNotes: woPM.notes ? `${woPM.notes}\n\n[WARNING: Checklist data could not be parsed]` : '[WARNING: Checklist data could not be parsed]',
+        });
       }
 
       for (const item of checklistItems) {

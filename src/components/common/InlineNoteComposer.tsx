@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Image, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { DATE_TIME_DISPLAY_FORMAT } from '@/config/date-formats';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
 
@@ -117,6 +119,9 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Ref to track latest value to avoid stale closures in paste handler
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   const handleFilesAdd = useCallback((files: File[]) => {
     const validFiles: File[] = [];
@@ -211,25 +216,28 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
     // Add images via existing handler (validates type, size, maxImages)
     handleFilesAdd(imageFiles);
 
+    // Use ref to get latest value, avoiding stale closure if user pastes twice quickly
+    const currentValue = valueRef.current;
+
     // Handle text content
     if (pastedText) {
       // Append text with proper line break if needed
-      const separator = value && !value.endsWith('\n') ? '\n' : '';
-      onChange(value + separator + pastedText);
+      const separator = currentValue && !currentValue.endsWith('\n') ? '\n' : '';
+      onChange(currentValue + separator + pastedText);
     } else if (userDisplayName) {
       // Generate fallback string when pasting images only (no text)
       const imageCount = imageFiles.length;
-      const timestamp = new Date().toISOString();
+      const timestamp = format(new Date(), DATE_TIME_DISPLAY_FORMAT);
       const fallbackText = imageCount === 1
-        ? `1 image uploaded on ${timestamp} by ${userDisplayName}`
+        ? `Image uploaded on ${timestamp} by ${userDisplayName}`
         : `${imageCount} images uploaded on ${timestamp} by ${userDisplayName}`;
       
       // Only set fallback if note is currently empty
-      if (!value.trim()) {
+      if (!currentValue.trim()) {
         onChange(fallbackText);
       }
     }
-  }, [disabled, isSubmitting, handleFilesAdd, value, onChange, userDisplayName]);
+  }, [disabled, isSubmitting, handleFilesAdd, onChange, userDisplayName]);
 
   const handleRemoveImage = useCallback((index: number) => {
     onImageRemove?.(index);

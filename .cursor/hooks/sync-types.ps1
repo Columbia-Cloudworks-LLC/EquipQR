@@ -3,7 +3,7 @@ $inputJson = [Console]::In.ReadToEnd()
 $data = $inputJson | ConvertFrom-Json
 $filePath = $data.path
 
-# Check if the edited file is a migration file (match against path, not raw JSON, so Windows escaped backslashes work)
+# Check if the edited file is a migration file (match against parsed path, not raw JSON, to avoid issues with JSON-escaped backslashes)
 if ($filePath -match "supabase[\\/]migrations[\\/]") {
     Write-Host "Migration change detected. Regenerating types..."
     

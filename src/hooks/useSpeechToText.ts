@@ -204,9 +204,9 @@ export function useSpeechToText(options: UseSpeechToTextOptions): UseSpeechToTex
     // Start recognition
     try {
       recognition.start();
-    } catch (err) {
+    } catch {
       // Handle case where recognition is already started
-      setError('Failed to start speech recognition. Please try again.');
+      setError('Speech recognition is already running or failed to start. Please try again.');
       setIsListening(false);
     }
   }, [isSupported, SpeechRecognitionConstructor, continuous, lang, onResult, onInterimResult]);
