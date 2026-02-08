@@ -548,7 +548,7 @@ Deno.serve(async (req) => {
 
     logStep("Creating GitHub issue");
 
-    const sanitizedTitle = sanitizeForMarkdown(trimmedTitle);
+    const sanitizedTitle = sanitizeForMarkdown(redactPII(trimmedTitle));
 
     let githubIssue: { number: number; html_url: string };
     try {
