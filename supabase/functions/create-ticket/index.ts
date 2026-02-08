@@ -570,7 +570,7 @@ Deno.serve(async (req) => {
       logStep("ERROR: Failed to create GitHub issue", {
         message: error instanceof Error ? error.message : String(error),
       });
-      return createErrorResponse("Failed to submit your report. Please try again later", 500);
+      return createErrorResponse("Failed to create GitHub issue", 500);
     }
 
     // 7. Insert ticket record using admin client (with retry + compensation)
