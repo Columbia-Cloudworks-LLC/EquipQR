@@ -7,11 +7,27 @@
         },
         { 
           "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\run-tests.ps1" 
+        },
+        {
+          "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\strict-type-check.ps1"
         }
       ],
       "beforeReadFile": [
         { 
           "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\guard-migrations.ps1" 
+        },
+        {
+          "command": "python .\\.cursor\\hooks\\component-check.py"
+        }
+      ],
+      "beforeSubmitPrompt": [
+        {
+          "command": "python .\\.cursor\\hooks\\secret-guardian.py"
+        }
+      ],
+      "beforeShellExecution": [
+        {
+          "command": "python .\\.cursor\\hooks\\secret-guardian.py"
         }
       ]
     }
