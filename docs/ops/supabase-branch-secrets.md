@@ -73,6 +73,12 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 | `QUICKBOOKS_SANDBOX` | All QuickBooks functions | `true` or `false` | Set to `true` for sandbox, `false` for production |
 | `ENABLE_QB_PDF_ATTACHMENT` | `quickbooks-export-invoice` | `true` or `false` | Enable PDF attachment for invoice exports |
 
+### GitHub Integration (Bug Reporting)
+
+| Secret Name | Required For | Example Value | Notes |
+|------------|--------------|---------------|-------|
+| `GITHUB_PAT` | `create-ticket` | `github_pat_...` | GitHub Personal Access Token (fine-grained) with **Issues: Read and write** permission scoped to `Columbia-Cloudworks-LLC/EquipQR`. Generate at: [GitHub Settings > Fine-grained tokens](https://github.com/settings/tokens?type=beta) |
+
 ### Stripe Integration (Deprecated - Kept for Rollback)
 
 | Secret Name | Required For | Example Value | Notes |
@@ -145,6 +151,13 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 - `QUICKBOOKS_SANDBOX` ✅
 - `ENABLE_QB_PDF_ATTACHMENT` ✅
+
+### Bug Reporting
+
+#### `create-ticket`
+- `SUPABASE_URL` ✅
+- `SUPABASE_SERVICE_ROLE_KEY` ✅
+- `GITHUB_PAT` ✅
 
 ### Other Functions
 
@@ -245,6 +258,9 @@ HCAPTCHA_SECRET_KEY=<your-hcaptcha-secret>
 # Google Maps
 GOOGLE_MAPS_API_KEY=<your-google-maps-api-key>
 VITE_GOOGLE_MAPS_BROWSER_KEY=<your-google-maps-api-key>
+
+# GitHub Integration (Bug Reporting)
+GITHUB_PAT=<your-github-pat>
 
 # QuickBooks (if enabled)
 INTUIT_CLIENT_ID=<your-intuit-client-id>

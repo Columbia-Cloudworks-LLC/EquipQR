@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **In-App Bug Reporting with GitHub Integration** (#529): Users can submit bug reports directly from the application; tickets persist in the database and automatically sync to GitHub Issues
+  - **Report Issue dialog** on the Support page (`SubmitTicketDialog`) captures title, description, and auto-collected debug context (user UUID, browser/OS, current route, timestamp)
+  - **`create-ticket` Edge Function** validates the payload, creates a GitHub Issue in `Columbia-Cloudworks-LLC/EquipQR` (assigned to `viralarchitect`, labeled `user-reported`), and inserts a `tickets` record with the linked issue number
+  - **Privacy-first**: GitHub issue body contains only the user's UUID -- no PII/email is exposed
+  - **`tickets` database table** with user-scoped RLS policies (users can view/create their own tickets; service role can insert/update)
+  - New `useSubmitTicket` TanStack Query mutation hook
+  - `tickets` query key factory added to `src/lib/queryKeys.ts` for future "My Tickets" views
+  - Documentation: `docs/features/bug-reporting.md` (feature overview, setup, troubleshooting), updated `docs/ops/supabase-branch-secrets.md` and `docs/edge-functions/auth-patterns.md`
+  - **New secret required**: `GITHUB_PAT` -- a fine-grained GitHub Personal Access Token with Issues Read/Write permission (see `docs/features/bug-reporting.md` for generation instructions)
+
 ## [2.2.3] - 2026-02-01
 
 ### Added

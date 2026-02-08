@@ -116,6 +116,14 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Failed to send push notification$/,
   /^Failed to fetch push subscriptions$/,
   /^Missing required fields: user_id, title, body$/,
+
+  // Ticket / bug reporting errors
+  /^Failed to create GitHub issue$/,
+  /^Failed to create ticket record$/,
+  /^title and description are required$/,
+  /^Title must be between \d+ and \d+ characters$/,
+  /^Description must be between \d+ and \d+ characters$/,
+  /^Rate limit exceeded\. You can submit up to \d+ reports per hour$/,
 ];
 
 /**

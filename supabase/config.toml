@@ -107,6 +107,11 @@ verify_jwt = false
 # JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
 # This works around a jose library compatibility issue with ES256 keys in local development
 
+[functions.create-ticket]
+verify_jwt = true
+# Creates a ticket record and corresponding GitHub issue for in-app bug reporting.
+# Requires authenticated user.
+
 [functions.send-push-notification]
 verify_jwt = false
 # Called from database via pg_net when notifications are inserted.

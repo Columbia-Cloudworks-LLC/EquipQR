@@ -86,6 +86,12 @@ export const workspacePersonalOrgMerge = (userId: string) => ({
     ['workspace-personal-org-merge', userId, 'preview', workspaceOrgId] as const,
 });
 
+// Ticket keys
+export const tickets = {
+  root: ['tickets'] as const,
+  mine: () => ['tickets', 'mine'] as const,
+};
+
 // Legacy query keys for backward compatibility - these should eventually be migrated
 export const queryKeys = {
   organization,
@@ -95,5 +101,6 @@ export const queryKeys = {
   equipment,
   workOrders,
   pmTemplates,
-  workspacePersonalOrgMerge
+  workspacePersonalOrgMerge,
+  tickets,
 };

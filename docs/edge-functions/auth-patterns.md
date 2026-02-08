@@ -56,6 +56,7 @@ The following functions are explicitly authorized to use `createAdminSupabaseCli
 | Function | Reason | Config |
 |----------|--------|--------|
 | `check-subscription` | Uses user-scoped for auth, admin for subscriber table upsert (self-referential update only) | `verify_jwt = true` |
+| `create-ticket` | Uses user-scoped for auth, admin client for ticket insert (to atomically set `github_issue_number`) | `verify_jwt = true` |
 
 ## Functions Using User-Scoped Client (RLS Enforced)
 
