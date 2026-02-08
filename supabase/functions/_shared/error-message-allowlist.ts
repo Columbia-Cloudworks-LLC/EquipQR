@@ -97,6 +97,7 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   
   // File upload errors
   /^File too large\./,
+  /^Invalid base64 content\. The file data may be corrupted or incorrectly encoded\.$/,
   
   // Safe operational messages
   /^Failed to (verify|fetch|store|decrypt|send)/,
