@@ -576,6 +576,11 @@ Deno.serve(async (req) => {
     // 7. Insert ticket record using admin client (with retry + compensation)
     //    If the DB insert fails after retries, close the GitHub issue to
     //    prevent orphan issues in the repository.
+    //
+    //    IDEMPOTENCY: A partial UNIQUE index exists on github_issue_number.
+    //    If a retry hits a unique-violation (code 23505), the first insert
+    //    actually succeeded -- fetch the existing ticket and return success
+    //    instead of erroneously closing the GitHub issue.
     let ticket: { id: string } | null = null;
     let lastInsertError: string | undefined;
 
@@ -599,9 +604,31 @@ Deno.serve(async (req) => {
         break;
       }
 
+      // Unique-violation on github_issue_number means a prior attempt
+      // actually succeeded.  Fetch the existing row and treat as success.
+      if (insertError?.code === "23505") {
+        logStep("Unique-violation on retry — prior insert succeeded, fetching existing ticket", {
+          issueNumber: githubIssue.number,
+          attempt,
+        });
+
+        const { data: existing } = await adminClient
+          .from("tickets")
+          .select("id")
+          .eq("github_issue_number", githubIssue.number)
+          .maybeSingle();
+
+        if (existing) {
+          ticket = existing;
+          break;
+        }
+        // If the fetch somehow fails, fall through to normal retry/error handling.
+      }
+
       lastInsertError = insertError?.message;
       logStep(`DB insert attempt ${attempt} failed`, {
         error: lastInsertError,
+        code: insertError?.code,
         willRetry: attempt <= DB_INSERT_MAX_RETRIES,
       });
 
