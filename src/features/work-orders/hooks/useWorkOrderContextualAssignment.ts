@@ -5,7 +5,7 @@
  * 
  * Assignment Rules:
  * - If equipment has a team: team members (manager/technician) + org admins/owners
- * - If equipment has NO team: assignment is BLOCKED (empty list returned)
+ * - If equipment has NO team: org admins/owners only (with equipmentHasNoTeam flag set)
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -77,14 +77,10 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
         teamId = equipment?.team_id;
       }
 
-      // If equipment has NO team, assignment is BLOCKED
-      if (!teamId) {
-        return { assignees: [], equipmentHasNoTeam: true };
-      }
-
+      const equipmentHasNoTeam = !teamId;
       const assignees: AssignmentOption[] = [];
 
-      // Get org admins/owners
+      // Always get org admins/owners - they can be assigned regardless of team
       const { data: orgAdmins, error: orgAdminsError } = await supabase
         .from('organization_members')
         .select(`
@@ -114,33 +110,35 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
         })));
       }
 
-      // Get team members (manager/technician)
-      const { data: teamMembers, error: teamError } = await supabase
-        .from('team_members')
-        .select(`
-          user_id,
-          role,
-          profiles!inner(
-            id,
-            name,
-            email
-          )
-        `)
-        .eq('team_id', teamId)
-        .in('role', ['manager', 'technician']);
+      // Get team members (manager/technician) only if equipment has a team
+      if (teamId) {
+        const { data: teamMembers, error: teamError } = await supabase
+          .from('team_members')
+          .select(`
+            user_id,
+            role,
+            profiles!inner(
+              id,
+              name,
+              email
+            )
+          `)
+          .eq('team_id', teamId)
+          .in('role', ['manager', 'technician']);
 
-      if (teamError) {
-        logger.error('Error fetching team members:', teamError);
-        throw teamError;
-      }
+        if (teamError) {
+          logger.error('Error fetching team members:', teamError);
+          throw teamError;
+        }
 
-      if (teamMembers) {
-        assignees.push(...teamMembers.map(member => ({
-          id: member.user_id,
-          name: member.profiles.name,
-          email: member.profiles.email,
-          role: member.role
-        })));
+        if (teamMembers) {
+          assignees.push(...teamMembers.map(member => ({
+            id: member.user_id,
+            name: member.profiles.name,
+            email: member.profiles.email,
+            role: member.role
+          })));
+        }
       }
 
       // Remove duplicates based on user ID
@@ -150,7 +148,7 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
 
       return { 
         assignees: uniqueAssignees.sort((a, b) => a.name.localeCompare(b.name)),
-        equipmentHasNoTeam: false
+        equipmentHasNoTeam
       };
     },
     enabled: !!(workOrder?.equipment_id || workOrder?.equipmentId) && !!(workOrder?.organization_id || workOrder?.organizationId),

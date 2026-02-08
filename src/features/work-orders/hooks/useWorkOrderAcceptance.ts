@@ -49,11 +49,12 @@ export const useWorkOrderAcceptance = () => {
         updateData.assignee_id = assigneeId;
       }
 
-      // Update the work order
+      // Update the work order (org-scoped for multi-tenancy defense in depth)
       const { data, error } = await supabase
         .from('work_orders')
         .update(updateData)
         .eq('id', workOrderId)
+        .eq('organization_id', organizationId)
         .select()
         .single();
 

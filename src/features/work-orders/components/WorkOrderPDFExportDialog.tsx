@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, CloudUpload } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 interface WorkOrderPDFExportDialogProps {
@@ -19,6 +19,12 @@ interface WorkOrderPDFExportDialogProps {
   isExporting: boolean;
   /** Whether to show the costs option (hide for users without cost permissions) */
   showCostsOption?: boolean;
+  /** Whether the organization has Google Workspace connected */
+  isGoogleWorkspaceConnected?: boolean;
+  /** Handler for saving to Google Drive (only called if isGoogleWorkspaceConnected) */
+  onSaveToDrive?: (options: { includeCosts: boolean }) => Promise<void>;
+  /** Whether saving to Google Drive is in progress */
+  isSavingToDrive?: boolean;
 }
 
 /**
@@ -30,9 +36,14 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
   onOpenChange,
   onExport,
   isExporting,
-  showCostsOption = true
+  showCostsOption = true,
+  isGoogleWorkspaceConnected = false,
+  onSaveToDrive,
+  isSavingToDrive = false,
 }) => {
   const [includeCosts, setIncludeCosts] = useState(false);
+  
+  const isAnyExporting = isExporting || isSavingToDrive;
 
   // Reset state when dialog closes (via Cancel, backdrop click, or escape key)
   useEffect(() => {
@@ -48,6 +59,18 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
       onOpenChange(false);
     } catch {
       // Keep dialog open on error so user can retry without re-selecting options
+      // Error toast is already shown by the hook
+    }
+  };
+
+  const handleSaveToDrive = async () => {
+    if (!onSaveToDrive) return;
+    try {
+      await onSaveToDrive({ includeCosts });
+      // Close dialog on success
+      onOpenChange(false);
+    } catch {
+      // Keep dialog open on error so user can retry
       // Error toast is already shown by the hook
     }
   };
@@ -85,17 +108,39 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isExporting}
+            disabled={isAnyExporting}
           >
             Cancel
           </Button>
+          
+          {/* Google Drive button - only shown when connected */}
+          {isGoogleWorkspaceConnected && onSaveToDrive && (
+            <Button
+              variant="outline"
+              onClick={handleSaveToDrive}
+              disabled={isAnyExporting}
+            >
+              {isSavingToDrive ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving to Drive...
+                </>
+              ) : (
+                <>
+                  <CloudUpload className="h-4 w-4 mr-2" />
+                  Save to Google Drive
+                </>
+              )}
+            </Button>
+          )}
+          
           <Button
             onClick={handleExport}
-            disabled={isExporting}
+            disabled={isAnyExporting}
           >
             {isExporting ? (
               <>

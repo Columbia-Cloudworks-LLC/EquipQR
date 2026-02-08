@@ -1,15 +1,31 @@
 
-import { useEffect, useRef, useMemo } from 'react';
-import { useFormValidation } from '@/hooks/useFormValidation';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
 import { 
   workOrderFormSchema, 
   getDefaultWorkOrderFormValues,
   type WorkOrderFormData 
 } from '@/features/work-orders/schemas/workOrderSchema';
+import { showErrorToast } from '@/utils/errorHandling';
 
 // Re-export for backward compatibility
 export type { WorkOrderFormData };
+
+/** Adapter interface matching the old useFormValidation API for backward compatibility */
+interface FormAdapter<T> {
+  values: Partial<T>;
+  errors: Record<string, string>;
+  isValid: boolean;
+  isSubmitting: boolean;
+  setValue: <K extends keyof T>(field: K, value: T[K]) => void;
+  setValues: (values: Partial<T>) => void;
+  validate: () => Promise<{ isValid: boolean; errors: Record<string, string> }>;
+  validateField: (field: keyof T) => Promise<boolean>;
+  reset: () => void;
+  handleSubmit: (onSubmit: (values: T) => Promise<void> | void) => Promise<void>;
+}
 
 interface UseWorkOrderFormProps {
   workOrder?: EnhancedWorkOrder;
@@ -51,7 +67,117 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
     };
   }, [workOrder, equipmentId, initialIsHistorical, pmData]);
 
-  const form = useFormValidation(workOrderFormSchema, initialValues);
+  // Use react-hook-form with zodResolver
+  const rhf = useForm<WorkOrderFormData>({
+    resolver: zodResolver(workOrderFormSchema),
+    defaultValues: initialValues as WorkOrderFormData,
+    mode: 'onChange',
+  });
+
+  const { formState, watch, setValue: rhfSetValue, reset: rhfReset, trigger, getValues, handleSubmit: rhfHandleSubmit } = rhf;
+
+  // Watch all form values for reactivity
+  const watchedValues = watch();
+
+  // Convert react-hook-form errors to the flat Record<string, string> format
+  const flatErrors = useMemo((): Record<string, string> => {
+    const result: Record<string, string> = {};
+    for (const [key, error] of Object.entries(formState.errors)) {
+      if (error?.message) {
+        result[key] = error.message as string;
+      }
+    }
+    return result;
+  }, [formState.errors]);
+
+  // Create setValue adapter
+  const setValueAdapter = useCallback(<K extends keyof WorkOrderFormData>(
+    field: K, 
+    value: WorkOrderFormData[K]
+  ) => {
+    rhfSetValue(field, value, { shouldValidate: true, shouldDirty: true });
+  }, [rhfSetValue]);
+
+  // Create setValues adapter
+  const setValuesAdapter = useCallback((values: Partial<WorkOrderFormData>) => {
+    for (const [key, value] of Object.entries(values)) {
+      rhfSetValue(key as keyof WorkOrderFormData, value as WorkOrderFormData[keyof WorkOrderFormData], { shouldValidate: false });
+    }
+    // Trigger validation once after setting all values
+    trigger();
+  }, [rhfSetValue, trigger]);
+
+  // Create validate adapter (async to properly await validation)
+  const validateAdapter = useCallback(async (): Promise<{ isValid: boolean; errors: Record<string, string> }> => {
+    const isValid = await trigger();
+    // Use getFieldState to get fresh error state after trigger completes
+    // This avoids reading from stale closure-captured formState.errors
+    const currentErrors: Record<string, string> = {};
+    const fieldNames: (keyof WorkOrderFormData)[] = [
+      'title', 'description', 'equipmentId', 'priority', 'dueDate',
+      'estimatedHours', 'hasPM', 'pmTemplateId', 'assigneeId', 
+      'isHistorical', 'status', 'historicalStartDate', 'historicalNotes', 'completedDate'
+    ];
+    for (const fieldName of fieldNames) {
+      const fieldState = rhf.getFieldState(fieldName);
+      if (fieldState.error?.message) {
+        currentErrors[fieldName] = fieldState.error.message;
+      }
+    }
+    return { isValid, errors: currentErrors };
+  }, [trigger, rhf]);
+
+  // Create validateField adapter (async to properly await validation)
+  const validateFieldAdapter = useCallback(async (field: keyof WorkOrderFormData): Promise<boolean> => {
+    const isValid = await trigger(field);
+    return isValid;
+  }, [trigger]);
+
+  // Create reset adapter
+  const resetAdapter = useCallback(() => {
+    rhfReset(initialValues as WorkOrderFormData);
+  }, [rhfReset, initialValues]);
+
+  // Create handleSubmit adapter matching the old signature.
+  // Delegates to rhf.handleSubmit so that formState.isSubmitting is toggled
+  // during submission and RHF's error-focusing behaviour is preserved.
+  const handleSubmitAdapter = useCallback(async (
+    onSubmit: (values: WorkOrderFormData) => Promise<void> | void
+  ) => {
+    await rhfHandleSubmit(async (values) => {
+      try {
+        await onSubmit(values);
+      } catch (error) {
+        console.error('Form submission error:', error);
+        showErrorToast(error, 'Form Submission');
+      }
+    })();
+  }, [rhfHandleSubmit]);
+
+  // Build the form adapter object that matches the old API
+  const form: FormAdapter<WorkOrderFormData> = useMemo(() => ({
+    values: watchedValues as Partial<WorkOrderFormData>,
+    errors: flatErrors,
+    isValid: formState.isValid,
+    isSubmitting: formState.isSubmitting,
+    setValue: setValueAdapter,
+    setValues: setValuesAdapter,
+    validate: validateAdapter,
+    validateField: validateFieldAdapter,
+    reset: resetAdapter,
+    handleSubmit: handleSubmitAdapter,
+  }), [
+    watchedValues, 
+    flatErrors, 
+    formState.isValid, 
+    formState.isSubmitting, 
+    setValueAdapter, 
+    setValuesAdapter, 
+    validateAdapter, 
+    validateFieldAdapter, 
+    resetAdapter, 
+    handleSubmitAdapter
+  ]);
 
   // Reset form only when dialog opens for first time or when workOrder/equipment changes
   useEffect(() => {
@@ -65,7 +191,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
                          initializationRef.current.lastEquipmentId !== currentEquipmentId;
 
       if (shouldReset) {
-        const resetValues = {
+        const resetValues: Partial<WorkOrderFormData> = {
           title: initialValues.title || '',
           description: initialValues.description || '',
           equipmentId: initialValues.equipmentId || '',
@@ -86,7 +212,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
           } : {})
         };
 
-        form.setValues(resetValues);
+        rhfReset(resetValues as WorkOrderFormData);
         
         // Update initialization tracking
         initializationRef.current = {
@@ -99,7 +225,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
       // Reset initialization when dialog closes
       initializationRef.current.hasInitialized = false;
     }
-  }, [isOpen, workOrder?.id, equipmentId, form, initialValues]);
+  }, [isOpen, workOrder?.id, equipmentId, rhfReset, initialValues]);
 
   /**
    * Checks if the form has unsaved changes compared to initial values.
@@ -112,7 +238,7 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
    * 
    * @returns true if any field has changed from its initial value
    */
-  const checkForUnsavedChanges = (): boolean => {
+  const checkForUnsavedChanges = useCallback((): boolean => {
     const isEmpty = (value: unknown): boolean => {
       return value === undefined || value === null || value === '';
     };
@@ -127,12 +253,13 @@ export const useWorkOrderForm = ({ workOrder, equipmentId, isOpen, initialIsHist
       return current !== initial;
     };
 
-    return Object.keys(form.values).some(key => {
-      const currentValue = form.values[key as keyof WorkOrderFormData];
+    const currentValues = getValues();
+    return Object.keys(currentValues).some(key => {
+      const currentValue = currentValues[key as keyof WorkOrderFormData];
       const initialValue = initialValues[key as keyof WorkOrderFormData];
       return hasChanged(currentValue, initialValue);
     });
-  };
+  }, [getValues, initialValues]);
 
   return {
     form,

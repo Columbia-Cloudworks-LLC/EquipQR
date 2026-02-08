@@ -6,7 +6,7 @@
 
 ## 🚜 Fleet Equipment Management Platform 🚧
 
-![Version](https://img.shields.io/badge/version-2.2.2-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.2.3-blue?style=for-the-badge)
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
@@ -41,6 +41,24 @@ Detailed documentation is located in the [`/docs`](./docs/README.md) directory:
 * **🏗️ Architecture**: [System Architecture](./docs/technical/architecture.md) & [Database Schema](./docs/technical/architecture.md#database-schema)
 * **📘 Guides**: [Workflows](./docs/guides/workflows.md) & [Permissions](./docs/guides/permissions.md)
 * **⚙️ Operations**: [Deployment](./docs/ops/deployment.md), [Migrations](./docs/ops/migrations.md), [Local Supabase Development](./docs/ops/local-supabase-development.md) & [Disaster Recovery](./docs/ops/disaster-recovery.md)
+
+## ✅ Prerequisites (Accounts & Services)
+
+EquipQR uses external services. For exact environment variables and where they’re used, see [`env.example`](./env.example) (source of truth) and the [Setup Guide](./docs/technical/setup.md).
+
+**Required (to run the core app):**
+
+* **Supabase**: Create a project (URL + anon key) and configure Supabase Auth (email/password; optionally Google).
+
+**Optional (feature-dependent):**
+
+* **Resend**: Invitation emails (`RESEND_API_KEY`).
+* **Google sign-in (Supabase Auth provider)**: Google OAuth app + provider config in Supabase.
+* **Google Workspace integration**: Google Cloud OAuth client + Admin SDK API enabled (directory sync).
+* **QuickBooks Online**: Intuit developer app + OAuth credentials (feature-flagged).
+* **Google Maps**: Fleet Map feature.
+* **hCaptcha**: Bot protection on signup.
+* **Web Push**: VAPID keys for push notifications.
 
 ## 🛠️ Quick Start
 

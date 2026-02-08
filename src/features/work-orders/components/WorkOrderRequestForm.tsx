@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { z } from 'zod';
 import {
   Dialog,
@@ -16,10 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { Forklift, Info } from "lucide-react";
+import { Forklift, Info, Mic, MicOff } from "lucide-react";
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { useEquipment, useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { useCreateWorkOrder, CreateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderCreation';
 
@@ -62,6 +63,23 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
   };
 
   const form = useFormValidation(requestFormSchema, initialValues);
+
+  // Handler to append transcript to the description field
+  const handleSpeechResult = useCallback((transcript: string) => {
+    const currentValue = (form.values.description as string) || '';
+    const separator = currentValue.trim() ? ' ' : '';
+    form.setValue('description', currentValue + separator + transcript);
+  }, [form]);
+
+  const {
+    isSupported: isSpeechSupported,
+    isListening,
+    error: speechError,
+    interimTranscript,
+    toggleListening,
+  } = useSpeechToText({
+    onResult: handleSpeechResult,
+  });
 
   const { execute: submitForm, isLoading: isSubmitting } = useAsyncOperation(
     async (data: RequestFormData) => {
@@ -213,16 +231,51 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
           </Card>
 
           <div className="space-y-2">
-            <Label>Description *</Label>
-            <Textarea
-              placeholder={preSelectedEquipment ? 
-                `Describe the issue or work needed for ${preSelectedEquipment.name}. Include any symptoms, error messages, or specific requirements...` :
-                "Provide detailed information about the work needed, including any symptoms, requirements, or urgency..."
-              }
-              className="min-h-[120px]"
-              value={form.values.description as string || ''}
-              onChange={(e) => form.setValue('description', e.target.value)}
-            />
+            <div className="flex items-center justify-between">
+              <Label>Description *</Label>
+              {isSpeechSupported && (
+                <Button
+                  type="button"
+                  variant={isListening ? "destructive" : "outline"}
+                  size="sm"
+                  onClick={toggleListening}
+                  aria-pressed={isListening}
+                  aria-label={isListening ? "Stop voice input" : "Start voice input"}
+                  className="h-7 px-2 gap-1"
+                >
+                  {isListening ? (
+                    <>
+                      <MicOff className="h-3.5 w-3.5" />
+                      <span className="text-xs">Stop</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="h-3.5 w-3.5" />
+                      <span className="text-xs">Voice</span>
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+            <div className="relative">
+              <Textarea
+                placeholder={preSelectedEquipment ? 
+                  `Describe the issue or work needed for ${preSelectedEquipment.name}. Include any symptoms, error messages, or specific requirements...` :
+                  "Provide detailed information about the work needed, including any symptoms, requirements, or urgency..."
+                }
+                className="min-h-[120px]"
+                value={form.values.description as string || ''}
+                onChange={(e) => form.setValue('description', e.target.value)}
+              />
+              {isListening && interimTranscript && (
+                <div className="absolute bottom-2 left-2 right-2 text-xs text-muted-foreground bg-muted/80 rounded px-2 py-1 pointer-events-none">
+                  {interimTranscript}...
+                </div>
+              )}
+            </div>
+            {speechError && (
+              <p className="text-sm text-destructive">{speechError}</p>
+            )}
             {form.errors.description && (
               <p className="text-sm text-destructive">{form.errors.description}</p>
             )}

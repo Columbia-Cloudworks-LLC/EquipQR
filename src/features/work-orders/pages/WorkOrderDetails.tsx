@@ -25,7 +25,7 @@ import { WorkOrderDetailsPMInfo } from '@/features/work-orders/components/WorkOr
 import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 import { WorkOrderDetailsSidebar } from '@/features/work-orders/components/WorkOrderDetailsSidebar';
 import { WorkOrderDetailsMobile } from '@/features/work-orders/components/WorkOrderDetailsMobile';
-import { WorkOrderNotesMobile } from '@/features/work-orders/components/WorkOrderNotesMobile';
+
 import { WorkOrderPDFExportDialog } from '@/features/work-orders/components/WorkOrderPDFExportDialog';
 import { MobileWorkOrderActionSheet } from '@/features/work-orders/components/MobileWorkOrderActionSheet';
 import { MobileWorkOrderInProgressBar } from '@/features/work-orders/components/MobileWorkOrderInProgressBar';
@@ -35,6 +35,7 @@ import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useIniti
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
+import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
 import { HistoryTab } from '@/components/audit';
 import { cn } from '@/lib/utils';
 
@@ -251,7 +252,12 @@ const WorkOrderDetails = () => {
   }, [actionParam]);
 
   // PDF generation hook for mobile
-  const { downloadPDF: downloadMobilePDF, isGenerating: isMobilePDFGenerating } = useWorkOrderPDF({
+  const { 
+    downloadPDF: downloadMobilePDF, 
+    isGenerating: isMobilePDFGenerating,
+    saveToDrive: saveMobilePDFToDrive,
+    isSavingToDrive: isMobileSavingToDrive,
+  } = useWorkOrderPDF({
     workOrder: workOrder ? {
       id: workOrder.id,
       title: workOrder.title,
@@ -285,12 +291,22 @@ const WorkOrderDetails = () => {
     pmData,
     organizationName: currentOrganization?.name
   });
+  
+  // Google Workspace connection status (for showing "Save to Google Drive" option)
+  const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
+    organizationId: currentOrganization?.id,
+  });
 
   // Handle mobile PDF export with options from dialog
   const handleMobilePDFExport = async (options: { includeCosts: boolean }) => {
     // Let errors propagate so the dialog can detect failures and stay open for retry.
     // The useWorkOrderPDF hook already logs and shows a toast on error.
     await downloadMobilePDF(options);
+  };
+
+  // Handle mobile PDF save to Drive with options from dialog
+  const handleMobileSaveToDrive = async (options: { includeCosts: boolean }) => {
+    await saveMobilePDFToDrive(options);
   };
 
   // Only redirect if we definitely don't have the required data and aren't loading
@@ -506,7 +522,7 @@ const WorkOrderDetails = () => {
               {/* Mobile Notes Section */}
               <div {...stagger(3)}>
               <div ref={notesSectionRef}>
-                <WorkOrderNotesMobile 
+                <WorkOrderNotesSection 
                   workOrderId={workOrder.id}
                   canAddNotes={canAddNotes}
                   showPrivateNotes={permissionLevels.isManager}
@@ -716,6 +732,9 @@ const WorkOrderDetails = () => {
         onExport={handleMobilePDFExport}
         isExporting={isMobilePDFGenerating}
         showCostsOption={permissionLevels.isManager}
+        isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
+        onSaveToDrive={handleMobileSaveToDrive}
+        isSavingToDrive={isMobileSavingToDrive}
       />
 
       {/* Mobile Action Sheet */}

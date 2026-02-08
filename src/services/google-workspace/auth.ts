@@ -1,8 +1,25 @@
 import { supabase } from '@/integrations/supabase/client';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+
+/**
+ * Default OAuth scopes for Google Workspace integration.
+ * 
+ * - admin.directory.user.readonly: Read user directory for member import
+ * - spreadsheets: Create and write to Google Sheets (for work order exports)
+ * - drive.file: Create/update files in Google Drive (for PDF uploads)
+ * 
+ * **Re-authentication for existing organizations:**
+ * Organizations that connected before these scopes were added will only have
+ * admin.directory.user.readonly. When they try to use Sheets/Drive features,
+ * the backend will return a 403 with code "insufficient_scopes". The frontend
+ * should prompt them to reconnect Google Workspace in Organization Settings
+ * to grant the new permissions.
+ */
 const DEFAULT_SCOPES = [
-  'https://www.googleapis.com/auth/admin.directory.user.readonly'
+  'https://www.googleapis.com/auth/admin.directory.user.readonly',
+  'https://www.googleapis.com/auth/spreadsheets',
+  'https://www.googleapis.com/auth/drive.file',
 ].join(' ');
 
 export interface GoogleWorkspaceAuthConfig {
@@ -10,7 +27,7 @@ export interface GoogleWorkspaceAuthConfig {
   organizationId?: string;
   /** URL to redirect to after OAuth flow completes */
   redirectUrl?: string;
-  /** OAuth scopes to request (defaults to admin.directory.user.readonly) */
+  /** OAuth scopes to request (defaults to directory + spreadsheets + drive.file) */
   scopes?: string;
   /** 
    * Origin URL of the caller. Required when calling from non-browser contexts 

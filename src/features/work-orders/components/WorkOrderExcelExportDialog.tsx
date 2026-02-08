@@ -31,6 +31,7 @@ import {
   AlertCircle,
   CalendarIcon,
   Table2,
+  ExternalLink,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,12 @@ interface WorkOrderExcelExportDialogProps {
   onExport: (filters: WorkOrderExcelFilters) => Promise<void>;
   isExporting?: boolean;
   exportError?: string | null;
+  /** Whether the organization has Google Workspace connected */
+  isGoogleWorkspaceConnected?: boolean;
+  /** Handler for exporting to Google Sheets (only called if isGoogleWorkspaceConnected) */
+  onExportToSheets?: (filters: WorkOrderExcelFilters) => Promise<void>;
+  /** Whether a Google Sheets export is in progress */
+  isExportingToSheets?: boolean;
 }
 
 // Note: Using '_all' sentinel value because Radix Select doesn't allow empty strings
@@ -96,6 +103,9 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
   onExport,
   isExporting = false,
   exportError = null,
+  isGoogleWorkspaceConnected = false,
+  onExportToSheets,
+  isExportingToSheets = false,
 }) => {
   // Filter state (using ALL_VALUE sentinel for "all" options)
   const [dateField, setDateField] = useState<'created_date' | 'completed_date'>('created_date');
@@ -108,19 +118,31 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
   // Fetch teams for filter dropdown
   const { data: teams, isLoading: isLoadingTeams } = useTeams(organizationId);
 
+  /** Build filters object from current state */
+  const buildFilters = (): WorkOrderExcelFilters => ({
+    dateField,
+    status: status !== ALL_VALUE ? status : undefined,
+    priority: priority !== ALL_VALUE ? priority : undefined,
+    teamId: teamId !== ALL_VALUE ? teamId : undefined,
+    dateRange: fromDate || toDate ? {
+      from: fromDate ? format(fromDate, 'yyyy-MM-dd') : undefined,
+      to: toDate ? format(toDate, 'yyyy-MM-dd') : undefined,
+    } : undefined,
+  });
+
   const handleExport = async () => {
-    // Convert ALL_VALUE back to undefined for the API
-    const filters: WorkOrderExcelFilters = {
-      dateField,
-      status: status !== ALL_VALUE ? status : undefined,
-      priority: priority !== ALL_VALUE ? priority : undefined,
-      teamId: teamId !== ALL_VALUE ? teamId : undefined,
-      dateRange: fromDate || toDate ? {
-        from: fromDate ? format(fromDate, 'yyyy-MM-dd') : undefined,
-        to: toDate ? format(toDate, 'yyyy-MM-dd') : undefined,
-      } : undefined,
-    };
-    await onExport(filters);
+    await onExport(buildFilters());
+  };
+
+  const handleExportToSheets = async () => {
+    if (!onExportToSheets) return;
+    try {
+      await onExportToSheets(buildFilters());
+      onOpenChange(false);
+    } catch {
+      // Keep dialog open on error so user can retry.
+      // Error toast is already handled by the export hook.
+    }
   };
 
   const handleClearFilters = () => {
@@ -132,7 +154,8 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
     setTeamId(ALL_VALUE);
   };
 
-  const canExport = recordCount > 0 && !isExporting;
+  const isAnyExporting = isExporting || isExportingToSheets;
+  const canExport = recordCount > 0 && !isAnyExporting;
 
   // Build filter summary for display
   const filterSummary = useMemo(() => {
@@ -367,14 +390,37 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isExporting}
+            disabled={isAnyExporting}
           >
             Cancel
           </Button>
+          
+          {/* Google Sheets button - only shown when connected */}
+          {isGoogleWorkspaceConnected && onExportToSheets && (
+            <Button
+              variant="outline"
+              onClick={handleExportToSheets}
+              disabled={!canExport}
+              className="min-w-[180px]"
+            >
+              {isExportingToSheets ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating Sheet...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Export to Google Sheets
+                </>
+              )}
+            </Button>
+          )}
+          
           <Button
             onClick={handleExport}
             disabled={!canExport}

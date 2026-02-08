@@ -55,7 +55,11 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
         {/* Status Management with Assignment - Only managers can change status */}
         {permissionLevels.isManager && (
           <WorkOrderStatusManager 
-            workOrder={workOrder} 
+            workOrder={{
+              ...workOrder,
+              // Pass equipment team_id for contextual assignment
+              equipmentTeamId: equipment?.team_id
+            }} 
             organizationId={currentOrganization.id}
           />
         )}

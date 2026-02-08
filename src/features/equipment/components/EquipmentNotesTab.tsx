@@ -70,9 +70,10 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
       images: File[];
       machineHours?: number;
     }) => {
-      // TODO: Handle machineHours when backend supports it
+      // NOTE: machineHours collected by UI but not yet persisted -- no database column exists.
+      // When backend support is added, pass machineHours to the create function here.
       if (machineHours !== undefined && machineHours > 0) {
-        logger.debug('Machine hours provided', { machineHours, note: 'not yet supported in backend' });
+        logger.debug('Machine hours provided but not persisted', { machineHours });
       }
       return createEquipmentNoteWithImages(equipmentId, content, hoursWorked, isPrivate, images);
     },
@@ -156,6 +157,9 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     return numHours > 0 ? `${numHours}h` : '';
   };
 
+  // Derive user display name for clipboard paste fallback
+  const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+
   if (notesLoading) {
     return (
       <Card>
@@ -207,6 +211,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
               disabled={createNoteMutation.isPending}
               isSubmitting={createNoteMutation.isPending}
               placeholder="Enter your note..."
+              userDisplayName={userDisplayName}
             />
           </CardContent>
         </Card>
