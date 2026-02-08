@@ -98,6 +98,8 @@ function logStep(step: string, details?: Record<string, unknown>) {
 function sanitizeForMarkdown(input: string): string {
   return input
     .replace(/@/g, "@\u200B")
+    // Escape backslashes first so later escaping uses only literal backslashes.
+    .replace(/\\/g, "\\\\")
     .replace(/<[^>]*>/g, "")
     .replace(/\|/g, "\\|")
     .replace(/\[([^\]]*)\]\(([^)]*)\)/g, "\\[$1\\]\\($2\\)");
