@@ -34,7 +34,7 @@ const Landing: React.FC<LandingProps> = ({ skipSEO = false }) => {
       )}
       <div className="min-h-screen bg-background">
         <LandingHeader />
-      <main>
+      <main id="main-content">
         <HeroSection />
         <FeaturesSection id="features" />
         <div id="pricing">

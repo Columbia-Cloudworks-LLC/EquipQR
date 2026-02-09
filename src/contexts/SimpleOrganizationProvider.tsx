@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -204,14 +204,13 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     syncWithSession();
   }, [syncWithSession]);
 
-  // Validate current organization exists in user's organizations
+  // Validate current organization exists in user's organizations and reset if not
   useEffect(() => {
     if (currentOrganizationId && organizations.length > 0) {
       const orgExists = organizations.some(org => org.id === currentOrganizationId);
       if (!orgExists) {
         logger.warn('SimpleOrganizationProvider: Current organization not found in user organizations, resetting');
         const prioritizedOrgId = getPrioritizedOrganization(organizations);
-        // Resetting to prioritized organization
         setCurrentOrganizationId(prioritizedOrgId);
         try {
           localStorage.setItem(CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
@@ -223,7 +222,6 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   }, [currentOrganizationId, organizations, getPrioritizedOrganization]);
 
   const setCurrentOrganization = useCallback((organizationId: string) => {
-    // Setting current organization
     setCurrentOrganizationId(organizationId);
     try {
       localStorage.setItem(CURRENT_ORG_STORAGE_KEY, organizationId);
@@ -233,7 +231,6 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   }, []);
 
   const switchOrganization = useCallback((organizationId: string) => {
-    // Switch organization called
     setCurrentOrganization(organizationId);
     // Also update session context to keep them synchronized
     if (sessionContext?.switchOrganization) {
@@ -241,9 +238,14 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     }
   }, [setCurrentOrganization, sessionContext]);
 
-  const currentOrganization = currentOrganizationId 
-    ? organizations.find(org => org.id === currentOrganizationId) || null
-    : null;
+  // Derive currentOrganization from currentOrganizationId + organizations
+  // instead of storing it in separate state (avoids extra renders and state drift)
+  const currentOrganization = useMemo(
+    () => currentOrganizationId
+      ? organizations.find(org => org.id === currentOrganizationId) ?? null
+      : null,
+    [currentOrganizationId, organizations]
+  );
 
   // Monitor state changes for debugging (removed excessive logging)
 

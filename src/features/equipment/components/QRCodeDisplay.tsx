@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Copy, CheckCircle } from 'lucide-react';
-import QRCode from 'qrcode';
+// QRCode is loaded dynamically to reduce initial bundle size (~100KB)
+// It's only needed when the QR code dialog is opened
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -26,6 +27,8 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
 
   const generateQRCode = React.useCallback(async () => {
     try {
+      // Dynamically load QRCode only when QR generation is triggered
+      const QRCode = (await import('qrcode')).default;
       const dataUrl = await QRCode.toDataURL(qrCodeUrl, {
         width: 256,
         margin: 2,

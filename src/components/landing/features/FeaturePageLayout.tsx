@@ -10,7 +10,7 @@ export const FeaturePageLayout = ({ children }: FeaturePageLayoutProps) => {
   return (
     <div className="min-h-screen bg-background">
       <LandingHeader />
-      <main>{children}</main>
+      <main id="main-content">{children}</main>
       <LegalFooter />
     </div>
   );

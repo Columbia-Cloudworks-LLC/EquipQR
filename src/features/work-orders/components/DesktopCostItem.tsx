@@ -6,6 +6,14 @@ import { Trash2, Package } from 'lucide-react';
 import { WorkOrderCostItem } from '@/features/work-orders/hooks/useWorkOrderCostsState';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
+// Hoisted formatter — avoids recreating Intl.NumberFormat on every render
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+});
+const formatCurrency = (cents: number) => currencyFormatter.format(cents / 100);
+
 interface DesktopCostItemProps {
   cost: WorkOrderCostItem;
   onRemoveCost: (id: string) => void;
@@ -19,14 +27,6 @@ const DesktopCostItem: React.FC<DesktopCostItemProps> = React.memo(({
   onUpdateCost,
   canRemove
 }) => {
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(cents / 100);
-  };
-
   const isFromInventory = !!cost.inventory_item_id;
 
   return (

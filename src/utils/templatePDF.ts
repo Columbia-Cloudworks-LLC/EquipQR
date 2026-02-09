@@ -1,6 +1,7 @@
-import jsPDF from 'jspdf';
+// jsPDF is loaded dynamically to reduce initial bundle size (~150KB)
+// It's only needed when a user explicitly triggers a PDF preview
 
-export function generateTemplatePreviewPDF(params: {
+export async function generateTemplatePreviewPDF(params: {
   name: string;
   description?: string;
   sections: { name: string; items: { id: string; title: string; description?: string; required: boolean }[] }[];
@@ -10,7 +11,9 @@ export function generateTemplatePreviewPDF(params: {
     includeHandwritingLines?: boolean;
     linesPerItem?: number;
   };
-}): void {
+}): Promise<void> {
+  // Dynamically load jsPDF only when PDF preview is triggered
+  const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF();
   let y = 20;
 

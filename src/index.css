@@ -557,6 +557,27 @@
   width: 100%;
 }
 
+/* ============================================
+ * Content Visibility Optimization
+ * Defers rendering of off-screen list items for better initial render performance.
+ * See: https://web.dev/content-visibility/
+ * ============================================ */
+
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 80px;
+}
+
+.cv-auto-lg {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
+.cv-auto-sm {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 48px;
+}
+
 /* Style the internal input rendered by PlaceAutocompleteElement */
 .gmp-autocomplete-container gmp-place-autocomplete input {
   width: 100% !important;

@@ -43,18 +43,19 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
   return (
     <div className="space-y-4">
       {workOrders.map((order) => (
-        <WorkOrderCard
-          key={order.id}
-          workOrder={order}
-          variant={isMobile ? 'mobile' : 'desktop'}
-          onNavigate={(id) => navigate(`/dashboard/work-orders/${id}`)}
-          onAcceptClick={onAcceptClick}
-          onStatusUpdate={onStatusUpdate}
-          isUpdating={isUpdating}
-          isAccepting={isAccepting}
-          onAssignClick={onAssignClick}
-          onReopenClick={onReopenClick}
-        />
+        <div key={order.id} className="cv-auto">
+          <WorkOrderCard
+            workOrder={order}
+            variant={isMobile ? 'mobile' : 'desktop'}
+            onNavigate={(id) => navigate(`/dashboard/work-orders/${id}`)}
+            onAcceptClick={onAcceptClick}
+            onStatusUpdate={onStatusUpdate}
+            isUpdating={isUpdating}
+            isAccepting={isAccepting}
+            onAssignClick={onAssignClick}
+            onReopenClick={onReopenClick}
+          />
+        </div>
       ))}
     </div>
   );

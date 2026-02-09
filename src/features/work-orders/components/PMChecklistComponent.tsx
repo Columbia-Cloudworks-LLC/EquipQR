@@ -26,6 +26,174 @@ import { logger } from '@/utils/logger';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 import { cn } from '@/lib/utils';
 
+// ============================================
+// Pure utility functions (hoisted to module scope)
+// ============================================
+
+const CONDITION_RATINGS = [
+  { value: 1, label: 'OK', color: 'text-green-600' },
+  { value: 2, label: 'Adjusted', color: 'text-yellow-600' },
+  { value: 3, label: 'Recommend Repairs', color: 'text-orange-600' },
+  { value: 4, label: 'Requires Immediate Repairs', color: 'text-red-600' },
+  { value: 5, label: 'Unsafe Condition Present', color: 'text-red-800' }
+] as const;
+
+function getConditionColor(condition: number | null | undefined): string {
+  if (condition === null || condition === undefined) return 'text-red-600';
+  switch (condition) {
+    case 1: return 'text-green-600';
+    case 2: return 'text-yellow-600';
+    case 3: return 'text-orange-600';
+    case 4: return 'text-red-600';
+    case 5: return 'text-red-800';
+    default: return 'text-gray-600';
+  }
+}
+
+function getConditionText(condition: number | null | undefined): string {
+  if (condition === null || condition === undefined) return 'Not Rated';
+  switch (condition) {
+    case 1: return 'OK';
+    case 2: return 'Adjusted';
+    case 3: return 'Recommend Repairs';
+    case 4: return 'Requires Immediate Repairs';
+    case 5: return 'Unsafe Condition Present';
+    default: return 'Unknown';
+  }
+}
+
+function isItemComplete(item: PMChecklistItem): boolean {
+  return item.condition !== undefined && item.condition !== null;
+}
+
+// ============================================
+// Memoized sub-component for individual checklist items
+// Prevents re-rendering all items when only one changes.
+// ============================================
+
+interface PMChecklistItemRowProps {
+  item: PMChecklistItem;
+  readOnly: boolean;
+  pmStatus: string;
+  onConditionChange: (itemId: string, condition: 1 | 2 | 3 | 4 | 5) => void;
+  onToggleNotes: (itemId: string) => void;
+  showNotes: boolean;
+  borderClass: string;
+  onNotesChange: (itemId: string, notes: string) => void;
+}
+
+const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMChecklistItemRow({
+  item,
+  readOnly,
+  pmStatus,
+  onConditionChange,
+  onToggleNotes,
+  showNotes,
+  borderClass,
+  onNotesChange,
+}) {
+  const editable = !readOnly && pmStatus !== 'completed';
+
+  return (
+    <div className={`p-4 border rounded-lg ${borderClass}`}>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            {isItemComplete(item) ? (
+              <CheckCircle className="h-4 w-4 text-green-600" />
+            ) : (
+              <Circle className="h-4 w-4 text-red-600" />
+            )}
+            <span className="font-medium">{item.title}</span>
+          </div>
+          <span className={`text-sm font-medium ${getConditionColor(item.condition)}`}>
+            {getConditionText(item.condition)}
+          </span>
+        </div>
+        {item.description && (
+          <p className="text-sm text-muted-foreground">{item.description}</p>
+        )}
+
+        {editable && (
+          <div className="flex items-start gap-2">
+            <div className="flex-1 space-y-2">
+              <Label className="text-sm font-medium">Maintenance Assessment:</Label>
+              <Select
+                value={item.condition?.toString() || ''}
+                onValueChange={(value) => onConditionChange(item.id, parseInt(value) as 1 | 2 | 3 | 4 | 5)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select assessment..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONDITION_RATINGS.map((rating) => (
+                    <SelectItem
+                      key={rating.value}
+                      value={rating.value.toString()}
+                      className={rating.color}
+                    >
+                      {rating.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 mt-6 shrink-0"
+              onClick={() => onToggleNotes(item.id)}
+              aria-label={
+                showNotes
+                  ? "Hide notes"
+                  : item.notes
+                    ? "Show notes"
+                    : "Add notes"
+              }
+            >
+              {item.notes ? (
+                <MessageSquareText className="h-4 w-4 text-primary" />
+              ) : (
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Animated notes container */}
+        {editable && (
+          <div
+            className={cn(
+              "grid min-h-0 transition-all duration-200 ease-out",
+              showNotes ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            )}
+          >
+            <div className="overflow-hidden min-h-0">
+              <Textarea
+                placeholder="Add notes for this item..."
+                value={item.notes || ''}
+                onChange={(e) => onNotesChange(item.id, e.target.value)}
+                className="mt-2"
+                rows={2}
+              />
+            </div>
+          </div>
+        )}
+        {item.notes && (readOnly || pmStatus === 'completed') && (
+          <div className="mt-2 p-2 bg-muted rounded text-sm">
+            <strong>Notes:</strong> {item.notes}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+// ============================================
+// Main Component
+// ============================================
+
 interface PMChecklistComponentProps {
   pm: PreventativeMaintenance;
   onUpdate: () => void;
@@ -323,9 +491,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     triggerAutoSave('text'); // Use text trigger for longer debounce
   }, [triggerAutoSave]);
 
-  const isItemComplete = (item: PMChecklistItem): boolean => {
-    return item.condition !== null && item.condition !== undefined;
-  };
+  // isItemComplete is hoisted to module scope above
 
   const saveChanges = useCallback(async () => {
     setIsUpdating(true);
@@ -527,42 +693,36 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   };
 
-  const getConditionColor = (condition: number | null | undefined) => {
-    if (condition === null || condition === undefined) return 'text-red-600';
-    switch (condition) {
-      case 1:
-        return 'text-green-600';
-      case 2:
-        return 'text-yellow-600';
-      case 3:
-        return 'text-orange-600';
-      case 4:
-        return 'text-red-600';
-      case 5:
-        return 'text-red-800';
-      default:
-        return 'text-gray-600';
-    }
-  };
+  // getConditionColor, getConditionText, and isItemComplete are hoisted to module scope
 
-  const getConditionText = (condition: number | null | undefined) => {
-    if (condition === null || condition === undefined) return 'Not Rated';
-    switch (condition) {
-      case 1: return 'OK';
-      case 2: return 'Adjusted';
-      case 3: return 'Recommend Repairs';
-      case 4: return 'Requires Immediate Repairs';
-      case 5: return 'Unsafe Condition Present';
-      default: return 'Unknown';
-    }
-  };
+  // Memoize expensive calculations — single pass over the checklist array
+  const { sections, completedItems, unratedRequiredItems, unsafeItems } = useMemo(() => {
+    const sectionSet = new Set<string>();
+    const completed: PMChecklistItem[] = [];
+    const unratedRequired: PMChecklistItem[] = [];
+    const unsafe: PMChecklistItem[] = [];
 
-  // Memoize expensive calculations
-  const sections = useMemo(() => Array.from(new Set(checklist.map(item => item.section))), [checklist]);
-  const completedItems = useMemo(() => checklist.filter(item => isItemComplete(item)), [checklist]);
+    for (const item of checklist) {
+      sectionSet.add(item.section);
+      if (isItemComplete(item)) {
+        completed.push(item);
+      }
+      if (item.required && !isItemComplete(item)) {
+        unratedRequired.push(item);
+      }
+      if (item.condition === 5) {
+        unsafe.push(item);
+      }
+    }
+
+    return {
+      sections: Array.from(sectionSet),
+      completedItems: completed,
+      unratedRequiredItems: unratedRequired,
+      unsafeItems: unsafe,
+    };
+  }, [checklist]);
   const totalItems = checklist.length;
-  const unratedRequiredItems = useMemo(() => checklist.filter(item => item.required && !isItemComplete(item)), [checklist]);
-  const unsafeItems = useMemo(() => checklist.filter(item => item.condition === 5), [checklist]);
 
   // Calculate section progress
   const getSectionProgress = useCallback((section: string) => {
@@ -863,104 +1023,17 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                 className="pm-collapsible-animate space-y-3 pt-2 overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 data-[state=open]:duration-200 data-[state=closed]:duration-200"
               >
                 {checklist.filter(item => item.section === section).map((item) => (
-                  <div key={item.id} className={`p-4 border rounded-lg ${getItemBorderClass(item)}`}>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2">
-                          {isItemComplete(item) ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-red-600" />
-                          )}
-                          <span className="font-medium">{item.title}</span>
-                        </div>
-                        <span className={`text-sm font-medium ${getConditionColor(item.condition)}`}>
-                          {getConditionText(item.condition)}
-                        </span>
-                      </div>
-                      {item.description && (
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
-                      )}
-                      
-                      {!readOnly && pm.status !== 'completed' && (
-                        <div className="flex items-start gap-2">
-                          <div className="flex-1 space-y-2">
-                            <Label className="text-sm font-medium">Maintenance Assessment:</Label>
-                            <Select
-                              value={item.condition?.toString() || ''}
-                              onValueChange={(value) => handleChecklistItemChange(item.id, parseInt(value) as 1 | 2 | 3 | 4 | 5)}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select assessment..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[
-                                  { value: 1, label: 'OK', color: 'text-green-600' },
-                                  { value: 2, label: 'Adjusted', color: 'text-yellow-600' },
-                                  { value: 3, label: 'Recommend Repairs', color: 'text-orange-600' },
-                                  { value: 4, label: 'Requires Immediate Repairs', color: 'text-red-600' },
-                                  { value: 5, label: 'Unsafe Condition Present', color: 'text-red-800' }
-                                ].map((rating) => (
-                                  <SelectItem 
-                                    key={rating.value} 
-                                    value={rating.value.toString()}
-                                    className={rating.color}
-                                  >
-                                    {rating.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 mt-6 shrink-0"
-                            onClick={() => toggleNotesVisibility(item.id)}
-                            aria-label={
-                              shouldShowNotes(item) 
-                                ? "Hide notes" 
-                                : item.notes 
-                                  ? "Show notes" 
-                                  : "Add notes"
-                            }
-                          >
-                            {item.notes ? (
-                              <MessageSquareText className="h-4 w-4 text-primary" />
-                            ) : (
-                              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                        </div>
-                      )}
-
-                      {/* Animated notes container */}
-                      {!readOnly && pm.status !== 'completed' && (
-                        <div
-                          className={cn(
-                            "grid min-h-0 transition-all duration-200 ease-out",
-                            shouldShowNotes(item) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                          )}
-                        >
-                          <div className="overflow-hidden min-h-0">
-                            <Textarea
-                              placeholder="Add notes for this item..."
-                              value={item.notes || ''}
-                              onChange={(e) => handleNotesItemChange(item.id, e.target.value)}
-                              className="mt-2"
-                              rows={2}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      {item.notes && (readOnly || pm.status === 'completed') && (
-                        <div className="mt-2 p-2 bg-muted rounded text-sm">
-                          <strong>Notes:</strong> {item.notes}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <PMChecklistItemRow
+                    key={item.id}
+                    item={item}
+                    readOnly={!!readOnly}
+                    pmStatus={pm.status}
+                    onConditionChange={handleChecklistItemChange}
+                    onToggleNotes={toggleNotesVisibility}
+                    showNotes={shouldShowNotes(item)}
+                    borderClass={getItemBorderClass(item)}
+                    onNotesChange={handleNotesItemChange}
+                  />
                 ))}
               </CollapsibleContent>
             </Collapsible>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -87,6 +87,16 @@ const WorkOrderDetails = () => {
       setSelectedEquipmentId(workOrder.equipment_id);
     }
   }, [workOrder?.equipment_id, selectedEquipmentId]);
+
+  // Memoize object props to avoid breaking child component memoization
+  const teamData = useMemo(
+    () => workOrder ? { name: workOrder.teamName } : undefined,
+    [workOrder?.teamName]
+  );
+  const assigneeData = useMemo(
+    () => workOrder ? { name: workOrder.assigneeName } : undefined,
+    [workOrder?.assigneeName]
+  );
 
   // Stagger animation: always run hooks (must be before any early returns)
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -597,9 +607,9 @@ const WorkOrderDetails = () => {
                   isAdmin={permissionLevels.isManager}
                   workOrder={workOrder}
                   equipment={equipment}
-                  team={{ name: workOrder.teamName }}
+                  team={teamData}
                   organization={currentOrganization}
-                  assignee={{ name: workOrder.assigneeName }}
+                  assignee={assigneeData}
                 />
                 </div>
               )}

@@ -9,12 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-02-09
+
+### Added
+
+- **Production Content Security Policy**: Added full CSP header to `vercel.json` for production deployments, matching the existing dev CSP from `vite.config.ts` (script-src, style-src, connect-src, frame-src, img-src, font-src, worker-src directives)
+- **Skip navigation link**: Added an accessible "Skip to main content" link as the first focusable element in the app, with `id="main-content"` on all `<main>` landmarks across dashboard, landing page, feature pages, and solution pages
+- **PageSEO on legal pages**: Added `<PageSEO>` component with per-page title, description, and canonical URL to Privacy Policy and Terms of Service pages
+- **JSON-LD date signals**: Added `datePublished` and `dateModified` fields to the SoftwareApplication structured data in `index.html`
+- **Query key factories for notes, images, and notifications**: Added `workOrders.notes()`, `workOrders.notesWithImages()`, `workOrders.images()`, `equipment.notesWithImages()`, `equipment.images()`, and `notifications` factories to `src/lib/queryKeys.ts`
+- **CSS content-visibility utility classes**: Added `.cv-auto`, `.cv-auto-lg`, and `.cv-auto-sm` classes to `index.css` for deferred off-screen rendering of list items
+
 ### Changed
 
+- **SEO: Improved base HTML metadata**: Updated `index.html` title from "EquipQR" (7 chars) to "EquipQR - Fleet Equipment Management & QR Code Tracking Platform" (64 chars) for better search engine visibility; trimmed meta description from 188 to 159 characters to stay under the 160-char limit; updated matching `og:title` and `twitter:title` tags; removed leading blank line before `<!DOCTYPE html>`
 - **Google Places Autocomplete — migrated to `PlaceAutocompleteElement` web component**: Replaced the legacy `@react-google-maps/api` `Autocomplete` wrapper with Google's native `PlaceAutocompleteElement` web component (new Places API). The component now listens for both `gmp-placeselect` (legacy) and `gmp-select` (current API) events, with robust place extraction that handles minified event properties across Google Maps JS API versions
 - **Server-side Places Autocomplete fallback**: Added `places-autocomplete` Supabase Edge Function that proxies Google's Place Autocomplete and Place Details REST APIs server-side. When the web component is unavailable (e.g. API key referrer restrictions), the frontend falls back to a custom autocomplete dropdown powered by this edge function — with debounced predictions, keyboard navigation (Arrow keys, Enter, Escape), click-outside-to-close, session token billing, and accessible ARIA attributes (`role="combobox"`, `role="listbox"`)
 - **`GooglePlacesAutocomplete` multi-strategy architecture**: The component now initializes with a 3-tier fallback chain: (1) `PlaceAutocompleteElement` web component, (2) edge function proxy with custom dropdown, (3) plain text input. The web component container renders during the `pending` init phase so the mount effect can find it immediately
 - **`useGoogleMapsLoader` cleanup**: Removed debug instrumentation from the shared Google Maps loader hook
+- **Dynamic imports for heavy libraries**: Converted `xlsx` (~200KB), `jspdf` (~150KB), and `qrcode` (~100KB) from static imports to on-demand `import()` calls, reducing the initial JS bundle by ~450KB. Libraries now load only when users trigger Excel exports, PDF generation, or QR code display
+- **`WorkOrderReportPDFGenerator` factory pattern**: Replaced direct constructor with `static async create()` to support dynamic jsPDF loading
+- **`generateTemplatePreviewPDF` now async**: Updated to `async function` with dynamic jsPDF import; caller in `PMTemplateView` updated accordingly
+- **Derived state in `SimpleOrganizationProvider`**: Wrapped `currentOrganization` derivation in `useMemo` to avoid redundant lookups on unrelated re-renders
+- **Memoized object props in `WorkOrderDetails`**: Replaced inline `{ name: workOrder.teamName }` and `{ name: workOrder.assigneeName }` object literals with `useMemo`-backed values to prevent breaking child `React.memo` comparisons
+- **Extracted `PMChecklistItemRow` sub-component**: Pulled the ~100-line checklist item JSX out of `PMChecklistComponent` into a `React.memo`-wrapped component; hoisted `getConditionColor`, `getConditionText`, `isItemComplete`, and `CONDITION_RATINGS` to module scope
+- **Combined checklist `useMemo` calls**: Merged 4 separate `useMemo` calls (sections, completedItems, unratedRequiredItems, unsafeItems) into a single-pass iteration over the checklist array
+- **Centralized inline query keys**: Migrated 15+ inline string-array query keys in `useWorkOrderData`, `WorkOrderNotesSection`, and `EquipmentNotesTab` to the `queryKeys` factory pattern
+- **Content-visibility on list items**: Applied `cv-auto` / `cv-auto-lg` wrappers to `WorkOrdersList` and `EquipmentGrid` for deferred off-screen rendering
+- **Hoisted `formatCurrency` and `Intl.NumberFormat`**: Moved out of `MobileCostItem` and `DesktopCostItem` component bodies to module scope, avoiding expensive formatter recreation on every render
+- **Functional `setState` in `ChecklistTemplateEditor`**: Converted `addItem`, `updateItem`, `deleteItem`, `moveItem`, `duplicateItem`, and `moveItemToSection` from direct `checklistItems` reads to `setChecklistItems(prev => ...)` pattern to prevent stale closures
 
 ## [2.3.0] - 2026-02-09
 
@@ -977,7 +1000,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.4...v2.3.0
 [2.2.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.3...v2.2.4
 [2.2.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.2...v2.2.3

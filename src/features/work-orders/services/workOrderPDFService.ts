@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
-import jsPDF from 'jspdf';
+// jsPDF is loaded dynamically to reduce initial bundle size (~150KB)
+// It's only needed when a user explicitly triggers a PDF export
 import { supabase } from '@/integrations/supabase/client';
 
 export interface PMChecklistItem {
@@ -43,6 +44,9 @@ export const generatePMChecklistPDF = async (workOrderId: string): Promise<void>
 
     const workOrder = pmData.work_orders;
     const equipment = workOrder.equipment;
+
+    // Dynamically load jsPDF only when PDF generation is triggered
+    const { default: jsPDF } = await import('jspdf');
 
     // Create PDF
     const pdf = new jsPDF();

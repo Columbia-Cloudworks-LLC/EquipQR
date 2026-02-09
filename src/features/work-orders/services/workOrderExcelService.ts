@@ -5,7 +5,9 @@
  * Uses SheetJS (xlsx) library.
  */
 
-import * as XLSX from 'xlsx';
+// XLSX is loaded dynamically to reduce initial bundle size (~200KB)
+// It's only needed when a user explicitly triggers an Excel export
+type XLSXModule = typeof import('xlsx');
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { format } from 'date-fns';
@@ -178,6 +180,9 @@ export async function generateSingleWorkOrderExcel(
         addedBy: cost.created_by_name || 'Unknown',
       };
     });
+
+    // Dynamically load XLSX only when export is triggered
+    const XLSX: XLSXModule = await import('xlsx');
 
     // Create workbook with the costs sheet
     const workbook = XLSX.utils.book_new();

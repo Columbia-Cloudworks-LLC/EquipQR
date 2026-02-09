@@ -46,6 +46,8 @@ export const equipment = {
   notes: (equipmentId: string, orgId?: string) => 
     orgId ? ['equipment', equipmentId, 'notes', orgId] as const
           : ['equipment', equipmentId, 'notes'] as const,
+  notesWithImages: (equipmentId: string) => ['equipment-notes-with-images', equipmentId] as const,
+  images: (equipmentId: string) => ['equipment-images', equipmentId] as const,
   notesOptimized: (equipmentId: string) => ['equipment', equipmentId, 'notes-optimized'] as const,
   workingHours: (equipmentId: string, page?: number, pageSize?: number) =>
     page !== undefined ? ['equipment', equipmentId, 'working-hours', page, pageSize] as const
@@ -63,12 +65,21 @@ export const workOrders = {
   enhanced: (orgId: string) => ['work-orders', orgId, 'enhanced'] as const,
   optimized: (orgId: string) => ['work-orders', orgId, 'optimized'] as const,
   byId: (orgId: string, workOrderId: string) => ['work-orders', orgId, workOrderId] as const,
+  notes: (workOrderId: string) => ['work-order-notes', workOrderId] as const,
+  notesWithImages: (workOrderId: string) => ['work-order-notes-with-images', workOrderId] as const,
+  images: (workOrderId: string) => ['work-order-images', workOrderId] as const,
   teamBased: (orgId: string, userTeamIds: string[], isManager: boolean, filters?: Record<string, unknown>) =>
     ['work-orders', orgId, 'team-based', userTeamIds, isManager, filters] as const,
   myWorkOrders: (orgId: string, userId: string) => ['work-orders', orgId, 'my', userId] as const,
   equipmentWorkOrders: (orgId: string, equipmentId: string, status?: string) =>
     status ? ['work-orders', orgId, 'equipment', equipmentId, status] as const
            : ['work-orders', orgId, 'equipment', equipmentId] as const,
+};
+
+// Notification keys
+export const notifications = {
+  root: ['notifications'] as const,
+  byOrg: (orgId: string) => ['notifications', orgId] as const,
 };
 
 // PM Templates keys
@@ -100,6 +111,7 @@ export const queryKeys = {
   teamStats,
   equipment,
   workOrders,
+  notifications,
   pmTemplates,
   workspacePersonalOrgMerge,
   tickets,

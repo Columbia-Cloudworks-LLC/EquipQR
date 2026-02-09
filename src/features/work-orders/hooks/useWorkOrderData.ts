@@ -7,6 +7,7 @@ import {
   WorkOrderImage 
 } from '@/features/work-orders/services/workOrderService';
 import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
+import { workOrders as workOrderQueryKeys, notifications as notificationQueryKeys } from '@/lib/queryKeys';
 
 // Re-export types from WorkOrderService for backward compatibility
 export type { WorkOrderNote, WorkOrderImage };
@@ -44,7 +45,7 @@ export interface Notification {
 // Work Order Notes hooks - using WorkOrderService
 export const useWorkOrderNotes = (workOrderId: string, organizationId?: string) => {
   return useQuery({
-    queryKey: ['work-order-notes', workOrderId],
+    queryKey: workOrderQueryKeys.notes(workOrderId),
     queryFn: async () => {
       if (!organizationId) {
         // Fallback: fetch organization_id from work order if not provided
@@ -112,7 +113,7 @@ export const useCreateWorkOrderNote = () => {
       return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
-      queryClient.invalidateQueries({ queryKey: ['work-order-notes', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.notes(workOrderId) });
       toast.success('Note added successfully');
     },
     onError: (error) => {
@@ -125,7 +126,7 @@ export const useCreateWorkOrderNote = () => {
 // Work Order Images hooks - using WorkOrderService
 export const useWorkOrderImages = (workOrderId: string, organizationId?: string) => {
   return useQuery({
-    queryKey: ['work-order-images', workOrderId],
+    queryKey: workOrderQueryKeys.images(workOrderId),
     queryFn: async () => {
       if (!organizationId) {
         const { data: workOrder } = await supabase
@@ -186,7 +187,7 @@ export const useUploadWorkOrderImage = () => {
       return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
-      queryClient.invalidateQueries({ queryKey: ['work-order-images', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrderId) });
       toast.success('Image uploaded successfully');
     },
     onError: (error) => {
@@ -200,7 +201,7 @@ export const useUploadWorkOrderImage = () => {
 // Includes both org-specific notifications AND global notifications (like ownership transfers)
 export const useNotifications = (organizationId: string) => {
   return useQuery({
-    queryKey: ['notifications', organizationId],
+    queryKey: notificationQueryKeys.byOrg(organizationId),
     queryFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return [];
@@ -264,7 +265,7 @@ export const useMarkNotificationAsRead = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.root });
     }
   });
 };
@@ -317,14 +318,12 @@ export const useUpdateWorkOrderStatus = () => {
       
       // Also invalidate legacy query keys for backward compatibility
       queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', variables.organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['workOrders', variables.organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', variables.organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['workOrder', variables.organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['work-orders', variables.organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['work-orders', variables.organizationId, variables.workOrderId] });
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.list(variables.organizationId) });
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.optimized(variables.organizationId) });
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.byId(variables.organizationId, variables.workOrderId) });
       
       // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['notifications', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.byOrg(variables.organizationId) });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', variables.organizationId] });
       
       toast.success('Work order status updated successfully');

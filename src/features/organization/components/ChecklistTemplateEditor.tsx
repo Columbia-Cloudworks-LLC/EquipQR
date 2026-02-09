@@ -347,69 +347,66 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
       required: false,
       notes: ''
     };
-    setChecklistItems([...checklistItems, newItem]);
+    setChecklistItems(prev => [...prev, newItem]);
     setHasUnsavedChanges(true);
   };
 
   const updateItem = (itemId: string, updates: Partial<PMChecklistItem>) => {
-    const updatedItems = checklistItems.map(item =>
+    setChecklistItems(prev => prev.map(item =>
       item.id === itemId ? { ...item, ...updates } : item
-    );
-    setChecklistItems(updatedItems);
+    ));
     setHasUnsavedChanges(true);
   };
 
   const deleteItem = (itemId: string) => {
-    const updatedItems = checklistItems.filter(item => item.id !== itemId);
-    setChecklistItems(updatedItems);
+    setChecklistItems(prev => prev.filter(item => item.id !== itemId));
     setHasUnsavedChanges(true);
   };
 
   const moveItem = (itemId: string, direction: 'up' | 'down') => {
-    const item = checklistItems.find(i => i.id === itemId);
-    if (!item) return;
+    setChecklistItems(prev => {
+      const item = prev.find(i => i.id === itemId);
+      if (!item) return prev;
 
-    const sectionItems = groupedItems[item.section];
-    const itemIndex = sectionItems.findIndex(i => i.id === itemId);
-    
-    if (direction === 'up' && itemIndex > 0) {
-      const targetItem = sectionItems[itemIndex - 1];
-      // Swap positions in the main array
-      const newItems = [...checklistItems];
-      const itemIndexInMain = newItems.findIndex(i => i.id === itemId);
-      const targetIndexInMain = newItems.findIndex(i => i.id === targetItem.id);
-      [newItems[itemIndexInMain], newItems[targetIndexInMain]] = [newItems[targetIndexInMain], newItems[itemIndexInMain]];
-      setChecklistItems(newItems);
-      setHasUnsavedChanges(true);
-    } else if (direction === 'down' && itemIndex < sectionItems.length - 1) {
-      const targetItem = sectionItems[itemIndex + 1];
-      // Swap positions in the main array
-      const newItems = [...checklistItems];
-      const itemIndexInMain = newItems.findIndex(i => i.id === itemId);
-      const targetIndexInMain = newItems.findIndex(i => i.id === targetItem.id);
-      [newItems[itemIndexInMain], newItems[targetIndexInMain]] = [newItems[targetIndexInMain], newItems[itemIndexInMain]];
-      setChecklistItems(newItems);
-      setHasUnsavedChanges(true);
-    }
+      // Build section items in order from the current state
+      const sectionItems = prev.filter(i => i.section === item.section);
+      const itemIndex = sectionItems.findIndex(i => i.id === itemId);
+
+      let targetId: string | undefined;
+      if (direction === 'up' && itemIndex > 0) {
+        targetId = sectionItems[itemIndex - 1].id;
+      } else if (direction === 'down' && itemIndex < sectionItems.length - 1) {
+        targetId = sectionItems[itemIndex + 1].id;
+      }
+
+      if (!targetId) return prev;
+
+      // Swap in the main array
+      const newItems = [...prev];
+      const a = newItems.findIndex(i => i.id === itemId);
+      const b = newItems.findIndex(i => i.id === targetId);
+      [newItems[a], newItems[b]] = [newItems[b], newItems[a]];
+      return newItems;
+    });
+    setHasUnsavedChanges(true);
   };
 
   const duplicateItem = (itemId: string) => {
-    const index = checklistItems.findIndex(i => i.id === itemId);
-    if (index === -1) return;
-    const base = checklistItems[index];
-    const copy: PMChecklistItem = { ...base, id: nanoid() };
-    const newItems = [
-      ...checklistItems.slice(0, index + 1),
-      copy,
-      ...checklistItems.slice(index + 1)
-    ];
-    setChecklistItems(newItems);
+    setChecklistItems(prev => {
+      const index = prev.findIndex(i => i.id === itemId);
+      if (index === -1) return prev;
+      const copy: PMChecklistItem = { ...prev[index], id: nanoid() };
+      return [
+        ...prev.slice(0, index + 1),
+        copy,
+        ...prev.slice(index + 1)
+      ];
+    });
     setHasUnsavedChanges(true);
   };
 
   const moveItemToSection = (itemId: string, targetSection: string) => {
-    const updated = checklistItems.map(i => i.id === itemId ? { ...i, section: targetSection } : i);
-    setChecklistItems(updated);
+    setChecklistItems(prev => prev.map(i => i.id === itemId ? { ...i, section: targetSection } : i));
     setHasUnsavedChanges(true);
   };
 
