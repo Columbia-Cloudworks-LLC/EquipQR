@@ -8,6 +8,7 @@ import { Plus, MessageSquare, Images, Clock, User, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { workOrders as workOrderQueryKeys } from '@/lib/queryKeys';
 import {
   createWorkOrderNoteWithImages,
   getWorkOrderNotesWithImages,
@@ -37,7 +38,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
 
   // Fetch notes with images
   const { data: notes = [], isLoading } = useQuery({
-    queryKey: ['work-order-notes-with-images', workOrderId],
+    queryKey: workOrderQueryKeys.notesWithImages(workOrderId),
     queryFn: () => getWorkOrderNotesWithImages(workOrderId),
     enabled: !!workOrderId
   });
@@ -59,8 +60,8 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       return createWorkOrderNoteWithImages(workOrderId, content, hoursWorked, isPrivate, images);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-order-notes-with-images', workOrderId] });
-      queryClient.invalidateQueries({ queryKey: ['work-order-images', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.notesWithImages(workOrderId) });
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrderId) });
       setShowForm(false);
       setNoteContent('');
       setAttachedImages([]);

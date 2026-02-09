@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { equipment as equipmentQueryKeys } from '@/lib/queryKeys';
 import { 
   createEquipmentNoteWithImages, 
   getEquipmentNotesWithImages, 
@@ -34,14 +35,14 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
 
   // Fetch notes with images
   const { data: notes = [], isLoading: notesLoading } = useQuery({
-    queryKey: ['equipment-notes-with-images', equipmentId],
+    queryKey: equipmentQueryKeys.notesWithImages(equipmentId),
     queryFn: () => getEquipmentNotesWithImages(equipmentId),
     enabled: !!equipmentId
   });
 
   // Fetch images for gallery
   const { data: images = [] } = useQuery({
-    queryKey: ['equipment-images', equipmentId],
+    queryKey: equipmentQueryKeys.images(equipmentId),
     queryFn: () => getEquipmentImages(equipmentId),
     enabled: !!equipmentId
   });
@@ -78,8 +79,8 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
       return createEquipmentNoteWithImages(equipmentId, content, hoursWorked, isPrivate, images);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment-notes-with-images', equipmentId] });
-      queryClient.invalidateQueries({ queryKey: ['equipment-images', equipmentId] });
+      queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
+      queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
       setShowForm(false);
       setNoteContent('');
       setAttachedImages([]);
@@ -95,8 +96,8 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const deleteImageMutation = useMutation({
     mutationFn: deleteEquipmentNoteImage,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment-notes-with-images', equipmentId] });
-      queryClient.invalidateQueries({ queryKey: ['equipment-images', equipmentId] });
+      queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
+      queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
     }
   });
 

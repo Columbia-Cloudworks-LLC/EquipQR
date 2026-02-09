@@ -18,7 +18,7 @@ const RepairShops = () => {
       />
       <div className="min-h-screen bg-background">
         <LandingHeader />
-      <main>
+      <main id="main-content">
         {/* Hero Section */}
         <section className="relative pt-32 pb-24 bg-gradient-to-br from-background via-background to-primary/5">
           <div className="container px-4 mx-auto">

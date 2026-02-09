@@ -1,4 +1,6 @@
-import jsPDF from 'jspdf';
+// jsPDF is loaded dynamically to reduce initial bundle size (~150KB)
+// It's only needed when a user explicitly triggers a PDF export
+import type jsPDF from 'jspdf';
 import { logger } from '@/utils/logger';
 import { formatStatus, formatPriority, formatDate, formatDateTime } from '@/features/work-orders/utils/workOrderHelpers';
 import type { WorkOrderNote } from '@/features/work-orders/services/workOrderNotesService';
@@ -57,15 +59,30 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
  * notes, costs, and PM checklist data.
  */
 export class WorkOrderReportPDFGenerator {
-  private doc: jsPDF;
+  private doc!: jsPDF;
   private yPosition: number = 20;
   private readonly lineHeight = 6;
   private readonly pageHeight = 280;
   private readonly margin = 20;
   private readonly pageWidth = 210; // A4 width in mm
 
-  constructor() {
+  /**
+   * Use the static create() method instead of calling the constructor directly.
+   * jsPDF is loaded dynamically to reduce initial bundle size.
+   */
+  private constructor() {
+    // doc is initialized in init()
+  }
+
+  private async init(): Promise<void> {
+    const { default: jsPDF } = await import('jspdf');
     this.doc = new jsPDF();
+  }
+
+  static async create(): Promise<WorkOrderReportPDFGenerator> {
+    const instance = new WorkOrderReportPDFGenerator();
+    await instance.init();
+    return instance;
   }
 
   /**
@@ -766,7 +783,7 @@ export class WorkOrderReportPDFGenerator {
    */
   public static async generateAndDownload(data: WorkOrderPDFData): Promise<void> {
     try {
-      const generator = new WorkOrderReportPDFGenerator();
+      const generator = await WorkOrderReportPDFGenerator.create();
       const pdf = await generator.generatePDF(data);
       
       // Create filename from work order title
@@ -790,7 +807,7 @@ export class WorkOrderReportPDFGenerator {
    */
   public static async generateAndGetBlob(data: WorkOrderPDFData): Promise<{ blob: Blob; filename: string }> {
     try {
-      const generator = new WorkOrderReportPDFGenerator();
+      const generator = await WorkOrderReportPDFGenerator.create();
       const pdf = await generator.generatePDF(data);
       
       // Create filename from work order title

@@ -60,11 +60,12 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
   return (
     <div className="grid gap-2 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
       {equipment.map((item) => (
-        <EquipmentCard
-          key={item.id}
-          equipment={item}
-          onShowQRCode={onShowQRCode}
-        />
+        <div key={item.id} className="cv-auto-lg">
+          <EquipmentCard
+            equipment={item}
+            onShowQRCode={onShowQRCode}
+          />
+        </div>
       ))}
     </div>
   );

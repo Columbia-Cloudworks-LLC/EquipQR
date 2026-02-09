@@ -110,9 +110,9 @@ const PMTemplateView: React.FC = () => {
     setExpanded([]);
   }, [templateId]);
 
-  const onDownloadPDF = () => {
+  const onDownloadPDF = async () => {
     if (!template) return;
-    generateTemplatePreviewPDF({
+    await generateTemplatePreviewPDF({
       name: template.name,
       description: template.description || undefined,
       sections,

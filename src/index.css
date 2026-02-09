@@ -543,3 +543,68 @@
       );
   }
 }
+
+/* ----------------------------------------------------------------
+ * Google Places Autocomplete (New API) – style the web component
+ * <gmp-place-autocomplete> to match shadcn/ui Input appearance.
+ * ---------------------------------------------------------------- */
+.gmp-autocomplete-container {
+  width: 100%;
+}
+
+.gmp-autocomplete-container gmp-place-autocomplete {
+  display: block;
+  width: 100%;
+}
+
+/* ============================================
+ * Content Visibility Optimization
+ * Defers rendering of off-screen list items for better initial render performance.
+ * See: https://web.dev/content-visibility/
+ * ============================================ */
+
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 80px;
+}
+
+.cv-auto-lg {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
+.cv-auto-sm {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 48px;
+}
+
+/* Style the internal input rendered by PlaceAutocompleteElement */
+.gmp-autocomplete-container gmp-place-autocomplete input {
+  width: 100% !important;
+  height: 2.5rem !important;
+  padding-left: 2.25rem !important;
+  padding-right: 0.75rem !important;
+  border-radius: calc(var(--radius) - 2px) !important;
+  border: 1px solid hsl(var(--input)) !important;
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+.gmp-autocomplete-container gmp-place-autocomplete input:focus {
+  border-color: hsl(var(--ring)) !important;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2) !important;
+}
+
+.gmp-autocomplete-container gmp-place-autocomplete input::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Hide the default Google branding/icon inside the element if it conflicts */
+.gmp-autocomplete-container gmp-place-autocomplete .icon {
+  display: none !important;
+}

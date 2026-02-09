@@ -1,10 +1,16 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageSEO } from '@/components/seo/PageSEO';
 
 export default function TermsOfService() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <PageSEO
+        title="Terms of Service"
+        description="Review the Terms of Service for EquipQR, the fleet equipment management platform by Columbia Cloudworks LLC. Covers accounts, billing, data, and liability."
+        path="/terms-of-service"
+      />
       <div className="mb-8">
         <Button variant="ghost" asChild className="mb-4">
           <Link to="/">

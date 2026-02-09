@@ -3,10 +3,16 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PageSEO } from '@/components/seo/PageSEO';
 
 export default function PrivacyPolicy() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <PageSEO
+        title="Privacy Policy"
+        description="Learn how EquipQR collects, uses, and protects your data. Our privacy policy covers information collection, data security, your rights, and contact details."
+        path="/privacy-policy"
+      />
       <div className="mb-8">
         <Button variant="ghost" asChild className="mb-4">
           <Link to="/">
