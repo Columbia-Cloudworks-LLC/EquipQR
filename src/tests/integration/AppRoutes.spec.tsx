@@ -20,7 +20,8 @@ vi.mock('@/contexts/useUser', () => ({
 
 // Mock simple organization hook used by the sidebar
 vi.mock('@/hooks/useSimpleOrganization', () => ({
-  useSimpleOrganization: () => ({ currentOrganization: null })
+  useSimpleOrganization: () => ({ currentOrganization: null }),
+  useSimpleOrganizationSafe: () => null
 }));
 
 // Mock all page components

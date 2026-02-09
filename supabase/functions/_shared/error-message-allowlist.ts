@@ -106,6 +106,7 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Internal server error$/,
   
   // Stripe-related safe messages
+  /^Invalid price selected$/,
   /^Stripe price .+ not found/,
   
   // Google Workspace configuration errors

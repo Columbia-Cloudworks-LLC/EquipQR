@@ -290,9 +290,26 @@ Deno.serve(async (req) => {
     // Build the QuickBooks Customer query
     let customerQuery = "SELECT * FROM Customer WHERE Active = true";
     if (query && query.trim()) {
-      // Escape backslashes and single quotes in the query
-      const escapedQuery = query.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-      customerQuery = `SELECT * FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
+      // Whitelist: allow only alphanumeric, spaces, hyphens, periods, commas, apostrophes
+      // This prevents QuickBooks Query Language injection via special characters
+      const sanitizedQuery = query.replace(/[^a-zA-Z0-9\s\-.,'']/g, "").trim();
+
+      // Reject excessively long search queries
+      if (sanitizedQuery.length > 100) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Search query too long"
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (sanitizedQuery.length > 0) {
+        // Escape single quotes for the QuickBooks query (defense-in-depth)
+        const escapedQuery = sanitizedQuery.replace(/'/g, "\\'");
+        customerQuery = `SELECT * FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
+      }
     }
     customerQuery += " MAXRESULTS 100";
 

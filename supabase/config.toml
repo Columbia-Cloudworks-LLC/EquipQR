@@ -22,6 +22,10 @@ additional_redirect_urls = [
   "http://127.0.0.1:8080/**",
   "https://equipqr.app/**",
   "https://preview.equipqr.app/**",
+  # SECURITY: *.vercel.app is a broad wildcard — any Vercel deployment can
+  # be used as an OAuth redirect target. In the production Supabase dashboard,
+  # restrict to specific preview deployment URLs if possible, or remove
+  # entirely if preview deployments use a known subdomain.
   "https://*.vercel.app/**"
 ]
 
@@ -62,7 +66,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.public-google-maps-key]
-verify_jwt = false
+verify_jwt = true
 
 [functions.manage-billing-exemptions]
 verify_jwt = true

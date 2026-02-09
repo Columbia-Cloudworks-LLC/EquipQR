@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **AGENTS.md**: Added root-level `AGENTS.md` following the [open standard](https://agents.md) to guide AI coding agents (Qodo, Cursor, Codex, etc.) with project context — setup commands, code style, testing instructions, PR conventions, multi-tenancy rules, RBAC overview, database conventions, Edge Function patterns, security considerations, and performance guidelines
+
+### Changed
+
+- **Global Bug Report Dialog**: Moved the bug report dialog from the Support page to the authenticated layout level so it can be invoked from any page
+  - New `BugReportProvider` context (`src/features/tickets/context/BugReportContext.tsx`) manages dialog state globally and registers a `Ctrl+Shift+B` / `Cmd+Shift+B` keyboard shortcut
+  - Added "Report an Issue" menu item with keyboard shortcut hint to the sidebar user dropdown (`AppSidebar.tsx`)
+  - Support page "Report an Issue" button now uses the global context instead of local state
+  - Session diagnostics (including `window.location.pathname`) now capture the actual page the user was on when reporting, instead of always reporting `/dashboard/support`
+
+### Fixed
+
+- **Test Suite Alignment with v2.3.0 Geolocation Hierarchy**: Fixed 12 failing tests across 4 files that were out of sync with the geolocation hierarchy refactoring shipped in v2.3.0
+  - `MapView.test.tsx` (5 tests): Component now receives `isMapsLoaded` as a prop (default `false`) instead of calling `useJsApiLoader` internally; updated all renders to pass `isMapsLoaded={true}`
+  - `teamFleetService.test.ts` (5 tests): Source changed from `.in('team_id', teamIds)` to `.or()` for filtering equipment by team + unassigned; added `.or()` and `.is()` methods to mock query builders
+  - `EquipmentDetailsTab.test.tsx` (1 test): Location display now reads `assigned_location_*` structured fields instead of legacy `equipment.location`; added `assigned_location_street` to mock data and mocked `useGoogleMapsLoader`
+  - `EquipmentStatusLocationSection.test.tsx` (1 test): Form label changed from "Location \*" to "Location Description \*" and placeholder updated; added mocks for `useGoogleMapsLoader` and `GooglePlacesAutocomplete`
+
 ## [2.3.0] - 2026-02-09
 
 ### Added

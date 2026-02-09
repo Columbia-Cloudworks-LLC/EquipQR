@@ -87,7 +87,9 @@ describe('teamFleetService', () => {
       const mockEquipmentQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
+        or: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
+        is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
       };
 
       // Mock scans query (no scans for any equipment)
@@ -168,7 +170,9 @@ describe('teamFleetService', () => {
       const mockEquipmentQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
+        or: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
+        is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
       };
 
       const mockScansQuery = {
@@ -258,7 +262,9 @@ describe('teamFleetService', () => {
       const mockEquipmentQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
+        or: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
+        is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
       };
 
       // Mock scans query (no scans)
@@ -353,7 +359,9 @@ describe('teamFleetService', () => {
       const mockEquipmentQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
+        or: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
+        is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
       };
 
       const mockScansQuery = {
@@ -432,7 +440,9 @@ describe('teamFleetService', () => {
       const mockEquipmentQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
+        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
+        or: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
+        is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
       };
 
       const mockScansQuery = {

@@ -37,7 +37,8 @@ import {
   Warehouse,
   Search,
   Layers,
-  History
+  History,
+  Bug
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -50,6 +51,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import Logo from "@/components/ui/Logo";
+import { useBugReport } from "@/features/tickets/context/BugReportContext";
 
 interface NavigationItem {
   title: string;
@@ -87,6 +89,7 @@ const AppSidebar = () => {
   const { currentOrganization } = useOrganization();
   const isMobile = useIsMobile();
   const { setOpenMobile } = useSidebar();
+  const { openBugReport } = useBugReport();
 
   const handleSignOut = async () => {
     await signOut();
@@ -272,6 +275,19 @@ const AppSidebar = () => {
                       <HelpCircle className="mr-2 h-4 w-4" />
                       Support
                     </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      handleNavClick();
+                      openBugReport();
+                    }}
+                    className="text-sm cursor-pointer"
+                  >
+                    <Bug className="mr-2 h-4 w-4" />
+                    Report an Issue
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      Ctrl+Shift+B
+                    </span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut} className="text-sm">
                     <LogOut className="mr-2 h-4 w-4" />

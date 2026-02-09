@@ -7,6 +7,7 @@
  */
 
 import Stripe from "https://esm.sh/stripe@14.21.0";
+import { getValidatedOrigin } from "../_shared/origin-validation.ts";
 import {
   createUserSupabaseClient,
   requireUser,
@@ -121,7 +122,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:3000";
+    const origin = getValidatedOrigin(req);
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -13,8 +13,8 @@ import LegalFooter from '@/components/layout/LegalFooter';
 import SupportTabs from '@/components/support/SupportTabs';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
-import SubmitTicketDialog from '@/features/tickets/components/SubmitTicketDialog';
 import MyTickets from '@/features/tickets/components/MyTickets';
+import { useBugReport } from '@/features/tickets/context/BugReportContext';
 
 // Shared Contact Section Component
 const ContactSection: React.FC = () => (
@@ -48,7 +48,7 @@ const ContactSection: React.FC = () => (
 
 // Dashboard version - embedded in dashboard layout
 export const DashboardSupport: React.FC = () => {
-  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const { openBugReport } = useBugReport();
 
   return (
     <Page maxWidth="7xl" padding="responsive">
@@ -90,7 +90,7 @@ export const DashboardSupport: React.FC = () => {
                 </p>
                 <Button
                   variant="outline"
-                  onClick={() => setTicketDialogOpen(true)}
+                  onClick={openBugReport}
                 >
                   <Bug className="mr-2 h-4 w-4" />
                   Report an Issue
@@ -106,11 +106,6 @@ export const DashboardSupport: React.FC = () => {
         {/* Shared Tabbed Content */}
         <SupportTabs />
       </div>
-
-      <SubmitTicketDialog
-        open={ticketDialogOpen}
-        onOpenChange={setTicketDialogOpen}
-      />
     </Page>
   );
 };

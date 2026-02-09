@@ -3,6 +3,12 @@ import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Support, { DashboardSupport } from '../Support';
 
+// Mock the BugReport context so DashboardSupport can render without the provider
+const mockOpenBugReport = vi.fn();
+vi.mock('@/features/tickets/context/BugReportContext', () => ({
+  useBugReport: () => ({ openBugReport: mockOpenBugReport })
+}));
+
 // Mock sub-components
 vi.mock('@/components/support/SupportTabs', () => ({
   default: () => <div data-testid="support-tabs">Support Tabs</div>
@@ -84,14 +90,11 @@ describe('Support Page', () => {
     it('opens the submit-ticket dialog when "Report an Issue" is clicked', () => {
       render(<DashboardSupport />);
 
-      // Dialog should not be visible initially
-      expect(screen.queryByTestId('submit-ticket-dialog')).not.toBeInTheDocument();
-
       // Click the Report an Issue button
       fireEvent.click(screen.getByRole('button', { name: /report an issue/i }));
 
-      // Dialog should now be visible
-      expect(screen.getByTestId('submit-ticket-dialog')).toBeInTheDocument();
+      // Should have called the BugReport context's openBugReport
+      expect(mockOpenBugReport).toHaveBeenCalledTimes(1);
     });
 
     it('renders the My Tickets section', () => {
