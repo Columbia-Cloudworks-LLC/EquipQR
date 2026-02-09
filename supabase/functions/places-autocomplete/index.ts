@@ -12,40 +12,70 @@
  * Requires authenticated user (verify_jwt = true).
  */
 
+import { z } from "https://esm.sh/zod@3.23.8";
 import {
   createUserSupabaseClient,
   requireUser,
-  createErrorResponse,
-  createJsonResponse,
-  handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+
+// ── Structured logging (no PII) ─────────────────────────────────
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[PLACES-AUTOCOMPLETE] ${step}${detailsStr}`);
 };
 
-// ── Types ──────────────────────────────────────────────────────
+// ── Request validation schemas ──────────────────────────────────
 
-interface AutocompleteRequest {
-  action: "autocomplete";
-  input: string;
-  sessionToken?: string;
+const AutocompleteRequestSchema = z.object({
+  action: z.literal("autocomplete"),
+  input: z.string().min(1).max(500),
+  sessionToken: z.string().uuid().optional(),
+});
+
+const DetailsRequestSchema = z.object({
+  action: z.literal("details"),
+  placeId: z.string().min(1).max(300),
+  sessionToken: z.string().uuid().optional(),
+});
+
+const RequestBodySchema = z.discriminatedUnion("action", [
+  AutocompleteRequestSchema,
+  DetailsRequestSchema,
+]);
+
+// ── Response helpers with validated CORS ─────────────────────────
+
+function createCorsJsonResponse(
+  req: Request,
+  data: unknown,
+  status = 200,
+): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+  });
 }
 
-interface DetailsRequest {
-  action: "details";
-  placeId: string;
-  sessionToken?: string;
+function createCorsErrorResponse(
+  req: Request,
+  error: string,
+  status = 500,
+): Response {
+  return new Response(JSON.stringify({ error }), {
+    status,
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+  });
 }
-
-type RequestBody = AutocompleteRequest | DetailsRequest;
 
 // ── Handler ────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
-  const corsResponse = handleCorsPreflightIfNeeded(req);
-  if (corsResponse) return corsResponse;
+  // Handle CORS preflight with validated origin
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: getCorsHeaders(req) });
+  }
 
   try {
     logStep("Function started");
@@ -59,17 +89,33 @@ Deno.serve(async (req) => {
     const supabase = createUserSupabaseClient(req);
     const auth = await requireUser(req, supabase);
     if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
+      return createCorsErrorResponse(req, auth.error, auth.status);
     }
-    logStep("User authenticated", { userId: auth.user.id });
+    logStep("User authenticated");
 
-    const body: RequestBody = await req.json();
+    // Parse and validate request body with Zod
+    const rawBody: unknown = await req.json();
+    const parseResult = RequestBodySchema.safeParse(rawBody);
+
+    if (!parseResult.success) {
+      const issues = parseResult.error.issues
+        .map((i) => i.message)
+        .join("; ");
+      logStep("Validation failed", { issues });
+      return createCorsErrorResponse(
+        req,
+        "Invalid request body: " + issues,
+        400,
+      );
+    }
+
+    const body = parseResult.data;
 
     // ── Autocomplete predictions ────────────────────────────
     if (body.action === "autocomplete") {
       const { input, sessionToken } = body;
-      if (!input || typeof input !== "string" || input.trim().length < 2) {
-        return createJsonResponse({ predictions: [] });
+      if (input.trim().length < 2) {
+        return createCorsJsonResponse(req, { predictions: [] });
       }
 
       const params = new URLSearchParams({
@@ -79,14 +125,14 @@ Deno.serve(async (req) => {
       if (sessionToken) params.set("sessiontoken", sessionToken);
 
       const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`;
-      logStep("Calling Google Autocomplete API", { input: input.trim() });
+      logStep("Calling Google Autocomplete API", { inputLength: input.trim().length });
 
       const resp = await fetch(url);
       const data = await resp.json();
 
       if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-        logStep("Google API error", { status: data.status, error_message: data.error_message });
-        return createJsonResponse({ predictions: [], status: data.status });
+        logStep("Google API error", { status: data.status });
+        return createCorsJsonResponse(req, { predictions: [], status: data.status });
       }
 
       // Return a slim predictions array
@@ -99,15 +145,12 @@ Deno.serve(async (req) => {
       );
 
       logStep("Returning predictions", { count: predictions.length });
-      return createJsonResponse({ predictions, status: data.status });
+      return createCorsJsonResponse(req, { predictions, status: data.status });
     }
 
     // ── Place details ───────────────────────────────────────
     if (body.action === "details") {
       const { placeId, sessionToken } = body;
-      if (!placeId || typeof placeId !== "string") {
-        return createErrorResponse("placeId is required", 400);
-      }
 
       const params = new URLSearchParams({
         place_id: placeId,
@@ -117,14 +160,14 @@ Deno.serve(async (req) => {
       if (sessionToken) params.set("sessiontoken", sessionToken);
 
       const url = `https://maps.googleapis.com/maps/api/place/details/json?${params}`;
-      logStep("Calling Google Place Details API", { placeId });
+      logStep("Calling Google Place Details API");
 
       const resp = await fetch(url);
       const data = await resp.json();
 
       if (data.status !== "OK" || !data.result) {
         logStep("Google Details API error", { status: data.status });
-        return createErrorResponse("Place not found", 404);
+        return createCorsErrorResponse(req, "Place not found", 404);
       }
 
       const result = data.result;
@@ -150,16 +193,14 @@ Deno.serve(async (req) => {
         lng: result.geometry?.location?.lng ?? null,
       };
 
-      logStep("Returning place details", {
-        formatted: placeData.formatted_address.substring(0, 40),
-      });
-      return createJsonResponse(placeData);
+      logStep("Returning place details");
+      return createCorsJsonResponse(req, placeData);
     }
 
-    return createErrorResponse("Invalid action. Use 'autocomplete' or 'details'.", 400);
+    return createCorsErrorResponse(req, "Invalid action. Use 'autocomplete' or 'details'.", 400);
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: msg });
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createCorsErrorResponse(req, "An unexpected error occurred", 500);
   }
 });

@@ -16,7 +16,11 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { MapPin, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  fetchPredictions as fetchPredictionsFromEdge,
+  fetchPlaceDetails as fetchPlaceDetailsFromEdge,
+} from '@/services/placesAutocompleteService';
+import type { Prediction } from '@/services/placesAutocompleteService';
 
 // ----------------------------------------------------------------
 // Public types
@@ -74,41 +78,6 @@ const NEW_PLACE_FIELDS: Array<keyof google.maps.places.Place> = [
   'formattedAddress',
   'location',
 ];
-
-// ----------------------------------------------------------------
-// Edge function helpers (fallback when web component unavailable)
-// ----------------------------------------------------------------
-
-interface Prediction {
-  place_id: string;
-  description: string;
-  structured_formatting: {
-    main_text: string;
-    secondary_text: string;
-  };
-}
-
-async function fetchPredictionsFromEdge(
-  input: string,
-  sessionToken?: string,
-): Promise<Prediction[]> {
-  const { data, error } = await supabase.functions.invoke('places-autocomplete', {
-    body: { action: 'autocomplete', input, sessionToken },
-  });
-  if (error || !data?.predictions) return [];
-  return data.predictions;
-}
-
-async function fetchPlaceDetailsFromEdge(
-  placeId: string,
-  sessionToken?: string,
-): Promise<PlaceLocationData | null> {
-  const { data, error } = await supabase.functions.invoke('places-autocomplete', {
-    body: { action: 'details', placeId, sessionToken },
-  });
-  if (error || !data?.formatted_address) return null;
-  return data as PlaceLocationData;
-}
 
 /** Debounce delay for edge function predictions (ms) */
 const DEBOUNCE_MS = 300;
@@ -245,6 +214,34 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, mode]);
+
+  // ── Web component: sync inputValue into the rendered input ──
+  // The PlaceAutocompleteElement renders its own internal <input>.
+  // We need to keep it in sync when `value` (→ inputValue) changes
+  // externally (e.g. edit flows pre-filling an address, or clears).
+  useEffect(() => {
+    if (mode !== 'webcomponent') return;
+    const el = webComponentRef.current;
+    if (!el) return;
+
+    // Try the public `.value` accessor first (if the API supports it)
+    if ('value' in el) {
+      try {
+        (el as unknown as { value: string }).value = inputValue;
+        return;
+      } catch {
+        // Accessor may be read-only; fall through to shadow DOM
+      }
+    }
+
+    // Fallback: reach into the shadow DOM to set the inner input value
+    const innerInput =
+      el.shadowRoot?.querySelector('input') ??
+      el.querySelector('input');
+    if (innerInput && innerInput.value !== inputValue) {
+      innerInput.value = inputValue;
+    }
+  }, [mode, inputValue]);
 
   // ── Edge function: fetch predictions ────────────────────────
   const fetchPredictions = useCallback((input: string) => {
