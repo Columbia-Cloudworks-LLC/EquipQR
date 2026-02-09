@@ -19,8 +19,10 @@
  *   1 = test failures or runtime error
  */
 
+/* eslint-disable no-console -- CLI script, console output is intentional */
+
 import { existsSync } from "fs";
-import { spawn, execSync } from "child_process";
+import { spawn } from "child_process";
 import path from "path";
 
 const ROOT = path.resolve(import.meta.dirname ?? __dirname, "../../../..");

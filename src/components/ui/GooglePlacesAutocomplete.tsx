@@ -54,7 +54,7 @@ function getComponent(
   return components?.find((c) => c.types.includes(type));
 }
 
-export function parsePlaceResult(
+function parsePlaceResult(
   place: google.maps.places.PlaceResult,
 ): PlaceLocationData {
   const comps = place.address_components;

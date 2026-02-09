@@ -113,4 +113,3 @@ export function isQBPDFAttachmentEnabled(): boolean {
 export function isGeolocationHierarchyEnabled(): boolean {
   return GEOLOCATION_HIERARCHY_ENABLED;
 }
-

@@ -44,6 +44,7 @@ export const BugReportProvider: React.FC<{ children: React.ReactNode }> = ({ chi
  * Hook to access the global bug report dialog.
  * Must be used within a `<BugReportProvider>`.
  */
+// eslint-disable-next-line react-refresh/only-export-components -- hook is co-located with its provider by convention
 export function useBugReport(): BugReportContextValue {
   const ctx = useContext(BugReportContext);
   if (!ctx) {

@@ -12,6 +12,8 @@
  *   SUPABASE_SERVICE_ROLE_KEY (required)
  */
 
+/* eslint-disable no-console -- CLI script, console output is intentional */
+
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 // ---------------------------------------------------------------------------
