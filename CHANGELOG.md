@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Google Maps Edge Function env var naming**: Renamed `VITE_GOOGLE_MAPS_BROWSER_KEY` → `GOOGLE_MAPS_BROWSER_KEY` and `VITE_GOOGLE_MAPS_API_KEY` / `GOOGLE_MAPS_API_KEY` → `GOOGLE_MAPS_SERVER_KEY` in Edge Functions (`public-google-maps-key`, `places-autocomplete`, `geocode-location`). Old names are still supported as fallbacks for backward compatibility. The `VITE_` prefix was misleading because these are Supabase Edge Function runtime secrets, not Vite build-time variables
+- **`GooglePlacesAutocomplete` runtime 403 fallback**: The component now detects when the `PlaceAutocompleteElement` web component's internal API calls fail at runtime (e.g., Places API New not enabled for the browser key) and automatically falls back to the edge function proxy. Previously, the fallback only triggered if the web component failed to construct — runtime 403 errors from the Google Maps JS API left the component in a broken state with no autocomplete results
+
+### Documentation
+
+- **Dual-environment secrets guide**: Added new "Dual-environment deployment" section to `AGENTS.md` explaining which secrets live in Vercel vs Supabase and how to update each. Prevents the common mistake of setting a Supabase Edge Function secret in Vercel (or vice versa)
+- **Secrets Checklist**: Added comprehensive secrets checklist to `docs/ops/deployment.md` mapping every secret to its platform (Vercel or Supabase Dashboard) and the Edge Function that uses it
+- **Edge Function `.env` header**: Added clarifying header to `supabase/functions/.env` reminding developers that these are Supabase runtime secrets, not Vite build-time vars, and that redeploying Vercel does not update them
+- **`env.example` Google Maps section**: Rewrote the Google Maps key documentation with clear warnings about the browser key being served by a Supabase Edge Function at runtime, the need for two separate keys, and legacy name support
+
 ## [2.3.1] - 2026-02-09
 
 ### Added

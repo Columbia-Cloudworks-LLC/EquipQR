@@ -35,7 +35,8 @@ Deno.serve(async (req) => {
 
     logStep("User authenticated", { userId: auth.user.id });
 
-    const browserKey = Deno.env.get("VITE_GOOGLE_MAPS_BROWSER_KEY");
+    // Prefer the new name; fall back to legacy VITE_-prefixed name for compat
+    const browserKey = Deno.env.get("GOOGLE_MAPS_BROWSER_KEY") || Deno.env.get("VITE_GOOGLE_MAPS_BROWSER_KEY");
 
     if (!browserKey) {
       logStep("Missing API key in environment");

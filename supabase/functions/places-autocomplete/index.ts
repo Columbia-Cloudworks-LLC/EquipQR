@@ -80,9 +80,10 @@ Deno.serve(async (req) => {
   try {
     logStep("Function started");
 
-    const googleApiKey = Deno.env.get("GOOGLE_MAPS_API_KEY") || Deno.env.get("VITE_GOOGLE_MAPS_API_KEY");
+    // Prefer the new canonical name; fall back to legacy names for compat
+    const googleApiKey = Deno.env.get("GOOGLE_MAPS_SERVER_KEY") || Deno.env.get("GOOGLE_MAPS_API_KEY") || Deno.env.get("VITE_GOOGLE_MAPS_API_KEY");
     if (!googleApiKey) {
-      throw new Error("GOOGLE_MAPS_API_KEY is not configured");
+      throw new Error("GOOGLE_MAPS_SERVER_KEY is not configured");
     }
 
     // Authenticate

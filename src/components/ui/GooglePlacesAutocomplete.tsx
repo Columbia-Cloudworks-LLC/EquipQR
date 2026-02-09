@@ -88,6 +88,15 @@ const DEBOUNCE_MS = 300;
 
 type InitMode = 'pending' | 'webcomponent' | 'edge' | 'plaintext';
 
+/**
+ * Check if a console.error call is the Google Maps "AutocompletePlaces blocked"
+ * message, indicating the Places API (New) is not enabled for the current key.
+ */
+function isPlacesApiBlockedError(args: unknown[]): boolean {
+  const msg = args.map((a) => (typeof a === 'string' ? a : String(a ?? ''))).join(' ');
+  return msg.includes('AutocompletePlaces') && (msg.includes('blocked') || msg.includes('403'));
+}
+
 const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
   value = '',
   onPlaceSelect,
@@ -193,7 +202,45 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
         webComponentRef.current = el;
         setMode('webcomponent');
 
+        // ── Runtime 403 detection ────────────────────────────
+        // The web component mounts successfully but its internal API
+        // calls may fail at runtime if the Places API (New) is not
+        // enabled for the browser key. Google's JS API logs these
+        // errors via console.error. We intercept them to detect the
+        // failure and auto-fall-back to the edge function proxy.
+        const origConsoleError = console.error.bind(console);
+        let apiErrorDetected = false;
+
+        const detectPlacesError = (...args: unknown[]) => {
+          origConsoleError(...args);
+          if (apiErrorDetected) return;
+          if (isPlacesApiBlockedError(args)) {
+            apiErrorDetected = true;
+            // Restore console.error immediately
+            console.error = origConsoleError;
+            // Tear down the broken web component and switch to edge mode
+            el.removeEventListener('gmp-placeselect', handleSelect);
+            el.removeEventListener('gmp-select', handleSelect);
+            el.remove();
+            webComponentRef.current = null;
+            setMode('edge');
+          }
+        };
+        console.error = detectPlacesError;
+
+        // Safety net: restore console.error after 30 seconds even if
+        // no Places API error is detected (web component is working fine).
+        const restoreTimer = setTimeout(() => {
+          if (!apiErrorDetected) {
+            console.error = origConsoleError;
+          }
+        }, 30_000);
+
         return () => {
+          if (!apiErrorDetected) {
+            console.error = origConsoleError;
+          }
+          clearTimeout(restoreTimer);
           el.removeEventListener('gmp-placeselect', handleSelect);
           el.removeEventListener('gmp-select', handleSelect);
           el.remove();
