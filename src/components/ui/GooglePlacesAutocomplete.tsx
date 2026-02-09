@@ -1,19 +1,22 @@
 /**
  * GooglePlacesAutocomplete – single-input address picker.
  *
- * Wraps the `Autocomplete` widget from @react-google-maps/api.
- * On selection the component parses Google's address_components into
- * a flat structure (street, city, state, country, lat, lng) and calls
- * `onPlaceSelect`.
+ * Strategy (ordered by preference):
+ * 1. Try the Google Maps `PlaceAutocompleteElement` web component.
+ * 2. If the web component fails (e.g. Maps API not fully authorized),
+ *    fall back to our `places-autocomplete` edge function which proxies
+ *    Google's Places REST API server-side.
+ * 3. If both fail, render a plain text input.
  *
  * Requires the Google Maps JS API to be loaded with the "places"
  * library – use the shared `useGoogleMapsLoader` hook.
  */
 
-import React, { useCallback, useRef, useState } from 'react';
-import { Autocomplete } from '@react-google-maps/api';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { MapPin } from 'lucide-react';
+import { MapPin, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 // ----------------------------------------------------------------
 // Public types
@@ -44,48 +47,77 @@ export interface GooglePlacesAutocompleteProps {
 }
 
 // ----------------------------------------------------------------
-// Helpers
+// Helpers – new Places API (addressComponents)
 // ----------------------------------------------------------------
 
-function getComponent(
-  components: google.maps.GeocoderAddressComponent[] | undefined,
-  type: string,
-): google.maps.GeocoderAddressComponent | undefined {
-  return components?.find((c) => c.types.includes(type));
-}
+function parseNewPlaceResult(place: google.maps.places.Place): PlaceLocationData {
+  const comps = place.addressComponents;
+  const get = (type: string) =>
+    comps?.find((c: google.maps.places.AddressComponent) => c.types.includes(type));
 
-function parsePlaceResult(
-  place: google.maps.places.PlaceResult,
-): PlaceLocationData {
-  const comps = place.address_components;
-  const streetNumber = getComponent(comps, 'street_number')?.long_name ?? '';
-  const route = getComponent(comps, 'route')?.long_name ?? '';
+  const streetNumber = get('street_number')?.longText ?? '';
+  const route = get('route')?.longText ?? '';
 
   return {
-    formatted_address: place.formatted_address ?? '',
+    formatted_address: place.formattedAddress ?? '',
     street: [streetNumber, route].filter(Boolean).join(' '),
-    city:
-      getComponent(comps, 'locality')?.long_name ??
-      getComponent(comps, 'sublocality')?.long_name ??
-      '',
-    state:
-      getComponent(comps, 'administrative_area_level_1')?.short_name ?? '',
-    country: getComponent(comps, 'country')?.long_name ?? '',
-    lat: place.geometry?.location?.lat() ?? null,
-    lng: place.geometry?.location?.lng() ?? null,
+    city: get('locality')?.longText ?? get('sublocality')?.longText ?? '',
+    state: get('administrative_area_level_1')?.shortText ?? '',
+    country: get('country')?.longText ?? '',
+    lat: place.location?.lat() ?? null,
+    lng: place.location?.lng() ?? null,
   };
 }
 
-// Fields we ask Google for – keeps billing down.
-const PLACE_FIELDS = [
-  'address_components',
-  'formatted_address',
-  'geometry.location',
+const NEW_PLACE_FIELDS: Array<keyof google.maps.places.Place> = [
+  'addressComponents',
+  'formattedAddress',
+  'location',
 ];
+
+// ----------------------------------------------------------------
+// Edge function helpers (fallback when web component unavailable)
+// ----------------------------------------------------------------
+
+interface Prediction {
+  place_id: string;
+  description: string;
+  structured_formatting: {
+    main_text: string;
+    secondary_text: string;
+  };
+}
+
+async function fetchPredictionsFromEdge(
+  input: string,
+  sessionToken?: string,
+): Promise<Prediction[]> {
+  const { data, error } = await supabase.functions.invoke('places-autocomplete', {
+    body: { action: 'autocomplete', input, sessionToken },
+  });
+  if (error || !data?.predictions) return [];
+  return data.predictions;
+}
+
+async function fetchPlaceDetailsFromEdge(
+  placeId: string,
+  sessionToken?: string,
+): Promise<PlaceLocationData | null> {
+  const { data, error } = await supabase.functions.invoke('places-autocomplete', {
+    body: { action: 'details', placeId, sessionToken },
+  });
+  if (error || !data?.formatted_address) return null;
+  return data as PlaceLocationData;
+}
+
+/** Debounce delay for edge function predictions (ms) */
+const DEBOUNCE_MS = 300;
 
 // ----------------------------------------------------------------
 // Component
 // ----------------------------------------------------------------
+
+type InitMode = 'pending' | 'webcomponent' | 'edge' | 'plaintext';
 
 const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
   value = '',
@@ -96,51 +128,325 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
   className = '',
   isLoaded,
 }) => {
+  // ── Core state ──────────────────────────────────────────────
   const [inputValue, setInputValue] = useState(value);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const [mode, setMode] = useState<InitMode>('pending');
+
+  // ── Web component refs ──────────────────────────────────────
+  const webContainerRef = useRef<HTMLDivElement>(null);
+  const webComponentRef = useRef<google.maps.places.PlaceAutocompleteElement | null>(null);
+
+  // ── Edge function autocomplete state ────────────────────────
+  const sessionTokenRef = useRef<string>(crypto.randomUUID());
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [fetchingDetails, setFetchingDetails] = useState(false);
+
+  // Keep a ref to the latest onPlaceSelect
+  const onPlaceSelectRef = useRef(onPlaceSelect);
+  onPlaceSelectRef.current = onPlaceSelect;
 
   // Keep inputValue in sync if parent changes value prop
-  React.useEffect(() => {
+  useEffect(() => {
     setInputValue(value);
   }, [value]);
 
-  const onLoad = useCallback(
-    (autocomplete: google.maps.places.Autocomplete) => {
-      autocompleteRef.current = autocomplete;
-      autocomplete.setFields(PLACE_FIELDS);
+  // ── Initialization: try web component first ─────────────────
+  // We use `mode` as a dependency so this re-runs after the first
+  // render when the container div becomes available.
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    // Web component already mounted — nothing to do
+    if (webComponentRef.current) return;
+
+    // Only attempt web component when the container is available
+    // (it renders when mode is 'pending' or 'webcomponent')
+    if (webContainerRef.current && google.maps.places.PlaceAutocompleteElement) {
+      try {
+        const el = new google.maps.places.PlaceAutocompleteElement({});
+        el.setAttribute('placeholder', placeholder);
+
+        const handleSelect = async (event: Event) => {
+          try {
+            // The event shape varies by Google Maps API version:
+            // - Older: `gmp-placeselect` with event.place
+            // - Newer: `gmp-select` with event.place or minified property
+            const anyEvent = event as Record<string, unknown>;
+            let place: google.maps.places.Place | undefined;
+
+            // Try typed API first
+            if ('place' in anyEvent && anyEvent.place) {
+              place = anyEvent.place as google.maps.places.Place;
+            }
+
+            // Try placePrediction (older docs pattern)
+            if (!place && 'placePrediction' in anyEvent) {
+              const pred = anyEvent.placePrediction as { toPlace?: () => google.maps.places.Place };
+              if (pred?.toPlace) {
+                place = pred.toPlace();
+              }
+            }
+
+            // Fallback: scan for any Place-like object in event properties
+            if (!place) {
+              for (const key of Object.keys(anyEvent)) {
+                const val = anyEvent[key];
+                if (val && typeof val === 'object' && 'fetchFields' in (val as object)) {
+                  place = val as google.maps.places.Place;
+                  break;
+                }
+              }
+            }
+
+            if (!place) {
+              console.error('[GooglePlacesAutocomplete] Could not extract place from event');
+              return;
+            }
+
+            await place.fetchFields({ fields: NEW_PLACE_FIELDS as string[] });
+            const data = parseNewPlaceResult(place);
+            setInputValue(data.formatted_address);
+            onPlaceSelectRef.current(data);
+          } catch (error) {
+            console.error('[GooglePlacesAutocomplete] Error handling place selection:', error);
+          }
+        };
+
+        // Listen for both event names (Google renamed the event in newer API versions)
+        el.addEventListener('gmp-placeselect', handleSelect);
+        el.addEventListener('gmp-select', handleSelect);
+        webContainerRef.current.appendChild(el);
+        webComponentRef.current = el;
+        setMode('webcomponent');
+
+        return () => {
+          el.removeEventListener('gmp-placeselect', handleSelect);
+          el.removeEventListener('gmp-select', handleSelect);
+          el.remove();
+          webComponentRef.current = null;
+        };
+      } catch {
+        // Web component failed – fall through to edge function
+        setMode('edge');
+      }
+    } else if (mode === 'pending') {
+      // Container not yet available or PlaceAutocompleteElement missing —
+      // fall back to edge function mode
+      setMode('edge');
+    }
+
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, mode]);
+
+  // ── Edge function: fetch predictions ────────────────────────
+  const fetchPredictions = useCallback((input: string) => {
+    if (!input.trim() || input.trim().length < 2) {
+      setPredictions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await fetchPredictionsFromEdge(
+          input.trim(),
+          sessionTokenRef.current,
+        );
+
+        if (results.length > 0) {
+          setPredictions(results);
+          setShowDropdown(true);
+          setHighlightIndex(-1);
+        } else {
+          setPredictions([]);
+          setShowDropdown(false);
+        }
+      } catch {
+        setPredictions([]);
+        setShowDropdown(false);
+      }
+    }, DEBOUNCE_MS);
+  }, []);
+
+  // ── Edge function: select a prediction ──────────────────────
+  const handleSelectPrediction = useCallback(
+    async (prediction: Prediction) => {
+      setInputValue(prediction.description);
+      setShowDropdown(false);
+      setPredictions([]);
+      setFetchingDetails(true);
+
+      try {
+        const data = await fetchPlaceDetailsFromEdge(
+          prediction.place_id,
+          sessionTokenRef.current,
+        );
+
+        if (data) {
+          setInputValue(data.formatted_address);
+          onPlaceSelectRef.current(data);
+        } else {
+          onPlaceSelectRef.current({
+            formatted_address: prediction.description,
+            street: '',
+            city: '',
+            state: '',
+            country: '',
+            lat: null,
+            lng: null,
+          });
+        }
+      } catch {
+        onPlaceSelectRef.current({
+          formatted_address: prediction.description,
+          street: '',
+          city: '',
+          state: '',
+          country: '',
+          lat: null,
+          lng: null,
+        });
+      } finally {
+        setFetchingDetails(false);
+        sessionTokenRef.current = crypto.randomUUID();
+      }
     },
     [],
   );
 
-  const onPlaceChanged = useCallback(() => {
-    const place = autocompleteRef.current?.getPlace();
-    if (!place || !place.geometry) return;
-
-    const data = parsePlaceResult(place);
-    setInputValue(data.formatted_address);
-    onPlaceSelect(data);
-  }, [onPlaceSelect]);
-
-  const handleInputChange = useCallback(
+  // ── Edge mode: input change handler ─────────────────────────
+  const handleEdgeInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
       setInputValue(v);
-      if (v === '' && onClear) {
+      if (v === '') {
+        setPredictions([]);
+        setShowDropdown(false);
+        if (onClear) onClear();
+      } else {
+        fetchPredictions(v);
+      }
+    },
+    [onClear, fetchPredictions],
+  );
+
+  // ── Edge mode: keyboard navigation ──────────────────────────
+  const handleEdgeKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (!showDropdown || predictions.length === 0) {
+        if (e.key === 'Enter' && inputValue.trim()) {
+          onPlaceSelectRef.current({
+            formatted_address: inputValue.trim(),
+            street: '',
+            city: '',
+            state: '',
+            country: '',
+            lat: null,
+            lng: null,
+          });
+        }
+        return;
+      }
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setHighlightIndex((prev) =>
+            prev < predictions.length - 1 ? prev + 1 : 0,
+          );
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setHighlightIndex((prev) =>
+            prev > 0 ? prev - 1 : predictions.length - 1,
+          );
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (highlightIndex >= 0 && highlightIndex < predictions.length) {
+            handleSelectPrediction(predictions[highlightIndex]);
+          }
+          break;
+        case 'Escape':
+          setShowDropdown(false);
+          setHighlightIndex(-1);
+          break;
+      }
+    },
+    [showDropdown, predictions, highlightIndex, handleSelectPrediction, inputValue],
+  );
+
+  // ── Close dropdown on click outside ─────────────────────────
+  useEffect(() => {
+    if (!showDropdown) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowDropdown(false);
+        setHighlightIndex(-1);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDropdown]);
+
+  // ── Web component: clear check ──────────────────────────────
+  const handleClearCheck = useCallback(() => {
+    if (onClear) {
+      const input = webComponentRef.current?.querySelector('input') ??
+        webContainerRef.current?.querySelector('input');
+      if (input && input.value === '') {
         onClear();
       }
+    }
+  }, [onClear]);
+
+  // ── Plain text fallback handlers ────────────────────────────
+  const handlePlaintextChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const v = e.target.value;
+      setInputValue(v);
+      if (v === '' && onClear) onClear();
     },
     [onClear],
   );
 
-  // When Google Maps hasn't loaded yet, render a plain input so the
-  // layout doesn't shift.
+  const handlePlaintextSubmit = useCallback(() => {
+    if (!inputValue.trim()) return;
+    onPlaceSelect({
+      formatted_address: inputValue.trim(),
+      street: '',
+      city: '',
+      state: '',
+      country: '',
+      lat: null,
+      lng: null,
+    });
+  }, [inputValue, onPlaceSelect]);
+
+  // ── Render ──────────────────────────────────────────────────
+
+  // Loading: API not yet ready
   if (!isLoaded) {
     return (
-      <div className={`relative ${className}`}>
+      <div className={cn('relative', className)}>
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           value={inputValue}
-          onChange={handleInputChange}
           placeholder={placeholder}
           disabled
           className="pl-9"
@@ -149,19 +455,110 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
     );
   }
 
-  return (
-    <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
-      <div className={`relative ${className}`}>
+  // Pending or webcomponent: show the container div so the web
+  // component can mount into it. The container is always present
+  // during 'pending' so the init effect can find it.
+  // Note: no MapPin icon here — the PlaceAutocompleteElement has
+  // its own built-in search icon.
+  if (mode === 'pending' || mode === 'webcomponent') {
+    return (
+      <div className={cn('relative', className)}>
+        <div
+          ref={webContainerRef}
+          onBlur={handleClearCheck}
+          className="gmp-autocomplete-container w-full"
+        />
+      </div>
+    );
+  }
+
+  // Edge function mode: custom dropdown
+  if (mode === 'edge') {
+    return (
+      <div className={cn('relative', className)}>
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+        {fetchingDetails && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+        )}
         <Input
+          ref={inputRef}
           value={inputValue}
-          onChange={handleInputChange}
+          onChange={handleEdgeInputChange}
+          onKeyDown={handleEdgeKeyDown}
+          onFocus={() => {
+            if (predictions.length > 0) setShowDropdown(true);
+          }}
           placeholder={placeholder}
           disabled={disabled}
           className="pl-9"
+          autoComplete="off"
+          role="combobox"
+          aria-expanded={showDropdown}
+          aria-haspopup="listbox"
+          aria-autocomplete="list"
         />
+        {showDropdown && predictions.length > 0 && (
+          <div
+            ref={dropdownRef}
+            className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-md"
+            role="listbox"
+          >
+            <ul className="max-h-60 overflow-auto py-1">
+              {predictions.map((prediction, index) => (
+                <li
+                  key={prediction.place_id}
+                  role="option"
+                  aria-selected={index === highlightIndex}
+                  className={cn(
+                    'cursor-pointer select-none px-3 py-2 text-sm transition-colors',
+                    index === highlightIndex
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-popover-foreground hover:bg-accent/50',
+                  )}
+                  onMouseEnter={() => setHighlightIndex(index)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelectPrediction(prediction);
+                  }}
+                >
+                  <div className="flex items-start gap-2">
+                    <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">
+                        {prediction.structured_formatting.main_text}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {prediction.structured_formatting.secondary_text}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="border-t border-border px-3 py-1.5 text-[10px] text-muted-foreground/60 text-right">
+              Powered by Google
+            </div>
+          </div>
+        )}
       </div>
-    </Autocomplete>
+    );
+  }
+
+  // Plain text fallback
+  return (
+    <div className={cn('relative', className)}>
+      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+      <Input
+        value={inputValue}
+        onChange={handlePlaintextChange}
+        onBlur={handlePlaintextSubmit}
+        onKeyDown={(e) => { if (e.key === 'Enter') handlePlaintextSubmit(); }}
+        placeholder={placeholder}
+        disabled={disabled}
+        className="pl-9"
+        autoFocus
+      />
+    </div>
   );
 };
 

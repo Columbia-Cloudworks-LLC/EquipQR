@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Google Places Autocomplete — migrated to `PlaceAutocompleteElement` web component**: Replaced the legacy `@react-google-maps/api` `Autocomplete` wrapper with Google's native `PlaceAutocompleteElement` web component (new Places API). The component now listens for both `gmp-placeselect` (legacy) and `gmp-select` (current API) events, with robust place extraction that handles minified event properties across Google Maps JS API versions
+- **Server-side Places Autocomplete fallback**: Added `places-autocomplete` Supabase Edge Function that proxies Google's Place Autocomplete and Place Details REST APIs server-side. When the web component is unavailable (e.g. API key referrer restrictions), the frontend falls back to a custom autocomplete dropdown powered by this edge function — with debounced predictions, keyboard navigation (Arrow keys, Enter, Escape), click-outside-to-close, session token billing, and accessible ARIA attributes (`role="combobox"`, `role="listbox"`)
+- **`GooglePlacesAutocomplete` multi-strategy architecture**: The component now initializes with a 3-tier fallback chain: (1) `PlaceAutocompleteElement` web component, (2) edge function proxy with custom dropdown, (3) plain text input. The web component container renders during the `pending` init phase so the mount effect can find it immediately
+- **`useGoogleMapsLoader` cleanup**: Removed debug instrumentation from the shared Google Maps loader hook
+
 ## [2.3.0] - 2026-02-09
 
 ### Added
