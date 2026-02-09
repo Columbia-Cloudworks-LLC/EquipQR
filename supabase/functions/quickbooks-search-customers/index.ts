@@ -60,6 +60,20 @@ interface QuickBooksCustomer {
   CompanyName?: string;
   PrimaryEmailAddr?: { Address: string };
   PrimaryPhone?: { FreeFormNumber: string };
+  BillAddr?: {
+    Line1?: string;
+    City?: string;
+    CountrySubDivisionCode?: string;
+    Country?: string;
+    PostalCode?: string;
+  };
+  ShipAddr?: {
+    Line1?: string;
+    City?: string;
+    CountrySubDivisionCode?: string;
+    Country?: string;
+    PostalCode?: string;
+  };
   Active?: boolean;
 }
 
@@ -331,6 +345,20 @@ Deno.serve(async (req) => {
       CompanyName: c.CompanyName,
       Email: c.PrimaryEmailAddr?.Address,
       Phone: c.PrimaryPhone?.FreeFormNumber,
+      BillAddr: c.BillAddr ? {
+        Line1: c.BillAddr.Line1,
+        City: c.BillAddr.City,
+        State: c.BillAddr.CountrySubDivisionCode,
+        Country: c.BillAddr.Country,
+        PostalCode: c.BillAddr.PostalCode,
+      } : undefined,
+      ShipAddr: c.ShipAddr ? {
+        Line1: c.ShipAddr.Line1,
+        City: c.ShipAddr.City,
+        State: c.ShipAddr.CountrySubDivisionCode,
+        Country: c.ShipAddr.Country,
+        PostalCode: c.ShipAddr.PostalCode,
+      } : undefined,
     }));
 
     return new Response(JSON.stringify({ 
