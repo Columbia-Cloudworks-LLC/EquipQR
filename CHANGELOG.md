@@ -9,6 +9,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Geolocation Hierarchy & Google Maps Integration** (#TBD): Comprehensive equipment location system with strict hierarchy, Google Places Autocomplete, team overrides, and privacy controls
+
+  #### Location Hierarchy Engine
+  - **3-tier location priority**: Team Override > Manual Assignment > Last Known Scan. New `resolveEffectiveLocation()` utility (`src/utils/effectiveLocation.ts`) resolves the display location for any equipment asset
+  - **Team location override**: Teams can set `override_equipment_location` to force all assigned equipment to use the team's address on the Fleet Map
+  - **Effective location** shown consistently across Equipment Details header, Details tab, and Fleet Map
+
+  #### Google Places Autocomplete
+  - **Shared `GooglePlacesAutocomplete` component** (`src/components/ui/GooglePlacesAutocomplete.tsx`): Single-input address picker powered by Google Places API. User types, selects from dropdown, and structured address fields (street, city, state, country, lat/lng) are parsed automatically from `address_components`
+  - **Shared `useGoogleMapsLoader` hook** (`src/hooks/useGoogleMapsLoader.ts`): Module-level singleton script loader that avoids duplicate Google Maps API loads across MapView, autocomplete inputs, and team/equipment maps
+  - **Identical UX everywhere**: Same autocomplete component used in Equipment form, Team Create dialog, and Team Edit dialog
+
+  #### Equipment Details Page Redesign
+  - **3-column header layout**: Equipment Image | Team Info Card | Location Map -- replaces the old 2-card Location + Last Maintenance layout
+  - **Team Info Card**: Shows assigned team name (linked to team detail page), description, and team address as a `ClickableAddress`
+  - **Location Map Card**: Compact Google Map with marker at the effective location, address link below, and "via [Team Name]" indicator when team override is active
+  - **Consolidated location field** in Details tab: Single location display following the hierarchy. When team overrides, shows non-editable team address with tooltip ("This location is set by the team") and link to the team page. Otherwise, editable via inline Google Places Autocomplete with Save/Cancel
+  - **Last Maintenance** moved from header into Basic Information section of the Details tab
+  - **`ClickableAddress` component** (`src/components/ui/ClickableAddress.tsx`): Renders any address as a clickable link that opens Google Maps directions
+
+  #### Team Location Features
+  - **Team Create/Edit dialogs** now include Google Places Autocomplete location field and "Override Equipment Location" checkbox with tooltip
+  - **`TeamLocationCard` component** on Team Details page: Shows Google Map centered on team coordinates, clickable address, override badge, and edit button. Three states: map with address, address-only placeholder, or empty "Set Location" CTA
+  - **`CreateTeamDialog`** and **`TeamMetadataEditor`** updated with location fields (previously only `TeamForm.tsx` had them, but that component was unused)
+  - **Deleted unused `TeamForm.tsx`** that was never imported anywhere
+
+  #### Database Schema (5 migrations)
+  - `organizations.scan_location_collection_enabled` (boolean, default true): Org-level toggle to disable GPS capture during QR scans
+  - `teams`: Added `location_address`, `location_city`, `location_state`, `location_country`, `location_lat`, `location_lng`, `override_equipment_location`
+  - `equipment`: Added `assigned_location_street`, `assigned_location_city`, `assigned_location_state`, `assigned_location_country`, `assigned_location_lat`, `assigned_location_lng`, `use_team_location`
+  - `equipment_location_history` table: Tracks every location change with source attribution (`scan`, `manual`, `team_sync`, `quickbooks`), RLS policies, and composite indexes
+  - **Triggers**: `enforce_scan_location_privacy` (strips GPS from scans when org disables collection), `log_scan_location_history` (auto-logs scan locations to history)
+  - **RPC**: `log_equipment_location_change` for frontend to log manual/team_sync/quickbooks location changes
+
+  #### Data Privacy & Compliance
+  - **Organization privacy toggle**: "QR Scan Location Collection" switch in Organization Settings > Privacy & Location section
+  - **Client-side check**: `EquipmentDetails.tsx` skips `navigator.geolocation.getCurrentPosition()` when collection is disabled
+  - **Server-side safety net**: Database trigger nullifies scan location if org has disabled collection
+
+  #### Fleet Map Hierarchy
+  - `teamFleetService.ts` updated to resolve equipment locations using the 3-tier hierarchy: team override coordinates, then equipment assigned coordinates, then legacy location/scan fallback
+  - `MapView.tsx` now uses the shared `useGoogleMapsLoader` hook instead of an inline `useJsApiLoader` call
+  - **Team HQ markers on Fleet Map**: Teams with a location address now appear as distinct star-shaped markers (amber/gold) on the Fleet Map, representing the team's headquarters or customer site
+    - Star markers use a custom SVG pin with a 5-point star center, visually distinct from equipment's round-center pins
+    - Clicking a star marker opens an info window with the team name, "Team HQ" badge, clickable address, "View Team" and "Directions" buttons
+    - Map legend includes a "Team HQ" entry with star icon, separated from equipment source types
+    - Team HQ markers filter with the team dropdown: selecting a specific team shows only that team's HQ; "All Teams" shows all HQs
+    - Map center and zoom calculations include HQ locations alongside equipment markers
+    - `TeamFleetOption` type extended with team location fields; `getAccessibleTeams` query now selects location columns
+    - Map displays even when only team HQs have location data (no equipment locations required)
+
+  #### QuickBooks Integration Enhancement
+  - `quickbooks-search-customers` Edge Function now returns `BillAddr` and `ShipAddr` fields from QBO API responses, enabling future address auto-population from mapped customers
+
+  #### Feature Flag
+  - `GEOLOCATION_HIERARCHY_ENABLED` flag in `src/lib/flags.ts` (gated by `VITE_ENABLE_GEOLOCATION_HIERARCHY` env var) for controlled rollout
+
+  #### Work Order Location Display
+  - **Work Order Details page** now shows the effective location (resolved via the 3-tier hierarchy) as a clickable Google Maps link instead of plain text, across desktop (`WorkOrderDetailsInfo`), mobile body (`WorkOrderDetailsMobile`), and mobile header (`WorkOrderDetailsMobileHeader`)
+  - **Work Order List cards** now display the effective location in all three card variants (desktop, mobile, compact) using the `ClickableAddress` component with `MapPin` icon
+  - **Service layer**: `WORK_ORDER_SELECT` query expanded to join equipment assigned-location fields and team location/override fields; `mapWorkOrderRow()` calls `resolveEffectiveLocation()` to compute `effectiveLocation` on every work order
+  - **`WorkOrder` type** extended with `effectiveLocation?: EffectiveLocation | null` computed field
+  - Falls back gracefully to the legacy `equipment.location` text when no structured location data is available
+
 ## [2.2.4] - 2026-02-08
 
 ### Added
