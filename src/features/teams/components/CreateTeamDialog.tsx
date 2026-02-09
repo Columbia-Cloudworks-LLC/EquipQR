@@ -1,14 +1,24 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/useAuth';
 import { useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
 import { useQueryClient } from '@tanstack/react-query';
+import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
+import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 
 interface CreateTeamDialogProps {
   open: boolean;
@@ -19,10 +29,28 @@ interface CreateTeamDialogProps {
 const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, organizationId }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [locationData, setLocationData] = useState<PlaceLocationData | null>(null);
+  const [overrideEquipmentLocation, setOverrideEquipmentLocation] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { createTeamWithCreator } = useTeamMutations();
   const queryClient = useQueryClient();
+  const { isLoaded } = useGoogleMapsLoader();
+
+  const handlePlaceSelect = useCallback((data: PlaceLocationData) => {
+    setLocationData(data);
+  }, []);
+
+  const handleLocationClear = useCallback(() => {
+    setLocationData(null);
+  }, []);
+
+  const resetForm = useCallback(() => {
+    setName('');
+    setDescription('');
+    setLocationData(null);
+    setOverrideEquipmentLocation(false);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,34 +78,37 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
         teamData: {
           name: name.trim(),
           description: description.trim() || null,
-          organization_id: organizationId
+          organization_id: organizationId,
+          ...(locationData && {
+            location_address: locationData.street || null,
+            location_city: locationData.city || null,
+            location_state: locationData.state || null,
+            location_country: locationData.country || null,
+            location_lat: locationData.lat,
+            location_lng: locationData.lng,
+          }),
+          override_equipment_location: overrideEquipmentLocation,
         },
         creatorId: user.id
       });
 
-      // Show success toast
       toast({
         title: "Success",
         description: "Team created successfully",
       });
 
-      // Invalidate access snapshot for permissions
       queryClient.invalidateQueries({ queryKey: ['access-snapshot'] });
       
-      // Reset form and close
-      setName('');
-      setDescription('');
+      resetForm();
       onClose();
     } catch (error) {
-      // Mutation errors are already handled by useTeamMutations hook's onError callback
-      // No need for additional error handling here
       console.error('Error creating team:', error);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Create New Team</DialogTitle>
           <DialogDescription>
@@ -107,7 +138,46 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
               rows={3}
             />
           </div>
-          
+
+          <div className="space-y-2">
+            <Label>Location</Label>
+            <GooglePlacesAutocomplete
+              value={locationData?.formatted_address ?? ''}
+              onPlaceSelect={handlePlaceSelect}
+              onClear={handleLocationClear}
+              placeholder="Search for a team address..."
+              isLoaded={isLoaded}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 rounded-md border p-3">
+            <Checkbox
+              id="override_equipment_location"
+              checked={overrideEquipmentLocation}
+              onCheckedChange={(checked) => setOverrideEquipmentLocation(!!checked)}
+            />
+            <Label
+              htmlFor="override_equipment_location"
+              className="flex-1 cursor-pointer text-sm font-normal"
+            >
+              Override Equipment Location
+            </Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[240px]">
+                  <p>
+                    When enabled, all equipment assigned to this team will use
+                    this team's address as their effective location on the
+                    Fleet Map.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
