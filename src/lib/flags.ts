@@ -36,6 +36,15 @@ export const QUICKBOOKS_ENABLED = import.meta.env.VITE_ENABLE_QUICKBOOKS === 'tr
 export const QB_PDF_ATTACHMENT_ENABLED = import.meta.env.VITE_ENABLE_QB_PDF_ATTACHMENT === 'true';
 
 /**
+ * Controls whether the enhanced geolocation hierarchy features are enabled.
+ * Includes: team location override, structured address fields, location history, and privacy controls.
+ * 
+ * Set via environment variable: VITE_ENABLE_GEOLOCATION_HIERARCHY
+ * Defaults to false (disabled) unless explicitly set to 'true'.
+ */
+export const GEOLOCATION_HIERARCHY_ENABLED = import.meta.env.VITE_ENABLE_GEOLOCATION_HIERARCHY === 'true';
+
+/**
  * Feature flag accessor utility
  */
 export const FeatureFlags = {
@@ -50,6 +59,10 @@ export const FeatureFlags = {
       enabled: QB_PDF_ATTACHMENT_ENABLED,
       disabled: !QB_PDF_ATTACHMENT_ENABLED
     }
+  },
+  geolocation: {
+    enabled: GEOLOCATION_HIERARCHY_ENABLED,
+    disabled: !GEOLOCATION_HIERARCHY_ENABLED
   }
 } as const;
 
@@ -91,5 +104,13 @@ export function isQuickBooksDisabled(): boolean {
  */
 export function isQBPDFAttachmentEnabled(): boolean {
   return QB_PDF_ATTACHMENT_ENABLED;
+}
+
+/**
+ * Check if geolocation hierarchy is enabled
+ * @returns true if geolocation hierarchy features should be active
+ */
+export function isGeolocationHierarchyEnabled(): boolean {
+  return GEOLOCATION_HIERARCHY_ENABLED;
 }
 
