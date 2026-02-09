@@ -5,20 +5,24 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
-import { Wrench, FileText, ChevronDown, Clock } from 'lucide-react';
+import { Wrench, FileText, ChevronDown, Clock, MapPin } from 'lucide-react';
 import { Equipment } from '@/services/supabaseDataService';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useEquipmentCurrentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
+import ClickableAddress from '@/components/ui/ClickableAddress';
+import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 interface WorkOrderDetailsInfoProps {
   workOrder: EnhancedWorkOrder;
   equipment: Equipment | null;
+  effectiveLocation?: EffectiveLocation | null;
 }
 
 const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
   workOrder,
   equipment,
+  effectiveLocation,
 }) => {
   const isMobile = useIsMobile();
   const [isEquipmentExpanded, setIsEquipmentExpanded] = React.useState(true);
@@ -94,8 +98,25 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                     <span className="ml-2 text-muted-foreground break-words">{equipment.serial_number}</span>
                   </div>
                   <div className="sm:col-span-2">
-                    <span className="font-medium">Location:</span>
-                    <span className="ml-2 text-muted-foreground break-words">{equipment.location}</span>
+                    <div className="flex items-start gap-1">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <span className="font-medium mr-1">Location:</span>
+                      {effectiveLocation ? (
+                        <ClickableAddress
+                          address={effectiveLocation.formattedAddress}
+                          lat={effectiveLocation.lat}
+                          lng={effectiveLocation.lng}
+                          className="text-sm break-words"
+                        />
+                      ) : equipment.location ? (
+                        <ClickableAddress
+                          address={equipment.location}
+                          className="text-sm break-words"
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-sm">No location set</span>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Working Hours KPI */}

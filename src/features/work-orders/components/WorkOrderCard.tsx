@@ -20,8 +20,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Clock, User, Users, UserX, AlertTriangle, Cog } from 'lucide-react';
+import { Calendar, Clock, User, Users, UserX, AlertTriangle, Cog, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ClickableAddress from '@/components/ui/ClickableAddress';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { 
   getStatusColor, 
@@ -200,6 +201,22 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
               )}
             </div>
           </WorkOrderAssignmentHover>
+
+          {workOrder.effectiveLocation && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="font-medium">Location</div>
+                <ClickableAddress
+                  address={workOrder.effectiveLocation.formattedAddress}
+                  lat={workOrder.effectiveLocation.lat}
+                  lng={workOrder.effectiveLocation.lng}
+                  className="text-sm truncate"
+                  showIcon={false}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {workOrder.has_pm && (
@@ -336,6 +353,19 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
           </div>
         )}
 
+        {workOrder.effectiveLocation && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-0.5">
+            <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+            <ClickableAddress
+              address={workOrder.effectiveLocation.formattedAddress}
+              lat={workOrder.effectiveLocation.lat}
+              lng={workOrder.effectiveLocation.lng}
+              className="text-xs truncate"
+              showIcon={false}
+            />
+          </div>
+        )}
+
         {/* PM indicator: add top padding when no equipment section above to prevent flush layout */}
         {workOrder.has_pm && (
           <div className={workOrder.equipmentName ? "" : "pt-1"}>
@@ -452,6 +482,19 @@ const CompactCard: React.FC<WorkOrderCardProps> = memo(({
               <span className="text-muted-foreground truncate">
                 {workOrder.teamName || workOrder.equipmentTeamName}
               </span>
+            </div>
+          )}
+
+          {workOrder.effectiveLocation && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-3 w-3 flex-shrink-0" />
+              <ClickableAddress
+                address={workOrder.effectiveLocation.formattedAddress}
+                lat={workOrder.effectiveLocation.lat}
+                lng={workOrder.effectiveLocation.lng}
+                className="text-sm truncate"
+                showIcon={false}
+              />
             </div>
           )}
         </div>

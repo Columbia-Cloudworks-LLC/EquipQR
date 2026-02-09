@@ -366,7 +366,8 @@ const WorkOrderDetails = () => {
             location: equipment.location
           } : undefined,
           team: workOrder.teamName ? { name: workOrder.teamName } : undefined,
-          created_at: workOrder.createdAt
+          created_at: workOrder.createdAt,
+          effectiveLocation: workOrder.effectiveLocation
         }}
         canEdit={canEdit}
         onEditClick={handleEditWorkOrder}
@@ -469,6 +470,7 @@ const WorkOrderDetails = () => {
                 } : undefined}
                 team={workOrder.teamName ? { id: workOrder.team_id || '', name: workOrder.teamName } : undefined}
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
+                effectiveLocation={workOrder.effectiveLocation}
                 onScrollToPM={scrollToPMSection}
               />
               </div>
@@ -569,7 +571,7 @@ const WorkOrderDetails = () => {
             <>
               {/* Desktop Layout - Keep existing structure */}
               <div {...stagger(0)}>
-                <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} />
+                <WorkOrderDetailsInfo workOrder={workOrder} equipment={equipment} effectiveLocation={workOrder.effectiveLocation} />
               </div>
 
               {/* Costs Section - Now positioned above PM checklist and only show to managers and technicians */}

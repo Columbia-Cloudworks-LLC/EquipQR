@@ -6,6 +6,7 @@
  */
 
 import { Tables } from '@/integrations/supabase/types';
+import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 // ============================================
 // Core Status and Priority Types
@@ -56,6 +57,8 @@ export interface WorkOrder extends WorkOrderRow {
   createdByName?: string;
   // Assignment object for component compatibility
   assignedTo?: { id: string; name: string } | null;
+  // Resolved location from hierarchy (team override > manual assignment > last scan)
+  effectiveLocation?: EffectiveLocation | null;
 }
 
 /**
