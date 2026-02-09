@@ -56,7 +56,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
       name: organization.name,
       logo: organization.logo || '',
       backgroundColor: organization.backgroundColor || '',
-      scan_location_collection_enabled: (organization as any).scan_location_collection_enabled ?? true,
+      scan_location_collection_enabled: organization.scanLocationCollectionEnabled ?? true,
     },
   });
 

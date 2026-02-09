@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     if (!user.email) {
       return createErrorResponse("User email not available", 400);
     }
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("User authenticated", { userId: user.id });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });

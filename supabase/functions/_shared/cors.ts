@@ -1,14 +1,4 @@
-/**
- * Known-safe origins for CORS.
- * Requests from unknown origins fall back to the production domain.
- */
-const ALLOWED_CORS_ORIGINS = [
-  "https://equipqr.app",
-  "https://preview.equipqr.app",
-  "http://localhost:5173",
-  "http://localhost:8080",
-  "http://localhost:3000",
-];
+import { isAllowedOrigin, PRODUCTION_ORIGIN } from "./origin-validation.ts";
 
 /**
  * Returns CORS headers with the `Access-Control-Allow-Origin` set to the
@@ -17,10 +7,9 @@ const ALLOWED_CORS_ORIGINS = [
  */
 export function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin") || "";
-  const isAllowed =
-    ALLOWED_CORS_ORIGINS.includes(origin) || origin.endsWith(".vercel.app");
+  const allowed = isAllowedOrigin(origin);
   return {
-    "Access-Control-Allow-Origin": isAllowed ? origin : ALLOWED_CORS_ORIGINS[0],
+    "Access-Control-Allow-Origin": allowed ? origin : PRODUCTION_ORIGIN,
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",

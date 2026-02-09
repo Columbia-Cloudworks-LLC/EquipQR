@@ -18,8 +18,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const FleetMap: React.FC = () => {
-  const { googleMapsKey, isLoaded: isMapsLoaded, loadError: mapsLoadError, isKeyLoading: mapsKeyLoading, keyError: mapsKeyError } = useGoogleMapsLoader();
-  const retryMapsKey = () => window.location.reload();
+  const { googleMapsKey, isLoaded: isMapsLoaded, loadError: mapsLoadError, isKeyLoading: mapsKeyLoading, keyError: mapsKeyError, retry: retryMapsKey } = useGoogleMapsLoader();
   const { data: teamFleetData, isLoading: teamFleetLoading, error: teamFleetError } = useTeamFleetData();
   const isMobile = useIsMobile();
 

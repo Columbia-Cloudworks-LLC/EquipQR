@@ -2,7 +2,8 @@
  * Effective Location Resolution
  * 
  * Resolves the display location for an equipment asset using a strict hierarchy:
- * 1. Team Override - team.override_equipment_location is true and team has coords
+ * 1. Team Override - equipment.use_team_location AND team.override_equipment_location
+ *    are both true, and team has coordinates
  * 2. Manual Assignment - equipment has assigned_location lat/lng
  * 3. Last Known Scan - latest QR scan with GPS coordinates
  */
@@ -27,6 +28,7 @@ export interface TeamLocationInput {
 }
 
 export interface EquipmentLocationInput {
+  use_team_location?: boolean;
   assigned_location_lat?: number | null;
   assigned_location_lng?: number | null;
   assigned_location_street?: string | null;
@@ -58,7 +60,9 @@ function formatAddress(parts: {
  * Resolve the effective location for an equipment asset.
  * 
  * Priority:
- * 1. Team Override (if team has override enabled and coordinates)
+ * 1. Team Override — both the team's `override_equipment_location` flag
+ *    AND the equipment's `use_team_location` flag must be true, and the
+ *    team must have coordinates.
  * 2. Manual Assignment (if equipment has assigned coordinates)
  * 3. Last Known Scan (if a scan has GPS coordinates)
  * 
@@ -69,8 +73,9 @@ export function resolveEffectiveLocation(params: {
   equipment: EquipmentLocationInput;
   lastScan?: ScanLocationInput;
 }): EffectiveLocation | null {
-  // 1. Team Override
+  // 1. Team Override — requires both sides to opt in
   if (
+    params.equipment.use_team_location &&
     params.team?.override_equipment_location &&
     params.team.location_lat != null &&
     params.team.location_lng != null

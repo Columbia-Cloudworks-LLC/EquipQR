@@ -46,26 +46,29 @@ function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): 
       return true;
     }
     
-    // For development/staging, also allow localhost, 127.0.0.1, and vercel preview URLs
+    // For development/staging, also allow localhost and 127.0.0.1
     // This allows the app to work in local development and preview deployments
     const allowedDomains = [
       productionDomain,
       'localhost',
       '127.0.0.1',
-      '.vercel.app', // Vercel preview deployments
-      '.netlify.app', // Netlify preview deployments
     ];
     
-    // Check if hostname matches any allowed domain or is a subdomain of an allowed domain
+    // Check if hostname matches any allowed domain
     for (const domain of allowedDomains) {
-      if (domain.startsWith('.')) {
-        // Wildcard domain (e.g., .vercel.app)
-        if (url.hostname.endsWith(domain) || url.hostname === domain.slice(1)) {
-          return true;
-        }
-      } else if (url.hostname === domain) {
+      if (url.hostname === domain) {
         return true;
       }
+    }
+
+    // Allow Vercel preview deployments scoped to our project slug only
+    // This prevents open-redirect via arbitrary third-party Vercel sites
+    const vercelSlug = Deno.env.get("VERCEL_PROJECT_SLUG") || "equip-qr";
+    if (
+      url.hostname.endsWith(".vercel.app") &&
+      url.hostname.startsWith(`${vercelSlug}-`)
+    ) {
+      return true;
     }
     
     logStep("Redirect URL validation failed", { 

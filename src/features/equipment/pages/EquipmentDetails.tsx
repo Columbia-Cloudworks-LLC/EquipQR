@@ -66,7 +66,7 @@ const EquipmentDetails = () => {
     
     try {
       // Check if scan location collection is enabled for the organization
-      const scanLocationEnabled = (currentOrganization as any)?.scan_location_collection_enabled;
+      const scanLocationEnabled = currentOrganization.scanLocationCollectionEnabled;
       
       // If scan location collection is disabled, log scan without location
       if (scanLocationEnabled === false) {

@@ -45,6 +45,8 @@ const WORK_ORDER_SELECT = `
     name,
     team_id,
     location,
+    use_team_location,
+    last_known_location,
     assigned_location_lat,
     assigned_location_lng,
     assigned_location_street,
@@ -79,6 +81,8 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
     name?: string; 
     team_id?: string;
     location?: string;
+    use_team_location?: boolean;
+    last_known_location?: { latitude?: number; longitude?: number } | null;
     assigned_location_lat?: number | null;
     assigned_location_lng?: number | null;
     assigned_location_street?: string | null;
@@ -99,7 +103,14 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
   } | null;
   const creator = wo.creator as { id?: string; name?: string } | null;
 
-  // Resolve effective location using the hierarchy
+  // Resolve effective location using the hierarchy:
+  // team override > manual assignment > last scan
+  const lastKnown = equipment?.last_known_location;
+  const lastScan =
+    lastKnown && lastKnown.latitude != null && lastKnown.longitude != null
+      ? { lat: lastKnown.latitude, lng: lastKnown.longitude }
+      : undefined;
+
   const effectiveLocation = equipment
     ? resolveEffectiveLocation({
         team: equipment.teams
@@ -114,6 +125,7 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
             }
           : undefined,
         equipment: {
+          use_team_location: equipment.use_team_location,
           assigned_location_lat: equipment.assigned_location_lat,
           assigned_location_lng: equipment.assigned_location_lng,
           assigned_location_street: equipment.assigned_location_street,
@@ -121,6 +133,7 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
           assigned_location_state: equipment.assigned_location_state,
           assigned_location_country: equipment.assigned_location_country,
         },
+        lastScan,
       })
     : null;
 

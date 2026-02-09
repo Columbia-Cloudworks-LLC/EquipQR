@@ -36,6 +36,7 @@ CREATE INDEX IF NOT EXISTS idx_equip_loc_history_changed_by
 ALTER TABLE public.equipment_location_history ENABLE ROW LEVEL SECURITY;
 
 -- SELECT: org members can view history for equipment in their org
+DROP POLICY IF EXISTS equipment_location_history_select ON public.equipment_location_history;
 CREATE POLICY equipment_location_history_select
   ON public.equipment_location_history
   FOR SELECT USING (
@@ -49,6 +50,7 @@ CREATE POLICY equipment_location_history_select
   );
 
 -- INSERT: only service_role can insert (via triggers and RPCs)
+DROP POLICY IF EXISTS equipment_location_history_service_insert ON public.equipment_location_history;
 CREATE POLICY equipment_location_history_service_insert
   ON public.equipment_location_history
   FOR INSERT WITH CHECK (false);

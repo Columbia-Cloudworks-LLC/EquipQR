@@ -30,6 +30,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_enforce_scan_location_privacy ON public.scans;
 CREATE TRIGGER trg_enforce_scan_location_privacy
   BEFORE INSERT ON public.scans
   FOR EACH ROW
@@ -70,6 +71,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_log_scan_location_history ON public.scans;
 CREATE TRIGGER trg_log_scan_location_history
   AFTER INSERT ON public.scans
   FOR EACH ROW
