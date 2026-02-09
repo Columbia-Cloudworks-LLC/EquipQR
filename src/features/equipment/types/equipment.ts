@@ -25,6 +25,18 @@ export interface EquipmentLocation {
   timestamp?: string;
 }
 
+export interface AssignedLocation {
+  street?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  lat?: number;
+  lng?: number;
+}
+
+// Re-export EffectiveLocation from the shared utility (single source of truth)
+export type { EffectiveLocation } from '@/utils/effectiveLocation';
+
 // ============================================
 // Custom Attributes Type
 // ============================================
@@ -73,7 +85,14 @@ export const equipmentFormSchema = z.object({
   image_url: z.string().optional(),
   last_known_location: locationSchema,
   team_id: z.string().optional(),
-  default_pm_template_id: z.string().optional()
+  default_pm_template_id: z.string().optional(),
+  assigned_location_street: z.string().optional(),
+  assigned_location_city: z.string().optional(),
+  assigned_location_state: z.string().optional(),
+  assigned_location_country: z.string().optional(),
+  assigned_location_lat: z.number().optional(),
+  assigned_location_lng: z.number().optional(),
+  use_team_location: z.boolean().optional()
 });
 
 // Function to create context-aware validation
@@ -178,6 +197,15 @@ export interface EquipmentRecord extends Omit<EquipmentRow, 'custom_attributes' 
   
   // Frontend-specific computed fields from joins
   team_name?: string;
+  
+  // Assigned location fields
+  assigned_location_street?: string | null;
+  assigned_location_city?: string | null;
+  assigned_location_state?: string | null;
+  assigned_location_country?: string | null;
+  assigned_location_lat?: number | null;
+  assigned_location_lng?: number | null;
+  use_team_location?: boolean;
 }
 
 /**

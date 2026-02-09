@@ -11,6 +11,7 @@ export interface SimpleOrganization {
   nextBillingDate?: string;
   logo?: string;
   backgroundColor?: string;
+  scanLocationCollectionEnabled: boolean;
   userRole: 'owner' | 'admin' | 'member';
   userStatus: 'active' | 'pending' | 'inactive';
   /** True if this is the user's personal (default) organization */

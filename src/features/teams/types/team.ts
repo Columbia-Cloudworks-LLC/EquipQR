@@ -47,6 +47,19 @@ export interface TeamMemberDisplay {
 }
 
 // ============================================
+// Team Location Types
+// ============================================
+
+export interface TeamLocation {
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  lat?: number;
+  lng?: number;
+}
+
+// ============================================
 // Team Types
 // ============================================
 
@@ -62,6 +75,13 @@ export interface Team {
   member_count: number;
   created_at: string;
   updated_at: string;
+  location_address?: string;
+  location_city?: string;
+  location_state?: string;
+  location_country?: string;
+  location_lat?: number;
+  location_lng?: number;
+  override_equipment_location?: boolean;
 }
 
 /**

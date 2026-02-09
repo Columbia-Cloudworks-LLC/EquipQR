@@ -7,11 +7,12 @@ import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvide
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard';
+import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 
 // Critical components loaded eagerly to prevent loading issues for unauthenticated users
 import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';
-import DebugAuth from '@/pages/DebugAuth';
+const DebugAuth = import.meta.env.DEV ? lazy(() => import('@/pages/DebugAuth')) : null;
 import Landing from '@/pages/Landing';
 const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
 const PMTemplatesFeature = lazy(() => import('@/pages/features/PMTemplates'));
@@ -91,7 +92,9 @@ function App() {
         {/* Direct landing page route - bypasses SmartLanding redirect for authenticated users */}
         <Route path="/landing" element={<Suspense fallback={<div>Loading...</div>}><Landing /></Suspense>} />
         <Route path="/auth" element={<Auth />} />
-        <Route path="/debug-auth" element={<DebugAuth />} />
+        {import.meta.env.DEV && DebugAuth && (
+          <Route path="/debug-auth" element={<Suspense fallback={<div>Loading...</div>}><DebugAuth /></Suspense>} />
+        )}
         
         {/* Other public routes with suspense for lazy loading */}
         <Route path="/solutions/repair-shops" element={<Suspense fallback={<div>Loading...</div>}><RepairShops /></Suspense>} />
@@ -148,6 +151,7 @@ function App() {
                   <WorkspaceOnboardingGuard>
                     <TeamProvider>
                       <SidebarProvider>
+                      <BugReportProvider>
                       <div className="flex min-h-screen w-full">
                         <Suspense fallback={
                           <div className="w-64 border-r bg-sidebar">
@@ -215,6 +219,7 @@ function App() {
                           <BottomNav />
                         </Suspense>
                       </div>
+                      </BugReportProvider>
                       </SidebarProvider>
                     </TeamProvider>
                   </WorkspaceOnboardingGuard>

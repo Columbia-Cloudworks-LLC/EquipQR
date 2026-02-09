@@ -22,7 +22,10 @@ additional_redirect_urls = [
   "http://127.0.0.1:8080/**",
   "https://equipqr.app/**",
   "https://preview.equipqr.app/**",
-  "https://*.vercel.app/**"
+  # Vercel preview deployments for this project only.
+  # The slug must match the Vercel project name ("equip-qr").
+  # Update this if the Vercel project is renamed.
+  "https://equip-qr-*.vercel.app/**"
 ]
 
 # =============================================================================
@@ -62,7 +65,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.public-google-maps-key]
-verify_jwt = false
+verify_jwt = true
 
 [functions.manage-billing-exemptions]
 verify_jwt = true

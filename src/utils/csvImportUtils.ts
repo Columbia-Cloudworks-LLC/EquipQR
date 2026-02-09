@@ -1,5 +1,58 @@
 import { FIELD_SYNONYMS, type ColumnMapping, type MappedRow } from '@/types/csvImport';
 
+// =============================================================================
+// CSV Import Validation Constants
+// =============================================================================
+
+/** Maximum length for any single cell value. Values exceeding this are truncated. */
+const MAX_CELL_VALUE_LENGTH = 1000;
+
+/** Maximum length for generated custom attribute keys. */
+const MAX_CUSTOM_KEY_LENGTH = 50;
+
+/** Pattern for valid custom attribute keys (lowercase, starts with letter). */
+const VALID_CUSTOM_KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
+
+/**
+ * Truncate a cell value to the maximum allowed length.
+ * Returns the truncated value, or the original if within limits.
+ */
+export const truncateCellValue = (value: string): string => {
+  if (value.length > MAX_CELL_VALUE_LENGTH) {
+    return value.substring(0, MAX_CELL_VALUE_LENGTH);
+  }
+  return value;
+};
+
+/**
+ * Validate and sanitize a custom attribute key.
+ * Returns a safe key or null if the key is invalid even after sanitization.
+ */
+export const sanitizeCustomKey = (key: string): string | null => {
+  // Truncate to max length
+  let sanitized = key.substring(0, MAX_CUSTOM_KEY_LENGTH);
+
+  // If it already matches the pattern, return as-is
+  if (VALID_CUSTOM_KEY_PATTERN.test(sanitized)) {
+    return sanitized;
+  }
+
+  // Attempt to fix: strip invalid chars
+  sanitized = sanitized.replace(/[^a-z0-9_]/g, '');
+
+  // Ensure it starts with a letter
+  if (sanitized.length > 0 && !/^[a-z]/.test(sanitized)) {
+    sanitized = 'x_' + sanitized;
+  }
+
+  // Final validation
+  if (sanitized.length === 0 || !VALID_CUSTOM_KEY_PATTERN.test(sanitized)) {
+    return null;
+  }
+
+  return sanitized;
+};
+
 /**
  * Normalize header text for comparison (case/space/punct-insensitive)
  */
@@ -177,11 +230,17 @@ export const mapRowData = (
     raw: row
   };
   
-  // Add custom attributes
+  // Add custom attributes (with validation)
   for (const [key, value] of Object.entries(resolved)) {
     if (!['name', 'manufacturer', 'model', 'serial', 'location', 'last_maintenance'].includes(key)) {
       if (!isEmptyCell(value)) {
-        result.customAttributes[key] = inferType(value);
+        // Validate custom attribute key
+        const safeKey = sanitizeCustomKey(key);
+        if (safeKey) {
+          // Truncate excessively long values
+          const safeValue = typeof value === 'string' ? truncateCellValue(value) : value;
+          result.customAttributes[safeKey] = inferType(safeValue);
+        }
       }
     }
   }

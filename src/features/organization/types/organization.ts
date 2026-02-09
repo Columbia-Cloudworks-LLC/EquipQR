@@ -102,6 +102,7 @@ export interface OrganizationUpdatePayload {
   name?: string;
   logo?: string | null;
   background_color?: string | null;
+  scan_location_collection_enabled?: boolean;
 }
 
 // ============================================

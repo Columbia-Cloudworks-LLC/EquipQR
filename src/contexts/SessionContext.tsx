@@ -16,6 +16,7 @@ export interface SessionOrganization {
   nextBillingDate?: string;
   logo?: string;
   backgroundColor?: string;
+  scanLocationCollectionEnabled: boolean;
   userRole: 'owner' | 'admin' | 'member';
   userStatus: 'active' | 'pending' | 'inactive';
 }

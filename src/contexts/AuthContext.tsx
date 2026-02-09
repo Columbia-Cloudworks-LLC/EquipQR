@@ -3,6 +3,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { getSafeRedirectPath } from '@/utils/redirectValidation';
 
 /**
  * Throttle duration for applying pending admin grants.
@@ -56,10 +57,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const pendingRedirect = sessionStorage.getItem('pendingRedirect');
           if (pendingRedirect) {
             sessionStorage.removeItem('pendingRedirect');
-            // Redirecting to pending URL after sign-in
+            // Validate the redirect path to prevent open-redirect attacks
+            const safePath = getSafeRedirectPath(pendingRedirect);
             // Use setTimeout to ensure the redirect happens after state updates
             setTimeout(() => {
-              window.location.href = pendingRedirect;
+              window.location.href = safePath;
             }, 100);
           }
 

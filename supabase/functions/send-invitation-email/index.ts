@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
       message,
     }: InvitationEmailRequest = await req.json();
 
-    logStep("Request received", { invitationId, email, role, organizationName });
+    logStep("Request received", { invitationId, role, organizationName });
 
     // First, get the invitation to determine the organization
     // RLS will ensure user can only see invitations for orgs they have access to
@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
     `;
 
     // Send the email
-    logStep("Sending email", { to: email, from: "invite@equipqr.app" });
+    logStep("Sending email", { invitationId });
 
     const emailResponse = await resend.emails.send({
       from: "EquipQR™ <invite@equipqr.app>",

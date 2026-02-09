@@ -375,7 +375,14 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
       organization_id: team.organization_id,
       member_count: team.team_members?.[0]?.count || 0,
       created_at: team.created_at,
-      updated_at: team.updated_at
+      updated_at: team.updated_at,
+      location_address: team.location_address,
+      location_city: team.location_city,
+      location_state: team.location_state,
+      location_country: team.location_country,
+      location_lat: team.location_lat,
+      location_lng: team.location_lng,
+      override_equipment_location: team.override_equipment_location,
     }));
   } catch (error) {
     logger.error('Error fetching organization teams:', error);
@@ -409,7 +416,14 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null>
       organization_id: data.organization_id,
       member_count: data.team_members?.[0]?.count || 0,
       created_at: data.created_at,
-      updated_at: data.updated_at
+      updated_at: data.updated_at,
+      location_address: data.location_address,
+      location_city: data.location_city,
+      location_state: data.location_state,
+      location_country: data.location_country,
+      location_lat: data.location_lat,
+      location_lng: data.location_lng,
+      override_equipment_location: data.override_equipment_location,
     };
   } catch (error) {
     logger.error('Error fetching team by ID:', error);

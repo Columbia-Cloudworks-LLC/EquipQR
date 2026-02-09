@@ -12,7 +12,6 @@ import {
   Calendar, 
   User,
   Clock,
-  Navigation,
   ExternalLink,
   Clipboard,
   AlertCircle,
@@ -21,6 +20,8 @@ import {
 } from 'lucide-react';
 import { useEquipmentCurrentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
 import { cn } from '@/lib/utils';
+import ClickableAddress from '@/components/ui/ClickableAddress';
+import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 interface WorkOrderDetailsMobileProps {
   workOrder: {
@@ -63,16 +64,11 @@ interface WorkOrderDetailsMobileProps {
       amount: number;
     }>;
   };
+  /** Resolved effective location for the equipment */
+  effectiveLocation?: EffectiveLocation | null;
   /** Callback to scroll to the PM section */
   onScrollToPM?: () => void;
 }
-
-/** Generate a Google Maps navigation URL */
-const getNavigationUrl = (location: string): string => {
-  const encoded = encodeURIComponent(location);
-  // Use Google Maps directions URL
-  return `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
-};
 
 /** Get priority badge styling */
 const getPriorityStyle = (priority: string) => {
@@ -101,6 +97,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
   equipment,
   team,
   assignee,
+  effectiveLocation,
   onScrollToPM,
 }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -128,27 +125,22 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
       <Card className="shadow-elevation-2 border-l-4 border-l-primary">
         <CardContent className="p-4 space-y-4">
           {/* Location + Navigate */}
-          {equipment?.location && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{equipment.location}</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1"
-                asChild
-              >
-                <a 
-                  href={getNavigationUrl(equipment.location)} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  <Navigation className="h-3.5 w-3.5" />
-                  Navigate
-                </a>
-              </Button>
+          {(effectiveLocation || equipment?.location) && (
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              {effectiveLocation ? (
+                <ClickableAddress
+                  address={effectiveLocation.formattedAddress}
+                  lat={effectiveLocation.lat}
+                  lng={effectiveLocation.lng}
+                  className="text-sm font-medium"
+                />
+              ) : equipment?.location ? (
+                <ClickableAddress
+                  address={equipment.location}
+                  className="text-sm font-medium"
+                />
+              ) : null}
             </div>
           )}
 

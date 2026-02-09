@@ -1,25 +1,22 @@
 import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  createUserSupabaseClient,
+  requireUser,
+  createErrorResponse,
+  createJsonResponse,
+  handleCorsPreflightIfNeeded,
+} from "../_shared/supabase-clients.ts";
+import { getValidatedOrigin } from "../_shared/origin-validation.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-  );
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     logStep("Function started");
@@ -27,17 +24,35 @@ Deno.serve(async (req) => {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    // Authenticate user via shared utility
+    const supabase = createUserSupabaseClient(req);
+    const auth = await requireUser(req, supabase);
+    if ("error" in auth) {
+      return createErrorResponse(auth.error, auth.status);
+    }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    const { user } = auth;
+    if (!user.email) {
+      return createErrorResponse("User email not available", 400);
+    }
+    logStep("User authenticated", { userId: user.id });
 
     const { priceId, organizationId } = await req.json();
-    if (!priceId) throw new Error("Price ID is required");
+    if (!priceId) {
+      return createErrorResponse("Missing required field: priceId", 400);
+    }
+
+    // Validate priceId against server-side allowlist (if configured)
+    const ALLOWED_PRICE_IDS = (Deno.env.get("ALLOWED_STRIPE_PRICE_IDS") || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (ALLOWED_PRICE_IDS.length > 0 && !ALLOWED_PRICE_IDS.includes(priceId)) {
+      logStep("Rejected priceId not in allowlist", { priceId });
+      return createErrorResponse("Invalid price selected", 400);
+    }
+
     logStep("Request data", { priceId, organizationId });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
@@ -52,7 +67,7 @@ Deno.serve(async (req) => {
       logStep("Creating new customer");
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:3000";
+    const origin = getValidatedOrigin(req);
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -71,12 +86,9 @@ Deno.serve(async (req) => {
       },
     });
 
-    logStep("Checkout session created", { sessionId: session.id, url:session.url });
+    logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    return createJsonResponse({ url: session.url });
   } catch (error) {
     // Log the full error server-side for debugging
     logStep("ERROR in create-checkout", { 
@@ -84,9 +96,6 @@ Deno.serve(async (req) => {
       stack: error instanceof Error ? error.stack : undefined,
     });
     // Return generic message to client - never expose error.message directly
-    return new Response(JSON.stringify({ error: "An unexpected error occurred" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return createErrorResponse("An unexpected error occurred", 500);
   }
 });

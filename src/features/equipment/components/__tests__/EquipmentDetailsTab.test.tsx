@@ -89,6 +89,12 @@ vi.mock('../WorkingHoursTimelineModal', () => ({
     open ? <div data-testid="working-hours-modal">Working Hours</div> : null
 }));
 
+vi.mock('@/hooks/useGoogleMapsLoader', () => ({
+  useGoogleMapsLoader: vi.fn(() => ({
+    isLoaded: false
+  }))
+}));
+
 const mockEquipment: Tables<'equipment'> = {
   id: 'eq-1',
   name: 'Test Equipment',
@@ -112,7 +118,13 @@ const mockEquipment: Tables<'equipment'> = {
   working_hours: 1000,
   last_known_location: null,
   customer_id: null,
-  import_id: null
+  import_id: null,
+  assigned_location_street: 'Test Location',
+  assigned_location_city: null,
+  assigned_location_state: null,
+  assigned_location_country: null,
+  assigned_location_lat: 40.7128,
+  assigned_location_lng: -74.006
 };
 
 describe('EquipmentDetailsTab', () => {

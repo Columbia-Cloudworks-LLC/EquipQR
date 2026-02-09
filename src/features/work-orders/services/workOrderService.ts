@@ -2,6 +2,7 @@ import { BaseService, ApiResponse, PaginationParams, FilterParams } from '@/serv
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { validateStorageQuota } from '@/utils/storageQuota';
+import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
 
 // Import and re-export unified types from the single source of truth
 import {
@@ -43,9 +44,25 @@ const WORK_ORDER_SELECT = `
     id,
     name,
     team_id,
+    location,
+    use_team_location,
+    last_known_location,
+    assigned_location_lat,
+    assigned_location_lng,
+    assigned_location_street,
+    assigned_location_city,
+    assigned_location_state,
+    assigned_location_country,
     teams:team_id (
       id,
-      name
+      name,
+      override_equipment_location,
+      location_lat,
+      location_lng,
+      location_address,
+      location_city,
+      location_state,
+      location_country
     )
   ),
   creator:profiles!work_orders_created_by_fkey (
@@ -62,10 +79,63 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
   const equipment = wo.equipment as { 
     id?: string; 
     name?: string; 
-    team_id?: string; 
-    teams?: { id?: string; name?: string } | null 
+    team_id?: string;
+    location?: string;
+    use_team_location?: boolean;
+    last_known_location?: { latitude?: number; longitude?: number } | null;
+    assigned_location_lat?: number | null;
+    assigned_location_lng?: number | null;
+    assigned_location_street?: string | null;
+    assigned_location_city?: string | null;
+    assigned_location_state?: string | null;
+    assigned_location_country?: string | null;
+    teams?: {
+      id?: string;
+      name?: string;
+      override_equipment_location?: boolean;
+      location_lat?: number | null;
+      location_lng?: number | null;
+      location_address?: string | null;
+      location_city?: string | null;
+      location_state?: string | null;
+      location_country?: string | null;
+    } | null;
   } | null;
   const creator = wo.creator as { id?: string; name?: string } | null;
+
+  // Resolve effective location using the hierarchy:
+  // team override > manual assignment > last scan
+  const lastKnown = equipment?.last_known_location;
+  const lastScan =
+    lastKnown && lastKnown.latitude != null && lastKnown.longitude != null
+      ? { lat: lastKnown.latitude, lng: lastKnown.longitude }
+      : undefined;
+
+  const effectiveLocation = equipment
+    ? resolveEffectiveLocation({
+        team: equipment.teams
+          ? {
+              override_equipment_location: equipment.teams.override_equipment_location,
+              location_lat: equipment.teams.location_lat,
+              location_lng: equipment.teams.location_lng,
+              location_address: equipment.teams.location_address,
+              location_city: equipment.teams.location_city,
+              location_state: equipment.teams.location_state,
+              location_country: equipment.teams.location_country,
+            }
+          : undefined,
+        equipment: {
+          use_team_location: equipment.use_team_location,
+          assigned_location_lat: equipment.assigned_location_lat,
+          assigned_location_lng: equipment.assigned_location_lng,
+          assigned_location_street: equipment.assigned_location_street,
+          assigned_location_city: equipment.assigned_location_city,
+          assigned_location_state: equipment.assigned_location_state,
+          assigned_location_country: equipment.assigned_location_country,
+        },
+        lastScan,
+      })
+    : null;
 
   return {
     // Base work order fields
@@ -102,6 +172,8 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
     createdByName: creator?.name || undefined,
     // Assignment object for component compatibility
     assignedTo: assignee?.id && assignee?.name ? { id: assignee.id, name: assignee.name } : null,
+    // Resolved location from hierarchy
+    effectiveLocation,
   };
 }
 

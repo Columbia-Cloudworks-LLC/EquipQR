@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, Menu, Clipboard, MapPin, Calendar, User, MoreHorizontal } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
+import ClickableAddress from '@/components/ui/ClickableAddress';
+import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 interface WorkOrderDetailsMobileHeaderProps {
   workOrder: {
@@ -24,6 +26,7 @@ interface WorkOrderDetailsMobileHeaderProps {
     team?: {
       name: string;
     };
+    effectiveLocation?: EffectiveLocation | null;
   };
   canEdit: boolean;
   onEditClick: () => void;
@@ -117,10 +120,24 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
                   {workOrder.equipment.status}
                 </Badge>
               </div>
-              {workOrder.equipment.location && (
+              {(workOrder.effectiveLocation || workOrder.equipment.location) && (
                 <div className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  <span>{workOrder.equipment.location}</span>
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                  {workOrder.effectiveLocation ? (
+                    <ClickableAddress
+                      address={workOrder.effectiveLocation.formattedAddress}
+                      lat={workOrder.effectiveLocation.lat}
+                      lng={workOrder.effectiveLocation.lng}
+                      className="text-sm"
+                      showIcon={false}
+                    />
+                  ) : (
+                    <ClickableAddress
+                      address={workOrder.equipment.location}
+                      className="text-sm"
+                      showIcon={false}
+                    />
+                  )}
                 </div>
               )}
             </div>

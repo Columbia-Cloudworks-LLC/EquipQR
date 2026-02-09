@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, QrCode } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { isSafeRedirectPath, getSafeRedirectPath } from '@/utils/redirectValidation';
 import Logo from '@/components/ui/Logo';
 import SignUpForm from '@/components/auth/SignUpForm';
 import SignInForm from '@/components/auth/SignInForm';
@@ -25,7 +26,7 @@ const Auth = () => {
   // Check if user came here from a QR scan (read-only check, doesn't clear)
   useEffect(() => {
     const pendingRedirect = sessionStorage.getItem('pendingRedirect');
-    if (pendingRedirect && pendingRedirect.includes('qr=true')) {
+    if (pendingRedirect && isSafeRedirectPath(pendingRedirect) && pendingRedirect.includes('qr=true')) {
       setPendingQRScan(true);
     }
   }, []);
@@ -37,9 +38,9 @@ const Auth = () => {
       // Check for pending redirect first (e.g., from OAuth callbacks or QR scans)
       const pendingRedirect = sessionStorage.getItem('pendingRedirect');
       if (pendingRedirect) {
-        // Clear it and navigate there
+        // Clear it and navigate there (validated to prevent open redirects)
         sessionStorage.removeItem('pendingRedirect');
-        navigate(pendingRedirect, { replace: true });
+        navigate(getSafeRedirectPath(pendingRedirect), { replace: true });
       } else {
         navigate('/');
       }

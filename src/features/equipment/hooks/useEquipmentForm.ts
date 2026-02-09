@@ -8,6 +8,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { equipmentFormSchema, EquipmentFormData, EquipmentRecord } from '@/features/equipment/types/equipment';
 import { toast } from 'sonner';
+import { logEquipmentLocationChange } from '@/features/equipment/services/equipmentLocationHistoryService';
 
 export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () => void) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +33,13 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
       image_url: initialData.image_url || '',
       last_known_location: initialData.last_known_location || undefined,
       team_id: initialData.team_id || '',
-      default_pm_template_id: initialData.default_pm_template_id || ''
+      default_pm_template_id: initialData.default_pm_template_id || '',
+      assigned_location_street: initialData.assigned_location_street || '',
+      assigned_location_city: initialData.assigned_location_city || '',
+      assigned_location_state: initialData.assigned_location_state || '',
+      assigned_location_country: initialData.assigned_location_country || '',
+      assigned_location_lat: initialData.assigned_location_lat || undefined,
+      assigned_location_lng: initialData.assigned_location_lng || undefined
     } : {
       name: '',
       manufacturer: '',
@@ -48,7 +55,13 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
       image_url: '',
       last_known_location: undefined,
       team_id: '',
-      default_pm_template_id: ''
+      default_pm_template_id: '',
+      assigned_location_street: '',
+      assigned_location_city: '',
+      assigned_location_state: '',
+      assigned_location_country: '',
+      assigned_location_lat: undefined,
+      assigned_location_lng: undefined
     }
   });
 
@@ -76,6 +89,12 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         last_known_location: data.last_known_location || null,
         team_id: data.team_id || null,
         default_pm_template_id: data.default_pm_template_id || null,
+        assigned_location_street: data.assigned_location_street || null,
+        assigned_location_city: data.assigned_location_city || null,
+        assigned_location_state: data.assigned_location_state || null,
+        assigned_location_country: data.assigned_location_country || null,
+        assigned_location_lat: data.assigned_location_lat || null,
+        assigned_location_lng: data.assigned_location_lng || null,
         working_hours: 0,
         import_id: null
       };
@@ -87,6 +106,30 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         .single();
 
       if (error) throw error;
+
+      // Log location change if assigned location fields are present
+      if (
+        data.assigned_location_street ||
+        data.assigned_location_city ||
+        data.assigned_location_state ||
+        data.assigned_location_country ||
+        data.assigned_location_lat != null ||
+        data.assigned_location_lng != null
+      ) {
+        logEquipmentLocationChange({
+          equipmentId: result.id,
+          source: 'manual',
+          latitude: data.assigned_location_lat ?? null,
+          longitude: data.assigned_location_lng ?? null,
+          addressStreet: data.assigned_location_street ?? null,
+          addressCity: data.assigned_location_city ?? null,
+          addressState: data.assigned_location_state ?? null,
+          addressCountry: data.assigned_location_country ?? null,
+        }).catch(() => {
+          // Silently fail - logging is non-blocking
+        });
+      }
+
       return result;
     },
     onSuccess: () => {
@@ -126,7 +169,13 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         image_url: data.image_url || null,
         last_known_location: data.last_known_location || null,
         team_id: data.team_id || null,
-        default_pm_template_id: data.default_pm_template_id || null
+        default_pm_template_id: data.default_pm_template_id || null,
+        assigned_location_street: data.assigned_location_street || null,
+        assigned_location_city: data.assigned_location_city || null,
+        assigned_location_state: data.assigned_location_state || null,
+        assigned_location_country: data.assigned_location_country || null,
+        assigned_location_lat: data.assigned_location_lat || null,
+        assigned_location_lng: data.assigned_location_lng || null
       };
 
       const { data: result, error } = await supabase
@@ -137,6 +186,31 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         .single();
 
       if (error) throw error;
+
+      // Log location change only if assigned location fields actually changed
+      const hasAssignedLocationChanged =
+        (initialData.assigned_location_street ?? '') !== (data.assigned_location_street ?? '') ||
+        (initialData.assigned_location_city ?? '') !== (data.assigned_location_city ?? '') ||
+        (initialData.assigned_location_state ?? '') !== (data.assigned_location_state ?? '') ||
+        (initialData.assigned_location_country ?? '') !== (data.assigned_location_country ?? '') ||
+        (initialData.assigned_location_lat ?? null) !== (data.assigned_location_lat ?? null) ||
+        (initialData.assigned_location_lng ?? null) !== (data.assigned_location_lng ?? null);
+
+      if (hasAssignedLocationChanged) {
+        logEquipmentLocationChange({
+          equipmentId: initialData.id,
+          source: 'manual',
+          latitude: data.assigned_location_lat ?? null,
+          longitude: data.assigned_location_lng ?? null,
+          addressStreet: data.assigned_location_street ?? null,
+          addressCity: data.assigned_location_city ?? null,
+          addressState: data.assigned_location_state ?? null,
+          addressCountry: data.assigned_location_country ?? null,
+        }).catch(() => {
+          // Silently fail - logging is non-blocking
+        });
+      }
+
       return result;
     },
     onSuccess: () => {

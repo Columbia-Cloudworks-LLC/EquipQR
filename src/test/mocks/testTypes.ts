@@ -71,6 +71,7 @@ export const createMockSessionOrganization = (overrides: Partial<SessionOrganiza
   memberCount: 1,
   maxMembers: 5,
   features: [],
+  scanLocationCollectionEnabled: true,
   userRole: 'admin',
   userStatus: 'active',
   ...overrides

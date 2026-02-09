@@ -1,0 +1,1278 @@
+
+ RUN  v3.2.4 C:/Users/viral/EquipQR
+
+ Γ£ô src/components/auth/__tests__/SignUpForm.test.tsx (48 tests) 4784ms
+   Γ£ô SignUpForm > Form Rendering > should render all form fields correctly  367ms
+   Γ£ô SignUpForm > Password Validation > should show success icon when passwords match  304ms
+ Γ£ô src/features/equipment/components/EquipmentSortHeader.test.tsx (18 tests) 4970ms
+   Γ£ô EquipmentSortHeader > Basic Rendering > renders equipment count information  443ms
+   Γ£ô EquipmentSortHeader > Sort Functionality > calls onSortChange when select value changes  689ms
+   Γ£ô EquipmentSortHeader > Sort Functionality > calls onSortChange when sort direction button is clicked  307ms
+   Γ£ô EquipmentSortHeader > Sort Functionality > shows up-down arrow when field differs from current sort field  711ms
+   Γ£ô EquipmentSortHeader > Sort Options > includes all expected sort options  800ms
+ Γ£ô src/features/equipment/components/__tests__/QRCodeDisplay.test.tsx (21 tests) 5232ms
+   Γ£ô QRCodeDisplay > Dialog Rendering > renders when open is true  623ms
+   Γ£ô QRCodeDisplay > Dialog Rendering > calls onClose when dialog is closed  455ms
+   Γ£ô QRCodeDisplay > QR Code Generation > generates QR code when dialog opens  338ms
+   Γ£ô QRCodeDisplay > QR Code Generation > displays generated QR code image  314ms
+   Γ£ô QRCodeDisplay > Download Functionality > allows changing download format  427ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentPartsTab.test.tsx (21 tests) 5969ms
+   Γ£ô EquipmentPartsTab > Core Rendering > renders the parts header  500ms
+   Γ£ô EquipmentPartsTab > Core Rendering > renders sort dropdown  353ms
+   Γ£ô EquipmentPartsTab > Core Rendering > renders all part cards  472ms
+   Γ£ô EquipmentPartsTab > Empty States > shows filtered empty state when filters exclude all parts  588ms
+   Γ£ô EquipmentPartsTab > Search Filtering > filters parts by name  346ms
+   Γ£ô EquipmentPartsTab > Stock Status Filtering > filters to show only out of stock items  664ms
+   Γ£ô EquipmentPartsTab > Stock Status Filtering > filters to show only low stock items  488ms
+   Γ£ô EquipmentPartsTab > Sorting > sorts parts by name descending  375ms
+   Γ£ô EquipmentPartsTab > Sorting > sorts parts by stock low to high  376ms
+   Γ£ô EquipmentPartsTab > Clear Filters > clears all filters when clear button is clicked  317ms
+ Γ£ô src/features/inventory/components/__tests__/PartsManagersSheet.test.tsx (26 tests) 5653ms
+   Γ£ô PartsManagersSheet > Rendering > renders the sheet with title and description when open  697ms
+   Γ£ô PartsManagersSheet > Adding Parts Managers > opens add dialog when add button is clicked  307ms
+   Γ£ô PartsManagersSheet > Adding Parts Managers > allows selecting multiple members  375ms
+   Γ£ô PartsManagersSheet > Adding Parts Managers > calls addPartsManager for each selected member  497ms
+   Γ£ô PartsManagersSheet > Toggle User Selection > updates button text based on selection count  505ms
+   Γ£ô PartsManagersSheet > Close Add Dialog > resets state when add dialog is closed  319ms
+   Γ£ô PartsManagersSheet User Journeys > Admin adds a new parts manager > admin can search for and select a team member to promote  318ms
+ Γ£ô src/features/equipment/components/__tests__/DesktopEquipmentFilters.test.tsx (24 tests) 7596ms
+   Γ£ô DesktopEquipmentFilters > Core Rendering > renders search input  421ms
+   Γ£ô DesktopEquipmentFilters > Core Rendering > renders status filter dropdown  312ms
+   Γ£ô DesktopEquipmentFilters > Core Rendering > renders manufacturer filter dropdown  304ms
+   Γ£ô DesktopEquipmentFilters > Core Rendering > renders location filter dropdown  340ms
+   Γ£ô DesktopEquipmentFilters > Search Functionality > calls onFilterChange when search input changes  555ms
+   Γ£ô DesktopEquipmentFilters > Status Filter > calls onFilterChange when status changes  805ms
+   Γ£ô DesktopEquipmentFilters > Status Filter > shows all status options  508ms
+   Γ£ô DesktopEquipmentFilters > Manufacturer Filter > displays manufacturer options from filterOptions  454ms
+   Γ£ô DesktopEquipmentFilters > Manufacturer Filter > calls onFilterChange when manufacturer changes  339ms
+   Γ£ô DesktopEquipmentFilters > Location Filter > displays location options from filterOptions  377ms
+   Γ£ô DesktopEquipmentFilters > Location Filter > calls onFilterChange when location changes  351ms
+   Γ£ô DesktopEquipmentFilters > Team Filter > displays team options from filterOptions  409ms
+   Γ£ô DesktopEquipmentFilters > Team Filter > calls onFilterChange when team changes  390ms
+   Γ£ô DesktopEquipmentFilters > Edge Cases > handles many filter options  395ms
+ Γ£ô src/features/inventory/components/__tests__/CompatibilityRulesEditor.test.tsx (35 tests) 7821ms
+   Γ£ô CompatibilityRulesEditor > Core Rendering > displays existing rules  624ms
+   Γ£ô CompatibilityRulesEditor > Core Rendering > shows match count badge when rules are valid  368ms
+   Γ£ô CompatibilityRulesEditor > Adding Rules > appends to existing rules when adding  530ms
+   Γ£ô CompatibilityRulesEditor > Removing Rules > removes a rule when remove button is clicked  629ms
+   Γ£ô CompatibilityRulesEditor > Disabled State > disables remove buttons when disabled prop is true  428ms
+   Γ£ô CompatibilityRulesEditor > Match Type Support > displays rules with different match types  502ms
+   Γ£ô CompatibilityRulesEditor > Rule Changes > updates manufacturer when selected  395ms
+   Γ£ô CompatibilityRulesEditor > Rule Changes > clears model when match_type changes to any  330ms
+ Γ£ô src/features/inventory/pages/__tests__/InventoryItemDetail.test.tsx (22 tests) 6355ms
+   Γ£ô InventoryItemDetail - Compatibility Rules > Page Rendering > renders the inventory item with item name in heading  879ms
+   Γ£ô InventoryItemDetail - Compatibility Rules > Page Rendering > renders all tab triggers including Compatibility  390ms
+   Γ£ô InventoryItemDetail - Compatibility Rules > Hooks Usage > calls useCompatibilityRulesForItem hook with correct params  328ms
+   Γ£ô InventoryItemDetail - Action Buttons > Back Button > navigates back to inventory list when back button is clicked  359ms
+   Γ£ô InventoryItemDetail - Action Buttons > QR Code Button > shows QR code display when QR button is clicked  312ms
+   Γ£ô InventoryItemDetail - Quantity Adjustment > opens adjust dialog when adjust quantity button is clicked  463ms
+   Γ£ô InventoryItemDetail - Tab Navigation > switches to Transactions tab when clicked  342ms
+   Γ£ô InventoryItemDetail - Tab Navigation > switches to Compatibility tab when clicked  352ms
+   Γ£ô InventoryItemDetail - Tab Navigation > shows compatibility rules in Compatibility tab and opens editor on Edit Rules click  608ms
+   Γ£ô InventoryItemDetail - Delete Functionality > shows delete confirmation dialog when delete button is clicked  303ms
+   Γ£ô InventoryItemDetail - Equipment Links > displays compatible equipment in Compatibility tab  403ms
+ Γ£ô src/components/support/__tests__/SupportTabs.test.tsx (19 tests) 8054ms
+   Γ£ô SupportTabs > Tab Structure > renders without crashing  661ms
+   Γ£ô SupportTabs > Tab Structure > displays all 5 tab triggers  718ms
+   Γ£ô SupportTabs > Tab Structure > has Guide tab selected by default  318ms
+   Γ£ô SupportTabs > Tab Navigation > switches to FAQ tab when clicked  952ms
+   Γ£ô SupportTabs > Tab Navigation > switches to Roles tab when clicked  817ms
+   Γ£ô SupportTabs > Tab Navigation > switches to Tips tab when clicked  309ms
+   Γ£ô SupportTabs > Guide Tab Content > displays OnboardingGuide content by default  416ms
+   Γ£ô SupportTabs > FAQ Tab Content > displays FAQ accordion items when FAQ tab is selected  388ms
+   Γ£ô SupportTabs > FAQ Tab Content > expands FAQ accordion items when clicked  498ms
+   Γ£ô SupportTabs > Roles Tab Content > displays organization role cards when Roles tab is selected  456ms
+   Γ£ô SupportTabs > Roles Tab Content > displays the hierarchy example when Roles tab is selected  555ms
+   Γ£ô SupportTabs > Roles Tab Content > displays team role definitions table when Roles tab is selected  440ms
+   Γ£ô SupportTabs > Roles Tab Content > displays common questions when Roles tab is selected  338ms
+ Γ£ô src/components/support/__tests__/OnboardingGuide.test.tsx (38 tests) 8875ms
+   Γ£ô OnboardingGuide > Page Structure > renders without crashing  502ms
+   Γ£ô OnboardingGuide > Page Structure > displays the introduction description  359ms
+   Γ£ô OnboardingGuide > Page Structure > renders all 5 phase cards  339ms
+   Γ£ô OnboardingGuide > Phase Content Verification > displays Phase 2 with correct title, badge, and description  483ms
+   Γ£ô OnboardingGuide > Phase Content Verification > displays Phase 3 with correct title, badge, and description  319ms
+   Γ£ô OnboardingGuide > Phase Content Verification > displays Phase 4 with correct title, badge, and description  330ms
+   Γ£ô OnboardingGuide > Accordion Functionality (Phase 1) > reveals team roles content when accordion is opened  384ms
+   Γ£ô OnboardingGuide > Badge Variants > displays Premium badge for Requestor role when accordion is opened  464ms
+   Γ£ô OnboardingGuide > Team Role Descriptions (Accordion Content) > displays all role descriptions when accordion is opened  357ms
+ Γ£ô src/components/support/__tests__/InventoryGuides.test.tsx (30 tests) 10597ms
+   Γ£ô InventoryGuides > Rendering > renders without crashing  733ms
+   Γ£ô InventoryGuides > Rendering > displays the introduction card with description  482ms
+   Γ£ô InventoryGuides > Rendering > displays all three feature highlights  591ms
+   Γ£ô InventoryGuides > Guide 1: Parts Managers > displays the Parts Managers guide section  323ms
+   Γ£ô InventoryGuides > Guide 1: Parts Managers > displays permission information  674ms
+   Γ£ô InventoryGuides > Guide 1: Parts Managers > expands Opening the Parts Managers Panel accordion  679ms
+   Γ£ô InventoryGuides > Guide 1: Parts Managers > expands Adding a Parts Manager accordion  459ms
+   Γ£ô InventoryGuides > Guide 1: Parts Managers > expands Removing a Parts Manager accordion  490ms
+   Γ£ô InventoryGuides > Guide 2: Creating Inventory Items > expands Creating Your First Inventory Item accordion  507ms
+   Γ£ô InventoryGuides > Guide 2: Creating Inventory Items > expands Setting Up Compatibility Rules accordion  416ms
+   Γ£ô InventoryGuides > Guide 2: Creating Inventory Items > expands Adjusting Quantity accordion  457ms
+   Γ£ô InventoryGuides > Guide 2: Creating Inventory Items > expands Using Inventory QR Codes accordion  311ms
+   Γ£ô InventoryGuides > Guide 3: Alternate Groups > expands Creating an Alternate Group accordion  302ms
+   Γ£ô InventoryGuides > Guide 3: Alternate Groups > expands Adding Part Numbers accordion  302ms
+   Γ£ô InventoryGuides > Summary Card > displays summary points  306ms
+   Γ£ô InventoryGuides > GuideStep Component > renders steps with numbers  388ms
+   Γ£ô InventoryGuides > Accessibility > has proper heading structure  362ms
+stderr | src/features/organization/components/__tests__/UnifiedMembersList.test.tsx > UnifiedMembersList > Google Workspace Claims > renders pending Google Workspace claims with name and Awaiting Sign-up status
+Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?
+
+Check the render method of `Primitive.button.SlotClone`.
+    at Badge (C:\Users\viral\EquipQR\src\components\ui\badge.tsx:9:18)
+    at file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-slot/dist/index.mjs:33:13
+    at file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-slot/dist/index.mjs:9:13
+    at file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-primitive/dist/index.mjs:28:13
+    at file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-slot/dist/index.mjs:33:13
+    at file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-slot/dist/index.mjs:9:13
+    at file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-primitive/dist/index.mjs:28:13
+    at file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-popper/dist/index.mjs:38:13
+    at file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:165:13
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at Popper (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-popper/dist/index.mjs:30:11)
+    at Tooltip (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:73:5)
+    at td
+    at C:\Users\viral\EquipQR\src\components\ui\table.tsx:74:69
+    at tr
+    at C:\Users\viral\EquipQR\src\components\ui\table.tsx:54:68
+    at tbody
+    at C:\Users\viral\EquipQR\src\components\ui\table.tsx:34:69
+    at table
+    at div
+    at C:\Users\viral\EquipQR\src\components\ui\table.tsx:7:65
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at div
+    at C:\Users\viral\EquipQR\src\components\ui\card.tsx:47:71
+    at div
+    at C:\Users\viral\EquipQR\src\components\ui\card.tsx:7:64
+    at UnifiedMembersList (C:\Users\viral\EquipQR\src\features\organization\components\UnifiedMembersList.tsx:53:31)
+    at div
+    at MockSimpleOrganizationProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:55:43)
+    at div
+    at MockUserProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:46:29)
+    at div
+    at MockSessionProvider2 (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:71:33)
+    at div
+    at MockSessionProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:30:32)
+    at div
+    at MockAuthProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:14:29)
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at QueryClientProvider (file:///C:/Users/viral/EquipQR/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Router (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1101:7)
+    at _HelmetProvider (C:\Users\viral\EquipQR\node_modules\react-helmet-async\lib\index.js:483:5)
+    at TestProviders (C:\Users\viral\EquipQR\src\test\utils\TestProviders.tsx:19:26)
+
+ Γ£ô src/features/organization/components/__tests__/UnifiedMembersList.test.tsx (12 tests) 3034ms
+   Γ£ô UnifiedMembersList > renders active members and pending invitations in a unified list  380ms
+   Γ£ô UnifiedMembersList > does not disable Invite button when billing is disabled (billing disabled by default)  350ms
+   Γ£ô UnifiedMembersList > shows role select for editable members and triggers role change  492ms
+   Γ£ô UnifiedMembersList > Google Workspace Import Button > does not show Import from Google button when GWS is not connected  395ms
+stderr | src/features/organization/components/ChecklistTemplateEditor.test.tsx > ChecklistTemplateEditor > Component Rendering > renders edit mode with template data
+≡ƒÜ¿ Error fetching compatibility rules for PM template: Error: PM template not found or access denied
+    at Module.getRulesForTemplate (C:\Users\viral\EquipQR\src\features\pm-templates\services\pmTemplateCompatibilityRulesService.ts:48:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at queryFn (C:\Users\viral\EquipQR\src\features\pm-templates\hooks\usePMTemplateCompatibility.ts:52:14)
+
+ Γ£ô src/pages/__tests__/PrivacyPolicy.test.tsx (34 tests) 2494ms
+   Γ£ô PrivacyPolicy > Page Structure > displays the main heading  344ms
+stderr | src/features/organization/components/ChecklistTemplateEditor.test.tsx > ChecklistTemplateEditor > Component Rendering > populates form fields with existing template data
+≡ƒÜ¿ Error fetching compatibility rules for PM template: Error: PM template not found or access denied
+    at Module.getRulesForTemplate (C:\Users\viral\EquipQR\src\features\pm-templates\services\pmTemplateCompatibilityRulesService.ts:48:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at queryFn (C:\Users\viral\EquipQR\src\features\pm-templates\hooks\usePMTemplateCompatibility.ts:52:14)
+
+stderr | src/features/organization/components/ChecklistTemplateEditor.test.tsx > ChecklistTemplateEditor > Template Management > displays existing template data
+≡ƒÜ¿ Error fetching compatibility rules for PM template: Error: PM template not found or access denied
+    at Module.getRulesForTemplate (C:\Users\viral\EquipQR\src\features\pm-templates\services\pmTemplateCompatibilityRulesService.ts:48:13)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at processTimers (node:internal/timers:520:9)
+    at queryFn (C:\Users\viral\EquipQR\src\features\pm-templates\hooks\usePMTemplateCompatibility.ts:52:14)
+
+ Γ£ô src/pages/__tests__/TermsOfService.test.tsx (28 tests) 2496ms
+stderr | src/features/organization/components/ChecklistTemplateEditor.test.tsx > ChecklistTemplateEditor > Template Management > handles template updates
+≡ƒÜ¿ Error fetching compatibility rules for PM template: Error: PM template not found or access denied
+    at Module.getRulesForTemplate (C:\Users\viral\EquipQR\src\features\pm-templates\services\pmTemplateCompatibilityRulesService.ts:48:13)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at processTimers (node:internal/timers:520:9)
+    at queryFn (C:\Users\viral\EquipQR\src\features\pm-templates\hooks\usePMTemplateCompatibility.ts:52:14)
+
+ Γ£ô src/features/inventory/pages/__tests__/AlternateGroupsPage.test.tsx (32 tests) 2580ms
+stderr | src/features/organization/components/ChecklistTemplateEditor.test.tsx > ChecklistTemplateEditor > Loading States > disables cancel button when loading
+≡ƒÜ¿ Error fetching compatibility rules for PM template: Error: PM template not found or access denied
+    at Module.getRulesForTemplate (C:\Users\viral\EquipQR\src\features\pm-templates\services\pmTemplateCompatibilityRulesService.ts:48:13)
+    at queryFn (C:\Users\viral\EquipQR\src\features\pm-templates\hooks\usePMTemplateCompatibility.ts:52:14)
+
+ Γ£ô src/features/organization/components/ChecklistTemplateEditor.test.tsx (11 tests) 3086ms
+   Γ£ô ChecklistTemplateEditor > Component Rendering > renders edit mode with template data  520ms
+   Γ£ô ChecklistTemplateEditor > Form Validation > validates form submission successfully  566ms
+   Γ£ô ChecklistTemplateEditor > Template Management > handles template updates  463ms
+   Γ£ô ChecklistTemplateEditor > Template Management > calls onSave after successful submission  363ms
+ Γ£ô src/tests/quickbooks/WorkOrderQuickActionsQuickBooks.test.tsx (11 tests) 2491ms
+   Γ£ô WorkOrderQuickActions QuickBooks Menu Item Visibility > Feature Flag > should not show QuickBooks menu item when feature flag is disabled  673ms
+ Γ£ô src/features/equipment/components/__tests__/MobileEquipmentFilters.test.tsx (22 tests) 2634ms
+   Γ£ô MobileEquipmentFilters > Filter Sheet > opens filter sheet when filters button is clicked  377ms
+   Γ£ô MobileEquipmentFilters > Filter Sheet > calls onShowMobileFiltersChange when sheet opens  395ms
+   Γ£ô MobileEquipmentFilters > Filter Sheet Content > calls onFilterChange when status filter changes  431ms
+ Γ£ô src/features/equipment/components/__tests__/DeleteEquipmentDialog.test.tsx (18 tests) 3147ms
+   Γ£ô DeleteEquipmentDialog > Initial Step - Alert Dialog > renders alert dialog when open  464ms
+   Γ£ô DeleteEquipmentDialog > Deletion Process > calls delete mutation when delete button is clicked  316ms
+ Γ£ô src/pages/__tests__/PMTemplates.test.tsx (17 tests) 2598ms
+   Γ£ô PMTemplates Page > Template Actions > handles Clone template button click  752ms
+ Γ£ô src/features/work-orders/components/__tests__/PMChecklistComponent.test.tsx (7 tests) 2338ms
+   Γ£ô PMChecklistComponent > notes auto-expand behavior > auto-expands notes when selecting a negative condition (2-5) and shows existing notes  1147ms
+   Γ£ô PMChecklistComponent > notes toggle button > allows manual toggle of notes visibility and respects user preference  409ms
+   Γ£ô PMChecklistComponent > shouldShowNotes logic > shows notes for all negative conditions (2-5) and hides for OK/unrated without notes  397ms
+ Γ£ô src/features/pm-templates/components/__tests__/PMTemplateCompatibilityRulesEditor.test.tsx (19 tests) 1551ms
+ Γ£ô src/tests/quickbooks/QuickBooksExportButton.test.tsx (18 tests) 1797ms
+   Γ£ô QuickBooksExportButton Component > Status Details Popover > should show status details when enabled  356ms
+ Γ£ô src/features/organization/components/__tests__/GoogleWorkspaceMemberImportSheet.test.tsx (10 tests) 2314ms
+   Γ£ô GoogleWorkspaceMemberImportSheet > renders the sheet with title and description  410ms
+   Γ£ô GoogleWorkspaceMemberImportSheet > filtering existing members > filters out existing organization members  305ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentCard.test.tsx (30 tests) 1540ms
+ Γ£ô src/features/equipment/hooks/__tests__/useEquipment.test.tsx (26 tests) 1788ms
+ Γ£ô src/features/work-orders/hooks/__tests__/useWorkOrders.test.tsx (29 tests) 1507ms
+ Γ£ô src/components/auth/SignInForm.test.tsx (14 tests) 2222ms
+   Γ£ô SignInForm > should render all form fields  527ms
+ Γ£ô src/features/pm-templates/components/__tests__/PMTemplateRulesDialog.test.tsx (20 tests) 1911ms
+   Γ£ô PMTemplateRulesDialog > Dialog Rendering > renders dialog when open is true  431ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentStatusLocationSection.test.tsx (11 tests) 1465ms
+   Γ£ô EquipmentStatusLocationSection > Status Field > shows all status options  511ms
+ Γ£ô src/pages/__tests__/Notifications.test.tsx (8 tests) 1501ms
+   Γ£ô Notifications Page > Core Rendering > renders notifications heading  397ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentDetailsTab.test.tsx (17 tests) 1375ms
+ Γ£ô src/pages/features/__tests__/QRCodeIntegration.test.tsx (14 tests) 776ms
+ Γ£ô src/tests/quickbooks/QuickBooksIntegration.test.tsx (12 tests) 985ms
+ Γ£ô src/features/equipment/components/__tests__/InlineEditField.test.tsx (20 tests) 1148ms
+ Γ£ô src/features/organization/components/__tests__/GoogleWorkspaceIntegration.test.tsx (7 tests) 642ms
+ Γ£ô src/features/inventory/hooks/__tests__/usePartsManagers.test.tsx (17 tests) 778ms
+ Γ£ô src/hooks/__tests__/usePMTemplates.test.tsx (17 tests) 1146ms
+stderr | src/pages/__tests__/TeamDetails.test.tsx > TeamDetails permissions gating > hides Add Member button for users without manage permission
+[FleetMap] No API key in response. Full response: null
+[FleetMap] Failed to fetch Google Maps key: Error: Google Maps API key not found in response
+    at fetchGoogleMapsKey (C:\Users\viral\EquipQR\src\hooks\useGoogleMapsKey.ts:60:15)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+stderr | src/tests/quickbooks/useQuickBooksAccess.test.ts > useQuickBooksAccess > should return false when RPC returns an error
+Error checking QuickBooks permission: { message: 'Permission denied' }
+
+stderr | src/pages/__tests__/TeamDetails.test.tsx > TeamDetails permissions gating > shows Add Member button for team managers
+[FleetMap] No API key in response. Full response: null
+[FleetMap] Failed to fetch Google Maps key: Error: Google Maps API key not found in response
+    at fetchGoogleMapsKey (C:\Users\viral\EquipQR\src\hooks\useGoogleMapsKey.ts:60:15)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+ Γ£ô src/features/equipment/components/__tests__/TeamSelectionSection.test.tsx (10 tests) 1047ms
+   Γ£ô TeamSelectionSection > Admin vs Non-Admin > shows "unassigned" option for admins  427ms
+ Γ£ô src/features/equipment/components/__tests__/WorkingHoursTimelineModal.test.tsx (3 tests) 673ms
+   Γ£ô WorkingHoursTimelineModal > Modal Rendering > renders when open is true  452ms
+stderr | src/pages/__tests__/TeamDetails.test.tsx > TeamDetails permissions gating > shows Add Member button for organization admins (via permission hook)
+[FleetMap] No API key in response. Full response: null
+[FleetMap] Failed to fetch Google Maps key: Error: Google Maps API key not found in response
+    at fetchGoogleMapsKey (C:\Users\viral\EquipQR\src\hooks\useGoogleMapsKey.ts:60:15)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+ Γ£ô src/pages/__tests__/TeamDetails.test.tsx (3 tests) 639ms
+   Γ£ô TeamDetails permissions gating > hides Add Member button for users without manage permission  408ms
+ Γ£ô src/pages/__tests__/Teams.test.tsx (5 tests) 576ms
+ Γ£ô src/tests/quickbooks/useQuickBooksAccess.test.ts (10 tests) 899ms
+ Γ£ô src/features/work-orders/components/__tests__/WorkOrderAssignmentSelector.test.tsx (9 tests) 1166ms
+stderr | src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders page title
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+The above error occurred in the <DashboardSupport> component:
+
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:138:54)
+    at div
+    at MockSimpleOrganizationProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:55:43)
+    at div
+    at MockUserProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:46:29)
+    at div
+    at MockSessionProvider2 (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:71:33)
+    at div
+    at MockSessionProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:30:32)
+    at div
+    at MockAuthProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:14:29)
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at QueryClientProvider (file:///C:/Users/viral/EquipQR/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Router (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1101:7)
+    at _HelmetProvider (C:\Users\viral\EquipQR\node_modules\react-helmet-async\lib\index.js:483:5)
+    at TestProviders (C:\Users\viral\EquipQR\src\test\utils\TestProviders.tsx:19:26)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+stderr | src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders page description
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+The above error occurred in the <DashboardSupport> component:
+
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:138:54)
+    at div
+    at MockSimpleOrganizationProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:55:43)
+    at div
+    at MockUserProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:46:29)
+    at div
+    at MockSessionProvider2 (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:71:33)
+    at div
+    at MockSessionProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:30:32)
+    at div
+    at MockAuthProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:14:29)
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at QueryClientProvider (file:///C:/Users/viral/EquipQR/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Router (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1101:7)
+    at _HelmetProvider (C:\Users\viral\EquipQR\node_modules\react-helmet-async\lib\index.js:483:5)
+    at TestProviders (C:\Users\viral\EquipQR\src\test\utils\TestProviders.tsx:19:26)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+stderr | src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders support tabs component
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+The above error occurred in the <DashboardSupport> component:
+
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:138:54)
+    at div
+    at MockSimpleOrganizationProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:55:43)
+    at div
+    at MockUserProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:46:29)
+    at div
+    at MockSessionProvider2 (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:71:33)
+    at div
+    at MockSessionProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:30:32)
+    at div
+    at MockAuthProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:14:29)
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at QueryClientProvider (file:///C:/Users/viral/EquipQR/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Router (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1101:7)
+    at _HelmetProvider (C:\Users\viral\EquipQR\node_modules\react-helmet-async\lib\index.js:483:5)
+    at TestProviders (C:\Users\viral\EquipQR\src\test\utils\TestProviders.tsx:19:26)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+stderr | src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders contact section with email
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+The above error occurred in the <DashboardSupport> component:
+
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:138:54)
+    at div
+    at MockSimpleOrganizationProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:55:43)
+    at div
+    at MockUserProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:46:29)
+    at div
+    at MockSessionProvider2 (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:71:33)
+    at div
+    at MockSessionProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:30:32)
+    at div
+    at MockAuthProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:14:29)
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at QueryClientProvider (file:///C:/Users/viral/EquipQR/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Router (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1101:7)
+    at _HelmetProvider (C:\Users\viral\EquipQR\node_modules\react-helmet-async\lib\index.js:483:5)
+    at TestProviders (C:\Users\viral\EquipQR\src\test\utils\TestProviders.tsx:19:26)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+stderr | src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders email link
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+The above error occurred in the <DashboardSupport> component:
+
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:138:54)
+    at div
+    at MockSimpleOrganizationProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:55:43)
+    at div
+    at MockUserProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:46:29)
+    at div
+    at MockSessionProvider2 (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:71:33)
+    at div
+    at MockSessionProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:30:32)
+    at div
+    at MockAuthProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:14:29)
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at QueryClientProvider (file:///C:/Users/viral/EquipQR/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Router (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1101:7)
+    at _HelmetProvider (C:\Users\viral\EquipQR\node_modules\react-helmet-async\lib\index.js:483:5)
+    at TestProviders (C:\Users\viral\EquipQR\src\test\utils\TestProviders.tsx:19:26)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+stderr | src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders response time information
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+The above error occurred in the <DashboardSupport> component:
+
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:138:54)
+    at div
+    at MockSimpleOrganizationProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:55:43)
+    at div
+    at MockUserProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:46:29)
+    at div
+    at MockSessionProvider2 (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:71:33)
+    at div
+    at MockSessionProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:30:32)
+    at div
+    at MockAuthProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:14:29)
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at QueryClientProvider (file:///C:/Users/viral/EquipQR/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Router (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1101:7)
+    at _HelmetProvider (C:\Users\viral\EquipQR\node_modules\react-helmet-async\lib\index.js:483:5)
+    at TestProviders (C:\Users\viral\EquipQR\src\test\utils\TestProviders.tsx:19:26)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+stderr | src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders "Report an Issue" button
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+The above error occurred in the <DashboardSupport> component:
+
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:138:54)
+    at div
+    at MockSimpleOrganizationProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:55:43)
+    at div
+    at MockUserProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:46:29)
+    at div
+    at MockSessionProvider2 (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:71:33)
+    at div
+    at MockSessionProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:30:32)
+    at div
+    at MockAuthProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:14:29)
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at QueryClientProvider (file:///C:/Users/viral/EquipQR/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Router (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1101:7)
+    at _HelmetProvider (C:\Users\viral\EquipQR\node_modules\react-helmet-async\lib\index.js:483:5)
+    at TestProviders (C:\Users\viral\EquipQR\src\test\utils\TestProviders.tsx:19:26)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+stderr | src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > opens the submit-ticket dialog when "Report an Issue" is clicked
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+The above error occurred in the <DashboardSupport> component:
+
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:138:54)
+    at div
+    at MockSimpleOrganizationProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:55:43)
+    at div
+    at MockUserProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:46:29)
+    at div
+    at MockSessionProvider2 (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:71:33)
+    at div
+    at MockSessionProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:30:32)
+    at div
+    at MockAuthProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:14:29)
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at QueryClientProvider (file:///C:/Users/viral/EquipQR/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Router (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1101:7)
+    at _HelmetProvider (C:\Users\viral\EquipQR\node_modules\react-helmet-async\lib\index.js:483:5)
+    at TestProviders (C:\Users\viral\EquipQR\src\test\utils\TestProviders.tsx:19:26)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+stderr | src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders the My Tickets section
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+Error: Uncaught [Error: useBugReport must be used within a <BugReportProvider>]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: useBugReport must be used within a <BugReportProvider>
+    at Module.useBugReport (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:50:11)
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:51:29)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+The above error occurred in the <DashboardSupport> component:
+
+    at DashboardSupport (C:\Users\viral\EquipQR\src\pages\Support.tsx:138:54)
+    at div
+    at MockSimpleOrganizationProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:55:43)
+    at div
+    at MockUserProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:46:29)
+    at div
+    at MockSessionProvider2 (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:71:33)
+    at div
+    at MockSessionProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:30:32)
+    at div
+    at MockAuthProvider (C:\Users\viral\EquipQR\src\test\utils\mock-providers.tsx:14:29)
+    at Provider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-context/dist/index.mjs:27:15)
+    at TooltipProvider (file:///C:/Users/viral/EquipQR/node_modules/@radix-ui/react-tooltip/dist/index.mjs:29:5)
+    at QueryClientProvider (file:///C:/Users/viral/EquipQR/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at Router (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1101:7)
+    at _HelmetProvider (C:\Users\viral\EquipQR\node_modules\react-helmet-async\lib\index.js:483:5)
+    at TestProviders (C:\Users\viral\EquipQR\src\test\utils\TestProviders.tsx:19:26)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+ Γ¥» src/pages/__tests__/Support.test.tsx (15 tests | 9 failed) 680ms
+   ├ù Support Page > DashboardSupport > renders page title 87ms
+     ΓåÆ useBugReport must be used within a <BugReportProvider>
+   ├ù Support Page > DashboardSupport > renders page description 14ms
+     ΓåÆ useBugReport must be used within a <BugReportProvider>
+   ├ù Support Page > DashboardSupport > renders support tabs component 15ms
+     ΓåÆ useBugReport must be used within a <BugReportProvider>
+   ├ù Support Page > DashboardSupport > renders contact section with email 9ms
+     ΓåÆ useBugReport must be used within a <BugReportProvider>
+   ├ù Support Page > DashboardSupport > renders email link 14ms
+     ΓåÆ useBugReport must be used within a <BugReportProvider>
+   ├ù Support Page > DashboardSupport > renders response time information 15ms
+     ΓåÆ useBugReport must be used within a <BugReportProvider>
+   ├ù Support Page > DashboardSupport > renders "Report an Issue" button 19ms
+     ΓåÆ useBugReport must be used within a <BugReportProvider>
+   ├ù Support Page > DashboardSupport > opens the submit-ticket dialog when "Report an Issue" is clicked 10ms
+     ΓåÆ useBugReport must be used within a <BugReportProvider>
+   ├ù Support Page > DashboardSupport > renders the My Tickets section 13ms
+     ΓåÆ useBugReport must be used within a <BugReportProvider>
+   Γ£ô Support Page > Public Support > renders landing header 97ms
+   Γ£ô Support Page > Public Support > renders page title 75ms
+   Γ£ô Support Page > Public Support > renders support tabs component 42ms
+   Γ£ô Support Page > Public Support > renders contact section 20ms
+   Γ£ô Support Page > Public Support > renders legal footer 16ms
+   Γ£ô Support Page > Public Support > renders call to action section 228ms
+ Γ£ô src/hooks/__tests__/useOrganizationMembers.test.tsx (9 tests) 826ms
+ Γ£ô src/features/equipment/components/__tests__/InlineEditCustomAttributes.test.tsx (5 tests) 391ms
+ Γ£ô src/features/dashboard/components/__tests__/DashboardRecentWorkOrdersCard.test.tsx (13 tests) 644ms
+ Γ£ô src/components/providers/AppProviders.test.tsx (12 tests) 1110ms
+   Γ£ô AppProviders > Provider Hierarchy > renders all providers in correct order  776ms
+ Γ£ô src/pages/__tests__/WorkspaceOnboarding.test.tsx (7 tests) 1452ms
+   Γ£ô WorkspaceOnboarding > shows connect button for unclaimed domain  670ms
+ Γ£ô src/components/layout/__tests__/HorizontalChipRow.test.tsx (13 tests) 690ms
+ Γ£ô src/pages/__tests__/Dashboard.test.tsx (12 tests) 958ms
+ Γ£ô src/tests/journeys/example.test.tsx (6 tests) 588ms
+   Γ£ô Example Journey Test > Pattern 1: Basic rendering with seeded data > renders the page for an admin user  336ms
+ Γ£ô src/features/dashboard/components/__tests__/DashboardStatsGrid.test.tsx (11 tests) 555ms
+ Γ£ô src/pages/__tests__/WorkOrders.test.tsx (12 tests) 633ms
+ Γ£ô src/features/dashboard/components/__tests__/DashboardRecentEquipmentCard.test.tsx (12 tests) 482ms
+ Γ£ô src/features/equipment/components/__tests__/MobileEquipmentHeader.test.tsx (6 tests) 672ms
+ Γ£ô src/pages/__tests__/Settings.test.tsx (9 tests) 566ms
+ Γ£ô src/features/dashboard/components/StatsCard.test.tsx (8 tests) 428ms
+ Γ£ô src/features/dashboard/components/__tests__/DashboardHighPriorityWorkOrdersCard.test.tsx (11 tests) 889ms
+   Γ£ô DashboardHighPriorityWorkOrdersCard > rendering > renders the card title  301ms
+ Γ£ô src/features/equipment/components/__tests__/CustomAttributesSection.test.tsx (13 tests) 1260ms
+   Γ£ô CustomAttributesSection > Attribute Management > calls removeAttribute when delete button is clicked  472ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentBasicInfoSection.test.tsx (8 tests) 694ms
+ Γ£ô src/features/equipment/components/__tests__/ResponsiveEquipmentTabs.test.tsx (8 tests) 650ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentNotesTab.test.tsx (6 tests) 1071ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentScansTab.test.tsx (7 tests) 899ms
+   Γ£ô EquipmentScansTab > Core Rendering > renders scans list  553ms
+ Γ£ô src/pages/__tests__/InvitationAccept.test.tsx (15 tests) 1365ms
+stderr | src/features/work-orders/hooks/__tests__/useWorkOrderUpdate.test.tsx > useWorkOrderUpdate > should handle permission denied error with specific message
+Update work order error: { message: 'permission denied' }
+
+stderr | src/features/work-orders/hooks/__tests__/useWorkOrderUpdate.test.tsx > useWorkOrderUpdate > should handle generic error
+Update work order error: { message: 'Network error' }
+
+ Γ£ô src/features/work-orders/hooks/__tests__/useWorkOrderUpdate.test.tsx (5 tests) 652ms
+ Γ£ô src/features/inventory/hooks/__tests__/useAlternateGroups.test.tsx (20 tests) 733ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentImagesTab.test.tsx (8 tests) 697ms
+ Γ£ô src/components/ui/button.test.tsx (2 tests) 396ms
+ Γ£ô src/features/equipment/components/EquipmentHeader.test.tsx (15 tests) 304ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentPMInfo.test.tsx (3 tests) 375ms
+ Γ£ô src/features/work-orders/components/PMProgressIndicator.test.tsx (11 tests) 528ms
+ Γ£ô src/features/organization/components/__tests__/OrganizationTabs.test.tsx (1 test) 586ms
+   Γ£ô OrganizationTabs > does not disable Invite button when billing is disabled (billing disabled by default)  581ms
+ Γ£ô src/hooks/__tests__/useUnifiedPermissions.test.tsx (42 tests) 316ms
+ Γ£ô src/pages/__tests__/Equipment.test.tsx (3 tests) 356ms
+stdout | src/tests/integration/AppRoutes.spec.tsx > App > redirects equipment to equipment list
+≡ƒöì ProtectedRoute auth state {
+  user: 'undefined (undefined)',
+  isLoading: false,
+  timestamp: '2026-02-09T01:05:59.320Z'
+}
+Γä╣∩╕Å ProtectedRoute access granted
+
+stderr | src/tests/integration/AppRoutes.spec.tsx > App > renders TopBar component on dashboard route
+Error: Uncaught [Error: [vitest] No "useSimpleOrganizationSafe" export is defined on the "@/hooks/useSimpleOrganization" mock. Did you forget to return it from "vi.mock"?
+If you need to partially mock a module, you can use "importOriginal" helper inside:
+]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: [vitest] No "useSimpleOrganizationSafe" export is defined on the "@/hooks/useSimpleOrganization" mock. Did you forget to return it from "vi.mock"?
+If you need to partially mock a module, you can use "importOriginal" helper inside:
+
+    at VitestMocker.createError (file:///C:/Users/viral/EquipQR/node_modules/vitest/dist/chunks/execute.B7h3T_Hc.js:284:17)
+    at Object.useSimpleOrganizationSafe [as get] (file:///C:/Users/viral/EquipQR/node_modules/vitest/dist/chunks/execute.B7h3T_Hc.js:330:16)
+    at SubmitTicketDialog (C:\Users\viral\EquipQR\src\features\tickets\components\SubmitTicketDialog.tsx:37:22)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3) {
+  codeFrame: 'vi.mock(import("@/hooks/useSimpleOrganization"), async (importOriginal) => {\n' +
+    '  const actual = await importOriginal()\n' +
+    '  return {\n' +
+    '    ...actual,\n' +
+    '    // your mocked methods\n' +
+    '  }\n' +
+    '})'
+}
+Error: Uncaught [Error: [vitest] No "useSimpleOrganizationSafe" export is defined on the "@/hooks/useSimpleOrganization" mock. Did you forget to return it from "vi.mock"?
+If you need to partially mock a module, you can use "importOriginal" helper inside:
+]
+    at reportException (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:353:9)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+    at HTMLUnknownElementImpl._dispatch (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+    at HTMLUnknownElement.dispatchEvent (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+    at Object.invokeGuardedCallbackDev (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4213:16)
+    at invokeGuardedCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4277:31)
+    at beginWork$1 (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:27490:7)
+    at performUnitOfWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:26599:12) Error: [vitest] No "useSimpleOrganizationSafe" export is defined on the "@/hooks/useSimpleOrganization" mock. Did you forget to return it from "vi.mock"?
+If you need to partially mock a module, you can use "importOriginal" helper inside:
+
+    at VitestMocker.createError (file:///C:/Users/viral/EquipQR/node_modules/vitest/dist/chunks/execute.B7h3T_Hc.js:284:17)
+    at Object.useSimpleOrganizationSafe [as get] (file:///C:/Users/viral/EquipQR/node_modules/vitest/dist/chunks/execute.B7h3T_Hc.js:330:16)
+    at SubmitTicketDialog (C:\Users\viral\EquipQR\src\features\tickets\components\SubmitTicketDialog.tsx:37:22)
+    at renderWithHooks (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\Users\viral\EquipQR\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+    at invokeEventListeners (C:\Users\viral\EquipQR\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3) {
+  codeFrame: 'vi.mock(import("@/hooks/useSimpleOrganization"), async (importOriginal) => {\n' +
+    '  const actual = await importOriginal()\n' +
+    '  return {\n' +
+    '    ...actual,\n' +
+    '    // your mocked methods\n' +
+    '  }\n' +
+    '})'
+}
+The above error occurred in the <SubmitTicketDialog> component:
+
+    at SubmitTicketDialog (C:\Users\viral\EquipQR\src\features\tickets\components\SubmitTicketDialog.tsx:31:35)
+    at BugReportProvider (C:\Users\viral\EquipQR\src\features\tickets\context\BugReportContext.tsx:14:34)
+    at div
+    at SidebarProvider (C:\Users\viral\EquipQR\src\tests\integration\AppRoutes.spec.tsx:215:29)
+    at div
+    at TeamProvider (C:\Users\viral\EquipQR\src\tests\integration\AppRoutes.spec.tsx:195:26)
+    at WorkspaceOnboardingGuard (C:\Users\viral\EquipQR\src\components\auth\WorkspaceOnboardingGuard.tsx:10:41)
+    at div
+    at SimpleOrganizationProvider (C:\Users\viral\EquipQR\src\tests\integration\AppRoutes.spec.tsx:205:40)
+    at ProtectedRoute (C:\Users\viral\EquipQR\src\components\auth\ProtectedRoute.tsx:13:27)
+    at RenderedRoute (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:539:7)
+    at Routes (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1273:7)
+    at div
+    at QueryClientProvider (file:///C:/Users/viral/EquipQR/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:20:3)
+    at AppProviders (C:\Users\viral\EquipQR\src\tests\integration\AppRoutes.spec.tsx:244:26)
+    at App
+    at Router (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (C:\Users\viral\EquipQR\node_modules\react-router\dist\umd\react-router.development.js:1101:7)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+ Γ¥» src/tests/integration/AppRoutes.spec.tsx (10 tests | 1 failed) 463ms
+   Γ£ô App > renders without crashing 140ms
+   Γ£ô App > renders landing page for root path 20ms
+   Γ£ô App > renders auth page for /auth path 24ms
+   Γ£ô App > renders support page for /support path 66ms
+   Γ£ô App > renders terms page for /terms-of-service path 45ms
+   Γ£ô App > renders privacy page for /privacy-policy path 46ms
+   Γ£ô App > contains app providers 7ms
+   Γ£ô App > redirects equipment to equipment list 15ms
+   Γ£ô App > redirects work-orders to work-orders list 15ms
+   ├ù App > renders TopBar component on dashboard route 78ms
+     ΓåÆ [vitest] No "useSimpleOrganizationSafe" export is defined on the "@/hooks/useSimpleOrganization" mock. Did you forget to return it from "vi.mock"?
+If you need to partially mock a module, you can use "importOriginal" helper inside:
+
+stdout | src/features/work-orders/hooks/__tests__/useWorkOrderPMChecklist.test.tsx > useWorkOrderPMChecklist > template filtering > returns empty templates array when equipment has assigned template
+≡ƒöì [useWorkOrderPMChecklist] Template query state: {
+  isLoading: false,
+  allTemplatesCount: 3,
+  matchingTemplatesCount: 3,
+  error: null,
+  orgId: 'equipment selected'
+}
+
+ Γ£ô src/features/work-orders/hooks/__tests__/useWorkOrderPMChecklist.test.tsx (16 tests) 158ms
+ Γ£ô src/features/inventory/services/__tests__/partAlternatesService.test.ts (76 tests) 151ms
+ Γ£ô src/pages/__tests__/NotFound.test.tsx (4 tests) 399ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentWorkOrdersTab.test.tsx (11 tests) 482ms
+ Γ£ô src/pages/__tests__/Auth.test.tsx (13 tests) 1336ms
+   Γ£ô Auth Page > Core Rendering > renders welcome title and description  332ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentGrid.test.tsx (14 tests) 445ms
+ Γ£ô src/contexts/SessionContext.test.tsx (11 tests) 248ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentFormActions.test.tsx (10 tests) 259ms
+ Γ£ô src/hooks/usePermissions.test.tsx (41 tests) 283ms
+ Γ£ô src/features/work-orders/hooks/__tests__/useWorkOrderDetailsActions.test.tsx (7 tests) 461ms
+ Γ£ô src/features/equipment/components/__tests__/MobileWorkOrderCard.test.tsx (3 tests) 298ms
+ Γ£ô src/features/equipment/components/__tests__/CSVMappingStep.test.tsx (1 test) 239ms
+ Γ£ô src/hooks/useSupabaseData.test.tsx (2 tests) 161ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentFilters.test.tsx (17 tests) 276ms
+ Γ£ô src/features/dashboard/components/__tests__/DashboardNoTeamsCard.test.tsx (4 tests) 122ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentInsights.test.tsx (2 tests) 321ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentLoadingState.test.tsx (5 tests) 235ms
+ Γ£ô src/features/fleet-map/components/__tests__/MapView.test.tsx (6 tests) 244ms
+ Γ£ô src/components/ui/card.test.tsx (8 tests) 176ms
+ Γ£ô src/hooks/__tests__/useSession.test.tsx (7 tests) 199ms
+ Γ£ô src/features/work-orders/components/__tests__/WorkOrderCostsSection.test.tsx (4 tests) 192ms
+ Γ£ô src/features/organization/hooks/useOwnershipTransfer.test.ts (7 tests) 290ms
+stdout | src/components/auth/ProtectedRoute.test.tsx > ProtectedRoute > should show loading spinner when auth is loading
+≡ƒöì ProtectedRoute auth state {
+  user: 'null',
+  isLoading: true,
+  timestamp: '2026-02-09T01:06:15.995Z'
+}
+
+stdout | src/components/auth/ProtectedRoute.test.tsx > ProtectedRoute > should redirect to auth when user is not authenticated
+Γä╣∩╕Å ProtectedRoute redirecting to auth (no user)
+
+stdout | src/components/auth/ProtectedRoute.test.tsx > ProtectedRoute > should render children when user is authenticated
+Γä╣∩╕Å ProtectedRoute access granted
+
+ Γ£ô src/components/auth/ProtectedRoute.test.tsx (7 tests) 177ms
+ Γ£ô src/features/equipment/hooks/__tests__/usePartsFiltering.test.tsx (24 tests) 178ms
+ Γ£ô src/features/organization/hooks/useDeleteOrganization.test.ts (6 tests) 214ms
+ Γ£ô src/features/equipment/components/__tests__/EquipmentPMTemplateIndicator.test.tsx (2 tests) 163ms
+ Γ£ô src/hooks/useAuth.test.tsx (4 tests) 60ms
+ Γ£ô src/components/landing/SmartLanding.test.tsx (3 tests) 121ms
+ Γ£ô src/hooks/useOnlineStatus.test.ts (12 tests) 134ms
+ Γ£ô src/features/equipment/hooks/__tests__/useEquipmentInsights.test.ts (24 tests) 132ms
+ Γ£ô src/features/equipment/hooks/useEquipmentFiltering.test.tsx (7 tests) 149ms
+stdout | src/contexts/__tests__/AuthContext.test.tsx > AuthContext > should initialize with loading state
+≡ƒöì AuthProvider - Setting up auth listener
+
+stdout | src/contexts/__tests__/AuthContext.test.tsx > AuthContext > should initialize with loading state
+≡ƒöì Initial session check { user: 'none', hasSession: false }
+
+stdout | src/contexts/__tests__/AuthContext.test.tsx > AuthContext > should handle sign-in auth state change
+≡ƒöì Auth state change {
+  event: 'SIGNED_IN',
+  user: 'test@example.com',
+  timestamp: '2026-02-09T01:06:18.546Z'
+}
+
+ Γ£ô src/contexts/__tests__/AuthContext.test.tsx (11 tests) 147ms
+ Γ£ô src/pages/__tests__/Index.test.tsx (2 tests) 102ms
+ Γ£ô src/features/equipment/utils/equipmentHelpers.test.ts (20 tests) 85ms
+ Γ£ô src/utils/errorHandling.test.ts (27 tests) 79ms
+ Γ£ô src/utils/currencyUtils.test.ts (4 tests) 101ms
+ Γ£ô src/features/equipment/utils/getEquipmentCardDisplayModel.test.ts (16 tests) 115ms
+ Γ£ô src/features/equipment/hooks/useEquipmentForm.test.tsx (2 tests) 95ms
+ Γ£ô src/services/__tests__/supabaseDataService.test.ts (15 tests) 37ms
+ Γ£ô src/features/organization/hooks/useLeaveOrganization.test.ts (3 tests) 79ms
+ Γ£ô src/services/__tests__/backgroundSync.test.ts (19 tests) 85ms
+ Γ£ô src/features/work-orders/services/__tests__/workOrderCostsService.test.ts (31 tests) 61ms
+stderr | src/services/__tests__/pmChecklistTemplatesService.test.ts > Helper Functions > templateToSummary > handles malformed template_data
+ΓÜá∩╕Å Failed to parse JSON for template: template-1 SyntaxError: Unexpected token 'i', "invalid json" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at Module.safeJsonParse (C:\Users\viral\EquipQR\src\lib\safeJsonParse.ts:14:17)
+    at Module.templateToSummary (C:\Users\viral\EquipQR\src\features\pm-templates\services\pmChecklistTemplatesService.ts:56:20)
+    at C:\Users\viral\EquipQR\src\services\__tests__\pmChecklistTemplatesService.test.ts:213:22
+    at file:///C:/Users/viral/EquipQR/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+    at file:///C:/Users/viral/EquipQR/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+    at file:///C:/Users/viral/EquipQR/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///C:/Users/viral/EquipQR/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+    at runTest (file:///C:/Users/viral/EquipQR/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+
+ Γ£ô src/services/__tests__/pmChecklistTemplatesService.test.ts (12 tests) 77ms
+ Γ£ô src/services/__tests__/cacheManager.test.ts (18 tests) 64ms
+stderr | src/tests/quickbooks/quickbooksService.test.ts > QuickBooks Service > getConnectionStatus > should return not connected on RPC error
+Error fetching QuickBooks connection status: {
+  message: 'Permission denied',
+  code: 'PERM001',
+  details: null,
+  hint: null
+}
+
+stderr | src/tests/quickbooks/quickbooksService.test.ts > QuickBooks Service > getExportLogs > should return empty array on error
+Error fetching export logs: { message: 'Error', code: 'ERR', details: null, hint: null }
+
+ Γ£ô src/tests/quickbooks/quickbooksService.test.ts (24 tests) 73ms
+ Γ£ô src/tests/billing/webhook-idempotency.test.ts (8 tests) 28ms
+ Γ£ô src/tests/billing/stripe-events.test.ts (16 tests) 23ms
+ Γ£ô src/features/equipment/types/equipment.test.ts (11 tests) 28ms
+ Γ£ô src/services/permissions/__tests__/PermissionEngine.test.ts (56 tests) 35ms
+ Γ£ô src/features/teams/services/teamFleetService.test.ts (5 tests) 30ms
+ Γ£ô src/utils/__tests__/performanceMonitoring.test.ts (13 tests) 34ms
+ Γ£ô src/lib/utils.test.ts (16 tests) 31ms
+ Γ£ô src/services/google-workspace/index.test.ts (19 tests) 32ms
+stderr | src/features/work-orders/services/__tests__/WorkOrderService.test.ts > WorkOrderService > getById > should handle non-existent work order
+≡ƒÜ¿ Error fetching work order by ID: { message: 'Not found' }
+
+stderr | src/features/work-orders/services/__tests__/WorkOrderService.test.ts > WorkOrderService > updateStatus > should handle database error during status update
+≡ƒÜ¿ Error updating work order status: { message: 'Database error' }
+
+ Γ£ô src/features/work-orders/services/__tests__/WorkOrderService.test.ts (17 tests) 40ms
+ Γ£ô src/utils/__tests__/jsonDiff.test.ts (33 tests) 30ms
+ Γ£ô src/utils/__tests__/sessionPersistence.test.ts (17 tests) 34ms
+ Γ£ô src/services/google-workspace/auth.test.ts (1 test) 21ms
+stderr | src/features/equipment/services/EquipmentService.test.ts > EquipmentService > update > should handle non-existent equipment update
+≡ƒÜ¿ Error updating equipment: { message: 'Not found' }
+
+ Γ£ô src/features/equipment/services/EquipmentService.test.ts (13 tests) 32ms
+ Γ£ô src/features/inventory/services/__tests__/partsManagersService.test.ts (14 tests) 34ms
+ Γ£ô src/services/base/BaseService.test.ts (23 tests) 31ms
+ Γ£ô src/lib/safeJsonParse.test.ts (6 tests) 24ms
+ Γ£ô src/utils/geoUtils.test.ts (10 tests) 19ms
+ Γ£ô src/utils/__tests__/pmChecklistHelpers.test.ts (16 tests) 18ms
+ Γ£ô src/lib/queryKeys.test.ts (29 tests) 26ms
+ Γ£ô src/utils/billing/__tests__/index.test.ts (23 tests) 28ms
+ Γ£ô src/utils/dateFormatter.test.ts (10 tests) 24ms
+ Γ£ô src/utils/validationHelpers.test.ts (10 tests) 18ms
+ Γ£ô src/utils/__tests__/simplifiedOrganizationRestrictions.test.ts (10 tests) 17ms
+ Γ£ô src/utils/__tests__/organizationRestrictions.test.ts (9 tests) 18ms
+ Γ£ô src/lib/parts/__tests__/normalize.test.ts (4 tests) 16ms
+ Γ£ô src/integrations/supabase/client.test.ts (2 tests) 13ms
+ Γ£ô src/utils/csvImportUtils.test.ts (8 tests) 19ms
+ Γ£ô src/utils/__tests__/queryMonitoring.test.ts (4 tests) 13ms
+ Γ£ô src/utils/badgeVariants.test.ts (6 tests) 13ms
+ Γ£ô src/utils/__tests__/storageQuota.test.ts (5 tests) 10ms
+ Γ£ô src/lib/flags.test.ts (4 tests) 11ms
+ Γ£ô src/tests/quickbooks/quickbooksTypes.test.ts (6 tests) 6ms
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Tests 10 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders page title
+ FAIL  src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders page description
+ FAIL  src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders support tabs component
+ FAIL  src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders contact section with email
+ FAIL  src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders email link
+ FAIL  src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders response time information
+ FAIL  src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders "Report an Issue" button
+ FAIL  src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > opens the submit-ticket dialog when "Report an Issue" is clicked
+ FAIL  src/pages/__tests__/Support.test.tsx > Support Page > DashboardSupport > renders the My Tickets section
+Error: useBugReport must be used within a <BugReportProvider>
+ Γ¥» Module.useBugReport src/features/tickets/context/BugReportContext.tsx:50:11
+     48|   const ctx = useContext(BugReportContext);
+     49|   if (!ctx) {
+     50|     throw new Error('useBugReport must be used within a <BugReportProvΓÇª
+       |           ^
+     51|   }
+     52|   return ctx;
+ Γ¥» DashboardSupport src/pages/Support.tsx:51:29
+ Γ¥» renderWithHooks node_modules/react-dom/cjs/react-dom.development.js:15486:18
+ Γ¥» mountIndeterminateComponent node_modules/react-dom/cjs/react-dom.development.js:20103:13
+ Γ¥» beginWork node_modules/react-dom/cjs/react-dom.development.js:21626:16
+ Γ¥» beginWork$1 node_modules/react-dom/cjs/react-dom.development.js:27465:14
+ Γ¥» performUnitOfWork node_modules/react-dom/cjs/react-dom.development.js:26599:12
+ Γ¥» workLoopSync node_modules/react-dom/cjs/react-dom.development.js:26505:5
+ Γ¥» renderRootSync node_modules/react-dom/cjs/react-dom.development.js:26473:7
+ Γ¥» recoverFromConcurrentError node_modules/react-dom/cjs/react-dom.development.js:25889:20
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/10]ΓÄ»
+
+ FAIL  src/tests/integration/AppRoutes.spec.tsx > App > renders TopBar component on dashboard route
+Error: [vitest] No "useSimpleOrganizationSafe" export is defined on the "@/hooks/useSimpleOrganization" mock. Did you forget to return it from "vi.mock"?
+If you need to partially mock a module, you can use "importOriginal" helper inside:
+
+vi.mock(import("@/hooks/useSimpleOrganization"), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    // your mocked methods
+  }
+})
+
+ Γ¥» SubmitTicketDialog src/features/tickets/components/SubmitTicketDialog.tsx:37:22
+     35|   const { mutate: submitTicket, isPending } = useSubmitTicket();
+     36|   const queryClient = useQueryClient();
+     37|   const orgContext = useSimpleOrganizationSafe();
+       |                      ^
+     38| 
+     39|   const [title, setTitle] = useState('');
+ Γ¥» renderWithHooks node_modules/react-dom/cjs/react-dom.development.js:15486:18
+ Γ¥» mountIndeterminateComponent node_modules/react-dom/cjs/react-dom.development.js:20103:13
+ Γ¥» beginWork node_modules/react-dom/cjs/react-dom.development.js:21626:16
+ Γ¥» beginWork$1 node_modules/react-dom/cjs/react-dom.development.js:27465:14
+ Γ¥» performUnitOfWork node_modules/react-dom/cjs/react-dom.development.js:26599:12
+ Γ¥» workLoopSync node_modules/react-dom/cjs/react-dom.development.js:26505:5
+ Γ¥» renderRootSync node_modules/react-dom/cjs/react-dom.development.js:26473:7
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[2/10]ΓÄ»
+
+
+ Test Files  2 failed | 152 passed (154)
+      Tests  10 failed | 2137 passed (2147)
+   Start at  19:04:46
+   Duration  114.82s (transform 15.17s, setup 157.53s, collect 145.97s, tests 165.42s, environment 545.13s, prepare 103.80s)
+

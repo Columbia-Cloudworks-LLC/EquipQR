@@ -113,6 +113,7 @@ describe('MapView', () => {
           googleMapsKey="test-api-key"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={mockEquipmentLocations}
+          isMapsLoaded={true}
         />
       );
 
@@ -125,6 +126,7 @@ describe('MapView', () => {
           googleMapsKey="test-api-key"
           equipmentLocations={[]}
           filteredLocations={[]}
+          isMapsLoaded={true}
         />
       );
 
@@ -141,6 +143,7 @@ describe('MapView', () => {
           googleMapsKey="test-api-key"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={filteredLocations}
+          isMapsLoaded={true}
         />
       );
 
@@ -154,6 +157,7 @@ describe('MapView', () => {
           googleMapsKey="test-api-key"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={mockEquipmentLocations}
+          isMapsLoaded={true}
         />
       );
 
@@ -167,6 +171,7 @@ describe('MapView', () => {
           googleMapsKey="test-api-key"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={[]}
+          isMapsLoaded={true}
         />
       );
 
@@ -182,6 +187,7 @@ describe('MapView', () => {
           googleMapsKey="test-api-key"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={mockEquipmentLocations}
+          isMapsLoaded={true}
         />
       );
 
@@ -193,6 +199,7 @@ describe('MapView', () => {
           googleMapsKey="test-api-key"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={mockEquipmentLocations}
+          isMapsLoaded={true}
         />
       );
 

@@ -1,11 +1,6 @@
 // Using Deno.serve (built-in)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   // Avoid logging sensitive data
@@ -60,6 +55,20 @@ interface QuickBooksCustomer {
   CompanyName?: string;
   PrimaryEmailAddr?: { Address: string };
   PrimaryPhone?: { FreeFormNumber: string };
+  BillAddr?: {
+    Line1?: string;
+    City?: string;
+    CountrySubDivisionCode?: string;
+    Country?: string;
+    PostalCode?: string;
+  };
+  ShipAddr?: {
+    Line1?: string;
+    City?: string;
+    CountrySubDivisionCode?: string;
+    Country?: string;
+    PostalCode?: string;
+  };
   Active?: boolean;
 }
 
@@ -148,6 +157,8 @@ async function refreshTokenIfNeeded(
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -276,9 +287,26 @@ Deno.serve(async (req) => {
     // Build the QuickBooks Customer query
     let customerQuery = "SELECT * FROM Customer WHERE Active = true";
     if (query && query.trim()) {
-      // Escape backslashes and single quotes in the query
-      const escapedQuery = query.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-      customerQuery = `SELECT * FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
+      // Whitelist: allow only alphanumeric, spaces, hyphens, periods, commas, apostrophes
+      // This prevents QuickBooks Query Language injection via special characters
+      const sanitizedQuery = query.replace(/[^a-zA-Z0-9\s\-.,']/g, "").trim();
+
+      // Reject excessively long search queries
+      if (sanitizedQuery.length > 100) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Search query too long"
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (sanitizedQuery.length > 0) {
+        // Escape single quotes for the QuickBooks query (defense-in-depth)
+        const escapedQuery = sanitizedQuery.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        customerQuery = `SELECT * FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
+      }
     }
     customerQuery += " MAXRESULTS 100";
 
@@ -331,6 +359,20 @@ Deno.serve(async (req) => {
       CompanyName: c.CompanyName,
       Email: c.PrimaryEmailAddr?.Address,
       Phone: c.PrimaryPhone?.FreeFormNumber,
+      BillAddr: c.BillAddr ? {
+        Line1: c.BillAddr.Line1,
+        City: c.BillAddr.City,
+        State: c.BillAddr.CountrySubDivisionCode,
+        Country: c.BillAddr.Country,
+        PostalCode: c.BillAddr.PostalCode,
+      } : undefined,
+      ShipAddr: c.ShipAddr ? {
+        Line1: c.ShipAddr.Line1,
+        City: c.ShipAddr.City,
+        State: c.ShipAddr.CountrySubDivisionCode,
+        Country: c.ShipAddr.Country,
+        PostalCode: c.ShipAddr.PostalCode,
+      } : undefined,
     }));
 
     return new Response(JSON.stringify({ 

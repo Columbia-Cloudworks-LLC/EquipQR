@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { Save, Settings, Palette, Building2, Link2, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { Save, Settings, Palette, Building2, Link2, Image as ImageIcon, AlertCircle, Shield } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { SessionOrganization } from '@/contexts/SessionContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { updateOrganization } from '@/features/organization/services/organizationService';
@@ -55,6 +56,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
       name: organization.name,
       logo: organization.logo || '',
       backgroundColor: organization.backgroundColor || '',
+      scan_location_collection_enabled: organization.scanLocationCollectionEnabled ?? true,
     },
   });
 
@@ -75,6 +77,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
         name: data.name,
         logo: data.logo || null,
         background_color: data.backgroundColor || null,
+        scan_location_collection_enabled: data.scan_location_collection_enabled,
       };
 
       const success = await updateOrganization(organization.id, updatePayload);
@@ -148,20 +151,20 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Basic Information Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Basic Information
-          </CardTitle>
-          <CardDescription>
-            Update your organization's name and branding settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Basic Information Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Basic Information
+              </CardTitle>
+              <CardDescription>
+                Update your organization's name and branding settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <FormField
                 control={form.control}
                 name="name"
@@ -289,16 +292,55 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
                 )}
               />
 
-              <div className="flex justify-end pt-4 border-t">
-                <Button type="submit" disabled={isUpdating || !form.formState.isDirty}>
-                  <Save className="mr-2 h-4 w-4" />
-                  {isUpdating ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+
+          {/* Privacy & Location Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Privacy &amp; Location
+              </CardTitle>
+              <CardDescription>
+                Control how location data is collected across your organization
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="scan_location_collection_enabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">QR Scan Location Collection</FormLabel>
+                      <FormDescription>
+                        When enabled, QR code scans will capture GPS coordinates for the Fleet Map.
+                        Disabling this will prevent all future scans from collecting location data.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isUpdating}
+                        aria-label="Toggle QR scan location collection"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isUpdating || !form.formState.isDirty}>
+              <Save className="mr-2 h-4 w-4" />
+              {isUpdating ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </form>
+      </Form>
 
       {/* Integrations Section */}
       <div className="space-y-4">

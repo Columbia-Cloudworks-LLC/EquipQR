@@ -1,10 +1,20 @@
 import React from 'react';
 import { render, screen, fireEvent, within } from '@/test/utils/test-utils';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { useForm, FormProvider } from 'react-hook-form';
 import EquipmentStatusLocationSection from '../form/EquipmentStatusLocationSection';
 import { equipmentFormSchema, EquipmentFormData } from '@/features/equipment/types/equipment';
 import { zodResolver } from '@hookform/resolvers/zod';
+
+vi.mock('@/hooks/useGoogleMapsLoader', () => ({
+  useGoogleMapsLoader: vi.fn(() => ({
+    isLoaded: false
+  }))
+}));
+
+vi.mock('@/components/ui/GooglePlacesAutocomplete', () => ({
+  default: () => <div data-testid="google-places-autocomplete">Google Places</div>
+}));
 
 const TestWrapper = ({ defaultValues }: { defaultValues?: Partial<EquipmentFormData> }) => {
   const form = useForm<EquipmentFormData>({
@@ -44,8 +54,8 @@ describe('EquipmentStatusLocationSection', () => {
     it('renders location field', () => {
       render(<TestWrapper />);
       
-      expect(screen.getByLabelText('Location *')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('e.g., Warehouse A, Section 1')).toBeInTheDocument();
+      expect(screen.getByLabelText('Location Description *')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('e.g., Bay 3, Warehouse A')).toBeInTheDocument();
     });
 
     it('renders installation date field', () => {

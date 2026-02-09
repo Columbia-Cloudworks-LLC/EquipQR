@@ -76,6 +76,21 @@ Deno.serve(async (req) => {
       return createJsonResponse({ lat: null, lng: null });
     }
 
+    // Rate limiting: max 30 geocode cache misses per organization per minute.
+    // We count recent inserts into geocoded_locations (which only happen on
+    // cache misses that call the Google API). Cache hits are free.
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    const { count: recentCount, error: rateLimitError } = await supabase
+      .from("geocoded_locations")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .gte("created_at", oneMinuteAgo);
+
+    if (!rateLimitError && (recentCount ?? 0) >= 30) {
+      logStep("Rate limit exceeded", { userId: user.id, recentCount });
+      return createErrorResponse("Rate limit exceeded", 429);
+    }
+
     logStep("Checking cache", { organizationId, normalizedInput });
 
     // Check cache first (RLS will restrict to user's orgs)

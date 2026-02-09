@@ -97,6 +97,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
           nextBillingDate: org.next_billing_date || undefined,
           logo: org.logo || undefined,
           backgroundColor: org.background_color || undefined,
+          scanLocationCollectionEnabled: org.scan_location_collection_enabled ?? true,
           userRole: membership?.role as 'owner' | 'admin' | 'member' || 'member',
           userStatus: membership?.status as 'active' | 'pending' | 'inactive' || 'active',
           isPersonal: org.id === personalOrgId

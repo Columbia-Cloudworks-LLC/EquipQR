@@ -18,6 +18,7 @@ import TeamQuickActions from '@/features/teams/components/TeamQuickActions';
 import TeamActivitySummary from '@/features/teams/components/TeamActivitySummary';
 import TeamRecentEquipment from '@/features/teams/components/TeamRecentEquipment';
 import TeamRecentWorkOrders from '@/features/teams/components/TeamRecentWorkOrders';
+import TeamLocationCard from '@/features/teams/components/TeamLocationCard';
 
 const TeamDetails = () => {
   const { teamId } = useParams<{ teamId: string }>();
@@ -225,6 +226,13 @@ const TeamDetails = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Team Location */}
+      <TeamLocationCard
+        team={team}
+        canEdit={canEdit}
+        onEditClick={() => setShowMetadataEditor(true)}
+      />
 
       {/* Quick Actions */}
       <TeamQuickActions teamId={team.id} teamName={team.name} />

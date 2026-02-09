@@ -131,8 +131,10 @@ function isValidRedirectUrl(urlToValidate: string | null, productionUrl: string)
       : [productionDomain, "localhost", "127.0.0.1"];
     
     // In preview environments, also allow Vercel preview deployment URLs
-    // These are trusted since they're deployed by our CI/CD pipeline
-    const allowedSuffixes = isPreview ? [".vercel.app"] : [];
+    // scoped to our project slug to prevent open-redirect via arbitrary Vercel sites.
+    const vercelSlug = Deno.env.get("VERCEL_PROJECT_SLUG") || "equip-qr";
+    const allowedSuffixes = isPreview ? [`.vercel.app`] : [];
+    const vercelPrefix = `${vercelSlug}-`;
 
     for (const domain of allowedDomains) {
       if (domain.startsWith(".")) {
@@ -144,9 +146,9 @@ function isValidRedirectUrl(urlToValidate: string | null, productionUrl: string)
       }
     }
     
-    // Check suffix-based allowed domains (e.g., *.vercel.app)
+    // Check suffix-based allowed domains, scoped to our Vercel project slug
     for (const suffix of allowedSuffixes) {
-      if (url.hostname.endsWith(suffix)) {
+      if (url.hostname.endsWith(suffix) && url.hostname.startsWith(vercelPrefix)) {
         return true;
       }
     }
@@ -532,7 +534,7 @@ Deno.serve(async (req) => {
       throw new Error("Could not determine your organization domain. Please try again.");
     }
 
-    logStep("User info retrieved", { email: userEmail, domain: userDomain });
+    logStep("User info retrieved", { domain: userDomain });
 
     // Block consumer domains
     if (["gmail.com", "googlemail.com"].includes(userDomain.toLowerCase())) {

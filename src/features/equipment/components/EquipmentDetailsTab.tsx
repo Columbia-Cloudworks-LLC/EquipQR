@@ -1,15 +1,24 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Wrench, FileText, Settings, Users, Clock } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Calendar, MapPin, Wrench, FileText, Settings, Users, Clock, Edit2, Info, Navigation, X, Check } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import QRCodeDisplay from "./QRCodeDisplay";
 import InlineEditField from "./InlineEditField";
 import InlineEditCustomAttributes from "./InlineEditCustomAttributes";
 import { WorkingHoursTimelineModal } from "./WorkingHoursTimelineModal";
+import ClickableAddress from "@/components/ui/ClickableAddress";
+import GooglePlacesAutocomplete, { type PlaceLocationData } from "@/components/ui/GooglePlacesAutocomplete";
+import { useGoogleMapsLoader } from "@/hooks/useGoogleMapsLoader";
 import { useUpdateEquipment } from "@/features/equipment/hooks/useEquipment";
 import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
 import { useTeams } from "@/features/teams/hooks/useTeamManagement";
@@ -30,9 +39,273 @@ interface EquipmentDetailsTabProps {
   equipment: Equipment;
 }
 
+// ── Consolidated Location Field ──────────────────────────────────────
+
+interface EquipmentLocationFieldProps {
+  equipment: Equipment;
+  teams: Array<{ id: string; name: string; location_address?: string; location_city?: string; location_state?: string; location_country?: string; location_lat?: number; location_lng?: number; override_equipment_location?: boolean }>;
+  canEdit: boolean;
+  isEditing: boolean;
+  isSaving: boolean;
+  isMapsLoaded: boolean;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
+  onSave: (data: PlaceLocationData) => Promise<void>;
+}
+
+function buildAddressString(parts: {
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+}): string {
+  return [parts.street, parts.city, parts.state, parts.country]
+    .filter(Boolean)
+    .join(', ');
+}
+
+const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
+  equipment,
+  teams,
+  canEdit,
+  isEditing,
+  isSaving,
+  isMapsLoaded,
+  onStartEdit,
+  onCancelEdit,
+  onSave,
+}) => {
+  const [pendingPlace, setPendingPlace] = useState<PlaceLocationData | null>(null);
+  const [isCleared, setIsCleared] = useState(false);
+
+  // Resolve team override
+  const team = equipment.team_id
+    ? teams.find((t) => t.id === equipment.team_id)
+    : undefined;
+  const isTeamOverride =
+    !!equipment.use_team_location &&
+    !!team?.override_equipment_location &&
+    team.location_lat != null &&
+    team.location_lng != null;
+
+  // Build addresses
+  const teamAddress = team
+    ? buildAddressString({
+        street: team.location_address,
+        city: team.location_city,
+        state: team.location_state,
+        country: team.location_country,
+      })
+    : '';
+
+  const equipmentAddress = buildAddressString({
+    street: equipment.assigned_location_street,
+    city: equipment.assigned_location_city,
+    state: equipment.assigned_location_state,
+    country: equipment.assigned_location_country,
+  });
+
+  const handlePlaceSelect = useCallback((data: PlaceLocationData) => {
+    setPendingPlace(data);
+    setIsCleared(false);
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    if (isCleared) {
+      // Save with null location fields to clear the assigned address
+      await onSave({
+        formatted_address: '',
+        street: '',
+        city: '',
+        state: '',
+        country: '',
+        lat: undefined,
+        lng: undefined,
+      } as PlaceLocationData);
+      setPendingPlace(null);
+      setIsCleared(false);
+    } else if (pendingPlace) {
+      await onSave(pendingPlace);
+      setPendingPlace(null);
+    }
+  }, [pendingPlace, isCleared, onSave]);
+
+  const handleCancel = useCallback(() => {
+    setPendingPlace(null);
+    setIsCleared(false);
+    onCancelEdit();
+  }, [onCancelEdit]);
+
+  // ── Team Override: show team address, no editing ──
+  if (isTeamOverride) {
+    return (
+      <div>
+        <label className="text-sm font-medium text-gray-500">Location</label>
+        <div className="mt-1 flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <ClickableAddress
+            address={teamAddress || undefined}
+            lat={team!.location_lat}
+            lng={team!.location_lng}
+            className="text-base"
+          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring cursor-help"
+                  aria-label="This location is set by the team. Edit the team to change it."
+                >
+                  <Info className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[260px]">
+                <p>This location is set by the team. Edit the team to change it.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <div className="mt-1 ml-6">
+          <Link
+            to={`/dashboard/teams/${team!.id}`}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Navigation className="h-3 w-3" />
+            Set by {team!.name}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Editing mode: show GooglePlacesAutocomplete ──
+  if (isEditing) {
+    return (
+      <div>
+        <label className="text-sm font-medium text-gray-500">Location</label>
+        <div className="mt-1 space-y-2">
+          <GooglePlacesAutocomplete
+            value={isCleared ? '' : (pendingPlace?.formatted_address ?? equipmentAddress)}
+            onPlaceSelect={handlePlaceSelect}
+            onClear={() => {
+              setPendingPlace(null);
+              setIsCleared(true);
+            }}
+            placeholder="Search for an address..."
+            isLoaded={isMapsLoaded}
+          />
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleSave}
+              disabled={(!pendingPlace && !isCleared) || isSaving}
+              className="gap-1 h-7 text-xs"
+            >
+              <Check className="h-3 w-3" />
+              {isSaving ? 'Saving...' : 'Save'}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="gap-1 h-7 text-xs"
+            >
+              <X className="h-3 w-3" />
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Has equipment address: show it with edit button ──
+  if (equipmentAddress) {
+    return (
+      <div>
+        <label className="text-sm font-medium text-gray-500">Location</label>
+        <div className="mt-1 flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <ClickableAddress
+            address={equipmentAddress}
+            lat={equipment.assigned_location_lat ?? undefined}
+            lng={equipment.assigned_location_lng ?? undefined}
+            className="text-base"
+          />
+          {canEdit && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onStartEdit}
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              aria-label="Edit location"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Fallback: legacy location text (no structured coordinates) ──
+  const legacyLocation = equipment.location;
+  if (legacyLocation) {
+    return (
+      <div>
+        <label className="text-sm font-medium text-gray-500">Location</label>
+        <div className="mt-1 flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <span className="text-base">{legacyLocation}</span>
+          {canEdit && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onStartEdit}
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              aria-label="Edit location"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── No location: empty state ──
+  return (
+    <div>
+      <label className="text-sm font-medium text-gray-500">Location</label>
+      <div className="mt-1 flex items-center gap-2">
+        <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+        <span className="text-base text-muted-foreground">No location set</span>
+        {canEdit && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onStartEdit}
+            className="h-auto p-0 text-xs text-primary hover:text-primary/80 hover:underline"
+          >
+            Set Location
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Main Component ───────────────────────────────────────────────────
+
 const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) => {
-  const [showQRCode, setShowQRCode] = React.useState(false);
-  const [showWorkingHoursModal, setShowWorkingHoursModal] = React.useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
+  const [isEditingLocation, setIsEditingLocation] = useState(false);
+  const [isSavingLocation, setIsSavingLocation] = useState(false);
+  const { isLoaded: isMapsLoaded } = useGoogleMapsLoader();
   const permissions = useUnifiedPermissions();
   const { currentOrganization } = useOrganization();
   const { data: teams = [] } = useTeams(currentOrganization?.id);
@@ -265,18 +538,55 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Location</label>
+              <label className="text-sm font-medium text-gray-500">Last Maintenance</label>
               <div className="mt-1 flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-gray-400" />
-                <InlineEditField
-                  value={equipment.location || ''}
-                  onSave={(value) => handleFieldUpdate('location', value)}
-                  canEdit={canEdit}
-                  placeholder="Enter location"
-                  className="text-base"
-                />
+                <Calendar className="h-4 w-4 text-gray-400" />
+                {lastMaintenanceLink ? (
+                  <Link
+                    to={lastMaintenanceLink}
+                    className="text-base text-primary hover:underline"
+                  >
+                    {lastMaintenanceDisplay}
+                  </Link>
+                ) : (
+                  <span className="text-base">{lastMaintenanceDisplay}</span>
+                )}
               </div>
             </div>
+
+            <EquipmentLocationField
+              equipment={equipment}
+              teams={teams}
+              canEdit={canEdit}
+              isEditing={isEditingLocation}
+              isSaving={isSavingLocation}
+              isMapsLoaded={isMapsLoaded}
+              onStartEdit={() => setIsEditingLocation(true)}
+              onCancelEdit={() => setIsEditingLocation(false)}
+              onSave={async (data) => {
+                setIsSavingLocation(true);
+                try {
+                  await updateEquipmentMutation.mutateAsync({
+                    id: equipment.id,
+                    data: {
+                      assigned_location_street: data.street || null,
+                      assigned_location_city: data.city || null,
+                      assigned_location_state: data.state || null,
+                      assigned_location_country: data.country || null,
+                      assigned_location_lat: data.lat,
+                      assigned_location_lng: data.lng,
+                    },
+                  });
+                  toast.success('Location updated successfully');
+                  setIsEditingLocation(false);
+                } catch (error) {
+                  logger.error('Error updating location', error);
+                  toast.error('Failed to update location');
+                } finally {
+                  setIsSavingLocation(false);
+                }
+              }}
+            />
 
             <div>
               <label className="text-sm font-medium text-gray-500">Assigned Team</label>
