@@ -12,7 +12,6 @@ import { MapView } from '@/features/fleet-map/components/MapView';
 import type { TeamHQLocation } from '@/features/fleet-map/components/MapView';
 import EquipmentPanel from '@/features/fleet-map/components/EquipmentPanel';
 import type { UnlocatedEquipment } from '@/features/fleet-map/components/EquipmentPanel';
-import { logger } from '@/utils/logger';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
