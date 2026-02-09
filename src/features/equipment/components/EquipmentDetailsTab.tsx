@@ -152,7 +152,13 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground flex-shrink-0 cursor-help" />
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring cursor-help"
+                  aria-label="This location is set by the team. Edit the team to change it."
+                >
+                  <Info className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                </button>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-[260px]">
                 <p>This location is set by the team. Edit the team to change it.</p>
@@ -229,6 +235,31 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
             lng={equipment.assigned_location_lng ?? undefined}
             className="text-base"
           />
+          {canEdit && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onStartEdit}
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              aria-label="Edit location"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Fallback: legacy location text (no structured coordinates) ──
+  const legacyLocation = equipment.location;
+  if (legacyLocation) {
+    return (
+      <div>
+        <label className="text-sm font-medium text-gray-500">Location</label>
+        <div className="mt-1 flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <span className="text-base">{legacyLocation}</span>
           {canEdit && (
             <Button
               variant="ghost"

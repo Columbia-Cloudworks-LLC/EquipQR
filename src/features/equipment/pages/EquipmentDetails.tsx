@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, MapPin, Forklift, QrCode, Trash2, Users } from 'lucide-react';
 import { GoogleMap, MarkerF } from '@react-google-maps/api';
 import ClickableAddress from '@/components/ui/ClickableAddress';
+import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
@@ -385,27 +386,48 @@ const EquipmentDetails = () => {
               </CardHeader>
               <CardContent className="p-0 px-6 pb-4 space-y-2">
                 {(() => {
-                  // Resolve effective location
+                  // Resolve effective location using shared 3-tier hierarchy
                   const team = equipment.team_id
                     ? teams.find((t) => t.id === equipment.team_id)
                     : undefined;
-                  const isTeamOverride =
-                    !!equipment.use_team_location &&
-                    !!team?.override_equipment_location &&
-                    team.location_lat != null &&
-                    team.location_lng != null;
 
-                  const effectiveLat = isTeamOverride
-                    ? team!.location_lat!
-                    : equipment.assigned_location_lat;
-                  const effectiveLng = isTeamOverride
-                    ? team!.location_lng!
-                    : equipment.assigned_location_lng;
+                  // Parse last_known_location (Json) for scan fallback
+                  let lastScan: { lat: number; lng: number } | undefined;
+                  if (equipment.last_known_location && typeof equipment.last_known_location === 'object') {
+                    const loc = equipment.last_known_location as Record<string, unknown>;
+                    const lat = Number(loc.latitude ?? loc.lat);
+                    const lng = Number(loc.longitude ?? loc.lng);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                      lastScan = { lat, lng };
+                    }
+                  }
 
-                  const effectiveAddr = isTeamOverride
-                    ? [team!.location_address, team!.location_city, team!.location_state, team!.location_country].filter(Boolean).join(', ')
-                    : [equipment.assigned_location_street, equipment.assigned_location_city, equipment.assigned_location_state, equipment.assigned_location_country].filter(Boolean).join(', ');
+                  const resolved = resolveEffectiveLocation({
+                    team: team ? {
+                      override_equipment_location: team.override_equipment_location,
+                      location_lat: team.location_lat,
+                      location_lng: team.location_lng,
+                      location_address: team.location_address,
+                      location_city: team.location_city,
+                      location_state: team.location_state,
+                      location_country: team.location_country,
+                    } : undefined,
+                    equipment: {
+                      use_team_location: equipment.use_team_location ?? undefined,
+                      assigned_location_lat: equipment.assigned_location_lat,
+                      assigned_location_lng: equipment.assigned_location_lng,
+                      assigned_location_street: equipment.assigned_location_street,
+                      assigned_location_city: equipment.assigned_location_city,
+                      assigned_location_state: equipment.assigned_location_state,
+                      assigned_location_country: equipment.assigned_location_country,
+                    },
+                    lastScan,
+                  });
 
+                  const effectiveLat = resolved?.lat;
+                  const effectiveLng = resolved?.lng;
+                  const effectiveAddr = resolved?.formattedAddress || '';
+                  const isTeamOverride = resolved?.source === 'team';
                   const hasCoords = effectiveLat != null && effectiveLng != null;
 
                   if (hasCoords && isMapsLoaded) {
@@ -442,6 +464,9 @@ const EquipmentDetails = () => {
                         {isTeamOverride && (
                           <p className="text-xs text-muted-foreground">via {team!.name}</p>
                         )}
+                        {resolved?.source === 'scan' && (
+                          <p className="text-xs text-muted-foreground">via last scan</p>
+                        )}
                       </>
                     );
                   }
@@ -452,6 +477,18 @@ const EquipmentDetails = () => {
                         <div className="text-center">
                           <MapPin className="h-6 w-6 text-muted-foreground/50 mx-auto animate-pulse" />
                           <p className="text-xs text-muted-foreground mt-1">Loading map...</p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Fallback: show legacy text location if available
+                  if (equipment.location) {
+                    return (
+                      <div className="h-[180px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+                        <div className="text-center px-4">
+                          <MapPin className="h-6 w-6 text-muted-foreground/50 mx-auto" />
+                          <p className="text-xs text-muted-foreground mt-1">{equipment.location}</p>
                         </div>
                       </div>
                     );

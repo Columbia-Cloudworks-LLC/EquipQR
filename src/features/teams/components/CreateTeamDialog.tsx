@@ -165,7 +165,13 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring cursor-help"
+                    aria-label="Override equipment location info"
+                  >
+                    <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-[240px]">
                   <p>
