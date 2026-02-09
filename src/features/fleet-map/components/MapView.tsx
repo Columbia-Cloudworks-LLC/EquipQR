@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { GoogleMap, MarkerF, InfoWindowF } from '@react-google-maps/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, ExternalLink, Clock, Wrench, Users, Navigation, Star } from 'lucide-react';
+import { ExternalLink, Clock, Wrench, Users, Navigation, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { DATE_DISPLAY_FORMAT } from '@/config/date-formats';

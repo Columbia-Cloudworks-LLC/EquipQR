@@ -292,7 +292,7 @@ Deno.serve(async (req) => {
     if (query && query.trim()) {
       // Whitelist: allow only alphanumeric, spaces, hyphens, periods, commas, apostrophes
       // This prevents QuickBooks Query Language injection via special characters
-      const sanitizedQuery = query.replace(/[^a-zA-Z0-9\s\-.,'']/g, "").trim();
+      const sanitizedQuery = query.replace(/[^a-zA-Z0-9\s\-.,']/g, "").trim();
 
       // Reject excessively long search queries
       if (sanitizedQuery.length > 100) {
@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
 
       if (sanitizedQuery.length > 0) {
         // Escape single quotes for the QuickBooks query (defense-in-depth)
-        const escapedQuery = sanitizedQuery.replace(/'/g, "\\'");
+        const escapedQuery = sanitizedQuery.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
         customerQuery = `SELECT * FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
       }
     }

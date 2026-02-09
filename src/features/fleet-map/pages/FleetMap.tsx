@@ -55,9 +55,6 @@ const FleetMap: React.FC = () => {
   // Build unlocated equipment list
   const unlocatedEquipment: UnlocatedEquipment[] = useMemo(() => {
     if (!teamFleetData) return [];
-    const located = new Set(
-      teamFleetData.teamEquipmentData.flatMap(t => t.equipment.map(e => e.id))
-    );
     // Unlocated = total equipment count minus located
     // We don't have full unlocated data from the service, so we compute from the difference
     // For now, return an empty array -- the service would need to also return unlocated items
