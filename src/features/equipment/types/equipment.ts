@@ -34,12 +34,8 @@ export interface AssignedLocation {
   lng?: number;
 }
 
-export interface EffectiveLocation {
-  lat: number;
-  lng: number;
-  formattedAddress?: string;
-  source: 'team' | 'manual' | 'scan';
-}
+// Re-export EffectiveLocation from the shared utility (single source of truth)
+export type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 // ============================================
 // Custom Attributes Type

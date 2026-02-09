@@ -4,9 +4,14 @@
 --
 -- The original self-only guard used `p_user_id != auth.uid()` which evaluates
 -- to NULL (not TRUE) when auth.uid() IS NULL, allowing the function body to
--- execute without authentication. This corrective migration uses IS DISTINCT
--- FROM for a NULL-safe comparison and raises an exception instead of silently
--- returning 0 so misuse is detectable.
+-- execute without authentication.
+--
+-- However, handle_new_user() calls this function from an auth.users trigger
+-- where auth.uid() IS NULL (service-role/trigger context). The guard must
+-- allow trigger invocations while still blocking user impersonation.
+--
+-- Solution: Only enforce the self-check when auth.uid() IS NOT NULL (user
+-- context). When auth.uid() IS NULL (trigger/service-role), allow execution.
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.apply_pending_admin_grants_for_user(p_user_id uuid)
@@ -19,9 +24,10 @@ DECLARE
   v_count int := 0;
 BEGIN
   -- Security: only allow users to apply their own grants
-  -- IS DISTINCT FROM is NULL-safe: returns TRUE when auth.uid() IS NULL
-  -- In trigger context (handle_new_user), auth.uid() equals the new user's ID
-  IF (select auth.uid()) IS NULL OR p_user_id IS DISTINCT FROM (select auth.uid()) THEN
+  -- When auth.uid() IS NOT NULL (user context): enforce self-only check
+  -- When auth.uid() IS NULL (trigger/service-role context): allow execution
+  --   e.g., handle_new_user() trigger calls this during sign-up
+  IF (select auth.uid()) IS NOT NULL AND p_user_id IS DISTINCT FROM (select auth.uid()) THEN
     RAISE EXCEPTION 'Unauthorized: can only apply own pending grants'
       USING ERRCODE = '28000'; -- invalid_authorization_specification
   END IF;
