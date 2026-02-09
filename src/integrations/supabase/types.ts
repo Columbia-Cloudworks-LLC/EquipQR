@@ -394,6 +394,12 @@ export type Database = {
       }
       equipment: {
         Row: {
+          assigned_location_city: string | null
+          assigned_location_country: string | null
+          assigned_location_lat: number | null
+          assigned_location_lng: number | null
+          assigned_location_state: string | null
+          assigned_location_street: string | null
           created_at: string
           custom_attributes: Json | null
           customer_id: string | null
@@ -415,10 +421,17 @@ export type Database = {
           status: Database["public"]["Enums"]["equipment_status"]
           team_id: string | null
           updated_at: string
+          use_team_location: boolean
           warranty_expiration: string | null
           working_hours: number | null
         }
         Insert: {
+          assigned_location_city?: string | null
+          assigned_location_country?: string | null
+          assigned_location_lat?: number | null
+          assigned_location_lng?: number | null
+          assigned_location_state?: string | null
+          assigned_location_street?: string | null
           created_at?: string
           custom_attributes?: Json | null
           customer_id?: string | null
@@ -440,10 +453,17 @@ export type Database = {
           status?: Database["public"]["Enums"]["equipment_status"]
           team_id?: string | null
           updated_at?: string
+          use_team_location?: boolean
           warranty_expiration?: string | null
           working_hours?: number | null
         }
         Update: {
+          assigned_location_city?: string | null
+          assigned_location_country?: string | null
+          assigned_location_lat?: number | null
+          assigned_location_lng?: number | null
+          assigned_location_state?: string | null
+          assigned_location_street?: string | null
           created_at?: string
           custom_attributes?: Json | null
           customer_id?: string | null
@@ -465,6 +485,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["equipment_status"]
           team_id?: string | null
           updated_at?: string
+          use_team_location?: boolean
           warranty_expiration?: string | null
           working_hours?: number | null
         }
@@ -509,6 +530,62 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_location_history: {
+        Row: {
+          address_city: string | null
+          address_country: string | null
+          address_state: string | null
+          address_street: string | null
+          changed_by: string | null
+          created_at: string
+          equipment_id: string
+          formatted_address: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          metadata: Json | null
+          source: string
+        }
+        Insert: {
+          address_city?: string | null
+          address_country?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          changed_by?: string | null
+          created_at?: string
+          equipment_id: string
+          formatted_address?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          source: string
+        }
+        Update: {
+          address_city?: string | null
+          address_country?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          changed_by?: string | null
+          created_at?: string
+          equipment_id?: string
+          formatted_address?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_location_history_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
         ]
@@ -1723,6 +1800,7 @@ export type Database = {
           name: string
           next_billing_date: string | null
           plan: Database["public"]["Enums"]["organization_plan"]
+          scan_location_collection_enabled: boolean
           storage_used_mb: number | null
           updated_at: string
         }
@@ -1742,6 +1820,7 @@ export type Database = {
           name: string
           next_billing_date?: string | null
           plan?: Database["public"]["Enums"]["organization_plan"]
+          scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
           updated_at?: string
         }
@@ -1761,6 +1840,7 @@ export type Database = {
           name?: string
           next_billing_date?: string | null
           plan?: Database["public"]["Enums"]["organization_plan"]
+          scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
           updated_at?: string
         }
@@ -2981,8 +3061,15 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          location_address: string | null
+          location_city: string | null
+          location_country: string | null
+          location_lat: number | null
+          location_lng: number | null
+          location_state: string | null
           name: string
           organization_id: string
+          override_equipment_location: boolean
           team_lead_id: string | null
           updated_at: string
         }
@@ -2990,8 +3077,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          location_address?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_state?: string | null
           name: string
           organization_id: string
+          override_equipment_location?: boolean
           team_lead_id?: string | null
           updated_at?: string
         }
@@ -2999,8 +3093,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          location_address?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_state?: string | null
           name?: string
           organization_id?: string
+          override_equipment_location?: boolean
           team_lead_id?: string | null
           updated_at?: string
         }
@@ -3033,7 +3134,7 @@ export type Database = {
           author: string
           body: string
           created_at: string
-          github_comment_id: number | null
+          github_comment_id: number
           id: string
           is_from_team: boolean | null
           ticket_id: string
@@ -3042,7 +3143,7 @@ export type Database = {
           author: string
           body: string
           created_at?: string
-          github_comment_id?: number | null
+          github_comment_id: number
           id?: string
           is_from_team?: boolean | null
           ticket_id: string
@@ -3051,7 +3152,7 @@ export type Database = {
           author?: string
           body?: string
           created_at?: string
-          github_comment_id?: number | null
+          github_comment_id?: number
           id?: string
           is_from_team?: boolean | null
           ticket_id?: string
@@ -4556,6 +4657,21 @@ export type Database = {
         }
         Returns: string
       }
+      log_equipment_location_change: {
+        Args: {
+          p_address_city?: string
+          p_address_country?: string
+          p_address_state?: string
+          p_address_street?: string
+          p_equipment_id: string
+          p_formatted_address?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_metadata?: Json
+          p_source: string
+        }
+        Returns: string
+      }
       log_invitation_performance: {
         Args: {
           error_message?: string
@@ -4957,4 +5073,3 @@ export const Constants = {
     },
   },
 } as const
-
