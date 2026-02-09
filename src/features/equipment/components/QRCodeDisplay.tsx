@@ -59,7 +59,8 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
     if (!qrCodeDataUrl) return;
 
     try {
-      // Generate QR code in the selected format
+      // Dynamically load QRCode for download (same pattern as generateQRCode)
+      const QRCode = (await import('qrcode')).default;
       const formatOptions = {
         width: 256,
         margin: 2,

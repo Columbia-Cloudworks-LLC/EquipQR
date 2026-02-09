@@ -89,13 +89,17 @@ const WorkOrderDetails = () => {
   }, [workOrder?.equipment_id, selectedEquipmentId]);
 
   // Memoize object props to avoid breaking child component memoization
+  // Extract individual fields so useMemo deps are explicit and lint-clean
+  const hasWorkOrder = !!workOrder;
+  const teamName = workOrder?.teamName;
+  const assigneeName = workOrder?.assigneeName;
   const teamData = useMemo(
-    () => workOrder ? { name: workOrder.teamName } : undefined,
-    [workOrder?.teamName]
+    () => hasWorkOrder ? { name: teamName } : undefined,
+    [hasWorkOrder, teamName]
   );
   const assigneeData = useMemo(
-    () => workOrder ? { name: workOrder.assigneeName } : undefined,
-    [workOrder?.assigneeName]
+    () => hasWorkOrder ? { name: assigneeName } : undefined,
+    [hasWorkOrder, assigneeName]
   );
 
   // Stagger animation: always run hooks (must be before any early returns)
