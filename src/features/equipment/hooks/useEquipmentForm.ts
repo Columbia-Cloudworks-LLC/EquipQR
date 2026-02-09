@@ -187,15 +187,16 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
 
       if (error) throw error;
 
-      // Log location change if assigned location fields are present
-      if (
-        data.assigned_location_street ||
-        data.assigned_location_city ||
-        data.assigned_location_state ||
-        data.assigned_location_country ||
-        data.assigned_location_lat != null ||
-        data.assigned_location_lng != null
-      ) {
+      // Log location change only if assigned location fields actually changed
+      const hasAssignedLocationChanged =
+        (initialData.assigned_location_street ?? '') !== (data.assigned_location_street ?? '') ||
+        (initialData.assigned_location_city ?? '') !== (data.assigned_location_city ?? '') ||
+        (initialData.assigned_location_state ?? '') !== (data.assigned_location_state ?? '') ||
+        (initialData.assigned_location_country ?? '') !== (data.assigned_location_country ?? '') ||
+        (initialData.assigned_location_lat ?? null) !== (data.assigned_location_lat ?? null) ||
+        (initialData.assigned_location_lng ?? null) !== (data.assigned_location_lng ?? null);
+
+      if (hasAssignedLocationChanged) {
         logEquipmentLocationChange({
           equipmentId: initialData.id,
           source: 'manual',

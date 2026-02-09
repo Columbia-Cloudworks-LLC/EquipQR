@@ -49,7 +49,7 @@ CREATE POLICY equipment_location_history_select
     )
   );
 
--- INSERT: only service_role can insert (via triggers and RPCs)
+-- INSERT: no direct inserts via RLS; writes happen through SECURITY DEFINER triggers/RPCs
 DROP POLICY IF EXISTS equipment_location_history_service_insert ON public.equipment_location_history;
 CREATE POLICY equipment_location_history_service_insert
   ON public.equipment_location_history

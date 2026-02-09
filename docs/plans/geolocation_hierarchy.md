@@ -38,11 +38,12 @@ All schema changes, frontend components, edge function updates, and utility code
 - **File:** `src/lib/flags.ts`
 - `GEOLOCATION_HIERARCHY_ENABLED` gated by `VITE_ENABLE_GEOLOCATION_HIERARCHY` env var
 
-### TeamForm Location Fields
-- **File:** `src/features/teams/components/TeamForm.tsx`
-- Collapsible location section with Street, City, State, Country inputs
+### Team Location Fields
+- **Create:** `src/features/teams/components/CreateTeamDialog.tsx`
+- **Edit:** `src/features/teams/components/TeamMetadataEditor.tsx`
+- Google Places Autocomplete for address entry
 - Override Equipment Location checkbox with tooltip
-- Auto-expands in edit mode when location data exists
+- Location data populated from Google Places structured fields
 
 ### EquipmentForm Structured Address
 - **File:** `src/features/equipment/components/form/EquipmentStatusLocationSection.tsx`

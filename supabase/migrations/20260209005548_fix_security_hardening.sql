@@ -26,9 +26,10 @@ DROP POLICY IF EXISTS "preventative_maintenance_update" ON public.preventative_m
 -- User B. Adding an auth.uid() guard ensures users can only apply their own
 -- pending grants.
 --
--- Compatibility: The handle_new_user() trigger calls this function in a trigger
--- context where auth.uid() is the new user's ID (set by Supabase Auth), so the
--- guard is compatible with the trigger invocation path.
+-- NOTE: The handle_new_user() trigger calls this function in a trigger context
+-- where auth.uid() IS NULL (service-role/trigger context). The follow-up
+-- migration 20260209020000 fixes this guard to be NULL-safe using
+-- `(select auth.uid()) IS NOT NULL AND p_user_id IS DISTINCT FROM (select auth.uid())`.
 CREATE OR REPLACE FUNCTION public.apply_pending_admin_grants_for_user(p_user_id uuid)
 RETURNS integer
 LANGUAGE plpgsql
@@ -39,7 +40,8 @@ DECLARE
   v_count int := 0;
 BEGIN
   -- Security: only allow users to apply their own grants
-  -- In trigger context (handle_new_user), auth.uid() equals the new user's ID
+  -- NOTE: In trigger context (handle_new_user), auth.uid() IS NULL -- see
+  -- migration 20260209020000 for the NULL-safe version of this guard
   IF p_user_id != auth.uid() THEN
     RETURN 0;
   END IF;

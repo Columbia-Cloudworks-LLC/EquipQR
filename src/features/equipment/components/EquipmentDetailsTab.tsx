@@ -76,6 +76,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
   onSave,
 }) => {
   const [pendingPlace, setPendingPlace] = useState<PlaceLocationData | null>(null);
+  const [isCleared, setIsCleared] = useState(false);
 
   // Resolve team override
   const team = equipment.team_id
@@ -106,17 +107,32 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
 
   const handlePlaceSelect = useCallback((data: PlaceLocationData) => {
     setPendingPlace(data);
+    setIsCleared(false);
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (pendingPlace) {
+    if (isCleared) {
+      // Save with null location fields to clear the assigned address
+      await onSave({
+        formatted_address: '',
+        street: '',
+        city: '',
+        state: '',
+        country: '',
+        lat: undefined,
+        lng: undefined,
+      } as PlaceLocationData);
+      setPendingPlace(null);
+      setIsCleared(false);
+    } else if (pendingPlace) {
       await onSave(pendingPlace);
       setPendingPlace(null);
     }
-  }, [pendingPlace, onSave]);
+  }, [pendingPlace, isCleared, onSave]);
 
   const handleCancel = useCallback(() => {
     setPendingPlace(null);
+    setIsCleared(false);
     onCancelEdit();
   }, [onCancelEdit]);
 
@@ -164,9 +180,12 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
         <label className="text-sm font-medium text-gray-500">Location</label>
         <div className="mt-1 space-y-2">
           <GooglePlacesAutocomplete
-            value={pendingPlace?.formatted_address ?? equipmentAddress}
+            value={isCleared ? '' : (pendingPlace?.formatted_address ?? equipmentAddress)}
             onPlaceSelect={handlePlaceSelect}
-            onClear={() => setPendingPlace(null)}
+            onClear={() => {
+              setPendingPlace(null);
+              setIsCleared(true);
+            }}
             placeholder="Search for an address..."
             isLoaded={isMapsLoaded}
           />
@@ -175,7 +194,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
               size="sm"
               variant="default"
               onClick={handleSave}
-              disabled={!pendingPlace || isSaving}
+              disabled={(!pendingPlace && !isCleared) || isSaving}
               className="gap-1 h-7 text-xs"
             >
               <Check className="h-3 w-3" />
