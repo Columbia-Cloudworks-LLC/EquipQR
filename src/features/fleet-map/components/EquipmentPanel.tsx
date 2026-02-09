@@ -111,7 +111,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               <Forklift className="h-5 w-5 text-primary" />
               <h2 className="font-semibold text-sm">Fleet Equipment</h2>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="h-7 w-7 p-0">
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-7 w-7 p-0" aria-label="Close equipment panel">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -150,6 +150,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 size="sm"
                 onClick={() => setSearch('')}
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5 p-0"
+                aria-label="Clear search"
               >
                 <X className="h-3 w-3" />
               </Button>

@@ -82,6 +82,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
     ? teams.find((t) => t.id === equipment.team_id)
     : undefined;
   const isTeamOverride =
+    !!equipment.use_team_location &&
     !!team?.override_equipment_location &&
     team.location_lat != null &&
     team.location_lng != null;
@@ -215,6 +216,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
               size="sm"
               onClick={onStartEdit}
               className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              aria-label="Edit location"
             >
               <Edit2 className="h-3.5 w-3.5" />
             </Button>

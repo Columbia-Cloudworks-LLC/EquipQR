@@ -110,6 +110,7 @@ export const getTeamEquipmentWithLocations = async (
         image_url,
         updated_at,
         team_id,
+        use_team_location,
         assigned_location_lat,
         assigned_location_lng,
         assigned_location_street,
@@ -188,8 +189,9 @@ export const getTeamEquipmentWithLocations = async (
 
       const team = item.teams;
 
-      // 1. Team Override: If team has override enabled and coordinates
+      // 1. Team Override: If both equipment opt-in AND team override are enabled, and team has coordinates
       if (
+        item.use_team_location &&
         team?.override_equipment_location &&
         team.location_lat != null &&
         team.location_lng != null

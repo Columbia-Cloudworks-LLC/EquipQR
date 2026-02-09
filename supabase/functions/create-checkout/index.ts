@@ -45,6 +45,7 @@ Deno.serve(async (req) => {
     // Validate priceId against server-side allowlist (if configured)
     const ALLOWED_PRICE_IDS = (Deno.env.get("ALLOWED_STRIPE_PRICE_IDS") || "")
       .split(",")
+      .map((s) => s.trim())
       .filter(Boolean);
 
     if (ALLOWED_PRICE_IDS.length > 0 && !ALLOWED_PRICE_IDS.includes(priceId)) {

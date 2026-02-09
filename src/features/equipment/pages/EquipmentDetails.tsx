@@ -390,6 +390,7 @@ const EquipmentDetails = () => {
                     ? teams.find((t) => t.id === equipment.team_id)
                     : undefined;
                   const isTeamOverride =
+                    !!equipment.use_team_location &&
                     !!team?.override_equipment_location &&
                     team.location_lat != null &&
                     team.location_lng != null;
