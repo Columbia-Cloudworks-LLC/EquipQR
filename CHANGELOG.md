@@ -9,9 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-02-09
+
 ### Added
 
-- **Geolocation Hierarchy & Google Maps Integration** (#TBD): Comprehensive equipment location system with strict hierarchy, Google Places Autocomplete, team overrides, and privacy controls
+- **Geolocation Hierarchy & Google Maps Integration**: Comprehensive equipment location system with strict hierarchy, Google Places Autocomplete, team overrides, and privacy controls
 
   #### Location Hierarchy Engine
   - **3-tier location priority**: Team Override > Manual Assignment > Last Known Scan. New `resolveEffectiveLocation()` utility (`src/utils/effectiveLocation.ts`) resolves the display location for any equipment asset
@@ -950,7 +952,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.4...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.4...v2.3.0
 [2.2.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.3...v2.2.4
 [2.2.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.2.1...v2.2.2
