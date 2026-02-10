@@ -272,6 +272,27 @@ export interface PartialInventoryItem {
 }
 
 // ============================================
+// Inventory Item Image Types
+// ============================================
+
+/**
+ * InventoryItemImage - Metadata for images uploaded to inventory items.
+ * Up to 5 images per item, stored in the inventory_item_images table.
+ */
+export interface InventoryItemImage {
+  id: string;
+  inventory_item_id: string;
+  organization_id: string;
+  file_url: string;
+  file_name: string;
+  file_size: number | null;
+  mime_type: string | null;
+  uploaded_by: string;
+  uploaded_by_name: string | null;
+  created_at: string;
+}
+
+// ============================================
 // Form & Input Types
 // ============================================
 

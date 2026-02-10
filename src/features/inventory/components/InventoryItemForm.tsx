@@ -92,7 +92,6 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
       external_id: '',
       quantity_on_hand: 0,
       low_stock_threshold: 5,
-      image_url: '',
       location: '',
       default_unit_cost: null,
       compatibleEquipmentIds: [],
@@ -116,7 +115,6 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         external_id: editingItem.external_id || '',
         quantity_on_hand: editingItem.quantity_on_hand,
         low_stock_threshold: editingItem.low_stock_threshold,
-        image_url: editingItem.image_url || '',
         location: editingItem.location || '',
         default_unit_cost: editingItem.default_unit_cost ? Number(editingItem.default_unit_cost) : null,
         compatibleEquipmentIds: [], // Will be loaded separately
@@ -139,7 +137,6 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         external_id: '',
         quantity_on_hand: 0,
         low_stock_threshold: 5,
-        image_url: '',
         location: '',
         default_unit_cost: null,
         compatibleEquipmentIds: [],
@@ -526,19 +523,14 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="image_url"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://..." {...field} value={field.value || ''} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Image upload is handled separately on the item detail page (up to 5 images) */}
+            {!editingItem && (
+              <div className="rounded-lg border border-dashed p-3 text-center">
+                <p className="text-sm text-muted-foreground">
+                  You can upload up to 5 images after creating this item.
+                </p>
+              </div>
+            )}
 
             {/* Compatibility Rules (manufacturer/model patterns) */}
             <FormField

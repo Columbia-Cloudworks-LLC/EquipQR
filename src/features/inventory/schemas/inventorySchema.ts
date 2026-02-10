@@ -42,10 +42,6 @@ export const inventoryItemFormSchema = z.object({
     .int('Low stock threshold must be an integer')
     .min(1, 'Low stock threshold must be at least 1')
     .default(5),
-  image_url: z.preprocess(
-    (val) => val === '' || val === undefined ? null : val,
-    z.string().url('Must be a valid URL').nullable().optional()
-  ),
   location: z.string()
     .max(255, 'Location must be less than 255 characters')
     .optional()
