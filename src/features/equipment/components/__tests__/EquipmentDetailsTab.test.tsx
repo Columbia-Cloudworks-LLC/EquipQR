@@ -5,8 +5,13 @@ import EquipmentDetailsTab from '../EquipmentDetailsTab';
 import { Tables } from '@/integrations/supabase/types';
 import * as useEquipmentModule from '@/features/equipment/hooks/useEquipment';
 import * as useUnifiedPermissionsModule from '@/hooks/useUnifiedPermissions';
+import { personas } from '@/test/fixtures/personas';
+import { equipment as eqFixtures, organizations, teams as teamFixtures } from '@/test/fixtures/entities';
 
-// Mock dependencies
+// ============================================
+// Mocks
+// ============================================
+
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
   useUpdateEquipment: vi.fn()
 }));
@@ -25,23 +30,23 @@ vi.mock('@/hooks/useUnifiedPermissions', () => ({
 vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
   useTeams: vi.fn(() => ({
     data: [
-      { id: 'team-1', name: 'Team 1' },
-      { id: 'team-2', name: 'Team 2' }
+      { id: teamFixtures.maintenance.id, name: teamFixtures.maintenance.name },
+      { id: teamFixtures.field.id, name: teamFixtures.field.name }
     ]
   }))
 }));
 
 vi.mock('@/contexts/OrganizationContext', () => ({
   useOrganization: vi.fn(() => ({
-    currentOrganization: { id: 'org-1' }
+    currentOrganization: { id: organizations.acme.id }
   }))
 }));
 
 vi.mock('@/features/pm-templates/hooks/usePMTemplates', () => ({
   usePMTemplates: vi.fn(() => ({
     data: [
-      { id: 'pm-1', name: 'PM Template 1' },
-      { id: 'pm-2', name: 'PM Template 2' }
+      { id: 'pm-forklift', name: 'Forklift PM Checklist' },
+      { id: 'pm-crane', name: 'Overhead Crane Inspection' }
     ]
   }))
 }));
@@ -85,7 +90,7 @@ vi.mock('../InlineEditCustomAttributes', () => ({
 }));
 
 vi.mock('../WorkingHoursTimelineModal', () => ({
-  WorkingHoursTimelineModal: ({ open }: { open: boolean }) => 
+  WorkingHoursTimelineModal: ({ open }: { open: boolean }) =>
     open ? <div data-testid="working-hours-modal">Working Hours</div> : null
 }));
 
@@ -95,31 +100,35 @@ vi.mock('@/hooks/useGoogleMapsLoader', () => ({
   }))
 }));
 
-const mockEquipment: Tables<'equipment'> = {
-  id: 'eq-1',
-  name: 'Test Equipment',
-  manufacturer: 'Test Manufacturer',
-  model: 'Test Model',
-  serial_number: 'TEST123',
-  status: 'active',
-  location: 'Test Location',
-  organization_id: 'org-1',
+// ============================================
+// Equipment entity based on fixture data
+// ============================================
+
+const forkliftEquipment: Tables<'equipment'> = {
+  id: eqFixtures.forklift1.id,
+  name: eqFixtures.forklift1.name,
+  manufacturer: eqFixtures.forklift1.manufacturer,
+  model: eqFixtures.forklift1.model,
+  serial_number: eqFixtures.forklift1.serial_number,
+  status: eqFixtures.forklift1.status,
+  location: eqFixtures.forklift1.location ?? null,
+  organization_id: eqFixtures.forklift1.organization_id,
   created_at: '2024-01-01',
   updated_at: '2024-01-01',
   installation_date: '2024-01-15',
   warranty_expiration: '2025-12-31',
   last_maintenance: '2024-06-01',
   last_maintenance_work_order_id: null,
-  notes: 'Test notes',
-  custom_attributes: { key1: 'value1' },
-  image_url: 'https://example.com/image.jpg',
-  team_id: 'team-1',
-  default_pm_template_id: 'pm-1',
+  notes: eqFixtures.forklift1.notes ?? null,
+  custom_attributes: eqFixtures.forklift1.custom_attributes ?? null,
+  image_url: null,
+  team_id: eqFixtures.forklift1.team_id,
+  default_pm_template_id: eqFixtures.forklift1.default_pm_template_id ?? null,
   working_hours: 1000,
   last_known_location: null,
   customer_id: null,
   import_id: null,
-  assigned_location_street: 'Test Location',
+  assigned_location_street: 'Warehouse A',
   assigned_location_city: null,
   assigned_location_state: null,
   assigned_location_country: null,
@@ -127,191 +136,163 @@ const mockEquipment: Tables<'equipment'> = {
   assigned_location_lng: -74.006
 };
 
+// ============================================
+// Helpers
+// ============================================
+
+function setupPermissions(canEdit: boolean, canDelete: boolean) {
+  vi.mocked(useUnifiedPermissionsModule.useUnifiedPermissions).mockReturnValue({
+    equipment: {
+      getPermissions: vi.fn(() => ({ canEdit, canDelete }))
+    }
+  });
+}
+
+// ============================================
+// Persona-Driven Tests
+// ============================================
+
 describe('EquipmentDetailsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
     vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
-      mutateAsync: vi.fn().mockResolvedValue(mockEquipment),
+      mutateAsync: vi.fn().mockResolvedValue(forkliftEquipment),
       isPending: false
     });
   });
 
-  describe('Core Rendering', () => {
-    it('renders equipment details', () => {
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      expect(screen.getByText('Test Equipment')).toBeInTheDocument();
-      expect(screen.getByText('Test Manufacturer')).toBeInTheDocument();
-      expect(screen.getByText('Test Model')).toBeInTheDocument();
+  // --------------------------------------------------------
+  // Bob Admin — full edit access to equipment details
+  // --------------------------------------------------------
+  describe(`as ${personas.admin.name} (admin with full edit access)`, () => {
+    beforeEach(() => {
+      setupPermissions(true, true);
     });
 
-    it('displays equipment status', () => {
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      // Status should be displayed
+    it('shows equipment name, manufacturer, and model', () => {
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
+
+      expect(screen.getByText(eqFixtures.forklift1.name)).toBeInTheDocument();
+      expect(screen.getByText(eqFixtures.forklift1.manufacturer)).toBeInTheDocument();
+      expect(screen.getByText(eqFixtures.forklift1.model)).toBeInTheDocument();
+    });
+
+    it('shows equipment status', () => {
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
       expect(screen.getByText('active')).toBeInTheDocument();
     });
 
-    it('displays location', () => {
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      expect(screen.getByText('Test Location')).toBeInTheDocument();
-    });
-  });
-
-  describe('QR Code Display', () => {
-    it('opens QR code display when button is clicked', () => {
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      // QR code button should be available
-      // This depends on the actual button implementation
+    it('shows equipment location', () => {
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
+      expect(screen.getByText('Warehouse A')).toBeInTheDocument();
     });
 
-    it('closes QR code display', () => {
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      // QR code modal should close when onClose is called
-    });
-  });
+    it('renders inline edit fields with save buttons', () => {
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
 
-  describe('Inline Editing', () => {
-    it('allows editing fields when canEdit is true', () => {
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
       const editFields = screen.getAllByTestId('inline-edit-field');
       expect(editFields.length).toBeGreaterThan(0);
+
+      // Admin can see Save buttons
+      const saveButtons = screen.getAllByText('Save');
+      expect(saveButtons.length).toBeGreaterThan(0);
     });
 
-    it('calls update mutation when field is saved', async () => {
-      const mockMutateAsync = vi.fn().mockResolvedValue(mockEquipment);
+    it('calls update mutation when a field is saved', async () => {
+      const mockMutateAsync = vi.fn().mockResolvedValue(forkliftEquipment);
       vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false
       });
 
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
+
       const saveButtons = screen.getAllByText('Save');
       fireEvent.click(saveButtons[0]);
-      
+
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalled();
       });
     });
 
-    it('renders last maintenance as a link when it comes from a work order', () => {
-      const equipmentWithWorkOrder = {
-        ...mockEquipment,
-        last_maintenance_work_order_id: 'wo-123'
-      };
+    it('shows custom attributes editor with save option', () => {
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
 
-      render(<EquipmentDetailsTab equipment={equipmentWithWorkOrder} />);
+      expect(screen.getByTestId('inline-edit-custom-attributes')).toBeInTheDocument();
+      expect(screen.getByText('Save Attributes')).toBeInTheDocument();
+    });
+
+    it('updates custom attributes when saved', async () => {
+      const mockMutateAsync = vi.fn().mockResolvedValue(forkliftEquipment);
+      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false
+      });
+
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
+      fireEvent.click(screen.getByText('Save Attributes'));
+
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledWith({
+          id: eqFixtures.forklift1.id,
+          data: { custom_attributes: {} }
+        });
+      });
+    });
+
+    it('displays working hours', () => {
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
+      expect(screen.getByText(/1000/)).toBeInTheDocument();
+    });
+
+    it('renders last maintenance as a link when sourced from a work order', () => {
+      const eqWithWO = { ...forkliftEquipment, last_maintenance_work_order_id: 'wo-123' };
+      render(<EquipmentDetailsTab equipment={eqWithWO} />);
 
       const link = screen.getByRole('link', { name: /view work order for last maintenance/i });
       expect(link).toHaveAttribute('href', '/dashboard/work-orders/wo-123');
     });
   });
 
-  describe('Custom Attributes', () => {
-    it('displays custom attributes editor', () => {
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
+  // --------------------------------------------------------
+  // Grace Viewer — read-only, cannot edit
+  // --------------------------------------------------------
+  describe(`as ${personas.viewer.name} (viewer with read-only access)`, () => {
+    beforeEach(() => {
+      setupPermissions(false, false);
+    });
+
+    it('shows equipment details in read-only mode', () => {
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
+
+      expect(screen.getByText(eqFixtures.forklift1.name)).toBeInTheDocument();
+      expect(screen.getByText(eqFixtures.forklift1.manufacturer)).toBeInTheDocument();
+    });
+
+    it('does NOT show Save buttons on inline edit fields', () => {
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
+
+      // Inline edit fields are rendered but without Save buttons
+      expect(screen.queryAllByText('Save')).toHaveLength(0);
+    });
+
+    it('does NOT show Save Attributes button', () => {
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
+
+      expect(screen.queryByText('Save Attributes')).not.toBeInTheDocument();
+    });
+  });
+
+  // --------------------------------------------------------
+  // Edge case: equipment without custom attributes
+  // --------------------------------------------------------
+  describe('when equipment has no custom attributes', () => {
+    it('renders the attributes editor (empty state)', () => {
+      const eqWithoutAttrs = { ...forkliftEquipment, custom_attributes: null };
+      setupPermissions(true, true);
+
+      render(<EquipmentDetailsTab equipment={eqWithoutAttrs} />);
       expect(screen.getByTestId('inline-edit-custom-attributes')).toBeInTheDocument();
-    });
-
-    it('updates custom attributes when saved', async () => {
-      const mockMutateAsync = vi.fn().mockResolvedValue(mockEquipment);
-      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
-
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      const saveButton = screen.getByText('Save Attributes');
-      fireEvent.click(saveButton);
-      
-      await waitFor(() => {
-        expect(mockMutateAsync).toHaveBeenCalledWith({
-          id: 'eq-1',
-          data: { custom_attributes: {} }
-        });
-      });
-    });
-  });
-
-  describe('Working Hours', () => {
-    it('displays working hours', () => {
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      // Working hours should be displayed
-      expect(screen.getByText(/1000/)).toBeInTheDocument();
-    });
-
-    it('opens working hours modal when clicked', () => {
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      // Working hours modal should open
-    });
-  });
-
-  describe('Team Assignment', () => {
-    it('displays current team', () => {
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      // Team should be displayed
-    });
-
-    it('allows changing team assignment', async () => {
-      const mockMutateAsync = vi.fn().mockResolvedValue(mockEquipment);
-      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
-
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      // Team selection should be available
-    });
-  });
-
-  describe('PM Template', () => {
-    it('displays current PM template', () => {
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      // PM template should be displayed
-    });
-
-    it('allows changing PM template', async () => {
-      const mockMutateAsync = vi.fn().mockResolvedValue(mockEquipment);
-      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
-
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      // PM template selection should be available
-    });
-  });
-
-  describe('Permission-Based Rendering', () => {
-    it('disables editing when canEdit is false', () => {
-      vi.mocked(useUnifiedPermissionsModule.useUnifiedPermissions).mockReturnValue({
-        equipment: {
-          getPermissions: vi.fn(() => ({
-            canEdit: false,
-            canDelete: false
-          }))
-        }
-      });
-
-      render(<EquipmentDetailsTab equipment={mockEquipment} />);
-      
-      // Edit buttons should be disabled or hidden
     });
   });
 });
-
-
