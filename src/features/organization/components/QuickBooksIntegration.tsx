@@ -290,8 +290,9 @@ export const QuickBooksIntegration = ({
                   target="_blank" 
                   rel="noopener noreferrer"
                   title="Manage QuickBooks connections"
+                  aria-label="Manage QuickBooks connections (opens in new tab)"
                 >
-                  <ExternalLink className="h-4 w-4" />
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 </a>
               </Button>
             </div>

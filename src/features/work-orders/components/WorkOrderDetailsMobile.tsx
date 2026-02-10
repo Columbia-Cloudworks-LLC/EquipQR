@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   ChevronDown, 
   ChevronUp, 
-  MapPin, 
   Calendar, 
   User,
   Clock,
@@ -16,11 +15,15 @@ import {
   Clipboard,
   AlertCircle,
   CheckCircle2,
-  Wrench
+  Wrench,
+  Forklift,
+  MapPin
 } from 'lucide-react';
+import { GoogleMap, MarkerF } from '@react-google-maps/api';
 import { useEquipmentCurrentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
-import { cn } from '@/lib/utils';
+import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import ClickableAddress from '@/components/ui/ClickableAddress';
+import { cn } from '@/lib/utils';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 interface WorkOrderDetailsMobileProps {
@@ -32,6 +35,7 @@ interface WorkOrderDetailsMobileProps {
     status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
     created_at?: string;
     due_date?: string;
+    estimated_hours?: number;
     has_pm?: boolean;
     pm_status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
     pm_progress?: number;
@@ -47,6 +51,8 @@ interface WorkOrderDetailsMobileProps {
     status: string;
     location?: string;
     team_id?: string | null;
+    custom_attributes?: Record<string, unknown> | null;
+    image_url?: string | null;
   };
   team?: {
     id: string;
@@ -70,20 +76,6 @@ interface WorkOrderDetailsMobileProps {
   onScrollToPM?: () => void;
 }
 
-/** Get priority badge styling */
-const getPriorityStyle = (priority: string) => {
-  switch (priority) {
-    case 'high':
-      return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800';
-    case 'medium':
-      return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800';
-    case 'low':
-      return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800';
-    default:
-      return '';
-  }
-};
-
 /** Check if a due date is urgent (within 24 hours or overdue) */
 const isDueUrgent = (dueDate: string): boolean => {
   const due = new Date(dueDate);
@@ -95,13 +87,13 @@ const isDueUrgent = (dueDate: string): boolean => {
 export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
   workOrder,
   equipment,
-  team,
   assignee,
   effectiveLocation,
   onScrollToPM,
 }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isEquipmentDetailsExpanded, setIsEquipmentDetailsExpanded] = useState(false);
+  const { isLoaded: isMapsLoaded } = useGoogleMapsLoader();
   
   // Get equipment working hours (current for reference)
   const { data: currentWorkingHours, isLoading: workingHoursLoading } = useEquipmentCurrentWorkingHours(
@@ -121,107 +113,47 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Top Summary Card - Task-First Info */}
+      {/* Top Summary Card — unique data not in mobile header */}
       <Card className="shadow-elevation-2 border-l-4 border-l-primary">
-        <CardContent className="p-4 space-y-4">
-          {/* Location + Navigate */}
-          {(effectiveLocation || equipment?.location) && (
+        <CardContent className="p-4 space-y-3">
+          {/* Assignee */}
+          {assignee && (
             <div className="flex items-center gap-2 text-sm">
-              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              {effectiveLocation ? (
-                <ClickableAddress
-                  address={effectiveLocation.formattedAddress}
-                  lat={effectiveLocation.lat}
-                  lng={effectiveLocation.lng}
-                  className="text-sm font-medium"
-                />
-              ) : equipment?.location ? (
-                <ClickableAddress
-                  address={equipment.location}
-                  className="text-sm font-medium"
-                />
-              ) : null}
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Assigned to:</span>
+              <span className="text-muted-foreground">{assignee.name}</span>
             </div>
           )}
 
-          {/* Equipment Link */}
-          {equipment && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm">
-                <Wrench className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <span className="font-medium">{equipment.name}</span>
-                  {equipment.manufacturer && (
-                    <span className="text-muted-foreground ml-1">
-                      ({equipment.manufacturer})
-                    </span>
-                  )}
-                </div>
-                <Badge variant="outline" className="text-xs">
-                  {equipment.status}
-                </Badge>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1"
-                asChild
-              >
-                <Link to={`/dashboard/equipment/${equipment.id}`}>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
+          {/* Due Date */}
+          {workOrder.due_date && (
+            <div className={cn(
+              "flex items-center gap-2 text-sm",
+              dueUrgent && "text-red-600 dark:text-red-400"
+            )}>
+              <Clock className="h-4 w-4" />
+              <span className="font-medium">Due:</span>
+              <span>{new Date(workOrder.due_date).toLocaleDateString()}</span>
+              {dueUrgent && <AlertCircle className="h-4 w-4" />}
             </div>
           )}
 
-          {/* Due Date + Priority Row */}
-          <div className="flex items-center justify-between gap-4">
-            {workOrder.due_date && (
-              <div className={cn(
-                "flex items-center gap-2 text-sm",
-                dueUrgent && "text-red-600 dark:text-red-400"
-              )}>
-                <Clock className="h-4 w-4" />
-                <div>
-                  <span className="font-medium">Due:</span>{' '}
-                  <span>{new Date(workOrder.due_date).toLocaleDateString()}</span>
-                </div>
-                {dueUrgent && (
-                  <AlertCircle className="h-4 w-4" />
-                )}
-              </div>
-            )}
-            <Badge 
-              variant="outline" 
-              className={cn("capitalize", getPriorityStyle(workOrder.priority))}
-            >
-              {workOrder.priority}
-            </Badge>
-          </div>
+          {/* Estimated Hours */}
+          {workOrder.estimated_hours != null && (
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Estimated:</span>
+              <span className="text-muted-foreground">{workOrder.estimated_hours}h</span>
+            </div>
+          )}
 
-          {/* Assignee + Team */}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            {assignee && (
-              <div className="flex items-center gap-1">
-                <User className="h-3.5 w-3.5" />
-                <span>{assignee.name}</span>
-              </div>
-            )}
-            {team && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs">Team:</span>
-                <span>{team.name}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Working Hours Badge */}
-          <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-              Working Hours:
+          {/* Working Hours — standard data label, de-emphasized */}
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">
+              {workOrder.equipment_working_hours_at_creation ? 'Hours (at creation):' : 'Working Hours:'}
             </span>
-            <span className="text-sm text-blue-700 dark:text-blue-300 font-semibold">
+            <span className="text-muted-foreground">
               {workingHoursLoading ? (
                 <span className="animate-pulse">...</span>
               ) : (
@@ -229,6 +161,27 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
               )}
             </span>
           </div>
+
+          {/* Equipment quick link */}
+          {equipment && (
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <Wrench className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">Equipment:</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-primary"
+                asChild
+              >
+                <Link to={`/dashboard/equipment/${equipment.id}`}>
+                  {equipment.name}
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -314,7 +267,95 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
                   )}
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-3 space-y-2 text-sm">
+              <CollapsibleContent className="mt-3 space-y-3 text-sm">
+                {/* Equipment Image */}
+                <div className="rounded-lg overflow-hidden border">
+                  {equipment.image_url ? (
+                    <img
+                      src={equipment.image_url}
+                      alt={equipment.name}
+                      className="w-full h-40 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-40 bg-muted flex items-center justify-center">
+                      <Forklift className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Location Map */}
+                <div className="rounded-lg overflow-hidden border">
+                  {(() => {
+                    const hasCoords = effectiveLocation?.lat != null && effectiveLocation?.lng != null;
+
+                    if (hasCoords && isMapsLoaded) {
+                      const center = { lat: effectiveLocation!.lat!, lng: effectiveLocation!.lng! };
+                      return (
+                        <div className="flex flex-col h-40">
+                          <div className="flex-1 min-h-0">
+                            <GoogleMap
+                              mapContainerStyle={{ width: '100%', height: '100%' }}
+                              center={center}
+                              zoom={14}
+                              options={{
+                                disableDefaultUI: true,
+                                zoomControl: false,
+                                mapTypeControl: false,
+                                streetViewControl: false,
+                                fullscreenControl: false,
+                              }}
+                            >
+                              <MarkerF position={center} />
+                            </GoogleMap>
+                          </div>
+                          {effectiveLocation!.formattedAddress && (
+                            <div className="flex items-start gap-1.5 px-2 py-1.5 bg-background">
+                              <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <ClickableAddress
+                                address={effectiveLocation!.formattedAddress}
+                                lat={effectiveLocation!.lat!}
+                                lng={effectiveLocation!.lng!}
+                                className="text-xs"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    if (hasCoords && !isMapsLoaded) {
+                      return (
+                        <div className="w-full h-40 bg-muted/50 flex items-center justify-center">
+                          <div className="text-center">
+                            <MapPin className="h-6 w-6 text-muted-foreground/50 mx-auto animate-pulse" />
+                            <p className="text-xs text-muted-foreground mt-1">Loading map...</p>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (equipment.location) {
+                      return (
+                        <div className="w-full h-40 bg-muted/50 flex items-center justify-center">
+                          <div className="text-center px-4">
+                            <MapPin className="h-6 w-6 text-muted-foreground/50 mx-auto" />
+                            <p className="text-xs text-muted-foreground mt-1">{equipment.location}</p>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="w-full h-40 bg-muted/50 flex items-center justify-center">
+                        <div className="text-center">
+                          <MapPin className="h-6 w-6 text-muted-foreground/50 mx-auto" />
+                          <p className="text-xs text-muted-foreground mt-1">No location set</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
                 {equipment.manufacturer && equipment.model && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Model</span>
@@ -327,16 +368,24 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
                     <span className="font-mono">{equipment.serial_number}</span>
                   </div>
                 )}
-                {workOrder.created_at && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Created</span>
-                    <span>{new Date(workOrder.created_at).toLocaleDateString()}</span>
-                  </div>
-                )}
                 {workOrder.equipment_working_hours_at_creation && (
                   <div className="text-xs text-muted-foreground mt-2 p-2 bg-muted rounded">
                     Hours shown are from work order creation time
                   </div>
+                )}
+                {/* Custom attributes */}
+                {equipment.custom_attributes && Object.keys(equipment.custom_attributes).length > 0 && (
+                  <>
+                    <div className="border-t my-2" />
+                    {Object.entries(equipment.custom_attributes).map(([key, val]) => (
+                      val != null && (
+                        <div key={key} className="flex justify-between gap-4">
+                          <span className="text-muted-foreground shrink-0">{key}</span>
+                          <span className="text-right break-words">{String(val)}</span>
+                        </div>
+                      )
+                    ))}
+                  </>
                 )}
               </CollapsibleContent>
             </Collapsible>
@@ -354,4 +403,3 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
     </div>
   );
 };
-

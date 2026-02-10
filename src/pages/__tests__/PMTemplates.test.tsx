@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { vi, beforeEach, describe, it, expect } from 'vitest';
 import PMTemplates from '@/features/pm-templates/pages/PMTemplates';
 import { TestProviders } from '@/test/utils/TestProviders';
+import { personas } from '@/test/fixtures/personas';
+import { organizations, pmTemplates as pmFixtures } from '@/test/fixtures/entities';
 
 // Mock hooks with named imports
 import { 
@@ -63,27 +65,22 @@ vi.mock('@/features/pm-templates/components/TemplateAssignmentDialog', () => ({
 
 const mockTemplates = [
   {
-    id: 'template-1',
-    name: 'Forklift PM',
-    description: 'Standard forklift maintenance checklist',
-    is_protected: true,
-    organization_id: null,
-    sections: [
-      { name: 'Engine', count: 5 },
-      { name: 'Hydraulics', count: 3 }
-    ],
-    itemCount: 8
+    id: pmFixtures.forklift.id,
+    name: pmFixtures.forklift.name,
+    description: pmFixtures.forklift.description,
+    is_protected: pmFixtures.forklift.is_protected,
+    organization_id: pmFixtures.forklift.organization_id,
+    sections: pmFixtures.forklift.sections,
+    itemCount: pmFixtures.forklift.itemCount
   },
   {
-    id: 'template-2',
-    name: 'Custom Equipment PM',
-    description: 'Organization specific template',
-    is_protected: false,
-    organization_id: 'org-1',
-    sections: [
-      { name: 'Safety', count: 4 }
-    ],
-    itemCount: 4
+    id: pmFixtures.customOrgTemplate.id,
+    name: pmFixtures.customOrgTemplate.name,
+    description: pmFixtures.customOrgTemplate.description,
+    is_protected: pmFixtures.customOrgTemplate.is_protected,
+    organization_id: pmFixtures.customOrgTemplate.organization_id,
+    sections: pmFixtures.customOrgTemplate.sections,
+    itemCount: pmFixtures.customOrgTemplate.itemCount
   }
 ];
 
@@ -227,7 +224,7 @@ describe('PMTemplates Page', () => {
     vi.mocked(useClonePMTemplate).mockReturnValue(mockHooks.useClonePMTemplate as unknown as ReturnType<typeof useClonePMTemplate>);
 
     vi.mocked(useOrganization).mockReturnValue({
-      currentOrganization: { id: 'org-1', name: 'Test Org' },
+      currentOrganization: { id: organizations.acme.id, name: organizations.acme.name },
       organizations: [],
       userOrganizations: [],
       setCurrentOrganization: vi.fn(),
@@ -274,7 +271,10 @@ describe('PMTemplates Page', () => {
     } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
   });
 
-  describe('Core Rendering', () => {
+  // --------------------------------------------------------
+  // Alice Owner — full admin access to PM templates
+  // --------------------------------------------------------
+  describe(`as ${personas.owner.name} (owner with full admin access)`, () => {
     it('renders page title and description', () => {
       render(
         <TestProviders>
@@ -286,7 +286,13 @@ describe('PMTemplates Page', () => {
       expect(screen.getByText(/Manage preventative maintenance checklist templates/)).toBeInTheDocument();
     });
 
-    it('shows no organization message when no organization selected', () => {
+  });
+
+  // --------------------------------------------------------
+  // Edge case: no organization selected
+  // --------------------------------------------------------
+  describe('when no organization is selected', () => {
+    it('shows no organization message', () => {
       vi.mocked(useOrganization).mockReturnValue({
         currentOrganization: null,
         organizations: [],
@@ -307,7 +313,13 @@ describe('PMTemplates Page', () => {
       expect(screen.getByText('Please select an organization to manage PM templates.')).toBeInTheDocument();
     });
 
-    it('shows permission denied for non-admin users', () => {
+  });
+
+  // --------------------------------------------------------
+  // Dave Technician — non-admin, sees permission denied
+  // --------------------------------------------------------
+  describe(`as ${personas.technician.name} (non-admin, permission denied)`, () => {
+    it('shows permission denied message', () => {
       vi.mocked(usePermissions).mockReturnValue({
         isAdmin: false,
         canManageOrganization: false,
@@ -338,7 +350,12 @@ describe('PMTemplates Page', () => {
 
       expect(screen.getByText('You need administrator permissions to access this page.')).toBeInTheDocument();
     });
+  });
 
+  // --------------------------------------------------------
+  // Loading state
+  // --------------------------------------------------------
+  describe('while templates are loading', () => {
     it('displays loading skeleton during data fetch', () => {
       vi.mocked(usePMTemplates).mockReturnValue({
         ...mockHooks.usePMTemplates,
@@ -372,7 +389,7 @@ describe('PMTemplates Page', () => {
       </TestProviders>
     );
 
-    const title = screen.getByText('Forklift PM');
+    const title = screen.getByText(pmFixtures.forklift.name);
     expect(title).toBeInTheDocument();
     // We can't assert router change easily here; presence is enough for now.
   });
@@ -386,8 +403,8 @@ describe('PMTemplates Page', () => {
       );
 
       expect(screen.getByText('Global Templates')).toBeInTheDocument();
-      expect(screen.getByText('Forklift PM')).toBeInTheDocument();
-      expect(screen.getByText('Standard forklift maintenance checklist')).toBeInTheDocument();
+      expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
+      expect(screen.getByText(pmFixtures.forklift.description)).toBeInTheDocument();
     });
 
     it('renders organization templates section for licensed users', () => {
@@ -398,7 +415,7 @@ describe('PMTemplates Page', () => {
       );
 
       expect(screen.getByText('Organization Templates')).toBeInTheDocument();
-      expect(screen.getByText('Custom Equipment PM')).toBeInTheDocument();
+      expect(screen.getByText(pmFixtures.customOrgTemplate.name)).toBeInTheDocument();
     });
 
     it('shows upgrade message for unlicensed users', () => {
@@ -437,11 +454,11 @@ describe('PMTemplates Page', () => {
       );
 
       // Check template name and description
-      expect(screen.getByText('Forklift PM')).toBeInTheDocument();
-      expect(screen.getByText('Standard forklift maintenance checklist')).toBeInTheDocument();
+      expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
+      expect(screen.getByText(pmFixtures.forklift.description)).toBeInTheDocument();
       
       // Check sections and item count
-      expect(screen.getByText('Sections (2)')).toBeInTheDocument();
+      expect(screen.getByText(`Sections (${pmFixtures.forklift.sections.length})`)).toBeInTheDocument();
       expect(screen.getAllByText('Total Items:')[0]).toBeInTheDocument();
       
       // Check badges
@@ -537,7 +554,7 @@ describe('PMTemplates Page', () => {
       );
 
       // This test is currently skipped due to complex dropdown interaction
-      expect(screen.getByText('Custom Equipment PM')).toBeInTheDocument();
+      expect(screen.getByText(pmFixtures.customOrgTemplate.name)).toBeInTheDocument();
       
       // Skip the actual delete test since dropdown interaction is complex
       // TODO: Implement proper dropdown testing when needed
@@ -587,7 +604,7 @@ describe('PMTemplates Page', () => {
       fireEvent.click(submitButton);
 
       expect(mockHooks.useClonePMTemplate.mutate).toHaveBeenCalledWith({
-        sourceId: 'template-1',
+        sourceId: pmFixtures.forklift.id,
         newName: 'New Template Name'
       }, expect.any(Object));
     });

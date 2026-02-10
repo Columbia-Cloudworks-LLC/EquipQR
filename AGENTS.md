@@ -212,15 +212,35 @@ Three categories of environment variables:
 
 | Category | Prefix | Where to Set | Access |
 |---|---|---|---|
-| Client (Vite) | `VITE_` | `.env` or `.env.local` | Exposed to browser |
-| Server (Edge Functions) | None | `supabase/functions/.env` | Server-side only |
-| Edge Function Secrets | None | Supabase Dashboard | Production only |
+| Client (Vite) | `VITE_` | `.env` or `.env.local` | Exposed to browser at build time |
+| Server (Edge Functions) | None | `supabase/functions/.env` | Server-side only (local dev) |
+| Edge Function Secrets | None | Supabase Dashboard | Server-side only (production) |
 
 **Required** (minimum to run):
 - `VITE_SUPABASE_URL` — Supabase project URL
 - `VITE_SUPABASE_ANON_KEY` — Supabase anon/public key
 
-See `env.example` for the full list with descriptions.
+See `.env.example` for the full list with descriptions.
+
+### Dual-environment deployment (Vercel + Supabase)
+
+EquipQR runs on **two** independent platforms. Each has its own secrets store:
+
+| Platform | What Lives There | How to Update |
+|---|---|---|
+| **Vercel** | `VITE_*` build-time env vars (Supabase URL, anon key, feature flags) | Vercel Dashboard → Project → Settings → Environment Variables |
+| **Supabase** | Edge Function runtime secrets (API keys, OAuth secrets, encryption keys) | Supabase Dashboard → Project → Settings → Edge Functions → Secrets |
+
+**Critical**: Redeploying on Vercel does **not** update Supabase Edge Function secrets, and vice versa. When rotating an API key used by an Edge Function, you must update it in the **Supabase Dashboard**, not Vercel.
+
+Common Edge Function secrets that are **not** Vercel env vars:
+- `GOOGLE_MAPS_BROWSER_KEY` — served to the browser at runtime by the `public-google-maps-key` edge function
+- `GOOGLE_MAPS_SERVER_KEY` — used server-side by `places-autocomplete` and `geocode-location`
+- `INTUIT_CLIENT_SECRET`, `GOOGLE_WORKSPACE_CLIENT_SECRET` — OAuth secrets
+- `TOKEN_ENCRYPTION_KEY`, `KDF_SALT` — encryption secrets
+- `RESEND_API_KEY`, `GITHUB_PAT` — third-party API keys
+
+For local development, these are set in `supabase/functions/.env` (not the root `.env`).
 
 ## Feature flags
 

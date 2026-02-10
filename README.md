@@ -6,7 +6,7 @@
 
 ## 🚜 Fleet Equipment Management Platform 🚧
 
-![Version](https://img.shields.io/badge/version-2.3.1-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.3.2-blue?style=for-the-badge)
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
@@ -44,7 +44,7 @@ Detailed documentation is located in the [`/docs`](./docs/README.md) directory:
 
 ## ✅ Prerequisites (Accounts & Services)
 
-EquipQR uses external services. For exact environment variables and where they’re used, see [`env.example`](./env.example) (source of truth) and the [Setup Guide](./docs/technical/setup.md).
+EquipQR uses external services. For exact environment variables and where they’re used, see [`.env.example`](./.env.example) (source of truth) and the [Setup Guide](./docs/technical/setup.md).
 
 **Required (to run the core app):**
 

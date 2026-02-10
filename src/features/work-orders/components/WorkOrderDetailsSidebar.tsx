@@ -3,7 +3,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import WorkOrderStatusManager from '@/features/work-orders/components/WorkOrderStatusManager';
-import { WorkOrderDetailsQuickInfo } from './WorkOrderDetailsQuickInfo';
 import { WorkOrderDetailsRequestorStatus } from './WorkOrderDetailsRequestorStatus';
 import { WorkOrderData, EquipmentData, PMData, PermissionLevels, OrganizationData } from '@/features/work-orders/types/workOrderDetails';
 
@@ -16,6 +15,15 @@ interface WorkOrderDetailsSidebarProps {
   currentOrganization: OrganizationData;
   showMobileSidebar: boolean;
   onCloseMobileSidebar: () => void;
+  /** Full team details from equipment join */
+  team?: {
+    id: string;
+    name: string;
+    description?: string;
+    location_address?: string | null;
+    location_lat?: number | null;
+    location_lng?: number | null;
+  } | null;
 }
 
 export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = ({
@@ -26,7 +34,8 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
   permissionLevels,
   currentOrganization,
   showMobileSidebar,
-  onCloseMobileSidebar
+  onCloseMobileSidebar,
+  team
 }) => {
   const isMobile = useIsMobile();
 
@@ -61,26 +70,28 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
               equipmentTeamId: equipment?.team_id
             }} 
             organizationId={currentOrganization.id}
+            contextData={{
+              createdDate: workOrder.created_date,
+              dueDate: workOrder.due_date,
+              estimatedHours: workOrder.estimated_hours,
+              equipmentId: equipment?.id,
+              equipmentName: equipment?.name,
+              pmStatus: workOrder.has_pm && pmData ? pmData.status : undefined,
+              formMode,
+              team: team || null,
+            }}
           />
         )}
 
-        {/* Status Info for Requestors - now includes assignee info */}
+        {/* Status Info for Requestors - now includes context data */}
         <WorkOrderDetailsRequestorStatus 
           workOrder={workOrder}
           permissionLevels={permissionLevels}
-        />
-
-        {/* Quick Info */}
-        <WorkOrderDetailsQuickInfo 
-          workOrder={workOrder}
           equipment={equipment}
-          formMode={formMode}
-          permissionLevels={permissionLevels}
           pmData={pmData}
         />
       </div>
     </div>
   );
 };
-
 

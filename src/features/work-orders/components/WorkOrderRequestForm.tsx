@@ -200,30 +200,35 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
               </h3>
               
               <div className="space-y-2">
-                <Label>Title *</Label>
+                <Label htmlFor="wo-request-title">Title *</Label>
                 <Input
+                  id="wo-request-title"
                   placeholder={preSelectedEquipment ? 
                     `Issue with ${preSelectedEquipment.name}` : 
                     "Brief description of the issue or work needed"
                   }
                   value={form.values.title as string || ''}
                   onChange={(e) => form.setValue('title', e.target.value)}
+                  aria-invalid={!!form.errors.title}
+                  aria-describedby={form.errors.title ? 'wo-request-title-error' : undefined}
                 />
                 {form.errors.title && (
-                  <p className="text-sm text-destructive">{form.errors.title}</p>
+                  <p id="wo-request-title-error" className="text-sm text-destructive" aria-live="polite">{form.errors.title}</p>
                 )}
               </div>
 
               {renderEquipmentField()}
 
               <div className="space-y-2">
-                <Label>Preferred Due Date</Label>
+                <Label htmlFor="wo-request-due-date">Preferred Due Date</Label>
                 <Input
+                  id="wo-request-due-date"
                   type="date"
                   value={form.values.dueDate as string || ''}
                   onChange={(e) => form.setValue('dueDate', e.target.value)}
+                  aria-describedby="wo-request-due-date-hint"
                 />
-                <p className="text-xs text-muted-foreground">
+                <p id="wo-request-due-date-hint" className="text-xs text-muted-foreground">
                   Optional - This is a preference, final scheduling will be determined by the assigned team
                 </p>
               </div>
@@ -232,7 +237,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Description *</Label>
+              <Label htmlFor="wo-request-description">Description *</Label>
               {isSpeechSupported && (
                 <Button
                   type="button"
@@ -259,6 +264,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
             </div>
             <div className="relative">
               <Textarea
+                id="wo-request-description"
                 placeholder={preSelectedEquipment ? 
                   `Describe the issue or work needed for ${preSelectedEquipment.name}. Include any symptoms, error messages, or specific requirements...` :
                   "Provide detailed information about the work needed, including any symptoms, requirements, or urgency..."
@@ -266,6 +272,8 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
                 className="min-h-[120px]"
                 value={form.values.description as string || ''}
                 onChange={(e) => form.setValue('description', e.target.value)}
+                aria-invalid={!!form.errors.description}
+                aria-describedby={form.errors.description ? 'wo-request-description-error' : undefined}
               />
               {isListening && interimTranscript && (
                 <div className="absolute bottom-2 left-2 right-2 text-xs text-muted-foreground bg-muted/80 rounded px-2 py-1 pointer-events-none">
@@ -277,7 +285,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
               <p className="text-sm text-destructive">{speechError}</p>
             )}
             {form.errors.description && (
-              <p className="text-sm text-destructive">{form.errors.description}</p>
+              <p id="wo-request-description-error" className="text-sm text-destructive" aria-live="polite">{form.errors.description}</p>
             )}
           </div>
 

@@ -1,6 +1,12 @@
 // Using Deno.serve (built-in)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import {
+  QBO_API_BASE,
+  QBO_TOKEN_URL,
+  getIntuitTid,
+  withMinorVersion,
+} from "../_shared/quickbooks-config.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   // Avoid logging sensitive data
@@ -13,23 +19,7 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[QUICKBOOKS-SEARCH-CUSTOMERS] ${step}${detailsStr}`);
 };
 
-/**
- * Extracts the intuit_tid from QuickBooks API response headers.
- * This ID is useful for Intuit support troubleshooting.
- */
-const getIntuitTid = (response: Response): string | null => {
-  return response.headers.get('intuit_tid') || null;
-};
-
-// QuickBooks API endpoints
-const QUICKBOOKS_API_BASE_SANDBOX = "https://sandbox-quickbooks.api.intuit.com";
-const QUICKBOOKS_API_BASE_PRODUCTION = "https://quickbooks.api.intuit.com";
-const INTUIT_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
-
-// Use sandbox for development, production for prod
-const QUICKBOOKS_API_BASE = Deno.env.get("QUICKBOOKS_SANDBOX") === "false" 
-  ? QUICKBOOKS_API_BASE_PRODUCTION 
-  : QUICKBOOKS_API_BASE_SANDBOX;
+// getIntuitTid imported from _shared/quickbooks-config.ts
 
 interface QuickBooksCredential {
   id: string;
@@ -114,7 +104,7 @@ async function refreshTokenIfNeeded(
 
   const basicAuth = btoa(`${clientId}:${clientSecret}`);
   
-  const tokenResponse = await fetch(INTUIT_TOKEN_URL, {
+  const tokenResponse = await fetch(QBO_TOKEN_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -312,9 +302,9 @@ Deno.serve(async (req) => {
 
     logStep("Querying QuickBooks customers", { realmId: credentials.realm_id });
 
-    // Call QuickBooks API
+    // Call QuickBooks API (with minorversion for full field support)
     const qbResponse = await fetch(
-      `${QUICKBOOKS_API_BASE}/v3/company/${credentials.realm_id}/query?query=${encodeURIComponent(customerQuery)}`,
+      withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/query?query=${encodeURIComponent(customerQuery)}`),
       {
         method: "GET",
         headers: {
@@ -348,6 +338,30 @@ Deno.serve(async (req) => {
     }
 
     const qbData: CustomerQueryResponse = await qbResponse.json();
+
+    // Check for Fault in 200 OK response (QBO best practice)
+    // QBO can return HTTP 200 with a Fault body instead of query results
+    if ((qbData as unknown as Record<string, unknown>).Fault) {
+      const faultObj = (qbData as unknown as Record<string, unknown>).Fault as Record<string, unknown>;
+      // Only log non-sensitive fault metadata (type + error codes); avoid raw message/detail
+      const errorCodes = Array.isArray(faultObj?.Error)
+        ? (faultObj.Error as Array<Record<string, unknown>>).map(e => ({ code: e?.code }))
+        : [];
+      logStep("Fault in customer query response", { type: faultObj?.type, errorCodes, intuit_tid: intuitTid });
+      // Return 422 instead of throwing to the catch block (which returns 500).
+      // This is a validation/query error from QBO, not an internal server error.
+      // Uses the request-scoped corsHeaders (origin-validated) for consistency
+      // with all other responses in this function — not createErrorResponse,
+      // which applies the wildcard CORS headers.
+      return new Response(JSON.stringify({
+        success: false,
+        error: "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
+      }), {
+        status: 422,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const customers = qbData.QueryResponse.Customer || [];
 
     logStep("Customers fetched successfully", { count: customers.length, intuit_tid: intuitTid });

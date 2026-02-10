@@ -333,9 +333,10 @@ const WorkOrderDetails = () => {
   if (workOrderLoading || !currentOrganization) {
     logNavigationEvent('LOADING_STATE', { workOrderLoading, hasOrganization: !!currentOrganization });
     return (
-      <div className="space-y-6 p-4">
-        <div className="h-8 bg-muted animate-pulse rounded" />
-        <div className="h-64 bg-muted animate-pulse rounded" />
+      <div className="space-y-6 p-4" role="status" aria-label="Loading work order details">
+        <span className="sr-only">Loading work order details...</span>
+        <div className="h-8 bg-muted animate-pulse rounded" aria-hidden="true" />
+        <div className="h-64 bg-muted animate-pulse rounded" aria-hidden="true" />
       </div>
     );
   }
@@ -379,8 +380,8 @@ const WorkOrderDetails = () => {
             status: equipment.status,
             location: equipment.location
           } : undefined,
-          team: workOrder.teamName ? { name: workOrder.teamName } : undefined,
-          created_at: workOrder.createdAt,
+          team: workOrder.team || (workOrder.teamName && workOrder.equipmentTeamId ? { id: workOrder.equipmentTeamId, name: workOrder.teamName } : undefined),
+          created_at: workOrder.created_date || workOrder.createdDate,
           effectiveLocation: workOrder.effectiveLocation
         }}
         canEdit={canEdit}
@@ -445,8 +446,9 @@ const WorkOrderDetails = () => {
                 <WorkOrderDetailsMobile
                 workOrder={{
                   ...workOrder,
-                  created_at: workOrder.createdAt,
+                  created_at: workOrder.created_date || workOrder.createdDate,
                   due_date: workOrder.dueDate,
+                  estimated_hours: workOrder.estimatedHours,
                   has_pm: workOrder.has_pm,
                   pm_status: pmData?.status,
                   pm_progress: pmData ? (() => {
@@ -480,9 +482,14 @@ const WorkOrderDetails = () => {
                   serial_number: equipment.serial_number,
                   status: equipment.status,
                   location: equipment.location,
-                  team_id: equipment.team_id
+                  team_id: equipment.team_id,
+                  custom_attributes: equipment.custom_attributes as Record<string, unknown> | null,
+                  image_url: equipment.image_url
                 } : undefined}
-                team={workOrder.teamName ? { id: workOrder.team_id || '', name: workOrder.teamName } : undefined}
+                team={(() => {
+                  const teamId = workOrder.team_id || equipment?.team_id;
+                  return workOrder.teamName && teamId ? { id: teamId, name: workOrder.teamName } : undefined;
+                })()}
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
                 effectiveLocation={workOrder.effectiveLocation}
                 onScrollToPM={scrollToPMSection}
@@ -510,7 +517,7 @@ const WorkOrderDetails = () => {
                     />
                   )}
                   {pmLoading && (
-                    <Card className="shadow-elevation-2">
+                    <Card className="shadow-elevation-2" role="status" aria-label="Loading PM checklist">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <Clipboard className="h-5 w-5" />
@@ -518,7 +525,7 @@ const WorkOrderDetails = () => {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="h-32 bg-muted animate-pulse rounded" />
+                        <div className="h-32 bg-muted animate-pulse rounded" aria-hidden="true" />
                       </CardContent>
                     </Card>
                   )}
@@ -526,8 +533,20 @@ const WorkOrderDetails = () => {
                 </div>
               )}
 
+              {/* Mobile Costs Section */}
+              {(permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <div {...stagger(2)}>
+                <WorkOrderCostsSection 
+                  workOrderId={workOrder.id}
+                  canAddCosts={canAddCosts && !isWorkOrderLocked}
+                  canEditCosts={canEditCosts && !isWorkOrderLocked}
+                  primaryEquipmentId={workOrder.equipment_id}
+                />
+                </div>
+              )}
+
               {/* Mobile PM Info for Requestors */}
-              <div {...stagger(2)}>
+              <div {...stagger(3)}>
               <WorkOrderDetailsPMInfo 
                 workOrder={workOrder}
                 pmData={pmData}
@@ -536,7 +555,7 @@ const WorkOrderDetails = () => {
               </div>
 
               {/* Mobile Notes Section */}
-              <div {...stagger(3)}>
+              <div {...stagger(4)}>
               <div ref={notesSectionRef}>
                 <WorkOrderNotesSection 
                   workOrderId={workOrder.id}
@@ -548,7 +567,7 @@ const WorkOrderDetails = () => {
               </div>
 
               {/* Mobile Images Section */}
-              <div {...stagger(4)}>
+              <div {...stagger(5)}>
               <WorkOrderImagesSection 
                 workOrderId={workOrder.id}
                 canUpload={canUpload}
@@ -556,7 +575,7 @@ const WorkOrderDetails = () => {
               </div>
 
               {/* Mobile Timeline */}
-              <div {...stagger(5)}>
+              <div {...stagger(6)}>
               <WorkOrderTimeline 
                 workOrder={workOrder} 
                 showDetailedHistory={permissionLevels.isManager}
@@ -565,7 +584,7 @@ const WorkOrderDetails = () => {
 
               {/* Mobile Audit History */}
               {permissionLevels.isManager && currentOrganization && (
-                <div {...stagger(6)}>
+                <div {...stagger(7)}>
                 <Card className="shadow-elevation-2">
                   <CardHeader>
                     <CardTitle>Change History</CardTitle>
@@ -621,7 +640,7 @@ const WorkOrderDetails = () => {
               {/* PM Loading State */}
               {workOrder.has_pm && pmLoading && (permissionLevels.isManager || permissionLevels.isTechnician) && (
                 <div {...stagger(2)}>
-                <Card className="shadow-elevation-2">
+                <Card className="shadow-elevation-2" role="status" aria-label="Loading PM checklist">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Clipboard className="h-5 w-5" />
@@ -629,7 +648,7 @@ const WorkOrderDetails = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-32 bg-muted animate-pulse rounded" />
+                    <div className="h-32 bg-muted animate-pulse rounded" aria-hidden="true" />
                   </CardContent>
                 </Card>
                 </div>
@@ -703,6 +722,7 @@ const WorkOrderDetails = () => {
           currentOrganization={currentOrganization}
           showMobileSidebar={showMobileSidebar}
           onCloseMobileSidebar={() => setShowMobileSidebar(false)}
+          team={workOrder.team}
         />
       </div>
 

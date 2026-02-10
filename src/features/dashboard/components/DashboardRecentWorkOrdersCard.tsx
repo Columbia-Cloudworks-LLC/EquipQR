@@ -39,7 +39,7 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
     <section aria-labelledby="recent-work-orders-heading">
       <Card>
         <CardHeader>
-          <CardTitle id="recent-work-orders-heading" className="flex items-center gap-2">
+          <CardTitle as="h2" id="recent-work-orders-heading" className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5" />
             Recent Work Orders
           </CardTitle>

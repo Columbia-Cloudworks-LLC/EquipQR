@@ -56,7 +56,6 @@ const DialogContent = React.forwardRef<
           sizeClasses[size],
           className
         )}
-        aria-describedby={undefined}
         {...props}
       >
         {children}

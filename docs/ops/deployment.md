@@ -138,9 +138,44 @@ Configure these environment variables in your Vercel project dashboard:
 - `VITE_STRIPE_PUBLISHABLE_KEY`: Stripe integration key
 - `VITE_GOOGLE_MAPS_API_KEY`: Google Maps API key
 
+> **Important**: Vercel env vars are build-time only (`VITE_*` prefix). Edge Function runtime secrets (e.g., `GOOGLE_MAPS_BROWSER_KEY`, OAuth secrets) must be set in the **Supabase Dashboard**, not Vercel. See [Secrets Checklist](#secrets-checklist) below.
+
 #### Branch Configuration
 - **Production**: `main` branch deploys to `equipqr.app`
 - **Preview**: `preview` branch deploys to `preview.equipqr.app`
+
+### Secrets Checklist
+
+EquipQR runs on **two independent platforms** — Vercel (frontend build) and Supabase (backend / Edge Functions). Each has its own secrets store. Redeploying one does **not** update the other.
+
+When rotating keys or deploying a new environment, verify secrets in **both** dashboards:
+
+#### Vercel Environment Variables (build-time, `VITE_*` prefix)
+
+| Variable | Purpose |
+|---|---|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous/public key |
+| `VITE_HCAPTCHA_SITEKEY` | hCaptcha public site key |
+| `VITE_GOOGLE_MAPS_API_KEY` | Google Maps API key (build-time fallback) |
+| `VITE_ENABLE_QUICKBOOKS` | Feature flag: QuickBooks integration |
+| `VITE_ENABLE_GEOLOCATION_HIERARCHY` | Feature flag: geolocation hierarchy |
+
+#### Supabase Edge Function Secrets (runtime, set in Supabase Dashboard)
+
+| Secret | Used By | Purpose |
+|---|---|---|
+| `GOOGLE_MAPS_BROWSER_KEY` | `public-google-maps-key` | Served to browser at runtime for Maps JS API |
+| `GOOGLE_MAPS_SERVER_KEY` | `places-autocomplete`, `geocode-location` | Server-side Places/Geocoding API calls |
+| `INTUIT_CLIENT_ID` / `INTUIT_CLIENT_SECRET` | `quickbooks-oauth-callback` | QuickBooks OAuth |
+| `GOOGLE_WORKSPACE_CLIENT_ID` / `GOOGLE_WORKSPACE_CLIENT_SECRET` | `google-workspace-oauth-callback` | Google Workspace OAuth |
+| `TOKEN_ENCRYPTION_KEY` / `KDF_SALT` | `_shared/crypto.ts` | OAuth token encryption |
+| `RESEND_API_KEY` | `send-invitation-email` | Email delivery |
+| `GITHUB_PAT` / `GITHUB_WEBHOOK_SECRET` | `create-ticket`, `github-issue-webhook` | Bug reporting |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | `send-push-notification` | Web Push |
+| `PRODUCTION_URL` | `send-invitation-email` | Invite link base URL |
+
+> **Common mistake**: Setting a secret in Vercel when it should be in Supabase (or vice versa). The `GOOGLE_MAPS_BROWSER_KEY` is a frequent offender — it is served by a Supabase Edge Function at runtime, not baked into the Vercel build.
 
 ### Netlify Deployment
 ```bash

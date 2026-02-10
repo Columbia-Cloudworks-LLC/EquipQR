@@ -68,7 +68,7 @@ VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-> **📋 Full Reference**: The `env.example` file contains detailed documentation for all environment variables, including descriptions, file references, and generation commands. See also:
+> **📋 Full Reference**: The `.env.example` file contains detailed documentation for all environment variables, including descriptions, file references, and generation commands. See also:
 > - **[Setup Guide - Environment Configuration](../technical/setup.md#environment-configuration)** - Overview of environment variable categories
 > - **[Supabase Branch Secrets](../ops/supabase-branch-secrets.md)** - Edge Function secrets for production/preview
 > - **[Local Supabase Development](../ops/local-supabase-development.md)** - Local development environment setup
@@ -484,7 +484,7 @@ npm run analyze
 - **API Reference**: `docs/technical/api-reference.md`
 - **Architecture Guide**: `docs/technical/architecture.md`
 - **Setup Guide**: `docs/technical/setup.md`
-- **Environment Variables**: `env.example` (source of truth)
+- **Environment Variables**: `.env.example` (source of truth)
 
 ### Team Communication
 

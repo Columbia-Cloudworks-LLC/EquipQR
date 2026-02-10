@@ -25,7 +25,7 @@ export const DashboardHighPriorityWorkOrdersCard: React.FC<DashboardHighPriority
     <section aria-labelledby="high-priority-heading">
       <Card>
         <CardHeader>
-          <CardTitle id="high-priority-heading" className="flex items-center gap-2 text-destructive">
+          <CardTitle as="h2" id="high-priority-heading" className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
             High Priority Work Orders
           </CardTitle>

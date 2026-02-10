@@ -130,9 +130,9 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
               size="icon"
               className="h-8 w-8 flex-shrink-0"
               onClick={handleQRClick}
+              aria-label={`Show QR code for ${equipment.name}`}
             >
               <QrCode className="h-4 w-4" />
-              <span className="sr-only">Show QR Code</span>
             </Button>
           </div>
         </CardHeader>

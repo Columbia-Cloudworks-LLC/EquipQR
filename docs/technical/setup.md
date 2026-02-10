@@ -43,7 +43,7 @@ Visit `http://localhost:8080` to see the application running!
 
 ## Environment Configuration
 
-> **📋 Source of Truth**: The `env.example` file in the project root is the authoritative reference for all environment variables. It contains detailed descriptions, file references, and generation commands for each variable.
+> **📋 Source of Truth**: The `.env.example` file in the project root is the authoritative reference for all environment variables. It contains detailed descriptions, file references, and generation commands for each variable.
 
 ### Environment Variable Categories
 
@@ -104,7 +104,7 @@ SUPABASE_URL=http://localhost:54321
 SUPABASE_SERVICE_ROLE_KEY=<local-service-role-key>
 SUPABASE_ANON_KEY=<local-anon-key>
 
-# Add integration secrets as needed (see env.example for full list)
+# Add integration secrets as needed (see .env.example for full list)
 ```
 
 See **[Local Supabase Development Guide](../ops/local-supabase-development.md)** for complete setup instructions.
@@ -649,7 +649,7 @@ npm run test:coverage -- --reporter=html
 ### Resources
 
 - **Documentation**: Check the `docs/` folder
-- **Environment Variables**: `env.example` (source of truth for all env vars)
+- **Environment Variables**: `.env.example` (source of truth for all env vars)
 - **Edge Function Secrets**: `docs/ops/supabase-branch-secrets.md`
 - **API Reference**: `docs/technical/api-reference.md`
 - **Architecture Guide**: `docs/technical/architecture.md`

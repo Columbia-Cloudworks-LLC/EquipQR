@@ -1,11 +1,7 @@
 // Using Deno.serve (built-in)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { QBO_TOKEN_URL, getIntuitTid } from "../_shared/quickbooks-config.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   // Avoid logging sensitive data like tokens and nonces
@@ -84,8 +80,7 @@ function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): 
   }
 }
 
-// Intuit OAuth endpoints
-const INTUIT_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
+// Intuit OAuth token URL imported from _shared/quickbooks-config.ts
 
 interface IntuitTokenResponse {
   access_token: string;
@@ -103,6 +98,8 @@ interface OAuthState {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -278,7 +275,7 @@ Deno.serve(async (req) => {
     // Exchange authorization code for tokens
     logStep("Exchanging code for tokens", {
       redirect_uri: redirectUri,
-      token_url: INTUIT_TOKEN_URL
+      token_url: QBO_TOKEN_URL
     });
     
     const tokenRequestBody = new URLSearchParams({
@@ -289,7 +286,7 @@ Deno.serve(async (req) => {
 
     const basicAuth = btoa(`${clientId}:${clientSecret}`);
     
-    const tokenResponse = await fetch(INTUIT_TOKEN_URL, {
+    const tokenResponse = await fetch(QBO_TOKEN_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -299,9 +296,12 @@ Deno.serve(async (req) => {
       body: tokenRequestBody.toString(),
     });
 
+    // Capture intuit_tid for troubleshooting
+    const intuitTid = getIntuitTid(tokenResponse);
+
     if (!tokenResponse.ok) {
       // Log only the HTTP status code - statusText may contain sensitive info from API provider
-      logStep("Token exchange failed", { status: tokenResponse.status });
+      logStep("Token exchange failed", { status: tokenResponse.status, intuit_tid: intuitTid });
       // Throw generic error - do not expose Intuit error details to client
       throw new Error("Failed to exchange authorization code. Please try again.");
     }
@@ -311,7 +311,8 @@ Deno.serve(async (req) => {
       token_type: tokenData.token_type,
       expires_in: tokenData.expires_in,
       x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in,
-      scope: tokenData.scope
+      scope: tokenData.scope,
+      intuit_tid: intuitTid,
     });
 
     // Calculate expiration timestamps

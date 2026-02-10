@@ -205,7 +205,7 @@ const AlternateGroupsPage: React.FC = () => {
                     {canEdit && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="shrink-0">
+                          <Button variant="ghost" size="icon" className="shrink-0" aria-label={`More options for ${group.name}`}>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
