@@ -35,7 +35,7 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
     <section aria-labelledby="recent-equipment-heading">
       <Card>
         <CardHeader>
-          <CardTitle id="recent-equipment-heading" className="flex items-center gap-2">
+          <CardTitle as="h2" id="recent-equipment-heading" className="flex items-center gap-2">
             <Forklift className="h-5 w-5" />
             Recent Equipment
           </CardTitle>

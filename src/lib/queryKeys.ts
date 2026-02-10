@@ -103,6 +103,13 @@ export const tickets = {
   mine: () => ['tickets', 'mine'] as const,
 };
 
+// Dashboard preference keys
+export const dashboardPreferences = {
+  root: ['dashboard-preferences'] as const,
+  byUserOrg: (userId: string, orgId: string) =>
+    ['dashboard-preferences', userId, orgId] as const,
+};
+
 // Legacy query keys for backward compatibility - these should eventually be migrated
 export const queryKeys = {
   organization,
@@ -115,4 +122,5 @@ export const queryKeys = {
   pmTemplates,
   workspacePersonalOrgMerge,
   tickets,
+  dashboardPreferences,
 };
