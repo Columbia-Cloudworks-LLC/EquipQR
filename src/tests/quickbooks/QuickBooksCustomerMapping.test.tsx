@@ -149,7 +149,7 @@ describe('QuickBooksCustomerMapping', () => {
   it('should render nothing when QuickBooks is not connected', async () => {
     mockGetConnectionStatus.mockResolvedValue({ isConnected: false });
 
-    const { container } = renderComponent();
+    renderComponent();
 
     await waitFor(() => {
       // Should not show the card title

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { jitterPoints, getClusterMembers, type JitteredPoint } from '../jitterPoints';
+import { jitterPoints, getClusterMembers } from '../jitterPoints';
 import type { FleetEfficiencyPoint } from '@/features/teams/services/teamFleetEfficiencyService';
 
 function makePoint(overrides: Partial<FleetEfficiencyPoint> & { teamId: string }): FleetEfficiencyPoint {
