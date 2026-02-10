@@ -549,7 +549,7 @@ export const uploadInventoryItemImages = async (
       for (const file of files) {
         validateImageFile(file, 10);
 
-        const filePath = generateFilePath(userId, itemId, file);
+        const filePath = generateFilePath(organizationId, itemId, file);
         const publicUrl = await uploadImageToStorage(
           'inventory-item-images',
           filePath,

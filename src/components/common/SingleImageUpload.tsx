@@ -251,17 +251,20 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
         </div>
       )}
 
-      {/* Drop zone (no current image and no preview) */}
+      {/* Drop zone (no current image and no preview) — uses a <label> linked to
+          the file input so clicking anywhere opens the file dialog without nesting
+          interactive elements. The input uses sr-only so it stays keyboard-focusable. */}
       {showDropZone && (
-        <div
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            disabled ? '' : 'cursor-pointer'
+        <label
+          htmlFor={inputId}
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors block ${
+            disabled || isProcessing ? 'opacity-50' : 'cursor-pointer'
           } ${
             dragActive
               ? 'border-primary bg-primary/5'
               : 'border-muted-foreground/25 hover:border-muted-foreground/50'
           }`}
-          onClick={() => { if (!disabled && !isProcessing) fileInputRef.current?.click(); }}
+          aria-disabled={disabled || isProcessing || undefined}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
@@ -273,22 +276,16 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
             <p className="text-xs text-muted-foreground">
               {formatLabel} up to {maxSizeMB} MB
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={disabled || isProcessing}
-              onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-              className="mt-2"
-            >
-              <Upload className="h-4 w-4 mr-2" />
+            <span className="inline-flex items-center gap-2 mt-2 text-sm text-primary font-medium">
+              <Upload className="h-4 w-4" />
               Choose File
-            </Button>
+            </span>
           </div>
-        </div>
+        </label>
       )}
 
-      {/* Hidden file input */}
+      {/* Visually-hidden file input — sr-only keeps it in the tab order so
+          keyboard users can focus and activate it via Enter / Space. */}
       <input
         ref={fileInputRef}
         id={inputId}
@@ -296,7 +293,7 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
         accept={acceptedTypes.join(',')}
         onChange={handleInputChange}
         disabled={disabled || isProcessing}
-        className="hidden"
+        className="sr-only"
       />
 
       {helpText && (
