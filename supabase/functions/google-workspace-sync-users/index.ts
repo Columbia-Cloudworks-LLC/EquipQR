@@ -6,17 +6,14 @@ import {
   requireUser,
   verifyOrgAdmin,
 } from "../_shared/supabase-clients.ts";
-import { decryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
+import {
+  getGoogleWorkspaceAccessToken,
+  GoogleWorkspaceTokenError,
+} from "../_shared/google-workspace-token.ts";
+import { googleApiFetch } from "../_shared/google-api-retry.ts";
 
 interface SyncRequest {
   organizationId: string;
-}
-
-interface GoogleRefreshResponse {
-  access_token: string;
-  expires_in: number;
-  scope?: string;
-  token_type?: string;
 }
 
 interface GoogleDirectoryUser {
@@ -36,41 +33,12 @@ interface GoogleDirectoryResponse {
   nextPageToken?: string;
 }
 
-const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const USERS_URL = "https://admin.googleapis.com/admin/directory/v1/users";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[GOOGLE-WORKSPACE-SYNC] ${step}${detailsStr}`);
 };
-
-async function refreshAccessToken(refreshToken: string): Promise<GoogleRefreshResponse> {
-  const clientId = Deno.env.get("GOOGLE_WORKSPACE_CLIENT_ID");
-  const clientSecret = Deno.env.get("GOOGLE_WORKSPACE_CLIENT_SECRET");
-
-  if (!clientId || !clientSecret) {
-    throw new Error("Google Workspace OAuth is not configured");
-  }
-
-  const body = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-    client_id: clientId,
-    client_secret: clientSecret,
-  });
-
-  const response = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to refresh Google access token");
-  }
-
-  return await response.json();
-}
 
 function buildDirectoryUrl(domain: string, pageToken?: string): string {
   const params = new URLSearchParams({
@@ -127,68 +95,30 @@ Deno.serve(async (req) => {
     // Defense-in-depth: We still filter by organizationId to ensure the admin client
     // only accesses data for the verified organization.
     const adminClient = createAdminSupabaseClient();
-    const { data: creds, error: credsError } = await adminClient
-      .from("google_workspace_credentials")
-      .select("domain, refresh_token")
-      .eq("organization_id", organizationId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
 
-    if (credsError || !creds?.refresh_token || !creds?.domain) {
-      return createErrorResponse("Google Workspace is not connected for this organization", 400);
-    }
-
-    // Decrypt the stored refresh token
-    let encryptionKey: string;
+    // Get a valid Google Workspace access token using the shared helper.
+    // This handles credential lookup, decryption, token refresh, and expiry updates.
+    let tokenResult;
     try {
-      encryptionKey = getTokenEncryptionKey();
-    } catch (keyError) {
-      // Configuration issue: encryption key is missing or invalid
-      const errorMessage = keyError instanceof Error ? keyError.message : String(keyError);
-      logStep("Encryption key configuration error", { error: errorMessage });
-      return createErrorResponse(
-        "Google Workspace encryption is not properly configured. Please contact your administrator.",
-        500
-      );
+      tokenResult = await getGoogleWorkspaceAccessToken(adminClient, organizationId);
+    } catch (tokenError) {
+      if (tokenError instanceof GoogleWorkspaceTokenError) {
+        logStep("Token error", { code: tokenError.code, message: tokenError.message });
+        const statusMap: Record<string, number> = {
+          not_connected: 400,
+          oauth_not_configured: 500,
+          encryption_config_error: 500,
+          token_corruption: 500,
+          token_refresh_failed: 502,
+          token_revoked: 401,
+          insufficient_scopes: 403,
+        };
+        return createErrorResponse(tokenError.message, statusMap[tokenError.code] ?? 500);
+      }
+      throw tokenError;
     }
 
-    let decryptedRefreshToken: string;
-    try {
-      decryptedRefreshToken = await decryptToken(creds.refresh_token, encryptionKey);
-      logStep("Refresh token decrypted successfully");
-    } catch (decryptError) {
-      // Token corruption issue: encryption key is valid but stored token cannot be decrypted
-      // This is distinct from configuration issues (missing/invalid TOKEN_ENCRYPTION_KEY) which
-      // are handled above. This error indicates the stored token data is corrupted or was encrypted
-      // with a different key than the one currently configured.
-      const errorType = decryptError instanceof Error ? decryptError.name : "UnknownError";
-      const errorMessage = decryptError instanceof Error ? decryptError.message : String(decryptError);
-      logStep("Failed to decrypt refresh token", { errorType, errorMessage, organizationId });
-      
-      // Distinguish between token corruption (key works but token is bad) vs configuration issues
-      // Configuration issues (missing/invalid TOKEN_ENCRYPTION_KEY) are caught earlier (lines 143-154),
-      // so this error specifically indicates token corruption or key mismatch.
-      // The error message explicitly distinguishes this from configuration issues to help admins troubleshoot.
-      return createErrorResponse(
-        "Failed to decrypt stored Google Workspace credentials. This error indicates the stored token data is corrupted or was encrypted with a different encryption key than currently configured. This is distinct from configuration issues (missing TOKEN_ENCRYPTION_KEY), which are handled separately. Please reconnect Google Workspace to generate new credentials. If this persists, verify that TOKEN_ENCRYPTION_KEY matches the key used when credentials were originally stored.",
-        500
-      );
-    }
-
-    const tokenData = await refreshAccessToken(decryptedRefreshToken);
-    const accessToken = tokenData.access_token;
-    const accessTokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
-
-    await adminClient
-      .from("google_workspace_credentials")
-      .update({
-        access_token_expires_at: accessTokenExpiresAt.toISOString(),
-        scopes: tokenData.scope || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("organization_id", organizationId)
-      .eq("domain", creds.domain);
+    const { accessToken, domain } = tokenResult;
 
     let nextPageToken: string | undefined;
     const nowIso = new Date().toISOString();
@@ -222,12 +152,12 @@ Deno.serve(async (req) => {
     let pagesProcessed = 0;
 
     do {
-      const url = buildDirectoryUrl(creds.domain, nextPageToken);
-      const response = await fetch(url, {
+      const url = buildDirectoryUrl(domain, nextPageToken);
+      const response = await googleApiFetch(url, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      });
+      }, { label: "directory-sync" });
 
       if (!response.ok) {
         logStep("Directory API error", { status: response.status });
