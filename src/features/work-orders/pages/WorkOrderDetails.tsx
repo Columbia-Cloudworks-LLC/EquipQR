@@ -381,7 +381,7 @@ const WorkOrderDetails = () => {
             location: equipment.location
           } : undefined,
           team: workOrder.team || (workOrder.teamName && workOrder.equipmentTeamId ? { id: workOrder.equipmentTeamId, name: workOrder.teamName } : undefined),
-          created_at: workOrder.createdAt,
+          created_at: workOrder.created_date || workOrder.createdDate,
           effectiveLocation: workOrder.effectiveLocation
         }}
         canEdit={canEdit}
