@@ -69,6 +69,12 @@ export function validateImageFile(
 /**
  * Upload a single image to a Supabase Storage bucket.
  * Returns the public URL of the uploaded file.
+ *
+ * When `upsert` is true the storage path stays the same across re-uploads, so
+ * Supabase's CDN (`cache-control: public, max-age=3600`) can serve a stale
+ * version. To bust the cache we append a `?v={timestamp}` query parameter to
+ * the URL stored in the DB. `extractStoragePath` strips query params before
+ * calling `storage.remove()` so deletions still work.
  */
 export async function uploadImageToStorage(
   bucket: StorageBucket,
@@ -91,6 +97,11 @@ export async function uploadImageToStorage(
   const { data: { publicUrl } } = supabase.storage
     .from(bucket)
     .getPublicUrl(uploadData.path);
+
+  // Bust CDN cache for upserted files (same path, new content)
+  if (options?.upsert) {
+    return `${publicUrl}?v=${Date.now()}`;
+  }
 
   return publicUrl;
 }
@@ -145,9 +156,11 @@ export async function deleteImagesFromStorage(
  * Extract the storage object path from a Supabase public URL.
  * 
  * Public URL format: 
- *   {supabaseUrl}/storage/v1/object/public/{bucket}/{path}
+ *   {supabaseUrl}/storage/v1/object/public/{bucket}/{path}[?query]
  * 
- * Returns the {path} portion, or null if extraction fails.
+ * Returns the {path} portion (without query params), or null if extraction fails.
+ * Query params (e.g. `?v=...` cache-busters) are stripped so the path is safe
+ * to pass to `storage.remove()`.
  */
 export function extractStoragePath(
   publicUrl: string,
@@ -157,7 +170,10 @@ export function extractStoragePath(
     const marker = `/storage/v1/object/public/${bucket}/`;
     const idx = publicUrl.indexOf(marker);
     if (idx === -1) return null;
-    return publicUrl.substring(idx + marker.length);
+    const pathWithQuery = publicUrl.substring(idx + marker.length);
+    // Strip query parameters (e.g. ?v=1234 cache-bust)
+    const qIdx = pathWithQuery.indexOf('?');
+    return qIdx === -1 ? pathWithQuery : pathWithQuery.substring(0, qIdx);
   } catch {
     return null;
   }
