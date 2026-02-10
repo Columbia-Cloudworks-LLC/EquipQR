@@ -69,17 +69,25 @@ CREATE POLICY "inventory_item_images_select" ON "public"."inventory_item_images"
     "public"."is_org_member"((SELECT "auth"."uid"()), "organization_id")
   );
 
--- INSERT: org members can insert (must set uploaded_by = self)
+-- INSERT: org members can insert (must set uploaded_by = self, item must belong to org)
 CREATE POLICY "inventory_item_images_insert" ON "public"."inventory_item_images"
   FOR INSERT WITH CHECK (
     "uploaded_by" = (SELECT "auth"."uid"())
     AND "public"."is_org_member"((SELECT "auth"."uid"()), "organization_id")
+    AND EXISTS (
+      SELECT 1 FROM "public"."inventory_items"
+      WHERE "id" = "inventory_item_id"
+        AND "organization_id" = "inventory_item_images"."organization_id"
+    )
   );
 
--- DELETE: uploaders can delete their own, or org admins can delete any
+-- DELETE: org members who uploaded can delete their own (with current membership), or org admins can delete any
 CREATE POLICY "inventory_item_images_delete" ON "public"."inventory_item_images"
   FOR DELETE USING (
-    "uploaded_by" = (SELECT "auth"."uid"())
+    (
+      "uploaded_by" = (SELECT "auth"."uid"())
+      AND "public"."is_org_member"((SELECT "auth"."uid"()), "organization_id")
+    )
     OR "public"."is_org_admin"((SELECT "auth"."uid"()), "organization_id")
   );
 

@@ -487,7 +487,8 @@ export const uploadTeamImage = async (
   const { error } = await supabase
     .from('teams')
     .update({ image_url: publicUrl, updated_at: new Date().toISOString() })
-    .eq('id', teamId);
+    .eq('id', teamId)
+    .eq('organization_id', organizationId);
 
   if (error) {
     logger.error('Error updating team image in DB:', error);
@@ -502,6 +503,7 @@ export const uploadTeamImage = async (
  */
 export const deleteTeamImage = async (
   teamId: string,
+  organizationId: string,
   currentImageUrl: string
 ): Promise<void> => {
   await deleteImageFromStorage('team-images', currentImageUrl);
@@ -509,7 +511,8 @@ export const deleteTeamImage = async (
   const { error } = await supabase
     .from('teams')
     .update({ image_url: null, updated_at: new Date().toISOString() })
-    .eq('id', teamId);
+    .eq('id', teamId)
+    .eq('organization_id', organizationId);
 
   if (error) {
     logger.error('Error clearing team image:', error);

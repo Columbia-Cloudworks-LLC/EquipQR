@@ -1,6 +1,6 @@
 ---
 description: "Git commands must use PowerShell-compatible syntax (Windows host)"
-globs: "**"
+alwaysApply: true
 ---
 # Git & PowerShell Conventions
 

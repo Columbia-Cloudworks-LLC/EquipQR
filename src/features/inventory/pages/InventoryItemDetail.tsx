@@ -39,7 +39,7 @@ import { logger } from '@/utils/logger';
 import type { PartAlternateGroup, InventoryItemImage } from '@/features/inventory/types/inventory';
 import { getInventoryItemImages, uploadInventoryItemImages, deleteInventoryItemImage } from '@/features/inventory/services/inventoryService';
 import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
-import { toast } from 'sonner';
+import { useAppToast } from '@/hooks/useAppToast';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -48,6 +48,7 @@ const InventoryItemDetail = () => {
   const { user } = useAuth();
   const { canManageInventory } = usePermissions();
   const isMobile = useIsMobile();
+  const appToast = useAppToast();
 
   // Check if user is a parts manager for permission calculation
   const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
@@ -83,9 +84,9 @@ const InventoryItemDetail = () => {
   
   // Fetch uploaded images for this item
   const { data: itemImages = [], refetch: refetchImages } = useQuery({
-    queryKey: ['inventory-item-images', itemId],
+    queryKey: ['inventory-item-images', currentOrganization?.id, itemId],
     queryFn: () => getInventoryItemImages(itemId!),
-    enabled: !!itemId,
+    enabled: !!itemId && !!currentOrganization?.id,
   });
 
   const { data: transactionsData } = useInventoryTransactions(
@@ -552,14 +553,15 @@ const InventoryItemDetail = () => {
                             type="button"
                             variant="destructive"
                             size="sm"
+                            aria-label={`Remove image ${img.file_name}`}
                             className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={async () => {
                               try {
                                 await deleteInventoryItemImage(img.id, img.file_url);
-                                toast.success('Image removed');
+                                appToast.success({ description: 'Image removed' });
                                 refetchImages();
                               } catch (error) {
-                                toast.error(error instanceof Error ? error.message : 'Failed to remove image');
+                                appToast.error({ description: error instanceof Error ? error.message : 'Failed to remove image' });
                               }
                             }}
                           >

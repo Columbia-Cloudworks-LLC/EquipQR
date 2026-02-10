@@ -5,12 +5,13 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useAppToast } from '@/hooks/useAppToast';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { uploadAvatar, deleteAvatar } from '@/services/profileService';
 
 const ProfileSettings = () => {
   const { currentUser, setCurrentUser } = useUser();
+  const appToast = useAppToast();
   const [name, setName] = useState(currentUser?.name || '');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,10 +33,10 @@ const ProfileSettings = () => {
         name
       });
 
-      toast.success('Profile updated successfully');
+      appToast.success({ description: 'Profile updated successfully' });
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      appToast.error({ description: 'Failed to update profile' });
     } finally {
       setIsLoading(false);
     }

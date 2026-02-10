@@ -32,29 +32,7 @@ For each step you document:
 4. Remove the red border.
 5. Write a brief description of the step in `./docs/tutorial.md`, linking the image.
 
-### Screenshot annotation workaround (mandatory)
-
-Right before each screenshot:
-
-- Determine the active element via `document.activeElement`.
-- Inject styling to outline it: `outline: 3px solid red`.
-- Screenshot.
-- Then remove the outline styling (restore the previous inline style values if present).
-
-If `document.activeElement` is `null` or `document.body`, click the most relevant target element for the step (the button/input you just interacted with) so it becomes active, then outline/screenshot.
-
-#### Recommended outline/restore approach
-
-In the page context, store the previously outlined element and its prior outline so you can restore it reliably:
-
-- Outline:
-  - Capture `document.activeElement` (must be an `HTMLElement`)
-  - Save `el.style.outline` somewhere stable (e.g. `window.__eqrPrevOutline`)
-  - Save the element reference (e.g. `window.__eqrOutlinedEl = el`)
-  - Set `el.style.outline = '3px solid red'`
-- Restore:
-  - Read `window.__eqrOutlinedEl` and restore its prior outline value
-  - Clear the temporary globals
+For the annotation workflow (red border outline/restore), see [shared/annotation-workflow.md](shared/annotation-workflow.md).
 
 ## Writing style
 

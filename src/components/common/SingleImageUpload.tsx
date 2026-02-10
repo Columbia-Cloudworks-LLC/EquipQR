@@ -2,7 +2,7 @@ import React, { useState, useRef, useId } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useAppToast } from '@/hooks/useAppToast';
 
 interface SingleImageUploadProps {
   /** Current image URL (if any) */
@@ -36,6 +36,7 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
   helpText,
   previewClassName = 'max-w-full max-h-32 object-contain',
 }) => {
+  const appToast = useAppToast();
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -48,11 +49,11 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
 
   const validateFile = (file: File): boolean => {
     if (!acceptedTypes.includes(file.type)) {
-      toast.error(`Unsupported format: ${file.name}. Use JPEG, PNG, GIF, or WebP.`);
+      appToast.error({ description: `Unsupported format: ${file.name}. Use JPEG, PNG, GIF, or WebP.` });
       return false;
     }
     if (file.size > maxSizeMB * 1024 * 1024) {
-      toast.error(`File too large: ${file.name}. Maximum size is ${maxSizeMB} MB.`);
+      appToast.error({ description: `File too large: ${file.name}. Maximum size is ${maxSizeMB} MB.` });
       return false;
     }
     return true;
@@ -95,11 +96,11 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
     try {
       await onUpload(previewFile);
       setPreviewFile(null);
-      toast.success('Image uploaded successfully');
+      appToast.success({ description: 'Image uploaded successfully' });
     } catch (error) {
-      toast.error(
-        `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      appToast.error({
+        description: `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
     } finally {
       setIsUploading(false);
     }
@@ -110,11 +111,11 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
     setIsDeleting(true);
     try {
       await onDelete();
-      toast.success('Image removed');
+      appToast.success({ description: 'Image removed' });
     } catch (error) {
-      toast.error(
-        `Failed to remove image: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      appToast.error({
+        description: `Failed to remove image: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
     } finally {
       setIsDeleting(false);
     }

@@ -12,7 +12,7 @@ import { SessionStatus } from '@/components/session/SessionStatus';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import MFASettings from '@/components/settings/MFASettings';
 import { isMFAEnabled } from '@/lib/flags';
-import { toast } from 'sonner';
+import { useAppToast } from '@/hooks/useAppToast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +22,7 @@ import Page from '@/components/layout/Page';
 const SettingsContent = () => {
   const { resetSettings } = useSettings();
   const { user } = useAuth();
+  const appToast = useAppToast();
 
   // Fetch current email privacy setting
   const { data: profile, refetch: refetchProfile } = useQuery({
@@ -42,7 +43,7 @@ const SettingsContent = () => {
 
   const handleResetSettings = () => {
     resetSettings();
-    toast.success('Settings have been reset to default values');
+    appToast.success({ description: 'Settings have been reset to default values' });
   };
 
   return (

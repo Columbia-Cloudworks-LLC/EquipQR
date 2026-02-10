@@ -128,21 +128,11 @@ Reference these guidelines when:
 - `advanced-init-once` - Initialize app once per app load
 - `advanced-use-latest` - useLatest for stable callback refs
 
-## How to Use
+## Detailed Reference Files
 
-Read individual rule files for detailed explanations and code examples:
+Read these files for full rule explanations with code examples (only read what's needed):
 
-```
-rules/async-parallel.md
-rules/bundle-barrel-imports.md
-```
-
-Each rule file contains:
-- Brief explanation of why it matters
-- Incorrect code example with explanation
-- Correct code example with explanation
-- Additional context and references
-
-## Full Compiled Document
-
-For the complete guide with all rules expanded: `AGENTS.md`
+- **Critical patterns** (waterfalls, bundle size): [references/critical-patterns.md](references/critical-patterns.md)
+- **Data fetching** (server-side, client-side): [references/data-fetching.md](references/data-fetching.md)
+- **Render optimization** (re-renders, rendering perf): [references/rerender-rendering.md](references/rerender-rendering.md)
+- **JS perf & advanced** (micro-optimizations, patterns): [references/js-perf-advanced.md](references/js-perf-advanced.md)

@@ -67,10 +67,12 @@ describe('MFAVerification', () => {
 
     // Since auto-submit fires, wait for the success callback
     await waitFor(() => {
-      // challengeAndVerify may be called via auto-submit or button click
-      if (mockChallengeAndVerify.mock.calls.length > 0) {
-        expect(mockChallengeAndVerify).toHaveBeenCalledWith('123456');
-      }
+      expect(mockChallengeAndVerify).toHaveBeenCalledWith('123456');
+    });
+
+    // Verify onSuccess is called after successful verification
+    await waitFor(() => {
+      expect(mockOnSuccess).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -79,11 +81,21 @@ describe('MFAVerification', () => {
 
     render(<MFAVerification onSuccess={mockOnSuccess} onError={mockOnError} />);
 
-    // Simulate entering code and clicking verify
-    const verifyButton = screen.getByRole('button', { name: /verify/i });
-    
-    // The button should exist
-    expect(verifyButton).toBeInTheDocument();
+    // Find the OTP input and enter a 6-digit code to trigger auto-submit
+    const otpInput = screen.getByRole('textbox', { hidden: true });
+    if (otpInput) {
+      fireEvent.change(otpInput, { target: { value: '999999' } });
+    }
+
+    // Wait for the error to appear in the UI
+    await waitFor(() => {
+      expect(mockChallengeAndVerify).toHaveBeenCalledWith('999999');
+    });
+
+    // Verify onError is called with the error message
+    await waitFor(() => {
+      expect(mockOnError).toHaveBeenCalled();
+    });
   });
 
   it('has proper ARIA attributes', () => {

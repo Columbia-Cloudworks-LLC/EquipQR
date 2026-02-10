@@ -1,6 +1,6 @@
 ---
 description: "Core Technology Stack & Versioning"
-globs: "*"
+globs: "**/*.{ts,tsx}"
 ---
 # Technology Stack
 
