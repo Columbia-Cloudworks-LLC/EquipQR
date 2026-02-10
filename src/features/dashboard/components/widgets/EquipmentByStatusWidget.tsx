@@ -1,12 +1,11 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { useQuery } from '@tanstack/react-query';
 import { Forklift } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import EmptyState from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useEquipmentByStatus } from '@/features/dashboard/hooks/useDashboardWidgets';
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'hsl(var(--chart-1))',
@@ -16,22 +15,8 @@ const STATUS_COLORS: Record<string, string> = {
   decommissioned: 'hsl(var(--chart-5))',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  active: 'Active',
-  maintenance: 'Maintenance',
-  retired: 'Retired',
-  inactive: 'Inactive',
-  decommissioned: 'Decommissioned',
-};
-
 function getStatusColor(status: string): string {
   return STATUS_COLORS[status] || 'hsl(var(--muted))';
-}
-
-interface StatusCount {
-  status: string;
-  count: number;
-  label: string;
 }
 
 /**
@@ -41,36 +26,7 @@ const EquipmentByStatusWidget: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const organizationId = currentOrganization?.id;
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['dashboard-equipment-by-status', organizationId],
-    queryFn: async (): Promise<StatusCount[]> => {
-      if (!organizationId) return [];
-
-      // Note: fetches only the `status` column (minimal payload). A server-side
-      // aggregate (RPC/view with GROUP BY + COUNT) would further reduce transfer
-      // for very large fleets — tracked for future optimization.
-      const { data: rows, error } = await supabase
-        .from('equipment')
-        .select('status')
-        .eq('organization_id', organizationId);
-
-      if (error) throw error;
-
-      const counts = new Map<string, number>();
-      for (const row of rows ?? []) {
-        const s = row.status ?? 'unknown';
-        counts.set(s, (counts.get(s) ?? 0) + 1);
-      }
-
-      return Array.from(counts.entries()).map(([status, count]) => ({
-        status,
-        count,
-        label: STATUS_LABELS[status] ?? status,
-      }));
-    },
-    enabled: !!organizationId,
-    staleTime: 60 * 1000,
-  });
+  const { data, isLoading } = useEquipmentByStatus(organizationId);
 
   return (
     <Card className="h-full">

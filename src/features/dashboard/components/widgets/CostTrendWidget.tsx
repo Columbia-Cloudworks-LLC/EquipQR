@@ -1,13 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useQuery } from '@tanstack/react-query';
 import { DollarSign } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import EmptyState from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useCostTrend } from '@/features/dashboard/hooks/useDashboardWidgets';
 
 type Period = 'weekly' | 'monthly';
 
@@ -29,32 +28,7 @@ const CostTrendWidget: React.FC = () => {
   const organizationId = currentOrganization?.id;
   const [period, setPeriod] = useState<Period>('monthly');
 
-  const { data: rawData, isLoading } = useQuery({
-    queryKey: ['dashboard-cost-trend', organizationId],
-    queryFn: async () => {
-      if (!organizationId) return [];
-
-      // Fetch costs joined to work_orders for org scoping
-      // Limit to last 12 months to avoid transferring entire cost history
-      const twelveMonthsAgo = new Date();
-      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-
-      const { data, error } = await supabase
-        .from('work_order_costs')
-        .select('total_price_cents, created_at, work_orders!inner(organization_id)')
-        .eq('work_orders.organization_id', organizationId)
-        .gte('created_at', twelveMonthsAgo.toISOString())
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return (data ?? []).map((row) => ({
-        totalPriceCents: row.total_price_cents ?? 0,
-        createdAt: row.created_at,
-      }));
-    },
-    enabled: !!organizationId,
-    staleTime: 60 * 1000,
-  });
+  const { data: rawData, isLoading } = useCostTrend(organizationId);
 
   const chartData = useMemo((): CostDataPoint[] => {
     if (!rawData || rawData.length === 0) return [];

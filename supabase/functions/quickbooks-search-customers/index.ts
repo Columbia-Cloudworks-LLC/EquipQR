@@ -348,7 +348,15 @@ Deno.serve(async (req) => {
         ? (faultObj.Error as Array<Record<string, unknown>>).map(e => ({ code: e?.code }))
         : [];
       logStep("Fault in customer query response", { type: faultObj?.type, errorCodes, intuit_tid: intuitTid });
-      throw new Error("QuickBooks returned a validation error for the customer query");
+      // Return 422 instead of throwing to the catch block (which returns 500).
+      // This is a validation/query error from QBO, not an internal server error.
+      return new Response(JSON.stringify({
+        success: false,
+        error: "QuickBooks returned a validation error for the customer query. Please adjust your search and try again."
+      }), {
+        status: 422,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const customers = qbData.QueryResponse.Customer || [];
