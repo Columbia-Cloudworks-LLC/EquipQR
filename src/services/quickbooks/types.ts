@@ -7,8 +7,15 @@
  */
 
 /**
- * QuickBooks credentials stored in the database
- * Matches the quickbooks_credentials table schema
+ * QuickBooks credentials stored in the database.
+ *
+ * **Server-side only** — this interface models access/refresh tokens that must
+ * never be returned to the browser.  It is defined here for backward-compat
+ * with existing barrel exports; the generated Supabase types in
+ * `src/integrations/supabase/types.ts` are the canonical source of truth for
+ * database row shapes.
+ *
+ * @deprecated Prefer the generated type from `src/integrations/supabase/types.ts`.
  */
 export interface QuickBooksCredentials {
   id: string;
@@ -47,7 +54,12 @@ export interface QuickBooksConnectionStatus {
 }
 
 /**
- * Response from the QuickBooks OAuth token endpoint
+ * Response from the QuickBooks OAuth token endpoint.
+ *
+ * **Server-side only** — used by Edge Functions during token exchange / refresh.
+ * Included here for backward-compat with existing barrel exports.
+ *
+ * @deprecated This type is defined in each Edge Function that needs it.
  */
 export interface QuickBooksTokenResponse {
   access_token: string;

@@ -24,6 +24,7 @@ import {
   validateOAuthSession,
   getConnectionStatus,
   disconnectQuickBooks,
+  manualTokenRefresh,
   getTeamCustomerMapping,
   updateTeamCustomerMapping,
   clearTeamCustomerMapping,
@@ -587,6 +588,172 @@ describe('QuickBooks Service', () => {
       expect(result.invoiceId).toBe('inv-123');
       expect(result.invoiceNumber).toBe('1001');
       expect(result.isUpdate).toBe(false);
+    });
+
+    it('should return error when fetch returns non-200 response', async () => {
+      const mockSession = {
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh',
+        expires_at: Date.now() + 3600000,
+        token_type: 'bearer',
+        user: { id: 'user-123', email: 'test@test.com', app_metadata: {}, user_metadata: {}, aud: 'test', created_at: '' },
+      };
+
+      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+        data: { session: mockSession },
+        error: null,
+      });
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: vi.fn().mockResolvedValue({
+          success: false,
+          error: 'Internal server error',
+        }),
+      } as unknown as Response);
+
+      const result = await exportInvoice(mockWorkOrderId);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Internal server error');
+    });
+
+    it('should return generic error when fetch response has no error message', async () => {
+      const mockSession = {
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh',
+        expires_at: Date.now() + 3600000,
+        token_type: 'bearer',
+        user: { id: 'user-123', email: 'test@test.com', app_metadata: {}, user_metadata: {}, aud: 'test', created_at: '' },
+      };
+
+      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+        data: { session: mockSession },
+        error: null,
+      });
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: vi.fn().mockResolvedValue({}),
+      } as unknown as Response);
+
+      const result = await exportInvoice(mockWorkOrderId);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to export invoice');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // manualTokenRefresh
+  // -----------------------------------------------------------------------
+  describe('manualTokenRefresh', () => {
+    it('should return refresh result on success', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: [{ credentials_count: 3, message: 'Token refresh triggered for 3 credentials.' }],
+        error: null,
+      } as never);
+
+      const result = await manualTokenRefresh();
+
+      expect(result.credentialsCount).toBe(3);
+      expect(result.message).toContain('3 credentials');
+      expect(supabase.rpc).toHaveBeenCalledWith('refresh_quickbooks_tokens_manual');
+    });
+
+    it('should throw on RPC error', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Access denied: This function can only be called by service_role' },
+      } as never);
+
+      await expect(manualTokenRefresh()).rejects.toThrow('Failed to trigger token refresh');
+    });
+
+    it('should return default values when no data returned', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: [],
+        error: null,
+      } as never);
+
+      const result = await manualTokenRefresh();
+
+      expect(result.credentialsCount).toBe(0);
+      expect(result.message).toBe('No credentials to refresh');
+    });
+
+    it('should return default values when data is null', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: null,
+        error: null,
+      } as never);
+
+      const result = await manualTokenRefresh();
+
+      expect(result.credentialsCount).toBe(0);
+      expect(result.message).toBe('No credentials to refresh');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // searchCustomers - error paths
+  // -----------------------------------------------------------------------
+  describe('searchCustomers - error paths', () => {
+    it('should return error when fetch returns non-200', async () => {
+      const mockSession = {
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh',
+        expires_at: Date.now() + 3600000,
+        token_type: 'bearer',
+        user: { id: 'user-123', email: 'test@test.com', app_metadata: {}, user_metadata: {}, aud: 'test', created_at: '' },
+      };
+
+      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+        data: { session: mockSession },
+        error: null,
+      });
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: vi.fn().mockResolvedValue({
+          success: false,
+          error: 'Server error during search',
+        }),
+      } as unknown as Response);
+
+      const result = await searchCustomers(mockOrganizationId, 'test');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Server error during search');
+    });
+
+    it('should return generic error when fetch response has no error message', async () => {
+      const mockSession = {
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh',
+        expires_at: Date.now() + 3600000,
+        token_type: 'bearer',
+        user: { id: 'user-123', email: 'test@test.com', app_metadata: {}, user_metadata: {}, aud: 'test', created_at: '' },
+      };
+
+      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+        data: { session: mockSession },
+        error: null,
+      });
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: vi.fn().mockResolvedValue({}),
+      } as unknown as Response);
+
+      const result = await searchCustomers(mockOrganizationId, 'test');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to search customers');
     });
   });
 });
