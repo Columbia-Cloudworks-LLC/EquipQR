@@ -42,6 +42,26 @@ public = true
 file_size_limit = "10MB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
+[storage.buckets.organization-logos]
+public = true
+file_size_limit = "5MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+
+[storage.buckets.user-avatars]
+public = true
+file_size_limit = "5MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+
+[storage.buckets.team-images]
+public = true
+file_size_limit = "5MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+
+[storage.buckets.inventory-item-images]
+public = true
+file_size_limit = "10MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+
 [api]
 enabled = true
 port = 54321
