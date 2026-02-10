@@ -273,6 +273,12 @@ export const uploadOrganizationLogo = async (
 
   if (error) {
     logger.error('Error updating organization logo in DB:', error);
+    // Clean up orphaned storage file since DB update failed
+    try {
+      await deleteImageFromStorage('organization-logos', publicUrl);
+    } catch (deleteError) {
+      logger.error('Failed to delete orphaned logo from storage:', deleteError);
+    }
     throw new Error('Failed to save logo');
   }
 
@@ -286,8 +292,12 @@ export const deleteOrganizationLogo = async (
   organizationId: string,
   currentLogoUrl: string
 ): Promise<void> => {
-  // Remove from storage (best-effort)
-  await deleteImageFromStorage('organization-logos', currentLogoUrl);
+  // Remove from storage (best-effort — proceed to clear DB column even if storage delete fails)
+  try {
+    await deleteImageFromStorage('organization-logos', currentLogoUrl);
+  } catch (storageError) {
+    logger.error('Failed to delete organization logo from storage (proceeding to clear DB):', storageError);
+  }
 
   // Clear the logo column
   const { error } = await supabase

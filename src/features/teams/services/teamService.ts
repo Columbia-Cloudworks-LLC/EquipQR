@@ -492,6 +492,12 @@ export const uploadTeamImage = async (
 
   if (error) {
     logger.error('Error updating team image in DB:', error);
+    // Clean up orphaned storage file since DB update failed
+    try {
+      await deleteImageFromStorage('team-images', publicUrl);
+    } catch (deleteError) {
+      logger.error('Failed to delete orphaned team image from storage:', deleteError);
+    }
     throw new Error('Failed to save team image');
   }
 

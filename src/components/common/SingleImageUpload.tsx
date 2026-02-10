@@ -196,11 +196,14 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
       {previewFile && previewUrl && (
         <div className="space-y-2">
           <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
-            <img
-              src={previewUrl}
-              alt="Preview"
-              className={previewClassName}
-            />
+            {/* Validate blob: protocol to prevent untrusted URL injection */}
+            {previewUrl.startsWith('blob:') && (
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className={previewClassName}
+              />
+            )}
           </div>
           <p className="text-xs text-muted-foreground truncate">{previewFile.name}</p>
           <div className="flex gap-2">
@@ -239,7 +242,8 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
               : 'border-muted-foreground/25 hover:border-muted-foreground/50'
           }`}
           role="button"
-          tabIndex={0}
+          tabIndex={disabled ? -1 : 0}
+          aria-disabled={disabled || undefined}
           onClick={() => !disabled && fileInputRef.current?.click()}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {

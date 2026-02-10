@@ -514,11 +514,12 @@ export const uploadInventoryItemImages = async (
     const userId = await requireAuthUserId();
     const userName = await getCurrentUserName(userId);
 
-    // Check existing image count
+    // Check existing image count (scoped by organization for multi-tenancy)
     const { count, error: countError } = await supabase
       .from('inventory_item_images')
       .select('id', { count: 'exact', head: true })
-      .eq('inventory_item_id', itemId);
+      .eq('inventory_item_id', itemId)
+      .eq('organization_id', organizationId);
 
     if (countError) throw countError;
 
@@ -563,6 +564,12 @@ export const uploadInventoryItemImages = async (
 
       if (insertError) {
         logger.error('Error saving inventory item image record:', insertError);
+        // Clean up the orphaned storage object since the DB insert failed
+        try {
+          await deleteImageFromStorage('inventory-item-images', publicUrl);
+        } catch (deleteError) {
+          logger.error('Failed to delete orphaned inventory image from storage:', deleteError);
+        }
         throw insertError;
       }
 
