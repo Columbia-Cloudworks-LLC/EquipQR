@@ -37,6 +37,12 @@ export const uploadAvatar = async (
 
   if (error) {
     logger.error('Error updating avatar in DB:', error);
+    // Clean up orphaned storage file since DB update failed
+    try {
+      await deleteImageFromStorage('user-avatars', publicUrl);
+    } catch (deleteError) {
+      logger.error('Failed to delete orphaned avatar from storage:', deleteError);
+    }
     throw new Error('Failed to save avatar');
   }
 
@@ -50,10 +56,7 @@ export const deleteAvatar = async (
   userId: string,
   currentAvatarUrl: string
 ): Promise<void> => {
-  // Remove from storage (best-effort)
-  await deleteImageFromStorage('user-avatars', currentAvatarUrl);
-
-  // Clear the avatar_url column
+  // Clear the DB column first so the UI never references a deleted file
   const { error } = await supabase
     .from('profiles')
     .update({ avatar_url: null, updated_at: new Date().toISOString() })
@@ -62,5 +65,12 @@ export const deleteAvatar = async (
   if (error) {
     logger.error('Error clearing avatar:', error);
     throw new Error('Failed to remove avatar');
+  }
+
+  // Best-effort storage cleanup — DB column is already cleared
+  try {
+    await deleteImageFromStorage('user-avatars', currentAvatarUrl);
+  } catch (storageError) {
+    logger.error('Failed to delete avatar from storage (DB already cleared):', storageError);
   }
 };
