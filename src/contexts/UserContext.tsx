@@ -25,26 +25,41 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Fetch profile to get avatar_url and persisted name
       const fetchProfile = async () => {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('name, avatar_url')
-          .eq('id', authUser.id)
-          .single();
+        try {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('name, avatar_url')
+            .eq('id', authUser.id)
+            .single();
 
-        if (cancelled) return;
+          if (cancelled) return;
 
-        if (error) {
-          console.error('Failed to fetch user profile:', error.message);
+          if (error) {
+            console.error('Failed to fetch user profile:', error.message);
+          }
+
+          const user: User = {
+            id: authUser.id,
+            email: authUser.email || '',
+            name: profile?.name || authUser.user_metadata?.name || authUser.email || 'User',
+            avatar_url: profile?.avatar_url ?? null,
+          };
+          setCurrentUser(user);
+        } catch (err) {
+          if (cancelled) return;
+          console.error('Unexpected error fetching user profile:', err);
+          // Fall back to auth-only user so the app isn't stuck loading
+          setCurrentUser({
+            id: authUser.id,
+            email: authUser.email || '',
+            name: authUser.user_metadata?.name || authUser.email || 'User',
+            avatar_url: null,
+          });
+        } finally {
+          if (!cancelled) {
+            setIsLoading(false);
+          }
         }
-
-        const user: User = {
-          id: authUser.id,
-          email: authUser.email || '',
-          name: profile?.name || authUser.user_metadata?.name || authUser.email || 'User',
-          avatar_url: profile?.avatar_url ?? null,
-        };
-        setCurrentUser(user);
-        setIsLoading(false);
       };
       fetchProfile();
 

@@ -512,8 +512,7 @@ export const deleteTeamImage = async (
   organizationId: string,
   currentImageUrl: string
 ): Promise<void> => {
-  await deleteImageFromStorage('team-images', currentImageUrl);
-
+  // Clear DB reference first so team never points at a missing file
   const { error } = await supabase
     .from('teams')
     .update({ image_url: null, updated_at: new Date().toISOString() })
@@ -523,5 +522,12 @@ export const deleteTeamImage = async (
   if (error) {
     logger.error('Error clearing team image:', error);
     throw new Error('Failed to remove team image');
+  }
+
+  // Best-effort storage cleanup — DB column is already cleared
+  try {
+    await deleteImageFromStorage('team-images', currentImageUrl);
+  } catch (storageError) {
+    logger.error('Failed to delete team image from storage (best-effort):', storageError);
   }
 };
