@@ -1,40 +1,14 @@
 -- =============================================================================
--- Add SELECT policies on storage.objects for all image upload buckets.
+-- NO-OP: SELECT policies already created by 20260210210000_add_storage_object_policies
 --
--- The Storage API needs SELECT access for upsert checks, move/copy operations,
--- and internal file existence verification. Without SELECT policies, INSERT
--- with upsert fails even when INSERT/UPDATE policies exist.
+-- This migration originally attempted to add SELECT policies on storage.objects
+-- for all image upload buckets. However, the preceding migration
+-- (20260210210000_add_storage_object_policies.sql) already creates all 24
+-- policies including the 6 SELECT policies. Running this migration as-is would
+-- cause "policy already exists" errors.
+--
+-- Converted to no-op to prevent duplicate policy errors on environments where
+-- 20260210210000 was applied first.
 -- =============================================================================
 
-CREATE POLICY "org_logos_select"
-  ON storage.objects FOR SELECT
-  TO authenticated
-  USING (bucket_id = 'organization-logos');
-
-CREATE POLICY "user_avatars_select"
-  ON storage.objects FOR SELECT
-  TO authenticated
-  USING (
-    bucket_id = 'user-avatars'
-    AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
-  );
-
-CREATE POLICY "team_images_select"
-  ON storage.objects FOR SELECT
-  TO authenticated
-  USING (bucket_id = 'team-images');
-
-CREATE POLICY "inventory_images_select"
-  ON storage.objects FOR SELECT
-  TO authenticated
-  USING (bucket_id = 'inventory-item-images');
-
-CREATE POLICY "equip_note_images_select"
-  ON storage.objects FOR SELECT
-  TO authenticated
-  USING (bucket_id = 'equipment-note-images');
-
-CREATE POLICY "work_order_images_select"
-  ON storage.objects FOR SELECT
-  TO authenticated
-  USING (bucket_id = 'work-order-images');
+-- Intentionally empty — all SELECT policies exist via 20260210210000.

@@ -7,6 +7,14 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.4] - 2026-02-10
+
+### Fixed
+
+- **Storage bucket creation missing from migrations** — Production was missing 4 storage buckets (`organization-logos`, `user-avatars`, `team-images`, `inventory-item-images`) because the image upload feature (v2.3.3) created buckets manually via the Supabase Dashboard instead of through migrations. Added `20260210220000_create_missing_storage_buckets.sql` to create all 4 buckets idempotently with `ON CONFLICT DO NOTHING`. This fixes "Bucket not found" errors when uploading organization logos, user avatars, team images, and inventory item images on production
+- **Duplicate storage policy migration** — `20260210211000_add_storage_select_policies.sql` duplicated all 6 SELECT policies already created by `20260210210000_add_storage_object_policies.sql`, which would cause "policy already exists" errors on fresh deployments. Converted to a no-op with explanatory comment
+- **Non-idempotent storage migrations** — Added `DROP POLICY IF EXISTS` guards to all 24 `CREATE POLICY` statements in `20260210210000_add_storage_object_policies.sql` and 3 policies + 1 trigger in `20260210180000_image_upload_feature.sql` so migrations can be safely re-run during `supabase db reset`
+
 ## [2.3.3] - 2026-02-10
 
 ### Added
@@ -1122,7 +1130,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.3...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.4...HEAD
+[2.3.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.3...v2.3.4
 [2.3.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.2...v2.3.3
 [2.3.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.1...v2.3.2
 [2.3.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.0...v2.3.1

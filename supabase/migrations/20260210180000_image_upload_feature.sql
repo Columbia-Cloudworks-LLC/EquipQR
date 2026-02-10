@@ -64,12 +64,14 @@ COMMENT ON TABLE "public"."inventory_item_images" IS 'Stores metadata for images
 ALTER TABLE "public"."inventory_item_images" ENABLE ROW LEVEL SECURITY;
 
 -- SELECT: org members can read
+DROP POLICY IF EXISTS "inventory_item_images_select" ON "public"."inventory_item_images";
 CREATE POLICY "inventory_item_images_select" ON "public"."inventory_item_images"
   FOR SELECT USING (
     "public"."is_org_member"((SELECT "auth"."uid"()), "organization_id")
   );
 
 -- INSERT: org members can insert (must set uploaded_by = self, item must belong to org)
+DROP POLICY IF EXISTS "inventory_item_images_insert" ON "public"."inventory_item_images";
 CREATE POLICY "inventory_item_images_insert" ON "public"."inventory_item_images"
   FOR INSERT WITH CHECK (
     "uploaded_by" = (SELECT "auth"."uid"())
@@ -82,6 +84,7 @@ CREATE POLICY "inventory_item_images_insert" ON "public"."inventory_item_images"
   );
 
 -- DELETE: org members who uploaded can delete their own (with current membership), or org admins can delete any
+DROP POLICY IF EXISTS "inventory_item_images_delete" ON "public"."inventory_item_images";
 CREATE POLICY "inventory_item_images_delete" ON "public"."inventory_item_images"
   FOR DELETE USING (
     (
@@ -191,6 +194,7 @@ COMMENT ON FUNCTION "public"."update_organization_storage"() IS 'Automatically u
 -- 6. ADD STORAGE TRIGGER FOR inventory_item_images
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS "inventory_item_images_storage_trigger" ON "public"."inventory_item_images";
 CREATE TRIGGER "inventory_item_images_storage_trigger"
   AFTER INSERT OR DELETE OR UPDATE ON "public"."inventory_item_images"
   FOR EACH ROW
