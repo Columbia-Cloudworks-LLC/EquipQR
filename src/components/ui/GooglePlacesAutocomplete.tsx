@@ -83,6 +83,49 @@ const NEW_PLACE_FIELDS: Array<keyof google.maps.places.Place> = [
 const DEBOUNCE_MS = 300;
 
 // ----------------------------------------------------------------
+// Module-level console.error interception singleton
+// ----------------------------------------------------------------
+//
+// Multiple GooglePlacesAutocomplete instances can mount concurrently.
+// Instead of each instance independently monkey-patching console.error
+// (which can stack wrappers and leave console.error patched after
+// unmount), we use a single module-level wrapper that delegates to a
+// set of registered callbacks. The true original console.error is
+// captured once and restored when no callbacks remain.
+
+/** The true, unwrapped console.error captured at module load time. */
+const _trueConsoleError: typeof console.error = console.error;
+
+/** Active per-instance callbacks. Each gets every console.error call. */
+const _errorListeners = new Set<(...args: unknown[]) => void>();
+
+/** The single module-level wrapper installed while listeners exist. */
+function _sharedErrorWrapper(...args: unknown[]) {
+  // Always forward to the real console.error first
+  _trueConsoleError.apply(console, args);
+  // Notify all registered listeners
+  for (const cb of _errorListeners) {
+    try { cb(...args); } catch { /* listener errors must not propagate */ }
+  }
+}
+
+/** Register a listener. Installs the wrapper if this is the first. */
+function _addErrorListener(cb: (...args: unknown[]) => void) {
+  if (_errorListeners.size === 0) {
+    console.error = _sharedErrorWrapper;
+  }
+  _errorListeners.add(cb);
+}
+
+/** Remove a listener. Restores the true console.error if none remain. */
+function _removeErrorListener(cb: (...args: unknown[]) => void) {
+  _errorListeners.delete(cb);
+  if (_errorListeners.size === 0 && console.error === _sharedErrorWrapper) {
+    console.error = _trueConsoleError;
+  }
+}
+
+// ----------------------------------------------------------------
 // Component
 // ----------------------------------------------------------------
 
@@ -206,28 +249,17 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
         // The web component mounts successfully but its internal API
         // calls may fail at runtime if the Places API (New) is not
         // enabled for the browser key. Google's JS API logs these
-        // errors via console.error. We intercept them to detect the
-        // failure and auto-fall-back to the edge function proxy.
-        //
-        // Safety: we only restore console.error if it is still the
-        // handler we installed, preventing interference when other
-        // code (e.g. monitoring tools) replaces it in the meantime.
-        const origConsoleError = console.error;
+        // errors via console.error. We use a module-level singleton
+        // wrapper (see _addErrorListener / _removeErrorListener above)
+        // to safely intercept errors without stacking monkey-patches
+        // when multiple instances mount concurrently.
         let apiErrorDetected = false;
 
-        /** Restore console.error only if it's still our handler. */
-        const safeRestore = () => {
-          if (console.error === detectPlacesError) {
-            console.error = origConsoleError;
-          }
-        };
-
-        function detectPlacesError(...args: unknown[]) {
-          origConsoleError.apply(console, args);
+        const onConsoleError = (...args: unknown[]) => {
           if (apiErrorDetected) return;
           if (isPlacesApiBlockedError(args)) {
             apiErrorDetected = true;
-            safeRestore();
+            _removeErrorListener(onConsoleError);
             // Tear down the broken web component and switch to edge mode
             el.removeEventListener('gmp-placeselect', handleSelect);
             el.removeEventListener('gmp-select', handleSelect);
@@ -235,23 +267,21 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
             webComponentRef.current = null;
             setMode('edge');
           }
-        }
-        console.error = detectPlacesError;
+        };
 
-        // Safety net: restore console.error after 5 seconds even if
+        _addErrorListener(onConsoleError);
+
+        // Safety net: unregister the listener after 5 seconds even if
         // no Places API error is detected (web component is working fine).
-        // Reduced from 30s — if the API is blocked, the error fires
-        // within the first few seconds.
+        // If the API is blocked, the error fires within the first few seconds.
         const restoreTimer = setTimeout(() => {
           if (!apiErrorDetected) {
-            safeRestore();
+            _removeErrorListener(onConsoleError);
           }
         }, 5_000);
 
         return () => {
-          if (!apiErrorDetected) {
-            safeRestore();
-          }
+          _removeErrorListener(onConsoleError);
           clearTimeout(restoreTimer);
           el.removeEventListener('gmp-placeselect', handleSelect);
           el.removeEventListener('gmp-select', handleSelect);

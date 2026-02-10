@@ -105,6 +105,8 @@ export async function qboFetch<T = unknown>(
 
       // ----- 401: refresh token and retry once -----
       if (status === 401 && !tokenRefreshed && opts.onRefreshToken) {
+        // Drain the response body to release the connection before retrying
+        await response.body?.cancel().catch(() => {});
         console.log(
           JSON.stringify({ level: "info", label, event: "token_refresh", attempt: attempt + 1 }),
         );
@@ -119,6 +121,8 @@ export async function qboFetch<T = unknown>(
 
       // ----- 429 / 5xx: exponential back-off with jitter -----
       if ((status === 429 || status >= 500) && attempt < maxAttempts - 1) {
+        // Drain the response body to release the connection before retrying
+        await response.body?.cancel().catch(() => {});
         const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
         console.log(
           JSON.stringify({
