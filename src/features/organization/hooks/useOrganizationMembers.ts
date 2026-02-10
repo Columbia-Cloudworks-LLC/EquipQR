@@ -17,7 +17,7 @@ import type { OrganizationMember } from '@/features/organization/types/organizat
 export type RealOrganizationMember = OrganizationMember;
 
 type OrganizationMemberRow = Database['public']['Tables']['organization_members']['Row'];
-type ProfileRow = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'name' | 'email'>;
+type ProfileRow = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'name' | 'email'> & { avatar_url?: string | null };
 
 // Extended row type to include can_manage_quickbooks if it exists
 type ExtendedOrganizationMemberRow = OrganizationMemberRow & {
@@ -51,7 +51,8 @@ export const useOrganizationMembersQuery = (organizationId: string) => {
           profiles:user_id!inner (
             id,
             name,
-            email
+            email,
+            avatar_url
           )
         `)
         .eq('organization_id', organizationId)
@@ -70,7 +71,7 @@ export const useOrganizationMembersQuery = (organizationId: string) => {
         role: member.role as 'owner' | 'admin' | 'member',
         status: member.status as 'active' | 'pending' | 'inactive',
         joinedDate: member.joined_date,
-        avatar: undefined,
+        avatar: member.profiles?.avatar_url ?? undefined,
         canManageQuickBooks: member.can_manage_quickbooks ?? false,
       }));
     },

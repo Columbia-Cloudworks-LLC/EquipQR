@@ -14,10 +14,11 @@ import { Settings, Palette } from 'lucide-react';
 import { QuickBooksIntegration } from './QuickBooksIntegration';
 import { DangerZoneSection } from './DangerZoneSection';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
+import { uploadOrganizationLogo, deleteOrganizationLogo } from '@/features/organization/services/organizationService';
+import SingleImageUpload from '@/components/common/SingleImageUpload';
 
 const organizationFormSchema = z.object({
   name: z.string().min(1, 'Organization name is required').max(100, 'Name too long'),
-  logo: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   backgroundColor: z.string().optional(),
 });
 
@@ -32,6 +33,7 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
 }) => {
   const { currentOrganization } = useOrganization();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [currentLogo, setCurrentLogo] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Fetch members to get admins for transfer ownership
@@ -49,11 +51,17 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
       }));
   }, [members]);
 
+  // Initialize currentLogo from organization when available
+  React.useEffect(() => {
+    if (currentOrganization?.logo) {
+      setCurrentLogo(currentOrganization.logo);
+    }
+  }, [currentOrganization?.logo]);
+
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationFormSchema),
     defaultValues: {
       name: currentOrganization?.name || '',
-      logo: currentOrganization?.logo || '',
       backgroundColor: currentOrganization?.backgroundColor || '#ffffff',
     },
   });
@@ -71,16 +79,11 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
       const updates: {
         name: string;
         updated_at: string;
-        logo?: string;
         background_color?: string;
       } = {
         name: data.name,
         updated_at: new Date().toISOString(),
       };
-
-      if (data.logo) {
-        updates.logo = data.logo;
-      }
 
       if (data.backgroundColor) {
         updates.background_color = data.backgroundColor;
@@ -104,6 +107,22 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    if (!currentOrganization) return;
+    const publicUrl = await uploadOrganizationLogo(currentOrganization.id, file);
+    setCurrentLogo(publicUrl);
+    await queryClient.invalidateQueries({ queryKey: ['organizations'] });
+    await queryClient.invalidateQueries({ queryKey: ['simple-organizations'] });
+  };
+
+  const handleLogoDelete = async () => {
+    if (!currentOrganization || !currentLogo) return;
+    await deleteOrganizationLogo(currentOrganization.id, currentLogo);
+    setCurrentLogo(null);
+    await queryClient.invalidateQueries({ queryKey: ['organizations'] });
+    await queryClient.invalidateQueries({ queryKey: ['simple-organizations'] });
   };
 
   if (!currentOrganization) {
@@ -147,22 +166,14 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="logo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Logo URL</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="https://example.com/logo.png"
-                        disabled={!canEdit || isUpdating}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <SingleImageUpload
+                currentImageUrl={currentLogo}
+                onUpload={handleLogoUpload}
+                onDelete={handleLogoDelete}
+                maxSizeMB={5}
+                disabled={!canEdit || isUpdating}
+                label="Organization Logo"
+                helpText="Upload your organization's logo image"
               />
 
               <FormField

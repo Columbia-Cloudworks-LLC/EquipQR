@@ -75,6 +75,7 @@ export interface Team {
   member_count: number;
   created_at: string;
   updated_at: string;
+  image_url?: string | null;
   location_address?: string;
   location_city?: string;
   location_state?: string;

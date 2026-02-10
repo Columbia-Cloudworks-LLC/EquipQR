@@ -12,6 +12,12 @@ import type {
   OrganizationWithMembership,
   OrganizationUpdatePayload
 } from '@/features/organization/types/organization';
+import {
+  uploadImageToStorage,
+  deleteImageFromStorage,
+  generateSingleFilePath,
+  validateImageFile,
+} from '@/services/imageUploadService';
 
 // Re-export types for backward compatibility
 export type { 
@@ -234,6 +240,64 @@ export const updateOrganization = async (organizationId: string, updates: Organi
   } catch (error) {
     logger.error('Error updating organization:', error, { organizationId, updates });
     return false;
+  }
+};
+
+// ============================================
+// Organization Logo Functions
+// ============================================
+
+/**
+ * Upload an organization logo to Supabase Storage and update the organizations table.
+ * Returns the public URL of the uploaded logo.
+ */
+export const uploadOrganizationLogo = async (
+  organizationId: string,
+  file: File
+): Promise<string> => {
+  validateImageFile(file, 5);
+
+  const filePath = generateSingleFilePath(organizationId, 'logo', file);
+  const publicUrl = await uploadImageToStorage(
+    'organization-logos',
+    filePath,
+    file,
+    { upsert: true }
+  );
+
+  // Update the organizations table with the new logo URL
+  const { error } = await supabase
+    .from('organizations')
+    .update({ logo: publicUrl, updated_at: new Date().toISOString() })
+    .eq('id', organizationId);
+
+  if (error) {
+    logger.error('Error updating organization logo in DB:', error);
+    throw new Error('Failed to save logo');
+  }
+
+  return publicUrl;
+};
+
+/**
+ * Delete the organization logo from storage and clear the column.
+ */
+export const deleteOrganizationLogo = async (
+  organizationId: string,
+  currentLogoUrl: string
+): Promise<void> => {
+  // Remove from storage (best-effort)
+  await deleteImageFromStorage('organization-logos', currentLogoUrl);
+
+  // Clear the logo column
+  const { error } = await supabase
+    .from('organizations')
+    .update({ logo: null, updated_at: new Date().toISOString() })
+    .eq('id', organizationId);
+
+  if (error) {
+    logger.error('Error clearing organization logo:', error);
+    throw new Error('Failed to remove logo');
   }
 };
 

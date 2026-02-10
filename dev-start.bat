@@ -6,7 +6,8 @@ REM  Brings up (in dependency order):
 REM    1. Pre-flight checks    (node, npm, npx, docker)
 REM    2. node_modules         (npm ci if missing)
 REM    3. Supabase local stack (npx supabase start — Postgres, API, Auth, etc.)
-REM    4. Vite dev server      (npm run dev — in a new window)
+REM    4. Supabase TypeScript types (regenerate from local schema)
+REM    5. Vite dev server      (npm run dev — in a new window)
 REM
 REM  Idempotent: safe to run when services are already running.
 REM  Exit code 0 = environment ready for Playwright / E2E tests.
@@ -23,7 +24,7 @@ echo  ============================================
 echo.
 
 REM ---------- 1. Pre-flight checks -------------------------------------------
-echo  [1/4] Pre-flight checks...
+echo  [1/5] Pre-flight checks...
 
 REM -- Node.js --
 where node >nul 2>&1
@@ -97,7 +98,7 @@ echo        All pre-flight checks passed.
 
 REM ---------- 2. Verify node_modules -----------------------------------------
 echo.
-echo  [2/4] Checking node_modules...
+echo  [2/5] Checking node_modules...
 
 if exist "node_modules\." (
     echo        node_modules exists — skipping npm ci.
@@ -114,7 +115,7 @@ if exist "node_modules\." (
 
 REM ---------- 3. Start Supabase local stack -----------------------------------
 echo.
-echo  [3/4] Starting Supabase local stack...
+echo  [3/5] Starting Supabase local stack...
 
 REM Check if Supabase is already running by querying the API port
 powershell -NoProfile -Command ^
@@ -178,9 +179,23 @@ echo        --- Supabase Status ---
 call npx supabase status 2>nul
 echo        -----------------------
 
-REM ---------- 4. Start Vite dev server ----------------------------------------
+REM ---------- 4. Regenerate Supabase TypeScript types -------------------------
 echo.
-echo  [4/4] Starting Vite dev server (port 8080)...
+echo  [4/5] Regenerating Supabase TypeScript types...
+
+REM Write to a temp file first so a failure does not corrupt the existing types
+call npx supabase gen types typescript --local > src\integrations\supabase\types.ts.tmp 2>nul
+if !errorlevel! equ 0 (
+    move /Y src\integrations\supabase\types.ts.tmp src\integrations\supabase\types.ts >nul
+    echo        Types regenerated successfully.
+) else (
+    del src\integrations\supabase\types.ts.tmp 2>nul
+    echo        WARNING: Type generation failed. Existing types.ts will be used.
+)
+
+REM ---------- 5. Start Vite dev server ----------------------------------------
+echo.
+echo  [5/5] Starting Vite dev server (port 8080)...
 
 REM Check if port 8080 is already in use
 powershell -NoProfile -Command ^

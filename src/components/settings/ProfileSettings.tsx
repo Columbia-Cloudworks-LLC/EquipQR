@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import SingleImageUpload from '@/components/common/SingleImageUpload';
+import { uploadAvatar, deleteAvatar } from '@/services/profileService';
 
 const ProfileSettings = () => {
   const { currentUser, setCurrentUser } = useUser();
@@ -39,6 +41,18 @@ const ProfileSettings = () => {
     }
   };
 
+  const handleAvatarUpload = async (file: File) => {
+    if (!currentUser) return;
+    const publicUrl = await uploadAvatar(currentUser.id, file);
+    setCurrentUser({ ...currentUser, avatar_url: publicUrl });
+  };
+
+  const handleAvatarDelete = async () => {
+    if (!currentUser?.avatar_url) return;
+    await deleteAvatar(currentUser.id, currentUser.avatar_url);
+    setCurrentUser({ ...currentUser, avatar_url: null });
+  };
+
   if (!currentUser) return null;
 
   return (
@@ -46,10 +60,21 @@ const ProfileSettings = () => {
       <CardHeader>
         <CardTitle>Profile Information</CardTitle>
         <CardDescription>
-          Update your display name and other profile details.
+          Update your display name, avatar, and other profile details.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <SingleImageUpload
+          currentImageUrl={currentUser.avatar_url}
+          onUpload={handleAvatarUpload}
+          onDelete={handleAvatarDelete}
+          maxSizeMB={5}
+          disabled={isLoading}
+          label="Profile Avatar"
+          helpText="Upload a profile photo. It will be displayed next to your name."
+          previewClassName="w-24 h-24 rounded-full object-cover"
+        />
+
         <div className="space-y-2">
           <Label htmlFor="name">Display Name</Label>
           <Input

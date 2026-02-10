@@ -36,7 +36,10 @@ import { HistoryTab } from '@/components/audit';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
-import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
+import type { PartAlternateGroup, InventoryItemImage } from '@/features/inventory/types/inventory';
+import { getInventoryItemImages, uploadInventoryItemImages, deleteInventoryItemImage } from '@/features/inventory/services/inventoryService';
+import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
+import { toast } from 'sonner';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -77,6 +80,14 @@ const InventoryItemDetail = () => {
     currentOrganization?.id,
     itemId
   );
+  
+  // Fetch uploaded images for this item
+  const { data: itemImages = [], refetch: refetchImages } = useQuery({
+    queryKey: ['inventory-item-images', itemId],
+    queryFn: () => getInventoryItemImages(itemId!),
+    enabled: !!itemId,
+  });
+
   const { data: transactionsData } = useInventoryTransactions(
     currentOrganization?.id,
     itemId
@@ -518,20 +529,80 @@ const InventoryItemDetail = () => {
               </Card>
             </div>
 
-            {item.image_url && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Image</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="max-w-full h-auto rounded-md"
+            {/* Item Images Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Display existing uploaded images */}
+                {itemImages.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {itemImages.map((img: InventoryItemImage) => (
+                      <div key={img.id} className="relative group">
+                        <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                          <img
+                            src={img.file_url}
+                            alt={img.file_name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {canEdit && (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={async () => {
+                              try {
+                                await deleteInventoryItemImage(img.id, img.file_url);
+                                toast.success('Image removed');
+                                refetchImages();
+                              } catch (error) {
+                                toast.error(error instanceof Error ? error.message : 'Failed to remove image');
+                              }
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1 truncate">{img.file_name}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Legacy image_url display (backward compatibility) */}
+                {item.image_url && itemImages.length === 0 && (
+                  <div>
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="max-w-full h-auto rounded-md"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">Legacy image (URL-based)</p>
+                  </div>
+                )}
+
+                {/* Upload new images */}
+                {canEdit && itemImages.length < 5 && (
+                  <ImageUploadWithNote
+                    onUpload={async (files) => {
+                      if (!currentOrganization?.id || !itemId) return;
+                      await uploadInventoryItemImages(itemId, currentOrganization.id, files);
+                      refetchImages();
+                    }}
+                    maxFiles={5 - itemImages.length}
+                    disabled={false}
                   />
-                </CardContent>
-              </Card>
-            )}
+                )}
+
+                {/* No images and not editable */}
+                {!canEdit && itemImages.length === 0 && !item.image_url && (
+                  <p className="text-sm text-muted-foreground">No images uploaded</p>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Delete Section */}
             {canEdit && (
