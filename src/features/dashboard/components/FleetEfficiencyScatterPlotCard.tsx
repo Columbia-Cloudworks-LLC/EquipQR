@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,8 +23,9 @@ import {
 import EmptyState from '@/components/ui/empty-state';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamFleetEfficiency } from '@/features/teams/hooks/useTeamBasedDashboard';
-import type { FleetEfficiencyPoint } from '@/features/teams/services/teamFleetEfficiencyService';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { jitterPoints, type JitteredPoint } from '@/features/dashboard/utils/jitterPoints';
+import { ScatterPointShape } from '@/features/dashboard/components/ClusterBadge';
 
 const tooltipContainerClasses =
   'rounded-md border border-border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-md';
@@ -38,8 +39,14 @@ const FleetEfficiencyScatterPlotCard: React.FC = () => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [sheetOpen, setSheetOpen] = React.useState(false);
-  const [selectedTeam, setSelectedTeam] = React.useState<FleetEfficiencyPoint | null>(null);
+  const [selectedTeam, setSelectedTeam] = React.useState<JitteredPoint | null>(null);
   const [menuPosition, setMenuPosition] = React.useState<{ x: number; y: number } | null>(null);
+
+  // Apply jitter to prevent overlapping points
+  const jitteredData = React.useMemo(
+    () => (data && data.length > 0 ? jitterPoints(data) : []),
+    [data]
+  );
 
   if (!currentOrganization) {
     return null;
@@ -73,7 +80,10 @@ const FleetEfficiencyScatterPlotCard: React.FC = () => {
     return null;
   };
 
-  const handlePointClick = (point: FleetEfficiencyPoint, event: unknown) => {
+  const handlePointClick = (point: JitteredPoint, event: unknown) => {
+    // For clustered points (3+), the ClusterBadge handles interaction via popover
+    if (point.clusterSize >= 3) return;
+
     setSelectedTeam(point);
 
     if (isMobile) {
@@ -92,6 +102,23 @@ const FleetEfficiencyScatterPlotCard: React.FC = () => {
     setMenuOpen(true);
   };
 
+  const handleTeamSelectFromCluster = (point: JitteredPoint) => {
+    setSelectedTeam(point);
+    if (isMobile) {
+      setSheetOpen(true);
+    } else {
+      // For cluster popover selections, position the menu in the center of the chart
+      const bounds = containerRef.current?.getBoundingClientRect();
+      if (bounds) {
+        setMenuPosition({
+          x: bounds.width / 2,
+          y: bounds.height / 2,
+        });
+        setMenuOpen(true);
+      }
+    }
+  };
+
   const handleNavigate = (target: 'equipment' | 'work-orders') => {
     if (!selectedTeam) return;
     const basePath = target === 'equipment' ? '/dashboard/equipment' : '/dashboard/work-orders';
@@ -102,10 +129,13 @@ const FleetEfficiencyScatterPlotCard: React.FC = () => {
     navigate(`${basePath}?team=${teamId}`);
   };
 
+  // Compute ZAxis range from data (use equipmentCount + activeWorkOrdersCount as a simple "weight")
+  const zRange: [number, number] = [40, 120];
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle id="fleet-efficiency-heading" className="flex items-center gap-2">
+        <CardTitle as="h2" id="fleet-efficiency-heading" className="flex items-center gap-2">
           <TrendingUp className="h-5 w-5" />
           Fleet Efficiency
         </CardTitle>
@@ -120,26 +150,34 @@ const FleetEfficiencyScatterPlotCard: React.FC = () => {
               <div key={i} className="h-12 bg-muted animate-pulse rounded-lg" />
             ))}
           </div>
-        ) : data && data.length > 0 ? (
-          <div className="h-72 relative" ref={containerRef}>
+        ) : jitteredData.length > 0 ? (
+          <div className="h-96 relative" ref={containerRef} role="img" aria-label={`Fleet efficiency scatter plot showing ${jitteredData.length} teams. X-axis: total equipment count, Y-axis: active work orders.`}>
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
                 <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
                 <XAxis
                   type="number"
-                  dataKey="equipmentCount"
+                  dataKey="jitteredX"
                   name="Total Equipment"
                   allowDecimals={false}
                   stroke="hsl(var(--muted-foreground))"
                   tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  label={{ value: 'Equipment Count', position: 'insideBottom', offset: -5, style: { fill: 'hsl(var(--muted-foreground))', fontSize: 12 } }}
                 />
                 <YAxis
                   type="number"
-                  dataKey="activeWorkOrdersCount"
+                  dataKey="jitteredY"
                   name="Active Work Orders"
                   allowDecimals={false}
                   stroke="hsl(var(--muted-foreground))"
                   tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  label={{ value: 'Active Work Orders', angle: -90, position: 'insideLeft', offset: 10, style: { fill: 'hsl(var(--muted-foreground))', fontSize: 12 } }}
+                />
+                <ZAxis
+                  type="number"
+                  dataKey="equipmentCount"
+                  range={zRange}
+                  name="Fleet Size"
                 />
                 <Tooltip
                   cursor={{ stroke: 'hsl(var(--border))' }}
@@ -147,11 +185,20 @@ const FleetEfficiencyScatterPlotCard: React.FC = () => {
                     if (!active || !payload?.length) {
                       return null;
                     }
-                    const point = payload[0]?.payload as {
-                      teamName: string;
-                      equipmentCount: number;
-                      activeWorkOrdersCount: number;
-                    };
+                    const point = payload[0]?.payload as JitteredPoint;
+
+                    if (point.clusterSize >= 3) {
+                      return (
+                        <div className={tooltipContainerClasses}>
+                          <div className="font-medium">
+                            {point.clusterSize} teams at this point
+                          </div>
+                          <div className="text-muted-foreground">
+                            Click to see all teams
+                          </div>
+                        </div>
+                      );
+                    }
 
                     return (
                       <div className={tooltipContainerClasses}>
@@ -167,10 +214,19 @@ const FleetEfficiencyScatterPlotCard: React.FC = () => {
                   }}
                 />
                 <Scatter
-                  data={data}
+                  data={jitteredData}
                   fill="hsl(var(--primary))"
                   stroke="hsl(var(--primary))"
-                  onClick={(point, _index, event) => handlePointClick(point, event)}
+                  shape={(props: Record<string, unknown>) => (
+                    <ScatterPointShape
+                      {...props}
+                      allPoints={jitteredData}
+                      onTeamSelect={handleTeamSelectFromCluster}
+                    />
+                  )}
+                  onClick={(point: unknown, _index: number, event: unknown) =>
+                    handlePointClick(point as JitteredPoint, event)
+                  }
                 />
               </ScatterChart>
             </ResponsiveContainer>
