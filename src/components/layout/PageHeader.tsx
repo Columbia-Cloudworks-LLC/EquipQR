@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export interface BreadcrumbItem {
   label: string;
@@ -25,6 +26,8 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   actions,
   className,
 }) => {
+  useDocumentTitle(title);
+
   return (
     <div className={cn('space-y-4', className)}>
       {/* Breadcrumbs */}
