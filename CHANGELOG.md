@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Privacy Policy comprehensive overhaul** — Rewrote the privacy policy (`src/pages/PrivacyPolicy.tsx`) from a generic template into a detailed, audit-ready document with 14 numbered sections. Replaced the dynamic `new Date().toLocaleDateString()` date with a static "February 10, 2026". Added itemized tables for individual-level data collection (9 categories) and organization-level data collection (11 categories). Transparently disclosed all 10 external service providers (Supabase, Google Maps, hCaptcha, Resend, Vercel, Stripe, QuickBooks Online, Google Workspace, GitHub, Web Push) with bidirectional data flows (data sent, received, and stored). Added explicit sections for cookies/local storage/session data, data security controls, children's privacy, international data transfers, and user/organization-level privacy controls
+
 ## [2.3.2] - 2026-02-10
 
 ### Added
