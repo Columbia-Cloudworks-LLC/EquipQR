@@ -342,8 +342,12 @@ Deno.serve(async (req) => {
     // Check for Fault in 200 OK response (QBO best practice)
     // QBO can return HTTP 200 with a Fault body instead of query results
     if ((qbData as unknown as Record<string, unknown>).Fault) {
-      const fault = (qbData as unknown as Record<string, unknown>).Fault;
-      logStep("Fault in customer query response", { fault: JSON.stringify(fault).substring(0, 300), intuit_tid: intuitTid });
+      const faultObj = (qbData as unknown as Record<string, unknown>).Fault as Record<string, unknown>;
+      // Only log non-sensitive fault metadata (type + error codes); avoid raw message/detail
+      const errorCodes = Array.isArray(faultObj?.Error)
+        ? (faultObj.Error as Array<Record<string, unknown>>).map(e => ({ code: e?.code }))
+        : [];
+      logStep("Fault in customer query response", { type: faultObj?.type, errorCodes, intuit_tid: intuitTid });
       throw new Error("QuickBooks returned a validation error for the customer query");
     }
 

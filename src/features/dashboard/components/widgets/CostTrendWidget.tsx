@@ -35,10 +35,15 @@ const CostTrendWidget: React.FC = () => {
       if (!organizationId) return [];
 
       // Fetch costs joined to work_orders for org scoping
+      // Limit to last 12 months to avoid transferring entire cost history
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
       const { data, error } = await supabase
         .from('work_order_costs')
         .select('total_price_cents, created_at, work_orders!inner(organization_id)')
         .eq('work_orders.organization_id', organizationId)
+        .gte('created_at', twelveMonthsAgo.toISOString())
         .order('created_at', { ascending: true });
 
       if (error) throw error;

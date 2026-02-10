@@ -46,6 +46,9 @@ const EquipmentByStatusWidget: React.FC = () => {
     queryFn: async (): Promise<StatusCount[]> => {
       if (!organizationId) return [];
 
+      // Note: fetches only the `status` column (minimal payload). A server-side
+      // aggregate (RPC/view with GROUP BY + COUNT) would further reduce transfer
+      // for very large fleets — tracked for future optimization.
       const { data: rows, error } = await supabase
         .from('equipment')
         .select('status')

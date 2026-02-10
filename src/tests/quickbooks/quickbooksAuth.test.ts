@@ -158,39 +158,38 @@ describe('QuickBooks Auth Utilities', () => {
   // generateQuickBooksAuthUrl
   // -----------------------------------------------------------------------
   describe('generateQuickBooksAuthUrl', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
     it('should throw when VITE_INTUIT_CLIENT_ID is not set', async () => {
-      // In our test env, VITE_INTUIT_CLIENT_ID is likely undefined
-      // The function reads import.meta.env at call time
-      // We can only reliably test the RPC path if the env vars happen to be set.
-      // Instead, test that the function exists and is callable.
-      try {
-        await generateQuickBooksAuthUrl({
-          organizationId: 'org-123',
-        });
-        // If it didn't throw, it means env vars are set — that's fine
-      } catch (err) {
-        // Should throw due to missing env vars or RPC error
-        expect(err).toBeInstanceOf(Error);
-      }
+      // Ensure the env var is explicitly unset so the test is deterministic
+      vi.stubEnv('VITE_INTUIT_CLIENT_ID', '');
+
+      await expect(
+        generateQuickBooksAuthUrl({ organizationId: 'org-123' })
+      ).rejects.toThrow('QuickBooks integration is not configured');
     });
 
     it('should call create_quickbooks_oauth_session RPC when configured', async () => {
-      // This test verifies the RPC is called, which requires env vars.
-      // Since we can't guarantee env vars in test, we just verify the function
-      // handles errors gracefully.
+      // Stub required env vars so the function reaches the RPC call
+      vi.stubEnv('VITE_INTUIT_CLIENT_ID', 'test-client-id');
+      vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+
       const mockRpc = vi.fn().mockResolvedValue({
         data: null,
         error: { message: 'Not configured' },
       });
       vi.mocked(supabase.rpc).mockImplementation(mockRpc);
 
-      try {
-        await generateQuickBooksAuthUrl({
-          organizationId: 'org-123',
-        });
-      } catch {
-        // Expected to throw due to missing env var or RPC error
-      }
+      await expect(
+        generateQuickBooksAuthUrl({ organizationId: 'org-123' })
+      ).rejects.toThrow('Failed to create OAuth session');
+
+      expect(mockRpc).toHaveBeenCalledWith('create_quickbooks_oauth_session', expect.objectContaining({
+        p_organization_id: 'org-123',
+        p_redirect_url: null,
+      }));
     });
   });
 });

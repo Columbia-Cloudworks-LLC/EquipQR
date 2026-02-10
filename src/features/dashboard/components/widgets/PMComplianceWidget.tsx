@@ -36,12 +36,17 @@ const PMComplianceWidget: React.FC = () => {
     queryFn: async (): Promise<PMStatusCount[]> => {
       if (!organizationId) return [];
 
-      // Query work orders that have a pm_template_id (i.e., were generated from PM templates)
+      // Query PM work orders from the last 2 years to limit data transfer
+      const twoYearsAgo = new Date();
+      twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+      const cutoff = twoYearsAgo.toISOString();
+
       const { data: rows, error } = await supabase
         .from('work_orders')
         .select('id, status')
         .eq('organization_id', organizationId)
-        .not('pm_template_id', 'is', null);
+        .not('pm_template_id', 'is', null)
+        .gte('created_at', cutoff);
 
       if (error) throw error;
 
@@ -52,7 +57,8 @@ const PMComplianceWidget: React.FC = () => {
         .eq('organization_id', organizationId)
         .not('pm_template_id', 'is', null)
         .in('status', ['pending', 'submitted', 'assigned', 'in_progress'])
-        .lt('due_date', new Date().toISOString());
+        .lt('due_date', new Date().toISOString())
+        .gte('created_at', cutoff);
 
       const overdueIds = new Set((overdueRows ?? []).map((r) => r.id));
 

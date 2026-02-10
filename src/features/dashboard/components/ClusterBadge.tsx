@@ -40,6 +40,14 @@ export const ClusterBadgePopover: React.FC<ClusterBadgePopoverProps> = ({
           role="button"
           tabIndex={0}
           aria-label={`Cluster of ${count} teams at this position`}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              event.currentTarget.dispatchEvent(
+                new MouseEvent('click', { bubbles: true })
+              );
+            }
+          }}
         >
           {/* Background circle */}
           <circle

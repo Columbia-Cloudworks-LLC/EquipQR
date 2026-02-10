@@ -486,7 +486,10 @@ const WorkOrderDetails = () => {
                   custom_attributes: equipment.custom_attributes as Record<string, unknown> | null,
                   image_url: equipment.image_url
                 } : undefined}
-                team={workOrder.teamName ? { id: workOrder.team_id || '', name: workOrder.teamName } : undefined}
+                team={(() => {
+                  const teamId = workOrder.team_id || equipment?.team_id;
+                  return workOrder.teamName && teamId ? { id: teamId, name: workOrder.teamName } : undefined;
+                })()}
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
                 effectiveLocation={workOrder.effectiveLocation}
                 onScrollToPM={scrollToPMSection}
