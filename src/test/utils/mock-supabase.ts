@@ -68,6 +68,29 @@ export const createMockSupabaseClient = () => {
       onAuthStateChange: vi.fn().mockImplementation(() => ({
         data: { subscription: createMockSubscription() },
       })),
+      mfa: {
+        enroll: vi.fn().mockResolvedValue({
+          data: { id: 'factor-1', type: 'totp', totp: { qr_code: 'data:image/svg+xml;base64,test', secret: 'TESTSECRET123', uri: 'otpauth://totp/test' } },
+          error: null,
+        }),
+        challenge: vi.fn().mockResolvedValue({
+          data: { id: 'challenge-1' },
+          error: null,
+        }),
+        verify: vi.fn().mockResolvedValue({
+          data: { access_token: 'token', token_type: 'bearer', expires_in: 3600, refresh_token: 'refresh' },
+          error: null,
+        }),
+        unenroll: vi.fn().mockResolvedValue({ data: { id: 'factor-1' }, error: null }),
+        listFactors: vi.fn().mockResolvedValue({
+          data: { totp: [], phone: [] },
+          error: null,
+        }),
+        getAuthenticatorAssuranceLevel: vi.fn().mockResolvedValue({
+          data: { currentLevel: 'aal1', nextLevel: 'aal1', currentAuthenticationMethods: [] },
+          error: null,
+        }),
+      },
     },
     from: vi.fn(() => createMockChain()),
     rpc: vi.fn().mockResolvedValue({ data: null, error: null }),

@@ -186,6 +186,23 @@ Before you begin, ensure you have the following installed on your development ma
 
 ### Development Workflow
 
+#### One-Click Start / Stop (Windows)
+
+Two batch files in the project root let you bring the entire local stack up or tear it down with a double-click:
+
+| Script | What it does |
+|--------|-------------|
+| **`dev-start.bat`** | Idempotent startup — verifies prerequisites (Node, Docker), starts Supabase + Vite, health-checks every service, and prints a readiness report. Safe to run repeatedly; already-running services are skipped. |
+| **`dev-stop.bat`** | Graceful shutdown — stops the Vite dev server, any `supabase functions serve` process, the Supabase Docker stack, and cleans up orphan processes on dev ports. Safe to run when nothing is running. |
+
+```bash
+# From the project root — or just double-click in Explorer
+.\dev-start.bat      # Spin up everything
+.\dev-stop.bat       # Tear down everything
+```
+
+> **Tip**: `dev-start.bat` exits with code 0 when all services are healthy, making it suitable as a Playwright / E2E pre-test step.
+
 #### Daily Development Commands
 
 ```bash

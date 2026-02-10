@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { MFAProvider } from '@/contexts/MFAContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { SessionProvider } from '@/contexts/SessionContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -29,6 +30,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TooltipProvider>
             <AuthProvider>
+              <MFAProvider>
               <UserProvider>
                 <SessionProvider>
                   <Router
@@ -41,6 +43,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                   </Router>
                 </SessionProvider>
               </UserProvider>
+              </MFAProvider>
             </AuthProvider>
           </TooltipProvider>
           <Toaster />

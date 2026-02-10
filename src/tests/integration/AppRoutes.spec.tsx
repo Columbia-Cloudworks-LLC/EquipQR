@@ -24,6 +24,24 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganizationSafe: () => null
 }));
 
+// Mock MFA hook used by MFAEnforcementGuard
+vi.mock('@/hooks/useMFA', () => ({
+  useMFA: () => ({
+    factors: [],
+    currentLevel: null,
+    nextLevel: null,
+    isEnrolled: false,
+    isVerified: false,
+    needsVerification: false,
+    isLoading: false,
+    enrollTOTP: vi.fn(),
+    verifyTOTP: vi.fn(),
+    unenrollFactor: vi.fn(),
+    challengeAndVerify: vi.fn(),
+    refreshMFAStatus: vi.fn(),
+  }),
+}));
+
 // Mock all page components
 vi.mock('@/pages/Dashboard', () => ({ default: () => <div data-testid="dashboard-page">Dashboard</div> }));
 vi.mock('@/features/equipment/pages/Equipment', () => ({ default: () => <div data-testid="equipment-page">Equipment</div> }));
