@@ -47,8 +47,15 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
     return sortConfig.direction === 'asc' ? 'A-Z' : 'Z-A';
   };
 
+  const currentSortLabel = sortOptions.find(o => o.value === sortConfig.field)?.label ?? sortConfig.field;
+  const currentDirectionLabel = sortConfig.direction === 'asc' ? 'ascending' : 'descending';
+
   return (
     <div className={`${isMobile ? 'flex flex-col gap-3' : 'flex items-center justify-between'} mb-4 md:mb-6`}>
+      {/* Visually hidden live region for screen readers to announce sort changes */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        Sorted by {currentSortLabel}, {currentDirectionLabel}. Showing {resultCount} of {totalCount} equipment.
+      </div>
       <div className={`${isMobile ? 'flex items-center justify-between gap-2' : 'flex items-center gap-4'}`}>
         <div className={`${isMobile ? 'min-w-0 truncate' : ''} text-sm text-muted-foreground`}>
           Showing <span className="font-medium text-foreground">{resultCount}</span> of{' '}

@@ -46,6 +46,7 @@ const ClickableAddress: React.FC<ClickableAddressProps> = ({
       rel="noopener noreferrer"
       className={`inline-flex items-center gap-1 text-primary hover:text-primary/80 hover:underline transition-colors ${className}`}
       title="Open in Google Maps"
+      aria-label={`${displayText} (opens in new tab)`}
     >
       <span>{displayText}</span>
       {showIcon && <ExternalLink className="h-3 w-3 flex-shrink-0" />}

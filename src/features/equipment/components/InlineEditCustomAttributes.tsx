@@ -83,6 +83,7 @@ const renderAttributeValue = (value: string): React.ReactNode => {
         target="_blank"
         rel="noopener noreferrer"
         className="text-lg break-all text-primary hover:underline"
+        aria-label={`${value} (opens in new tab)`}
       >
         {value}
       </a>

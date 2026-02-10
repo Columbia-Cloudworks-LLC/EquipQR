@@ -272,9 +272,10 @@ const AlternateGroupDetail: React.FC = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:underline flex items-center gap-1"
+                  aria-label="View evidence (opens in new tab)"
                 >
                   View Evidence
-                  <ExternalLink className="h-3 w-3" />
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
                 </a>
               )}
             </CardContent>

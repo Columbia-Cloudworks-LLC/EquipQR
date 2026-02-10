@@ -143,7 +143,7 @@ const AppSidebar = () => {
           <OrganizationSwitcher />
         </SidebarHeader>
         
-        <SidebarContent className="px-2 sm:px-3">
+        <SidebarContent className="px-2 sm:px-3" role="navigation" aria-label="Main navigation">
           <SidebarGroup>
             <SidebarGroupLabel className={cn("text-xs", mutedTextColorClass)}>
               Navigation

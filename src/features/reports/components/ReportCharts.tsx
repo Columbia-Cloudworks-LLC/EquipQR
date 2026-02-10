@@ -36,7 +36,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
 
     return (
       <div className="space-y-6">
-        <div>
+        <div role="img" aria-label={`Pie chart showing equipment by status: ${statusChartData.map(d => `${d.name}: ${d.value}`).join(', ')}`}>
           <h3 className="text-lg font-semibold mb-4">Equipment by Status</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -59,7 +59,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
           </ResponsiveContainer>
         </div>
 
-        <div>
+        <div role="img" aria-label={`Bar chart showing equipment by location: ${locationChartData.map(d => `${d.name}: ${d.count}`).join(', ')}`}>
           <h3 className="text-lg font-semibold mb-4">Equipment by Location</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={locationChartData}>
@@ -110,7 +110,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
 
     return (
       <div className="space-y-6">
-        <div>
+        <div role="img" aria-label={`Pie chart showing work orders by status: ${statusChartData.map(d => `${d.name}: ${d.value}`).join(', ')}`}>
           <h3 className="text-lg font-semibold mb-4">Work Orders by Status</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -133,7 +133,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
           </ResponsiveContainer>
         </div>
 
-        <div>
+        <div role="img" aria-label={`Bar chart showing work orders by priority: ${priorityChartData.map(d => `${d.name}: ${d.count}`).join(', ')}`}>
           <h3 className="text-lg font-semibold mb-4">Work Orders by Priority</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={priorityChartData}>
@@ -147,7 +147,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
         </div>
 
         {timeChartData.length > 1 && (
-          <div>
+          <div role="img" aria-label={`Line chart showing work orders over time: ${timeChartData.map(d => `${d.month}: ${d.count}`).join(', ')}`}>
             <h3 className="text-lg font-semibold mb-4">Work Orders Over Time</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={timeChartData}>
@@ -175,7 +175,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
     ];
 
     return (
-      <div>
+      <div role="img" aria-label={`Bar chart showing key performance indicators: ${kpiData.map(d => `${d.name}: ${d.value}`).join(', ')}`}>
         <h3 className="text-lg font-semibold mb-4">Key Performance Indicators</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={kpiData}>

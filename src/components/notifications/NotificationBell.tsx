@@ -140,7 +140,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
+        <Button variant="ghost" size="sm" className="relative" aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}>
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
             <Badge 

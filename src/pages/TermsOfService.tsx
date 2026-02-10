@@ -256,7 +256,7 @@ export default function TermsOfService() {
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              <strong>Columbia Cloudworks LLC</strong> • Email: <a href="mailto:nicholas.king@columbiacloudworks.com" className="underline">nicholas.king@columbiacloudworks.com</a> • Website: <a href="https://equipqr.app" target="_blank" rel="noopener noreferrer" className="underline">https://equipqr.app</a>
+              <strong>Columbia Cloudworks LLC</strong> • Email: <a href="mailto:nicholas.king@columbiacloudworks.com" className="underline">nicholas.king@columbiacloudworks.com</a> • Website: <a href="https://equipqr.app" target="_blank" rel="noopener noreferrer" className="underline" aria-label="equipqr.app (opens in new tab)">https://equipqr.app</a>
             </p>
           </CardContent>
         </Card>
