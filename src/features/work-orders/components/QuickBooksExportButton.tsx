@@ -280,6 +280,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
                         )}
                         target="_blank"
                         rel="noopener noreferrer"
+                        aria-label="Open in QuickBooks (opens in new tab)"
                       >
                         Open in QuickBooks
                       </a>

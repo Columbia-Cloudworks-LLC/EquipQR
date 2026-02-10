@@ -56,6 +56,7 @@ const WORK_ORDER_SELECT = `
     teams:team_id (
       id,
       name,
+      description,
       override_equipment_location,
       location_lat,
       location_lng,
@@ -92,6 +93,7 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
     teams?: {
       id?: string;
       name?: string;
+      description?: string;
       override_equipment_location?: boolean;
       location_lat?: number | null;
       location_lng?: number | null;
@@ -174,6 +176,18 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
     assignedTo: assignee?.id && assignee?.name ? { id: assignee.id, name: assignee.name } : null,
     // Resolved location from hierarchy
     effectiveLocation,
+    // Team details
+    team: equipment?.teams?.id && equipment?.teams?.name ? {
+      id: equipment.teams.id,
+      name: equipment.teams.name,
+      description: equipment.teams.description || undefined,
+      location_address: equipment.teams.location_address,
+      location_city: equipment.teams.location_city,
+      location_state: equipment.teams.location_state,
+      location_country: equipment.teams.location_country,
+      location_lat: equipment.teams.location_lat,
+      location_lng: equipment.teams.location_lng,
+    } : null,
   };
 }
 

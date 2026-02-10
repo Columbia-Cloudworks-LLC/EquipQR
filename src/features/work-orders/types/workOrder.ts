@@ -59,6 +59,18 @@ export interface WorkOrder extends WorkOrderRow {
   assignedTo?: { id: string; name: string } | null;
   // Resolved location from hierarchy (team override > manual assignment > last scan)
   effectiveLocation?: EffectiveLocation | null;
+  // Team details from equipment join
+  team?: {
+    id: string;
+    name: string;
+    description?: string;
+    location_address?: string | null;
+    location_city?: string | null;
+    location_state?: string | null;
+    location_country?: string | null;
+    location_lat?: number | null;
+    location_lng?: number | null;
+  } | null;
 }
 
 /**

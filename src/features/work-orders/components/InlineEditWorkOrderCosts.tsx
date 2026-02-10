@@ -355,9 +355,9 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
 
   if (!canEdit && costs.length === 0) {
     return (
-      <div className="text-center py-6 text-muted-foreground">
-        <DollarSign className="h-12 w-12 mx-auto mb-2 opacity-50" />
-        <p>No costs recorded</p>
+      <div className="flex items-center gap-2 py-3 px-4 text-sm text-muted-foreground">
+        <DollarSign className="h-4 w-4 opacity-50" />
+        <span>No costs recorded</span>
       </div>
     );
   }
@@ -452,10 +452,9 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
             </div>
           </div>
         ) : (
-          <div className="text-center py-6 text-muted-foreground">
-            <DollarSign className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>No costs recorded</p>
-            <p className="text-sm">Click the edit button to add cost items</p>
+          <div className="flex items-center gap-2 py-3 px-4 text-sm text-muted-foreground">
+            <DollarSign className="h-4 w-4 opacity-50" />
+            <span>No costs recorded yet. Click edit to add items.</span>
           </div>
         )}
       </div>

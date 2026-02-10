@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { 
@@ -14,7 +16,11 @@ import {
   Users, 
   AlertTriangle,
   Clipboard,
-  Shield
+  Shield,
+  Calendar,
+  Clock,
+  Wrench,
+  MapPin
 } from 'lucide-react';
 import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
@@ -25,6 +31,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
+import ClickableAddress from '@/components/ui/ClickableAddress';
 type WorkOrderStatus = 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
 
 type StatusWorkOrder = {
@@ -55,11 +62,30 @@ interface StatusAction {
 interface WorkOrderStatusManagerProps {
   workOrder: StatusWorkOrder;
   organizationId: string;
+  /** Optional context data previously shown in QuickInfo */
+  contextData?: {
+    createdDate?: string;
+    dueDate?: string;
+    estimatedHours?: number;
+    equipmentId?: string;
+    equipmentName?: string;
+    pmStatus?: string;
+    formMode?: string;
+    team?: {
+      id: string;
+      name: string;
+      description?: string;
+      location_address?: string | null;
+      location_lat?: number | null;
+      location_lng?: number | null;
+    } | null;
+  };
 }
 
 const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   workOrder,
-  organizationId
+  organizationId,
+  contextData
 }) => {
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
   const [selectedAssigneeForStart, setSelectedAssigneeForStart] = useState<string>('');
@@ -340,7 +366,7 @@ const getStatusActions = (): StatusAction[] => {
                   onValueChange={setSelectedAssigneeForStart}
                   disabled={assignmentLoading || updateStatusMutation.isPending}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full" aria-label="Select assignee to start work">
                     <SelectValue placeholder={assignmentLoading ? "Loading..." : "Select assignee..."} />
                   </SelectTrigger>
                   <SelectContent>
@@ -423,6 +449,118 @@ const getStatusActions = (): StatusAction[] => {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Context Details (merged from QuickInfo) */}
+          {contextData && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <span className="font-medium">Created:</span>
+                    <span className="ml-1.5 text-muted-foreground">
+                      {contextData.createdDate ? new Date(contextData.createdDate).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+
+                {contextData.dueDate && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <span className="font-medium">
+                        {contextData.formMode === 'requestor' && workOrder.status === 'submitted' ? 'Preferred Due:' : 'Due:'}
+                      </span>
+                      <span className="ml-1.5 text-muted-foreground">
+                        {new Date(contextData.dueDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {contextData.estimatedHours != null && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <span className="font-medium">Estimated:</span>
+                      <span className="ml-1.5 text-muted-foreground">{contextData.estimatedHours}h</span>
+                    </div>
+                  </div>
+                )}
+
+                {contextData.pmStatus && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clipboard className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <span className="font-medium">PM Status:</span>
+                      <span className="ml-1.5 text-muted-foreground">
+                        {contextData.pmStatus.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {contextData.equipmentId && contextData.equipmentName && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Wrench className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <span className="font-medium">Equipment:</span>
+                      <Link 
+                        to={`/dashboard/equipment/${contextData.equipmentId}`}
+                        className="ml-1.5 text-primary hover:underline"
+                      >
+                        {contextData.equipmentName}
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* Team details */}
+                {contextData.team && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <span className="font-medium">Team:</span>
+                        <Link
+                          to={`/dashboard/teams/${contextData.team.id}`}
+                          className="ml-1.5 text-primary hover:underline"
+                        >
+                          {contextData.team.name}
+                        </Link>
+                      </div>
+                    </div>
+                    {contextData.team.description && (
+                      <p className="text-xs text-muted-foreground pl-6 line-clamp-2">
+                        {contextData.team.description}
+                      </p>
+                    )}
+                    {contextData.team.location_address && (
+                      <div className="flex items-center gap-2 text-sm pl-6">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        {contextData.team.location_lat != null && contextData.team.location_lng != null ? (
+                          <ClickableAddress
+                            address={contextData.team.location_address}
+                            lat={contextData.team.location_lat}
+                            lng={contextData.team.location_lng}
+                            className="text-xs"
+                            showIcon={false}
+                          />
+                        ) : (
+                          <ClickableAddress
+                            address={contextData.team.location_address}
+                            className="text-xs"
+                            showIcon={false}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

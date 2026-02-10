@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Menu, Clipboard, MapPin, Calendar, User, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Edit, Menu, Clipboard, MapPin, Calendar, Users, MoreHorizontal } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 import ClickableAddress from '@/components/ui/ClickableAddress';
@@ -24,7 +24,14 @@ interface WorkOrderDetailsMobileHeaderProps {
       location?: string;
     };
     team?: {
+      id: string;
       name: string;
+      description?: string;
+      location_address?: string | null;
+      location_city?: string | null;
+      location_state?: string | null;
+      location_lat?: number | null;
+      location_lng?: number | null;
     };
     effectiveLocation?: EffectiveLocation | null;
   };
@@ -143,21 +150,53 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
             </div>
           )}
 
-          {/* Team & Date Info */}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            {workOrder.team && (
-              <div className="flex items-center gap-1">
-                <User className="h-3 w-3" />
-                <span>{workOrder.team.name}</span>
+          {/* Team Info */}
+          {workOrder.team && (
+            <div className="space-y-1 text-sm">
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                <Link
+                  to={`/dashboard/teams/${workOrder.team.id}`}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {workOrder.team.name}
+                </Link>
               </div>
-            )}
-            {workOrder.created_at && (
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>{new Date(workOrder.created_at).toLocaleDateString()}</span>
-              </div>
-            )}
-          </div>
+              {workOrder.team.description && (
+                <p className="text-xs text-muted-foreground pl-5 line-clamp-1">
+                  {workOrder.team.description}
+                </p>
+              )}
+              {workOrder.team.location_address && (
+                <div className="flex items-center gap-1.5 pl-5">
+                  <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  {workOrder.team.location_lat && workOrder.team.location_lng ? (
+                    <ClickableAddress
+                      address={workOrder.team.location_address}
+                      lat={workOrder.team.location_lat}
+                      lng={workOrder.team.location_lng}
+                      className="text-xs"
+                      showIcon={false}
+                    />
+                  ) : (
+                    <ClickableAddress
+                      address={workOrder.team.location_address}
+                      className="text-xs"
+                      showIcon={false}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Created Date */}
+          {workOrder.created_at && (
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <span>{new Date(workOrder.created_at).toLocaleDateString()}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

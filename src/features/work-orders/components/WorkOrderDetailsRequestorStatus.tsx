@@ -1,18 +1,24 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, UserMinus } from 'lucide-react';
-import { WorkOrderData, PermissionLevels } from '@/features/work-orders/types/workOrderDetails';
+import { Separator } from '@/components/ui/separator';
+import { Clock, User, UserMinus, Wrench, Clipboard } from 'lucide-react';
+import { WorkOrderData, EquipmentData, PermissionLevels, PMData } from '@/features/work-orders/types/workOrderDetails';
 
 interface WorkOrderDetailsRequestorStatusProps {
   workOrder: WorkOrderData;
   permissionLevels: PermissionLevels;
+  equipment?: EquipmentData | null;
+  pmData?: PMData | null;
 }
 
 export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestorStatusProps> = ({
   workOrder,
-  permissionLevels
+  permissionLevels,
+  equipment,
+  pmData
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -115,6 +121,40 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
           <div className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded">
             Work is temporarily on hold
           </div>
+        )}
+
+        {/* Context Details (merged from QuickInfo) */}
+        {(workOrder.estimated_hours || (workOrder.has_pm && pmData) || equipment) && (
+          <>
+            <Separator />
+            <div className="space-y-2">
+              {workOrder.estimated_hours != null && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>Estimated: {workOrder.estimated_hours}h</span>
+                </div>
+              )}
+
+              {workOrder.has_pm && pmData && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clipboard className="h-4 w-4" />
+                  <span>PM: {pmData.status.replace('_', ' ').toUpperCase()}</span>
+                </div>
+              )}
+
+              {equipment && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Wrench className="h-4 w-4 text-muted-foreground" />
+                  <Link 
+                    to={`/dashboard/equipment/${equipment.id}`}
+                    className="text-primary hover:underline"
+                  >
+                    {equipment.name}
+                  </Link>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
