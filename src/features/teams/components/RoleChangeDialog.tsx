@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { TeamWithMembers } from '@/features/teams/services/teamService';
 import { useTeamMembers } from '@/features/teams/hooks/useTeamManagement';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -87,6 +87,9 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
               {/* Member Info */}
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <Avatar className="h-10 w-10">
+                  {(member?.profiles as { avatar_url?: string | null })?.avatar_url && (
+                    <AvatarImage src={(member?.profiles as { avatar_url?: string | null }).avatar_url!} alt={memberName} />
+                  )}
                   <AvatarFallback>
                     {memberName.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>

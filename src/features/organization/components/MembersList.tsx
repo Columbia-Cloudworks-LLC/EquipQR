@@ -4,7 +4,7 @@ import { OrganizationMember } from '@/features/organization/types/organization';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MoreHorizontal, Mail, UserMinus } from 'lucide-react';
 import {
   DropdownMenu,
@@ -100,6 +100,7 @@ const MembersList: React.FC<MembersListProps> = ({
             >
               <div className="flex items-center space-x-4">
                 <Avatar>
+                  {member.avatar && <AvatarImage src={member.avatar} alt={member.name} />}
                   <AvatarFallback>
                     {member.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>

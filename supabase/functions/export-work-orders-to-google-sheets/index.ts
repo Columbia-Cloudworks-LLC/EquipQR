@@ -23,6 +23,7 @@ import {
   GOOGLE_SCOPES,
   hasScope,
 } from "../_shared/google-workspace-token.ts";
+import { googleApiFetch } from "../_shared/google-api-retry.ts";
 import {
   fetchWorkOrdersWithData,
   buildAllRows,
@@ -80,14 +81,14 @@ async function createSpreadsheet(
     })),
   };
 
-  const response = await fetch(SHEETS_API_BASE, {
+  const response = await googleApiFetch(SHEETS_API_BASE, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
-  });
+  }, { label: "sheets-create" });
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -129,14 +130,14 @@ async function writeSheetData(
   const range = `'${sheetName}'!A1`;
   const url = `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
 
-  const response = await fetch(url, {
+  const response = await googleApiFetch(url, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ values }),
-  });
+  }, { label: "sheets-write" });
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -200,14 +201,14 @@ async function formatSpreadsheet(
   if (requests.length === 0) return;
 
   const url = `${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`;
-  const response = await fetch(url, {
+  const response = await googleApiFetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ requests }),
-  });
+  }, { label: "sheets-format" });
 
   if (!response.ok) {
     // Formatting is non-critical, just log the error

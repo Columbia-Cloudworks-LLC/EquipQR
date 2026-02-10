@@ -23,6 +23,7 @@ import {
   GOOGLE_SCOPES,
   hasScope,
 } from "../_shared/google-workspace-token.ts";
+import { googleApiFetch } from "../_shared/google-api-retry.ts";
 import { checkRateLimit } from "../_shared/work-orders-export-data.ts";
 
 const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
@@ -153,14 +154,14 @@ async function uploadToDrive(
   
   const url = `${DRIVE_UPLOAD_URL}?uploadType=multipart&fields=id,name,mimeType,webViewLink,webContentLink`;
   
-  const response = await fetch(url, {
+  const response = await googleApiFetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": `multipart/related; boundary=${boundary}`,
     },
     body: body,
-  });
+  }, { label: "drive-upload" });
   
   if (!response.ok) {
     const errorBody = await response.text();

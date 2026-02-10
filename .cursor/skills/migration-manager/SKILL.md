@@ -5,6 +5,8 @@ description: Manages Supabase database migrations, schema linting, and seed rese
 
 # Migration Manager
 
+Handles **mechanical migration operations**: scaffolding, linting, applying, and resetting. For **design decisions** (schema design, table relationships, RLS policy design), defer to the `architect` subagent.
+
 ## When to Use
 
 - **Draft Migration** — scaffold a new timestamped SQL file

@@ -150,9 +150,17 @@ const TeamDetails = () => {
         {/* Team title - centered on mobile, left-aligned on desktop */}
         <div className="text-center sm:text-left">
           <div className="inline-flex items-center gap-3 mb-1">
-            <div className="p-2 rounded-xl bg-primary/10">
-              <Users className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
-            </div>
+            {team.image_url ? (
+              <img
+                src={team.image_url}
+                alt={team.name}
+                className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-cover"
+              />
+            ) : (
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Users className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+              </div>
+            )}
             <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
               {team.name}
             </h1>

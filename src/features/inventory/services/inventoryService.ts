@@ -2,6 +2,7 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import type {
   InventoryItem,
+  InventoryItemImage,
   InventoryTransaction,
   InventoryQuantityAdjustment,
   InventoryFilters,
@@ -9,6 +10,16 @@ import type {
 } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { bulkSetCompatibilityRules } from '@/features/inventory/services/inventoryCompatibilityRulesService';
+import {
+  uploadImageToStorage,
+  deleteImageFromStorage,
+  deleteImagesFromStorage,
+  generateFilePath,
+  validateImageFile,
+  requireAuthUserId,
+  getCurrentUserName,
+} from '@/services/imageUploadService';
+import { validateStorageQuota } from '@/utils/storageQuota';
 
 // ============================================
 // Get Inventory Items
@@ -114,7 +125,6 @@ export const createInventoryItem = async (
         external_id: formData.external_id || null,
         quantity_on_hand: formData.quantity_on_hand,
         low_stock_threshold: formData.low_stock_threshold,
-        image_url: formData.image_url || null,
         location: formData.location || null,
         default_unit_cost: formData.default_unit_cost || null,
         created_by: userId
@@ -180,7 +190,6 @@ export const updateInventoryItem = async (
     if (formData.sku !== undefined) updateData.sku = formData.sku || null;
     if (formData.external_id !== undefined) updateData.external_id = formData.external_id || null;
     if (formData.low_stock_threshold !== undefined) updateData.low_stock_threshold = formData.low_stock_threshold;
-    if (formData.image_url !== undefined) updateData.image_url = formData.image_url || null;
     if (formData.location !== undefined) updateData.location = formData.location || null;
     if (formData.default_unit_cost !== undefined) updateData.default_unit_cost = formData.default_unit_cost || null;
 
@@ -235,6 +244,35 @@ export const deleteInventoryItem = async (
   itemId: string
 ): Promise<void> => {
   try {
+    // Clean up storage files for images before deleting the item
+    // (DB rows are deleted via ON DELETE CASCADE, but storage files need manual cleanup)
+    const { data: images, error: imagesError } = await supabase
+      .from('inventory_item_images')
+      .select('file_url')
+      .eq('inventory_item_id', itemId)
+      .eq('organization_id', organizationId);
+
+    if (imagesError) {
+      logger.error('Error fetching inventory item images for cleanup:', {
+        error: imagesError,
+        organizationId,
+        itemId,
+      });
+      // Continue with DB delete even if image metadata fetch fails
+    } else if (images && images.length > 0) {
+      const urls = images.map(img => img.file_url);
+      try {
+        await deleteImagesFromStorage('inventory-item-images', urls);
+      } catch (storageError) {
+        logger.error('Error deleting inventory item images from storage (best-effort):', {
+          error: storageError,
+          organizationId,
+          itemId,
+        });
+        // Best-effort cleanup: log and continue to delete DB row
+      }
+    }
+
     const { error } = await supabase
       .from('inventory_items')
       .delete()
@@ -438,6 +476,187 @@ export const getCompatibleInventoryItems = async (
   } catch (error) {
     logger.error('Error fetching compatible inventory items:', error);
     throw error;
+  }
+};
+
+// ============================================
+// Inventory Item Images
+// ============================================
+
+const MAX_IMAGES_PER_ITEM = 5;
+
+/**
+ * Get all images for an inventory item, scoped to the organization.
+ */
+export const getInventoryItemImages = async (
+  itemId: string,
+  organizationId: string
+): Promise<InventoryItemImage[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('inventory_item_images')
+      .select('id, inventory_item_id, organization_id, file_url, file_name, file_size, mime_type, uploaded_by, uploaded_by_name, created_at')
+      .eq('inventory_item_id', itemId)
+      .eq('organization_id', organizationId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return (data || []) as InventoryItemImage[];
+  } catch (error) {
+    logger.error('Error fetching inventory item images:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload images to an inventory item. Max 5 images per item.
+ * Returns the newly created image records.
+ */
+export const uploadInventoryItemImages = async (
+  itemId: string,
+  organizationId: string,
+  files: File[]
+): Promise<InventoryItemImage[]> => {
+  try {
+    const userId = await requireAuthUserId();
+    const userName = await getCurrentUserName(userId);
+
+    // Check existing image count (scoped by organization for multi-tenancy)
+    const { count, error: countError } = await supabase
+      .from('inventory_item_images')
+      .select('id', { count: 'exact', head: true })
+      .eq('inventory_item_id', itemId)
+      .eq('organization_id', organizationId);
+
+    if (countError) throw countError;
+
+    const existingCount = count || 0;
+    if (existingCount + files.length > MAX_IMAGES_PER_ITEM) {
+      throw new Error(
+        `Cannot upload ${files.length} image(s). This item already has ${existingCount} of ${MAX_IMAGES_PER_ITEM} allowed images.`
+      );
+    }
+
+    // Validate total file size against storage quota
+    const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+    await validateStorageQuota(organizationId, totalSize);
+
+    // Upload each file and save metadata; track successes for rollback on partial failure
+    const results: InventoryItemImage[] = [];
+    const uploadedImages: { id: string; fileUrl: string }[] = [];
+
+    try {
+      for (const file of files) {
+        validateImageFile(file, 10);
+
+        const filePath = generateFilePath(organizationId, itemId, file);
+        const publicUrl = await uploadImageToStorage(
+          'inventory-item-images',
+          filePath,
+          file
+        );
+
+        const { data: record, error: insertError } = await supabase
+          .from('inventory_item_images')
+          .insert({
+            inventory_item_id: itemId,
+            organization_id: organizationId,
+            file_url: publicUrl,
+            file_name: file.name,
+            file_size: file.size,
+            mime_type: file.type,
+            uploaded_by: userId,
+            uploaded_by_name: userName,
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          logger.error('Error saving inventory item image record:', insertError);
+          // Clean up the orphaned storage object since the DB insert failed
+          try {
+            await deleteImageFromStorage('inventory-item-images', publicUrl);
+          } catch (deleteError) {
+            logger.error('Failed to delete orphaned inventory image from storage:', deleteError);
+          }
+          throw insertError;
+        }
+
+        const imageRecord = record as InventoryItemImage;
+        results.push(imageRecord);
+        uploadedImages.push({ id: imageRecord.id, fileUrl: imageRecord.file_url });
+      }
+
+      return results;
+    } catch (uploadError) {
+      // Best-effort rollback of images created before the failure
+      if (uploadedImages.length > 0) {
+        logger.error('Error during multi-file upload, rolling back created images:', uploadError);
+        for (const image of uploadedImages) {
+          try {
+            await deleteImageFromStorage('inventory-item-images', image.fileUrl);
+          } catch (storageErr) {
+            logger.error('Rollback: failed to delete storage object:', storageErr);
+          }
+          try {
+            const { error: deleteErr } = await supabase
+              .from('inventory_item_images')
+              .delete()
+              .eq('id', image.id)
+              .eq('organization_id', organizationId);
+            if (deleteErr) {
+              logger.error('Rollback: failed to delete image metadata:', deleteErr);
+            }
+          } catch (dbErr) {
+            logger.error('Rollback: unexpected error deleting image metadata:', dbErr);
+          }
+        }
+      }
+      throw uploadError;
+    }
+  } catch (error) {
+    logger.error('Error uploading inventory item images:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a single inventory item image (storage + metadata), scoped to the organization.
+ * Deletes the DB row first so a storage failure never leaves a dangling record
+ * pointing at a missing file; storage cleanup is best-effort.
+ */
+export const deleteInventoryItemImage = async (
+  imageId: string,
+  fileUrl: string,
+  organizationId: string
+): Promise<void> => {
+  // Remove metadata row first (scoped by organization_id for tenant isolation)
+  const { error } = await supabase
+    .from('inventory_item_images')
+    .delete()
+    .eq('id', imageId)
+    .eq('organization_id', organizationId);
+
+  if (error) {
+    logger.error('Error deleting inventory item image metadata:', {
+      error,
+      imageId,
+      organizationId,
+    });
+    throw error;
+  }
+
+  // Best-effort storage cleanup — DB row is already gone so the UI won't
+  // reference this file even if the storage delete fails.
+  try {
+    await deleteImageFromStorage('inventory-item-images', fileUrl);
+  } catch (storageError) {
+    logger.error('Error deleting inventory item image file from storage:', {
+      error: storageError,
+      imageId,
+      fileUrl,
+      organizationId,
+    });
   }
 };
 

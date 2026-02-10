@@ -10,26 +10,15 @@ EquipQR™ is a multi-tenant fleet equipment management platform. It features QR
 **Version**: See `package.json` `version` field (currently 2.3.0).
 **License**: Proprietary — Copyright Columbia Cloudworks LLC.
 
-## Tech stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, TypeScript, Vite 5 |
-| Routing | React Router v6 |
-| Server state | TanStack Query (React Query) v5 |
-| Forms | React Hook Form + Zod validation |
-| UI components | shadcn/ui (Radix primitives + Tailwind CSS) |
-| Icons | Lucide React |
-| Backend | Supabase (Postgres, Auth, Realtime, Storage) |
-| Edge Functions | Deno (Supabase Edge Functions) |
-| Testing | Vitest + React Testing Library + jsdom |
-| Linting | ESLint (flat config) + TypeScript ESLint |
-| CI | GitHub Actions |
-| Deployment | Vercel |
+> See `.cursor/rules/tech-stack.mdc` for the full tech stack reference.
 
 ## Setup commands
 
 ```bash
+# One-click dev environment (Windows — idempotent)
+.\dev-start.bat    # Start Docker + Supabase + Vite (skips already-running services)
+.\dev-stop.bat     # Gracefully stop all dev processes
+
 # Install dependencies (npm only — no yarn/pnpm)
 npm ci
 
@@ -61,67 +50,34 @@ npm run test:db
 npm run db:start
 ```
 
-## Code style
-
-- TypeScript throughout (`.ts` / `.tsx`). No plain `.js` files in `src/`.
-- Path alias: `@/` maps to `./src/` (configured in `tsconfig.json` and `vite.config.ts`).
-- ESLint flat config (`eslint.config.js`) with `react-hooks` and `react-refresh` plugins.
-- `no-console` is enforced in `src/` — use `console.error` only; use `@/utils/logger.ts` for structured logging.
-- `@typescript-eslint/no-unused-vars` and `@typescript-eslint/no-explicit-any` are `warn`.
-- Prefer `unknown` over `any`. Avoid introducing new `any` types.
-- Single quotes are not enforced by config; follow surrounding code style.
-- Use functional React components; no class components.
-- Use `React.lazy()` for route-level code splitting of heavy pages.
+> See `.cursor/rules/coding-standards.mdc` for code style guidelines.
 
 ## Directory structure
 
 ```
 src/
-├── components/        # Shared UI components (shadcn/ui in components/ui/)
-├── config/            # App configuration
-├── contexts/          # React contexts (Auth, Theme, etc.)
-├── features/          # Feature modules (equipment, work-orders, teams, etc.)
-│   └── <feature>/
-│       ├── components/
-│       ├── hooks/
-│       ├── services/
-│       ├── types/
-│       └── utils/
-├── hooks/             # Shared custom hooks
-├── integrations/      # Third-party integration clients (Supabase)
-├── lib/               # Utility libraries (cn(), utils)
-├── pages/             # Route page components
-├── services/          # Shared services (data, permissions, sync)
-├── test/              # Test utilities, mocks, setup
-├── tests/             # Journey/integration tests
-├── types/             # Shared TypeScript types
-└── utils/             # Shared utility functions
+├── components/    # Shared UI components (shadcn/ui in components/ui/)
+├── config/        # App configuration
+├── contexts/      # React contexts (Auth, Theme, etc.)
+├── features/      # Feature modules — each has components/, hooks/, services/, types/, utils/
+├── hooks/         # Shared custom hooks
+├── integrations/  # Third-party integration clients (Supabase)
+├── lib/           # Utility libraries (cn(), utils)
+├── pages/         # Route page components
+├── services/      # Shared services (data, permissions, sync)
+├── test/          # Test utilities, mocks, setup
+├── tests/         # Journey/integration tests
+├── types/         # Shared TypeScript types
+└── utils/         # Shared utility functions
 
 supabase/
-├── functions/         # Deno Edge Functions
-│   ├── _shared/       # Shared Edge Function utilities (CORS, auth, clients)
-│   └── <function>/    # One folder per Edge Function
-├── migrations/        # SQL migration files (timestamped)
-├── seeds/             # Seed data (numbered for ordering)
-└── tests/             # pgTAP database tests
+├── functions/     # Deno Edge Functions (_shared/ for common utilities)
+├── migrations/    # SQL migration files (timestamped)
+├── seeds/         # Seed data (numbered for ordering)
+└── tests/         # pgTAP database tests
 ```
 
-## Testing instructions
-
-- **Framework**: Vitest with jsdom environment and React Testing Library.
-- **Config**: `vitest.config.ts` at project root.
-- **Setup file**: `src/test/setup.ts`.
-- **Test location**: Co-locate test files next to source (e.g., `useAuth.test.tsx` beside `useAuth.ts`), or in `__tests__/` subdirectories.
-- **Naming**: `*.test.ts` or `*.test.tsx`.
-- **Run all tests**: `npm test`
-- **Run specific file**: `npx vitest run src/utils/dateFormatter.test.ts`
-- **Run by pattern**: `npx vitest run -t "should format date"`
-- **Coverage baseline**: CI enforces ≥51% overall; local thresholds in `vitest.config.ts`.
-- **Journey tests** (`src/tests/journeys/`): These render full page components — do NOT import hooks directly or use `renderHook*` in journey tests (ESLint enforces this).
-- **Database tests**: `npm run test:db` runs pgTAP tests in `supabase/tests/`.
-- **CI matrix**: Tests run on Node 20.x and 22.x.
-- Add or update tests for any code you change.
-- All tests must pass before merging.
+> See `.cursor/rules/testing.mdc` for testing standards.
 
 ## Build & CI
 
@@ -185,26 +141,9 @@ The app has a two-tier role system:
 - All permission types are defined in `src/types/permissions.ts`.
 - See `docs/guides/permissions.md` for the full RBAC matrix.
 
-## Database & migrations
+> See `.cursor/rules/supabase-migrations.mdc` for database & migration standards.
 
-- **Database**: Supabase-managed Postgres with RLS enabled on all public tables.
-- **Migrations**: Located in `supabase/migrations/` with timestamp prefixes (e.g., `20260209005548_fix_security_hardening.sql`).
-- **Naming**: Use snake_case for all SQL identifiers (tables, columns, functions).
-- **Primary keys**: Use `uuid` (via `gen_random_uuid()`) or `bigint generated always as identity`.
-- **Timestamps**: Always use `timestamptz`, never `timestamp`.
-- **Seeds**: Numbered files in `supabase/seeds/` (00-99 ordering).
-- **Local dev**: `supabase start` to run local Supabase; `supabase db reset` to reset with migrations + seeds.
-- Never hardcode generated IDs in migration data.
-
-## Edge Functions
-
-- Located in `supabase/functions/<function-name>/index.ts`.
-- Runtime: Deno (not Node.js).
-- Shared utilities in `supabase/functions/_shared/` (CORS, auth validation, Supabase clients, origin validation).
-- All functions should validate origin using `_shared/origin-validation.ts`.
-- All functions must import CORS headers from `_shared/cors.ts`.
-- JWT verification should be enabled unless the function implements custom auth.
-- Edge Function environment variables are set in `supabase/functions/.env` (local) or Supabase Dashboard (production).
+> See `.cursor/rules/supabase-functions.mdc` for Edge Function conventions.
 
 ## Environment variables
 
@@ -248,41 +187,11 @@ Feature flags are controlled via `VITE_` environment variables:
 - `VITE_ENABLE_QUICKBOOKS` — QuickBooks Online integration
 - `VITE_ENABLE_QB_PDF_ATTACHMENT` — QB PDF attachment feature
 
-## Key libraries & patterns
+> See `.cursor/rules/architecture.mdc` and `.cursor/rules/design-system.mdc` for libraries & patterns.
 
-- **State management**: TanStack Query for server state; React context for client state (auth, theme). No Redux.
-- **Data fetching**: All Supabase queries go through service functions in `services/` or `features/*/services/`. Use TanStack Query hooks to wrap them.
-- **Forms**: React Hook Form + Zod schemas. Schemas live in `features/*/schemas/`.
-- **Toasts**: Use `sonner` via `useAppToast` hook (not raw `toast()`).
-- **UI components**: Always use existing primitives from `src/components/ui/` (shadcn/ui). Do not create custom buttons, dialogs, etc.
-- **Icons**: Import from `lucide-react`.
-- **Date formatting**: Use `date-fns` and `date-fns-tz`. Helper in `src/utils/dateFormatter.ts`.
-- **Error handling**: Use `src/utils/errorHandling.ts` patterns. Never swallow errors silently.
-- **Route code splitting**: Heavy pages use `React.lazy()` with `Suspense` boundaries.
+> See `.cursor/rules/security-supabase.mdc` for security standards.
 
-## Security considerations
-
-- Never commit `.env` files, credentials, or API keys.
-- All Edge Functions validate request origin.
-- CORS headers are centrally managed in `_shared/cors.ts`.
-- hCaptcha protects signup forms.
-- Input validation with Zod on both client and server.
-- CSP headers are configured in `vite.config.ts` (dev) and deployment config (production).
-- Run `npm audit` periodically; CI runs CodeQL security analysis.
-- Stripe webhooks use signature verification.
-- OAuth tokens (QuickBooks, Google Workspace) are stored server-side only.
-
-## Performance guidelines
-
-- Bundle splitting is configured in `vite.config.ts` `manualChunks`.
-- Main JS bundle (gzipped) must stay under 500 KB.
-- Total build must stay under 12 MB.
-- Use `React.lazy()` for route-level code splitting.
-- Prefer direct imports over barrel file imports for large libraries.
-- Use `content-visibility: auto` for long lists.
-- Use `react-window` for virtualized lists (already a dependency).
-- Use functional `setState` updates to avoid stale closures.
-- Derive state during render instead of syncing with `useEffect`.
+> See `.cursor/rules/performance.mdc` for performance guidelines.
 
 ## Documentation
 

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -98,6 +98,9 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
               <TableCell>
                 <div className="flex items-center gap-3">
                    <Avatar className="h-8 w-8">
+                     {(member.profiles as { avatar_url?: string | null })?.avatar_url && (
+                       <AvatarImage src={(member.profiles as { avatar_url?: string | null }).avatar_url!} alt={member.profiles?.name || 'User'} />
+                     )}
                      <AvatarFallback className="text-sm">
                        {(member.profiles?.name || 'U').split(' ').map(n => n[0]).join('')}
                      </AvatarFallback>

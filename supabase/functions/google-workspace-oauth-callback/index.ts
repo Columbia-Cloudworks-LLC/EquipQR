@@ -1,11 +1,18 @@
 import { encryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
 import { createAdminSupabaseClient } from "../_shared/supabase-clients.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
+/**
+ * Returns CORS headers for the OAuth callback. Extends the shared origin-
+ * validated headers to also allow GET, since this endpoint is invoked via
+ * browser redirect from Google.
+ */
+function getCallbackCorsHeaders(req: Request): Record<string, string> {
+  return {
+    ...getCorsHeaders(req),
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  };
+}
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const safeDetails = details ? { ...details } : undefined;
@@ -205,7 +212,7 @@ function isTrustedDomain(urlString: string): boolean {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCallbackCorsHeaders(req) });
   }
 
   try {
@@ -656,42 +663,23 @@ Deno.serve(async (req) => {
     }
 
     // Encrypt the refresh token before storing
-    logStep("DEBUG: About to get encryption key");
     let encryptionKey: string;
     try {
       encryptionKey = getTokenEncryptionKey();
-      logStep("DEBUG: Got encryption key", { keyLength: encryptionKey.length });
     } catch (keyError) {
       const keyErrorMsg = keyError instanceof Error ? keyError.message : String(keyError);
-      logStep("DEBUG: Failed to get encryption key", { error: keyErrorMsg });
+      logStep("Encryption key configuration error", { error: keyErrorMsg });
       throw new Error(`Encryption key error: ${keyErrorMsg}`);
     }
 
     let encryptedRefreshToken: string;
     try {
       encryptedRefreshToken = await encryptToken(refreshToken, encryptionKey);
-      logStep("DEBUG: Refresh token encrypted", { encryptedLength: encryptedRefreshToken.length });
     } catch (encryptError) {
       const encryptErrorMsg = encryptError instanceof Error ? encryptError.message : String(encryptError);
-      logStep("DEBUG: Encryption failed", { error: encryptErrorMsg });
+      logStep("Token encryption failed", { error: encryptErrorMsg });
       throw new Error(`Encryption failed: ${encryptErrorMsg}`);
     }
-
-    // Upsert using the unique functional index on (organization_id, normalize_domain(domain)).
-    //
-    // IMPORTANT: We use the index name instead of column names because this is a
-    // functional index (normalize_domain(domain)). Column-based onConflict resolution
-    // cannot target expression indexes - PostgreSQL requires the exact index name
-    // when the uniqueness constraint involves a function call. If you instead try to
-    // use column names here (e.g. "organization_id,domain"), PostgreSQL will fail
-    // the statement with an error similar to:
-    //   "there is no unique or exclusion constraint matching the ON CONFLICT specification".
-    logStep("DEBUG: About to upsert credentials", {
-      organization_id: effectiveOrgId,
-      domain: domain,
-      access_token_expires_at: accessTokenExpiresAt.toISOString(),
-      scopes: tokenData.scope || null,
-    });
 
     // Manual upsert: The functional index on (organization_id, normalize_domain(domain))
     // cannot be used with Supabase JS client's onConflict (it only supports column names).
@@ -704,7 +692,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (selectError) {
-      logStep("DEBUG: Select for upsert failed", { 
+      logStep("Credentials lookup failed", { 
         error: selectError.message, 
         code: selectError.code,
       });
@@ -714,8 +702,6 @@ Deno.serve(async (req) => {
     let upsertError: { message: string; code?: string; details?: string; hint?: string } | null = null;
 
     if (existingRecord) {
-      // Update existing record
-      logStep("DEBUG: Updating existing credentials record", { id: existingRecord.id });
       const { error } = await supabaseClient
         .from("google_workspace_credentials")
         .update({
@@ -727,8 +713,6 @@ Deno.serve(async (req) => {
         .eq("id", existingRecord.id);
       upsertError = error;
     } else {
-      // Insert new record
-      logStep("DEBUG: Inserting new credentials record");
       const { error } = await supabaseClient
         .from("google_workspace_credentials")
         .insert({
@@ -743,22 +727,16 @@ Deno.serve(async (req) => {
     }
 
     if (upsertError) {
-      logStep("DEBUG: Upsert failed", { 
-        error: upsertError.message, 
+      logStep("Credentials upsert failed", { 
         code: upsertError.code,
-        details: upsertError.details,
         hint: upsertError.hint,
+        message: upsertError.message,
       });
-      // Include error details in the message so they appear in the redirect URL for debugging
-      const errorDetails = [
-        upsertError.code && `code=${upsertError.code}`,
-        upsertError.message,
-        upsertError.hint && `hint: ${upsertError.hint}`,
-      ].filter(Boolean).join('; ');
-      throw new Error(`DB error: ${errorDetails}`);
+      // Use a generic user-facing message — detailed DB errors are logged above
+      throw new Error("Failed to store credentials. Please try again or contact support.");
     }
     
-    logStep("DEBUG: Credentials stored successfully");
+    logStep("Credentials stored successfully");
 
     const isOriginValid = !!originUrl && isValidRedirectUrl(originUrl, resolvedProductionUrl);
     const finalBaseUrl = (isOriginValid ? originUrl : resolvedProductionUrl).replace(/\/+$/, "");

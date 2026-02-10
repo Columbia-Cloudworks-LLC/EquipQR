@@ -20,12 +20,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Info } from 'lucide-react';
-import { TeamWithMembers } from '@/features/teams/services/teamService';
-import { updateTeam } from '@/features/teams/services/teamService';
+import { TeamWithMembers, updateTeam, uploadTeamImage, deleteTeamImage } from '@/features/teams/services/teamService';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
+import SingleImageUpload from '@/components/common/SingleImageUpload';
 
 interface TeamMetadataEditorProps {
   open: boolean;
@@ -57,8 +57,26 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
   const [overrideEquipmentLocation, setOverrideEquipmentLocation] = useState(
     team.override_equipment_location ?? false
   );
+  const [currentTeamImage, setCurrentTeamImage] = useState<string | null>(
+    (team as { image_url?: string | null }).image_url ?? null
+  );
   const queryClient = useQueryClient();
   const { isLoaded } = useGoogleMapsLoader();
+
+  const handleTeamImageUpload = async (file: File) => {
+    const publicUrl = await uploadTeamImage(team.id, team.organization_id, file);
+    setCurrentTeamImage(publicUrl);
+    queryClient.invalidateQueries({ queryKey: ['team', team.id] });
+    queryClient.invalidateQueries({ queryKey: ['teams', team.organization_id] });
+  };
+
+  const handleTeamImageDelete = async () => {
+    if (!currentTeamImage) return;
+    await deleteTeamImage(team.id, team.organization_id, currentTeamImage);
+    setCurrentTeamImage(null);
+    queryClient.invalidateQueries({ queryKey: ['team', team.id] });
+    queryClient.invalidateQueries({ queryKey: ['teams', team.organization_id] });
+  };
 
   const existingAddress = buildTeamAddressDisplay(team);
 
@@ -158,6 +176,16 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                   className="min-h-[100px]"
                 />
               </div>
+
+              <SingleImageUpload
+                currentImageUrl={currentTeamImage}
+                onUpload={handleTeamImageUpload}
+                onDelete={handleTeamImageDelete}
+                maxSizeMB={5}
+                disabled={isLoading}
+                label="Team Image"
+                helpText="Upload an image for this team or customer business"
+              />
 
               <div className="space-y-2">
                 <Label>Location</Label>

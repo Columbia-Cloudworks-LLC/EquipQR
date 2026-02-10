@@ -8,7 +8,7 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Mail, UserMinus, UserPlus, Users, Clock, CheckCircle, XCircle, Database, CloudCog } from 'lucide-react';
@@ -324,6 +324,7 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
+                        {member.avatar && <AvatarImage src={member.avatar} alt={member.name} />}
                         <AvatarFallback className="text-xs">
                           {member.name === 'Pending Invite' || member.name === 'Pending (Google Workspace)'
                             ? '?' 
