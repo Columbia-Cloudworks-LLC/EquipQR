@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Privacy Policy comprehensive overhaul** — Rewrote the privacy policy (`src/pages/PrivacyPolicy.tsx`) from a generic template into a detailed, audit-ready document with 14 numbered sections. Replaced the dynamic `new Date().toLocaleDateString()` date with a static "February 10, 2026". Added itemized tables for individual-level data collection (9 categories) and organization-level data collection (11 categories). Transparently disclosed all 10 external service providers (Supabase, Google Maps, hCaptcha, Resend, Vercel, Stripe, QuickBooks Online, Google Workspace, GitHub, Web Push) with bidirectional data flows (data sent, received, and stored). Added explicit sections for cookies/local storage/session data, data security controls, children's privacy, international data transfers, and user/organization-level privacy controls
+- **Refactored `google-workspace-sync-users` to use shared token helper** — Replaced ~50 lines of duplicated token refresh, decryption, and credential update logic with a single call to `getGoogleWorkspaceAccessToken()` from `_shared/google-workspace-token.ts`, matching the pattern already used by `export-work-orders-to-google-sheets` and `upload-to-google-drive`
+- **OAuth callback CORS now uses shared module** — Replaced inline `corsHeaders` object in `google-workspace-oauth-callback` with an import from `_shared/cors.ts` (extended with GET method support for browser redirects), consistent with all other edge functions
+- **Cleaned up debug logging in OAuth callback** — Removed 11 verbose `DEBUG:` prefixed log statements from `google-workspace-oauth-callback` that leaked implementation details (encryption key length, credential record IDs). Kept error-handling logs with descriptive operation names
+
+### Added
+
+- **Shared Google API retry utility** (`supabase/functions/_shared/google-api-retry.ts`) — `googleApiFetch()` wraps `fetch()` with exponential backoff and jitter for transient Google API failures (429 rate limited, 503 service unavailable, network errors). Respects `Retry-After` headers, defaults to 3 attempts, and uses structured JSON logging consistent with `quickbooks-retry.ts`. Applied to all Google Workspace edge functions: Sheets export (3 call sites), Drive upload (1), and Directory sync (1)
+- **`invalid_grant` detection on token refresh** — Added `"token_revoked"` error code to `GoogleWorkspaceTokenErrorCode` in `_shared/google-workspace-token.ts`. When Google returns `invalid_grant` (refresh token revoked due to password change, admin revocation, or 6 months of inactivity), the error now provides a distinct code and clear user-facing message instead of a generic "token refresh failed"
+
 ## [2.3.2] - 2026-02-10
 
 ### Added

@@ -48,6 +48,7 @@ export type GoogleWorkspaceTokenErrorCode =
   | "token_corruption"
   | "oauth_not_configured"
   | "token_refresh_failed"
+  | "token_revoked"
   | "insufficient_scopes";
 
 /**
@@ -122,6 +123,18 @@ async function refreshAccessToken(refreshToken: string): Promise<GoogleRefreshRe
       throw new GoogleWorkspaceTokenError(
         "Insufficient permissions. Please reconnect Google Workspace to grant the required permissions.",
         "insufficient_scopes"
+      );
+    }
+
+    // Check for revoked or expired refresh token.
+    // Google returns 400 with error "invalid_grant" when:
+    // - The refresh token was revoked (user changed password, admin revoked access)
+    // - The refresh token expired (6 months of inactivity)
+    // - The user removed the app's access in Google Account settings
+    if (errorDetails.error === "invalid_grant") {
+      throw new GoogleWorkspaceTokenError(
+        "Your Google Workspace connection has expired or been revoked. Please reconnect Google Workspace in Organization Settings.",
+        "token_revoked"
       );
     }
     
