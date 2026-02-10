@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useAppToast } from '@/hooks/useAppToast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Settings, Palette } from 'lucide-react';
 import { QuickBooksIntegration } from './QuickBooksIntegration';
@@ -35,6 +35,7 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const appToast = useAppToast();
 
   // Fetch members to get admins for transfer ownership
   const { data: members = [] } = useOrganizationMembersQuery(currentOrganization?.id || '');
@@ -51,11 +52,9 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
       }));
   }, [members]);
 
-  // Initialize currentLogo from organization when available
+  // Initialize and sync currentLogo from organization (including clearing when no logo)
   React.useEffect(() => {
-    if (currentOrganization?.logo) {
-      setCurrentLogo(currentOrganization.logo);
-    }
+    setCurrentLogo(currentOrganization?.logo ?? null);
   }, [currentOrganization?.logo]);
 
   const form = useForm<OrganizationFormData>({
@@ -70,7 +69,7 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
 
   const onSubmit = async (data: OrganizationFormData) => {
     if (!canEdit || !currentOrganization) {
-      toast.error('You do not have permission to edit organization settings');
+      appToast.error({ description: 'You do not have permission to edit organization settings' });
       return;
     }
 
@@ -100,10 +99,10 @@ const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
       await queryClient.invalidateQueries({ queryKey: ['organizations'] });
       await queryClient.invalidateQueries({ queryKey: ['simple-organizations'] });
 
-      toast.success('Organization settings updated successfully');
+      appToast.success({ description: 'Organization settings updated successfully' });
     } catch (error) {
       console.error('Error updating organization:', error);
-      toast.error('Failed to update organization settings');
+      appToast.error({ description: 'Failed to update organization settings' });
     } finally {
       setIsUpdating(false);
     }

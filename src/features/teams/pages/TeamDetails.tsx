@@ -150,9 +150,9 @@ const TeamDetails = () => {
         {/* Team title - centered on mobile, left-aligned on desktop */}
         <div className="text-center sm:text-left">
           <div className="inline-flex items-center gap-3 mb-1">
-            {(team as { image_url?: string | null }).image_url ? (
+            {team.image_url ? (
               <img
-                src={(team as { image_url?: string | null }).image_url!}
+                src={team.image_url}
                 alt={team.name}
                 className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-cover"
               />

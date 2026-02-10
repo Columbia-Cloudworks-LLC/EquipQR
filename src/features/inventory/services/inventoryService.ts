@@ -246,11 +246,20 @@ export const deleteInventoryItem = async (
   try {
     // Clean up storage files for images before deleting the item
     // (DB rows are deleted via ON DELETE CASCADE, but storage files need manual cleanup)
-    const { data: images } = await supabase
+    const { data: images, error: imagesError } = await supabase
       .from('inventory_item_images')
       .select('file_url')
       .eq('inventory_item_id', itemId)
       .eq('organization_id', organizationId);
+
+    if (imagesError) {
+      logger.error('Error fetching inventory item images for cleanup:', {
+        error: imagesError,
+        organizationId,
+        itemId,
+      });
+      throw imagesError;
+    }
 
     if (images && images.length > 0) {
       const urls = images.map(img => img.file_url);
@@ -470,16 +479,18 @@ export const getCompatibleInventoryItems = async (
 const MAX_IMAGES_PER_ITEM = 5;
 
 /**
- * Get all images for an inventory item.
+ * Get all images for an inventory item, scoped to the organization.
  */
 export const getInventoryItemImages = async (
-  itemId: string
+  itemId: string,
+  organizationId: string
 ): Promise<InventoryItemImage[]> => {
   try {
     const { data, error } = await supabase
       .from('inventory_item_images')
-      .select('*')
+      .select('id, inventory_item_id, organization_id, file_url, file_name, file_size, mime_type, uploaded_by, uploaded_by_name, created_at')
       .eq('inventory_item_id', itemId)
+      .eq('organization_id', organizationId)
       .order('created_at', { ascending: true });
 
     if (error) throw error;
@@ -566,21 +577,23 @@ export const uploadInventoryItemImages = async (
 };
 
 /**
- * Delete a single inventory item image (storage + metadata).
+ * Delete a single inventory item image (storage + metadata), scoped to the organization.
  */
 export const deleteInventoryItemImage = async (
   imageId: string,
-  fileUrl: string
+  fileUrl: string,
+  organizationId: string
 ): Promise<void> => {
   try {
     // Remove from storage
     await deleteImageFromStorage('inventory-item-images', fileUrl);
 
-    // Remove metadata row
+    // Remove metadata row (scoped by organization_id for tenant isolation)
     const { error } = await supabase
       .from('inventory_item_images')
       .delete()
-      .eq('id', imageId);
+      .eq('id', imageId)
+      .eq('organization_id', organizationId);
 
     if (error) throw error;
   } catch (error) {

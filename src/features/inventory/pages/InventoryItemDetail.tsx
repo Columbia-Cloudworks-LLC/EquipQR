@@ -85,7 +85,7 @@ const InventoryItemDetail = () => {
   // Fetch uploaded images for this item
   const { data: itemImages = [], refetch: refetchImages } = useQuery({
     queryKey: ['inventory-item-images', currentOrganization?.id, itemId],
-    queryFn: () => getInventoryItemImages(itemId!),
+    queryFn: () => getInventoryItemImages(itemId!, currentOrganization!.id),
     enabled: !!itemId && !!currentOrganization?.id,
   });
 
@@ -557,7 +557,7 @@ const InventoryItemDetail = () => {
                             className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={async () => {
                               try {
-                                await deleteInventoryItemImage(img.id, img.file_url);
+                                await deleteInventoryItemImage(img.id, img.file_url, currentOrganization!.id);
                                 appToast.success({ description: 'Image removed' });
                                 refetchImages();
                               } catch (error) {
