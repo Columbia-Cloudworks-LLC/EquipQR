@@ -11,6 +11,7 @@ function Skeleton({
         "before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-background/10 before:to-transparent before:bg-[length:200%_100%] before:animate-shimmer",
         className
       )}
+      aria-hidden="true"
       {...props}
     />
   )
@@ -122,7 +123,8 @@ function SkeletonList({
     : SkeletonCard
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" role="status" aria-label="Loading content">
+      <span className="sr-only">Loading...</span>
       {Array.from({ length: count }).map((_, i) => (
         <Component key={i} className="animate-stagger-in" style={{ animationDelay: `${i * 50}ms` } as React.CSSProperties} />
       ))}
