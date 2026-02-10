@@ -20,13 +20,22 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (authUser) {
+      // Track whether this effect is still current to prevent stale updates
+      let cancelled = false;
+
       // Fetch profile to get avatar_url and persisted name
       const fetchProfile = async () => {
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('name, avatar_url')
           .eq('id', authUser.id)
           .single();
+
+        if (cancelled) return;
+
+        if (error) {
+          console.error('Failed to fetch user profile:', error.message);
+        }
 
         const user: User = {
           id: authUser.id,
@@ -38,6 +47,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
       };
       fetchProfile();
+
+      return () => {
+        cancelled = true;
+      };
     } else {
       setCurrentUser(null);
       setIsLoading(false);

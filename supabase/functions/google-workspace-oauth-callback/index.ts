@@ -1,14 +1,18 @@
 import { encryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
 import { createAdminSupabaseClient } from "../_shared/supabase-clients.ts";
-import { corsHeaders as sharedCorsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
-// Extend shared CORS headers to include GET — the OAuth callback is invoked
-// via browser redirect (GET) from Google, unlike most Edge Functions that only
-// accept POST.
-const corsHeaders = {
-  ...sharedCorsHeaders,
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
+/**
+ * Returns CORS headers for the OAuth callback. Extends the shared origin-
+ * validated headers to also allow GET, since this endpoint is invoked via
+ * browser redirect from Google.
+ */
+function getCallbackCorsHeaders(req: Request): Record<string, string> {
+  return {
+    ...getCorsHeaders(req),
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  };
+}
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const safeDetails = details ? { ...details } : undefined;
@@ -208,7 +212,7 @@ function isTrustedDomain(urlString: string): boolean {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCallbackCorsHeaders(req) });
   }
 
   try {
@@ -726,14 +730,10 @@ Deno.serve(async (req) => {
       logStep("Credentials upsert failed", { 
         code: upsertError.code,
         hint: upsertError.hint,
+        message: upsertError.message,
       });
-      // Include error details in the message so they appear in the redirect URL for debugging
-      const errorDetails = [
-        upsertError.code && `code=${upsertError.code}`,
-        upsertError.message,
-        upsertError.hint && `hint: ${upsertError.hint}`,
-      ].filter(Boolean).join('; ');
-      throw new Error(`DB error: ${errorDetails}`);
+      // Use a generic user-facing message — detailed DB errors are logged above
+      throw new Error("Failed to store credentials. Please try again or contact support.");
     }
     
     logStep("Credentials stored successfully");

@@ -72,7 +72,7 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
 
   const handleTeamImageDelete = async () => {
     if (!currentTeamImage) return;
-    await deleteTeamImage(team.id, currentTeamImage);
+    await deleteTeamImage(team.id, team.organization_id, currentTeamImage);
     setCurrentTeamImage(null);
     queryClient.invalidateQueries({ queryKey: ['team', team.id] });
     queryClient.invalidateQueries({ queryKey: ['teams', team.organization_id] });

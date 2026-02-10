@@ -36,6 +36,7 @@ const MFAEnforcementGuard: React.FC<MFAEnforcementGuardProps> = ({ children }) =
   }
 
   const currentOrganization = orgContext?.currentOrganization;
+  const orgLoading = orgContext?.isLoading ?? false;
   const userRole = currentOrganization?.userRole;
 
   // Check if this user's role requires MFA
@@ -43,13 +44,10 @@ const MFAEnforcementGuard: React.FC<MFAEnforcementGuardProps> = ({ children }) =
     userRole as (typeof MFA_REQUIRED_ROLES)[number]
   );
 
-  // If role doesn't require MFA, pass through
-  if (!roleMandatesMFA) {
-    return <>{children}</>;
-  }
-
-  // Show loading while MFA status is being determined
-  if (mfaLoading) {
+  // Show loading while org context or MFA status is being determined.
+  // This prevents a brief window where admin/owner routes render before
+  // the role is known and MFA can be enforced.
+  if (orgLoading || mfaLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div role="status" aria-label="Checking security requirements" className="text-center">
@@ -58,6 +56,11 @@ const MFAEnforcementGuard: React.FC<MFAEnforcementGuardProps> = ({ children }) =
         </div>
       </div>
     );
+  }
+
+  // If role doesn't require MFA, pass through
+  if (!roleMandatesMFA) {
+    return <>{children}</>;
   }
 
   // Admin/Owner without MFA enrolled → force enrollment
