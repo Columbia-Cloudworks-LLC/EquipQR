@@ -146,7 +146,6 @@ vi.mock('@/features/teams/hooks/useTeams', () => ({
 // Mock react-grid-layout for jsdom environment
 vi.mock('react-grid-layout', () => ({
   Responsive: ({ children }: { children?: React.ReactNode }) => <div data-testid="responsive-grid">{children}</div>,
-  useContainerWidth: () => ({ width: 1200, containerRef: { current: null }, mounted: true }),
 }));
 
 vi.mock('react-grid-layout/css/styles.css', () => ({}));

@@ -1,7 +1,6 @@
 // Using Deno.serve (built-in)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { createErrorResponse } from "../_shared/supabase-clients.ts";
 import {
   QBO_API_BASE,
   QBO_TOKEN_URL,
@@ -351,11 +350,16 @@ Deno.serve(async (req) => {
       logStep("Fault in customer query response", { type: faultObj?.type, errorCodes, intuit_tid: intuitTid });
       // Return 422 instead of throwing to the catch block (which returns 500).
       // This is a validation/query error from QBO, not an internal server error.
-      // Uses createErrorResponse for consistent allowlist-based error sanitization.
-      return createErrorResponse(
-        "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
-        422
-      );
+      // Uses the request-scoped corsHeaders (origin-validated) for consistency
+      // with all other responses in this function — not createErrorResponse,
+      // which applies the wildcard CORS headers.
+      return new Response(JSON.stringify({
+        success: false,
+        error: "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
+      }), {
+        status: 422,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const customers = qbData.QueryResponse.Customer || [];

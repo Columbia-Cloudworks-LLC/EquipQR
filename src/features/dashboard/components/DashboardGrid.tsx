@@ -1,5 +1,5 @@
-import React, { Suspense, useMemo } from 'react';
-import { Responsive, useContainerWidth } from 'react-grid-layout';
+import React, { Suspense, useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { Responsive } from 'react-grid-layout';
 import { GripVertical, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,41 @@ import type { Layout } from 'react-grid-layout';
 
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+
+/**
+ * Local hook to measure a container's width via ResizeObserver.
+ * Replaces the non-standard `useContainerWidth` that react-grid-layout
+ * does not actually export. Returns { width, containerRef, mounted }.
+ */
+function useContainerWidth() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  const handleResize = useCallback((entries: ResizeObserverEntry[]) => {
+    if (entries[0]) {
+      setWidth(entries[0].contentRect.width);
+    }
+  }, []);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+
+    // Set initial width immediately
+    setWidth(node.offsetWidth);
+    setMounted(true);
+
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [handleResize]);
+
+  return { width, containerRef, mounted };
+}
 
 interface DashboardGridProps {
   /** Active widget IDs to render */
@@ -35,8 +70,8 @@ const WidgetSkeleton: React.FC = () => (
 );
 
 /**
- * Dashboard grid component powered by react-grid-layout v2.
- * Uses useContainerWidth hook for responsive width measurement.
+ * Dashboard grid component powered by react-grid-layout.
+ * Uses a local ResizeObserver hook for responsive width measurement.
  * Renders registered widgets in a responsive, drag-and-drop grid.
  * When `isEditMode` is false, dragging and resizing are disabled.
  */

@@ -56,6 +56,23 @@ export class QboFaultError_ extends Error {
   }
 }
 
+/**
+ * Thrown for non-retriable HTTP error responses (e.g. 400, 403, repeated 401).
+ * These are definitive server responses where retrying would add latency
+ * and risk duplicate side-effects without any chance of success.
+ */
+export class QboNonRetriableHttpError extends Error {
+  public readonly status: number;
+  public readonly intuitTid: string | null;
+
+  constructor(status: number, intuitTid: string | null) {
+    super(`QBO API error: status ${status} (intuit_tid: ${intuitTid ?? "unknown"})`);
+    this.name = "QboNonRetriableHttpError";
+    this.status = status;
+    this.intuitTid = intuitTid;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Retry helper
 // ---------------------------------------------------------------------------
@@ -139,15 +156,16 @@ export async function qboFetch<T = unknown>(
         continue;
       }
 
-      // ----- Non-OK and no more retries -----
+      // ----- Non-OK and no more retries (or non-retriable status) -----
       if (!response.ok) {
         // Consume the body to prevent resource leaks, but do NOT include
         // upstream response content in errors or logs — it may contain
         // sensitive/internal details from the QBO API.
         await response.text().catch(() => {});
-        throw new Error(
-          `QBO API error: status ${status} (intuit_tid: ${intuitTid ?? "unknown"})`,
-        );
+        // Throw a non-retriable error — this status is definitive (e.g.
+        // 400/403, or a 401 after a refresh attempt was already tried).
+        // The catch block will re-throw immediately instead of retrying.
+        throw new QboNonRetriableHttpError(status, intuitTid);
       }
 
       // ----- Parse JSON and check for Fault-in-200 -----
@@ -161,12 +179,15 @@ export async function qboFetch<T = unknown>(
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
 
-      // If it's a Fault error, don't retry (business logic error)
+      // Non-retriable errors: fail fast, never retry
       if (err instanceof QboFaultError_) {
-        throw err;
+        throw err; // Business logic / validation error from QBO
+      }
+      if (err instanceof QboNonRetriableHttpError) {
+        throw err; // Definitive HTTP error (400, 403, exhausted 401, etc.)
       }
 
-      // Network errors: retry with back-off
+      // Network / transient errors only: retry with back-off
       if (attempt < maxAttempts - 1) {
         const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
         console.log(
