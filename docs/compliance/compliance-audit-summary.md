@@ -29,12 +29,12 @@ This document summarizes the compliance audit and remediation work performed for
 **Findings:**
 - No hardcoded secrets found in source code
 - All API keys and secrets use environment variables
-- `env.example` file documents all required environment variables
+- `.env.example` file documents all required environment variables
 - Test files contain only mock/test data (not real secrets)
 
 **Action Taken:**
 - Verified all secrets are properly externalized
-- Confirmed `env.example` is comprehensive and up-to-date
+- Confirmed `.env.example` is comprehensive and up-to-date
 
 ### ⚠️ Enforce MFA
 

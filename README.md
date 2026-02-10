@@ -44,7 +44,7 @@ Detailed documentation is located in the [`/docs`](./docs/README.md) directory:
 
 ## ✅ Prerequisites (Accounts & Services)
 
-EquipQR uses external services. For exact environment variables and where they’re used, see [`env.example`](./env.example) (source of truth) and the [Setup Guide](./docs/technical/setup.md).
+EquipQR uses external services. For exact environment variables and where they’re used, see [`.env.example`](./.env.example) (source of truth) and the [Setup Guide](./docs/technical/setup.md).
 
 **Required (to run the core app):**
 

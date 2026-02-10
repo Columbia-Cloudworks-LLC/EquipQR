@@ -160,7 +160,7 @@ RESEND_API_KEY=<your-resend-key>
 HCAPTCHA_SECRET_KEY=<your-hcaptcha-secret>
 ```
 
-> **📋 Full Reference**: See `env.example` in the project root for a complete list of all environment variables with descriptions and file references.
+> **📋 Full Reference**: See `.env.example` in the project root for a complete list of all environment variables with descriptions and file references.
 
 ## Working on Edge Functions Locally
 

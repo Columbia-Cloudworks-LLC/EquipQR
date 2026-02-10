@@ -105,7 +105,9 @@ export async function qboFetch<T = unknown>(
 
       // ----- 401: refresh token and retry once -----
       if (status === 401 && !tokenRefreshed && opts.onRefreshToken) {
-        console.log(`[${label}] 401 received – refreshing token (attempt ${attempt + 1})`);
+        console.log(
+          JSON.stringify({ level: "info", label, event: "token_refresh", attempt: attempt + 1 }),
+        );
         const newToken = await opts.onRefreshToken();
         tokenRefreshed = true;
         // Patch the Authorization header for the next attempt
@@ -119,7 +121,15 @@ export async function qboFetch<T = unknown>(
       if ((status === 429 || status >= 500) && attempt < maxAttempts - 1) {
         const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
         console.log(
-          `[${label}] ${status} received – retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxAttempts})`,
+          JSON.stringify({
+            level: "warn",
+            label,
+            event: "retry",
+            status,
+            delay_ms: Math.round(delay),
+            attempt: attempt + 1,
+            max_attempts: maxAttempts,
+          }),
         );
         await new Promise((r) => setTimeout(r, delay));
         continue;
@@ -127,9 +137,12 @@ export async function qboFetch<T = unknown>(
 
       // ----- Non-OK and no more retries -----
       if (!response.ok) {
-        const errorText = await response.text();
+        // Consume the body to prevent resource leaks, but do NOT include
+        // upstream response content in errors or logs — it may contain
+        // sensitive/internal details from the QBO API.
+        await response.text().catch(() => {});
         throw new Error(
-          `QBO API ${status}: ${errorText.substring(0, 500)} (intuit_tid: ${intuitTid})`,
+          `QBO API error: status ${status} (intuit_tid: ${intuitTid ?? "unknown"})`,
         );
       }
 
@@ -153,7 +166,15 @@ export async function qboFetch<T = unknown>(
       if (attempt < maxAttempts - 1) {
         const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
         console.log(
-          `[${label}] Error: ${lastError.message} – retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxAttempts})`,
+          JSON.stringify({
+            level: "warn",
+            label,
+            event: "network_retry",
+            error_name: lastError.name,
+            delay_ms: Math.round(delay),
+            attempt: attempt + 1,
+            max_attempts: maxAttempts,
+          }),
         );
         await new Promise((r) => setTimeout(r, delay));
         continue;

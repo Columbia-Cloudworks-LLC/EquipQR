@@ -132,7 +132,7 @@ For technical details on CI/CD workflows including version tagging, see [`docs/o
    ```
 
 3. **Set up environment variables**:
-   - Copy `env.example` to `.env`
+   - Copy `.env.example` to `.env`
    - Fill in required values (see [README.md](./README.md))
 
 4. **Start development server**:

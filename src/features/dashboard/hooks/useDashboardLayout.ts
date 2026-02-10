@@ -149,17 +149,21 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
     }
   }, [supabasePrefs, userId, organizationId, initialized]);
 
-  // Supabase upsert mutation
+  // Supabase upsert mutation — payload includes org/user captured at schedule
+  // time so a pending debounce never writes to the wrong organization.
   const upsertMutation = useMutation({
-    mutationFn: async (prefs: { layouts: Record<string, Layout[]>; activeWidgets: string[] }) => {
-      if (!userId || !organizationId) return;
-
+    mutationFn: async (prefs: {
+      layouts: Record<string, Layout[]>;
+      activeWidgets: string[];
+      targetUserId: string;
+      targetOrgId: string;
+    }) => {
       const { error } = await supabase
         .from('user_dashboard_preferences')
         .upsert(
           {
-            user_id: userId,
-            organization_id: organizationId,
+            user_id: prefs.targetUserId,
+            organization_id: prefs.targetOrgId,
             layouts: prefs.layouts,
             active_widgets: prefs.activeWidgets,
             updated_at: new Date().toISOString(),
@@ -171,27 +175,39 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
         logger.error('Failed to save dashboard preferences to Supabase', error);
         throw error;
       }
+
+      return { targetUserId: prefs.targetUserId, targetOrgId: prefs.targetOrgId };
     },
-    onSuccess: () => {
-      if (userId && organizationId) {
+    onSuccess: (result) => {
+      if (result) {
         queryClient.invalidateQueries({
-          queryKey: dashboardPreferences.byUserOrg(userId, organizationId),
+          queryKey: dashboardPreferences.byUserOrg(result.targetUserId, result.targetOrgId),
         });
       }
     },
   });
 
-  // Debounced sync to Supabase
+  // Debounced sync to Supabase — captures userId/organizationId at call time
   const debounceSyncToSupabase = useCallback(
     (prefs: { layouts: Record<string, Layout[]>; activeWidgets: string[] }) => {
+      if (!userId || !organizationId) return;
+
+      // Capture current org/user so the debounced callback uses the correct values
+      const targetUserId = userId;
+      const targetOrgId = organizationId;
+
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
       debounceTimer.current = setTimeout(() => {
-        upsertMutation.mutate(prefs);
+        upsertMutation.mutate({
+          ...prefs,
+          targetUserId,
+          targetOrgId,
+        });
       }, 2000);
     },
-    [upsertMutation]
+    [userId, organizationId, upsertMutation]
   );
 
   // Persist helper: write to localStorage immediately, debounce to Supabase

@@ -220,7 +220,7 @@ Three categories of environment variables:
 - `VITE_SUPABASE_URL` — Supabase project URL
 - `VITE_SUPABASE_ANON_KEY` — Supabase anon/public key
 
-See `env.example` for the full list with descriptions.
+See `.env.example` for the full list with descriptions.
 
 ### Dual-environment deployment (Vercel + Supabase)
 
