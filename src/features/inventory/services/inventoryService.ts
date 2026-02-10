@@ -622,27 +622,41 @@ export const uploadInventoryItemImages = async (
 
 /**
  * Delete a single inventory item image (storage + metadata), scoped to the organization.
+ * Deletes the DB row first so a storage failure never leaves a dangling record
+ * pointing at a missing file; storage cleanup is best-effort.
  */
 export const deleteInventoryItemImage = async (
   imageId: string,
   fileUrl: string,
   organizationId: string
 ): Promise<void> => {
-  try {
-    // Remove from storage
-    await deleteImageFromStorage('inventory-item-images', fileUrl);
+  // Remove metadata row first (scoped by organization_id for tenant isolation)
+  const { error } = await supabase
+    .from('inventory_item_images')
+    .delete()
+    .eq('id', imageId)
+    .eq('organization_id', organizationId);
 
-    // Remove metadata row (scoped by organization_id for tenant isolation)
-    const { error } = await supabase
-      .from('inventory_item_images')
-      .delete()
-      .eq('id', imageId)
-      .eq('organization_id', organizationId);
-
-    if (error) throw error;
-  } catch (error) {
-    logger.error('Error deleting inventory item image:', error);
+  if (error) {
+    logger.error('Error deleting inventory item image metadata:', {
+      error,
+      imageId,
+      organizationId,
+    });
     throw error;
+  }
+
+  // Best-effort storage cleanup — DB row is already gone so the UI won't
+  // reference this file even if the storage delete fails.
+  try {
+    await deleteImageFromStorage('inventory-item-images', fileUrl);
+  } catch (storageError) {
+    logger.error('Error deleting inventory item image file from storage:', {
+      error: storageError,
+      imageId,
+      fileUrl,
+      organizationId,
+    });
   }
 };
 

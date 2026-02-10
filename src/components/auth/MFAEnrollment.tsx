@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useMFA } from '@/hooks/useMFA';
@@ -31,6 +31,14 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
   const [isVerifying, setIsVerifying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear the "copied" timeout on unmount to prevent state updates after unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   // Initialize enrollment on mount (rule 5.7 — effect for one-time setup, not interaction)
   useEffect(() => {
@@ -59,7 +67,8 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     try {
       await navigator.clipboard.writeText(enrollmentData.secret);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard API may not be available in all contexts
       toast.error({ description: 'Failed to copy to clipboard' });

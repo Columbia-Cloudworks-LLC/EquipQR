@@ -93,8 +93,10 @@ const Auth = () => {
 
   // Called when MFA verification succeeds
   const handleMFASuccess = useCallback(async () => {
-    setShowMFAVerification(false);
+    // Refresh MFA status BEFORE clearing the flag so the redirect effect
+    // sees needsVerification === false and won't re-show the MFA screen.
     await refreshMFAStatus();
+    setShowMFAVerification(false);
     // Navigate after MFA success
     const pendingRedirect = sessionStorage.getItem('pendingRedirect');
     if (pendingRedirect) {

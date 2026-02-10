@@ -72,9 +72,15 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
     }
   }, [rawPreviewUrl]);
 
+  // Build a human-readable label from the configured accepted MIME types
+  const formatLabel = useMemo(
+    () => acceptedTypes.map((t) => t.replace('image/', '').toUpperCase()).join(', '),
+    [acceptedTypes],
+  );
+
   const validateFile = (file: File): boolean => {
     if (!acceptedTypes.includes(file.type)) {
-      appToast.error({ description: `Unsupported format: ${file.name}. Use JPEG, PNG, GIF, or WebP.` });
+      appToast.error({ description: `Unsupported format: ${file.name}. Use ${formatLabel}.` });
       return false;
     }
     if (file.size > maxSizeMB * 1024 * 1024) {
@@ -248,21 +254,14 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
       {/* Drop zone (no current image and no preview) */}
       {showDropZone && (
         <div
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+            disabled ? '' : 'cursor-pointer'
+          } ${
             dragActive
               ? 'border-primary bg-primary/5'
               : 'border-muted-foreground/25 hover:border-muted-foreground/50'
           }`}
-          role="button"
-          tabIndex={disabled ? -1 : 0}
-          aria-disabled={disabled || undefined}
-          onClick={() => !disabled && fileInputRef.current?.click()}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              if (!disabled) fileInputRef.current?.click();
-            }
-          }}
+          onClick={() => { if (!disabled && !isProcessing) fileInputRef.current?.click(); }}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
@@ -272,14 +271,14 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
           <div className="space-y-2">
             <p className="text-sm font-medium">Drop an image here or click to browse</p>
             <p className="text-xs text-muted-foreground">
-              JPEG, PNG, GIF, WebP up to {maxSizeMB} MB
+              {formatLabel} up to {maxSizeMB} MB
             </p>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={disabled}
-              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled || isProcessing}
+              onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
               className="mt-2"
             >
               <Upload className="h-4 w-4 mr-2" />

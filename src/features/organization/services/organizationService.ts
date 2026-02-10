@@ -292,14 +292,7 @@ export const deleteOrganizationLogo = async (
   organizationId: string,
   currentLogoUrl: string
 ): Promise<void> => {
-  // Remove from storage (best-effort — proceed to clear DB column even if storage delete fails)
-  try {
-    await deleteImageFromStorage('organization-logos', currentLogoUrl);
-  } catch (storageError) {
-    logger.error('Failed to delete organization logo from storage (proceeding to clear DB):', storageError);
-  }
-
-  // Clear the logo column
+  // Clear the DB column first so the app never references a deleted file
   const { error } = await supabase
     .from('organizations')
     .update({ logo: null, updated_at: new Date().toISOString() })
@@ -308,6 +301,14 @@ export const deleteOrganizationLogo = async (
   if (error) {
     logger.error('Error clearing organization logo:', error);
     throw new Error('Failed to remove logo');
+  }
+
+  // Best-effort storage cleanup — DB column is already cleared so the UI
+  // won't render a broken image even if this fails.
+  try {
+    await deleteImageFromStorage('organization-logos', currentLogoUrl);
+  } catch (storageError) {
+    logger.error('Failed to delete organization logo from storage (DB already cleared):', storageError);
   }
 };
 
