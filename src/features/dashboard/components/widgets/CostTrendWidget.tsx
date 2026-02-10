@@ -37,8 +37,8 @@ const CostTrendWidget: React.FC = () => {
       // Fetch costs joined to work_orders for org scoping
       const { data, error } = await supabase
         .from('work_order_costs')
-        .select('total_price_cents, created_at, work_orders!inner(org_id)')
-        .eq('work_orders.org_id', organizationId)
+        .select('total_price_cents, created_at, work_orders!inner(organization_id)')
+        .eq('work_orders.organization_id', organizationId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;

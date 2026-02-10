@@ -39,30 +39,32 @@ const PMComplianceWidget: React.FC = () => {
       // Query work orders that have a pm_template_id (i.e., were generated from PM templates)
       const { data: rows, error } = await supabase
         .from('work_orders')
-        .select('status')
-        .eq('org_id', organizationId)
+        .select('id, status')
+        .eq('organization_id', organizationId)
         .not('pm_template_id', 'is', null);
 
       if (error) throw error;
-
-      const counts = new Map<string, number>();
-      for (const row of rows ?? []) {
-        const s = row.status ?? 'unknown';
-        counts.set(s, (counts.get(s) ?? 0) + 1);
-      }
 
       // Check for overdue: pending or in_progress WOs past due date
       const { data: overdueRows } = await supabase
         .from('work_orders')
         .select('id')
-        .eq('org_id', organizationId)
+        .eq('organization_id', organizationId)
         .not('pm_template_id', 'is', null)
         .in('status', ['pending', 'submitted', 'assigned', 'in_progress'])
         .lt('due_date', new Date().toISOString());
 
-      const overdueCount = overdueRows?.length ?? 0;
-      if (overdueCount > 0) {
-        counts.set('overdue', overdueCount);
+      const overdueIds = new Set((overdueRows ?? []).map((r) => r.id));
+
+      const counts = new Map<string, number>();
+      for (const row of rows ?? []) {
+        // If this row is overdue, count it as 'overdue' instead of its original status
+        if (overdueIds.has(row.id)) {
+          counts.set('overdue', (counts.get('overdue') ?? 0) + 1);
+        } else {
+          const s = row.status ?? 'unknown';
+          counts.set(s, (counts.get(s) ?? 0) + 1);
+        }
       }
 
       return Array.from(counts.entries())

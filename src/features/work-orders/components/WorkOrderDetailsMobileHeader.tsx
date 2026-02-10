@@ -170,7 +170,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
               {workOrder.team.location_address && (
                 <div className="flex items-center gap-1.5 pl-5">
                   <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                  {workOrder.team.location_lat && workOrder.team.location_lng ? (
+                  {workOrder.team.location_lat != null && workOrder.team.location_lng != null ? (
                     <ClickableAddress
                       address={workOrder.team.location_address}
                       lat={workOrder.team.location_lat}

@@ -9,7 +9,7 @@ import {
   getIntuitTid,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
-import { qboFetch, QboFaultError_ } from "../_shared/quickbooks-retry.ts";
+
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const safeDetails = details ? { ...details } : undefined;

@@ -124,7 +124,7 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
         )}
 
         {/* Context Details (merged from QuickInfo) */}
-        {(workOrder.estimated_hours || (workOrder.has_pm && pmData) || equipment) && (
+        {(workOrder.estimated_hours != null || (workOrder.has_pm && pmData) || equipment) && (
           <>
             <Separator />
             <div className="space-y-2">

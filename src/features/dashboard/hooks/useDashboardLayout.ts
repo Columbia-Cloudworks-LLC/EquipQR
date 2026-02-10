@@ -73,6 +73,16 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
   const [initialized, setInitialized] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Clear debounce timer on unmount or when org/user changes
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+        debounceTimer.current = null;
+      }
+    };
+  }, [userId, organizationId]);
+
   // Initialize from localStorage or defaults when org/user changes
   useEffect(() => {
     if (!userId || !organizationId) return;

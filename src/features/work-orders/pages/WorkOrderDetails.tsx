@@ -380,7 +380,7 @@ const WorkOrderDetails = () => {
             status: equipment.status,
             location: equipment.location
           } : undefined,
-          team: workOrder.team || (workOrder.teamName ? { id: workOrder.equipmentTeamId || '', name: workOrder.teamName } : undefined),
+          team: workOrder.team || (workOrder.teamName && workOrder.equipmentTeamId ? { id: workOrder.equipmentTeamId, name: workOrder.teamName } : undefined),
           created_at: workOrder.createdAt,
           effectiveLocation: workOrder.effectiveLocation
         }}
