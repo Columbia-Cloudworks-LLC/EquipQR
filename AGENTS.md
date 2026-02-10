@@ -30,6 +30,10 @@ EquipQR™ is a multi-tenant fleet equipment management platform. It features QR
 ## Setup commands
 
 ```bash
+# One-click dev environment (Windows — idempotent)
+.\dev-start.bat    # Start Docker + Supabase + Vite (skips already-running services)
+.\dev-stop.bat     # Gracefully stop all dev processes
+
 # Install dependencies (npm only — no yarn/pnpm)
 npm ci
 
