@@ -10,6 +10,8 @@ import { EmailPrivacySettings } from '@/components/settings/EmailPrivacySettings
 import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
 import NotificationSettings from '@/components/settings/NotificationSettings';
+import MFASettings from '@/components/settings/MFASettings';
+import { isMFAEnabled } from '@/lib/flags';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -70,6 +72,7 @@ const SettingsContent = () => {
           <p className="text-sm text-muted-foreground">Monitor your account security and session status</p>
         </div>
         <div className="space-y-4">
+          {isMFAEnabled() ? <MFASettings /> : null}
           <SessionStatus />
           <SecurityStatus />
         </div>

@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Multi-Factor Authentication (MFA)** — Full TOTP-based two-factor authentication using Supabase Auth MFA APIs (`supabase.auth.mfa.*`). TOTP is mandatory for Owner/Admin roles and optional for Member/Viewer. Feature is gated behind `VITE_ENABLE_MFA` environment variable for safe rollout. No database migration required — Supabase manages factor storage internally in `auth.mfa_factors` ([#499](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/499))
+  - **MFA Context & Hook** (`src/contexts/MFAContext.tsx`, `src/hooks/useMFA.ts`) — Global MFA state management with parallel `Promise.all` status refresh, derived `isEnrolled`/`isVerified`/`needsVerification` state, and `useCallback`-wrapped methods. Provides no-op defaults when feature flag is disabled
+  - **MFA Verification** (`src/components/auth/MFAVerification.tsx`) — 6-digit OTP input using existing `InputOTP` shadcn component with auto-submit on completion, accessible ARIA labels, and error display with retry
+  - **MFA Enrollment** (`src/components/auth/MFAEnrollment.tsx`) — Multi-step wizard: QR code display with manual secret copy fallback (step 1), then code verification (step 2). Supports `isRequired` prop for forced admin enrollment
+  - **MFA Enforcement Guard** (`src/components/auth/MFAEnforcementGuard.tsx`) — Route-level guard placed after `SimpleOrganizationProvider` that forces enrollment for unenrolled Owner/Admin users and TOTP verification for enrolled-but-AAL1 sessions. Member/Viewer roles pass through unaffected
+  - **MFA Settings** (`src/components/settings/MFASettings.tsx`) — Settings page section showing status badge, enrolled factor list with dates, setup/remove buttons, admin removal prevention, and role-based "Required for your role" notice
+  - **Sign-in flow integration** — Updated `SignInForm` and `Auth` page to detect MFA requirement after both password and Google OAuth sign-in, showing inline TOTP verification before redirecting to dashboard
+  - **41 unit tests** across 5 test files covering MFAContext state derivation, MFAVerification UI, MFAEnrollment multi-step flow, MFASettings role-based behavior, and MFAEnforcementGuard role enforcement
+
 ### Changed
 
 - **Privacy Policy comprehensive overhaul** — Rewrote the privacy policy (`src/pages/PrivacyPolicy.tsx`) from a generic template into a detailed, audit-ready document with 14 numbered sections. Replaced the dynamic `new Date().toLocaleDateString()` date with a static "February 10, 2026". Added itemized tables for individual-level data collection (9 categories) and organization-level data collection (11 categories). Transparently disclosed all 10 external service providers (Supabase, Google Maps, hCaptcha, Resend, Vercel, Stripe, QuickBooks Online, Google Workspace, GitHub, Web Push) with bidirectional data flows (data sent, received, and stored). Added explicit sections for cookies/local storage/session data, data security controls, children's privacy, international data transfers, and user/organization-level privacy controls

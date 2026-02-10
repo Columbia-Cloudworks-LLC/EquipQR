@@ -5,15 +5,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { isMFAEnabled } from '@/lib/flags';
 import DevQuickLogin from './DevQuickLogin';
 
 interface SignInFormProps {
   onError: (error: string) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  /** Called when MFA verification is required after successful password auth */
+  onMFARequired?: () => void;
 }
 
-const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoading }) => {
+const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoading, onMFARequired }) => {
   const { signIn } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -42,6 +46,20 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
       
       if (error) {
         onError(error.message);
+        return;
+      }
+
+      // Check if MFA verification is needed after successful sign-in
+      if (isMFAEnabled() && onMFARequired) {
+        try {
+          const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (data && data.nextLevel === 'aal2' && data.currentLevel === 'aal1') {
+            onMFARequired();
+            return;
+          }
+        } catch {
+          // If MFA check fails, proceed normally — user can still be prompted later
+        }
       }
     } finally {
       setIsLoading(false);

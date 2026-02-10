@@ -45,6 +45,15 @@ export const QB_PDF_ATTACHMENT_ENABLED = import.meta.env.VITE_ENABLE_QB_PDF_ATTA
 export const GEOLOCATION_HIERARCHY_ENABLED = import.meta.env.VITE_ENABLE_GEOLOCATION_HIERARCHY === 'true';
 
 /**
+ * Controls whether Multi-Factor Authentication (MFA) features are enabled.
+ * When enabled, TOTP-based MFA is available for all users and mandatory for admin/owner roles.
+ * 
+ * Set via environment variable: VITE_ENABLE_MFA
+ * Defaults to false (disabled) unless explicitly set to 'true'.
+ */
+export const MFA_ENABLED = import.meta.env.VITE_ENABLE_MFA === 'true';
+
+/**
  * Feature flag accessor utility
  */
 export const FeatureFlags = {
@@ -63,6 +72,10 @@ export const FeatureFlags = {
   geolocation: {
     enabled: GEOLOCATION_HIERARCHY_ENABLED,
     disabled: !GEOLOCATION_HIERARCHY_ENABLED
+  },
+  mfa: {
+    enabled: MFA_ENABLED,
+    disabled: !MFA_ENABLED
   }
 } as const;
 
@@ -112,4 +125,12 @@ export function isQBPDFAttachmentEnabled(): boolean {
  */
 export function isGeolocationHierarchyEnabled(): boolean {
   return GEOLOCATION_HIERARCHY_ENABLED;
+}
+
+/**
+ * Check if MFA is enabled
+ * @returns true if MFA features should be active
+ */
+export function isMFAEnabled(): boolean {
+  return MFA_ENABLED;
 }

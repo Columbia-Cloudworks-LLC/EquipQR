@@ -7,6 +7,7 @@ import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvide
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard';
+import MFAEnforcementGuard from '@/components/auth/MFAEnforcementGuard';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 
 // Critical components loaded eagerly to prevent loading issues for unauthenticated users
@@ -154,6 +155,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <SimpleOrganizationProvider>
+                  <MFAEnforcementGuard>
                   <WorkspaceOnboardingGuard>
                     <TeamProvider>
                       <SidebarProvider>
@@ -229,6 +231,7 @@ function App() {
                       </SidebarProvider>
                     </TeamProvider>
                   </WorkspaceOnboardingGuard>
+                  </MFAEnforcementGuard>
                 </SimpleOrganizationProvider>
               </ProtectedRoute>
             }

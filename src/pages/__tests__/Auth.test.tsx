@@ -17,6 +17,23 @@ vi.mock('@/hooks/usePendingRedirectHandler', () => ({
   usePendingRedirectHandler: vi.fn()
 }));
 
+vi.mock('@/hooks/useMFA', () => ({
+  useMFA: () => ({
+    factors: [],
+    currentLevel: null,
+    nextLevel: null,
+    isEnrolled: false,
+    isVerified: false,
+    needsVerification: false,
+    isLoading: false,
+    enrollTOTP: vi.fn(),
+    verifyTOTP: vi.fn(),
+    unenrollFactor: vi.fn(),
+    challengeAndVerify: vi.fn(),
+    refreshMFAStatus: vi.fn(),
+  }),
+}));
+
 // Mock components
 vi.mock('@/components/auth/SignUpForm', () => ({
   default: ({ onSuccess, onError }: { onSuccess: (msg: string) => void; onError: (msg: string) => void }) => (
