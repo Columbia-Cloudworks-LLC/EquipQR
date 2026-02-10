@@ -1,12 +1,15 @@
 // Using Deno.serve (built-in)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { PDFDocument, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
+import {
+  QBO_API_BASE,
+  QBO_ENVIRONMENT,
+  QBO_TOKEN_URL,
+  getIntuitTid,
+  withMinorVersion,
+} from "../_shared/quickbooks-config.ts";
+import { qboFetch, QboFaultError_ } from "../_shared/quickbooks-retry.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const safeDetails = details ? { ...details } : undefined;
@@ -18,13 +21,7 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[QUICKBOOKS-EXPORT-INVOICE] ${step}${detailsStr}`);
 };
 
-/**
- * Extracts the intuit_tid from QuickBooks API response headers.
- * This ID is useful for Intuit support troubleshooting.
- */
-const getIntuitTid = (response: Response): string | null => {
-  return response.headers.get('intuit_tid') || null;
-};
+// getIntuitTid imported from _shared/quickbooks-config.ts
 
 /**
  * Extracts the client IP address from request headers.
@@ -37,20 +34,11 @@ const getClientIpAddress = (req: Request): string | null => {
          null;
 };
 
-// QuickBooks API endpoints
-const QUICKBOOKS_API_BASE_SANDBOX = "https://sandbox-quickbooks.api.intuit.com";
-const QUICKBOOKS_API_BASE_PRODUCTION = "https://quickbooks.api.intuit.com";
-const INTUIT_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
-
-const QUICKBOOKS_API_BASE = Deno.env.get("QUICKBOOKS_SANDBOX") === "false" 
-  ? QUICKBOOKS_API_BASE_PRODUCTION 
-  : QUICKBOOKS_API_BASE_SANDBOX;
+// QuickBooks API endpoints and environment imported from _shared/quickbooks-config.ts
+// QBO_API_BASE, QBO_ENVIRONMENT, QBO_TOKEN_URL, withMinorVersion
 
 // Feature flag for PDF attachments
 const ENABLE_PDF_ATTACHMENT = Deno.env.get("ENABLE_QB_PDF_ATTACHMENT") === "true";
-
-// Determine environment (sandbox or production)
-const QUICKBOOKS_ENVIRONMENT = Deno.env.get("QUICKBOOKS_SANDBOX") === "false" ? "production" : "sandbox";
 
 interface QuickBooksCredential {
   id: string;
@@ -173,7 +161,7 @@ async function refreshTokenIfNeeded(
 
   const basicAuth = btoa(`${clientId}:${clientSecret}`);
   
-  const tokenResponse = await fetch(INTUIT_TOKEN_URL, {
+  const tokenResponse = await fetch(QBO_TOKEN_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -310,12 +298,15 @@ async function getServiceItem(
 
   // Try "EquipQR Services" item
   const specificQuery = `SELECT * FROM Item WHERE Name = 'EquipQR Services' AND Type = 'Service' AND Active = true`;
-  const specificUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(specificQuery)}`;
+  const specificUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(specificQuery)}`);
   const specificResponse = await fetch(specificUrl, { method: "GET", headers });
   
   if (specificResponse.ok) {
     const data = await specificResponse.json();
-    if (data.QueryResponse?.Item?.[0]) {
+    // Check for Fault in 200 OK response
+    if (data.Fault) {
+      logStep("Fault in item query response", { fault: JSON.stringify(data.Fault).substring(0, 300) });
+    } else if (data.QueryResponse?.Item?.[0]) {
       logStep("Found EquipQR Services item", { id: data.QueryResponse.Item[0].Id });
       return { 
         value: data.QueryResponse.Item[0].Id, 
@@ -328,12 +319,15 @@ async function getServiceItem(
 
   // Fallback to any active Service item
   const genericQuery = `SELECT * FROM Item WHERE Type = 'Service' AND Active = true MAXRESULTS 1`;
-  const genericUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(genericQuery)}`;
+  const genericUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(genericQuery)}`);
   const genericResponse = await fetch(genericUrl, { method: "GET", headers });
   
   if (genericResponse.ok) {
     const data = await genericResponse.json();
-    if (data.QueryResponse?.Item?.[0]) {
+    // Check for Fault in 200 OK response
+    if (data.Fault) {
+      logStep("Fault in generic item query response", { fault: JSON.stringify(data.Fault).substring(0, 300) });
+    } else if (data.QueryResponse?.Item?.[0]) {
       logStep("Found generic service item", { 
         id: data.QueryResponse.Item[0].Id, 
         name: data.QueryResponse.Item[0].Name 
@@ -351,7 +345,7 @@ async function getServiceItem(
   logStep("No service items found, creating EquipQR Services item");
   
   const accountQuery = `SELECT * FROM Account WHERE AccountType = 'Income' AND Active = true MAXRESULTS 1`;
-  const accountUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(accountQuery)}`;
+  const accountUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(accountQuery)}`);
   const accountResponse = await fetch(accountUrl, { method: "GET", headers });
   
   if (!accountResponse.ok) {
@@ -359,13 +353,17 @@ async function getServiceItem(
   }
   
   const accountData = await accountResponse.json();
+  // Check for Fault in 200 OK response
+  if (accountData.Fault) {
+    throw new Error(`QuickBooks account query Fault: ${JSON.stringify(accountData.Fault).substring(0, 300)}`);
+  }
   const incomeAccount = accountData.QueryResponse?.Account?.[0];
   
   if (!incomeAccount) {
     throw new Error("No income account found in QuickBooks");
   }
 
-  const createUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/item`;
+  const createUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/item`);
   const newItem = {
     Name: "EquipQR Services",
     Type: "Service",
@@ -389,6 +387,11 @@ async function getServiceItem(
 
   const createdItem = await createResponse.json();
   
+  // Check for Fault in 200 OK response
+  if (createdItem.Fault) {
+    throw new Error(`QuickBooks create item Fault: ${JSON.stringify(createdItem.Fault).substring(0, 300)}`);
+  }
+
   if (!createdItem?.Item?.Id) {
     throw new Error("QuickBooks returned invalid item structure after creation");
   }
@@ -598,7 +601,7 @@ async function getInvoiceAttachments(
   invoiceId: string
 ): Promise<Array<{ Id: string; FileName?: string }>> {
   try {
-    const queryUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(`SELECT * FROM Attachable WHERE AttachableRef.EntityRef.type = 'Invoice' AND AttachableRef.EntityRef.value = '${invoiceId}'`)}`;
+    const queryUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(`SELECT * FROM Attachable WHERE AttachableRef.EntityRef.type = 'Invoice' AND AttachableRef.EntityRef.value = '${invoiceId}'`)}`);
     
     const response = await fetch(queryUrl, {
       method: "GET",
@@ -631,7 +634,7 @@ async function deleteAttachment(
   syncToken: string
 ): Promise<void> {
   try {
-    const deleteUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/attachable?operation=delete`;
+    const deleteUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/attachable?operation=delete`);
     
     const response = await fetch(deleteUrl, {
       method: "POST",
@@ -716,7 +719,7 @@ async function attachPDFToInvoice(
     );
 
     // Use the /upload endpoint which properly handles file uploads
-    const uploadUrl = `${QUICKBOOKS_API_BASE}/v3/company/${realmId}/upload?minorversion=65`;
+    const uploadUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/upload`);
     
     const response = await fetch(uploadUrl, {
       method: "POST",
@@ -779,6 +782,8 @@ async function attachPDFToInvoice(
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -1076,7 +1081,7 @@ Deno.serve(async (req) => {
     let pdfAttachmentError: string | null = null;
     let pdfAttachmentIntuitTid: string | null = null;
 
-    logStep("PDF attachment feature", { enabled: ENABLE_PDF_ATTACHMENT, environment: QUICKBOOKS_ENVIRONMENT });
+    logStep("PDF attachment feature", { enabled: ENABLE_PDF_ATTACHMENT, environment: QBO_ENVIRONMENT });
 
     // Create log entry (pending)
     const { data: logEntry } = await supabaseClient
@@ -1096,7 +1101,7 @@ Deno.serve(async (req) => {
         logStep("Updating existing invoice", { invoiceId: existingExport.quickbooks_invoice_id });
         
         // First, get the current invoice to get its SyncToken
-        const getInvoiceUrl = `${QUICKBOOKS_API_BASE}/v3/company/${credentials.realm_id}/invoice/${existingExport.quickbooks_invoice_id}`;
+        const getInvoiceUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/invoice/${existingExport.quickbooks_invoice_id}`);
         const getResponse = await fetch(getInvoiceUrl, {
           method: "GET",
           headers: {
@@ -1110,6 +1115,12 @@ Deno.serve(async (req) => {
         }
 
         const existingInvoiceData = await getResponse.json();
+        // Check for Fault in 200 OK response (QBO best practice)
+        if (existingInvoiceData.Fault) {
+          const faultMsg = JSON.stringify(existingInvoiceData.Fault).substring(0, 300);
+          logStep("Fault in invoice read response", { fault: faultMsg });
+          throw new Error(`Failed to read existing invoice: ${faultMsg}`);
+        }
         const existingInvoice = existingInvoiceData.Invoice;
 
         // Build updated invoice
@@ -1133,7 +1144,7 @@ Deno.serve(async (req) => {
           CustomerMemo: { value: `Work Order: ${workOrder.title}` },
         };
 
-        const updateUrl = `${QUICKBOOKS_API_BASE}/v3/company/${credentials.realm_id}/invoice`;
+        const updateUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/invoice`);
         const updateResponse = await fetch(updateUrl, {
           method: "POST",
           headers: {
@@ -1154,6 +1165,12 @@ Deno.serve(async (req) => {
         }
 
         const updateResult = await updateResponse.json();
+        // Check for Fault in 200 OK response (QBO best practice)
+        if (updateResult.Fault) {
+          const faultMsg = JSON.stringify(updateResult.Fault).substring(0, 300);
+          logStep("Fault in invoice update response", { fault: faultMsg, intuit_tid: intuitTid });
+          throw new Error(`Invoice update Fault: ${faultMsg}`);
+        }
         invoiceId = updateResult.Invoice.Id;
         invoiceNumber = updateResult.Invoice.DocNumber;
         isUpdate = true;
@@ -1212,7 +1229,7 @@ Deno.serve(async (req) => {
               if (attachment.FileName?.endsWith('.pdf') || attachment.FileName?.includes('Work-Order')) {
                 try {
                   // Get attachment details to get SyncToken
-                  const getAttachUrl = `${QUICKBOOKS_API_BASE}/v3/company/${credentials.realm_id}/attachable/${attachment.Id}`;
+                  const getAttachUrl = `${QBO_API_BASE}/v3/company/${credentials.realm_id}/attachable/${attachment.Id}`;
                   const getAttachResponse = await fetch(getAttachUrl, {
                     method: "GET",
                     headers: {
@@ -1306,7 +1323,7 @@ Deno.serve(async (req) => {
           newInvoice.DueDate = workOrder.due_date.split('T')[0];
         }
 
-        const createUrl = `${QUICKBOOKS_API_BASE}/v3/company/${credentials.realm_id}/invoice`;
+        const createUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/invoice`);
         const createResponse = await fetch(createUrl, {
           method: "POST",
           headers: {
@@ -1327,6 +1344,12 @@ Deno.serve(async (req) => {
         }
 
         const createResult = await createResponse.json();
+        // Check for Fault in 200 OK response (QBO best practice)
+        if (createResult.Fault) {
+          const faultMsg = JSON.stringify(createResult.Fault).substring(0, 300);
+          logStep("Fault in invoice create response", { fault: faultMsg, intuit_tid: intuitTid });
+          throw new Error(`Invoice create Fault: ${faultMsg}`);
+        }
         invoiceId = createResult.Invoice.Id;
         invoiceNumber = createResult.Invoice.DocNumber;
         
@@ -1411,7 +1434,7 @@ Deno.serve(async (req) => {
           .update({
             quickbooks_invoice_id: invoiceId,
             quickbooks_invoice_number: invoiceNumber,
-            quickbooks_environment: QUICKBOOKS_ENVIRONMENT,
+            quickbooks_environment: QBO_ENVIRONMENT,
             status: 'success',
             exported_at: new Date().toISOString(),
             intuit_tid: intuitTid,
@@ -1428,7 +1451,7 @@ Deno.serve(async (req) => {
         isUpdate, 
         intuit_tid: intuitTid,
         pdfAttachmentStatus,
-        environment: QUICKBOOKS_ENVIRONMENT
+        environment: QBO_ENVIRONMENT
       });
 
       return new Response(JSON.stringify({ 
@@ -1436,7 +1459,7 @@ Deno.serve(async (req) => {
         invoice_id: invoiceId,
         invoice_number: invoiceNumber,
         is_update: isUpdate,
-        environment: QUICKBOOKS_ENVIRONMENT,
+        environment: QBO_ENVIRONMENT,
         pdf_attached: pdfAttachmentStatus === 'success',
         message: isUpdate 
           ? `Invoice ${invoiceNumber} updated successfully` 
@@ -1456,7 +1479,7 @@ Deno.serve(async (req) => {
             status: 'error',
             error_message: errorMessage.substring(0, 1000),
             intuit_tid: intuitTid,
-            quickbooks_environment: QUICKBOOKS_ENVIRONMENT,
+            quickbooks_environment: QBO_ENVIRONMENT,
             pdf_attachment_status: pdfAttachmentStatus,
             pdf_attachment_error: pdfAttachmentError,
             pdf_attachment_intuit_tid: pdfAttachmentIntuitTid,
