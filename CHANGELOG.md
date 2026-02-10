@@ -9,10 +9,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Customizable dashboard grid system**: The dashboard is now a fully customizable widget grid powered by `react-grid-layout` v2. Users can drag, resize, add, and remove widgets in edit mode via a "Customize" toggle in the page header. Layouts are responsive across 5 breakpoints (lg/md/sm/xs/xxs) with vertical compaction
+- **Widget catalog drawer**: A slide-in "Add Widgets" panel groups all available widgets by category (Overview, Equipment, Work Orders, Team, Inventory) with search filtering, active/inactive indicators, and one-click add/remove
+- **Per-user, per-organization layout persistence**: Dashboard layouts are stored in localStorage for instant load and synced to a new `user_dashboard_preferences` Supabase table (with RLS) for cross-device durability. Switching organizations loads a completely independent layout — a user's dashboard for Org A is separate from Org B
+- **Widget registry architecture**: All dashboard widgets are registered in a centralized registry (`widgetRegistry.ts`) with metadata (id, title, description, icon, component, defaultSize, minSize, maxSize, category). Widgets are lazy-loaded via `React.lazy()` for code splitting. Helper functions: `getWidget()`, `getAllWidgets()`, `getWidgetsByCategory()`, `generateDefaultLayout()`
+- **Fleet Efficiency scatter plot overlap fix**: Implemented a deterministic spiral jitter algorithm that offsets overlapping points so every team is individually hoverable and clickable. For clusters of 3+ teams at the same coordinate, a count badge renders with a click-to-popover listing all teams. Added `ZAxis` bubble sizing based on equipment count and expanded chart height from `h-72` to `h-96` with axis labels
+- **Mobile widget reorder sheet**: On small viewports, drag-and-drop is disabled in favor of a touch-friendly bottom sheet with up/down arrow buttons for reordering widgets
+- **PM Compliance widget**: Donut chart showing preventive maintenance work order status breakdown (completed, in progress, pending, overdue) queried from PM-template-linked work orders
+- **Equipment by Status widget**: Donut chart showing fleet breakdown by equipment status (active, maintenance, retired, inactive)
+- **Cost Trend widget**: Line chart of work order costs aggregated weekly or monthly with a toggle, showing the last 12 periods
+- **Quick Actions widget**: 2x2 grid of shortcut buttons (New Work Order, Scan QR, Add Equipment, All Work Orders) for rapid navigation
+- **Self-contained widget wrappers**: Each existing dashboard card (StatsGrid, FleetEfficiency, RecentEquipment, RecentWorkOrders, HighPriorityWO) is now wrapped in a self-contained component that fetches its own data internally via hooks, enabling standalone use inside the grid without parent prop drilling
+- **Dashboard preferences query key factory**: Added `dashboardPreferences.byUserOrg(userId, orgId)` to `queryKeys.ts` for consistent cache management
+- **Unit tests for jitter algorithm** (13 tests): Determinism, spiral placement for N=2/3/5/10, no-op for single points, axis range scaling, cluster metadata, original data preservation
+- **Unit tests for widget registry** (15 tests): `getWidget`, `getAllWidgets`, `getWidgetsByCategory`, `generateDefaultLayout` with custom/unknown IDs, breakpoint stacking, min/max constraints
+- **Updated Dashboard integration tests** (18 tests): Persona-driven tests updated for new grid architecture with lazy-loaded widget mocks
+
+### Security
+
+- **CRITICAL: Fixed cross-tenant data leak in `refresh_quickbooks_tokens_manual`** — The function had no authorization check and was granted to `anon`, leaking the total number of expiring QuickBooks credentials across all organizations. Added `auth.role() = 'service_role'` guard and revoked `anon`/`authenticated` grants
+- **Revoked overly broad `anon` grants on 9 QuickBooks database functions** — Functions that require `auth.uid()` internally were unnecessarily granted to `anon`, exposing function signatures and error messages. Restricted to `authenticated` and `service_role` only
+- **Restricted `cleanup_expired_quickbooks_oauth_sessions` to `service_role`** — Added authorization check so unauthenticated callers cannot trigger DELETE operations on the OAuth sessions table
+
+### Added
+
+- **Work Order detail page — equipment image and location map**: The Equipment Information section on desktop and the Equipment Details collapsible on mobile now display the equipment's display image (or a forklift icon placeholder) and an interactive Google Maps embed showing the equipment's effective location. On desktop the image and map appear side-by-side above the text metadata; on mobile they stack vertically inside the collapsed-by-default card
+- **Shared QuickBooks retry utility** (`supabase/functions/_shared/quickbooks-retry.ts`) — Implements exponential backoff with jitter for 429/5xx errors, automatic 401 refresh-and-retry, and Fault-in-200 detection per QBO API best practices
+- **Shared QuickBooks configuration** (`supabase/functions/_shared/quickbooks-config.ts`) — Centralizes QBO API base URLs, token endpoint, minor version constant, environment detection, `getIntuitTid()`, and `withMinorVersion()` helpers. Eliminates hardcoded URL duplication across 4 edge functions
+- **QuickBooksCustomerMapping component tests** — 8 new tests covering feature flag gating, permission checks, connection status gating, mapping display, and customer search dialog
+- **QuickBooks auth utility tests** (`quickbooksAuth.test.ts`) — 13 new tests for `decodeOAuthState` (valid/invalid/expired states), `isQuickBooksConfigured`, and `getQuickBooksAppCenterUrl`
+- **`manualTokenRefresh` tests** — 4 new tests covering success, RPC error, and empty/null data paths
+- **Error-path tests for `searchCustomers` and `exportInvoice`** — 4 new tests covering non-200 HTTP responses and missing error messages
+
 ### Changed
 
+- **Fault-in-200 detection for QBO API responses** — All QuickBooks edge functions now check for `Fault` objects in HTTP 200 JSON responses (a known QBO API behavior). Previously, validation errors returned as 200 OK with a Fault body were silently treated as success
+- **`minorversion=70` on all QBO Data API calls** — Previously only used for PDF uploads (`minorversion=65`). Now applied to all invoice create/update, customer query, item query, and account query endpoints via the shared `withMinorVersion()` helper
+- **All 4 QuickBooks edge functions now use `_shared/cors.ts`** — Replaced inline wildcard `corsHeaders` objects with `getCorsHeaders(req)` for origin-validated CORS responses in `quickbooks-export-invoice`, `quickbooks-oauth-callback`, and `quickbooks-refresh-tokens` (search-customers already used it)
+- **Token refresh concurrency control** — `quickbooks-refresh-tokens` now processes credentials in batches of 5 with 500ms inter-batch delays instead of unbounded `Promise.allSettled` parallelism, preventing Intuit rate limit hits when many organizations are connected
+- **Consistent `intuit_tid` capture** — Now captured and logged in `quickbooks-oauth-callback` (token exchange) and `quickbooks-refresh-tokens` (per-credential refresh). Previously only captured in `quickbooks-export-invoice` and `quickbooks-search-customers`
+- **Deprecated server-only types in client bundle** — `QuickBooksCredentials` and `QuickBooksTokenResponse` interfaces in `src/services/quickbooks/types.ts` marked as `@deprecated` with server-side-only documentation
+
+### Changed
+
+- **Test suite — persona-driven conversion**: Rewrote 6 generic/boilerplate test files as persona-driven tests using named personas (Alice Owner, Bob Admin, Carol Manager, Dave Technician, Frank read-only member, Grace Viewer) and entity fixtures from `src/test/fixtures/`. Converted tests: `Dashboard.test.tsx`, `Teams.test.tsx`, `WorkOrders.test.tsx`, `EquipmentDetailsTab.test.tsx`, `WorkOrderCostsSection.test.tsx`, and `PMTemplates.test.tsx`. Each test file now uses describe blocks per persona that narrate real user workflows (e.g. "as Alice Owner reviewing the daily fleet overview") instead of anonymous mock data. Net +15 tests (2,147 → 2,162), coverage 68.73% → 69.07%
+
+### Fixed
+
+- Removed unused `Clock` import from `WorkOrderDetailsInfo.tsx` (lint warning)
+
+### Changed
+
+- **Work Order detail page — sidebar consolidation**: Merged the redundant "Assignment", "Status Management", and "Quick Info" sidebar cards into a single card per role. Managers see one unified status card with dates, estimated hours, PM status, equipment link, and team details; non-managers see one consolidated status card with the same context. Eliminates triple-display of assignee, team, and status data
+- **Work Order detail page — team info enrichment**: Team display now shows name (linked to team detail page), description, and address (as a Google Maps link via `ClickableAddress`). Applies to both mobile header and desktop sidebar. Fetches team `description` from the equipment join query
+- **Work Order detail page — breadcrumb navigation**: Replaced the small "Back to Work Orders" ghost button in the desktop header with a standard breadcrumb trail (`Work Orders > WO-XXXXXXXX`) positioned above the title for clearer page hierarchy
+- **Work Order detail page — slimmed warning banner**: Replaced the heavy `Card`+`CardContent` status lock banner with a lightweight inline `div` using reduced padding (`py-2 px-3`), cutting vertical space by ~50%. Added dark mode support
+- **Work Order detail page — flattened equipment card**: Removed the inner `bg-muted/50` background from the Equipment Information section, eliminating the card-within-a-card visual. De-emphasized the Working Hours KPI from a prominent blue highlighted box to a standard data-label row matching Manufacturer/Model/Serial
+- **Work Order detail page — tighter description spacing**: Reduced `space-y-6` to `space-y-4` in the Work Order Details card and removed the redundant "Description" heading since the card title already provides context
+- **Work Order detail page — compact empty costs state**: Replaced the large `h-12` DollarSign icon + multi-line empty state with a compact single-line inline banner for both editable and read-only modes
+- **Work Order detail page — Delete moved to header dropdowns**: Moved the "Delete Work Order" action from the sidebar Quick Info card into the desktop header's "More Actions" dropdown and the mobile action sheet's new "Danger Zone" section, with full confirmation dialog including image count
+- **Work Order mobile — reduced data redundancy**: Stripped duplicated fields (location, equipment name+status, priority badge, team) from the `WorkOrderDetailsMobile` summary card since they already appear in the sticky mobile header. Added due date and estimated hours as first-class data rows
+- **Work Order mobile — de-emphasized working hours**: Replaced the prominent blue `bg-blue-50 border-blue-200` Working Hours box with a standard text row in both the mobile summary card and equipment details collapsible
+- **Work Order mobile — added Itemized Costs section**: The mobile layout now renders `WorkOrderCostsSection` between PM Checklist and Notes (same permission guard as desktop), fixing the gap where mobile users couldn't view or manage costs
+- **Work Order detail page — equipment custom attributes**: Custom attributes (`custom_attributes` JSONB) now display in the Equipment Details/Information collapsible sections on both mobile and desktop, rendered as key-value pairs below a separator after the standard fields
 - **Google Maps Edge Function env var naming**: Renamed `VITE_GOOGLE_MAPS_BROWSER_KEY` → `GOOGLE_MAPS_BROWSER_KEY` and `VITE_GOOGLE_MAPS_API_KEY` / `GOOGLE_MAPS_API_KEY` → `GOOGLE_MAPS_SERVER_KEY` in Edge Functions (`public-google-maps-key`, `places-autocomplete`, `geocode-location`). Old names are still supported as fallbacks for backward compatibility. The `VITE_` prefix was misleading because these are Supabase Edge Function runtime secrets, not Vite build-time variables
 - **`GooglePlacesAutocomplete` runtime 403 fallback**: The component now detects when the `PlaceAutocompleteElement` web component's internal API calls fail at runtime (e.g., Places API New not enabled for the browser key) and automatically falls back to the edge function proxy. Previously, the fallback only triggered if the web component failed to construct — runtime 403 errors from the Google Maps JS API left the component in a broken state with no autocomplete results
+
+### Fixed
+
+- **Mobile "Created: N/A" bug**: Fixed the mobile summary card showing "Created: N/A" by correcting the property mapping from `workOrder.createdAt` (undefined) to `workOrder.created_date || workOrder.createdDate` in `WorkOrderDetails.tsx`
 
 ### Documentation
 
