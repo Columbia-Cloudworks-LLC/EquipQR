@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Duplicate storage policy migration** — `20260210211000_add_storage_select_policies.sql` duplicated all 6 SELECT policies already created by `20260210210000_add_storage_object_policies.sql`, which would cause "policy already exists" errors on fresh deployments. Converted to a no-op with explanatory comment
 - **Non-idempotent storage migrations** — Added `DROP POLICY IF EXISTS` guards to all 24 `CREATE POLICY` statements in `20260210210000_add_storage_object_policies.sql` and 3 policies + 1 trigger in `20260210180000_image_upload_feature.sql` so migrations can be safely re-run during `supabase db reset`
 
+### Security
+
+- **Storage RLS policies now enforce tenant scoping** — Previously, `storage.objects` policies for `organization-logos`, `team-images`, `inventory-item-images`, `equipment-note-images`, and `work-order-images` only checked `bucket_id`, allowing any authenticated user to read/write/delete objects across organizations. Added `20260210230000_improve_storage_security_and_buckets.sql` with path-based scoping: org-prefixed buckets (`organization-logos`, `team-images`, `inventory-item-images`) verify `is_org_member()` against the org ID in the storage path; user-prefixed buckets (`equipment-note-images`, `work-order-images`) verify `auth.uid()` matches the user ID in the storage path. SELECT on public-display buckets (logos, team images) remains open to all authenticated users; metadata-table RLS provides defense-in-depth for user-prefixed buckets
+- **Missing storage buckets added to migration pipeline** — `equipment-note-images` and `work-order-images` buckets were not included in any migration, meaning fresh/self-hosted deployments would fail with "Bucket not found" for equipment note and work order image uploads. The new migration creates all 6 buckets idempotently
+- **Bucket configuration now enforced on existing environments** — Changed from `ON CONFLICT (id) DO NOTHING` to `ON CONFLICT (id) DO UPDATE SET` so that bucket settings (public flag, file size limits, allowed MIME types) are enforced even on environments where buckets were previously created manually with potentially different settings
+
 ## [2.3.3] - 2026-02-10
 
 ### Added
