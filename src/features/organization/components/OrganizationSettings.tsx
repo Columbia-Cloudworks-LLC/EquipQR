@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,18 +8,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { Save, Settings, Palette, Building2, Link2, Image as ImageIcon, AlertCircle, Shield } from 'lucide-react';
+import { Save, Settings, Palette, Building2, Link2, Shield } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { SessionOrganization } from '@/contexts/SessionContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { updateOrganization } from '@/features/organization/services/organizationService';
+import { updateOrganization, uploadOrganizationLogo, deleteOrganizationLogo } from '@/features/organization/services/organizationService';
 import type { OrganizationUpdatePayload } from '@/features/organization/types/organization';
 import { organizationFormSchema, OrganizationFormData } from './organizationSettingsSchema';
 import { QuickBooksIntegration } from './QuickBooksIntegration';
 import { GoogleWorkspaceIntegration } from './GoogleWorkspaceIntegration';
 import { DangerZoneSection } from './DangerZoneSection';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
-import { useMemo } from 'react';
+import SingleImageUpload from '@/components/common/SingleImageUpload';
 
 interface OrganizationSettingsProps {
   organization: SessionOrganization;
@@ -31,7 +31,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
   currentUserRole,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
-  const [logoError, setLogoError] = useState(false);
+  const [currentLogo, setCurrentLogo] = useState<string | null>(organization.logo || null);
   const queryClient = useQueryClient();
   const { refetch } = useOrganization();
 
@@ -54,14 +54,12 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
     resolver: zodResolver(organizationFormSchema),
     defaultValues: {
       name: organization.name,
-      logo: organization.logo || '',
       backgroundColor: organization.backgroundColor || '',
       scan_location_collection_enabled: organization.scanLocationCollectionEnabled ?? true,
     },
   });
 
   // Watch form values for previews
-  const watchedLogo = form.watch('logo');
   const watchedBackgroundColor = form.watch('backgroundColor');
 
   const onSubmit = async (data: OrganizationFormData) => {
@@ -75,7 +73,6 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
       
       const updatePayload: OrganizationUpdatePayload = {
         name: data.name,
-        logo: data.logo || null,
         background_color: data.backgroundColor || null,
         scan_location_collection_enabled: data.scan_location_collection_enabled,
       };
@@ -128,26 +125,31 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
     );
   }
 
-  // Helper to validate if URL is valid for preview
-  const isValidLogoUrl = (url: string | undefined): boolean => {
-    if (!url || url.trim() === '') return false;
-    try {
-      const parsed = new URL(url);
-      return ['http:', 'https:'].includes(parsed.protocol);
-    } catch {
-      return false;
-    }
-  };
-
   // Helper to validate hex color
   const isValidHexColor = (color: string | undefined): boolean => {
     if (!color || color.trim() === '') return false;
     return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color.trim());
   };
 
-  const showLogoPreview = isValidLogoUrl(watchedLogo);
   const backgroundColorValue = watchedBackgroundColor || '#ffffff';
   const showColorPreview = isValidHexColor(watchedBackgroundColor) || backgroundColorValue === '#ffffff';
+
+  const handleLogoUpload = async (file: File) => {
+    const publicUrl = await uploadOrganizationLogo(organization.id, file);
+    setCurrentLogo(publicUrl);
+    await queryClient.invalidateQueries({ queryKey: ['organizations'] });
+    await queryClient.invalidateQueries({ queryKey: ['organization', organization.id] });
+    await refetch();
+  };
+
+  const handleLogoDelete = async () => {
+    if (!currentLogo) return;
+    await deleteOrganizationLogo(organization.id, currentLogo);
+    setCurrentLogo(null);
+    await queryClient.invalidateQueries({ queryKey: ['organizations'] });
+    await queryClient.invalidateQueries({ queryKey: ['organization', organization.id] });
+    await refetch();
+  };
 
   return (
     <div className="space-y-6">
@@ -183,55 +185,14 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="logo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4" />
-                      Logo URL
-                    </FormLabel>
-                    <FormControl>
-                      <div className="space-y-3">
-                        <Input 
-                          {...field} 
-                          disabled={isUpdating}
-                          placeholder="https://example.com/logo.png"
-                          type="url"
-                          onChange={(e) => {
-                            field.onChange(e);
-                            setLogoError(false);
-                          }}
-                        />
-                        {showLogoPreview && (
-                          <div className="space-y-2">
-                            <p className="text-xs text-muted-foreground font-medium">Preview:</p>
-                            <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[120px]">
-                              <img
-                                src={watchedLogo}
-                                alt="Logo preview"
-                                className="max-w-full max-h-24 object-contain"
-                                onError={() => setLogoError(true)}
-                                onLoad={() => setLogoError(false)}
-                              />
-                            </div>
-                            {logoError && (
-                              <div className="flex items-center gap-2 text-xs text-destructive">
-                                <AlertCircle className="h-3 w-3" />
-                                <span>Unable to load image from this URL</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                    <p className="text-xs text-muted-foreground">
-                      Enter a publicly accessible URL to your organization's logo image
-                    </p>
-                  </FormItem>
-                )}
+              <SingleImageUpload
+                currentImageUrl={currentLogo}
+                onUpload={handleLogoUpload}
+                onDelete={handleLogoDelete}
+                maxSizeMB={5}
+                disabled={isUpdating}
+                label="Organization Logo"
+                helpText="Upload your organization's logo. It will appear in emails and the sidebar."
               />
 
               <FormField

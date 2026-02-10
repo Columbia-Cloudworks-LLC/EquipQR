@@ -10,6 +10,12 @@ import type {
   TeamMember,
   TeamWithMembers
 } from '@/features/teams/types/team';
+import {
+  uploadImageToStorage,
+  deleteImageFromStorage,
+  generateSingleFilePath,
+  validateImageFile,
+} from '@/services/imageUploadService';
 
 // Re-export types for backward compatibility
 export type { Team, TeamMember, TeamWithMembers, TeamMemberRole };
@@ -376,6 +382,7 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
       member_count: team.team_members?.[0]?.count || 0,
       created_at: team.created_at,
       updated_at: team.updated_at,
+      image_url: (team as TeamRow).image_url,
       location_address: team.location_address,
       location_city: team.location_city,
       location_state: team.location_state,
@@ -417,6 +424,7 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null>
       member_count: data.team_members?.[0]?.count || 0,
       created_at: data.created_at,
       updated_at: data.updated_at,
+      image_url: (data as unknown as TeamRow).image_url,
       location_address: data.location_address,
       location_city: data.location_city,
       location_state: data.location_state,
@@ -450,5 +458,61 @@ export const isTeamManagerOptimized = async (userId: string, teamId: string): Pr
   } catch (error) {
     logger.error('Error checking team manager status:', error);
     return false;
+  }
+};
+
+// ============================================
+// Team Image Functions
+// ============================================
+
+/**
+ * Upload a team image to Supabase Storage and update the teams table.
+ * Returns the public URL of the uploaded image.
+ */
+export const uploadTeamImage = async (
+  teamId: string,
+  organizationId: string,
+  file: File
+): Promise<string> => {
+  validateImageFile(file, 5);
+
+  const filePath = generateSingleFilePath(`${organizationId}/${teamId}`, 'image', file);
+  const publicUrl = await uploadImageToStorage(
+    'team-images',
+    filePath,
+    file,
+    { upsert: true }
+  );
+
+  const { error } = await supabase
+    .from('teams')
+    .update({ image_url: publicUrl, updated_at: new Date().toISOString() })
+    .eq('id', teamId);
+
+  if (error) {
+    logger.error('Error updating team image in DB:', error);
+    throw new Error('Failed to save team image');
+  }
+
+  return publicUrl;
+};
+
+/**
+ * Delete the team image from storage and clear the column.
+ */
+export const deleteTeamImage = async (
+  teamId: string,
+  currentImageUrl: string
+): Promise<void> => {
+  await deleteImageFromStorage('team-images', currentImageUrl);
+
+  const { error } = await supabase
+    .from('teams')
+    .update({ image_url: null, updated_at: new Date().toISOString() })
+    .eq('id', teamId);
+
+  if (error) {
+    logger.error('Error clearing team image:', error);
+    throw new Error('Failed to remove team image');
   }
 };

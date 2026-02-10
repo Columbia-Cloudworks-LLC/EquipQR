@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTeamMembers } from '@/features/teams/hooks/useTeamManagement';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -103,6 +103,9 @@ const AddTeamMemberDialog: React.FC<AddTeamMemberDialogProps> = ({
                           <SelectItem key={user.user_id} value={user.user_id}>
                             <div className="flex items-center gap-2">
                               <Avatar className="h-6 w-6">
+                                {(user.profiles as { avatar_url?: string | null })?.avatar_url && (
+                                  <AvatarImage src={(user.profiles as { avatar_url?: string | null }).avatar_url!} alt={user.profiles?.name || 'User'} />
+                                )}
                                 <AvatarFallback className="text-xs">
                                   {(user.profiles?.name || 'U').split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
