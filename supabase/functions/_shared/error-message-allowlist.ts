@@ -131,6 +131,9 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^No issue in payload$/,
   /^No matching ticket found$/,
   /^No comment in payload$/,
+
+  // QuickBooks integration errors
+  /^QuickBooks returned a validation error for the customer query\. Please adjust your search and try again\.$/,
 ];
 
 /**
