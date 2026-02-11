@@ -3209,6 +3209,41 @@ export type Database = {
         }
         Relationships: []
       }
+      user_dashboard_preferences: {
+        Row: {
+          active_widgets: string[]
+          id: string
+          layouts: Json
+          organization_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_widgets?: string[]
+          id?: string
+          layouts?: Json
+          organization_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_widgets?: string[]
+          id?: string
+          layouts?: Json
+          organization_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_dashboard_preferences_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_departure_queue: {
         Row: {
           completed_at: string | null
@@ -5073,3 +5108,4 @@ export const Constants = {
     },
   },
 } as const
+

@@ -7,6 +7,32 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Offline queue for field data** — Technicians in spotty connectivity (metal barns, rural sites) no longer lose work order data when network requests fail. If a work order create, update, or status change fails due to a network error, the payload is automatically saved to the browser's localStorage and retried when the connection returns. A persistent banner at the top of the dashboard shows offline status, pending item count, and a manual "Sync Now" button. Items are processed sequentially in FIFO order with exponential retry (up to 5 attempts) and bulk TanStack Query cache invalidation after sync. Queue is scoped per-user per-organization with a 50-item / 2 MB budget and binary data rejection to prevent localStorage quota issues. No new dependencies — implemented with React Context + localStorage ([#536](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/536))
+  - `OfflineQueueService` — localStorage-backed queue with type-safe discriminated union items (`work_order_create`, `work_order_update`, `work_order_status`, `equipment_create`, `equipment_create_full`, `equipment_update`, `equipment_hours`, `equipment_note`, `work_order_note`), payload size validation (50 KB/item), FIFO eviction, `QuotaExceededError` handling, and `updatePayload()` for in-place editing of queued items
+  - `OfflineQueueProcessor` — Sequential handler-map processor that re-executes queued mutations via the same `WorkOrderService` methods used by the original hooks
+  - `OfflineQueueContext` — React Context + Provider with reactive state (`pendingCount`, `failedCount`, `isOnline`, `isSyncing`), `navigator.onLine` event listeners, and auto-sync 1.5 s after reconnecting
+  - `PendingSyncBanner` — Alert banner with 5 visual states (offline, offline+items, online+pending, syncing, failed) using shadcn Alert + lucide icons, placed between the top bar and main content
+  - Mutation hooks (`useWorkOrderCreation`, `useWorkOrderUpdate`, `useWorkOrderStatusUpdate`) now intercept network errors inside `mutationFn`, enqueue the payload, and return a synthetic `{ queuedOffline: true }` result so `onSuccess` can show a "Saved offline" toast and navigate appropriately
+  - 35 unit tests across 3 test files (OfflineQueueService, OfflineQueueProcessor, PendingSyncBanner)
+- **Offline-created items visible in lists** — Work orders and equipment created while offline now appear immediately in their respective list pages with an amber "Pending sync" badge. Items are merged from the localStorage queue into the TanStack Query data via `useOfflineMergedWorkOrders` and `useOfflineMergedEquipment` hooks. Equipment names and team names are resolved from the query cache for display. Offline notes also appear in the Notes tabs of work orders and equipment with the same badge treatment
+- **Equipment and PM template cache pre-warming** — The Work Orders page now pre-fetches both the equipment list and PM template list on mount, ensuring the Create Work Order dialog's equipment selector and PM template selector work even if the user goes offline without visiting those pages first. PM template cache duration increased to 30 min stale / 1 hr gc
+- **Breadcrumb navigation on all detail pages** — Added consistent breadcrumb trails to Inventory Item Detail, Team Detail, and Alternate Group Detail pages, matching the existing pattern on Equipment Details and PM Template View. Inventory Item and Alternate Group pages now use the shared `PageHeader` component with `breadcrumbs` prop; Team Detail uses an inline breadcrumb nav to preserve its unique avatar/icon header layout. Back-arrow buttons replaced by `{List} > {Detail Name}` breadcrumb trails for clearer wayfinding
+
+### Fixed
+
+- **Offline work order creation hung on "Creating..."** — TanStack Query's default `networkMode: 'online'` paused mutations when `navigator.onLine === false`, preventing the `mutationFn` from ever executing. The TIER 1 offline pre-check in `OfflineAwareWorkOrderService` was never reached. Set `networkMode: 'always'` globally in `AppProviders.tsx` so all mutations fire immediately and the offline-aware service layer handles queueing
+- **Create Work Order dialog stayed open after offline submit** — The `onSuccess` callback in `WorkOrderForm` only called `onClose()` for edit mode, relying on navigation-triggered unmount for creates. Offline creates navigate to the same page (`/dashboard/work-orders`), so the dialog never closed. Fixed by always calling `onClose()` in `onSuccess` and explicitly triggering it from `useWorkOrderSubmission` when `result.queuedOffline` is true
+- **Work order list didn't refresh after offline sync** — The `OfflineQueueProcessor` and mutation hooks invalidated legacy query keys (`enhanced-work-orders`, `workOrders`) but not the `team-based-work-orders` key used by the current Work Orders page. Added the missing invalidation to the processor and all three work order mutation hooks
+- **PageHeader breadcrumbs caused full-page reloads** — `PageHeader` rendered breadcrumb links with plain `<a href>` tags instead of React Router `<Link>`, causing the entire SPA to reload on every breadcrumb click. Replaced with `<Link to>` for proper client-side navigation. Affects all pages using `PageHeader` breadcrumbs (Equipment Details, PM Template View, and the newly added breadcrumbs)
+
+### Changed
+
+- **Breadcrumb visual refinements** — Reduced chevron separator size (h-4 w-4 to h-3.5 w-3.5) with 50% opacity for softer visual hierarchy. Added `hover:underline` with `underline-offset-4` on breadcrumb links. Current page label truncates to 20 characters on mobile with a title tooltip for overflow
+
 ## [2.3.4] - 2026-02-10
 
 ### Fixed

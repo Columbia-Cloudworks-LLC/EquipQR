@@ -20,6 +20,9 @@ import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrde
 import { AutoAssignmentBanner } from '@/features/work-orders/components/AutoAssignmentBanner';
 import { WorkOrderFilters } from '@/features/work-orders/components/WorkOrderFilters';
 import { WorkOrdersList } from '@/features/work-orders/components/WorkOrdersList';
+import { useEquipment } from '@/features/equipment/hooks/useEquipment';
+import { useOfflineMergedWorkOrders } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
+import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 
 const WorkOrders = () => {
   const [showForm, setShowForm] = useState(false);
@@ -44,7 +47,14 @@ const WorkOrders = () => {
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
   const batchAssignMutation = useBatchAssignUnassignedWorkOrders();
-  
+
+  // Pre-warm caches so the Create Work Order dialog works offline.
+  // Equipment selector and PM template selector both need warm caches.
+  useEquipment(currentOrganization?.id);
+  usePMTemplates();
+
+  // Merge server work orders with any pending offline queue items
+  const mergedWorkOrders = useOfflineMergedWorkOrders(allWorkOrders);
 
   // Use custom filters hook
   const {
@@ -54,7 +64,7 @@ const WorkOrders = () => {
     clearAllFilters,
     applyQuickFilter,
     updateFilter
-  } = useWorkOrderFilters(allWorkOrders, currentUser?.id);
+  } = useWorkOrderFilters(mergedWorkOrders, currentUser?.id);
 
   // Apply URL parameter filters on initial load.
   // updateFilter and applyQuickFilter are stable (useCallback in useWorkOrderFilters).

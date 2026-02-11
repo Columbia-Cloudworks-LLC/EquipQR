@@ -101,6 +101,9 @@ describe('AppProviders', () => {
             staleTime: 5 * 60 * 1000, // 5 minutes
             retry: 1,
           },
+          mutations: {
+            networkMode: 'always', // Let OfflineAwareService handle offline
+          },
         },
       });
     });

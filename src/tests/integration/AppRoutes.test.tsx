@@ -72,6 +72,28 @@ vi.mock('@/contexts/SimpleOrganizationProvider', () => ({
   )
 }));
 
+vi.mock('@/contexts/OfflineQueueContext', () => ({
+  OfflineQueueProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="offline-queue-provider">{children}</div>
+  ),
+  useOfflineQueue: () => ({
+    queuedItems: [],
+    pendingCount: 0,
+    failedCount: 0,
+    isOnline: true,
+    isSyncing: false,
+    enqueue: vi.fn(),
+    syncNow: vi.fn(),
+    removeItem: vi.fn(),
+    clearQueue: vi.fn(),
+    retryFailed: vi.fn(),
+  }),
+}));
+
+vi.mock('@/features/offline-queue/components/PendingSyncBanner', () => ({
+  PendingSyncBanner: () => <div data-testid="pending-sync-banner" />
+}));
+
 vi.mock('@/components/ui/sidebar', () => ({
   SidebarProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="sidebar-provider">{children}</div>

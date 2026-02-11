@@ -372,44 +372,37 @@ const InventoryItemDetail = () => {
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-4 md:space-y-6">
-        {/* Mobile-first header: stack vertically on mobile, horizontal on desktop */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          {/* Title section - always on top */}
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/inventory')} aria-label="Back to inventory">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
-                {item.name}
-              </h1>
-            </div>
-          </div>
-          
-          {/* Action buttons - below title on mobile, to the right on desktop */}
-          <div className="flex flex-wrap gap-2 md:flex-nowrap">
-            {canEdit && (
+        <PageHeader
+          title={item.name}
+          breadcrumbs={[
+            { label: 'Inventory', href: '/dashboard/inventory' },
+            { label: item.name },
+          ]}
+          actions={
+            <div className="flex flex-wrap gap-2 md:flex-nowrap">
+              {canEdit && (
+                <Button
+                  variant="default"
+                  onClick={() => setShowAdjustDialog(true)}
+                  className="flex-1 md:flex-initial"
+                  aria-label="Adjust Quantity"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span className="inline md:hidden">Adjust Qty</span>
+                  <span className="hidden md:inline">Adjust Quantity</span>
+                </Button>
+              )}
               <Button
-                variant="default"
-                onClick={() => setShowAdjustDialog(true)}
-                className="flex-1 md:flex-initial"
-                aria-label="Adjust Quantity"
+                variant="outline"
+                onClick={() => setShowQRCode(true)}
+                size="icon"
+                aria-label="Show QR Code"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                <span className="inline md:hidden">Adjust Qty</span>
-                <span className="hidden md:inline">Adjust Quantity</span>
+                <QrCode className="h-4 w-4" />
               </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => setShowQRCode(true)}
-              size="icon"
-              aria-label="Show QR Code"
-            >
-              <QrCode className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+            </div>
+          }
+        />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className={cn(isMobile && "flex flex-col w-full h-auto gap-1")}>

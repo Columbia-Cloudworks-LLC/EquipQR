@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -32,21 +33,21 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     <div className={cn('space-y-4', className)}>
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="flex items-center space-x-1 text-sm text-muted-foreground" aria-label="Breadcrumb">
+        <nav className="flex items-center gap-1.5 text-sm text-muted-foreground" aria-label="Breadcrumb">
           {breadcrumbs.map((item, index) => (
-            <div key={`${item.label}-${index}`} className="flex items-center">
+            <div key={`${item.label}-${index}`} className="flex items-center gap-1.5">
               {index > 0 && (
-                <ChevronRight className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 opacity-50" aria-hidden="true" />
               )}
               {item.href ? (
-                <a
-                  href={item.href}
-                  className="hover:text-foreground transition-colors"
+                <Link
+                  to={item.href}
+                  className="hover:text-foreground hover:underline underline-offset-4 decoration-muted-foreground/40 transition-colors"
                 >
                   {item.label}
-                </a>
+                </Link>
               ) : (
-                <span className="text-foreground font-medium" aria-current="page">
+                <span className="text-foreground font-medium truncate max-w-[20ch] sm:max-w-none" aria-current="page" title={item.label}>
                   {item.label}
                 </span>
               )}

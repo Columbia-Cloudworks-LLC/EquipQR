@@ -17,6 +17,7 @@ import EquipmentSortHeader from '@/features/equipment/components/EquipmentSortHe
 import EquipmentGrid from '@/features/equipment/components/EquipmentGrid';
 import EquipmentLoadingState from '@/features/equipment/components/EquipmentLoadingState';
 import ImportCsvWizard from '@/features/equipment/components/ImportCsvWizard';
+import { useOfflineMergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 
 const Equipment = () => {
   const { currentOrganization } = useOrganization();
@@ -45,6 +46,9 @@ const Equipment = () => {
     setPageSize
   } = useEquipmentFiltering(currentOrganization?.id);
   
+  // Merge server equipment with pending offline queue items
+  const mergedEquipment = useOfflineMergedEquipment(paginatedEquipment);
+
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
@@ -140,7 +144,7 @@ const Equipment = () => {
       />
 
       <EquipmentGrid
-        equipment={paginatedEquipment}
+        equipment={mergedEquipment}
         searchQuery={filters.search}
         statusFilter={filters.status}
         organizationName={currentOrganization.name}

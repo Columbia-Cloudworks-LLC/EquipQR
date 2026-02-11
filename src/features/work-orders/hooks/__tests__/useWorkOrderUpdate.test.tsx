@@ -16,11 +16,30 @@ vi.mock('@/hooks/use-toast', () => ({
 
 vi.mock('@/utils/errorHandling', () => ({
   showErrorToast: vi.fn(),
-  getErrorMessage: vi.fn((e) => e?.message ?? 'Unknown error')
+  getErrorMessage: vi.fn((e) => e?.message ?? 'Unknown error'),
+  classifyError: vi.fn(() => ({ category: 'unknown', retryable: false })),
+  isNetworkError: vi.fn(() => false),
 }));
 
 vi.mock('@/contexts/OrganizationContext', () => ({
   useOrganization: () => ({ currentOrganization: { id: 'org-1' } })
+}));
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { id: 'user-1' } })
+}));
+
+vi.mock('@/contexts/OfflineQueueContext', () => ({
+  useOfflineQueueOptional: () => null
+}));
+
+vi.mock('@/utils/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
 }));
 
 // Import mocked modules for assertions

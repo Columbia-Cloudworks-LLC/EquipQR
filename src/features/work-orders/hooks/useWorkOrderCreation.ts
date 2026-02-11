@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
+import { useAuth } from '@/hooks/useAuth';
 import { createPM, PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 
 export interface CreateWorkOrderData {
   title: string;
@@ -20,60 +22,49 @@ export interface CreateWorkOrderData {
   assigneeId?: string;
 }
 
+/** Result shape from mutationFn. */
+interface CreateWorkOrderResult {
+  workOrder: { id: string; [key: string]: unknown } | null;
+  queuedOffline: boolean;
+}
+
 export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: string; [key: string]: unknown }) => void }) => {
   const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const offlineCtx = useOfflineQueueOptional();
 
   return useMutation({
-    mutationFn: async (data: CreateWorkOrderData) => {
+    mutationFn: async (data: CreateWorkOrderData): Promise<CreateWorkOrderResult> => {
       if (!currentOrganization) {
         throw new Error('No organization selected');
       }
-
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      if (!user) {
         throw new Error('User not authenticated');
       }
 
       // Auto-assign logic for single-user organizations
       let assigneeId = data.assigneeId;
-      let status: 'submitted' | 'assigned' = 'submitted';
-
-      // If assignee is explicitly chosen, mark as assigned
-      if (assigneeId) {
-        status = 'assigned';
-      } else if (currentOrganization.memberCount === 1) {
-        // If no explicit assignment and it's a single-user org, auto-assign to creator
-        assigneeId = userData.user.id;
-        status = 'assigned';
+      if (!assigneeId && currentOrganization.memberCount === 1) {
+        assigneeId = user.id;
       }
 
-      // Create the work order using WorkOrderService
-      const service = new WorkOrderService(currentOrganization.id);
-      const response = await service.create({
-        title: data.title,
-        description: data.description,
-        equipment_id: data.equipmentId,
-        priority: data.priority,
-        due_date: data.dueDate,
-        estimated_hours: undefined,
-        assignee_id: assigneeId,
-        team_id: undefined, // Work orders are not assigned to teams
-        status,
-        created_by: userData.user.id,
-        has_pm: data.hasPM || false
-      });
-      
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to create work order');
+      // ── Offline-aware create (pre-check + fallback) ──
+      const svc = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
+      const result = await svc.createWorkOrder(data, assigneeId);
+
+      if (result.queuedOffline) {
+        // Signal the context to re-read localStorage so banner updates
+        offlineCtx?.refresh();
+        return { workOrder: null, queuedOffline: true };
       }
 
-      const workOrder = response.data;
+      const workOrder = result.data!;
 
-      // Multi-equipment linking removed: work orders now support a single equipment only
+      // ── Side-effects (only when online create succeeds) ──
 
-      // If equipment working hours are provided, update equipment
+      // Update equipment working hours
       if (data.equipmentWorkingHours && data.equipmentWorkingHours > 0) {
         try {
           const { error } = await supabase.rpc('update_equipment_working_hours', {
@@ -83,7 +74,6 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
             p_work_order_id: workOrder.id,
             p_notes: `Updated from work order: ${data.title}`
           });
-
           if (error) {
             logger.error('Failed to update equipment working hours', error);
             toast.error('Work order created but failed to update equipment hours');
@@ -94,34 +84,29 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
         }
       }
 
-      // If PM is required, create PM for the single equipment
+      // Create PM if required
       if (data.hasPM && data.equipmentId) {
         try {
-          // Get checklist data from template (existing logic)
           let checklistData = null;
           let notes = '';
-          
           if (data.pmTemplateId) {
             const { data: template } = await supabase
               .from('pm_checklist_templates')
               .select('template_data, description')
               .eq('id', data.pmTemplateId)
               .single();
-            
             if (template) {
               checklistData = template.template_data as PMChecklistItem[];
               notes = template.description || '';
             }
           }
-
-          // Create PM for the single equipment
           await createPM({
             workOrderId: workOrder.id,
             equipmentId: data.equipmentId,
             organizationId: currentOrganization.id,
             checklistData,
             notes,
-            templateId: data.pmTemplateId
+            templateId: data.pmTemplateId,
           });
         } catch (error) {
           logger.error('Failed to create PM for equipment', error);
@@ -129,22 +114,31 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
         }
       }
 
-      return workOrder;
+      return { workOrder, queuedOffline: false };
     },
-    onSuccess: (workOrder) => {
+    onSuccess: (result) => {
+      if (result.queuedOffline) {
+        toast.info('Saved offline', {
+          description: 'This work order will sync when your connection returns.',
+        });
+        navigate('/dashboard/work-orders');
+        return;
+      }
+
+      // Normal success
       toast.success('Work order created successfully');
-      
-      // Invalidate relevant queries with standardized keys
       queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization?.id] });
       queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization?.id] });
       queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['team-based-work-orders', currentOrganization?.id] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization?.id] });
-      
-      // Call custom onSuccess if provided, otherwise navigate to work order details
-      if (options?.onSuccess) {
-        options.onSuccess(workOrder);
-      } else {
-        navigate(`/dashboard/work-orders/${workOrder.id}`);
+
+      if (result.workOrder) {
+        if (options?.onSuccess) {
+          options.onSuccess(result.workOrder);
+        } else {
+          navigate(`/dashboard/work-orders/${result.workOrder.id}`);
+        }
       }
     },
     onError: (error) => {

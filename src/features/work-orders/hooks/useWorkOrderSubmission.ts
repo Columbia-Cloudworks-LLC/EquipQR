@@ -91,8 +91,13 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           assigneeId: data.assigneeId || undefined,
         };
         
-        await createWorkOrderMutation.mutateAsync(workOrderData);
-        // For regular work orders, let the hook handle success callback
+        const result = await createWorkOrderMutation.mutateAsync(workOrderData);
+        // Close the dialog for offline queued creates (navigate stays on same page
+        // so dialog won't unmount by itself). For online creates the hook navigates
+        // to the new work order detail page which unmounts the dialog automatically.
+        if (result.queuedOffline) {
+          onSuccess();
+        }
       }
     }
   );

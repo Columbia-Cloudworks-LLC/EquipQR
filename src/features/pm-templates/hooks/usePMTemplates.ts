@@ -17,6 +17,8 @@ export const usePMTemplates = () => {
     queryKey: queryKeys.pmTemplates.list(currentOrganization?.id || ''),
     queryFn: () => pmChecklistTemplatesService.listTemplates(currentOrganization?.id || ''),
     enabled: !!currentOrganization?.id,
+    staleTime: 30 * 60 * 1000, // 30 minutes — templates change rarely, keep for offline
+    gcTime: 60 * 60 * 1000,    // 1 hour
     select: (data: PMTemplate[]): PMTemplateSummary[] => {
       return data.map(templateToSummary);
     }

@@ -16,6 +16,9 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000, // 5 minutes
       retry: 1,
     },
+    mutations: {
+      networkMode: 'always', // Always fire mutationFn; offline handling is in OfflineAwareService layer
+    },
   },
 });
 

@@ -4,6 +4,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
 
 interface WorkOrderFormHeaderProps {
   isEditMode: boolean;
@@ -21,14 +22,15 @@ export const WorkOrderFormHeader: React.FC<WorkOrderFormHeaderProps> = ({
     <DialogHeader>
       <DialogTitle>{isEditMode ? 'Edit Work Order' : 'Create Work Order'}</DialogTitle>
       <DialogDescription>
-        {isEditMode ? 
+        {isEditMode ?
           `Update the work order details` :
-          (preSelectedEquipment ? 
+          (preSelectedEquipment ?
             `Create a new work order for ${preSelectedEquipment.name}` :
             'Create a new work order for your equipment'
           )
         }
       </DialogDescription>
+      <OfflineFormBanner />
     </DialogHeader>
   );
 };
