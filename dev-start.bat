@@ -7,7 +7,8 @@ REM    1. Pre-flight checks    (node, npm, npx, docker)
 REM    2. node_modules         (npm ci if missing)
 REM    3. Supabase local stack (npx supabase start — Postgres, API, Auth, etc.)
 REM    4. Supabase TypeScript types (regenerate from local schema)
-REM    5. Vite dev server      (npm run dev — in a new window)
+REM    5. Supabase Edge Functions (npx supabase functions serve — in a new window)
+REM    6. Vite dev server      (npm run dev — in a new window)
 REM
 REM  Idempotent: safe to run when services are already running.
 REM  Exit code 0 = environment ready for Playwright / E2E tests.
@@ -24,7 +25,7 @@ echo  ============================================
 echo.
 
 REM ---------- 1. Pre-flight checks -------------------------------------------
-echo  [1/5] Pre-flight checks...
+echo  [1/6] Pre-flight checks...
 
 REM -- Node.js --
 where node >nul 2>&1
@@ -98,7 +99,7 @@ echo        All pre-flight checks passed.
 
 REM ---------- 2. Verify node_modules -----------------------------------------
 echo.
-echo  [2/5] Checking node_modules...
+echo  [2/6] Checking node_modules...
 
 if exist "node_modules\." (
     echo        node_modules exists — skipping npm ci.
@@ -115,7 +116,7 @@ if exist "node_modules\." (
 
 REM ---------- 3. Start Supabase local stack -----------------------------------
 echo.
-echo  [3/5] Starting Supabase local stack...
+echo  [3/6] Starting Supabase local stack...
 
 REM Check if Supabase is already running by querying the API port
 powershell -NoProfile -Command ^
@@ -181,7 +182,7 @@ echo        -----------------------
 
 REM ---------- 4. Regenerate Supabase TypeScript types -------------------------
 echo.
-echo  [4/5] Regenerating Supabase TypeScript types...
+echo  [4/6] Regenerating Supabase TypeScript types...
 
 REM Write to a temp file first so a failure does not corrupt the existing types
 call npx supabase gen types typescript --local > src\integrations\supabase\types.ts.tmp 2>nul
@@ -193,9 +194,35 @@ if !errorlevel! equ 0 (
     echo        WARNING: Type generation failed. Existing types.ts will be used.
 )
 
-REM ---------- 5. Start Vite dev server ----------------------------------------
+REM ---------- 5. Start Supabase Edge Functions ----------------------------------
 echo.
-echo  [5/5] Starting Vite dev server (port 8080)...
+echo  [5/6] Starting Supabase Edge Functions serve...
+
+REM Check if edge functions are already being served by looking for the process
+powershell -NoProfile -Command ^
+  "$procs = Get-Process -Name 'node','deno' -ErrorAction SilentlyContinue | Where-Object { " ^
+  "  try { $cmd = (Get-CimInstance Win32_Process -Filter \"ProcessId=$($_.Id)\").CommandLine; " ^
+  "    $cmd -and ($cmd -match 'supabase' -and $cmd -match 'functions' -and $cmd -match 'serve') " ^
+  "  } catch { $false } " ^
+  "}; " ^
+  "if ($procs) { exit 0 } else { exit 1 }"
+if %errorlevel% equ 0 (
+    echo        Edge Functions serve already running — skipped.
+    goto :edge_functions_done
+)
+
+echo        Launching Edge Functions serve in a new window...
+start "EquipQR Edge Functions" cmd /k "cd /d %~dp0 && npx supabase functions serve --env-file supabase\functions\.env"
+
+REM Brief pause to let the process start
+powershell -NoProfile -Command "Start-Sleep -Seconds 3"
+echo        Edge Functions serve launched.
+
+:edge_functions_done
+
+REM ---------- 6. Start Vite dev server ----------------------------------------
+echo.
+echo  [6/6] Starting Vite dev server (port 8080)...
 
 REM Check if port 8080 is already in use
 powershell -NoProfile -Command ^
@@ -248,6 +275,7 @@ REM Check each service individually (outside of if/else blocks to avoid parenthe
 set "FRONTEND_STATUS=[UNKNOWN]"
 set "API_STATUS=[UNKNOWN]"
 set "DB_STATUS=[UNKNOWN]"
+set "FUNCTIONS_STATUS=[UNKNOWN]"
 
 powershell -NoProfile -Command ^
   "try { $r = Invoke-WebRequest -Uri 'http://localhost:8080' -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop; exit 0 } catch { exit 1 }"
@@ -261,9 +289,20 @@ powershell -NoProfile -Command ^
   "if (Get-NetTCPConnection -LocalPort 54322 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if %errorlevel% equ 0 ( set "DB_STATUS=[OK]" ) else ( set "DB_STATUS=[FAILED]" & set "FAIL=1" )
 
+REM Check edge functions by looking for the running process
+powershell -NoProfile -Command ^
+  "$procs = Get-Process -Name 'node','deno' -ErrorAction SilentlyContinue | Where-Object { " ^
+  "  try { $cmd = (Get-CimInstance Win32_Process -Filter \"ProcessId=$($_.Id)\").CommandLine; " ^
+  "    $cmd -and ($cmd -match 'supabase' -and $cmd -match 'functions' -and $cmd -match 'serve') " ^
+  "  } catch { $false } " ^
+  "}; " ^
+  "if ($procs) { exit 0 } else { exit 1 }"
+if %errorlevel% equ 0 ( set "FUNCTIONS_STATUS=[OK]" ) else ( set "FUNCTIONS_STATUS=[FAILED]" & set "FAIL=1" )
+
 echo   Frontend:      http://localhost:8080       %FRONTEND_STATUS%
 echo   Supabase API:  http://localhost:54321      %API_STATUS%
 echo   Database:      localhost:54322             %DB_STATUS%
+echo   Edge Functions: (via Supabase API)         %FUNCTIONS_STATUS%
 echo.
 echo  ============================================
 
