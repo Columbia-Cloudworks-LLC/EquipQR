@@ -26,7 +26,8 @@ dist-ssr
 *.sln
 *.sw?
 .vs/VSWorkspaceState.json
-/tmp/*
+tmp/*
+tmpclaude*.cwd
 
 # Environment files (secrets)
 .env
