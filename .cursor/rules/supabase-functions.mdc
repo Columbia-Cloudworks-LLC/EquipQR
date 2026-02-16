@@ -1,0 +1,19 @@
+---
+description: "Supabase Edge Functions (Deno) Standards"
+globs: "supabase/functions/**/*.ts"
+---
+# Edge Functions (Deno)
+
+## Environment
+- **Runtime:** Deno (not Node.js). Use `import_map.json` for dependencies.
+- **Imports:** Use URL imports (e.g., `from 'https://esm.sh/...'`) or standard Deno modules (`jsr:`).
+
+## Structure
+- **Entry Point:** Each function must have an `index.ts` exporting a default `serve` handler.
+- **Shared Code:** Put shared business logic in `supabase/functions/_shared/`.
+
+## Best Practices
+- **CORS:** Always handle `OPTIONS` requests and standard CORS headers for browser compatibility.
+- **Supabase Client:** Create the client *inside* the handler using `createClient` from `@supabase/supabase-js` with `Authorization` header context.
+- **Type Safety:** Share types with the frontend via `supabase/functions/_shared/types` or by importing generated database types.
+- **Error Handling:** Return proper HTTP status codes (400 for bad input, 401 for auth, 500 for server errors) and JSON error messages.

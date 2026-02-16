@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { verifySuperAdminAccess } from "../_shared/admin-validation.ts";
@@ -8,7 +7,7 @@ const logStep = (step: string, details?: any) => {
   console.log(`[MANAGE-BILLING-EXEMPTIONS] ${step}${detailsStr}`);
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

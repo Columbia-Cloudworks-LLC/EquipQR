@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Home, 
-  Package, 
+  Forklift,
   ClipboardList, 
   Users, 
   Map, 
@@ -33,33 +33,40 @@ import {
   LogOut,
   User,
   HelpCircle,
-  ClipboardCheck
+  ClipboardCheck,
+  Warehouse,
+  Search,
+  Layers,
+  History,
+  Bug
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { isLightColor } from "@/lib/utils";
-import OrganizationSwitcher from "@/components/organization/OrganizationSwitcher";
+import OrganizationSwitcher from "@/features/organization/components/OrganizationSwitcher";
 import { useAuth } from "@/hooks/useAuth";
 import { useUser } from "@/contexts/useUser";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import Logo from "@/components/ui/Logo";
-import { useSuperAdminAccess } from "@/hooks/useSuperAdminAccess";
+import { useBugReport } from "@/features/tickets/context/BugReportContext";
 
 interface NavigationItem {
   title: string;
   url: string;
   icon: LucideIcon;
   adminOnly?: boolean;
-  superAdminOnly?: boolean;
 }
 
 const mainNavigation: NavigationItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Equipment", url: "/dashboard/equipment", icon: Package },
+  { title: "Equipment", url: "/dashboard/equipment", icon: Forklift },
   { title: "Work Orders", url: "/dashboard/work-orders", icon: ClipboardList },
+  { title: "Inventory", url: "/dashboard/inventory", icon: Warehouse },
+  { title: "Part Lookup", url: "/dashboard/part-lookup", icon: Search },
+  { title: "Part Alternates", url: "/dashboard/alternate-groups", icon: Layers },
   { title: "Teams", url: "/dashboard/teams", icon: Users },
   { title: "Fleet Map", url: "/dashboard/fleet-map", icon: Map },
 ];
@@ -71,15 +78,9 @@ const managementNavigation: NavigationItem[] = [
   // Billing removed - app is now free
   // { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
   { title: "Reports", url: "/dashboard/reports", icon: FileText },
-  { title: "Settings", url: "/dashboard/settings", icon: Settings },
+  { title: "Audit Log", url: "/dashboard/audit-log", icon: History, adminOnly: true },
 ];
 
-// Billing debug routes removed
-// const debugNavigation: NavigationItem[] = [
-//   { title: "Billing Debug", url: "/dashboard/debug/billing", icon: Bug },
-//   { title: "Exemptions Admin", url: "/dashboard/debug/exemptions-admin", icon: Shield, superAdminOnly: true },
-// ];
-const debugNavigation: NavigationItem[] = [];
 
 const AppSidebar = () => {
   const location = useLocation();
@@ -88,7 +89,7 @@ const AppSidebar = () => {
   const { currentOrganization } = useOrganization();
   const isMobile = useIsMobile();
   const { setOpenMobile } = useSidebar();
-  const { isSuperAdmin } = useSuperAdminAccess();
+  const { openBugReport } = useBugReport();
 
   const handleSignOut = async () => {
     await signOut();
@@ -142,7 +143,7 @@ const AppSidebar = () => {
           <OrganizationSwitcher />
         </SidebarHeader>
         
-        <SidebarContent className="px-2 sm:px-3">
+        <SidebarContent className="px-2 sm:px-3" role="navigation" aria-label="Main navigation">
           <SidebarGroup>
             <SidebarGroupLabel className={cn("text-xs", mutedTextColorClass)}>
               Navigation
@@ -218,59 +219,17 @@ const AppSidebar = () => {
             </SidebarGroupContent>
           </SidebarGroup>
           
-          {/* Debug section - only shown in development */}
-          {import.meta.env.DEV && (
-            <SidebarGroup>
-              <SidebarGroupLabel className={cn("text-xs", mutedTextColorClass)}>
-                Debug
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {debugNavigation.map((item) => {
-                    const isActive = location.pathname === item.url;
-                    
-                    // Hide super admin only items if user is not a super admin
-                    if (item.superAdminOnly && !isSuperAdmin) {
-                      return null;
-                    }
-                    
-                    return (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton 
-                          asChild
-                          className={cn(
-                            "text-sm transition-colors",
-                            textColorClass,
-                            hasCustomBranding ? '' : 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                            hoverBackgroundClass,
-                            isActive && hasCustomBranding ? activeBackgroundClass : '',
-                            isActive && hasCustomBranding ? 'font-medium' : '',
-                            isActive && !hasCustomBranding ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground' : ''
-                          )}
-                        >
-                          <Link to={item.url} onClick={handleNavClick}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
         </SidebarContent>
         
         <SidebarFooter className="p-2 sm:p-3">
           <SidebarMenu>
             <SidebarMenuItem>
-              <DropdownMenu>
+              <DropdownMenu modal={!isMobile}>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton
                     size="lg"
                     className={cn(
-                      "transition-colors",
+                      "transition-colors touch-manipulation",
                       textColorClass,
                       hasCustomBranding ? '' : 'data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground',
                       hasCustomBranding && isLightBrand ? 'data-[state=open]:bg-black/10' : '',
@@ -306,10 +265,29 @@ const AppSidebar = () => {
                   sideOffset={4}
                 >
                   <DropdownMenuItem asChild>
+                    <Link to="/dashboard/settings" onClick={handleNavClick} className="text-sm cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link to="/dashboard/support" onClick={handleNavClick} className="text-sm cursor-pointer">
                       <HelpCircle className="mr-2 h-4 w-4" />
                       Support
                     </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      handleNavClick();
+                      openBugReport();
+                    }}
+                    className="text-sm cursor-pointer"
+                  >
+                    <Bug className="mr-2 h-4 w-4" />
+                    Report an Issue
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      Ctrl+Shift+B
+                    </span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut} className="text-sm">
                     <LogOut className="mr-2 h-4 w-4" />

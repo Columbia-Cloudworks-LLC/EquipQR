@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -74,6 +74,15 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         throw orgError;
       }
 
+      // Get user's personal organization ID
+      const { data: personalOrgData } = await supabase
+        .from('personal_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      const personalOrgId = personalOrgData?.organization_id || null;
+
       // Combine data
       const orgs: SimpleOrganization[] = (orgData || []).map(org => {
         const membership = membershipData.find(m => m.organization_id === org.id);
@@ -88,8 +97,10 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
           nextBillingDate: org.next_billing_date || undefined,
           logo: org.logo || undefined,
           backgroundColor: org.background_color || undefined,
+          scanLocationCollectionEnabled: org.scan_location_collection_enabled ?? true,
           userRole: membership?.role as 'owner' | 'admin' | 'member' || 'member',
-          userStatus: membership?.status as 'active' | 'pending' | 'inactive' || 'active'
+          userStatus: membership?.status as 'active' | 'pending' | 'inactive' || 'active',
+          isPersonal: org.id === personalOrgId
         };
       });
 
@@ -101,12 +112,22 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     retry: 3,
   });
 
-  // Helper function to prioritize organizations by user role
+  // Helper function to prioritize organizations
+  // Prioritizes non-personal (workspace) orgs first, then by role (owner > admin > member)
   const getPrioritizedOrganization = useCallback((orgs: SimpleOrganization[]): string => {
     if (orgs.length === 0) return '';
     
-    // Sort by role priority: owner > admin > member
+    // Sort: non-personal orgs first, then by role priority
     const prioritized = [...orgs].sort((a, b) => {
+      // Normalize isPersonal: treat only explicit true as personal, everything else as non-personal
+      const aIsPersonal = a.isPersonal === true;
+      const bIsPersonal = b.isPersonal === true;
+
+      // Non-personal orgs first (workspace orgs)
+      if (aIsPersonal !== bIsPersonal) {
+        return aIsPersonal ? 1 : -1;
+      }
+      // Then by role: owner > admin > member
       const roleWeight = { owner: 3, admin: 2, member: 1 };
       return (roleWeight[b.userRole] || 0) - (roleWeight[a.userRole] || 0);
     });
@@ -183,14 +204,13 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     syncWithSession();
   }, [syncWithSession]);
 
-  // Validate current organization exists in user's organizations
+  // Validate current organization exists in user's organizations and reset if not
   useEffect(() => {
     if (currentOrganizationId && organizations.length > 0) {
       const orgExists = organizations.some(org => org.id === currentOrganizationId);
       if (!orgExists) {
         logger.warn('SimpleOrganizationProvider: Current organization not found in user organizations, resetting');
         const prioritizedOrgId = getPrioritizedOrganization(organizations);
-        // Resetting to prioritized organization
         setCurrentOrganizationId(prioritizedOrgId);
         try {
           localStorage.setItem(CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
@@ -202,7 +222,6 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   }, [currentOrganizationId, organizations, getPrioritizedOrganization]);
 
   const setCurrentOrganization = useCallback((organizationId: string) => {
-    // Setting current organization
     setCurrentOrganizationId(organizationId);
     try {
       localStorage.setItem(CURRENT_ORG_STORAGE_KEY, organizationId);
@@ -212,7 +231,6 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   }, []);
 
   const switchOrganization = useCallback((organizationId: string) => {
-    // Switch organization called
     setCurrentOrganization(organizationId);
     // Also update session context to keep them synchronized
     if (sessionContext?.switchOrganization) {
@@ -220,9 +238,14 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     }
   }, [setCurrentOrganization, sessionContext]);
 
-  const currentOrganization = currentOrganizationId 
-    ? organizations.find(org => org.id === currentOrganizationId) || null
-    : null;
+  // Derive currentOrganization from currentOrganizationId + organizations
+  // instead of storing it in separate state (avoids extra renders and state drift)
+  const currentOrganization = useMemo(
+    () => currentOrganizationId
+      ? organizations.find(org => org.id === currentOrganizationId) ?? null
+      : null,
+    [currentOrganizationId, organizations]
+  );
 
   // Monitor state changes for debugging (removed excessive logging)
 

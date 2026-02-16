@@ -20,20 +20,21 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div className={cn(
       'flex flex-col items-center justify-center py-12 px-4 text-center',
+      'gradient-radial-primary rounded-lg animate-empty-state-in',
       className
     )}>
       {Icon && (
-        <div className="mb-4 rounded-full bg-muted p-3">
-          <Icon className="h-6 w-6 text-muted-foreground" />
+        <div className="mb-4 rounded-full bg-primary/10 p-4 shadow-primary">
+          <Icon className="h-8 w-8 text-primary" />
         </div>
       )}
       
-      <h3 className="text-lg font-semibold text-foreground mb-2">
+      <h3 className="font-display text-xl font-semibold text-foreground mb-2">
         {title}
       </h3>
       
       {description && (
-        <p className="text-muted-foreground mb-6 max-w-sm">
+        <p className="text-muted-foreground mb-6 max-w-sm leading-relaxed">
           {description}
         </p>
       )}

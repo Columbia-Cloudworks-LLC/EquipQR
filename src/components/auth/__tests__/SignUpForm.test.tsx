@@ -56,6 +56,47 @@ vi.mock('@/components/ui/HCaptcha', () => ({
 
 const mockSignUp = vi.mocked(supabase.auth.signUp);
 
+// Helper to fill form fields quickly using fireEvent.change (much faster than userEvent.type)
+interface FormData {
+  name?: string;
+  email?: string;
+  organization?: string;
+  password?: string;
+  confirmPassword?: string;
+  verifyCaptcha?: boolean;
+}
+
+const fillFormFast = (overrides: FormData = {}) => {
+  const defaults: FormData = {
+    name: 'John Doe',
+    email: 'john@example.com',
+    organization: 'Test Org',
+    password: 'password123',
+    confirmPassword: 'password123',
+    verifyCaptcha: true,
+  };
+  const data = { ...defaults, ...overrides };
+
+  if (data.name !== undefined) {
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: data.name } });
+  }
+  if (data.email !== undefined) {
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: data.email } });
+  }
+  if (data.organization !== undefined) {
+    fireEvent.change(screen.getByLabelText(/organization name/i), { target: { value: data.organization } });
+  }
+  if (data.password !== undefined) {
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: data.password } });
+  }
+  if (data.confirmPassword !== undefined) {
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: data.confirmPassword } });
+  }
+  if (data.verifyCaptcha) {
+    fireEvent.click(screen.getByTestId('hcaptcha-success'));
+  }
+};
+
 describe('SignUpForm', () => {
   const defaultProps = {
     onSuccess: vi.fn(),
@@ -110,32 +151,30 @@ describe('SignUpForm', () => {
   });
 
   describe('Input Handling', () => {
-    it('should update form data when inputs change', async () => {
-      const user = userEvent.setup();
+    it('should update form data when inputs change', () => {
       render(<SignUpForm {...defaultProps} />);
       
       const nameInput = screen.getByLabelText(/full name/i);
       const emailInput = screen.getByLabelText(/email/i);
       const orgInput = screen.getByLabelText(/organization name/i);
       
-      await user.type(nameInput, 'John Doe');
-      await user.type(emailInput, 'john@example.com');
-      await user.type(orgInput, 'Test Organization');
+      fireEvent.change(nameInput, { target: { value: 'John Doe' } });
+      fireEvent.change(emailInput, { target: { value: 'john@example.com' } });
+      fireEvent.change(orgInput, { target: { value: 'Test Organization' } });
       
       expect(nameInput).toHaveValue('John Doe');
       expect(emailInput).toHaveValue('john@example.com');
       expect(orgInput).toHaveValue('Test Organization');
     });
 
-    it('should handle password input changes', async () => {
-      const user = userEvent.setup();
+    it('should handle password input changes', () => {
       render(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
       const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
       
-      await user.type(passwordInput, 'password123');
-      await user.type(confirmPasswordInput, 'password123');
+      fireEvent.change(passwordInput, { target: { value: 'password123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'password123' } });
       
       expect(passwordInput).toHaveValue('password123');
       expect(confirmPasswordInput).toHaveValue('password123');
@@ -143,8 +182,11 @@ describe('SignUpForm', () => {
   });
 
   describe('Password Validation', () => {
+    // These tests need userEvent.type() to test real-time validation as user types
+    // Using delay: null removes inter-keystroke delays for faster execution
+    
     it('should show password length validation error', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
@@ -154,7 +196,7 @@ describe('SignUpForm', () => {
     });
 
     it('should not show password length error for valid password', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
@@ -164,7 +206,7 @@ describe('SignUpForm', () => {
     });
 
     it('should show password match validation in real-time', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
@@ -178,7 +220,7 @@ describe('SignUpForm', () => {
     });
 
     it('should show success icon when passwords match', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
@@ -192,7 +234,7 @@ describe('SignUpForm', () => {
     });
 
     it('should validate password match when changing password field', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
@@ -207,7 +249,7 @@ describe('SignUpForm', () => {
     });
 
     it('should clear password match indicator when confirm password is empty', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
@@ -232,78 +274,52 @@ describe('SignUpForm', () => {
       expect(submitButton).toBeDisabled();
     });
 
-    it('should enable submit button when form is valid', async () => {
-      const user = userEvent.setup();
+    it('should enable submit button when form is valid', () => {
       render(<SignUpForm {...defaultProps} />);
       
-      // Fill all required fields
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Org');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      
-      // Verify captcha
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill all required fields using fast helper
+      fillFormFast();
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeEnabled();
     });
 
-    it('should require all fields to be valid', async () => {
-      const user = userEvent.setup();
+    it('should require all fields to be valid', () => {
       render(<SignUpForm {...defaultProps} />);
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       
-      // Fill some fields but not all
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      // Missing organization name, password, confirm password, and captcha
+      // Fill some fields but not all (missing org, password, confirm password, captcha)
+      fillFormFast({ organization: '', password: '', confirmPassword: '', verifyCaptcha: false });
       
       expect(submitButton).toBeDisabled();
     });
 
-    it('should require password to be at least 6 characters', async () => {
-      const user = userEvent.setup();
+    it('should require password to be at least 6 characters', () => {
       render(<SignUpForm {...defaultProps} />);
       
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Org');
-      await user.type(screen.getByLabelText('Password'), '123'); // Too short
-      await user.type(screen.getByLabelText(/confirm password/i), '123');
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill form with short password
+      fillFormFast({ password: '123', confirmPassword: '123' });
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeDisabled();
     });
 
-    it('should require passwords to match', async () => {
-      const user = userEvent.setup();
+    it('should require passwords to match', () => {
       render(<SignUpForm {...defaultProps} />);
       
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Org');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'different');
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill form with mismatched passwords
+      fillFormFast({ confirmPassword: 'different' });
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeDisabled();
     });
 
-    it('should require captcha verification', async () => {
-      const user = userEvent.setup();
+    it('should require captcha verification', () => {
       render(<SignUpForm {...defaultProps} />);
       
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Org');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      // Don't verify captcha
+      // Fill form but don't verify captcha
+      fillFormFast({ verifyCaptcha: false });
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeDisabled();
@@ -311,40 +327,30 @@ describe('SignUpForm', () => {
   });
 
   describe('HCaptcha Integration', () => {
-    it('should enable form submission after captcha verification', async () => {
-      const user = userEvent.setup();
+    it('should enable form submission after captcha verification', () => {
       render(<SignUpForm {...defaultProps} />);
       
-      // Fill form
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Org');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      
-      // Verify captcha
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill form using fast helper
+      fillFormFast();
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeEnabled();
     });
 
-    it('should handle captcha error', async () => {
-      const user = userEvent.setup();
+    it('should handle captcha error', () => {
       const onError = vi.fn();
       render(<SignUpForm {...defaultProps} onError={onError} />);
       
-      await user.click(screen.getByTestId('hcaptcha-error'));
+      fireEvent.click(screen.getByTestId('hcaptcha-error'));
       
       expect(onError).toHaveBeenCalledWith('CAPTCHA verification failed. Please try again.');
     });
 
-    it('should handle captcha expiration', async () => {
-      const user = userEvent.setup();
+    it('should handle captcha expiration', () => {
       const onError = vi.fn();
       render(<SignUpForm {...defaultProps} onError={onError} />);
       
-      await user.click(screen.getByTestId('hcaptcha-expire'));
+      fireEvent.click(screen.getByTestId('hcaptcha-expire'));
       
       expect(onError).toHaveBeenCalledWith('CAPTCHA expired. Please complete it again.');
     });
@@ -352,20 +358,14 @@ describe('SignUpForm', () => {
 
   describe('Form Submission', () => {
     it('should submit form with correct data', async () => {
-      const user = userEvent.setup();
       const onSuccess = vi.fn();
       render(<SignUpForm {...defaultProps} onSuccess={onSuccess} />);
       
-      // Fill form
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Organization');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill form with specific values for assertion
+      fillFormFast({ organization: 'Test Organization' });
       
       // Submit form
-      await user.click(screen.getByRole('button', { name: /create account & organization/i }));
+      fireEvent.click(screen.getByRole('button', { name: /create account & organization/i }));
       
       await waitFor(() => {
         expect(mockSignUp).toHaveBeenCalledWith({
@@ -406,7 +406,6 @@ describe('SignUpForm', () => {
     });
 
     it('should handle Supabase signup error', async () => {
-      const user = userEvent.setup();
       const onError = vi.fn();
       const setIsLoading = vi.fn();
       
@@ -422,16 +421,11 @@ describe('SignUpForm', () => {
       
       render(<SignUpForm {...defaultProps} onError={onError} setIsLoading={setIsLoading} />);
       
-      // Fill form
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Org');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill form using fast helper
+      fillFormFast();
       
       // Submit form
-      await user.click(screen.getByRole('button', { name: /create account & organization/i }));
+      fireEvent.click(screen.getByRole('button', { name: /create account & organization/i }));
       
       await waitFor(() => {
         expect(onError).toHaveBeenCalledWith('Email already registered');
@@ -440,7 +434,6 @@ describe('SignUpForm', () => {
     });
 
     it('should handle unexpected errors', async () => {
-      const user = userEvent.setup();
       const onError = vi.fn();
       const setIsLoading = vi.fn();
       
@@ -448,16 +441,11 @@ describe('SignUpForm', () => {
       
       render(<SignUpForm {...defaultProps} onError={onError} setIsLoading={setIsLoading} />);
       
-      // Fill form
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Org');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill form using fast helper
+      fillFormFast();
       
       // Submit form
-      await user.click(screen.getByRole('button', { name: /create account & organization/i }));
+      fireEvent.click(screen.getByRole('button', { name: /create account & organization/i }));
       
       await waitFor(() => {
         expect(onError).toHaveBeenCalledWith('Network error');
@@ -466,28 +454,18 @@ describe('SignUpForm', () => {
     });
 
     it('should manage loading state during submission', async () => {
-      const user = userEvent.setup();
       const setIsLoading = vi.fn();
       
-      // Mock signUp with delay to test loading state
-      mockSignUp.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve({ error: null, data: { user: null, session: null } }), 50)
-        )
-      );
+      // Use instant resolution instead of setTimeout
+      mockSignUp.mockResolvedValue({ error: null, data: { user: null, session: null } });
       
       render(<SignUpForm {...defaultProps} setIsLoading={setIsLoading} />);
       
-      // Fill form
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Org');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill form using fast helper
+      fillFormFast();
       
       // Submit form
-      await user.click(screen.getByRole('button', { name: /create account & organization/i }));
+      fireEvent.click(screen.getByRole('button', { name: /create account & organization/i }));
       
       expect(setIsLoading).toHaveBeenCalledWith(true);
       
@@ -497,8 +475,6 @@ describe('SignUpForm', () => {
     });
 
     it('should reset captcha token on error', async () => {
-      const user = userEvent.setup();
-      
       mockSignUp.mockResolvedValue({ 
         error: {
           message: 'Signup failed',
@@ -511,19 +487,14 @@ describe('SignUpForm', () => {
       
       render(<SignUpForm {...defaultProps} />);
       
-      // Fill form and verify captcha
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Org');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill form using fast helper
+      fillFormFast();
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeEnabled();
       
       // Submit form (will fail)
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
       
       await waitFor(() => {
         // Form should be disabled again because captcha token was reset
@@ -547,14 +518,15 @@ describe('SignUpForm', () => {
     });
 
     it('should prevent multiple rapid submissions', async () => {
-      const user = userEvent.setup();
       const setIsLoading = vi.fn();
+      type SignUpResolution = { error: null; data: { user: null; session: null } };
+      let resolveSignUp!: (value: SignUpResolution) => void;
       
-      // Mock signUp with delay to simulate real network conditions
+      // Mock signUp with a controlled promise that doesn't resolve immediately
       mockSignUp.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve({ error: null, data: { user: null, session: null } }), 50)
-        )
+        new Promise(resolve => {
+          resolveSignUp = resolve;
+        })
       );
       
       const TestWrapper = () => {
@@ -574,37 +546,35 @@ describe('SignUpForm', () => {
       
       render(<TestWrapper />);
       
-      // Fill form
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Org');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill form using fast helper
+      fillFormFast();
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       
-      // Fire first click and immediately fire additional rapid clicks
-      await user.click(submitButton);
-      
-      // Fire additional rapid clicks while first submission is processing
-      user.click(submitButton); // Don't await - fire immediately
-      user.click(submitButton); // Don't await - fire immediately
+      // Fire first click - this starts the submission
+      fireEvent.click(submitButton);
       
       // Wait for the button to be disabled (loading state active)
       await waitFor(() => {
         expect(submitButton).toBeDisabled();
       });
-
-      // Should only be called once due to loading state protection
-      await waitFor(() => {
-        expect(mockSignUp).toHaveBeenCalledTimes(1);
-      });
+      
+      // Now attempt additional clicks while button is disabled
+      // These should NOT trigger additional submissions
+      fireEvent.click(submitButton);
+      fireEvent.click(submitButton);
+      fireEvent.click(submitButton);
+      
+      // Verify only ONE call was made despite multiple click attempts
+      expect(mockSignUp).toHaveBeenCalledTimes(1);
+      
+      // Resolve the promise to clean up
+      resolveSignUp({ error: null, data: { user: null, session: null } });
     });
   });
 
   describe('Edge Cases', () => {
-    it('should handle very long input values', async () => {
+    it('should handle very long input values', () => {
       render(<SignUpForm {...defaultProps} />);
       
       const longString = 'a'.repeat(200);
@@ -614,7 +584,7 @@ describe('SignUpForm', () => {
       expect(nameInput).toHaveValue(longString);
     });
 
-    it('should handle special characters in organization name', async () => {
+    it('should handle special characters in organization name', () => {
       render(<SignUpForm {...defaultProps} />);
       
       const orgInput = screen.getByLabelText(/organization name/i);
@@ -625,21 +595,15 @@ describe('SignUpForm', () => {
     });
 
     it('should handle non-Error exceptions', async () => {
-      const user = userEvent.setup();
       const onError = vi.fn();
       
       mockSignUp.mockRejectedValue('String error');
       
       render(<SignUpForm {...defaultProps} onError={onError} />);
       
-      // Fill and submit form
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Test Org');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      await user.click(screen.getByTestId('hcaptcha-success'));
-      await user.click(screen.getByRole('button', { name: /create account & organization/i }));
+      // Fill and submit form using fast helper
+      fillFormFast();
+      fireEvent.click(screen.getByRole('button', { name: /create account & organization/i }));
       
       await waitFor(() => {
         expect(onError).toHaveBeenCalledWith('An error occurred during sign up');
@@ -659,7 +623,8 @@ describe('SignUpForm', () => {
     });
 
     it('should support keyboard navigation', async () => {
-      const user = userEvent.setup();
+      // Keep userEvent for keyboard navigation testing, but use delay: null
+      const user = userEvent.setup({ delay: null });
       render(<SignUpForm {...defaultProps} />);
       
       // Tab through form fields
@@ -717,8 +682,7 @@ describe('SignUpForm', () => {
       });
     });
 
-    it('should not update email if prefillEmail matches current email', async () => {
-      const user = userEvent.setup();
+    it('should not update email if prefillEmail matches current email', () => {
       render(
         <SignUpForm 
           {...defaultProps} 
@@ -729,9 +693,9 @@ describe('SignUpForm', () => {
       const emailInput = screen.getByLabelText(/email/i);
       expect(emailInput).toHaveValue('test@example.com');
       
-      // User changes email manually
-      await user.clear(emailInput);
-      await user.type(emailInput, 'manual@example.com');
+      // User changes email manually using fireEvent
+      fireEvent.change(emailInput, { target: { value: '' } });
+      fireEvent.change(emailInput, { target: { value: 'manual@example.com' } });
       
       // Set prefillEmail back to test@example.com - should not update since different
       // Then set it to manual@example.com - should not trigger update since it matches
@@ -844,7 +808,6 @@ describe('SignUpForm', () => {
     });
 
     it('should show error when organization name matches invited org name', async () => {
-      const user = userEvent.setup();
       render(
         <SignUpForm 
           {...defaultProps} 
@@ -853,7 +816,7 @@ describe('SignUpForm', () => {
       );
       
       const orgInput = screen.getByLabelText(/organization name/i);
-      await user.type(orgInput, 'Acme Corporation');
+      fireEvent.change(orgInput, { target: { value: 'Acme Corporation' } });
       
       await waitFor(() => {
         expect(screen.getByText(/Please choose a different name than "Acme Corporation"/i)).toBeInTheDocument();
@@ -861,7 +824,6 @@ describe('SignUpForm', () => {
     });
 
     it('should show error for case-insensitive match', async () => {
-      const user = userEvent.setup();
       render(
         <SignUpForm 
           {...defaultProps} 
@@ -870,7 +832,7 @@ describe('SignUpForm', () => {
       );
       
       const orgInput = screen.getByLabelText(/organization name/i);
-      await user.type(orgInput, 'acme corporation');
+      fireEvent.change(orgInput, { target: { value: 'acme corporation' } });
       
       await waitFor(() => {
         const errorElement = document.getElementById('signup-org-error');
@@ -879,8 +841,7 @@ describe('SignUpForm', () => {
       });
     });
 
-    it('should disable submit button when org name matches invited org', async () => {
-      const user = userEvent.setup();
+    it('should disable submit button when org name matches invited org', () => {
       render(
         <SignUpForm 
           {...defaultProps} 
@@ -888,20 +849,14 @@ describe('SignUpForm', () => {
         />
       );
       
-      // Fill all fields
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'Acme Corporation');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill all fields with matching org name
+      fillFormFast({ organization: 'Acme Corporation' });
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeDisabled();
     });
 
-    it('should enable submit when org name is different from invited org', async () => {
-      const user = userEvent.setup();
+    it('should enable submit when org name is different from invited org', () => {
       render(
         <SignUpForm 
           {...defaultProps} 
@@ -910,19 +865,13 @@ describe('SignUpForm', () => {
       );
       
       // Fill all fields with different org name
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'My Company');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      fillFormFast({ organization: 'My Company' });
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeEnabled();
     });
 
     it('should include invitation metadata in signUp call', async () => {
-      const user = userEvent.setup();
       render(
         <SignUpForm 
           {...defaultProps} 
@@ -931,16 +880,11 @@ describe('SignUpForm', () => {
         />
       );
       
-      // Fill all fields
-      await user.type(screen.getByLabelText(/full name/i), 'John Doe');
-      await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-      await user.type(screen.getByLabelText(/organization name/i), 'My Company');
-      await user.type(screen.getByLabelText('Password'), 'password123');
-      await user.type(screen.getByLabelText(/confirm password/i), 'password123');
-      await user.click(screen.getByTestId('hcaptcha-success'));
+      // Fill all fields using fast helper
+      fillFormFast({ organization: 'My Company' });
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
       
       await waitFor(() => {
         expect(mockSignUp).toHaveBeenCalledWith({

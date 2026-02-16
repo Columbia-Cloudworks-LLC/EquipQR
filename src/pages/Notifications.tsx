@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bell, Check, Search, Filter, Calendar, Eye } from 'lucide-react';
+import { Bell, Check, Search, Filter, Calendar, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -13,11 +13,11 @@ import {
   useNotificationSubscription,
   useMarkAllNotificationsAsRead
 } from '@/hooks/useNotificationSettings';
-import { useMarkNotificationAsRead, type Notification } from '@/hooks/useWorkOrderData';
+import { useMarkNotificationAsRead, type Notification } from '@/features/work-orders/hooks/useWorkOrderData';
 import { logger } from '@/utils/logger';
 
 const Notifications: React.FC = () => {
-  const { organizationId } = useOrganization();
+  const { organizationId, switchOrganization } = useOrganization();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -57,9 +57,23 @@ const Notifications: React.FC = () => {
       }
     }
 
-    // Navigate to work order if available
+    // Handle ownership transfer and workspace merge notifications - switch to target org and navigate
+    if (notification.type.startsWith('ownership_transfer') || notification.type.startsWith('workspace_merge')) {
+      const targetOrgId = notification.data?.organization_id || notification.data?.workspace_org_id;
+      if (targetOrgId && targetOrgId !== organizationId) {
+        // Switch to the organization first, then navigate to settings
+        await switchOrganization(targetOrgId);
+      }
+      navigate('/dashboard/organization');
+      return;
+    }
+
+    // Navigate based on notification type
     if (notification.data?.work_order_id) {
       navigate(`/dashboard/work-orders/${notification.data.work_order_id}`);
+    } else if (notification.type === 'member_removed') {
+      // Navigate to dashboard if removed from org
+      navigate('/dashboard');
     }
   };
 
@@ -89,6 +103,23 @@ const Notifications: React.FC = () => {
         return '🎉';
       case 'work_order_cancelled':
         return '❌';
+      // Ownership transfer notifications
+      case 'ownership_transfer_request':
+        return '🔄';
+      case 'ownership_transfer_accepted':
+        return '👑';
+      case 'ownership_transfer_rejected':
+        return '🚫';
+      case 'ownership_transfer_cancelled':
+        return '↩️';
+      case 'workspace_merge_request':
+        return '🧩';
+      case 'workspace_merge_accepted':
+        return '✅';
+      case 'workspace_merge_rejected':
+        return '🚫';
+      case 'member_removed':
+        return '👋';
       default:
         return '📢';
     }
@@ -110,6 +141,23 @@ const Notifications: React.FC = () => {
         return 'Completed';
       case 'work_order_cancelled':
         return 'Cancelled';
+      // Ownership transfer notifications
+      case 'ownership_transfer_request':
+        return 'Transfer Request';
+      case 'ownership_transfer_accepted':
+        return 'Transfer Accepted';
+      case 'ownership_transfer_rejected':
+        return 'Transfer Declined';
+      case 'ownership_transfer_cancelled':
+        return 'Transfer Cancelled';
+      case 'workspace_merge_request':
+        return 'Merge Request';
+      case 'workspace_merge_accepted':
+        return 'Merge Accepted';
+      case 'workspace_merge_rejected':
+        return 'Merge Declined';
+      case 'member_removed':
+        return 'Member Removed';
       default:
         return 'General';
     }
@@ -192,6 +240,12 @@ const Notifications: React.FC = () => {
                 <SelectItem value="work_order_on_hold">On Hold</SelectItem>
                 <SelectItem value="work_order_completed">Completed</SelectItem>
                 <SelectItem value="work_order_cancelled">Cancelled</SelectItem>
+                <SelectItem value="ownership_transfer_request">Transfer Request</SelectItem>
+                <SelectItem value="ownership_transfer_accepted">Transfer Accepted</SelectItem>
+                <SelectItem value="ownership_transfer_rejected">Transfer Declined</SelectItem>
+                <SelectItem value="workspace_merge_request">Merge Request</SelectItem>
+                <SelectItem value="workspace_merge_accepted">Merge Accepted</SelectItem>
+                <SelectItem value="workspace_merge_rejected">Merge Declined</SelectItem>
               </SelectContent>
             </Select>
 
@@ -232,13 +286,21 @@ const Notifications: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredNotifications.map((notification) => (
+              {filteredNotifications.map((notification) => {
+                const isTransferRequest = notification.type === 'ownership_transfer_request' || notification.type === 'workspace_merge_request';
+                const isOwnershipTransferRequest = notification.type === 'ownership_transfer_request';
+                const isWorkspaceMergeRequest = notification.type === 'workspace_merge_request';
+                const isActionRequired = isTransferRequest && !notification.read;
+                
+                return (
                 <div
                   key={notification.id}
                   className={`p-4 rounded-lg border transition-colors cursor-pointer hover:bg-muted/50 ${
-                    notification.read 
-                      ? 'bg-background opacity-75' 
-                      : 'bg-muted/30 border-primary/20'
+                    isActionRequired
+                      ? 'bg-primary/5 border-primary/40 border-l-4'
+                      : notification.read 
+                        ? 'bg-background opacity-75' 
+                        : 'bg-muted/30 border-primary/20'
                   }`}
                   onClick={() => handleNotificationClick(notification)}
                 >
@@ -275,18 +337,26 @@ const Notifications: React.FC = () => {
                         {notification.message}
                       </p>
                       
-                      {notification.data?.work_order_id && (
+                      {(notification.data?.work_order_id || notification.type.startsWith('ownership_transfer') || notification.type.startsWith('workspace_merge')) && (
                         <div className="flex items-center gap-2 mt-3">
-                          <Eye className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            Click to view work order
+                          <ArrowRight className="h-3 w-3 text-primary" />
+                          <span className="text-xs text-primary font-medium">
+                            {isOwnershipTransferRequest
+                              ? 'Click to respond to transfer request'
+                              : isWorkspaceMergeRequest
+                                ? 'Click to respond to merge request'
+                              : notification.data?.work_order_id 
+                                ? 'Click to view work order'
+                                : 'Click to view organization'
+                            }
                           </span>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

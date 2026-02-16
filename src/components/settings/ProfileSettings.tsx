@@ -5,10 +5,13 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useAppToast } from '@/hooks/useAppToast';
+import SingleImageUpload from '@/components/common/SingleImageUpload';
+import { uploadAvatar, deleteAvatar } from '@/services/profileService';
 
 const ProfileSettings = () => {
   const { currentUser, setCurrentUser } = useUser();
+  const appToast = useAppToast();
   const [name, setName] = useState(currentUser?.name || '');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,13 +33,25 @@ const ProfileSettings = () => {
         name
       });
 
-      toast.success('Profile updated successfully');
+      appToast.success({ description: 'Profile updated successfully' });
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      appToast.error({ description: 'Failed to update profile' });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!currentUser) return;
+    const publicUrl = await uploadAvatar(currentUser.id, file);
+    setCurrentUser({ ...currentUser, avatar_url: publicUrl });
+  };
+
+  const handleAvatarDelete = async () => {
+    if (!currentUser?.avatar_url) return;
+    await deleteAvatar(currentUser.id, currentUser.avatar_url);
+    setCurrentUser({ ...currentUser, avatar_url: null });
   };
 
   if (!currentUser) return null;
@@ -46,10 +61,21 @@ const ProfileSettings = () => {
       <CardHeader>
         <CardTitle>Profile Information</CardTitle>
         <CardDescription>
-          Update your display name and other profile details.
+          Update your display name, avatar, and other profile details.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <SingleImageUpload
+          currentImageUrl={currentUser.avatar_url}
+          onUpload={handleAvatarUpload}
+          onDelete={handleAvatarDelete}
+          maxSizeMB={5}
+          disabled={isLoading}
+          label="Profile Avatar"
+          helpText="Upload a profile photo. It will be displayed next to your name."
+          previewClassName="w-24 h-24 rounded-full object-cover"
+        />
+
         <div className="space-y-2">
           <Label htmlFor="name">Display Name</Label>
           <Input

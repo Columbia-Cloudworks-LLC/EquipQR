@@ -1,0 +1,11 @@
+---
+description: "Testing Standards"
+globs: "**/*.test.{ts,tsx}"
+---
+# Testing
+
+- **Framework:** Vitest + React Testing Library.
+- **Location:** Co-locate tests with source files (e.g., `Feature.tsx` -> `Feature.test.tsx`).
+- **Philosophy:** Test behavior, not implementation details.
+- **Mocking:** Mock Supabase client calls and Service layer functions. Do not mock internal component state logic if possible.
+- **Selectors:** Use accessible selectors (`getByRole`, `getByLabelText`) over `getByTestId` when possible.

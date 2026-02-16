@@ -1,0 +1,17 @@
+---
+description: "Architectural Patterns & Data Flow"
+globs: "**/*.{ts,tsx}"
+---
+# Architecture
+
+## Data Fetching
+- **Read Operations:** Use custom hooks wrapping `useQuery`. Define keys in `src/lib/queryKeys.ts` (if available) or a dedicated factory.
+- **Write Operations:** Use custom hooks wrapping `useMutation`. Always invalidate relevant query keys upon success.
+
+## Service Layer
+- **Supabase Interaction:** UI components MUST NOT call `supabase` directly.
+- **Service Files:** Create service functions in `src/features/<feature>/services/` (e.g., `workOrderService.ts`) that return typed promises.
+
+## State
+- Prefer **Server State** (React Query) over **Global State** (Context/Redux).
+- Use Context only for truly global app data (Auth, Theme, Toast).

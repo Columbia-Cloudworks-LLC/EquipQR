@@ -1,10 +1,13 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import Teams from '../Teams';
-import type { Team } from '@/hooks/useTeams';
+import userEvent from '@testing-library/user-event';
+import Teams from '@/features/teams/pages/Teams';
+import { personas } from '@/test/fixtures/personas';
+import { teams as teamFixtures, organizations } from '@/test/fixtures/entities';
+import type { Team } from '@/features/teams/hooks/useTeams';
 
-vi.mock('@/components/teams/CreateTeamDialog', () => ({
+vi.mock('@/features/teams/components/CreateTeamDialog', () => ({
   default: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
     open ? (
       <div data-testid="team-form-modal">
@@ -19,7 +22,7 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock('@/hooks/useTeams', () => ({
+vi.mock('@/features/teams/hooks/useTeams', () => ({
   useTeams: vi.fn()
 }));
 
@@ -31,7 +34,7 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn()
 }));
 
-import { useTeams } from '@/hooks/useTeams';
+import { useTeams } from '@/features/teams/hooks/useTeams';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 
@@ -39,39 +42,64 @@ const mockUseTeams = vi.mocked(useTeams);
 const mockUsePermissions = vi.mocked(usePermissions);
 const mockUseSimpleOrganization = vi.mocked(useSimpleOrganization);
 
-const mockTeam: Team = {
-  id: 'team-1',
-  name: 'Engineering Team',
-  description: 'Dev team',
-  organization_id: 'org-1',
-  created_at: '',
-  updated_at: '',
+// Realistic team based on entity fixtures
+const maintenanceTeam: Team = {
+  id: teamFixtures.maintenance.id,
+  name: teamFixtures.maintenance.name,
+  description: teamFixtures.maintenance.description,
+  organization_id: teamFixtures.maintenance.organization_id,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
   members: [
     {
-      id: 'member-1',
-      user_id: 'user-1',
-      team_id: 'team-1',
+      id: 'membership-1',
+      user_id: personas.teamManager.id,
+      team_id: teamFixtures.maintenance.id,
       role: 'manager',
-      joined_date: '',
-      profiles: { id: 'user-1', name: 'John Doe', email: 'john@example.com' }
+      joined_date: '2024-01-01T00:00:00Z',
+      profiles: { id: personas.teamManager.id, name: personas.teamManager.name, email: personas.teamManager.email }
+    },
+    {
+      id: 'membership-2',
+      user_id: personas.technician.id,
+      team_id: teamFixtures.maintenance.id,
+      role: 'technician',
+      joined_date: '2024-01-01T00:00:00Z',
+      profiles: { id: personas.technician.id, name: personas.technician.name, email: personas.technician.email }
     }
   ],
-  member_count: 1
+  member_count: 2
 };
 
-const renderTeamsPage = () => render(<Teams />);
+const fieldTeam: Team = {
+  id: teamFixtures.field.id,
+  name: teamFixtures.field.name,
+  description: teamFixtures.field.description,
+  organization_id: teamFixtures.field.organization_id,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+  members: [],
+  member_count: 0
+};
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  mockUseSimpleOrganization.mockReturnValue({ 
-    currentOrganization: { 
-      id: 'org-1',
-      name: 'Test Organization',
-      plan: 'premium' as const,
-      memberCount: 1,
-      maxMembers: 5,
-      features: [],
-      userRole: 'owner' as const,
+// ============================================
+// Helpers
+// ============================================
+
+function setupAsPersona(persona: typeof personas.owner, options?: { canCreate?: boolean; teams?: Team[] }) {
+  const isAdmin = persona.organizationRole === 'owner' || persona.organizationRole === 'admin';
+  const canCreate = options?.canCreate ?? isAdmin;
+  const teams = options?.teams ?? [];
+
+  mockUseSimpleOrganization.mockReturnValue({
+    currentOrganization: {
+      id: organizations.acme.id,
+      name: organizations.acme.name,
+      plan: organizations.acme.plan as 'free' | 'professional' | 'enterprise',
+      memberCount: organizations.acme.memberCount,
+      maxMembers: organizations.acme.maxMembers,
+      features: organizations.acme.features,
+      userRole: persona.organizationRole as 'owner' | 'admin' | 'member',
       userStatus: 'active' as const
     },
     organizations: [],
@@ -82,61 +110,136 @@ beforeEach(() => {
     error: null,
     refetch: vi.fn().mockResolvedValue(undefined)
   });
-  mockUsePermissions.mockReturnValue({ 
-    canManageTeam: () => true,
+
+  mockUsePermissions.mockReturnValue({
+    canManageTeam: () => isAdmin,
     canViewTeam: () => true,
-    canCreateTeam: () => true,
-    canManageEquipment: () => true,
+    canCreateTeam: () => canCreate,
+    canManageEquipment: () => isAdmin,
     canViewEquipment: () => true,
-    canCreateEquipment: () => true,
-    canUpdateEquipmentStatus: () => true,
-    canManageWorkOrder: () => true,
+    canCreateEquipment: () => isAdmin,
+    canUpdateEquipmentStatus: () => isAdmin,
+    canManageWorkOrder: () => isAdmin,
     canViewWorkOrder: () => true,
     canCreateWorkOrder: () => true,
-    canAssignWorkOrder: () => true,
-    canChangeWorkOrderStatus: () => true,
-    canManageOrganization: () => true,
-    canInviteMembers: () => true,
-    isOrganizationAdmin: () => true,
-    hasRole: () => true,
-    isTeamMember: () => true,
-    isTeamManager: () => true
+    canAssignWorkOrder: () => isAdmin,
+    canChangeWorkOrderStatus: () => isAdmin,
+    canManageOrganization: () => persona.organizationRole === 'owner',
+    canInviteMembers: () => isAdmin,
+    isOrganizationAdmin: () => isAdmin,
+    hasRole: () => isAdmin,
+    isTeamMember: () => persona.teamMemberships.length > 0,
+    isTeamManager: () => persona.teamMemberships.some(tm => tm.role === 'manager')
   });
-  mockUseTeams.mockReturnValue({ teams: [], managedTeams: [], isLoading: false, error: null });
-});
+
+  mockUseTeams.mockReturnValue({ teams, managedTeams: isAdmin ? teams : [], isLoading: false, error: null });
+}
+
+// ============================================
+// Persona-Driven Tests
+// ============================================
 
 describe('Teams Page', () => {
-  it('shows loading state with skeleton cards', () => {
-    mockUseTeams.mockReturnValue({ teams: undefined, managedTeams: [], isLoading: true, error: null });
-    renderTeamsPage();
-    expect(screen.getByTestId('teams-loading')).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockNavigate.mockClear();
   });
 
-  it('displays empty state when no teams exist', () => {
-    renderTeamsPage();
-    expect(screen.getByText('No teams yet')).toBeInTheDocument();
+  // --------------------------------------------------------
+  // Alice Owner — full team management
+  // --------------------------------------------------------
+  describe('as Alice Owner managing all teams', () => {
+    beforeEach(() => {
+      setupAsPersona(personas.owner, { teams: [maintenanceTeam, fieldTeam] });
+    });
+
+    it('displays all organization teams', () => {
+      render(<Teams />);
+      expect(screen.getByText(teamFixtures.maintenance.name)).toBeInTheDocument();
+      expect(screen.getByText(teamFixtures.field.name)).toBeInTheDocument();
+    });
+
+    it('shows the "Create Team" button', () => {
+      render(<Teams />);
+      expect(screen.getByRole('button', { name: /create team/i })).toBeInTheDocument();
+    });
+
+    it('opens team creation dialog when button is clicked', () => {
+      render(<Teams />);
+      fireEvent.click(screen.getByRole('button', { name: /create team/i }));
+      expect(screen.getByTestId('team-form-modal')).toBeInTheDocument();
+    });
+
+    it('navigates to team details when a team card is clicked', async () => {
+      const user = userEvent.setup();
+      render(<Teams />);
+      await user.click(screen.getByText(teamFixtures.maintenance.name));
+      expect(mockNavigate).toHaveBeenCalledWith(`/dashboard/teams/${teamFixtures.maintenance.id}`);
+    });
+
+    it('renders team descriptions', () => {
+      render(<Teams />);
+      expect(screen.getByText(teamFixtures.maintenance.description)).toBeInTheDocument();
+    });
   });
 
-  it('renders team information when teams exist', () => {
-    mockUseTeams.mockReturnValue({ teams: [mockTeam], managedTeams: [], isLoading: false, error: null });
-    renderTeamsPage();
-    expect(screen.getByText('Engineering Team')).toBeInTheDocument();
-    expect(screen.getByText('Dev team')).toBeInTheDocument();
+  // --------------------------------------------------------
+  // Dave Technician — view-only, cannot create teams
+  // --------------------------------------------------------
+  describe('as Dave Technician viewing teams', () => {
+    beforeEach(() => {
+      setupAsPersona(personas.technician, { canCreate: false, teams: [maintenanceTeam] });
+    });
+
+    it('sees the team they belong to', () => {
+      render(<Teams />);
+      expect(screen.getByText(teamFixtures.maintenance.name)).toBeInTheDocument();
+    });
+
+    it('does NOT show the create team button', () => {
+      render(<Teams />);
+      expect(screen.queryByRole('button', { name: /create team/i })).not.toBeInTheDocument();
+    });
+
+    it('can navigate to team details', async () => {
+      const user = userEvent.setup();
+      render(<Teams />);
+      await user.click(screen.getByText(teamFixtures.maintenance.name));
+      expect(mockNavigate).toHaveBeenCalledWith(`/dashboard/teams/${teamFixtures.maintenance.id}`);
+    });
   });
 
-  it('opens team form modal when create button is clicked', () => {
-    renderTeamsPage();
-    const createButton = screen.getByRole('button', { name: /create team/i });
-    fireEvent.click(createButton);
-    expect(screen.getByTestId('team-form-modal')).toBeInTheDocument();
+  // --------------------------------------------------------
+  // Frank (read-only member) — no teams at all
+  // --------------------------------------------------------
+  describe('as Frank (read-only member with no teams)', () => {
+    beforeEach(() => {
+      setupAsPersona(personas.readOnlyMember, { canCreate: false, teams: [] });
+    });
+
+    it('shows the empty state', () => {
+      render(<Teams />);
+      expect(screen.getByText('No teams yet')).toBeInTheDocument();
+    });
+
+    it('does NOT show the create team button', () => {
+      render(<Teams />);
+      expect(screen.queryByRole('button', { name: /create team/i })).not.toBeInTheDocument();
+    });
   });
 
-  it('navigates to team details when manage team button is clicked', () => {
-    mockUseTeams.mockReturnValue({ teams: [mockTeam], managedTeams: [], isLoading: false, error: null });
-    renderTeamsPage();
-    const manageButton = screen.getByRole('button', { name: /manage team/i });
-    fireEvent.click(manageButton);
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/teams/team-1');
+  // --------------------------------------------------------
+  // Loading state
+  // --------------------------------------------------------
+  describe('while teams are loading', () => {
+    beforeEach(() => {
+      setupAsPersona(personas.owner);
+      mockUseTeams.mockReturnValue({ teams: undefined, managedTeams: [], isLoading: true, error: null });
+    });
+
+    it('shows loading skeleton cards', () => {
+      render(<Teams />);
+      expect(screen.getByTestId('teams-loading')).toBeInTheDocument();
+    });
   });
 });
-

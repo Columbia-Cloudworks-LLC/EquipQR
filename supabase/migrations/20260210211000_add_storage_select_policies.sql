@@ -1,0 +1,14 @@
+-- =============================================================================
+-- NO-OP: SELECT policies already created by 20260210210000_add_storage_object_policies
+--
+-- This migration originally attempted to add SELECT policies on storage.objects
+-- for all image upload buckets. However, the preceding migration
+-- (20260210210000_add_storage_object_policies.sql) already creates all 24
+-- policies including the 6 SELECT policies. Running this migration as-is would
+-- cause "policy already exists" errors.
+--
+-- Converted to no-op to prevent duplicate policy errors on environments where
+-- 20260210210000 was applied first.
+-- =============================================================================
+
+-- Intentionally empty — all SELECT policies exist via 20260210210000.

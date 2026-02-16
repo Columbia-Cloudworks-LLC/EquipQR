@@ -12,21 +12,21 @@ const CTASection = () => {
             Ready to Streamline Your Heavy Equipment Operations?
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join repair shops and rental operations using EquipQR™ to track equipment and manage maintenance. 
-            Completely free to use with unlimited team members.
+            Join repair shops and rental operations using EquipQR™ to track equipment, manage inventory and parts, and handle maintenance workflows. 
+            Built for teams of any size.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Button asChild size="lg" className="text-lg px-8 py-6">
-              <Link to="/auth">
-                Get Started Free
+              <Link to="/auth?tab=signup">
+                Get Started
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
           </div>
           
           <div className="text-sm text-muted-foreground space-y-2">
-            <p>✓ Completely free to use</p>
+            <p>✓ Enterprise-grade platform</p>
             <p>✓ Unlimited team members</p>
             <p>
               ✓ 5GB image storage included (

@@ -4,7 +4,7 @@ import {
   generateSectionsSummary, 
   templateToSummary,
   type PMTemplate 
-} from '../pmChecklistTemplatesService';
+} from '@/features/pm-templates/services/pmChecklistTemplatesService';
 
 // Create configurable mock return values
 interface SupabaseResponse<T> {

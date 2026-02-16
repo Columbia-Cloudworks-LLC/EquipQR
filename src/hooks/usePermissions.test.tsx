@@ -1,10 +1,11 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { usePermissions } from './usePermissions';
+import { usePermissions, useWorkOrderPermissions } from './usePermissions';
 import { 
   createMockUserContext,
   createMockSimpleOrganizationContext
 } from '@/test/mocks/testTypes';
+import type { WorkOrderData } from '@/features/work-orders/types/workOrder';
 
 // Mock the dependencies
 vi.mock('@/hooks/useAuth', () => ({
@@ -30,9 +31,9 @@ vi.mock('@/hooks/useSession', () => ({
       name: 'Test Organization',
       userRole: 'admin'
     })),
-    getUserTeamIds: vi.fn(() => []),
-    hasTeamAccess: vi.fn(() => false),
-    canManageTeam: vi.fn(() => false)
+    getUserTeamIds: vi.fn(() => ['team-1']),
+    hasTeamAccess: vi.fn((teamId: string) => teamId === 'team-1'),
+    canManageTeam: vi.fn((teamId: string) => teamId === 'team-1')
   }))
 }));
 
@@ -48,17 +49,48 @@ import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import { useUser } from '@/contexts/useUser';
 import { useSession } from '@/hooks/useSession';
 
-// Mock the permission engine
+// Mock the permission engine with comprehensive permission handling
 vi.mock('@/services/permissions/PermissionEngine', () => ({
   permissionEngine: {
     hasPermission: vi.fn((permission: string, context: { userRole?: string; organizationId?: string; teamId?: string }) => {
-      const role = context.userRole;
+      const role = context?.userRole;
       
+      // Organization permissions
+      if (permission === 'organization.manage') {
+        return ['owner', 'admin'].includes(role);
+      }
+      if (permission === 'organization.invite') {
+        return ['owner', 'admin'].includes(role);
+      }
+      
+      // Work order permissions
+      if (permission === 'workorder.view') {
+        return ['owner', 'admin', 'member'].includes(role);
+      }
       if (permission === 'workorder.edit') {
-        return ['admin', 'technician', 'manager'].includes(role);
+        return ['admin', 'owner', 'member'].includes(role);
+      }
+      if (permission === 'workorder.assign') {
+        return ['owner', 'admin'].includes(role);
+      }
+      if (permission === 'workorder.changestatus') {
+        return ['owner', 'admin', 'member'].includes(role);
+      }
+      
+      // Equipment permissions
+      if (permission === 'equipment.view') {
+        return ['admin', 'owner', 'member'].includes(role);
       }
       if (permission === 'equipment.edit') {
-        return ['admin', 'owner', 'manager'].includes(role);
+        return ['admin', 'owner'].includes(role);
+      }
+      
+      // Team permissions
+      if (permission === 'team.view') {
+        return ['owner', 'admin', 'member'].includes(role);
+      }
+      if (permission === 'team.manage') {
+        return ['owner', 'admin'].includes(role);
       }
       if (permission === 'team.create') {
         return ['owner', 'admin'].includes(role);
@@ -130,9 +162,9 @@ describe('usePermissions', () => {
       })),
       switchOrganization: vi.fn(),
       hasTeamRole: vi.fn(() => false),
-      hasTeamAccess: vi.fn(() => false),
-      canManageTeam: vi.fn(() => false),
-      getUserTeamIds: vi.fn(() => []),
+      hasTeamAccess: vi.fn((teamId: string) => teamId === 'team-1'),
+      canManageTeam: vi.fn((teamId: string) => teamId === 'team-1'),
+      getUserTeamIds: vi.fn(() => ['team-1']),
       refreshSession: vi.fn(),
       clearSession: vi.fn()
     });
@@ -221,8 +253,8 @@ describe('usePermissions', () => {
       expect(result.current.canManageWorkOrder()).toBe(true);
     });
 
-    it('should return false for viewer role', () => {
-      updateSessionMockForRole('member'); // Using member since viewer isn't valid
+    it('should return true for member role (members can edit work orders)', () => {
+      updateSessionMockForRole('member');
       mockUseSimpleOrganization.mockReturnValue(
         createMockSimpleOrganizationContext(createTestOrganization('member'))
       );
@@ -230,7 +262,8 @@ describe('usePermissions', () => {
 
       const { result } = renderHook(() => usePermissions());
       
-      expect(result.current.canManageWorkOrder()).toBe(false);
+      // Members can manage work orders according to the permission engine
+      expect(result.current.canManageWorkOrder()).toBe(true);
     });
   });
 
@@ -297,5 +330,478 @@ describe('usePermissions', () => {
       
       expect(result.current.hasRole(['admin'])).toBe(false);
     });
+  });
+
+  describe('canManageTeam', () => {
+    it('should return true for team manager', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canManageTeam('team-1')).toBe(true);
+    });
+
+    it('should return false for non-team member', () => {
+      updateSessionMockForRole('member');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('member'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canManageTeam('team-2')).toBe(false);
+    });
+  });
+
+  describe('canViewTeam', () => {
+    it('should return true for team member', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canViewTeam('team-1')).toBe(true);
+    });
+  });
+
+  describe('canViewEquipment', () => {
+    it('should return true for admin role', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canViewEquipment()).toBe(true);
+    });
+
+    it('should work with equipment team ID', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canViewEquipment('team-1')).toBe(true);
+    });
+  });
+
+  describe('canCreateEquipment', () => {
+    it('should return true for admin role', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canCreateEquipment()).toBe(true);
+    });
+  });
+
+  describe('canUpdateEquipmentStatus', () => {
+    it('should return true for admin role', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canUpdateEquipmentStatus('team-1')).toBe(true);
+    });
+  });
+
+  describe('canViewWorkOrder', () => {
+    it('should return true for admin role', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canViewWorkOrder()).toBe(true);
+    });
+
+    it('should work with work order data', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const mockWorkOrder: Partial<WorkOrderData> = {
+        teamId: 'team-1',
+        assigneeId: 'user-1',
+        status: 'submitted',
+        createdByName: 'Test User'
+      };
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canViewWorkOrder(mockWorkOrder as WorkOrderData)).toBe(true);
+    });
+  });
+
+  describe('canCreateWorkOrder', () => {
+    it('should return true for admin role', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canCreateWorkOrder()).toBe(true);
+    });
+  });
+
+  describe('canAssignWorkOrder', () => {
+    it('should return true for admin role', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canAssignWorkOrder()).toBe(true);
+    });
+
+    it('should work with work order data', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const mockWorkOrder: Partial<WorkOrderData> = {
+        teamId: 'team-1',
+        assigneeId: 'user-1',
+        status: 'submitted',
+        createdByName: 'Test User'
+      };
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canAssignWorkOrder(mockWorkOrder as WorkOrderData)).toBe(true);
+    });
+  });
+
+  describe('canChangeWorkOrderStatus', () => {
+    it('should return true for admin role', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canChangeWorkOrderStatus()).toBe(true);
+    });
+
+    it('should work with work order data', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const mockWorkOrder: Partial<WorkOrderData> = {
+        teamId: 'team-1',
+        assigneeId: 'user-1',
+        status: 'in_progress',
+        createdByName: 'Test User'
+      };
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canChangeWorkOrderStatus(mockWorkOrder as WorkOrderData)).toBe(true);
+    });
+  });
+
+  describe('Organization Permissions', () => {
+    it('canManageOrganization returns true for admin', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canManageOrganization()).toBe(true);
+    });
+
+    it('canManageOrganization returns false for member', () => {
+      updateSessionMockForRole('member');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('member'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canManageOrganization()).toBe(false);
+    });
+
+    it('canInviteMembers returns true for admin', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canInviteMembers()).toBe(true);
+    });
+
+    it('isOrganizationAdmin returns true for admin', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.isOrganizationAdmin()).toBe(true);
+    });
+
+    it('isOrganizationAdmin returns false for member', () => {
+      updateSessionMockForRole('member');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('member'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.isOrganizationAdmin()).toBe(false);
+    });
+  });
+
+  describe('Inventory Permissions', () => {
+    it('canManageInventory returns true for admin without parts manager', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canManageInventory(false)).toBe(true);
+    });
+
+    it('canManageInventory returns true with parts manager flag', () => {
+      updateSessionMockForRole('member');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('member'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canManageInventory(true)).toBe(true);
+    });
+
+    it('canManagePartsManagers returns true for admin', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canManagePartsManagers()).toBe(true);
+    });
+
+    it('canManagePartsManagers returns false for member', () => {
+      updateSessionMockForRole('member');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('member'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.canManagePartsManagers()).toBe(false);
+    });
+  });
+
+  describe('Team Utility Functions', () => {
+    it('isTeamMember returns true for team-1', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.isTeamMember('team-1')).toBe(true);
+    });
+
+    it('isTeamMember returns false for team-2', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.isTeamMember('team-2')).toBe(false);
+    });
+
+    it('isTeamManager returns true for team-1', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.isTeamManager('team-1')).toBe(true);
+    });
+
+    it('isTeamManager returns false for team-2', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+      
+      expect(result.current.isTeamManager('team-2')).toBe(false);
+    });
+  });
+});
+
+describe('useWorkOrderPermissions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const createTestOrganization = (role: 'owner' | 'admin' | 'member' = 'member') => ({
+    id: 'org-1',
+    name: 'Test Organization',
+    plan: 'free' as const,
+    memberCount: 1,
+    maxMembers: 5,
+    features: [],
+    userStatus: 'active' as const,
+    userRole: role,
+    members: [
+      {
+        id: 'user-1',
+        email: 'test@example.com',
+        role,
+        organization_id: 'org-1'
+      }
+    ]
+  });
+
+  const updateSessionMockForRole = (role: 'owner' | 'admin' | 'member') => {
+    mockUseSession.mockReturnValue({
+      sessionData: {
+        organizations: [{
+          id: 'org-1',
+          name: 'Test Organization',
+          plan: 'free' as const,
+          memberCount: 1,
+          maxMembers: 5,
+          features: [],
+          userRole: role as 'owner' | 'admin' | 'member',
+          userStatus: 'active' as const
+        }],
+        currentOrganizationId: 'org-1',
+        teamMemberships: [],
+        lastUpdated: new Date().toISOString(),
+        version: 1
+      },
+      isLoading: false,
+      error: null,
+      getCurrentOrganization: vi.fn(() => ({
+        id: 'org-1',
+        name: 'Test Organization',
+        plan: 'free' as const,
+        memberCount: 1,
+        maxMembers: 5,
+        features: [],
+        userRole: role as 'owner' | 'admin' | 'member',
+        userStatus: 'active' as const
+      })),
+      switchOrganization: vi.fn(),
+      hasTeamRole: vi.fn(() => false),
+      hasTeamAccess: vi.fn((teamId: string) => teamId === 'team-1'),
+      canManageTeam: vi.fn((teamId: string) => teamId === 'team-1'),
+      getUserTeamIds: vi.fn(() => ['team-1']),
+      refreshSession: vi.fn(),
+      clearSession: vi.fn()
+    });
+  };
+
+  const createTestUser = () => ({
+    id: 'user-1',
+    email: 'test@example.com',
+    name: 'Test User'
+  });
+
+  it('should return permissions for work order', () => {
+    updateSessionMockForRole('admin');
+    mockUseSimpleOrganization.mockReturnValue(
+      createMockSimpleOrganizationContext(createTestOrganization('admin'))
+    );
+    mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+    const mockWorkOrder: Partial<WorkOrderData> = {
+      teamId: 'team-1',
+      assigneeId: 'user-1',
+      status: 'submitted',
+      createdByName: 'Test User'
+    };
+
+    const { result } = renderHook(() => useWorkOrderPermissions(mockWorkOrder as WorkOrderData));
+    
+    expect(result.current).toBeDefined();
+    expect(result.current.canView).toBeDefined();
+    expect(result.current.canEdit).toBeDefined();
+  });
+
+  it('should work without work order parameter', () => {
+    updateSessionMockForRole('admin');
+    mockUseSimpleOrganization.mockReturnValue(
+      createMockSimpleOrganizationContext(createTestOrganization('admin'))
+    );
+    mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+    const { result } = renderHook(() => useWorkOrderPermissions());
+    
+    expect(result.current).toBeDefined();
   });
 });

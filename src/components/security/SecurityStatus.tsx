@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Shield, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
-import { useOrganizationSecurity } from '@/hooks/useOrganizationSecurity';
+import { useOrganizationSecurity } from '@/features/organization/hooks/useOrganizationSecurity';
 
 export const SecurityStatus = () => {
   const { testResult, isTestingComplete, runSecurityTest } = useOrganizationSecurity();

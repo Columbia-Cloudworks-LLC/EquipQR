@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,39 +8,59 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, QrCode } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { usePendingRedirectHandler } from '@/hooks/usePendingRedirectHandler';
+import { useMFA } from '@/hooks/useMFA';
+import { isMFAEnabled } from '@/lib/flags';
+import { isSafeRedirectPath, getSafeRedirectPath } from '@/utils/redirectValidation';
 import Logo from '@/components/ui/Logo';
 import SignUpForm from '@/components/auth/SignUpForm';
 import SignInForm from '@/components/auth/SignInForm';
+import MFAVerification from '@/components/auth/MFAVerification';
 import LegalFooter from '@/components/layout/LegalFooter';
 
 const Auth = () => {
   const navigate = useNavigate();
   const { user, signInWithGoogle, isLoading: authLoading } = useAuth();
+  const { needsVerification, refreshMFAStatus } = useMFA();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingQRScan, setPendingQRScan] = useState(false);
+  const [showMFAVerification, setShowMFAVerification] = useState(false);
 
-  // Handle pending redirects after authentication
-  usePendingRedirectHandler();
-
-  // Check if user came here from a QR scan
+  // Check if user came here from a QR scan (read-only check, doesn't clear)
   useEffect(() => {
     const pendingRedirect = sessionStorage.getItem('pendingRedirect');
-    if (pendingRedirect && pendingRedirect.includes('qr=true')) {
+    if (pendingRedirect && isSafeRedirectPath(pendingRedirect) && pendingRedirect.includes('qr=true')) {
       setPendingQRScan(true);
     }
   }, []);
 
-  // Redirect if already authenticated
+  // Handle pending redirects after authentication
+  // This replaces usePendingRedirectHandler to avoid race conditions with duplicate effects
   useEffect(() => {
     if (user && !authLoading) {
-      // The usePendingRedirectHandler will handle the redirect
-      navigate('/');
+      // If MFA is enabled and user needs verification (e.g., after Google OAuth),
+      // show the MFA verification screen instead of redirecting
+      if (isMFAEnabled() && needsVerification && !showMFAVerification) {
+        setShowMFAVerification(true);
+        return;
+      }
+
+      // Don't redirect if we're showing MFA verification
+      if (showMFAVerification) return;
+
+      // Check for pending redirect first (e.g., from OAuth callbacks or QR scans)
+      const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+      if (pendingRedirect) {
+        // Clear it and navigate there (validated to prevent open redirects)
+        sessionStorage.removeItem('pendingRedirect');
+        navigate(getSafeRedirectPath(pendingRedirect), { replace: true });
+      } else {
+        navigate('/');
+      }
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, needsVerification, showMFAVerification]);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
@@ -64,6 +84,28 @@ const Auth = () => {
     setError(errorMessage);
     setSuccess(null);
   };
+
+  // Called by SignInForm when MFA is required after password auth
+  const handleMFARequired = useCallback(() => {
+    setShowMFAVerification(true);
+    setError(null);
+  }, []);
+
+  // Called when MFA verification succeeds
+  const handleMFASuccess = useCallback(async () => {
+    // Refresh MFA status BEFORE clearing the flag so the redirect effect
+    // sees needsVerification === false and won't re-show the MFA screen.
+    await refreshMFAStatus();
+    setShowMFAVerification(false);
+    // Navigate after MFA success
+    const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+    if (pendingRedirect) {
+      sessionStorage.removeItem('pendingRedirect');
+      navigate(getSafeRedirectPath(pendingRedirect), { replace: true });
+    } else {
+      navigate('/', { replace: true });
+    }
+  }, [refreshMFAStatus, navigate]);
 
   // Parse query params for tab/email/invitation info
   const { defaultTab, prefillEmail, invitedOrgId, invitedOrgName } = useMemo(() => {
@@ -101,16 +143,23 @@ const Auth = () => {
             </CardTitle>
             <CardDescription>
               {pendingQRScan ? (
-                <div className="flex items-center justify-center gap-2 text-blue-600">
+                <span className="flex items-center justify-center gap-2 text-blue-600">
                   <QrCode className="h-4 w-4" />
                   <span>Complete sign in to view scanned equipment</span>
-                </div>
+                </span>
               ) : (
                 'Sign in to your account or create a new one to get started'
               )}
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* MFA Verification Screen — shown after password or OAuth sign-in when MFA is required */}
+            {showMFAVerification ? (
+              <MFAVerification
+                onSuccess={handleMFASuccess}
+                onError={handleError}
+              />
+            ) : (
             <Tabs defaultValue={defaultTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -122,6 +171,7 @@ const Auth = () => {
                   onError={handleError}
                   isLoading={isLoading}
                   setIsLoading={setIsLoading}
+                  onMFARequired={handleMFARequired}
                 />
                 
                 <div className="mt-4">
@@ -197,18 +247,19 @@ const Auth = () => {
                 </div>
               </TabsContent>
             </Tabs>
+            )}
             
-            {error && (
+            {error ? (
               <Alert className="mt-4" variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
-            )}
+            ) : null}
             
-            {success && (
+            {success ? (
               <Alert className="mt-4">
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       </div>

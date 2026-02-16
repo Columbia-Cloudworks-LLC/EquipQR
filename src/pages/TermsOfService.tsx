@@ -1,10 +1,16 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageSEO } from '@/components/seo/PageSEO';
 
 export default function TermsOfService() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <PageSEO
+        title="Terms of Service"
+        description="Review the Terms of Service for EquipQR, the fleet equipment management platform by Columbia Cloudworks LLC. Covers accounts, billing, data, and liability."
+        path="/terms-of-service"
+      />
       <div className="mb-8">
         <Button variant="ghost" asChild className="mb-4">
           <Link to="/">
@@ -250,7 +256,7 @@ export default function TermsOfService() {
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
-              <strong>Columbia Cloudworks LLC</strong> • Email: <a href="mailto:nicholas.king@columbiacloudworks.com" className="underline">nicholas.king@columbiacloudworks.com</a> • Website: <a href="https://equipqr.app" target="_blank" rel="noopener noreferrer" className="underline">https://equipqr.app</a>
+              <strong>Columbia Cloudworks LLC</strong> • Email: <a href="mailto:nicholas.king@columbiacloudworks.com" className="underline">nicholas.king@columbiacloudworks.com</a> • Website: <a href="https://equipqr.app" target="_blank" rel="noopener noreferrer" className="underline" aria-label="equipqr.app (opens in new tab)">https://equipqr.app</a>
             </p>
           </CardContent>
         </Card>

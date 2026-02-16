@@ -1,0 +1,16 @@
+---
+description: "Security rules for Supabase RLS and Config"
+globs: "supabase/**/*.{sql,toml}"
+---
+# Supabase Security
+
+## Row Level Security (RLS)
+- **Audit:** NEVER create a policy that returns `true` (public access) without explicit justification in comments.
+- **Service Role:** Avoid using `service_role` key in Edge Functions unless absolutely necessary (e.g., admin tasks bypassing RLS).
+
+## Database Config
+- **Extensions:** Only enable necessary extensions. Review implications of `pg_cron` or `http` extensions.
+- **Public Schema:** Do not expose sensitive system tables in the `public` schema.
+
+## Authentication
+- **Triggers:** Use database triggers on `auth.users` for user profile creation to ensure data integrity vs client-side creation.

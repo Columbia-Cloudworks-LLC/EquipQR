@@ -10,7 +10,7 @@ Before you begin, ensure you have the following installed on your development ma
 
 ### Required Software
 
-- **Node.js** (v18.x or v20.x) - [Download here](https://nodejs.org/)
+- **Node.js** (v22.x recommended, v20.x supported) - [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively (no yarn/pnpm/bun)
 - **Git** - [Download here](https://git-scm.com/)
 - **Modern Code Editor** - We recommend [VS Code](https://code.visualstudio.com/)
@@ -61,12 +61,17 @@ npm ci
 cp .env.example .env
 ```
 
-Edit `.env` with your Supabase credentials:
+Edit `.env` with your Supabase credentials (minimum required):
 
 ```env
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
+
+> **📋 Full Reference**: The `.env.example` file contains detailed documentation for all environment variables, including descriptions, file references, and generation commands. See also:
+> - **[Setup Guide - Environment Configuration](../technical/setup.md#environment-configuration)** - Overview of environment variable categories
+> - **[Supabase Branch Secrets](../ops/supabase-branch-secrets.md)** - Edge Function secrets for production/preview
+> - **[Local Supabase Development](../ops/local-supabase-development.md)** - Local development environment setup
 
 ### 4. Start Development Server
 
@@ -80,23 +85,43 @@ Visit `http://localhost:8080` to see the application running!
 
 ### Setting Up Supabase
 
-1. **Create a Supabase Project**
-   - Go to [Supabase Dashboard](https://supabase.com/dashboard)
-   - Click "New Project"
-   - Choose your organization and set project details
+> **⚠️ IMPORTANT: Local Supabase is the standard development method.**
+> 
+> All database development should be done locally first, then deployed to production. See [Local Supabase Development Guide](../ops/local-supabase-development.md) for complete setup instructions.
 
-2. **Get Your Credentials**
-   - Navigate to Settings > API
-   - Copy your Project URL and anon/public key
-   - Add these to your `.env` file
+**For local development (recommended):**
 
-3. **Set Up Database (Optional for Development)**
+1. **Install Docker** (required for local Supabase)
+   - Download from [Docker Desktop](https://www.docker.com/products/docker-desktop)
+
+2. **Set up local Supabase**:
    ```bash
-   # If you want to run migrations locally
+   # Install dependencies (includes Supabase CLI as dev dependency)
+   npm ci
+   
+   # Link to production project (for initial sync)
    npx supabase login
    npx supabase link --project-ref your-project-ref
+   
+   # Pull existing migrations from production
    npx supabase db pull
+   
+   # Start local Supabase instance
+   npx supabase start
    ```
+
+3. **Configure local environment**:
+   - Create `.env.local` with local Supabase credentials (from `npx supabase status`)
+   - Use local Supabase URL: `http://localhost:54321`
+
+**For production access (initial setup only):**
+
+1. **Get Production Credentials** (if needed for initial sync)
+   - Navigate to Settings > API in Supabase Dashboard
+   - Copy your Project URL and anon/public key
+   - These are primarily for linking and initial migration sync
+
+> **Note**: Supabase CLI is included as a dev dependency. Use `npx supabase` commands. Do NOT install globally with `npm install -g supabase` as global installation is not supported.
 
 ### Development Workflow
 
@@ -335,6 +360,12 @@ describe('EquipmentCard', () => {
 
 ### Database Changes
 
+> **⚠️ IMPORTANT: Local-First Development**
+> 
+> All database migrations must be developed and tested locally before deploying to production.
+
+**Standard workflow:**
+
 1. **Create Migration** (if needed)
    ```bash
    npx supabase migration new add_new_feature_table
@@ -343,7 +374,7 @@ describe('EquipmentCard', () => {
 2. **Write Migration SQL**
    ```sql
    -- supabase/migrations/timestamp_add_new_feature_table.sql
-   CREATE TABLE new_features (
+   CREATE TABLE IF NOT EXISTS new_features (
      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
      name TEXT NOT NULL,
      organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
@@ -361,15 +392,26 @@ describe('EquipmentCard', () => {
      ));
    ```
 
-3. **Apply Migration**
+3. **Test Locally** (REQUIRED before production deployment)
    ```bash
-   npx supabase db push
+   # Reset local database and apply all migrations
+   npx supabase db reset
+   
+   # Verify schema matches expectations
+   npx supabase db diff
    ```
 
 4. **Update Types**
    ```bash
    npx supabase gen types typescript --local > src/integrations/supabase/types.ts
    ```
+
+5. **Deploy to Production** (only after local testing succeeds)
+   ```bash
+   npx supabase db push --linked
+   ```
+
+**Note**: See [Local Supabase Development Guide](../ops/local-supabase-development.md) for detailed setup instructions.
 
 ## Troubleshooting Common Issues
 
@@ -439,9 +481,10 @@ npm run analyze
 ### Resources
 
 - **Documentation**: Check the `docs/` folder
-- **API Reference**: `docs/api-reference.md`
-- **Architecture Guide**: `docs/architecture.md`
-- **Agents Guide**: `../../.cursor/agents.md` (development workflow)
+- **API Reference**: `docs/technical/api-reference.md`
+- **Architecture Guide**: `docs/technical/architecture.md`
+- **Setup Guide**: `docs/technical/setup.md`
+- **Environment Variables**: `.env.example` (source of truth)
 
 ### Team Communication
 
@@ -462,9 +505,9 @@ npm run size-check    # Check bundle size
 ## Next Steps
 
 1. **Explore the Codebase**: Start with `src/App.tsx` and follow the component tree
-2. **Read the Documentation**: Review `docs/features.md` and `docs/technical-guide.md`
+2. **Read the Documentation**: Review `docs/technical/architecture.md` and `docs/technical/setup.md`
 3. **Run Tests**: Execute `npm run test` to understand the testing patterns
 4. **Make a Small Change**: Try updating a component or adding a new feature
 5. **Join the Team**: Participate in code reviews and team discussions
 
-Welcome to the EquipQR™ development team! 🎉
+Welcome to the EquipQR™ development team!

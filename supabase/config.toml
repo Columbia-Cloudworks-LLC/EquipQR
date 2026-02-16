@@ -1,4 +1,66 @@
+# Project ID for local Supabase CLI development
+# This is the default production project ID. Developers can override this by linking
+# to a different project using: npx supabase link --project-ref <project-ref>
+# For preview/staging environments, link to the preview branch project.
 project_id = "ymxkzronkhwxzcdcbnwq"
+
+# =============================================================================
+# AUTH CONFIGURATION
+# =============================================================================
+# These settings should match your remote Supabase project configuration.
+# Note: Changes here affect local development. Production settings are managed
+# in the Supabase Dashboard or via CI/CD environment variables.
+[auth]
+enabled = true
+# For local development, use the Vite dev server URL
+site_url = "http://localhost:5173"
+# Additional redirect URLs for OAuth and auth flows
+additional_redirect_urls = [
+  "http://localhost:5173/**",
+  "http://localhost:8080/**",
+  "http://127.0.0.1:5173/**",
+  "http://127.0.0.1:8080/**",
+  "https://equipqr.app/**",
+  "https://preview.equipqr.app/**",
+  # Vercel preview deployments for this project only.
+  # The slug must match the Vercel project name ("equip-qr").
+  # Update this if the Vercel project is renamed.
+  "https://equip-qr-*.vercel.app/**"
+]
+
+# =============================================================================
+# STORAGE CONFIGURATION
+# =============================================================================
+# Storage buckets used by the application
+[storage.buckets.work-order-images]
+public = true
+file_size_limit = "10MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+
+[storage.buckets.equipment-note-images]
+public = true
+file_size_limit = "10MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+
+[storage.buckets.organization-logos]
+public = true
+file_size_limit = "5MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+
+[storage.buckets.user-avatars]
+public = true
+file_size_limit = "5MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+
+[storage.buckets.team-images]
+public = true
+file_size_limit = "5MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+
+[storage.buckets.inventory-item-images]
+public = true
+file_size_limit = "10MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
 [api]
 enabled = true
@@ -23,7 +85,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.public-google-maps-key]
-verify_jwt = false
+verify_jwt = true
 
 [functions.manage-billing-exemptions]
 verify_jwt = true
@@ -31,18 +93,66 @@ verify_jwt = true
 [functions.list-organizations-admin]
 verify_jwt = true
 
-[functions.parts-search]
-verify_jwt = false
-
-[functions.part-detail]
-verify_jwt = false
-
 # QuickBooks OAuth Integration
 [functions.quickbooks-oauth-callback]
 verify_jwt = false
 # Handles OAuth callback from Intuit. OAuth callbacks don't include JWT tokens.
 # Security is handled via state parameter validation and organization membership checks.
 
+[functions.google-workspace-oauth-callback]
+verify_jwt = false
+# Handles OAuth callback from Google Workspace. OAuth callbacks don't include JWT tokens.
+# Security is handled via state parameter validation and organization membership checks.
+
+[functions.google-workspace-sync-users]
+verify_jwt = true
+# Syncs Google Workspace directory users. Requires authenticated admin/owner.
+
 [functions.quickbooks-refresh-tokens]
 verify_jwt = true
 # Called by cron job to refresh expiring tokens. Requires authentication with service role key.
+
+[functions.quickbooks-search-customers]
+verify_jwt = true
+# Searches QuickBooks customers for team-customer mapping. Requires authenticated admin/owner.
+
+[functions.quickbooks-export-invoice]
+verify_jwt = true
+# Exports work order to QuickBooks as a draft invoice. Requires authenticated admin/owner.
+
+[functions.export-report]
+verify_jwt = false
+# JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
+# This works around a jose library compatibility issue with ES256 keys in local development
+
+[functions.export-work-orders-excel]
+verify_jwt = false
+# JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
+# This works around a jose library compatibility issue with ES256 keys in local development
+
+[functions.create-ticket]
+verify_jwt = false
+# JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
+# This works around a jose library compatibility issue with ES256 keys in local development
+
+[functions.github-issue-webhook]
+verify_jwt = false
+# GitHub webhook endpoint -- no JWT available. Security is handled via HMAC-SHA256
+# signature verification using the GITHUB_WEBHOOK_SECRET environment variable.
+
+[functions.send-push-notification]
+verify_jwt = false
+# Called from database via pg_net when notifications are inserted.
+# Uses service role key passed in Authorization header for authentication.
+# Also handles cleanup of expired push subscriptions.
+
+[db.seed]
+enabled = true
+sql_paths = ['./seeds/*.sql']
+
+# Staging/Preview Branch Configuration
+# This configuration allows Supabase CLI to deploy to the preview branch project
+# when working with the staging environment. The preview branch is a persistent
+# branch that mirrors the production schema but uses separate data.
+[remotes.staging]
+project_id = "olsdirkvvfegvclbpgrg"

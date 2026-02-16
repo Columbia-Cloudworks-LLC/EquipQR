@@ -51,7 +51,13 @@ echo "  npx supabase functions deploy manage-billing-exemptions"
 echo ""
 echo "Option B - Using Supabase Dashboard:"
 echo ""
-echo "  1. Go to https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq/settings/functions"
+# Extract project ref from SUPABASE_URL or use default
+PROJECT_REF="${SUPABASE_PROJECT_REF:-ymxkzronkhwxzcdcbnwq}"
+if [ -n "$VITE_SUPABASE_URL" ]; then
+    # Extract project ref from URL (e.g., https://xxxxx.supabase.co -> xxxxx)
+    PROJECT_REF=$(echo "$VITE_SUPABASE_URL" | sed -n 's|https://\([^.]*\)\.supabase\.co.*|\1|p')
+fi
+echo "  1. Go to https://supabase.com/dashboard/project/${PROJECT_REF}/settings/functions"
 echo "  2. Scroll to 'Secrets' section"
 echo "  3. Click 'Add new secret'"
 echo "  4. Name: SUPER_ADMIN_ORG_ID"
@@ -66,22 +72,22 @@ if [[ "$response" =~ ^[Yy]$ ]]; then
     echo ""
     echo "🔐 Attempting to set Supabase secret..."
     
-    # Check if supabase CLI is available
-    if command -v supabase &> /dev/null; then
+    # Check if supabase CLI is available via npx (included as dev dependency)
+    if npx supabase --version &> /dev/null; then
         echo "Setting SUPER_ADMIN_ORG_ID secret..."
-        supabase secrets set SUPER_ADMIN_ORG_ID="$SUPER_ADMIN_ORG_ID"
+        npx supabase secrets set SUPER_ADMIN_ORG_ID="$SUPER_ADMIN_ORG_ID"
         
         echo ""
         echo "📦 Redeploying edge functions..."
         cd supabase/functions
-        supabase functions deploy list-organizations-admin
-        supabase functions deploy manage-billing-exemptions
+        npx supabase functions deploy list-organizations-admin
+        npx supabase functions deploy manage-billing-exemptions
         cd ../..
         
         echo "✅ Supabase secrets configured and functions redeployed!"
     else
-        echo "❌ Supabase CLI not found. Please install it or use the dashboard method."
-        echo "   Install: npm install -g supabase"
+        echo "❌ Supabase CLI not found. Please install dependencies or use the dashboard method."
+        echo "   Install: npm ci (Supabase CLI is included as dev dependency)"
         exit 1
     fi
 else

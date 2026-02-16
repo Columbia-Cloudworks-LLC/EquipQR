@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { getSafeRedirectPath } from '@/utils/redirectValidation';
 
 /**
  * Hook to handle pending redirects after authentication
@@ -23,7 +24,8 @@ export const usePendingRedirectHandler = () => {
       
       // Small delay to ensure authentication is fully processed
       setTimeout(() => {
-        navigate(pendingRedirect, { replace: true });
+        // Validate the redirect path to prevent open-redirect attacks
+        navigate(getSafeRedirectPath(pendingRedirect), { replace: true });
       }, 100);
     }
   }, [user, isLoading, navigate]);

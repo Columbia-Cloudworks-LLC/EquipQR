@@ -6,6 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+test-output.txt
 
 node_modules
 dist
@@ -25,11 +26,23 @@ dist-ssr
 *.sln
 *.sw?
 .vs/VSWorkspaceState.json
+
+# Environment files (secrets)
 .env
+.env.*
+!.env.example
+
+# Private keys and credentials
+*.pem
+*.key
+credentials.json
+service-account*.json
 
 # Backup Files used for Testing
 supabase/*.backup
 supabase/.temp/*
+supabase/.branches/*
+supabase/snippets/Untitled*.sql
 
 # Coverage Files
 coverage/*
@@ -39,3 +52,7 @@ repomix*.xml
 
 # Github Rulesets (for debugging)
 github.ruleset*.json
+deno.lock
+
+# Playwright Files
+.playwright-mcp/*

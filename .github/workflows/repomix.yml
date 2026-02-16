@@ -1,0 +1,41 @@
+name: Repomix Artifact
+
+on:
+  push:
+    branches: [ main, preview ]
+  pull_request:
+    branches: [ main, preview ]
+  workflow_dispatch:
+
+jobs:
+  pack:
+    name: Pack Repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Use Node 20 (LTS) to match your project config
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Install dependencies so repomix can resolve local imports
+      - name: Install Dependencies
+        run: npm ci
+
+      # Run repomix directly via npx (uses repomix.config.json automatically)
+      - name: Pack with Repomix
+        run: npx --yes repomix
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: repomix-EquipQR.xml
+          path: repomix-EquipQR.xml
+          retention-days: 30

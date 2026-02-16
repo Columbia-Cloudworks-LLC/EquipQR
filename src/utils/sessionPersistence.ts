@@ -31,19 +31,12 @@ export const getOrganizationPreference = (): { selectedOrgId: string | null; sel
   try {
     const stored = localStorage.getItem(ORGANIZATION_PREFERENCE_KEY);
     if (!stored) return null;
-    
+
     const preference = JSON.parse(stored);
-    
-    // Check if preference is recent (within 24 hours)
-    const timestamp = new Date(preference.selectionTimestamp);
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
-    if (timestamp < twentyFourHoursAgo) {
-      logger.info('Organization preference expired, clearing');
-      localStorage.removeItem(ORGANIZATION_PREFERENCE_KEY);
+    if (!preference || typeof preference.selectedOrgId !== 'string') {
       return null;
     }
-    
+
     return preference;
   } catch (error) {
     logger.warn('Failed to get organization preference', error);

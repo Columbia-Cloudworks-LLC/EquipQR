@@ -1,0 +1,40 @@
+{
+    "version": 1,
+    "hooks": {
+      "afterFileEdit": [
+        { 
+          "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\sync-types.ps1" 
+        },
+        { 
+          "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\run-tests.ps1" 
+        },
+        {
+          "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\strict-type-check.ps1"
+        },
+        {
+          "command": "python .\\.cursor\\hooks\\architecture-guard.py"
+        }
+      ],
+      "beforeReadFile": [
+        { 
+          "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\guard-migrations.ps1" 
+        },
+        {
+          "command": "python .\\.cursor\\hooks\\component-check.py"
+        }
+      ],
+      "beforeSubmitPrompt": [
+        {
+          "command": "python .\\.cursor\\hooks\\secret-guardian.py"
+        },
+        {
+          "command": "python .\\.cursor\\hooks\\architecture-guard.py"
+        }
+      ],
+      "beforeShellExecution": [
+        {
+          "command": "python .\\.cursor\\hooks\\secret-guardian.py"
+        }
+      ]
+    }
+  }

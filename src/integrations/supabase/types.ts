@@ -7,13 +7,86 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          actor_name: string
+          changes: Json
+          created_at: string
+          entity_id: string
+          entity_name: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          organization_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_name?: string
+          changes?: Json
+          created_at?: string
+          entity_id: string
+          entity_name?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_name?: string
+          changes?: Json
+          created_at?: string
+          entity_id?: string
+          entity_name?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_events: {
         Row: {
           amount_change: number | null
@@ -180,6 +253,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customer_contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       customer_sites: {
@@ -246,8 +326,80 @@ export type Database = {
           },
         ]
       }
+      distributor: {
+        Row: {
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          regions: string[] | null
+          website: string | null
+        }
+        Insert: {
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          regions?: string[] | null
+          website?: string | null
+        }
+        Update: {
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          regions?: string[] | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      distributor_listing: {
+        Row: {
+          distributor_id: string
+          id: string
+          part_id: string
+          sku: string | null
+        }
+        Insert: {
+          distributor_id: string
+          id?: string
+          part_id: string
+          sku?: string | null
+        }
+        Update: {
+          distributor_id?: string
+          id?: string
+          part_id?: string
+          sku?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distributor_listing_distributor_id_fkey"
+            columns: ["distributor_id"]
+            isOneToOne: false
+            referencedRelation: "distributor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distributor_listing_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "part"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment: {
         Row: {
+          assigned_location_city: string | null
+          assigned_location_country: string | null
+          assigned_location_lat: number | null
+          assigned_location_lng: number | null
+          assigned_location_state: string | null
+          assigned_location_street: string | null
           created_at: string
           custom_attributes: Json | null
           customer_id: string | null
@@ -258,6 +410,7 @@ export type Database = {
           installation_date: string
           last_known_location: Json | null
           last_maintenance: string | null
+          last_maintenance_work_order_id: string | null
           location: string
           manufacturer: string
           model: string
@@ -268,10 +421,17 @@ export type Database = {
           status: Database["public"]["Enums"]["equipment_status"]
           team_id: string | null
           updated_at: string
+          use_team_location: boolean
           warranty_expiration: string | null
           working_hours: number | null
         }
         Insert: {
+          assigned_location_city?: string | null
+          assigned_location_country?: string | null
+          assigned_location_lat?: number | null
+          assigned_location_lng?: number | null
+          assigned_location_state?: string | null
+          assigned_location_street?: string | null
           created_at?: string
           custom_attributes?: Json | null
           customer_id?: string | null
@@ -282,6 +442,7 @@ export type Database = {
           installation_date: string
           last_known_location?: Json | null
           last_maintenance?: string | null
+          last_maintenance_work_order_id?: string | null
           location: string
           manufacturer: string
           model: string
@@ -292,10 +453,17 @@ export type Database = {
           status?: Database["public"]["Enums"]["equipment_status"]
           team_id?: string | null
           updated_at?: string
+          use_team_location?: boolean
           warranty_expiration?: string | null
           working_hours?: number | null
         }
         Update: {
+          assigned_location_city?: string | null
+          assigned_location_country?: string | null
+          assigned_location_lat?: number | null
+          assigned_location_lng?: number | null
+          assigned_location_state?: string | null
+          assigned_location_street?: string | null
           created_at?: string
           custom_attributes?: Json | null
           customer_id?: string | null
@@ -306,6 +474,7 @@ export type Database = {
           installation_date?: string
           last_known_location?: Json | null
           last_maintenance?: string | null
+          last_maintenance_work_order_id?: string | null
           location?: string
           manufacturer?: string
           model?: string
@@ -316,6 +485,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["equipment_status"]
           team_id?: string | null
           updated_at?: string
+          use_team_location?: boolean
           warranty_expiration?: string | null
           working_hours?: number | null
         }
@@ -335,6 +505,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "equipment_default_pm_template_id_fkey"
+            columns: ["default_pm_template_id"]
+            isOneToOne: false
+            referencedRelation: "pm_templates_check"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_last_maintenance_work_order_id_fkey"
+            columns: ["last_maintenance_work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "equipment_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -346,6 +530,62 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_location_history: {
+        Row: {
+          address_city: string | null
+          address_country: string | null
+          address_state: string | null
+          address_street: string | null
+          changed_by: string | null
+          created_at: string
+          equipment_id: string
+          formatted_address: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          metadata: Json | null
+          source: string
+        }
+        Insert: {
+          address_city?: string | null
+          address_country?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          changed_by?: string | null
+          created_at?: string
+          equipment_id: string
+          formatted_address?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          source: string
+        }
+        Update: {
+          address_city?: string | null
+          address_country?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          changed_by?: string | null
+          created_at?: string
+          equipment_id?: string
+          formatted_address?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_location_history_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
         ]
@@ -402,6 +642,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "equipment_note_images_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       equipment_notes: {
@@ -453,6 +700,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "equipment_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "equipment_notes_equipment_id_fkey"
             columns: ["equipment_id"]
             isOneToOne: false
@@ -464,6 +718,43 @@ export type Database = {
             columns: ["last_modified_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_notes_last_modified_by_fkey"
+            columns: ["last_modified_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      equipment_part_compatibility: {
+        Row: {
+          equipment_id: string
+          inventory_item_id: string
+        }
+        Insert: {
+          equipment_id: string
+          inventory_item_id: string
+        }
+        Update: {
+          equipment_id?: string
+          inventory_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_part_compatibility_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_part_compatibility_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
         ]
@@ -510,6 +801,47 @@ export type Database = {
         }
         Relationships: []
       }
+      export_request_log: {
+        Row: {
+          completed_at: string | null
+          id: string
+          organization_id: string
+          report_type: string
+          requested_at: string
+          row_count: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          organization_id: string
+          report_type: string
+          requested_at?: string
+          row_count?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          organization_id?: string
+          report_type?: string
+          requested_at?: string
+          row_count?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "export_request_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geocoded_locations: {
         Row: {
           created_at: string
@@ -550,6 +882,276 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_workspace_credentials: {
+        Row: {
+          access_token_expires_at: string
+          created_at: string
+          customer_id: string | null
+          domain: string
+          id: string
+          organization_id: string
+          refresh_token: string
+          scopes: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token_expires_at: string
+          created_at?: string
+          customer_id?: string | null
+          domain: string
+          id?: string
+          organization_id: string
+          refresh_token: string
+          scopes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token_expires_at?: string
+          created_at?: string
+          customer_id?: string | null
+          domain?: string
+          id?: string
+          organization_id?: string
+          refresh_token?: string
+          scopes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_workspace_credentials_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_workspace_directory_users: {
+        Row: {
+          created_at: string
+          family_name: string | null
+          full_name: string | null
+          given_name: string | null
+          google_user_id: string
+          id: string
+          last_synced_at: string | null
+          org_unit_path: string | null
+          organization_id: string
+          primary_email: string
+          suspended: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          family_name?: string | null
+          full_name?: string | null
+          given_name?: string | null
+          google_user_id: string
+          id?: string
+          last_synced_at?: string | null
+          org_unit_path?: string | null
+          organization_id: string
+          primary_email: string
+          suspended?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          family_name?: string | null
+          full_name?: string | null
+          given_name?: string | null
+          google_user_id?: string
+          id?: string
+          last_synced_at?: string | null
+          org_unit_path?: string | null
+          organization_id?: string
+          primary_email?: string
+          suspended?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_workspace_directory_users_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_workspace_oauth_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          nonce: string
+          organization_id: string | null
+          origin_url: string | null
+          redirect_url: string | null
+          session_token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          nonce: string
+          organization_id?: string | null
+          origin_url?: string | null
+          redirect_url?: string | null
+          session_token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          nonce?: string
+          organization_id?: string | null
+          origin_url?: string | null
+          redirect_url?: string | null
+          session_token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_workspace_oauth_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_items: {
+        Row: {
+          created_at: string
+          created_by: string
+          default_unit_cost: number | null
+          description: string | null
+          external_id: string | null
+          id: string
+          image_url: string | null
+          location: string | null
+          low_stock_threshold: number
+          name: string
+          organization_id: string
+          quantity_on_hand: number
+          sku: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          default_unit_cost?: number | null
+          description?: string | null
+          external_id?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          low_stock_threshold?: number
+          name: string
+          organization_id: string
+          quantity_on_hand?: number
+          sku?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          default_unit_cost?: number | null
+          description?: string | null
+          external_id?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          low_stock_threshold?: number
+          name?: string
+          organization_id?: string
+          quantity_on_hand?: number
+          sku?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_transactions: {
+        Row: {
+          change_amount: number
+          created_at: string
+          id: string
+          inventory_item_id: string
+          new_quantity: number
+          notes: string | null
+          organization_id: string
+          previous_quantity: number
+          transaction_type: Database["public"]["Enums"]["inventory_transaction_type"]
+          user_id: string
+          user_name: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          change_amount: number
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          new_quantity: number
+          notes?: string | null
+          organization_id: string
+          previous_quantity: number
+          transaction_type: Database["public"]["Enums"]["inventory_transaction_type"]
+          user_id: string
+          user_name?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          change_amount?: number
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          new_quantity?: number
+          notes?: string | null
+          organization_id?: string
+          previous_quantity?: number
+          transaction_type?: Database["public"]["Enums"]["inventory_transaction_type"]
+          user_id?: string
+          user_name?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transactions_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -626,6 +1228,7 @@ export type Database = {
       notes: {
         Row: {
           author_id: string
+          author_name: string | null
           content: string
           created_at: string
           equipment_id: string
@@ -635,6 +1238,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          author_name?: string | null
           content: string
           created_at?: string
           equipment_id: string
@@ -644,6 +1248,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          author_name?: string | null
           content?: string
           created_at?: string
           equipment_id?: string
@@ -658,6 +1263,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "notes_equipment_id_fkey"
@@ -757,6 +1369,7 @@ export type Database = {
           created_at: string
           data: Json | null
           id: string
+          is_global: boolean
           message: string
           organization_id: string
           read: boolean
@@ -769,6 +1382,7 @@ export type Database = {
           created_at?: string
           data?: Json | null
           id?: string
+          is_global?: boolean
           message: string
           organization_id: string
           read?: boolean
@@ -781,6 +1395,7 @@ export type Database = {
           created_at?: string
           data?: Json | null
           id?: string
+          is_global?: boolean
           message?: string
           organization_id?: string
           read?: boolean
@@ -861,11 +1476,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "organization_invitations_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "organization_invitations_invited_by_fkey"
             columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "organization_invitations_organization_id_fkey"
@@ -883,9 +1512,54 @@ export type Database = {
           },
         ]
       }
+      organization_member_claims: {
+        Row: {
+          claimed_at: string | null
+          claimed_user_id: string | null
+          created_at: string
+          created_by: string
+          email: string
+          id: string
+          organization_id: string
+          source: string
+          status: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_user_id?: string | null
+          created_at?: string
+          created_by: string
+          email: string
+          id?: string
+          organization_id: string
+          source?: string
+          status?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_user_id?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string
+          id?: string
+          organization_id?: string
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_member_claims_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           activated_slot_at: string | null
+          can_manage_quickbooks: boolean
           id: string
           joined_date: string
           organization_id: string
@@ -896,6 +1570,7 @@ export type Database = {
         }
         Insert: {
           activated_slot_at?: string | null
+          can_manage_quickbooks?: boolean
           id?: string
           joined_date?: string
           organization_id: string
@@ -906,6 +1581,7 @@ export type Database = {
         }
         Update: {
           activated_slot_at?: string | null
+          can_manage_quickbooks?: boolean
           id?: string
           joined_date?: string
           organization_id?: string
@@ -934,6 +1610,60 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      organization_role_grants_pending: {
+        Row: {
+          applied_at: string | null
+          applied_user_id: string | null
+          created_at: string
+          created_by: string
+          desired_role: string
+          email: string
+          id: string
+          organization_id: string
+          revoked_at: string | null
+          status: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_user_id?: string | null
+          created_at?: string
+          created_by: string
+          desired_role?: string
+          email: string
+          id?: string
+          organization_id: string
+          revoked_at?: string | null
+          status?: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_user_id?: string | null
+          created_at?: string
+          created_by?: string
+          desired_role?: string
+          email?: string
+          id?: string
+          organization_id?: string
+          revoked_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_role_grants_pending_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1070,6 +1800,7 @@ export type Database = {
           name: string
           next_billing_date: string | null
           plan: Database["public"]["Enums"]["organization_plan"]
+          scan_location_collection_enabled: boolean
           storage_used_mb: number | null
           updated_at: string
         }
@@ -1089,6 +1820,7 @@ export type Database = {
           name: string
           next_billing_date?: string | null
           plan?: Database["public"]["Enums"]["organization_plan"]
+          scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
           updated_at?: string
         }
@@ -1108,10 +1840,426 @@ export type Database = {
           name?: string
           next_billing_date?: string | null
           plan?: Database["public"]["Enums"]["organization_plan"]
+          scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
           updated_at?: string
         }
         Relationships: []
+      }
+      ownership_transfer_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          departing_owner_role: string | null
+          expires_at: string
+          from_user_id: string
+          from_user_name: string
+          id: string
+          organization_id: string
+          responded_at: string | null
+          response_reason: string | null
+          status: string
+          to_user_id: string
+          to_user_name: string
+          transfer_reason: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          departing_owner_role?: string | null
+          expires_at?: string
+          from_user_id: string
+          from_user_name: string
+          id?: string
+          organization_id: string
+          responded_at?: string | null
+          response_reason?: string | null
+          status?: string
+          to_user_id: string
+          to_user_name: string
+          transfer_reason?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          departing_owner_role?: string | null
+          expires_at?: string
+          from_user_id?: string
+          from_user_name?: string
+          id?: string
+          organization_id?: string
+          responded_at?: string | null
+          response_reason?: string | null
+          status?: string
+          to_user_id?: string
+          to_user_name?: string
+          transfer_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ownership_transfer_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      part: {
+        Row: {
+          attributes: Json | null
+          brand: string | null
+          canonical_mpn: string
+          category: string | null
+          created_at: string | null
+          description: string | null
+          fitment: Json | null
+          id: string
+          synonyms: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          attributes?: Json | null
+          brand?: string | null
+          canonical_mpn: string
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          fitment?: Json | null
+          id?: string
+          synonyms?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          attributes?: Json | null
+          brand?: string | null
+          canonical_mpn?: string
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          fitment?: Json | null
+          id?: string
+          synonyms?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      part_alternate_group_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          inventory_item_id: string | null
+          is_primary: boolean
+          notes: string | null
+          part_identifier_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          inventory_item_id?: string | null
+          is_primary?: boolean
+          notes?: string | null
+          part_identifier_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          inventory_item_id?: string | null
+          is_primary?: boolean
+          notes?: string | null
+          part_identifier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_alternate_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "part_alternate_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "part_alternate_group_members_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "part_alternate_group_members_part_identifier_id_fkey"
+            columns: ["part_identifier_id"]
+            isOneToOne: false
+            referencedRelation: "part_identifiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      part_alternate_groups: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          evidence_url: string | null
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          status: Database["public"]["Enums"]["verification_status"]
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          evidence_url?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          status?: Database["public"]["Enums"]["verification_status"]
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          evidence_url?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          status?: Database["public"]["Enums"]["verification_status"]
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_alternate_groups_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      part_compatibility_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          evidence_url: string | null
+          id: string
+          inventory_item_id: string
+          manufacturer: string
+          manufacturer_norm: string
+          match_type: Database["public"]["Enums"]["model_match_type"]
+          model: string | null
+          model_norm: string | null
+          model_pattern_norm: string | null
+          model_pattern_raw: string | null
+          notes: string | null
+          status: Database["public"]["Enums"]["verification_status"]
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          evidence_url?: string | null
+          id?: string
+          inventory_item_id: string
+          manufacturer: string
+          manufacturer_norm: string
+          match_type?: Database["public"]["Enums"]["model_match_type"]
+          model?: string | null
+          model_norm?: string | null
+          model_pattern_norm?: string | null
+          model_pattern_raw?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["verification_status"]
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          evidence_url?: string | null
+          id?: string
+          inventory_item_id?: string
+          manufacturer?: string
+          manufacturer_norm?: string
+          match_type?: Database["public"]["Enums"]["model_match_type"]
+          model?: string | null
+          model_norm?: string | null
+          model_pattern_norm?: string | null
+          model_pattern_raw?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["verification_status"]
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_compatibility_rules_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      part_identifier: {
+        Row: {
+          id: string
+          id_type: string | null
+          normalized_value: string
+          part_id: string
+          value: string
+        }
+        Insert: {
+          id?: string
+          id_type?: string | null
+          normalized_value: string
+          part_id: string
+          value: string
+        }
+        Update: {
+          id?: string
+          id_type?: string | null
+          normalized_value?: string
+          part_id?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_identifier_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "part"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      part_identifiers: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          identifier_type: Database["public"]["Enums"]["part_identifier_type"]
+          inventory_item_id: string | null
+          manufacturer: string | null
+          norm_value: string
+          notes: string | null
+          organization_id: string
+          raw_value: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          identifier_type: Database["public"]["Enums"]["part_identifier_type"]
+          inventory_item_id?: string | null
+          manufacturer?: string | null
+          norm_value: string
+          notes?: string | null
+          organization_id: string
+          raw_value: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          identifier_type?: Database["public"]["Enums"]["part_identifier_type"]
+          inventory_item_id?: string | null
+          manufacturer?: string | null
+          norm_value?: string
+          notes?: string | null
+          organization_id?: string
+          raw_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_identifiers_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "part_identifiers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parts_managers: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parts_managers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_organizations: {
+        Row: {
+          created_at: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_organizations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pm_checklist_templates: {
         Row: {
@@ -1159,6 +2307,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pm_checklist_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "pm_checklist_templates_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -1171,6 +2326,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_checklist_templates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1217,10 +2379,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pm_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "pm_status_history_pm_id_fkey"
             columns: ["pm_id"]
             isOneToOne: false
             referencedRelation: "preventative_maintenance"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pm_template_compatibility_rules: {
+        Row: {
+          created_at: string
+          id: string
+          manufacturer: string
+          manufacturer_norm: string
+          model: string | null
+          model_norm: string | null
+          organization_id: string
+          pm_template_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manufacturer: string
+          manufacturer_norm: string
+          model?: string | null
+          model_norm?: string | null
+          organization_id: string
+          pm_template_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manufacturer?: string
+          manufacturer_norm?: string
+          model?: string | null
+          model_norm?: string | null
+          organization_id?: string
+          pm_template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pm_template_compatibility_rules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_template_compatibility_rules_pm_template_id_fkey"
+            columns: ["pm_template_id"]
+            isOneToOne: false
+            referencedRelation: "pm_checklist_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_template_compatibility_rules_pm_template_id_fkey"
+            columns: ["pm_template_id"]
+            isOneToOne: false
+            referencedRelation: "pm_templates_check"
             referencedColumns: ["id"]
           },
         ]
@@ -1230,8 +2454,10 @@ export type Database = {
           checklist_data: Json
           completed_at: string | null
           completed_by: string | null
+          completed_by_name: string | null
           created_at: string
           created_by: string
+          created_by_name: string | null
           equipment_id: string
           historical_completion_date: string | null
           historical_notes: string | null
@@ -1248,8 +2474,10 @@ export type Database = {
           checklist_data?: Json
           completed_at?: string | null
           completed_by?: string | null
+          completed_by_name?: string | null
           created_at?: string
           created_by: string
+          created_by_name?: string | null
           equipment_id: string
           historical_completion_date?: string | null
           historical_notes?: string | null
@@ -1266,8 +2494,10 @@ export type Database = {
           checklist_data?: Json
           completed_at?: string | null
           completed_by?: string | null
+          completed_by_name?: string | null
           created_at?: string
           created_by?: string
+          created_by_name?: string | null
           equipment_id?: string
           historical_completion_date?: string | null
           historical_notes?: string | null
@@ -1309,6 +2539,13 @@ export type Database = {
             referencedRelation: "pm_checklist_templates"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "preventative_maintenance_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "pm_templates_check"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -1338,6 +2575,253 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quickbooks_credentials: {
+        Row: {
+          access_token: string
+          access_token_expires_at: string
+          created_at: string
+          id: string
+          organization_id: string
+          realm_id: string
+          refresh_token: string
+          refresh_token_expires_at: string
+          scopes: string
+          token_type: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          access_token_expires_at: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          realm_id: string
+          refresh_token: string
+          refresh_token_expires_at: string
+          scopes?: string
+          token_type?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          access_token_expires_at?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          realm_id?: string
+          refresh_token?: string
+          refresh_token_expires_at?: string
+          scopes?: string
+          token_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_credentials_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quickbooks_export_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          exported_at: string | null
+          id: string
+          intuit_tid: string | null
+          organization_id: string
+          pdf_attachment_error: string | null
+          pdf_attachment_intuit_tid: string | null
+          pdf_attachment_status: string | null
+          quickbooks_environment: string | null
+          quickbooks_invoice_id: string | null
+          quickbooks_invoice_number: string | null
+          realm_id: string
+          status: string
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          exported_at?: string | null
+          id?: string
+          intuit_tid?: string | null
+          organization_id: string
+          pdf_attachment_error?: string | null
+          pdf_attachment_intuit_tid?: string | null
+          pdf_attachment_status?: string | null
+          quickbooks_environment?: string | null
+          quickbooks_invoice_id?: string | null
+          quickbooks_invoice_number?: string | null
+          realm_id: string
+          status: string
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          exported_at?: string | null
+          id?: string
+          intuit_tid?: string | null
+          organization_id?: string
+          pdf_attachment_error?: string | null
+          pdf_attachment_intuit_tid?: string | null
+          pdf_attachment_status?: string | null
+          quickbooks_environment?: string | null
+          quickbooks_invoice_id?: string | null
+          quickbooks_invoice_number?: string | null
+          realm_id?: string
+          status?: string
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_export_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quickbooks_export_logs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quickbooks_oauth_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          nonce: string
+          organization_id: string
+          origin_url: string | null
+          redirect_url: string | null
+          session_token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          nonce: string
+          organization_id: string
+          origin_url?: string | null
+          redirect_url?: string | null
+          session_token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          nonce?: string
+          organization_id?: string
+          origin_url?: string | null
+          redirect_url?: string | null
+          session_token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_oauth_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quickbooks_team_customers: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          organization_id: string
+          quickbooks_customer_id: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          organization_id: string
+          quickbooks_customer_id: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          organization_id?: string
+          quickbooks_customer_id?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_team_customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quickbooks_team_customers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scans: {
         Row: {
           equipment_id: string
@@ -1346,6 +2830,7 @@ export type Database = {
           notes: string | null
           scanned_at: string
           scanned_by: string
+          scanned_by_name: string | null
         }
         Insert: {
           equipment_id: string
@@ -1354,6 +2839,7 @@ export type Database = {
           notes?: string | null
           scanned_at?: string
           scanned_by: string
+          scanned_by_name?: string | null
         }
         Update: {
           equipment_id?: string
@@ -1362,6 +2848,7 @@ export type Database = {
           notes?: string | null
           scanned_at?: string
           scanned_by?: string
+          scanned_by_name?: string | null
         }
         Relationships: [
           {
@@ -1377,6 +2864,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scans_scanned_by_fkey"
+            columns: ["scanned_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1443,6 +2937,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slot_purchases_purchased_by_fkey"
+            columns: ["purchased_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1546,6 +3047,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       teams: {
@@ -1553,29 +3061,203 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          location_address: string | null
+          location_city: string | null
+          location_country: string | null
+          location_lat: number | null
+          location_lng: number | null
+          location_state: string | null
           name: string
           organization_id: string
+          override_equipment_location: boolean
+          team_lead_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           description?: string | null
           id?: string
+          location_address?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_state?: string | null
           name: string
           organization_id: string
+          override_equipment_location?: boolean
+          team_lead_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           description?: string | null
           id?: string
+          location_address?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_state?: string | null
           name?: string
           organization_id?: string
+          override_equipment_location?: boolean
+          team_lead_id?: string | null
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "teams_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_team_lead_id_fkey"
+            columns: ["team_lead_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_team_lead_id_fkey"
+            columns: ["team_lead_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      ticket_comments: {
+        Row: {
+          author: string
+          body: string
+          created_at: string
+          github_comment_id: number
+          id: string
+          is_from_team: boolean | null
+          ticket_id: string
+        }
+        Insert: {
+          author: string
+          body: string
+          created_at?: string
+          github_comment_id: number
+          id?: string
+          is_from_team?: boolean | null
+          ticket_id: string
+        }
+        Update: {
+          author?: string
+          body?: string
+          created_at?: string
+          github_comment_id?: number
+          id?: string
+          is_from_team?: boolean | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_comments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          description: string
+          github_issue_number: number | null
+          github_issue_url: string | null
+          id: string
+          metadata: Json | null
+          status: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          description: string
+          github_issue_number?: number | null
+          github_issue_url?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          description?: string
+          github_issue_number?: number | null
+          github_issue_url?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_departure_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          last_batch_at: string | null
+          organization_id: string
+          retry_count: number | null
+          started_at: string | null
+          status: string
+          tables_to_process: Json
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_batch_at?: string | null
+          organization_id: string
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          tables_to_process?: Json
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_batch_at?: string | null
+          organization_id?: string
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          tables_to_process?: Json
+          user_email?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_departure_queue_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1652,8 +3334,11 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          created_by_name: string | null
           description: string
           id: string
+          inventory_item_id: string | null
+          original_quantity: number | null
           quantity: number
           total_price_cents: number | null
           unit_price_cents: number
@@ -1663,8 +3348,11 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          created_by_name?: string | null
           description: string
           id?: string
+          inventory_item_id?: string | null
+          original_quantity?: number | null
           quantity?: number
           total_price_cents?: number | null
           unit_price_cents?: number
@@ -1674,8 +3362,11 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          created_by_name?: string | null
           description?: string
           id?: string
+          inventory_item_id?: string | null
+          original_quantity?: number | null
           quantity?: number
           total_price_cents?: number | null
           unit_price_cents?: number
@@ -1684,7 +3375,53 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "work_order_costs_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "work_order_costs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_equipment: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          id: string
+          is_primary: boolean
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          id?: string
+          is_primary?: boolean
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          is_primary?: boolean
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_equipment_work_order_id_fkey"
             columns: ["work_order_id"]
             isOneToOne: false
             referencedRelation: "work_orders"
@@ -1784,12 +3521,20 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_work_order_notes_author"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       work_order_status_history: {
         Row: {
           changed_at: string
           changed_by: string
+          changed_by_name: string | null
           created_at: string
           id: string
           is_historical_creation: boolean | null
@@ -1802,6 +3547,7 @@ export type Database = {
         Insert: {
           changed_at?: string
           changed_by: string
+          changed_by_name?: string | null
           created_at?: string
           id?: string
           is_historical_creation?: boolean | null
@@ -1814,6 +3560,7 @@ export type Database = {
         Update: {
           changed_at?: string
           changed_by?: string
+          changed_by_name?: string | null
           created_at?: string
           id?: string
           is_historical_creation?: boolean | null
@@ -1830,6 +3577,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "work_order_status_history_work_order_id_fkey"
@@ -1853,6 +3607,7 @@ export type Database = {
           description: string
           due_date: string | null
           equipment_id: string
+          equipment_working_hours_at_creation: number | null
           estimated_hours: number | null
           has_pm: boolean
           historical_notes: string | null
@@ -1879,6 +3634,7 @@ export type Database = {
           description: string
           due_date?: string | null
           equipment_id: string
+          equipment_working_hours_at_creation?: number | null
           estimated_hours?: number | null
           has_pm?: boolean
           historical_notes?: string | null
@@ -1905,6 +3661,7 @@ export type Database = {
           description?: string
           due_date?: string | null
           equipment_id?: string
+          equipment_working_hours_at_creation?: number | null
           estimated_hours?: number | null
           has_pm?: boolean
           historical_notes?: string | null
@@ -1928,11 +3685,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "work_orders_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "work_orders_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "work_orders_equipment_id_fkey"
@@ -1950,22 +3721,234 @@ export type Database = {
           },
         ]
       }
+      workspace_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_domains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_personal_org_merge_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          request_reason: string | null
+          requested_by_name: string
+          requested_by_user_id: string
+          requested_for_name: string
+          requested_for_user_id: string
+          responded_at: string | null
+          response_reason: string | null
+          status: string
+          workspace_org_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          request_reason?: string | null
+          requested_by_name: string
+          requested_by_user_id: string
+          requested_for_name: string
+          requested_for_user_id: string
+          responded_at?: string | null
+          response_reason?: string | null
+          status?: string
+          workspace_org_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          request_reason?: string | null
+          requested_by_name?: string
+          requested_by_user_id?: string
+          requested_for_name?: string
+          requested_for_user_id?: string
+          responded_at?: string | null
+          response_reason?: string | null
+          status?: string
+          workspace_org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_personal_org_merge_requests_workspace_org_id_fkey"
+            columns: ["workspace_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      pm_templates_check: {
+        Row: {
+          checklist_item_count: number | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string | null
+          is_protected: boolean | null
+          is_valid: boolean | null
+          name: string | null
+          organization_id: string | null
+          template_data: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          checklist_item_count?: never
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string | null
+          is_protected?: boolean | null
+          is_valid?: never
+          name?: string | null
+          organization_id?: string | null
+          template_data?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          checklist_item_count?: never
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string | null
+          is_protected?: boolean | null
+          is_valid?: never
+          name?: string | null
+          organization_id?: string | null
+          template_data?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pm_checklist_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_checklist_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pm_checklist_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_entitlements: {
+        Row: {
+          granted_at: string | null
+          is_active: boolean | null
+          plan: string | null
+          subscription_end: string | null
+          user_id: string | null
+        }
+        Insert: {
+          granted_at?: never
+          is_active?: never
+          plan?: never
+          subscription_end?: never
+          user_id?: string | null
+        }
+        Update: {
+          granted_at?: never
+          is_active?: never
+          plan?: never
+          subscription_end?: never
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_invitation_atomic: {
         Args: { p_invitation_token: string; p_user_id?: string }
         Returns: Json
       }
-      calculate_billable_members: {
-        Args: { org_id: string }
+      adjust_inventory_quantity: {
+        Args: {
+          p_delta: number
+          p_item_id: string
+          p_reason: string
+          p_work_order_id?: string
+        }
         Returns: number
       }
+      apply_pending_admin_grants_for_user: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
+      auto_provision_workspace_organization: {
+        Args: {
+          p_domain: string
+          p_organization_name: string
+          p_user_id: string
+        }
+        Returns: {
+          already_existed: boolean
+          domain: string
+          organization_id: string
+        }[]
+      }
+      backfill_user_profile_and_org: {
+        Args: { user_id_val: string }
+        Returns: Json
+      }
+      billing_is_disabled: { Args: never; Returns: boolean }
+      bulk_set_compatibility_rules: {
+        Args: { p_item_id: string; p_organization_id: string; p_rules: Json }
+        Returns: number
+      }
+      bulk_set_pm_template_rules: {
+        Args: {
+          p_organization_id: string
+          p_rules: Json
+          p_template_id: string
+        }
+        Returns: number
+      }
+      calculate_billable_members: { Args: { org_id: string }; Returns: number }
       calculate_organization_billing: {
         Args: { org_id: string }
         Returns: Json
+      }
+      can_manage_inventory: {
+        Args: { p_organization_id: string; p_user_id?: string }
+        Returns: boolean
       }
       can_manage_invitation_atomic: {
         Args: { invitation_id: string; user_uuid: string }
@@ -1978,6 +3961,14 @@ export type Database = {
       can_manage_invitation_safe: {
         Args: { invitation_id: string; user_uuid: string }
         Returns: boolean
+      }
+      can_user_manage_quickbooks: {
+        Args: { p_organization_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      cancel_ownership_transfer: {
+        Args: { p_transfer_id: string }
+        Returns: Json
       }
       check_admin_bypass_fixed: {
         Args: { org_id: string; user_uuid: string }
@@ -1993,6 +3984,10 @@ export type Database = {
       }
       check_email_exists_in_auth: {
         Args: { p_email: string }
+        Returns: boolean
+      }
+      check_export_rate_limit: {
+        Args: { p_organization_id: string; p_user_id: string }
         Returns: boolean
       }
       check_member_bypass_fixed: {
@@ -2011,6 +4006,14 @@ export type Database = {
         Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
+      check_storage_limit: {
+        Args: {
+          file_size_bytes: number
+          max_storage_gb?: number
+          org_id: string
+        }
+        Returns: Json
+      }
       check_team_access_secure: {
         Args: { team_uuid: string; user_uuid: string }
         Returns: boolean
@@ -2019,13 +4022,32 @@ export type Database = {
         Args: { required_role: string; team_uuid: string; user_uuid: string }
         Returns: boolean
       }
-      cleanup_old_notifications: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
+      cleanup_expired_quickbooks_oauth_sessions: {
+        Args: never
+        Returns: number
       }
-      clear_rls_context: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
+      cleanup_old_export_logs: { Args: never; Returns: number }
+      cleanup_old_notifications: { Args: never; Returns: undefined }
+      clear_rls_context: { Args: never; Returns: undefined }
+      count_equipment_matching_pm_rules: {
+        Args: { p_organization_id: string; p_rules: Json }
+        Returns: number
+      }
+      count_equipment_matching_rules: {
+        Args: { p_organization_id: string; p_rules: Json }
+        Returns: number
+      }
+      create_google_workspace_oauth_session: {
+        Args: {
+          p_organization_id?: string
+          p_origin_url?: string
+          p_redirect_url?: string
+        }
+        Returns: {
+          expires_at: string
+          nonce: string
+          session_token: string
+        }[]
       }
       create_historical_work_order_with_pm: {
         Args: {
@@ -2089,6 +4111,18 @@ export type Database = {
         }
         Returns: string
       }
+      create_quickbooks_oauth_session: {
+        Args: {
+          p_organization_id: string
+          p_origin_url?: string
+          p_redirect_url?: string
+        }
+        Returns: {
+          expires_at: string
+          nonce: string
+          session_token: string
+        }[]
+      }
       create_work_order_notifications: {
         Args: {
           changed_by_user_id: string
@@ -2097,16 +4131,180 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_workspace_organization_for_domain: {
+        Args: { p_domain: string; p_organization_name: string }
+        Returns: {
+          domain: string
+          organization_id: string
+        }[]
+      }
+      delete_organization: {
+        Args: {
+          p_confirmation_name: string
+          p_force?: boolean
+          p_organization_id: string
+        }
+        Returns: Json
+      }
+      disconnect_google_workspace: {
+        Args: { p_also_unclaim_domain?: boolean; p_organization_id: string }
+        Returns: Json
+      }
+      disconnect_quickbooks: {
+        Args: { p_organization_id: string; p_realm_id?: string }
+        Returns: {
+          message: string
+          success: boolean
+        }[]
+      }
+      get_alternates_for_inventory_item: {
+        Args: { p_inventory_item_id: string; p_organization_id: string }
+        Returns: {
+          default_unit_cost: number
+          group_id: string
+          group_name: string
+          group_notes: string
+          group_status: Database["public"]["Enums"]["verification_status"]
+          group_verified: boolean
+          identifier_id: string
+          identifier_manufacturer: string
+          identifier_type: Database["public"]["Enums"]["part_identifier_type"]
+          identifier_value: string
+          image_url: string
+          inventory_item_id: string
+          inventory_name: string
+          inventory_sku: string
+          is_in_stock: boolean
+          is_low_stock: boolean
+          is_primary: boolean
+          is_source_item: boolean
+          location: string
+          low_stock_threshold: number
+          quantity_on_hand: number
+        }[]
+      }
+      get_alternates_for_part_number: {
+        Args: { p_organization_id: string; p_part_number: string }
+        Returns: {
+          default_unit_cost: number
+          group_id: string
+          group_name: string
+          group_notes: string
+          group_status: Database["public"]["Enums"]["verification_status"]
+          group_verified: boolean
+          identifier_id: string
+          identifier_manufacturer: string
+          identifier_type: Database["public"]["Enums"]["part_identifier_type"]
+          identifier_value: string
+          image_url: string
+          inventory_item_id: string
+          inventory_name: string
+          inventory_sku: string
+          is_in_stock: boolean
+          is_low_stock: boolean
+          is_matching_input: boolean
+          is_primary: boolean
+          location: string
+          low_stock_threshold: number
+          quantity_on_hand: number
+        }[]
+      }
+      get_audit_actor_info: {
+        Args: never
+        Returns: {
+          actor_email: string
+          actor_id: string
+          actor_name: string
+        }[]
+      }
+      get_compatible_parts_for_equipment: {
+        Args: { p_equipment_ids: string[]; p_organization_id: string }
+        Returns: {
+          default_unit_cost: number
+          external_id: string
+          has_alternates: boolean
+          image_url: string
+          inventory_item_id: string
+          location: string
+          low_stock_threshold: number
+          match_type: string
+          name: string
+          quantity_on_hand: number
+          sku: string
+        }[]
+      }
+      get_compatible_parts_for_make_model: {
+        Args: {
+          p_manufacturer: string
+          p_model?: string
+          p_organization_id: string
+        }
+        Returns: {
+          default_unit_cost: number
+          external_id: string
+          image_url: string
+          inventory_item_id: string
+          is_in_stock: boolean
+          is_verified: boolean
+          location: string
+          low_stock_threshold: number
+          match_type: string
+          name: string
+          quantity_on_hand: number
+          rule_match_type: Database["public"]["Enums"]["model_match_type"]
+          rule_status: Database["public"]["Enums"]["verification_status"]
+          sku: string
+        }[]
+      }
       get_current_billing_period: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           period_end: string
           period_start: string
         }[]
       }
-      get_current_user_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
+      get_current_user_id: { Args: never; Returns: string }
+      get_equipment_for_inventory_item_rules: {
+        Args: { p_item_id: string; p_organization_id: string }
+        Returns: {
+          equipment_id: string
+          location: string
+          manufacturer: string
+          matched_rule_id: string
+          matched_rule_manufacturer: string
+          matched_rule_match_type: Database["public"]["Enums"]["model_match_type"]
+          matched_rule_model: string
+          matched_rule_status: Database["public"]["Enums"]["verification_status"]
+          model: string
+          name: string
+          serial_number: string
+          status: string
+        }[]
+      }
+      get_fleet_efficiency: {
+        Args: { p_org_id: string; p_team_ids?: string[] }
+        Returns: {
+          active_work_orders_count: number
+          equipment_count: number
+          team_id: string
+          team_name: string
+        }[]
+      }
+      get_global_pm_template_names: {
+        Args: never
+        Returns: {
+          name: string
+        }[]
+      }
+      get_google_workspace_connection_status: {
+        Args: { p_organization_id: string }
+        Returns: {
+          access_token_expires_at: string
+          connected_at: string
+          domain: string
+          is_connected: boolean
+          scopes: string
+        }[]
       }
       get_invitation_by_token_secure: {
         Args: { p_token: string }
@@ -2166,6 +4364,19 @@ export type Database = {
           work_order_title: string
         }[]
       }
+      get_matching_pm_templates: {
+        Args: { p_equipment_id: string; p_organization_id: string }
+        Returns: {
+          is_protected: boolean
+          match_type: string
+          matched_manufacturer: string
+          matched_model: string
+          template_description: string
+          template_id: string
+          template_name: string
+          template_organization_id: string
+        }[]
+      }
       get_member_profiles_secure: {
         Args: { org_id: string }
         Returns: {
@@ -2176,6 +4387,10 @@ export type Database = {
           name: string
           updated_at: string
         }[]
+      }
+      get_organization_deletion_stats: {
+        Args: { p_organization_id: string }
+        Returns: Json
       }
       get_organization_exemptions: {
         Args: { org_id: string }
@@ -2222,6 +4437,57 @@ export type Database = {
           used_slots: number
         }[]
       }
+      get_organization_storage_mb: { Args: { org_id: string }; Returns: number }
+      get_pending_transfer_requests: {
+        Args: never
+        Returns: {
+          created_at: string
+          expires_at: string
+          from_user_id: string
+          from_user_name: string
+          id: string
+          is_incoming: boolean
+          organization_id: string
+          organization_name: string
+          to_user_id: string
+          to_user_name: string
+          transfer_reason: string
+        }[]
+      }
+      get_pending_workspace_personal_org_merge_requests: {
+        Args: never
+        Returns: {
+          created_at: string
+          expires_at: string
+          id: string
+          is_incoming: boolean
+          request_reason: string
+          requested_by_name: string
+          requested_by_user_id: string
+          requested_for_name: string
+          requested_for_user_id: string
+          workspace_org_id: string
+          workspace_org_name: string
+        }[]
+      }
+      get_personal_org_merge_preview: {
+        Args: { p_workspace_org_id: string }
+        Returns: Json
+      }
+      get_quickbooks_connection_status: {
+        Args: { p_organization_id: string }
+        Returns: {
+          access_token_expires_at: string
+          connected_at: string
+          is_access_token_valid: boolean
+          is_connected: boolean
+          is_refresh_token_valid: boolean
+          realm_id: string
+          refresh_token_expires_at: string
+          scopes: string
+        }[]
+      }
+      get_system_user_id: { Args: never; Returns: string }
       get_user_invitations_safe: {
         Args: { org_id: string; user_uuid: string }
         Returns: {
@@ -2270,6 +4536,10 @@ export type Database = {
           organization_id: string
         }[]
       }
+      get_user_quickbooks_permission: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
       get_user_team_memberships: {
         Args: { org_id: string; user_uuid: string }
         Returns: {
@@ -2290,6 +4560,16 @@ export type Database = {
           user_role: string
         }[]
       }
+      get_workspace_onboarding_state: {
+        Args: { p_user_id: string }
+        Returns: {
+          domain: string
+          domain_status: string
+          email: string
+          is_workspace_connected: boolean
+          workspace_org_id: string
+        }[]
+      }
       handle_invitation_account_creation: {
         Args: { p_invitation_id: string; p_user_id: string }
         Returns: Json
@@ -2298,6 +4578,15 @@ export type Database = {
         Args: { org_id: string; user_uuid: string }
         Returns: Json
       }
+      initiate_ownership_transfer: {
+        Args: {
+          p_organization_id: string
+          p_to_user_id: string
+          p_transfer_reason?: string
+        }
+        Returns: Json
+      }
+      invoke_quickbooks_token_refresh: { Args: never; Returns: undefined }
       is_org_admin: {
         Args: { org_id: string; user_uuid: string }
         Returns: boolean
@@ -2314,9 +4603,74 @@ export type Database = {
         Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
-      leave_organization_safely: {
-        Args: { org_id: string }
-        Returns: Json
+      is_parts_manager: {
+        Args: { p_organization_id: string; p_user_id?: string }
+        Returns: boolean
+      }
+      is_user_google_oauth_verified: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      is_valid_work_order_assignee: {
+        Args: {
+          p_assignee_id: string
+          p_equipment_id: string
+          p_organization_id: string
+        }
+        Returns: boolean
+      }
+      leave_organization: { Args: { p_organization_id: string }; Returns: Json }
+      leave_organization_safely: { Args: { org_id: string }; Returns: Json }
+      list_pm_templates:
+        | {
+            Args: never
+            Returns: {
+              is_global: boolean
+              item_count: number
+              template_name: string
+            }[]
+          }
+        | {
+            Args: { org_id: string }
+            Returns: {
+              created_at: string
+              created_by: string
+              description: string
+              id: string
+              is_protected: boolean
+              name: string
+              organization_id: string
+              template_data: Json
+              updated_at: string
+              updated_by: string
+            }[]
+          }
+      log_audit_entry: {
+        Args: {
+          p_action: string
+          p_changes: Json
+          p_entity_id: string
+          p_entity_name: string
+          p_entity_type: string
+          p_metadata?: Json
+          p_organization_id: string
+        }
+        Returns: string
+      }
+      log_equipment_location_change: {
+        Args: {
+          p_address_city?: string
+          p_address_country?: string
+          p_address_state?: string
+          p_address_street?: string
+          p_equipment_id: string
+          p_formatted_address?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_metadata?: Json
+          p_source: string
+        }
+        Returns: string
       }
       log_invitation_performance: {
         Args: {
@@ -2327,21 +4681,96 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_invoice_export_audit: {
+        Args: {
+          p_action: string
+          p_actor_id?: string
+          p_ip_address?: string
+          p_organization_id: string
+          p_quickbooks_invoice_id: string
+          p_quickbooks_invoice_number: string
+          p_realm_id: string
+          p_work_order_id: string
+        }
+        Returns: string
+      }
+      migrate_personal_org_to_workspace_for_user: {
+        Args: { p_user_id: string; p_workspace_org_id: string }
+        Returns: Json
+      }
+      migrate_personal_orgs_to_workspace: {
+        Args: { p_domain: string; p_workspace_org_id: string }
+        Returns: Json
+      }
+      normalize_compatibility_pattern: {
+        Args: {
+          p_match_type: Database["public"]["Enums"]["model_match_type"]
+          p_pattern: string
+        }
+        Returns: string
+      }
+      normalize_domain: { Args: { p_domain: string }; Returns: string }
+      normalize_email: { Args: { p_email: string }; Returns: string }
       preserve_user_attribution: {
         Args: { user_uuid: string }
         Returns: undefined
+      }
+      process_all_pending_departures: { Args: never; Returns: Json }
+      process_departure_batch: {
+        Args: { p_batch_size?: number; p_queue_id: string }
+        Returns: Json
+      }
+      refresh_quickbooks_tokens_manual: {
+        Args: never
+        Returns: {
+          credentials_count: number
+          message: string
+        }[]
       }
       release_reserved_slot: {
         Args: { invitation_id: string; org_id: string }
         Returns: undefined
       }
+      remove_organization_member: {
+        Args: {
+          p_organization_id: string
+          p_reason?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       remove_organization_member_safely: {
         Args: { org_id: string; removed_by: string; user_uuid: string }
+        Returns: Json
+      }
+      request_workspace_personal_org_merge: {
+        Args: {
+          p_reason?: string
+          p_target_user_id: string
+          p_workspace_org_id: string
+        }
         Returns: Json
       }
       reserve_slot_for_invitation: {
         Args: { invitation_id: string; org_id: string }
         Returns: boolean
+      }
+      respond_to_ownership_transfer: {
+        Args: {
+          p_accept: boolean
+          p_departing_owner_role?: string
+          p_response_reason?: string
+          p_transfer_id: string
+        }
+        Returns: Json
+      }
+      respond_to_workspace_personal_org_merge: {
+        Args: {
+          p_accept: boolean
+          p_request_id: string
+          p_response_reason?: string
+        }
+        Returns: Json
       }
       revert_pm_completion: {
         Args: { p_pm_id: string; p_reason?: string }
@@ -2351,14 +4780,16 @@ export type Database = {
         Args: { p_reason?: string; p_work_order_id: string }
         Returns: Json
       }
-      set_bypass_triggers: {
-        Args: { bypass?: boolean }
-        Returns: undefined
+      select_google_workspace_members: {
+        Args: {
+          p_admin_emails?: string[]
+          p_emails: string[]
+          p_organization_id: string
+        }
+        Returns: Json
       }
-      set_rls_context: {
-        Args: { context_name: string }
-        Returns: undefined
-      }
+      set_bypass_triggers: { Args: { bypass?: boolean }; Returns: undefined }
+      set_rls_context: { Args: { context_name: string }; Returns: undefined }
       should_notify_user_for_work_order: {
         Args: {
           organization_uuid: string
@@ -2378,6 +4809,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      trigger_departure_processing: { Args: never; Returns: Json }
       update_equipment_working_hours: {
         Args: {
           p_equipment_id: string
@@ -2388,24 +4820,81 @@ export type Database = {
         }
         Returns: Json
       }
+      update_member_quickbooks_permission: {
+        Args: {
+          p_can_manage_quickbooks: boolean
+          p_organization_id: string
+          p_target_user_id: string
+        }
+        Returns: {
+          message: string
+          success: boolean
+        }[]
+      }
       update_organization_billing_metrics: {
         Args: { org_id: string }
         Returns: undefined
+      }
+      user_has_access: { Args: { user_uuid: string }; Returns: boolean }
+      user_is_org_admin: {
+        Args: { check_user_id?: string; org_id: string }
+        Returns: boolean
+      }
+      user_is_org_member: {
+        Args: { check_user_id?: string; org_id: string }
+        Returns: boolean
+      }
+      validate_google_workspace_oauth_session: {
+        Args: { p_session_token: string }
+        Returns: {
+          is_valid: boolean
+          nonce: string
+          organization_id: string
+          origin_url: string
+          redirect_url: string
+          user_id: string
+        }[]
       }
       validate_invitation_for_account_creation: {
         Args: { p_invitation_id: string }
         Returns: Json
       }
+      validate_quickbooks_oauth_session: {
+        Args: { p_session_token: string }
+        Returns: {
+          is_valid: boolean
+          nonce: string
+          organization_id: string
+          origin_url: string
+          redirect_url: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       equipment_status: "active" | "maintenance" | "inactive"
+      inventory_transaction_type:
+        | "usage"
+        | "restock"
+        | "adjustment"
+        | "initial"
+        | "work_order"
+      model_match_type: "any" | "exact" | "prefix" | "wildcard"
       organization_plan: "free" | "premium"
+      part_identifier_type:
+        | "oem"
+        | "aftermarket"
+        | "sku"
+        | "mpn"
+        | "upc"
+        | "cross_ref"
       team_member_role:
         | "owner"
         | "manager"
         | "technician"
         | "requestor"
         | "viewer"
+      verification_status: "unverified" | "verified" | "deprecated"
       work_order_priority: "low" | "medium" | "high"
       work_order_status:
         | "submitted"
@@ -2540,10 +5029,29 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       equipment_status: ["active", "maintenance", "inactive"],
+      inventory_transaction_type: [
+        "usage",
+        "restock",
+        "adjustment",
+        "initial",
+        "work_order",
+      ],
+      model_match_type: ["any", "exact", "prefix", "wildcard"],
       organization_plan: ["free", "premium"],
+      part_identifier_type: [
+        "oem",
+        "aftermarket",
+        "sku",
+        "mpn",
+        "upc",
+        "cross_ref",
+      ],
       team_member_role: [
         "owner",
         "manager",
@@ -2551,6 +5059,7 @@ export const Constants = {
         "requestor",
         "viewer",
       ],
+      verification_status: ["unverified", "verified", "deprecated"],
       work_order_priority: ["low", "medium", "high"],
       work_order_status: [
         "submitted",

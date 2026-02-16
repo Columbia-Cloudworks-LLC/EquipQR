@@ -1,9 +1,12 @@
 import React from 'react';
-import { render, screen } from '@/test/utils/test-utils';
+import { render, screen, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import Dashboard from '../Dashboard';
+import Dashboard from '@/features/dashboard/pages/Dashboard';
 import * as useSimpleOrganizationModule from '@/hooks/useSimpleOrganization';
-import * as useTeamBasedDashboardModule from '@/hooks/useTeamBasedDashboard';
+import * as useTeamBasedDashboardModule from '@/features/teams/hooks/useTeamBasedDashboard';
+import * as useDashboardLayoutModule from '@/features/dashboard/hooks/useDashboardLayout';
+import { personas } from '@/test/fixtures/personas';
+import { organizations, equipment as eqFixtures, workOrders as woFixtures } from '@/test/fixtures/entities';
 
 // Mock query result type for testing
 // Note: Using 'any' here is acceptable for test mocks to avoid complex UseQueryResult typing
@@ -27,7 +30,7 @@ vi.mock('@/hooks/useSession', () => ({
   useSession: vi.fn(() => ({
     sessionData: {
       organizations: [],
-      currentOrganizationId: 'org-1',
+      currentOrganizationId: 'org-acme',
       teamMemberships: []
     },
     isLoading: false,
@@ -35,12 +38,12 @@ vi.mock('@/hooks/useSession', () => ({
     refreshSession: vi.fn(),
     clearSession: vi.fn(),
     getCurrentOrganization: vi.fn(() => ({
-      id: 'org-1',
-      name: 'Test Organization',
-      plan: 'free',
-      memberCount: 5,
-      maxMembers: 10,
-      features: [],
+      id: organizations.acme.id,
+      name: organizations.acme.name,
+      plan: organizations.acme.plan,
+      memberCount: organizations.acme.memberCount,
+      maxMembers: organizations.acme.maxMembers,
+      features: organizations.acme.features,
       userRole: 'admin',
       userStatus: 'active'
     })),
@@ -52,7 +55,7 @@ vi.mock('@/hooks/useSession', () => ({
   }))
 }));
 
-vi.mock('@/hooks/useTeamMembership', () => ({
+vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
   useTeamMembership: vi.fn(() => ({
     teamMemberships: [],
     isLoading: false,
@@ -65,7 +68,6 @@ vi.mock('@/hooks/useTeamMembership', () => ({
   }))
 }));
 
-// Mock data dependencies
 vi.mock('@/hooks/useSupabaseData', () => ({
   useSyncEquipmentByOrganization: vi.fn(() => ({
     data: [],
@@ -113,11 +115,16 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganization: vi.fn()
 }));
 
-vi.mock('@/hooks/useTeamBasedDashboard', () => ({
+vi.mock('@/features/teams/hooks/useTeamBasedDashboard', () => ({
   useTeamBasedDashboardStats: vi.fn(),
   useTeamBasedEquipment: vi.fn(),
   useTeamBasedRecentWorkOrders: vi.fn(),
+  useTeamFleetEfficiency: vi.fn(),
   useTeamBasedDashboardAccess: vi.fn()
+}));
+
+vi.mock('@/features/dashboard/hooks/useDashboardLayout', () => ({
+  useDashboardLayout: vi.fn()
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
@@ -128,13 +135,21 @@ vi.mock('@/hooks/usePermissions', () => ({
   }))
 }));
 
-vi.mock('@/hooks/useTeams', () => ({
+vi.mock('@/features/teams/hooks/useTeams', () => ({
   useTeams: vi.fn(() => ({
     teams: [],
     isLoading: false,
     error: null
   }))
 }));
+
+// Mock react-grid-layout for jsdom environment
+vi.mock('react-grid-layout', () => ({
+  Responsive: ({ children }: { children?: React.ReactNode }) => <div data-testid="responsive-grid">{children}</div>,
+}));
+
+vi.mock('react-grid-layout/css/styles.css', () => ({}));
+vi.mock('react-resizable/css/styles.css', () => ({}));
 
 // Mock Recharts components
 vi.mock('recharts', () => ({
@@ -145,227 +160,381 @@ vi.mock('recharts', () => ({
   Bar: () => <div data-testid="bar" />,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,
+  ZAxis: () => <div data-testid="z-axis" />,
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   Tooltip: () => <div data-testid="tooltip" />,
   Legend: () => <div data-testid="legend" />,
-  ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>
+  ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
+  ScatterChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="scatter-chart">{children}</div>,
+  Scatter: () => <div data-testid="scatter" />,
 }));
+
+// ============================================
+// Helpers
+// ============================================
+
+const defaultLayoutMock = {
+  layouts: {
+    lg: [
+      { i: 'stats-grid', x: 0, y: 0, w: 12, h: 2 },
+      { i: 'fleet-efficiency', x: 0, y: 2, w: 12, h: 7 },
+      { i: 'recent-equipment', x: 0, y: 9, w: 6, h: 6 },
+      { i: 'recent-work-orders', x: 6, y: 9, w: 6, h: 6 },
+      { i: 'high-priority-wo', x: 0, y: 15, w: 12, h: 4 },
+    ],
+    md: [], sm: [], xs: [], xxs: [],
+  },
+  activeWidgets: ['stats-grid', 'fleet-efficiency', 'recent-equipment', 'recent-work-orders', 'high-priority-wo'],
+  isLoading: false,
+  updateLayout: vi.fn(),
+  addWidget: vi.fn(),
+  removeWidget: vi.fn(),
+  resetToDefault: vi.fn(),
+};
+
+/** Configure mocks to simulate a persona's organization + team access */
+function setupPersonaMocks(options: {
+  orgName?: string;
+  hasTeamAccess: boolean;
+  isManager?: boolean;
+  userTeamIds?: string[];
+  stats?: Record<string, number> | null;
+  equipment?: Array<{ id: string; name: string; status: string; manufacturer: string; model: string }>;
+  workOrders?: Array<{ id: string; title: string; priority: string; assigneeName: string | null; status: string }>;
+  isLoading?: boolean;
+}) {
+  const {
+    orgName = organizations.acme.name,
+    hasTeamAccess,
+    isManager = false,
+    userTeamIds = hasTeamAccess ? ['team-maintenance'] : [],
+    stats = { totalEquipment: 10, activeEquipment: 8, maintenanceEquipment: 2, inactiveEquipment: 0, totalWorkOrders: 15, openWorkOrders: 5, overdueWorkOrders: 1, completedWorkOrders: 10, totalTeams: 2 },
+    equipment = [],
+    workOrders = [],
+    isLoading = false
+  } = options;
+
+  vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+    currentOrganization: {
+      id: organizations.acme.id,
+      name: orgName,
+      memberCount: organizations.acme.memberCount,
+      plan: organizations.acme.plan,
+      maxMembers: organizations.acme.maxMembers,
+      features: organizations.acme.features,
+      userRole: 'admin',
+      userStatus: 'active'
+    },
+    organizations: [],
+    userOrganizations: [],
+    setCurrentOrganization: vi.fn(),
+    switchOrganization: vi.fn(),
+    isLoading: false,
+    error: null,
+    refetch: vi.fn()
+  });
+
+  vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardAccess).mockReturnValue({
+    userTeamIds,
+    hasTeamAccess,
+    isManager,
+    isLoading: false
+  });
+
+  vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardStats).mockReturnValue({
+    data: stats,
+    isLoading,
+    error: null,
+    isError: false,
+    isPending: isLoading,
+    isSuccess: !isLoading,
+    refetch: vi.fn(),
+    fetchStatus: isLoading ? 'fetching' : 'idle'
+  } as MockQueryResult);
+
+  vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
+    data: equipment,
+    isLoading: false,
+    error: null,
+    isError: false,
+    isPending: false,
+    isSuccess: true,
+    refetch: vi.fn(),
+    fetchStatus: 'idle'
+  } as MockQueryResult);
+
+  vi.mocked(useTeamBasedDashboardModule.useTeamBasedRecentWorkOrders).mockReturnValue({
+    data: workOrders,
+    isLoading: false,
+    error: null,
+    isError: false,
+    isPending: false,
+    isSuccess: true,
+    refetch: vi.fn(),
+    fetchStatus: 'idle'
+  } as MockQueryResult);
+
+  vi.mocked(useTeamBasedDashboardModule.useTeamFleetEfficiency).mockReturnValue({
+    data: [],
+    isLoading: false,
+    error: null,
+    isError: false,
+    isPending: false,
+    isSuccess: true,
+    refetch: vi.fn(),
+    fetchStatus: 'idle'
+  } as MockQueryResult);
+
+  vi.mocked(useDashboardLayoutModule.useDashboardLayout).mockReturnValue(defaultLayoutMock);
+}
+
+// ============================================
+// Persona-Driven Tests
+// ============================================
 
 describe('Dashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    // Setup default mocks
-    vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
-      currentOrganization: {
-        id: 'org-1',
-        name: 'Test Organization',
-        memberCount: 5,
-        plan: 'free',
-        maxMembers: 10,
-        features: [],
-        userRole: 'admin',
-        userStatus: 'active'
-      },
-      organizations: [],
-      userOrganizations: [],
-      setCurrentOrganization: vi.fn(),
-      switchOrganization: vi.fn(),
-      isLoading: false,
-      error: null,
-      refetch: vi.fn()
+  });
+
+  // --------------------------------------------------------
+  // Alice Owner — opens the dashboard for a daily overview
+  // --------------------------------------------------------
+  describe('as Alice Owner reviewing the daily fleet overview', () => {
+    beforeEach(() => {
+      setupPersonaMocks({
+        hasTeamAccess: true,
+        isManager: true,
+        userTeamIds: [personas.owner.teamMemberships[0].teamId],
+        equipment: [
+          { id: eqFixtures.forklift1.id, name: eqFixtures.forklift1.name, status: 'active', manufacturer: 'Toyota', model: '8FGU25' },
+          { id: eqFixtures.crane.id, name: eqFixtures.crane.name, status: 'active', manufacturer: 'Konecranes', model: 'CXT-10' },
+          { id: eqFixtures.forklift2.id, name: eqFixtures.forklift2.name, status: 'maintenance', manufacturer: 'Toyota', model: '8FGU25' },
+        ],
+        workOrders: [
+          { id: woFixtures.assigned.id, title: woFixtures.assigned.title, priority: 'high', assigneeName: personas.technician.name, status: 'assigned' },
+          { id: woFixtures.inProgress.id, title: woFixtures.inProgress.title, priority: 'high', assigneeName: personas.multiTeamTechnician.name, status: 'in_progress' },
+        ]
+      });
     });
 
-    vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardAccess).mockReturnValue({
-      userTeamIds: ['team-1'],
-      hasTeamAccess: true,
-      isManager: false,
-      isLoading: false
+    it('shows the welcome message with organization name', () => {
+      render(<Dashboard />);
+      expect(screen.getByText(`Welcome back to ${organizations.acme.name}`)).toBeInTheDocument();
     });
 
-    vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardStats).mockReturnValue({
-      data: {
-        totalEquipment: 10,
-        activeEquipment: 8,
-        maintenanceEquipment: 2,
-        inactiveEquipment: 0,
-        totalWorkOrders: 15,
-        openWorkOrders: 5,
-        overdueWorkOrders: 1,
-        completedWorkOrders: 10,
-        totalTeams: 2
-      },
-      isLoading: false,
-      error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      refetch: vi.fn(),
-      fetchStatus: 'idle'
-    } as MockQueryResult);
-
-    vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      refetch: vi.fn(),
-      fetchStatus: 'idle'
-    } as MockQueryResult);
-
-    vi.mocked(useTeamBasedDashboardModule.useTeamBasedRecentWorkOrders).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      refetch: vi.fn(),
-      fetchStatus: 'idle'
-    } as MockQueryResult);
-  });
-
-  it('renders dashboard title', () => {
-    render(<Dashboard />);
-    
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-  });
-
-  it('renders organization selection prompt when no organization', () => {
-    const mockHook = vi.mocked(useSimpleOrganizationModule.useSimpleOrganization);
-    mockHook.mockReturnValue({
-      organizations: [],
-      userOrganizations: [],
-      currentOrganization: null,
-      setCurrentOrganization: vi.fn(),
-      switchOrganization: vi.fn(),
-      isLoading: false,
-      error: null,
-      refetch: vi.fn()
+    it('renders the dashboard grid with widgets', async () => {
+      render(<Dashboard />);
+      // The grid should render with lazy-loaded widgets
+      await waitFor(() => {
+        expect(screen.getByTestId('responsive-grid')).toBeInTheDocument();
+      });
     });
 
-    render(<Dashboard />);
-    
-    expect(screen.getByText(/please select an organization/i)).toBeInTheDocument();
+    it('displays the Customize button', () => {
+      render(<Dashboard />);
+      expect(screen.getByText('Customize')).toBeInTheDocument();
+    });
+
+    it('displays widget content after lazy loading', async () => {
+      render(<Dashboard />);
+      // Wait for lazy-loaded widgets to resolve
+      await waitFor(() => {
+        expect(screen.getByText('Total Equipment')).toBeInTheDocument();
+      });
+    });
+
+    it('shows recent equipment for fleet monitoring', async () => {
+      render(<Dashboard />);
+      await waitFor(() => {
+        expect(screen.getByText('Recent Equipment')).toBeInTheDocument();
+        expect(screen.getByText(eqFixtures.forklift1.name)).toBeInTheDocument();
+      });
+    });
+
+    it('shows recent work orders for workload tracking', async () => {
+      render(<Dashboard />);
+      await waitFor(() => {
+        expect(screen.getByText('Recent Work Orders')).toBeInTheDocument();
+      });
+    });
+
+    it('shows high-priority work orders widget', async () => {
+      render(<Dashboard />);
+      await waitFor(() => {
+        expect(screen.getByText('High Priority Work Orders')).toBeInTheDocument();
+      });
+    });
   });
 
-  it('renders dashboard content when organization is selected', () => {
-    render(<Dashboard />);
-    
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Welcome back to Test Organization')).toBeInTheDocument();
-    expect(screen.getByText('Total Equipment')).toBeInTheDocument();
-    expect(screen.getByText('10')).toBeInTheDocument();
+  // --------------------------------------------------------
+  // Carol Manager — checks team performance metrics
+  // --------------------------------------------------------
+  describe('as Carol Manager checking team performance', () => {
+    beforeEach(() => {
+      setupPersonaMocks({
+        hasTeamAccess: true,
+        isManager: false,
+        userTeamIds: [personas.teamManager.teamMemberships[0].teamId],
+        equipment: [
+          { id: eqFixtures.forklift1.id, name: eqFixtures.forklift1.name, status: 'active', manufacturer: 'Toyota', model: '8FGU25' },
+        ],
+        workOrders: [
+          { id: woFixtures.submitted.id, title: woFixtures.submitted.title, priority: 'medium', assigneeName: null, status: 'submitted' },
+        ]
+      });
+    });
+
+    it('displays equipment statistics scoped to team', async () => {
+      render(<Dashboard />);
+      await waitFor(() => {
+        expect(screen.getByText('Total Equipment')).toBeInTheDocument();
+      });
+    });
+
+    it('shows recent equipment in the team fleet', async () => {
+      render(<Dashboard />);
+      await waitFor(() => {
+        expect(screen.getByText(eqFixtures.forklift1.name)).toBeInTheDocument();
+      });
+    });
+
+    it('shows work orders the team is responsible for', async () => {
+      render(<Dashboard />);
+      await waitFor(() => {
+        expect(screen.getByText(woFixtures.submitted.title)).toBeInTheDocument();
+      });
+    });
   });
 
-  it('displays loading state correctly', () => {
-    vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardStats).mockReturnValue({
-      data: null,
-      isLoading: true,
-      error: null,
-      isError: false,
-      isPending: true,
-      isSuccess: false,
-      refetch: vi.fn(),
-      fetchStatus: 'fetching'
-    } as MockQueryResult);
+  // --------------------------------------------------------
+  // Frank (readOnlyMember) — no teams, sees guidance card
+  // --------------------------------------------------------
+  describe('as Frank (read-only member with no teams)', () => {
+    beforeEach(() => {
+      setupPersonaMocks({
+        hasTeamAccess: false,
+        isManager: false,
+        userTeamIds: [],
+        stats: null,
+        equipment: [],
+        workOrders: []
+      });
+    });
 
-    render(<Dashboard />);
-    
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Welcome back to Test Organization')).toBeInTheDocument();
-    
-    // Should show loading cards
-    const cards = screen.getAllByRole('generic');
-    const loadingCards = cards.filter(card => 
-      card.className?.includes('animate-pulse')
-    );
-    expect(loadingCards.length).toBeGreaterThan(0);
+    it('shows the "no teams" guidance card', () => {
+      render(<Dashboard />);
+      expect(screen.getAllByText(`Welcome to ${organizations.acme.name}`).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/not yet a member of any teams/i)).toBeInTheDocument();
+    });
+
+    it('tells the user to contact an administrator', () => {
+      render(<Dashboard />);
+      expect(screen.getByText(/contact an organization administrator/i)).toBeInTheDocument();
+    });
+
+    it('does NOT show the dashboard grid', () => {
+      render(<Dashboard />);
+      expect(screen.queryByTestId('responsive-grid')).not.toBeInTheDocument();
+    });
   });
 
-  it('shows equipment statistics when data is available', () => {
-    vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardStats).mockReturnValue({
-      data: {
-        totalEquipment: 3,
-        activeEquipment: 2,
-        maintenanceEquipment: 1,
-        inactiveEquipment: 0,
-        totalWorkOrders: 5,
-        openWorkOrders: 2,
-        overdueWorkOrders: 0,
-        completedWorkOrders: 3,
-        totalTeams: 1
-      },
-      isLoading: false,
-      error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      refetch: vi.fn(),
-      fetchStatus: 'idle'
-    } as MockQueryResult);
+  // --------------------------------------------------------
+  // Edge case: no organization selected (first-time user)
+  // --------------------------------------------------------
+  describe('when no organization is selected (new user)', () => {
+    beforeEach(() => {
+      vi.mocked(useSimpleOrganizationModule.useSimpleOrganization).mockReturnValue({
+        organizations: [],
+        userOrganizations: [],
+        currentOrganization: null,
+        setCurrentOrganization: vi.fn(),
+        switchOrganization: vi.fn(),
+        isLoading: false,
+        error: null,
+        refetch: vi.fn()
+      });
+      vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardAccess).mockReturnValue({
+        userTeamIds: [],
+        hasTeamAccess: false,
+        isManager: false,
+        isLoading: false
+      });
+      vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardStats).mockReturnValue({
+        data: null, isLoading: false, error: null, isError: false, isPending: false, isSuccess: true, refetch: vi.fn(), fetchStatus: 'idle'
+      } as MockQueryResult);
+      vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
+        data: [], isLoading: false, error: null, isError: false, isPending: false, isSuccess: true, refetch: vi.fn(), fetchStatus: 'idle'
+      } as MockQueryResult);
+      vi.mocked(useTeamBasedDashboardModule.useTeamBasedRecentWorkOrders).mockReturnValue({
+        data: [], isLoading: false, error: null, isError: false, isPending: false, isSuccess: true, refetch: vi.fn(), fetchStatus: 'idle'
+      } as MockQueryResult);
+      vi.mocked(useTeamBasedDashboardModule.useTeamFleetEfficiency).mockReturnValue({
+        data: [], isLoading: false, error: null, isError: false, isPending: false, isSuccess: true, refetch: vi.fn(), fetchStatus: 'idle'
+      } as MockQueryResult);
+      vi.mocked(useDashboardLayoutModule.useDashboardLayout).mockReturnValue(defaultLayoutMock);
+    });
 
-    vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
-      data: [
-        { id: '1', name: 'Equipment 1', status: 'active', manufacturer: 'Test Mfg', model: 'Model 1' },
-        { id: '2', name: 'Equipment 2', status: 'maintenance', manufacturer: 'Test Mfg', model: 'Model 2' },
-        { id: '3', name: 'Equipment 3', status: 'active', manufacturer: 'Test Mfg', model: 'Model 3' }
-      ],
-      isLoading: false,
-      error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      refetch: vi.fn(),
-      fetchStatus: 'idle'
-    } as MockQueryResult);
-
-    render(<Dashboard />);
-    
-    expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('3');
-    expect(screen.getByText('Recent Equipment')).toBeInTheDocument();
-    expect(screen.getByText('Equipment 1')).toBeInTheDocument();
+    it('prompts user to select an organization', () => {
+      render(<Dashboard />);
+      expect(screen.getByText(/please select an organization/i)).toBeInTheDocument();
+    });
   });
 
-  it('handles empty data states gracefully', () => {
-    vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardStats).mockReturnValue({
-      data: {
-        totalEquipment: 0,
-        activeEquipment: 0,
-        maintenanceEquipment: 0,
-        inactiveEquipment: 0,
-        totalWorkOrders: 0,
-        openWorkOrders: 0,
-        overdueWorkOrders: 0,
-        completedWorkOrders: 0,
-        totalTeams: 0
-      },
-      isLoading: false,
-      error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      refetch: vi.fn(),
-      fetchStatus: 'idle'
-    } as MockQueryResult);
+  // --------------------------------------------------------
+  // Loading state — skeleton UX while data loads
+  // --------------------------------------------------------
+  describe('while data is loading', () => {
+    beforeEach(() => {
+      setupPersonaMocks({
+        hasTeamAccess: true,
+        isManager: true,
+        stats: null,
+        isLoading: true
+      });
+    });
 
-    vi.mocked(useTeamBasedDashboardModule.useTeamBasedEquipment).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      refetch: vi.fn(),
-      fetchStatus: 'idle'
-    } as MockQueryResult);
+    it('still displays the welcome header during load', () => {
+      render(<Dashboard />);
+      expect(screen.getByText(`Welcome back to ${organizations.acme.name}`)).toBeInTheDocument();
+    });
+  });
 
-    render(<Dashboard />);
-    
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Welcome back to Test Organization')).toBeInTheDocument();
-    expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('0');
+  // --------------------------------------------------------
+  // Dashboard grid system
+  // --------------------------------------------------------
+  describe('dashboard grid system', () => {
+    beforeEach(() => {
+      setupPersonaMocks({
+        hasTeamAccess: true,
+        isManager: true,
+      });
+    });
+
+    it('renders the responsive grid layout', async () => {
+      render(<Dashboard />);
+      await waitFor(() => {
+        expect(screen.getByTestId('responsive-grid')).toBeInTheDocument();
+      });
+    });
+
+    it('renders widgets based on activeWidgets from layout hook', async () => {
+      render(<Dashboard />);
+      // Grid should contain widget cards
+      await waitFor(() => {
+        const grid = screen.getByTestId('responsive-grid');
+        expect(grid.children.length).toBe(5); // 5 default widgets
+      });
+    });
+
+    it('shows empty state when no widgets are active', () => {
+      vi.mocked(useDashboardLayoutModule.useDashboardLayout).mockReturnValue({
+        ...defaultLayoutMock,
+        activeWidgets: [],
+        layouts: { lg: [], md: [], sm: [], xs: [], xxs: [] },
+      });
+      render(<Dashboard />);
+      expect(screen.getByText(/no widgets on your dashboard/i)).toBeInTheDocument();
+    });
   });
 });

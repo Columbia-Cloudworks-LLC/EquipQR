@@ -3,14 +3,22 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, QrCode, Camera, UserCircle } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
 import LandingHeader from '@/components/landing/LandingHeader';
 import LegalFooter from '@/components/layout/LegalFooter';
 
 const RepairShops = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <LandingHeader />
-      <main>
+    <>
+      <PageSEO
+        title="Built for Repair Shops - EquipQR"
+        description="Streamline your repair operations with QR code tracking, photo documentation, and customer management—all completely free. Built specifically for repair shops."
+        path="/solutions/repair-shops"
+        keywords="repair shop software, equipment repair tracking, customer management, QR code tracking, repair shop management, free repair shop software"
+      />
+      <div className="min-h-screen bg-background">
+        <LandingHeader />
+      <main id="main-content">
         {/* Hero Section */}
         <section className="relative pt-32 pb-24 bg-gradient-to-br from-background via-background to-primary/5">
           <div className="container px-4 mx-auto">
@@ -164,7 +172,8 @@ const RepairShops = () => {
         </section>
       </main>
       <LegalFooter />
-    </div>
+      </div>
+    </>
   );
 };
 

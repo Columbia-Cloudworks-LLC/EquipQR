@@ -1,13 +1,21 @@
 /* eslint-disable no-console */
 import '@testing-library/jest-dom';
-import { afterEach, beforeAll, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { createMockSupabaseClient } from './utils/mock-supabase';
 
 declare global {
   // Expose A11y control functions for tests
   let startA11yChecks: () => void;
   let stopA11yChecks: () => void;
 }
+
+// Mock Supabase client globally to prevent real client initialization
+// The real client has autoRefreshToken and WebSocket connections that keep
+// timers alive and prevent the test process from exiting
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: createMockSupabaseClient(),
+}));
 
 // Mock react-router-dom with proper MemoryRouter export
 vi.mock('react-router-dom', async () => {
@@ -21,9 +29,28 @@ vi.mock('react-router-dom', async () => {
 // Make vi globally available for tests
 globalThis.vi = vi;
 
+// Use a dedicated test-harness app version in tests to distinguish them from production
+// and ensure deterministic behavior. Tests don't need the real application version, so
+// we intentionally stub Vite's __APP_VERSION__ define to a fixed test-only value to keep
+// test behavior consistent across different execution environments.
+const TEST_APP_VERSION = 'test-harness-v0.0.0-test';
+vi.stubGlobal('__APP_VERSION__', TEST_APP_VERSION);
+
 // Cleanup after each test case
 afterEach(() => {
   cleanup();
+});
+
+// Global cleanup to ensure no dangling intervals/timers
+afterAll(() => {
+  // Clear any pending timers from vitest's fake timer system
+  vi.clearAllTimers();
+  // Restore real timers in case fake timers were used
+  vi.useRealTimers();
+  // Stop a11y checks if they were started
+  if (typeof globalThis.stopA11yChecks === 'function') {
+    globalThis.stopA11yChecks();
+  }
 });
 
 // Mock IntersectionObserver

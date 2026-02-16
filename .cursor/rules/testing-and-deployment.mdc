@@ -1,7 +1,0 @@
----
-alwaysApply: true
----
-- **Testing**: Vitest for units (`npm test`). Use `@testing-library/react` + mocks (e.g., `msw` for Supabase). Test hooks with `@testing-library/react-hooks`. Cover >80% (run `npm run test:coverage`). Integration: Test workflows (auth → query → mutation).
-- **CI/CD**: From scripts (`test-ci.mjs`, `coverage-ratchet.mjs`). Lint/type-check/build before deploy. Use Vercel/Netlify; check bundle size (`npm run size-check`).
-- **Deployment**: Prod: `npm run build`. Env vars: `VITE_SUPABASE_URL`, etc. Monitor with Sentry (if added).
-- **Debugging**: Use `DebugAuth.tsx`/`DebugBilling.tsx` in dev. Log with org/user context.

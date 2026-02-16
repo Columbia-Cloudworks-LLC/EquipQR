@@ -5,10 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { QrCode, AlertCircle, CheckCircle, ArrowLeft, Camera } from 'lucide-react';
+import { QrCode, AlertCircle, CheckCircle, ArrowLeft, Camera, Forklift, Package } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEquipmentById } from '@/hooks/useEquipment';
+import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import { useInventoryItem } from '@/features/inventory/hooks/useInventory';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import QRScannerComponent from '@/components/scanner/QRScannerComponent';
 import Page from '@/components/layout/Page';
 
@@ -20,29 +22,90 @@ const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scannedEquipmentId, setScannedEquipmentId] = useState<string | null>(null);
+  const [scannedInventoryItemId, setScannedInventoryItemId] = useState<string | null>(null);
+  const [isResolving, setIsResolving] = useState(false);
 
-  // Use sync hook for resolved equipment
+  // Use sync hooks for resolved items
   const { data: resolvedEquipment } = useEquipmentById(
     currentOrganization?.id, 
     scannedEquipmentId || undefined
   );
+  const { data: resolvedInventoryItem } = useInventoryItem(
+    currentOrganization?.id,
+    scannedInventoryItemId || undefined
+  );
 
-  const handleScan = useCallback((result: string) => {
+  const handleScan = useCallback(async (result: string) => {
     if (!result || !currentOrganization) return;
 
     setScanResult(result);
     setError(null);
+    setScannedEquipmentId(null);
+    setScannedInventoryItemId(null);
+    setIsResolving(true);
 
-    // Extract equipment ID from QR code
-    // Expected format: equipqr://equipment/{equipmentId} or just the equipment ID
-    let equipmentId = result;
-    if (result.startsWith('equipqr://equipment/')) {
-      equipmentId = result.replace('equipqr://equipment/', '');
+    try {
+      // Call edge function to resolve scan
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError('User not authenticated');
+        setIsResolving(false);
+        return;
+      }
+
+      const { data: resolution, error: resolutionError } = await supabase.functions.invoke(
+        'resolve-inventory-scan',
+        {
+          body: {
+            scanned_value: result,
+            current_organization_id: currentOrganization.id
+          }
+        }
+      );
+
+      if (resolutionError) {
+        throw resolutionError;
+      }
+
+      // Handle different resolution types
+      if (resolution.type === 'inventory') {
+        if (resolution.action === 'view') {
+          // In current org - navigate directly
+          setScannedInventoryItemId(resolution.id);
+          navigate(`/dashboard/inventory/${resolution.id}?qr=true`);
+        } else if (resolution.action === 'switch_prompt') {
+          // Need to show org switch prompt
+          setScannedInventoryItemId(resolution.id);
+        } else if (resolution.action === 'select_org_prompt') {
+          // Multiple orgs - show selection UI
+          // For now, just show the first match
+          if (resolution.matches && resolution.matches.length > 0) {
+            setScannedInventoryItemId(resolution.matches[0].id);
+          }
+        }
+      } else if (resolution.type === 'equipment' || resolution.action === 'equipment_fallback') {
+        // Fallback to equipment logic
+        let equipmentId = result;
+        if (result.startsWith('equipqr://equipment/')) {
+          equipmentId = result.replace('equipqr://equipment/', '');
+        }
+        setScannedEquipmentId(equipmentId);
+      } else {
+        setError('No matching item found');
+      }
+    } catch (err) {
+      console.error('Error resolving scan:', err);
+      // Fallback to equipment logic
+      let equipmentId = result;
+      if (result.startsWith('equipqr://equipment/')) {
+        equipmentId = result.replace('equipqr://equipment/', '');
+      }
+      setScannedEquipmentId(equipmentId);
+    } finally {
+      setIsResolving(false);
+      setIsScanning(false);
     }
-
-    setScannedEquipmentId(equipmentId);
-    setIsScanning(false);
-  }, [currentOrganization]);
+  }, [currentOrganization, navigate]);
 
   // Handle equipment resolution
   React.useEffect(() => {
@@ -62,6 +125,18 @@ const QRScanner = () => {
       }
     }
   }, [resolvedEquipment, scannedEquipmentId, currentOrganization, scanResult, toast]);
+
+  // Handle inventory item resolution
+  React.useEffect(() => {
+    if (scannedInventoryItemId && currentOrganization) {
+      if (resolvedInventoryItem) {
+        toast({
+          title: "Inventory Item Found",
+          description: `Successfully scanned ${resolvedInventoryItem.name}`,
+        });
+      }
+    }
+  }, [resolvedInventoryItem, scannedInventoryItemId, currentOrganization, toast]);
 
   const handleError = useCallback((error: Error | unknown) => {
     console.error('QR Scanner error:', error);
@@ -217,6 +292,63 @@ const QRScanner = () => {
               </Alert>
             )}
 
+            {isResolving && (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+                <p className="text-muted-foreground">Resolving scan...</p>
+              </div>
+            )}
+
+            {resolvedInventoryItem && (
+              <div className="space-y-4">
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Inventory item successfully identified!
+                  </AlertDescription>
+                </Alert>
+
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold text-lg">{resolvedInventoryItem.name}</h3>
+                      {resolvedInventoryItem.sku && (
+                        <p className="text-muted-foreground">SKU: {resolvedInventoryItem.sku}</p>
+                      )}
+                    </div>
+                    {resolvedInventoryItem.isLowStock && (
+                      <Badge variant="destructive">Low Stock</Badge>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium">Quantity:</span>
+                      <span className="ml-2 text-muted-foreground">
+                        {resolvedInventoryItem.quantity_on_hand}
+                      </span>
+                    </div>
+                    {resolvedInventoryItem.location && (
+                      <div>
+                        <span className="font-medium">Location:</span>
+                        <span className="ml-2 text-muted-foreground">
+                          {resolvedInventoryItem.location}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <Button 
+                    onClick={() => navigate(`/dashboard/inventory/${resolvedInventoryItem.id}?qr=true`)} 
+                    className="w-full"
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    View Inventory Item
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {resolvedEquipment && (
               <div className="space-y-4">
                 <Alert>
@@ -264,6 +396,7 @@ const QRScanner = () => {
                   </div>
 
                   <Button onClick={viewEquipment} className="w-full">
+                    <Forklift className="h-4 w-4 mr-2" />
                     View Full Details
                   </Button>
                 </div>

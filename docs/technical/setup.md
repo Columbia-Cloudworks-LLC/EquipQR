@@ -43,75 +43,111 @@ Visit `http://localhost:8080` to see the application running!
 
 ## Environment Configuration
 
-### Required Environment Variables
+> **📋 Source of Truth**: The `.env.example` file in the project root is the authoritative reference for all environment variables. It contains detailed descriptions, file references, and generation commands for each variable.
+
+### Environment Variable Categories
+
+EquipQR uses three categories of environment variables:
+
+| Category | Prefix | Where to Set | Access |
+|----------|--------|--------------|--------|
+| **Client (Vite)** | `VITE_` | `.env` or `.env.local` | Exposed to browser |
+| **Server (Edge Functions)** | None | `supabase/functions/.env` (local) | Server-side only |
+| **Edge Function Secrets** | None | Supabase Dashboard | Production/Preview only |
+
+### Required Environment Variables (Client)
 
 ```env
-# Supabase Configuration (Required)
+# Supabase Configuration (Required for frontend)
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### Optional Environment Variables
+### Optional Client Variables
 
 ```env
-# Optional Development Settings
-VITE_APP_TITLE=EquipQR™ Development
-VITE_ENABLE_DEVTOOLS=true
-VITE_LOG_LEVEL=debug
+# hCaptcha for sign-up form (optional for local dev)
+VITE_HCAPTCHA_SITEKEY=your-hcaptcha-site-key
 
-# Optional Production Settings
-VITE_SENTRY_DSN=your-sentry-dsn
-VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_key
-VITE_GOOGLE_MAPS_API_KEY=your_maps_key
+# Super admin access (for internal tools)
+VITE_SUPER_ADMIN_ORG_ID=your-org-id
+
+# Feature flags
+VITE_ENABLE_QUICKBOOKS=false
+VITE_ENABLE_QB_PDF_ATTACHMENT=false
+
+# Google Maps (for equipment location features)
+VITE_GOOGLE_MAPS_API_KEY=your-maps-key
 ```
 
-### Configuration Management
+### Edge Function Secrets (Production/Preview)
 
-```typescript
-// src/lib/config.ts
-export const config = {
-  app: {
-    title: import.meta.env.VITE_APP_TITLE || 'EquipQR™',
-    version: import.meta.env.VITE_APP_VERSION || '1.0.0',
-  },
-  supabase: {
-    url: import.meta.env.VITE_SUPABASE_URL,
-    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-  },
-  services: {
-    stripe: {
-      publishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
-    },
-    maps: {
-      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    },
-  },
-  features: {
-    enableDevTools: import.meta.env.VITE_ENABLE_DEVTOOLS === 'true',
-    enableAnalytics: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',
-  },
-};
+Edge Functions require secrets configured in the Supabase Dashboard. See the complete reference:
+
+👉 **[Supabase Branch Secrets Configuration](../ops/supabase-branch-secrets.md)**
+
+Key secrets include:
+
+- `SUPABASE_SERVICE_ROLE_KEY` - Privileged database operations
+- `RESEND_API_KEY` - Email sending
+- `TOKEN_ENCRYPTION_KEY` - OAuth token encryption (Google Workspace)
+- `KDF_SALT` - Deployment-specific encryption salt
+- Integration-specific secrets (QuickBooks, Google Workspace, etc.)
+
+### Local Edge Function Development
+
+For local Edge Function development, create `supabase/functions/.env`:
+
+```env
+# Copy values from 'npx supabase status' output
+SUPABASE_URL=http://localhost:54321
+SUPABASE_SERVICE_ROLE_KEY=<local-service-role-key>
+SUPABASE_ANON_KEY=<local-anon-key>
+
+# Add integration secrets as needed (see .env.example for full list)
 ```
+
+See **[Local Supabase Development Guide](../ops/local-supabase-development.md)** for complete setup instructions.
 
 ### Setting Up Supabase
 
-1. **Create a Supabase Project**
-   - Go to [Supabase Dashboard](https://supabase.com/dashboard)
-   - Click "New Project"
-   - Choose your organization and set project details
+> **⚠️ IMPORTANT: Local Supabase is the standard development method.**
+> 
+> All database development should be done locally first, then deployed to production. See [Local Supabase Development Guide](../ops/local-supabase-development.md) for complete setup instructions.
 
-2. **Get Your Credentials**
-   - Navigate to Settings > API
-   - Copy your Project URL and anon/public key
-   - Add these to your `.env` file
+**For local development (recommended):**
 
-3. **Set Up Database (Optional for Development)**
+1. **Install Docker** (required for local Supabase)
+   - Download from [Docker Desktop](https://www.docker.com/products/docker-desktop)
+
+2. **Set up local Supabase**:
    ```bash
-   # If you want to run migrations locally
+   # Install dependencies (includes Supabase CLI as dev dependency)
+   npm ci
+   
+   # Link to production project (for initial sync)
    npx supabase login
    npx supabase link --project-ref your-project-ref
+   
+   # Pull existing migrations from production
    npx supabase db pull
+   
+   # Start local Supabase instance
+   npx supabase start
    ```
+
+3. **Configure local environment**:
+   - Create `.env.local` with local Supabase credentials (from `npx supabase status`)
+   - Use local Supabase URL: `http://localhost:54321`
+
+**For production access (initial setup only):**
+
+1. **Get Production Credentials** (if needed for initial sync)
+   - Navigate to Settings > API in Supabase Dashboard
+   - Copy your Project URL and anon/public key
+   - These are primarily for linking and initial migration sync
+
+> **Note**: Supabase CLI is included as a dev dependency. Use `npx supabase` commands. Do NOT install globally with `npm install -g supabase` as global installation is not supported.
 
 ## Prerequisites
 
@@ -119,7 +155,7 @@ Before you begin, ensure you have the following installed on your development ma
 
 ### Required Software
 
-- **Node.js** (v18.x or v20.x) - [Download here](https://nodejs.org/)
+- **Node.js** (v22.x recommended, v20.x supported) - [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively (no yarn/pnpm/bun)
 - **Git** - [Download here](https://git-scm.com/)
 - **Modern Code Editor** - We recommend [VS Code](https://code.visualstudio.com/)
@@ -149,6 +185,23 @@ Before you begin, ensure you have the following installed on your development ma
 ## Detailed Setup Guide
 
 ### Development Workflow
+
+#### One-Click Start / Stop (Windows)
+
+Two batch files in the project root let you bring the entire local stack up or tear it down with a double-click:
+
+| Script | What it does |
+|--------|-------------|
+| **`dev-start.bat`** | Idempotent startup — verifies prerequisites (Node, Docker), starts Supabase + Vite, health-checks every service, and prints a readiness report. Safe to run repeatedly; already-running services are skipped. |
+| **`dev-stop.bat`** | Graceful shutdown — stops the Vite dev server, any `supabase functions serve` process, the Supabase Docker stack, and cleans up orphan processes on dev ports. Safe to run when nothing is running. |
+
+```bash
+# From the project root — or just double-click in Explorer
+.\dev-start.bat      # Spin up everything
+.\dev-stop.bat       # Tear down everything
+```
+
+> **Tip**: `dev-start.bat` exits with code 0 when all services are healthy, making it suitable as a Playwright / E2E pre-test step.
 
 #### Daily Development Commands
 
@@ -385,6 +438,12 @@ describe('EquipmentCard', () => {
 
 ### Database Changes
 
+> **⚠️ IMPORTANT: Local-First Development**
+> 
+> All database migrations must be developed and tested locally before deploying to production.
+
+**Standard workflow:**
+
 1. **Create Migration** (if needed)
    ```bash
    npx supabase migration new add_new_feature_table
@@ -393,7 +452,7 @@ describe('EquipmentCard', () => {
 2. **Write Migration SQL**
    ```sql
    -- supabase/migrations/timestamp_add_new_feature_table.sql
-   CREATE TABLE new_features (
+   CREATE TABLE IF NOT EXISTS new_features (
      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
      name TEXT NOT NULL,
      organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
@@ -411,15 +470,26 @@ describe('EquipmentCard', () => {
      ));
    ```
 
-3. **Apply Migration**
+3. **Test Locally** (REQUIRED before production deployment)
    ```bash
-   npx supabase db push
+   # Reset local database and apply all migrations
+   npx supabase db reset
+   
+   # Verify schema matches expectations
+   npx supabase db diff
    ```
 
 4. **Update Types**
    ```bash
    npx supabase gen types typescript --local > src/integrations/supabase/types.ts
    ```
+
+5. **Deploy to Production** (only after local testing succeeds)
+   ```bash
+   npx supabase db push --linked
+   ```
+
+**Note**: See [Local Supabase Development Guide](../ops/local-supabase-development.md) for detailed setup instructions.
 
 ## Troubleshooting Common Issues
 
@@ -596,9 +666,11 @@ npm run test:coverage -- --reporter=html
 ### Resources
 
 - **Documentation**: Check the `docs/` folder
+- **Environment Variables**: `.env.example` (source of truth for all env vars)
+- **Edge Function Secrets**: `docs/ops/supabase-branch-secrets.md`
 - **API Reference**: `docs/technical/api-reference.md`
 - **Architecture Guide**: `docs/technical/architecture.md`
-- **Agents Guide**: `../../.cursor/agents.md` (development workflow)
+- **Local Development**: `docs/ops/local-supabase-development.md`
 
 ### Team Communication
 
@@ -619,10 +691,10 @@ npm run size-check    # Check bundle size
 ## Next Steps
 
 1. **Explore the Codebase**: Start with `src/App.tsx` and follow the component tree
-2. **Read the Documentation**: Review `docs/features.md` and `docs/technical/architecture.md`
+2. **Read the Documentation**: Review `docs/technical/architecture.md` and `docs/README.md`
 3. **Run Tests**: Execute `npm run test` to understand the testing patterns
 4. **Make a Small Change**: Try updating a component or adding a new feature
 5. **Join the Team**: Participate in code reviews and team discussions
 
-Welcome to the EquipQR™ development team! 🎉
+Welcome to the EquipQR™ development team!
 

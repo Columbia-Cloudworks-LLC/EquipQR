@@ -1,0 +1,22 @@
+---
+description: "Standards for Supabase SQL Migrations & Database Schema"
+globs: "supabase/migrations/*.sql"
+---
+# Supabase Database Standards
+
+## Migration Files
+- **Naming:** Format as `YYYYMMDDHHMMSS_description.sql` (e.g., `20240101120000_add_equipment_table.sql`).
+- **Idempotency:** standard `CREATE TABLE IF NOT EXISTS`, `DO $$BEGIN... END$$` blocks for policies/triggers to prevent errors on re-runs.
+- **Down Migrations:** Always include comments or a separate file describing how to revert the change (even if not strictly executed by the CLI).
+
+## SQL Best Practices
+- **Keys:** ALWAYS define Primary Keys (usually `uuid` or `bigint`) and Foreign Keys with explicit names.
+- **Indexes:** explicitly name indexes: `idx_<table_name>_<column_name>`.
+- **Snake Case:** Use `snake_case` for all table names, column names, and function names.
+- **Comments:** Add SQL comments (`COMMENT ON TABLE ...`) for complex tables or critical columns.
+- **Deployment:** Always run and validate migrations locally first. Do **not** run migrations directly against production/remote databases from your local CLI; instead, deploy them to remote environments via the approved CI/CD pipeline or Supabase migration tooling.
+
+## Row Level Security (RLS)
+- **Default Secure:** ENABLE RLS on every table immediately after creation: `ALTER TABLE "public"."table_name" ENABLE ROW LEVEL SECURITY;`.
+- **Policies:** Define separate policies for `SELECT`, `INSERT`, `UPDATE`, `DELETE`.
+- **Performance:** Avoid complex joins in RLS policies if possible to prevent performance degradation on large datasets.

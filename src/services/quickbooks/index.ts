@@ -18,4 +18,26 @@ export {
 export {
   type QuickBooksCredentials,
   type QuickBooksConnectionStatus,
+  type QuickBooksEnvironment,
+  getQuickBooksInvoiceUrl,
 } from './types';
+
+export {
+  createOAuthSession,
+  validateOAuthSession,
+  getConnectionStatus,
+  manualTokenRefresh,
+  disconnectQuickBooks,
+  getTeamCustomerMapping,
+  updateTeamCustomerMapping,
+  clearTeamCustomerMapping,
+  searchCustomers,
+  exportInvoice,
+  getExportLogs,
+  getLastSuccessfulExport,
+  type QuickBooksCustomer,
+  type TeamCustomerMapping,
+  type QuickBooksExportLog,
+  type CustomerSearchResult,
+  type InvoiceExportResult,
+} from './quickbooksService';

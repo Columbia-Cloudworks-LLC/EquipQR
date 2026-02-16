@@ -15,12 +15,67 @@
 export const BILLING_DISABLED = import.meta.env.BILLING_DISABLED === 'true' || import.meta.env.BILLING_DISABLED !== 'false';
 
 /**
+ * Controls whether QuickBooks Online integration is enabled.
+ * When disabled, all QuickBooks-related UI and functionality is hidden.
+ * 
+ * Set via environment variable: VITE_ENABLE_QUICKBOOKS
+ * Defaults to false (disabled) unless explicitly set to 'true'.
+ */
+export const QUICKBOOKS_ENABLED = import.meta.env.VITE_ENABLE_QUICKBOOKS === 'true';
+
+/**
+ * Controls whether PDF attachments are enabled for QuickBooks invoice exports.
+ * When enabled, a PDF containing public work order details will be attached to exported invoices.
+ * 
+ * Set via environment variable: VITE_ENABLE_QB_PDF_ATTACHMENT
+ * Defaults to false (disabled) unless explicitly set to 'true'.
+ * 
+ * Note: This is a client-side flag for UI purposes. The actual feature is controlled
+ * by the ENABLE_QB_PDF_ATTACHMENT environment variable in the Supabase edge function.
+ */
+export const QB_PDF_ATTACHMENT_ENABLED = import.meta.env.VITE_ENABLE_QB_PDF_ATTACHMENT === 'true';
+
+/**
+ * Controls whether the enhanced geolocation hierarchy features are enabled.
+ * Includes: team location override, structured address fields, location history, and privacy controls.
+ * 
+ * Set via environment variable: VITE_ENABLE_GEOLOCATION_HIERARCHY
+ * Defaults to false (disabled) unless explicitly set to 'true'.
+ */
+export const GEOLOCATION_HIERARCHY_ENABLED = import.meta.env.VITE_ENABLE_GEOLOCATION_HIERARCHY === 'true';
+
+/**
+ * Controls whether Multi-Factor Authentication (MFA) features are enabled.
+ * When enabled, TOTP-based MFA is available for all users and mandatory for admin/owner roles.
+ * 
+ * Set via environment variable: VITE_ENABLE_MFA
+ * Defaults to false (disabled) unless explicitly set to 'true'.
+ */
+export const MFA_ENABLED = import.meta.env.VITE_ENABLE_MFA === 'true';
+
+/**
  * Feature flag accessor utility
  */
 export const FeatureFlags = {
   billing: {
     disabled: BILLING_DISABLED,
     enabled: !BILLING_DISABLED
+  },
+  quickbooks: {
+    enabled: QUICKBOOKS_ENABLED,
+    disabled: !QUICKBOOKS_ENABLED,
+    pdfAttachment: {
+      enabled: QB_PDF_ATTACHMENT_ENABLED,
+      disabled: !QB_PDF_ATTACHMENT_ENABLED
+    }
+  },
+  geolocation: {
+    enabled: GEOLOCATION_HIERARCHY_ENABLED,
+    disabled: !GEOLOCATION_HIERARCHY_ENABLED
+  },
+  mfa: {
+    enabled: MFA_ENABLED,
+    disabled: !MFA_ENABLED
   }
 } as const;
 
@@ -40,3 +95,42 @@ export function isBillingDisabled(): boolean {
   return BILLING_DISABLED;
 }
 
+/**
+ * Check if QuickBooks integration is enabled
+ * @returns true if QuickBooks features should be active
+ */
+export function isQuickBooksEnabled(): boolean {
+  return QUICKBOOKS_ENABLED;
+}
+
+/**
+ * Check if QuickBooks integration is disabled
+ * @returns true if QuickBooks is disabled
+ */
+export function isQuickBooksDisabled(): boolean {
+  return !QUICKBOOKS_ENABLED;
+}
+
+/**
+ * Check if QuickBooks PDF attachment is enabled
+ * @returns true if PDF attachments should be active
+ */
+export function isQBPDFAttachmentEnabled(): boolean {
+  return QB_PDF_ATTACHMENT_ENABLED;
+}
+
+/**
+ * Check if geolocation hierarchy is enabled
+ * @returns true if geolocation hierarchy features should be active
+ */
+export function isGeolocationHierarchyEnabled(): boolean {
+  return GEOLOCATION_HIERARCHY_ENABLED;
+}
+
+/**
+ * Check if MFA is enabled
+ * @returns true if MFA features should be active
+ */
+export function isMFAEnabled(): boolean {
+  return MFA_ENABLED;
+}

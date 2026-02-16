@@ -1,58 +1,54 @@
+/**
+ * Public Google Maps Key Edge Function
+ *
+ * Returns the Google Maps browser API key to authenticated users.
+ * Requires a valid JWT (verify_jwt=true in config.toml).
+ */
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import {
+  createUserSupabaseClient,
+  requireUser,
+  createErrorResponse,
+  createJsonResponse,
+  handleCorsPreflightIfNeeded,
+} from "../_shared/supabase-clients.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+const logStep = (step: string, details?: Record<string, unknown>) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
+  console.log(`[PUBLIC-GOOGLE-MAPS-KEY] ${step}${detailsStr}`);
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    console.log("[public-google-maps-key] Function invoked", {
-      method: req.method,
-      url: req.url,
-      timestamp: new Date().toISOString()
-    });
+    logStep("Function invoked");
 
-    const browserKey = Deno.env.get("VITE_GOOGLE_MAPS_BROWSER_KEY");
-    console.log("[public-google-maps-key] Environment check", {
-      hasKey: !!browserKey,
-      keyLength: browserKey?.length || 0
-    });
-
-    if (!browserKey) {
-      console.error("[public-google-maps-key] Missing API key in environment");
-      return new Response(JSON.stringify({ 
-        error: "VITE_GOOGLE_MAPS_BROWSER_KEY is not configured in Supabase Edge Function secrets" 
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      });
+    // Create user-scoped client and validate authentication
+    const supabase = createUserSupabaseClient(req);
+    const auth = await requireUser(req, supabase);
+    if ("error" in auth) {
+      return createErrorResponse(auth.error, auth.status);
     }
 
-    console.log("[public-google-maps-key] Successfully returning API key");
-    return new Response(JSON.stringify({ key: browserKey }), {
-      headers: { 
-        ...corsHeaders, 
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0"
-      },
-      status: 200,
-    });
+    logStep("User authenticated", { userId: auth.user.id });
+
+    // Prefer the new name; fall back to legacy VITE_-prefixed name for compat
+    const browserKey = Deno.env.get("GOOGLE_MAPS_BROWSER_KEY") || Deno.env.get("VITE_GOOGLE_MAPS_BROWSER_KEY");
+
+    if (!browserKey) {
+      logStep("Missing API key in environment");
+      return createErrorResponse("An internal error occurred", 500);
+    }
+
+    logStep("Successfully returning API key");
+    return createJsonResponse({ key: browserKey });
   } catch (error) {
-    console.error("[public-google-maps-key] Function error:", error);
-    return new Response(JSON.stringify({ 
-      error: "Internal server error",
-      details: error instanceof Error ? error.message : "Unknown error"
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    // Log the full error server-side for debugging
+    console.error("[PUBLIC-GOOGLE-MAPS-KEY] Function error:", error);
+    // Return generic message to client - never expose error.message directly
+    return createErrorResponse("An unexpected error occurred", 500);
   }
 });

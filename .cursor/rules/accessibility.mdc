@@ -1,0 +1,10 @@
+---
+description: "Accessibility (a11y) Standards"
+globs: "**/*.tsx"
+---
+# Accessibility
+
+- **Forms:** All inputs must have associated labels (`<Label htmlFor="...">` or `aria-label`).
+- **Interactive Elements:** Buttons and Links must have discernible text or `aria-label`.
+- **Keyboard Nav:** Ensure all custom interactive components are focusable and usable via keyboard.
+- **Images:** All `img` tags must have descriptive `alt` text.

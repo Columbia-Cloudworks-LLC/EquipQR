@@ -1,0 +1,315 @@
+
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/hooks/useAuth';
+import { equipmentFormSchema, EquipmentFormData, EquipmentRecord } from '@/features/equipment/types/equipment';
+import { toast } from 'sonner';
+import { shallowEqual, applyEquipmentUpdateRules } from '@/utils/object-utils';
+import { logEquipmentLocationChange } from '@/features/equipment/services/equipmentLocationHistoryService';
+
+/**
+ * Helper to compare two values for equality.
+ * Uses shallowEqual for object comparison, strict equality for primitives.
+ * 
+ * @param value - The new value to compare
+ * @param initialValue - The initial/original value to compare against
+ * @returns true if values are equal, false otherwise
+ */
+function areValuesEqual(value: unknown, initialValue: unknown): boolean {
+  if (typeof value === 'object' && value !== null && typeof initialValue === 'object' && initialValue !== null) {
+    return shallowEqual(value, initialValue);
+  }
+  return value === initialValue;
+}
+
+export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () => void) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
+
+  const form = useForm<EquipmentFormData>({
+    resolver: zodResolver(equipmentFormSchema),
+    defaultValues: initialData ? {
+      name: initialData.name,
+      manufacturer: initialData.manufacturer,
+      model: initialData.model,
+      serial_number: initialData.serial_number,
+      status: initialData.status,
+      location: initialData.location,
+      installation_date: initialData.installation_date,
+      warranty_expiration: initialData.warranty_expiration || '',
+      last_maintenance: initialData.last_maintenance || '',
+      notes: initialData.notes || '',
+      custom_attributes: initialData.custom_attributes || {},
+      image_url: initialData.image_url || '',
+      last_known_location: initialData.last_known_location || undefined,
+      team_id: initialData.team_id || '',
+      default_pm_template_id: initialData.default_pm_template_id || '',
+      assigned_location_street: initialData.assigned_location_street || '',
+      assigned_location_city: initialData.assigned_location_city || '',
+      assigned_location_state: initialData.assigned_location_state || '',
+      assigned_location_country: initialData.assigned_location_country || '',
+      assigned_location_lat: initialData.assigned_location_lat || undefined,
+      assigned_location_lng: initialData.assigned_location_lng || undefined
+    } : {
+      name: '',
+      manufacturer: '',
+      model: '',
+      serial_number: '',
+      status: 'active' as const,
+      location: '',
+      installation_date: new Date().toISOString().split('T')[0],
+      warranty_expiration: '',
+      last_maintenance: '',
+      notes: '',
+      custom_attributes: {},
+      image_url: '',
+      last_known_location: undefined,
+      team_id: '',
+      default_pm_template_id: '',
+      assigned_location_street: '',
+      assigned_location_city: '',
+      assigned_location_state: '',
+      assigned_location_country: '',
+      assigned_location_lat: undefined,
+      assigned_location_lng: undefined
+    }
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: EquipmentFormData) => {
+      if (!currentOrganization?.id || !user?.id) {
+        throw new Error('Organization or user not found');
+      }
+
+      const equipmentData = {
+        name: data.name,
+        manufacturer: data.manufacturer,
+        model: data.model,
+        serial_number: data.serial_number,
+        status: data.status,
+        location: data.location,
+        installation_date: data.installation_date,
+        organization_id: currentOrganization.id,
+        customer_id: null,
+        warranty_expiration: data.warranty_expiration || null,
+        last_maintenance: data.last_maintenance || null,
+        last_maintenance_work_order_id: null,
+        notes: data.notes || null,
+        custom_attributes: data.custom_attributes || {},
+        image_url: data.image_url || null,
+        last_known_location: data.last_known_location || null,
+        team_id: data.team_id || null,
+        default_pm_template_id: data.default_pm_template_id || null,
+        assigned_location_street: data.assigned_location_street || null,
+        assigned_location_city: data.assigned_location_city || null,
+        assigned_location_state: data.assigned_location_state || null,
+        assigned_location_country: data.assigned_location_country || null,
+        assigned_location_lat: data.assigned_location_lat || null,
+        assigned_location_lng: data.assigned_location_lng || null,
+        working_hours: 0,
+        import_id: null
+      };
+
+      const { data: result, error } = await supabase
+        .from('equipment')
+        .insert(equipmentData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Log location change if assigned location fields are present
+      if (
+        data.assigned_location_street ||
+        data.assigned_location_city ||
+        data.assigned_location_state ||
+        data.assigned_location_country ||
+        data.assigned_location_lat != null ||
+        data.assigned_location_lng != null
+      ) {
+        logEquipmentLocationChange({
+          equipmentId: result.id,
+          source: 'manual',
+          latitude: data.assigned_location_lat ?? null,
+          longitude: data.assigned_location_lng ?? null,
+          addressStreet: data.assigned_location_street ?? null,
+          addressCity: data.assigned_location_city ?? null,
+          addressState: data.assigned_location_state ?? null,
+          addressCountry: data.assigned_location_country ?? null,
+        }).catch(() => {
+          // Silently fail - logging is non-blocking
+        });
+      }
+
+      return result;
+    },
+    onSuccess: () => {
+      // Invalidate with organization-specific key pattern
+      queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-status-counts', currentOrganization?.id] });
+      toast.success('Equipment created successfully');
+      form.reset();
+      setIsOpen(false);
+      onSuccess?.();
+    },
+    onError: (error) => {
+      console.error('Equipment creation error:', error);
+      toast.error('Failed to create equipment');
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: EquipmentFormData) => {
+      if (!initialData?.id) {
+        throw new Error('Equipment ID not found');
+      }
+
+      const normalizedData = {
+        name: data.name,
+        manufacturer: data.manufacturer,
+        model: data.model,
+        serial_number: data.serial_number,
+        status: data.status,
+        location: data.location,
+        installation_date: data.installation_date,
+        warranty_expiration: data.warranty_expiration || null,
+        last_maintenance: data.last_maintenance || null,
+        notes: data.notes || null,
+        custom_attributes: data.custom_attributes || {},
+        image_url: data.image_url || null,
+        last_known_location: data.last_known_location || null,
+        team_id: data.team_id || null,
+        default_pm_template_id: data.default_pm_template_id || null,
+        assigned_location_street: data.assigned_location_street || null,
+        assigned_location_city: data.assigned_location_city || null,
+        assigned_location_state: data.assigned_location_state || null,
+        assigned_location_country: data.assigned_location_country || null,
+        assigned_location_lat: data.assigned_location_lat || null,
+        assigned_location_lng: data.assigned_location_lng || null
+      };
+
+      const normalizedInitial = {
+        name: initialData.name,
+        manufacturer: initialData.manufacturer,
+        model: initialData.model,
+        serial_number: initialData.serial_number,
+        status: initialData.status,
+        location: initialData.location,
+        installation_date: initialData.installation_date,
+        warranty_expiration: initialData.warranty_expiration ?? null,
+        last_maintenance: initialData.last_maintenance ?? null,
+        notes: initialData.notes ?? null,
+        custom_attributes: initialData.custom_attributes ?? {},
+        image_url: initialData.image_url ?? null,
+        last_known_location: initialData.last_known_location ?? null,
+        team_id: initialData.team_id ?? null,
+        default_pm_template_id: initialData.default_pm_template_id ?? null,
+        assigned_location_street: initialData.assigned_location_street ?? null,
+        assigned_location_city: initialData.assigned_location_city ?? null,
+        assigned_location_state: initialData.assigned_location_state ?? null,
+        assigned_location_country: initialData.assigned_location_country ?? null,
+        assigned_location_lat: initialData.assigned_location_lat ?? null,
+        assigned_location_lng: initialData.assigned_location_lng ?? null
+      };
+
+      const changedFields = Object.entries(normalizedData).reduce((acc, [key, value]) => {
+        const initialValue = normalizedInitial[key as keyof typeof normalizedInitial];
+
+        if (!areValuesEqual(value, initialValue)) {
+          acc[key] = value;
+        }
+
+        return acc;
+      }, {} as Record<string, unknown>);
+
+      // Apply business rules (e.g., clearing work order ID when last_maintenance changes)
+      const equipmentData = applyEquipmentUpdateRules(changedFields);
+
+      // If no changes detected, return early without making a DB call.
+      // Returning a value (instead of throwing) means the mutation resolves successfully,
+      // which triggers onSuccess callbacks. This is intentional: the user submitted the form
+      // so we want the success toast and modal close to occur, even if nothing changed.
+      if (Object.keys(equipmentData).length === 0) {
+        return initialData;
+      }
+
+      const { data: result, error } = await supabase
+        .from('equipment')
+        .update(equipmentData)
+        .eq('id', initialData.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Log location change if assigned location fields changed
+      const locationChanged = 
+        normalizedData.assigned_location_street !== normalizedInitial.assigned_location_street ||
+        normalizedData.assigned_location_city !== normalizedInitial.assigned_location_city ||
+        normalizedData.assigned_location_state !== normalizedInitial.assigned_location_state ||
+        normalizedData.assigned_location_country !== normalizedInitial.assigned_location_country ||
+        normalizedData.assigned_location_lat !== normalizedInitial.assigned_location_lat ||
+        normalizedData.assigned_location_lng !== normalizedInitial.assigned_location_lng;
+
+      if (locationChanged && (
+        normalizedData.assigned_location_street ||
+        normalizedData.assigned_location_city ||
+        normalizedData.assigned_location_state ||
+        normalizedData.assigned_location_country ||
+        normalizedData.assigned_location_lat != null ||
+        normalizedData.assigned_location_lng != null
+      )) {
+        logEquipmentLocationChange({
+          equipmentId: initialData.id,
+          source: 'manual',
+          latitude: normalizedData.assigned_location_lat ?? null,
+          longitude: normalizedData.assigned_location_lng ?? null,
+          addressStreet: normalizedData.assigned_location_street ?? null,
+          addressCity: normalizedData.assigned_location_city ?? null,
+          addressState: normalizedData.assigned_location_state ?? null,
+          addressCountry: normalizedData.assigned_location_country ?? null,
+        }).catch(() => {
+          // Silently fail - logging is non-blocking
+        });
+      }
+
+      return result;
+    },
+    onSuccess: () => {
+      // Invalidate with organization-specific key pattern
+      queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id, initialData?.id] });
+      toast.success('Equipment updated successfully');
+      setIsOpen(false);
+      onSuccess?.();
+    },
+    onError: (error) => {
+      console.error('Equipment update error:', error);
+      toast.error('Failed to update equipment');
+    }
+  });
+
+  const onSubmit = (data: EquipmentFormData) => {
+    if (initialData) {
+      updateMutation.mutate(data);
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  return {
+    form,
+    onSubmit,
+    isEdit: !!initialData,
+    isPending: createMutation.isPending || updateMutation.isPending,
+    isOpen,
+    setIsOpen
+  };
+};

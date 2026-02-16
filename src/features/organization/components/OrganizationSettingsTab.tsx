@@ -1,0 +1,243 @@
+import React, { useState, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useAppToast } from '@/hooks/useAppToast';
+import { useQueryClient } from '@tanstack/react-query';
+import { Settings, Palette } from 'lucide-react';
+import { QuickBooksIntegration } from './QuickBooksIntegration';
+import { DangerZoneSection } from './DangerZoneSection';
+import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
+import { uploadOrganizationLogo, deleteOrganizationLogo } from '@/features/organization/services/organizationService';
+import SingleImageUpload from '@/components/common/SingleImageUpload';
+
+const organizationFormSchema = z.object({
+  name: z.string().min(1, 'Organization name is required').max(100, 'Name too long'),
+  backgroundColor: z.string().optional(),
+});
+
+type OrganizationFormData = z.infer<typeof organizationFormSchema>;
+
+interface OrganizationSettingsTabProps {
+  currentUserRole: 'owner' | 'admin' | 'member';
+}
+
+const OrganizationSettingsTab: React.FC<OrganizationSettingsTabProps> = ({
+  currentUserRole
+}) => {
+  const { currentOrganization } = useOrganization();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [currentLogo, setCurrentLogo] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const appToast = useAppToast();
+
+  // Fetch members to get admins for transfer ownership
+  const { data: members = [] } = useOrganizationMembersQuery(currentOrganization?.id || '');
+
+  // Filter to get only active admins (for ownership transfer)
+  const admins = useMemo(() => {
+    return members
+      .filter(m => m.role === 'admin' && m.status === 'active')
+      .map(m => ({
+        id: m.id,
+        userId: m.userId,
+        name: m.name,
+        email: m.email,
+      }));
+  }, [members]);
+
+  // Initialize and sync currentLogo from organization (including clearing when no logo)
+  React.useEffect(() => {
+    setCurrentLogo(currentOrganization?.logo ?? null);
+  }, [currentOrganization?.logo]);
+
+  const form = useForm<OrganizationFormData>({
+    resolver: zodResolver(organizationFormSchema),
+    defaultValues: {
+      name: currentOrganization?.name || '',
+      backgroundColor: currentOrganization?.backgroundColor || '#ffffff',
+    },
+  });
+
+  const canEdit = currentUserRole === 'owner' || currentUserRole === 'admin';
+
+  const onSubmit = async (data: OrganizationFormData) => {
+    if (!canEdit || !currentOrganization) {
+      appToast.error({ description: 'You do not have permission to edit organization settings' });
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const updates: {
+        name: string;
+        updated_at: string;
+        background_color?: string;
+      } = {
+        name: data.name,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (data.backgroundColor) {
+        updates.background_color = data.backgroundColor;
+      }
+
+      const { error } = await supabase
+        .from('organizations')
+        .update(updates)
+        .eq('id', currentOrganization.id);
+
+      if (error) throw error;
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      await queryClient.invalidateQueries({ queryKey: ['simple-organizations'] });
+
+      appToast.success({ description: 'Organization settings updated successfully' });
+    } catch (error) {
+      console.error('Error updating organization:', error);
+      appToast.error({ description: 'Failed to update organization settings' });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    if (!currentOrganization) return;
+    const publicUrl = await uploadOrganizationLogo(currentOrganization.id, file);
+    setCurrentLogo(publicUrl);
+    await queryClient.invalidateQueries({ queryKey: ['organizations'] });
+    await queryClient.invalidateQueries({ queryKey: ['simple-organizations'] });
+  };
+
+  const handleLogoDelete = async () => {
+    if (!currentOrganization || !currentLogo) return;
+    await deleteOrganizationLogo(currentOrganization.id, currentLogo);
+    setCurrentLogo(null);
+    await queryClient.invalidateQueries({ queryKey: ['organizations'] });
+    await queryClient.invalidateQueries({ queryKey: ['simple-organizations'] });
+  };
+
+  if (!currentOrganization) {
+    return null;
+  }
+
+  const isDirty = form.formState.isDirty;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Settings className="h-5 w-5" />
+        <h2 className="text-lg font-semibold">Organization Settings</h2>
+      </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Basic Information</CardTitle>
+          <CardDescription>
+            Update your organization's basic information and branding.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Organization Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Enter organization name"
+                        disabled={!canEdit || isUpdating}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <SingleImageUpload
+                currentImageUrl={currentLogo}
+                onUpload={handleLogoUpload}
+                onDelete={handleLogoDelete}
+                maxSizeMB={5}
+                disabled={!canEdit || isUpdating}
+                label="Organization Logo"
+                helpText="Upload your organization's logo image"
+              />
+
+              <FormField
+                control={form.control}
+                name="backgroundColor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Palette className="h-4 w-4" />
+                      Background Color
+                    </FormLabel>
+                    <FormControl>
+                      <div className="flex gap-2">
+                        <Input
+                          {...field}
+                          type="color"
+                          className="w-16 h-10 border border-input"
+                          disabled={!canEdit || isUpdating}
+                        />
+                        <Input
+                          {...field}
+                          placeholder="#ffffff"
+                          className="flex-1"
+                          disabled={!canEdit || isUpdating}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {canEdit && (
+                <Button
+                  type="submit"
+                  disabled={!isDirty || isUpdating}
+                  className="w-full sm:w-auto"
+                >
+                  {isUpdating ? 'Saving...' : 'Save Changes'}
+                </Button>
+              )}
+            </form>
+          </Form>
+
+          {!canEdit && (
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Only organization owners and admins can modify these settings.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* QuickBooks Integration Section */}
+      <QuickBooksIntegration currentUserRole={currentUserRole} />
+
+      {/* Danger Zone Section */}
+      <DangerZoneSection
+        organization={currentOrganization}
+        currentUserRole={currentUserRole}
+        admins={admins}
+      />
+    </div>
+  );
+};
+
+export default OrganizationSettingsTab;

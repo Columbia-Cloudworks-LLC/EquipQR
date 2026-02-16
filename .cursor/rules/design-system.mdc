@@ -1,0 +1,18 @@
+---
+description: "UI/UX & Design System Guidelines"
+globs: "**/*.tsx"
+---
+# Design System
+
+## Components
+- **Primary Source:** ALWAYS check `src/components/ui` for existing components (shadcn/ui) before creating new ones.
+- **Composition:** Compose complex UIs using `Card`, `Dialog`, `Sheet`, etc.
+
+## Styling (Tailwind CSS)
+- **Utility First:** Use Tailwind utility classes. Avoid custom CSS modules or `style` tags.
+- **Responsiveness:** Mobile-first approach. Use `sm:`, `md:`, `lg:` prefixes.
+- **Spacing:** Use standard Tailwind spacing (e.g., `gap-4`, `p-6`).
+- **Colors:** Use semantic colors defined in `tailwind.config.ts` (e.g., `bg-primary`, `text-muted-foreground`) rather than hardcoded hex values.
+
+## Icons
+- Use `lucide-react` for all icons.

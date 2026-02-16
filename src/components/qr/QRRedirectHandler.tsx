@@ -8,15 +8,17 @@ import { useQRRedirectWithOrgSwitch } from '@/hooks/useQRRedirectWithOrgSwitch';
 import { logger } from '@/utils/logger';
 
 interface QRRedirectHandlerProps {
-  equipmentId: string | undefined;
+  equipmentId?: string | undefined;
+  inventoryItemId?: string | undefined;
 }
 
-export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentId }) => {
+export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentId, inventoryItemId }) => {
   const [shouldNavigate, setShouldNavigate] = React.useState(false);
   const [navigationTarget, setNavigationTarget] = React.useState<string | null>(null);
   
   const { state, isSwitchingOrg, handleOrgSwitch, retry } = useQRRedirectWithOrgSwitch({
     equipmentId,
+    inventoryItemId,
     onComplete: (targetPath) => {
       // Allow parent component to run any additional logic here (analytics, toasts, etc.)
       if (import.meta.env.DEV) {
@@ -37,7 +39,7 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">
-                  Verifying equipment access...
+                  Verifying access...
                 </p>
               </div>
             </div>
@@ -61,7 +63,7 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
   }
 
   // Organization switch required
-  if (state.needsOrgSwitch && state.equipmentInfo) {
+  if (state.needsOrgSwitch && (state.equipmentInfo || state.inventoryInfo)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
@@ -71,21 +73,21 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
               <span>Organization Switch Required</span>
             </CardTitle>
             <CardDescription>
-              This equipment belongs to a different organization
+              This {state.equipmentInfo ? 'equipment' : 'item'} belongs to a different organization
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Equipment found in:
-              </p>
-              <p className="font-medium text-foreground">
-                {state.equipmentInfo.organizationName}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Your role: {state.equipmentInfo.userRole}
-              </p>
-            </div>
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {state.equipmentInfo ? 'Equipment' : 'Inventory item'} found in:
+                </p>
+                <p className="font-medium text-foreground">
+                  {state.equipmentInfo?.organizationName || state.inventoryInfo?.organizationName}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Your role: {state.equipmentInfo?.userRole || state.inventoryInfo?.userRole}
+                </p>
+              </div>
 
             <div className="flex flex-col space-y-2">
               <Button 
@@ -155,6 +157,23 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
               >
                 Back to Scanner
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Still processing - show loading while waiting for onComplete to trigger navigation
+  // Only show this if navigation hasn't already been triggered
+  if (state.canProceed && state.targetPath && !shouldNavigate) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Redirecting...</p>
             </div>
           </CardContent>
         </Card>

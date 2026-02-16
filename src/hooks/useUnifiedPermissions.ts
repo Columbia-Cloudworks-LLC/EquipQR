@@ -10,7 +10,7 @@ import {
   EquipmentNotesPermissions,
   Role
 } from '@/types/permissions';
-import { WorkOrderData } from '@/types/workOrder';
+import { WorkOrderData } from '@/features/work-orders/types/workOrder';
 
 export const useUnifiedPermissions = () => {
   const { getCurrentOrganization, getUserTeamIds, hasTeamAccess, canManageTeam } = useSession();
@@ -78,7 +78,16 @@ export const useUnifiedPermissions = () => {
       };
     },
     canViewAll: hasRole(['owner', 'admin', 'member']),
-    canCreateAny: hasRole(['owner', 'admin'])
+    canCreateAny: hasRole(['owner', 'admin']),
+    /**
+     * Check if user can create equipment for a specific team.
+     * Admins/owners can create for any team; members can only create for their own teams.
+     * Used for inline equipment creation during work order creation.
+     */
+    canCreateForTeam: (teamId: string): boolean => {
+      if (hasRole(['owner', 'admin'])) return true;
+      return hasTeamAccess(teamId);
+    }
   };
 
   // Work order permissions
@@ -153,6 +162,21 @@ export const useUnifiedPermissions = () => {
     canManageAny: hasRole(['owner', 'admin'])
   };
 
+  // Inventory permissions
+  // Note: isPartsManager must be passed from the calling component using useIsPartsManager hook
+  const inventory = {
+    getPermissions: (isPartsManager: boolean = false): EntityPermissions => ({
+      canView: hasRole(['owner', 'admin', 'member']) || isPartsManager,
+      canCreate: hasRole(['owner', 'admin']) || isPartsManager,
+      canEdit: hasRole(['owner', 'admin']) || isPartsManager,
+      canDelete: hasRole(['owner', 'admin']),
+      canAddNotes: hasRole(['owner', 'admin', 'member']) || isPartsManager,
+      canAddImages: hasRole(['owner', 'admin', 'member']) || isPartsManager
+    }),
+    canManageAny: (isPartsManager: boolean = false) => hasRole(['owner', 'admin']) || isPartsManager,
+    canManagePartsManagers: hasRole(['owner', 'admin'])
+  };
+
   // Equipment notes permissions
   const getEquipmentNotesPermissions = (equipmentTeamId?: string): EquipmentNotesPermissions => {
     const hasTeamAccess = equipmentTeamId ? isTeamMember(equipmentTeamId) : true;
@@ -185,6 +209,7 @@ export const useUnifiedPermissions = () => {
     equipment,
     workOrders,
     teams,
+    inventory,
     
     // Utility functions
     hasRole,

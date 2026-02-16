@@ -7,8 +7,15 @@
  */
 
 /**
- * QuickBooks credentials stored in the database
- * Matches the quickbooks_credentials table schema
+ * QuickBooks credentials stored in the database.
+ *
+ * **Server-side only** — this interface models access/refresh tokens that must
+ * never be returned to the browser.  It is defined here for backward-compat
+ * with existing barrel exports; the generated Supabase types in
+ * `src/integrations/supabase/types.ts` are the canonical source of truth for
+ * database row shapes.
+ *
+ * @deprecated Prefer the generated type from `src/integrations/supabase/types.ts`.
  */
 export interface QuickBooksCredentials {
   id: string;
@@ -47,7 +54,12 @@ export interface QuickBooksConnectionStatus {
 }
 
 /**
- * Response from the QuickBooks OAuth token endpoint
+ * Response from the QuickBooks OAuth token endpoint.
+ *
+ * **Server-side only** — used by Edge Functions during token exchange / refresh.
+ * Included here for backward-compat with existing barrel exports.
+ *
+ * @deprecated This type is defined in each Edge Function that needs it.
  */
 export interface QuickBooksTokenResponse {
   access_token: string;
@@ -87,4 +99,57 @@ export interface TokenRefreshSummary {
   refreshed: number;
   failed: number;
   results?: TokenRefreshResult[];
+}
+
+/**
+ * Request payload for quickbooks-export-invoice Edge Function
+ */
+export type QuickBooksExportInvoiceRequest = {
+  work_order_id: string;
+};
+
+/**
+ * QuickBooks environment type
+ */
+export type QuickBooksEnvironment = 'sandbox' | 'production';
+
+/**
+ * Response from quickbooks-export-invoice Edge Function
+ */
+export type QuickBooksExportInvoiceResponse =
+  | {
+      success: true;
+      invoice_id: string;
+      invoice_number: string;
+      is_update: boolean;
+      environment: QuickBooksEnvironment;
+      pdf_attached: boolean;
+      message?: string;
+    }
+  | {
+      success: false;
+      error?: string;
+    };
+
+/**
+ * UI-facing invoice export result (camelCase)
+ */
+export interface InvoiceExportResult {
+  success: boolean;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  isUpdate?: boolean;
+  environment?: QuickBooksEnvironment;
+  pdfAttached?: boolean;
+  error?: string;
+}
+
+/**
+ * Constructs a QuickBooks Online URL to view an invoice
+ */
+export function getQuickBooksInvoiceUrl(invoiceId: string, environment: QuickBooksEnvironment): string {
+  const baseUrl = environment === 'production' 
+    ? 'https://app.qbo.intuit.com'
+    : 'https://app.sandbox.qbo.intuit.com';
+  return `${baseUrl}/app/invoice?txnId=${invoiceId}`;
 }

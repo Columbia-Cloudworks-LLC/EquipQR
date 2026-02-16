@@ -1,0 +1,281 @@
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  ArrowRight,
+  Users,
+  Shield,
+  BarChart2,
+} from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
+import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
+import { FeatureHero } from '@/components/landing/features/FeatureHero';
+
+const TeamCollaborationFeature = () => {
+  return (
+    <>
+      <PageSEO
+        title="Team Collaboration - EquipQR"
+        description="Organize teams across multiple organizations with role-based access control. Track performance and distribute workload efficiently."
+        path="/features/team-collaboration"
+        keywords="team collaboration, role-based access control, equipment management teams, fleet management teams, CMMS collaboration"
+      />
+      <FeaturePageLayout>
+      <FeatureHero
+        icon={Users}
+        title="Team Collaboration"
+        description="Organize teams across multiple organizations with role-based access control. Track performance and distribute workload efficiently."
+        ctaText="Start Using Teams Free"
+      />
+
+        {/* Key Benefits Section */}
+        <section className="py-24 bg-muted/30">
+          <div className="container px-4 mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+                Why Use Team Collaboration?
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                Give each team a dedicated view of equipment and work orders. Control who sees what with roles and permissions, and balance workload across your org.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+                <CardHeader className="pb-4">
+                  <div className="mb-4">
+                    <Users className="h-10 w-10 text-success" />
+                  </div>
+                  <CardTitle className="text-2xl">Cross-Organizational Teams</CardTitle>
+                  <CardDescription className="text-base">
+                    One workspace, many teams
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Create teams that span your organization or map to locations, divisions, or crews. Assign equipment and work orders to teams so members see only what's relevant to them.
+                  </p>
+                  <ul className="mt-4 space-y-2">
+                    <li className="text-sm text-muted-foreground flex items-center">
+                      <span className="w-1.5 h-1.5 bg-success rounded-full mr-2 flex-shrink-0" />
+                      Team-scoped equipment
+                    </li>
+                    <li className="text-sm text-muted-foreground flex items-center">
+                      <span className="w-1.5 h-1.5 bg-success rounded-full mr-2 flex-shrink-0" />
+                      Team-scoped work orders
+                    </li>
+                    <li className="text-sm text-muted-foreground flex items-center">
+                      <span className="w-1.5 h-1.5 bg-success rounded-full mr-2 flex-shrink-0" />
+                      Flexible structure
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+                <CardHeader className="pb-4">
+                  <div className="mb-4">
+                    <Shield className="h-10 w-10 text-info" />
+                  </div>
+                  <CardTitle className="text-2xl">Role-Based Permissions</CardTitle>
+                  <CardDescription className="text-base">
+                    Control access by role
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Assign admin, member, or viewer roles at the organization and team level. Admins manage settings and members; members perform work; viewers see read-only data.
+                  </p>
+                  <ul className="mt-4 space-y-2">
+                    <li className="text-sm text-muted-foreground flex items-center">
+                      <span className="w-1.5 h-1.5 bg-info rounded-full mr-2 flex-shrink-0" />
+                      Org and team roles
+                    </li>
+                    <li className="text-sm text-muted-foreground flex items-center">
+                      <span className="w-1.5 h-1.5 bg-info rounded-full mr-2 flex-shrink-0" />
+                      Invite and manage members
+                    </li>
+                    <li className="text-sm text-muted-foreground flex items-center">
+                      <span className="w-1.5 h-1.5 bg-info rounded-full mr-2 flex-shrink-0" />
+                      Secure by default
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+                <CardHeader className="pb-4">
+                  <div className="mb-4">
+                    <BarChart2 className="h-10 w-10 text-warning" />
+                  </div>
+                  <CardTitle className="text-2xl">Workload Balancing</CardTitle>
+                  <CardDescription className="text-base">
+                    Distribute work fairly
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">
+                    See how work is distributed across teams and technicians. Use dashboards and filters to identify overloaded assignees and reassign or rebalance as needed.
+                  </p>
+                  <ul className="mt-4 space-y-2">
+                    <li className="text-sm text-muted-foreground flex items-center">
+                      <span className="w-1.5 h-1.5 bg-warning rounded-full mr-2 flex-shrink-0" />
+                      Team dashboards
+                    </li>
+                    <li className="text-sm text-muted-foreground flex items-center">
+                      <span className="w-1.5 h-1.5 bg-warning rounded-full mr-2 flex-shrink-0" />
+                      Assignee visibility
+                    </li>
+                    <li className="text-sm text-muted-foreground flex items-center">
+                      <span className="w-1.5 h-1.5 bg-warning rounded-full mr-2 flex-shrink-0" />
+                      Performance insights
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section className="py-24">
+          <div className="container px-4 mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+                How It Works
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                Teams connect people, equipment, and work orders in one place.
+              </p>
+            </div>
+
+            <div className="max-w-4xl mx-auto">
+              <div className="space-y-8">
+                <div className="flex gap-6">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">Create Teams</h3>
+                    <p className="text-muted-foreground">
+                      Create teams that match your structure—by location, trade, or project. Add members and assign roles. Each team can have its own equipment and work order scope.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-6">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">Assign Equipment & Work</h3>
+                    <p className="text-muted-foreground">
+                      Link equipment to teams so members see only relevant assets. Assign work orders to teams or individuals. Use filters and dashboards to view workload by team.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-6">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
+                    3
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">Collaborate in Context</h3>
+                    <p className="text-muted-foreground">
+                      Team members access equipment, work orders, and PMs from their team view. Admins manage members, settings, and visibility. Viewers get read-only access where configured.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-6">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
+                    4
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">Track & Rebalance</h3>
+                    <p className="text-muted-foreground">
+                      Monitor completion rates, overdue work, and assignee load. Reassign work or adjust team scope as needed. Use fleet efficiency and dashboard metrics to optimize allocation.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Screenshots Section */}
+        <section className="py-24 bg-muted/30">
+          <div className="container px-4 mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+                See Team Collaboration in Action
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                Here&apos;s what teams and permissions look like in the EquipQR™ app.
+              </p>
+            </div>
+
+            <div className="max-w-5xl mx-auto space-y-12">
+              <div className="bg-muted/50 rounded-xl p-8 border border-border">
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/team-list.png"
+                    alt="Teams list showing all teams with member counts and roles"
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Organization Teams</h3>
+                <p className="text-muted-foreground">
+                  View all teams in your organization at a glance. See team descriptions, member counts, and quickly identify who belongs to each team. Create new teams or manage existing ones from a single dashboard.
+                </p>
+              </div>
+
+              <div className="bg-muted/50 rounded-xl p-8 border border-border">
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/team-detail.png"
+                    alt="Team detail page showing role assignments for team members"
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Role-Based Team Access</h3>
+                <p className="text-muted-foreground">
+                  Assign specific roles to each team member—manager, technician, requestor, or viewer. Managers oversee the team, technicians perform work, requestors submit work orders, and viewers have read-only access. Fine-grained permissions ensure everyone has exactly the access they need.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-24">
+          <div className="container px-4 mx-auto">
+            <div className="text-center max-w-3xl mx-auto">
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+                Ready to Organize Your Teams?
+              </h2>
+              <p className="text-xl text-muted-foreground mb-8">
+                Start using Team Collaboration today—completely free. Create your account, set up teams, and distribute work with clear visibility and control.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button asChild size="lg" className="text-lg px-8 py-6">
+                  <Link to="/auth?tab=signup">
+                    Create Free Account
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
+                  <Link to="/landing#features">Explore More Features</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </FeaturePageLayout>
+    </>
+  );
+};
+
+export default TeamCollaborationFeature;

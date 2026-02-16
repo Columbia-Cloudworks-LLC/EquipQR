@@ -25,18 +25,22 @@ export interface QuickBooksAuthConfig {
   redirectUrl?: string;
   /** Optional custom scopes (defaults to accounting scope) */
   scopes?: string;
+  /** Optional origin URL to redirect back to (defaults to window.location.origin) */
+  originUrl?: string;
 }
 
 /**
  * State object encoded in the OAuth state parameter
  * Used to maintain context through the OAuth flow
  * 
- * SECURITY: Only contains session_token - actual org/user data is stored server-side
- * This prevents state tampering attacks.
+ * SECURITY: Only contains session_token and nonce - actual org/user data is stored server-side
+ * This prevents state tampering attacks. The nonce provides additional CSRF protection.
  */
 export interface OAuthState {
   /** Server-side session token (validated in callback) */
   sessionToken: string;
+  /** Random nonce for CSRF protection (validated against session) */
+  nonce: string;
   /** Timestamp when state was created */
   timestamp: number;
 }
@@ -74,6 +78,8 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   // Get environment variables
   const clientId = import.meta.env.VITE_INTUIT_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const explicitOAuthRedirectBaseUrl = import.meta.env.VITE_QB_OAUTH_REDIRECT_BASE_URL;
+  const oauthRedirectBaseUrl = explicitOAuthRedirectBaseUrl || supabaseUrl;
 
   if (!clientId) {
     throw new Error(
@@ -87,11 +93,22 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
     );
   }
 
+  try {
+    new URL(oauthRedirectBaseUrl);
+  } catch {
+    throw new Error(`Invalid OAuth redirect base URL: "${oauthRedirectBaseUrl}"`);
+  }
+
+  // Get the origin URL (where to redirect back to after OAuth)
+  // This is important for local development vs production
+  const originUrl = config.originUrl || (typeof window !== 'undefined' ? window.location.origin : null);
+
   // Create server-side OAuth session (validates user is admin/owner of org)
   const { data: sessionData, error: sessionError } = await supabase
     .rpc('create_quickbooks_oauth_session', {
       p_organization_id: config.organizationId,
       p_redirect_url: config.redirectUrl || null,
+      p_origin_url: originUrl,
     });
 
   if (sessionError) {
@@ -106,13 +123,19 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   }
 
   const sessionToken = sessionData[0].session_token;
+  const nonce = sessionData[0].nonce;
 
-  // Construct the redirect URI (edge function URL)
-  const redirectUri = `${supabaseUrl}/functions/v1/quickbooks-oauth-callback`;
+  if (!nonce) {
+    throw new Error("Failed to create OAuth session: No nonce returned");
+  }
 
-  // Create minimal state object - only session token (org/user validated server-side)
+  const redirectBaseUrl = oauthRedirectBaseUrl.trim().replace(/\/+$/, '');
+  const redirectUri = `${redirectBaseUrl}/functions/v1/quickbooks-oauth-callback`;
+
+  // Create minimal state object - session token and nonce (org/user validated server-side)
   const state: OAuthState = {
     sessionToken: sessionToken,
+    nonce: nonce,
     timestamp: Date.now(),
   };
 
@@ -141,14 +164,14 @@ export function decodeOAuthState(stateParam: string): OAuthState | null {
     const decoded = JSON.parse(atob(stateParam));
     
     // Validate required fields
-    if (!decoded.sessionToken || !decoded.timestamp) {
+    if (!decoded.sessionToken || !decoded.nonce || !decoded.timestamp) {
       return null;
     }
 
     // Check if state is not too old (1 hour max)
     const maxAge = 60 * 60 * 1000; // 1 hour in milliseconds
     if (Date.now() - decoded.timestamp > maxAge) {
-      console.warn("OAuth state has expired");
+      console.error("OAuth state has expired");
       return null;
     }
 

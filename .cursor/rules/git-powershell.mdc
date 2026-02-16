@@ -1,0 +1,36 @@
+---
+description: "Git commands must use PowerShell-compatible syntax (Windows host)"
+alwaysApply: true
+---
+# Git & PowerShell Conventions
+
+This workspace runs on Windows with PowerShell. All git commands must avoid bash-only syntax.
+
+## Commit Messages
+
+**Never use heredoc** (`<<'EOF'`) — PowerShell does not support it.
+
+Use one of these approaches instead:
+
+### Multi `-m` flags (preferred for short messages)
+```powershell
+git commit -m "fix: summary line" -m "- Detail one" -m "- Detail two"
+```
+
+### Temp file (preferred for long or complex messages)
+```powershell
+@"
+fix: summary line
+
+- Detail one with "quotes" and special chars
+- Detail two
+"@ | Set-Content -Path ".git/COMMIT_MSG" -Encoding utf8
+git commit -F ".git/COMMIT_MSG"
+Remove-Item ".git/COMMIT_MSG"
+```
+
+## Other Rules
+
+- **Quote paths** with double quotes: `git add "path with spaces/file.ts"`
+- **Do not use** `&&` to chain commands — use `;` or separate calls instead, since `&&` requires PowerShell 7+.
+- **Do not use** `$(...)` bash-style command substitution in git arguments.

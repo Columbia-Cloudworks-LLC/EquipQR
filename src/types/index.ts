@@ -5,8 +5,8 @@
  * import { WorkOrder, Equipment, OrganizationMember } from '@/types';
  */
 
-// Equipment types
-export * from './equipment';
+// Equipment types (re-exported from features/equipment)
+export * from '@/features/equipment/types/equipment';
 
 // Work order types
 export * from './workOrder';
@@ -17,11 +17,11 @@ export * from './workOrderEquipment';
 // Organization types
 export * from './organization';
 
-// Team types
-export * from './team';
+// Team types (re-exported from features/teams)
+export * from '@/features/teams/types/team';
 
-// Equipment notes types
-export * from './equipmentNotes';
+// Equipment notes types (re-exported from features/equipment)
+export * from '@/features/equipment/types/equipmentNotes';
 
 // Other domain types
 export * from './parts';
@@ -31,4 +31,5 @@ export * from './billingExemptions';
 export * from './csvImport';
 export * from './cache';
 export * from './organizationContext';
+export * from './audit';
 
