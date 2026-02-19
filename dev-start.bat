@@ -74,7 +74,7 @@ if %errorlevel% equ 0 goto :docker_ok
 
 echo        Docker daemon is not running. Attempting to start Docker Desktop...
 start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe" 2>nul
-start "" "%LOCALAPPDATA%\Docker\Docker Desktop.exe" 2>nul
+REM  start "" "%LOCALAPPDATA%\Docker\Docker Desktop.exe" 2>nul
 
 echo        Waiting for Docker daemon to be ready (up to 120s)...
 powershell -NoProfile -Command ^

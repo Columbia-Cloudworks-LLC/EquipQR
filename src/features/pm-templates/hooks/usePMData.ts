@@ -17,6 +17,8 @@ export const usePMByWorkOrderId = (workOrderId: string) => {
     queryKey: ['preventativeMaintenance', workOrderId, currentOrganization?.id],
     queryFn: () => getPMByWorkOrderId(workOrderId, currentOrganization!.id),
     enabled: !!workOrderId && !!currentOrganization?.id,
+    staleTime: 5 * 60 * 1000,  // 5 min — active work data
+    gcTime: 30 * 60 * 1000,    // 30 min — survive offline
   });
 };
 
@@ -28,7 +30,8 @@ export const usePMByWorkOrderAndEquipment = (workOrderId: string, equipmentId: s
     queryKey: ['preventativeMaintenance', workOrderId, equipmentId, currentOrganization?.id],
     queryFn: () => getPMByWorkOrderAndEquipment(workOrderId, equipmentId, currentOrganization!.id),
     enabled: !!workOrderId && !!equipmentId && !!currentOrganization?.id,
-    staleTime: 0, // Data is immediately stale - always refetch on mount after changes
+    staleTime: 5 * 60 * 1000,  // 5 min — was 0; mutations still invalidate via useUpdatePM
+    gcTime: 30 * 60 * 1000,    // 30 min — survive offline
     // Keep data even if refetch fails - don't clear on error
     retry: 1,
     retryOnMount: true, // Refetch on mount to ensure we have latest data
@@ -47,7 +50,8 @@ export const usePMsByWorkOrderId = (workOrderId: string) => {
     queryKey: ['preventativeMaintenance', 'all', workOrderId, currentOrganization?.id],
     queryFn: () => getPMsByWorkOrderId(workOrderId, currentOrganization!.id),
     enabled: !!workOrderId && !!currentOrganization?.id,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,  // 5 min (was 2 min)
+    gcTime: 30 * 60 * 1000,    // 30 min — survive offline
   });
 };
 

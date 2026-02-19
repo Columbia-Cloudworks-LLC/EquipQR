@@ -30,7 +30,9 @@ export const usePMTemplate = (templateId: string) => {
   return useQuery({
     queryKey: queryKeys.pmTemplates.byId(templateId),
     queryFn: () => pmChecklistTemplatesService.getTemplate(templateId),
-    enabled: !!templateId
+    enabled: !!templateId,
+    staleTime: 30 * 60 * 1000, // 30 min — templates change rarely, keep for offline
+    gcTime: 60 * 60 * 1000,    // 1 hr
   });
 };
 
