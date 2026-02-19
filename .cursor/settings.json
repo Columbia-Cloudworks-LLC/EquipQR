@@ -1,0 +1,10 @@
+{
+  "plugins": {
+    "supabase": {
+      "enabled": true
+    },
+    "context7-plugin": {
+      "enabled": true
+    }
+  }
+}
