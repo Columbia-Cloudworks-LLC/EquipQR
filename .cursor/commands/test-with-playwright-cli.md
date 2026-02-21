@@ -33,25 +33,43 @@ playwright-cli open http://localhost:8080
 > If you need a named session (e.g. to run two roles in parallel), use:
 > `playwright-cli -s=admin open http://localhost:8080`
 
-### 3. Authenticate (if redirected to login)
+### 3. Authenticate via the Dev Quick Login panel
 
-The snapshot after `open` will show you the element refs. Use them to fill the login form:
+Navigate to `/auth`. The login page has a **Dev Quick Login** panel with a persona dropdown — no password needed in development.
 
 ```bash
-playwright-cli snapshot
-# Identify email/password field refs from snapshot output, then:
-playwright-cli fill e1 "test@example.com"
-playwright-cli fill e2 "testpassword"
-playwright-cli click e3
-# playwright-cli automatically snapshots after each command
+playwright-cli goto http://localhost:8080/auth
+# Open the persona dropdown
+playwright-cli click e32
+# Select a test account (pick one from the list below), then:
+playwright-cli click e62   # example: Alex Apex (Owner)
+# Click Quick Login — the button enables once a persona is selected
+playwright-cli click e123
+# The app redirects to /dashboard on success
 ```
+
+> **Tip:** Element refs change between sessions. Always `playwright-cli snapshot` after opening
+> the page to get the current refs if the ones above don't match.
+
+#### Available test personas
+
+| Org | Plan | Persona | Role |
+|---|---|---|---|
+| Apex Construction | Premium | Alex Apex | Owner |
+| Apex Construction | Premium | Amanda Admin | Admin |
+| Apex Construction | Premium | Tom Technician | Member |
+| Metro Equipment | Premium | Marcus Metro | Owner |
+| Metro Equipment | Premium | Mike Mechanic | Member |
+| Valley Landscaping | Free Tier | Victor Valley | Owner |
+| Industrial Rentals | Premium | Irene Industrial | Owner |
+| Multi-Org Testing | — | Multi Org User | Member (multiple orgs) |
 
 To persist auth across test runs, save state after login:
 
 ```bash
 playwright-cli state-save auth.json
 # Next time, load it instead of logging in:
-playwright-cli open http://localhost:8080 --persistent
+playwright-cli open http://localhost:8080/dashboard
 playwright-cli state-load auth.json
 ```
 
@@ -144,15 +162,16 @@ playwright-cli close
 
 ## Common EquipQR Routes
 
-| Page | URL |
-|---|---|
-| Dashboard | `http://localhost:8080/` |
-| Equipment list | `http://localhost:8080/equipment` |
-| Work orders | `http://localhost:8080/work-orders` |
-| Fleet map | `http://localhost:8080/fleet-map` |
-| Team management | `http://localhost:8080/team` |
-| Inventory | `http://localhost:8080/inventory` |
-| Settings | `http://localhost:8080/settings` |
+| Page | URL | Notes |
+|---|---|---|
+| Login | `http://localhost:8080/auth` | Dev Quick Login persona dropdown available |
+| Dashboard | `http://localhost:8080/dashboard` | `/` redirects here when authenticated |
+| Equipment list | `http://localhost:8080/equipment` | |
+| Work orders | `http://localhost:8080/work-orders` | |
+| Fleet map | `http://localhost:8080/fleet-map` | |
+| Team management | `http://localhost:8080/team` | |
+| Inventory | `http://localhost:8080/inventory` | |
+| Settings | `http://localhost:8080/settings` | |
 
 ---
 
