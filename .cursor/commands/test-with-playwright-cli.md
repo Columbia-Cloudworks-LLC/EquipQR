@@ -84,21 +84,25 @@ playwright-cli goto http://localhost:8080/equipment
 Use refs from the most recent snapshot output for all interactions.
 
 **Click:**
+
 ```bash
 playwright-cli click e12
 ```
 
 **Fill a form field:**
+
 ```bash
 playwright-cli fill e5 "Test Forklift"
 ```
 
 **Select a dropdown option:**
+
 ```bash
 playwright-cli select e9 "heavy-equipment"
 ```
 
 **Keyboard shortcuts:**
+
 ```bash
 playwright-cli press Enter
 playwright-cli press Escape
@@ -106,11 +110,13 @@ playwright-cli press Tab
 ```
 
 **Scroll:**
+
 ```bash
 playwright-cli mousewheel 0 500
 ```
 
 **Hover (for tooltips / dropdown menus):**
+
 ```bash
 playwright-cli hover e7
 ```
