@@ -7,6 +7,10 @@ import { QrCode, MapPin, Calendar, Forklift, Clock } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { getEquipmentCardDisplayModel } from "@/features/equipment/utils/getEquipmentCardDisplayModel";
 import { getEquipmentStatusBorderClass } from "@/lib/status-colors";
+import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
+import type { MergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
+import { isOfflineEquipmentId } from '@/features/equipment/hooks/useOfflineMergedEquipment';
+import { toast } from 'sonner';
 
 interface Equipment {
   id: string;
@@ -36,11 +40,23 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
   const statusBorderClass = getEquipmentStatusBorderClass(equipment.status);
 
   const handleCardClick = () => {
+    if (isOfflineEquipmentId(equipment.id)) {
+      toast.info('Pending sync', {
+        description: 'This equipment will be available for viewing after it syncs.',
+      });
+      return;
+    }
     navigate(`/dashboard/equipment/${equipment.id}`);
   };
 
   const handleQRClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isOfflineEquipmentId(equipment.id)) {
+      toast.info('Pending sync', {
+        description: 'QR codes are generated after the equipment syncs.',
+      });
+      return;
+    }
     onShowQRCode(equipment.id);
   };
 
@@ -82,7 +98,10 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
           <div className="flex min-w-0 flex-1 flex-col justify-between p-3 overflow-hidden">
             <div className="flex items-start justify-between gap-2 min-w-0">
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold">{equipment.name}</div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="truncate text-sm font-semibold">{equipment.name}</div>
+                  {(equipment as MergedEquipment)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
+                </div>
                 <div className="mt-0.5 truncate text-xs text-muted-foreground">
                   ID: {equipment.serial_number}
                 </div>
@@ -117,13 +136,14 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
                 {equipment.manufacturer} {equipment.model}
               </CardDescription>
               {/* Only show badge for non-active statuses */}
-              {display.showStatusBadge && (
-                <div className="mt-1.5">
+              <div className="mt-1.5 flex items-center gap-2">
+                {display.showStatusBadge && (
                   <Badge className={`${display.statusClassName} text-xs`} variant="outline">
                     {display.statusText}
                   </Badge>
-                </div>
-              )}
+                )}
+                {(equipment as MergedEquipment)._isPendingSync && <PendingSyncBadge />}
+              </div>
             </div>
             <Button
               variant="ghost"

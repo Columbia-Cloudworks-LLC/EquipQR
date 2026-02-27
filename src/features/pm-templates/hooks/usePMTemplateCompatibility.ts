@@ -68,7 +68,7 @@ export const useMatchingPMTemplates = (
   }
 ) => {
   const { currentOrganization } = useOrganization();
-  const staleTime = options?.staleTime ?? 60 * 1000; // 1 minute
+  const staleTime = options?.staleTime ?? 10 * 60 * 1000; // 10 min — rules change rarely
   const enabled = options?.enabled ?? true;
 
   return useQuery({
@@ -78,7 +78,8 @@ export const useMatchingPMTemplates = (
       return await getMatchingTemplatesForEquipment(currentOrganization.id, equipmentId);
     },
     enabled: !!currentOrganization?.id && !!equipmentId && enabled,
-    staleTime
+    staleTime,
+    gcTime: 30 * 60 * 1000, // 30 min — survive offline
   });
 };
 
@@ -93,7 +94,7 @@ export const useEquipmentMatchCountForPMRules = (
     staleTime?: number;
   }
 ) => {
-  const staleTime = options?.staleTime ?? 30 * 1000; // 30 seconds
+  const staleTime = options?.staleTime ?? 5 * 60 * 1000; // 5 min — derived data
 
   // Memoize a stable rules array based on its content.
   // react-hook-form recreates the rules array reference on every render
@@ -119,7 +120,8 @@ export const useEquipmentMatchCountForPMRules = (
       return await countEquipmentMatchingRules(organizationId, stableRules);
     },
     enabled: !!organizationId && stableRules.length > 0,
-    staleTime
+    staleTime,
+    gcTime: 15 * 60 * 1000, // 15 min
   });
 };
 

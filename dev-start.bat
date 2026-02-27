@@ -2,29 +2,52 @@
 REM ============================================================================
 REM  dev-start.bat — Idempotent startup of the EquipQR local development stack
 REM
-REM  Brings up (in dependency order):
+REM  Usage:
+REM    dev-start.bat                        Normal startup (skips already-running services)
+REM    dev-start.bat --reset-db             Reset local database after Supabase starts,
+REM                                         applying all migrations from scratch
+REM    dev-start.bat --gen-types            Ensure Supabase is up and regenerate TypeScript
+REM                                         types; skip Edge Functions and Vite
+REM    dev-start.bat --reset-db --gen-types DB reset + type regen, then exit (no Vite/edge)
+REM
+REM  Steps (in dependency order):
 REM    1. Pre-flight checks    (node, npm, npx, docker)
 REM    2. node_modules         (npm ci if missing)
 REM    3. Supabase local stack (npx supabase start — Postgres, API, Auth, etc.)
-REM    4. Supabase TypeScript types (regenerate from local schema)
-REM    5. Vite dev server      (npm run dev — in a new window)
+REM    4. DB Reset             (npx supabase db reset — only with --reset-db)
+REM    5. Supabase TypeScript types (regenerate from local schema — always)
+REM    6. Supabase Edge Functions  (npx supabase functions serve — skipped with --gen-types)
+REM    7. Vite dev server      (npm run dev — skipped with --gen-types)
 REM
-REM  Idempotent: safe to run when services are already running.
-REM  Exit code 0 = environment ready for Playwright / E2E tests.
+REM  Idempotent: safe to run back-to-back without issues.
+REM  Exit code 0 = environment ready.
 REM ============================================================================
 
 setlocal EnableDelayedExpansion
 
 set "FAIL=0"
+set "OPT_RESET_DB=0"
+set "OPT_GEN_TYPES=0"
+
+REM --- Parse command-line arguments ---
+:parse_args
+if "%~1"=="" goto :args_done
+if /i "%~1"=="--reset-db"   set "OPT_RESET_DB=1"
+if /i "%~1"=="--gen-types"  set "OPT_GEN_TYPES=1"
+shift
+goto :parse_args
+:args_done
 
 echo.
 echo  ============================================
-echo   EquipQR Dev Environment — Startup
+echo   EquipQR Dev Environment - Startup
+if %OPT_RESET_DB% equ 1  echo   Flag: --reset-db   (database will be reset)
+if %OPT_GEN_TYPES% equ 1 echo   Flag: --gen-types  (types only; Vite + Edge Functions skipped)
 echo  ============================================
 echo.
 
 REM ---------- 1. Pre-flight checks -------------------------------------------
-echo  [1/5] Pre-flight checks...
+echo  [1/7] Pre-flight checks...
 
 REM -- Node.js --
 where node >nul 2>&1
@@ -73,7 +96,7 @@ if %errorlevel% equ 0 goto :docker_ok
 
 echo        Docker daemon is not running. Attempting to start Docker Desktop...
 start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe" 2>nul
-start "" "%LOCALAPPDATA%\Docker\Docker Desktop.exe" 2>nul
+REM  start "" "%LOCALAPPDATA%\Docker\Docker Desktop.exe" 2>nul
 
 echo        Waiting for Docker daemon to be ready (up to 120s)...
 powershell -NoProfile -Command ^
@@ -98,12 +121,12 @@ echo        All pre-flight checks passed.
 
 REM ---------- 2. Verify node_modules -----------------------------------------
 echo.
-echo  [2/5] Checking node_modules...
+echo  [2/7] Checking node_modules...
 
 if exist "node_modules\." (
-    echo        node_modules exists — skipping npm ci.
+    echo        node_modules exists - skipping npm ci.
 ) else (
-    echo        node_modules not found — running npm ci...
+    echo        node_modules not found - running npm ci...
     call npm ci
     if !errorlevel! neq 0 (
         echo        FAIL: npm ci failed. Check your network and try again.
@@ -115,17 +138,17 @@ if exist "node_modules\." (
 
 REM ---------- 3. Start Supabase local stack -----------------------------------
 echo.
-echo  [3/5] Starting Supabase local stack...
+echo  [3/7] Starting Supabase local stack...
 
 REM Check if Supabase is already running by querying the API port
 powershell -NoProfile -Command ^
   "if (Get-NetTCPConnection -LocalPort 54321 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if %errorlevel% neq 0 goto :supabase_start
 
-echo        Supabase API already listening on port 54321 — verifying status...
+echo        Supabase API already listening on port 54321 - verifying status...
 call npx supabase status >nul 2>&1
 if %errorlevel% equ 0 (
-    echo        Supabase is running and healthy — skipped.
+    echo        Supabase is running and healthy - skipped.
     goto :supabase_info
 )
 echo        Port 54321 is in use but Supabase status check failed.
@@ -179,9 +202,28 @@ echo        --- Supabase Status ---
 call npx supabase status 2>nul
 echo        -----------------------
 
-REM ---------- 4. Regenerate Supabase TypeScript types -------------------------
+REM ---------- 4. DB Reset (optional — only with --reset-db) -------------------
 echo.
-echo  [4/5] Regenerating Supabase TypeScript types...
+if %OPT_RESET_DB% equ 0 (
+    echo  [4/7] DB Reset - skipped.  Pass --reset-db to wipe and re-apply all migrations.
+    goto :db_reset_done
+)
+
+echo  [4/7] Resetting local database ^(--reset-db^)...
+echo        All local data will be wiped and every migration re-applied from scratch.
+call npx supabase db reset
+if !errorlevel! neq 0 (
+    echo        FAIL: supabase db reset failed. Check the output above for details.
+    set "FAIL=1"
+    goto :summary
+)
+echo        Database reset complete - all migrations re-applied successfully.
+
+:db_reset_done
+
+REM ---------- 5. Regenerate Supabase TypeScript types -------------------------
+echo.
+echo  [5/7] Regenerating Supabase TypeScript types...
 
 REM Write to a temp file first so a failure does not corrupt the existing types
 call npx supabase gen types typescript --local > src\integrations\supabase\types.ts.tmp 2>nul
@@ -193,20 +235,53 @@ if !errorlevel! equ 0 (
     echo        WARNING: Type generation failed. Existing types.ts will be used.
 )
 
-REM ---------- 5. Start Vite dev server ----------------------------------------
+REM If --gen-types, skip Edge Functions and Vite and go straight to the summary
+if %OPT_GEN_TYPES% equ 1 (
+    echo.
+    echo        --gen-types: skipping Edge Functions and Vite dev server.
+    goto :healthcheck
+)
+
+REM ---------- 6. Start Supabase Edge Functions ----------------------------------
 echo.
-echo  [5/5] Starting Vite dev server (port 8080)...
+echo  [6/7] Starting Supabase Edge Functions serve...
+
+REM Check if edge functions are already being served by looking for the process
+powershell -NoProfile -Command ^
+  "$procs = Get-Process -Name 'node','deno' -ErrorAction SilentlyContinue | Where-Object { " ^
+  "  try { $cmd = (Get-CimInstance Win32_Process -Filter \"ProcessId=$($_.Id)\").CommandLine; " ^
+  "    $cmd -and ($cmd -match 'supabase' -and $cmd -match 'functions' -and $cmd -match 'serve') " ^
+  "  } catch { $false } " ^
+  "}; " ^
+  "if ($procs) { exit 0 } else { exit 1 }"
+if %errorlevel% equ 0 (
+    echo        Edge Functions serve already running - skipped.
+    goto :edge_functions_done
+)
+
+echo        Launching Edge Functions serve in a new window...
+start "EquipQR Edge Functions" cmd /k "cd /d %~dp0 && npx supabase functions serve --env-file supabase\functions\.env"
+
+REM Brief pause to let the process start
+powershell -NoProfile -Command "Start-Sleep -Seconds 3"
+echo        Edge Functions serve launched.
+
+:edge_functions_done
+
+REM ---------- 7. Start Vite dev server ----------------------------------------
+echo.
+echo  [7/7] Starting Vite dev server (port 8080)...
 
 REM Check if port 8080 is already in use
 powershell -NoProfile -Command ^
   "if (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if %errorlevel% neq 0 goto :vite_start
 
-echo        Port 8080 is already in use — checking if it is Vite...
+echo        Port 8080 is already in use - checking if it is Vite...
 powershell -NoProfile -Command ^
   "try { " ^
   "  $r = Invoke-WebRequest -Uri 'http://localhost:8080' -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop; " ^
-  "  if ($r.StatusCode -eq 200) { Write-Host '       Vite dev server already running — skipped.'; exit 0 } " ^
+  "  if ($r.StatusCode -eq 200) { Write-Host '       Vite dev server already running - skipped.'; exit 0 } " ^
   "  else { Write-Host '       Port 8080 is in use by another process. Please free the port.'; exit 2 } " ^
   "} catch { Write-Host '       Port 8080 is in use but not responding to HTTP. Please investigate.'; exit 2 }"
 if %errorlevel% equ 2 (
@@ -240,18 +315,15 @@ REM ---------- Final readiness report ------------------------------------------
 :healthcheck
 echo.
 echo  ============================================
-echo   EquipQR Dev Environment — Status Report
+echo   EquipQR Dev Environment - Status Report
 echo  ============================================
 echo.
 
 REM Check each service individually (outside of if/else blocks to avoid parenthesis issues)
-set "FRONTEND_STATUS=[UNKNOWN]"
+set "FRONTEND_STATUS=[SKIPPED]"
 set "API_STATUS=[UNKNOWN]"
 set "DB_STATUS=[UNKNOWN]"
-
-powershell -NoProfile -Command ^
-  "try { $r = Invoke-WebRequest -Uri 'http://localhost:8080' -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop; exit 0 } catch { exit 1 }"
-if %errorlevel% equ 0 ( set "FRONTEND_STATUS=[OK]" ) else ( set "FRONTEND_STATUS=[FAILED]" & set "FAIL=1" )
+set "FUNCTIONS_STATUS=[SKIPPED]"
 
 powershell -NoProfile -Command ^
   "try { $r = Invoke-WebRequest -Uri 'http://localhost:54321/rest/v1/' -Method HEAD -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop; exit 0 } catch { exit 1 }"
@@ -261,9 +333,30 @@ powershell -NoProfile -Command ^
   "if (Get-NetTCPConnection -LocalPort 54322 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if %errorlevel% equ 0 ( set "DB_STATUS=[OK]" ) else ( set "DB_STATUS=[FAILED]" & set "FAIL=1" )
 
-echo   Frontend:      http://localhost:8080       %FRONTEND_STATUS%
-echo   Supabase API:  http://localhost:54321      %API_STATUS%
-echo   Database:      localhost:54322             %DB_STATUS%
+REM Only check Vite and Edge Functions when not in --gen-types mode.
+REM Use goto instead of a parenthesised if-block to avoid the batch parser
+REM misreading the ) inside the PowerShell command strings as a block-close.
+if %OPT_GEN_TYPES% equ 1 goto :print_status
+
+powershell -NoProfile -Command ^
+  "try { $r = Invoke-WebRequest -Uri 'http://localhost:8080' -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop; exit 0 } catch { exit 1 }"
+if %errorlevel% equ 0 ( set "FRONTEND_STATUS=[OK]" ) else ( set "FRONTEND_STATUS=[FAILED]" & set "FAIL=1" )
+
+powershell -NoProfile -Command ^
+  "$procs = Get-Process -Name 'node','deno' -ErrorAction SilentlyContinue | Where-Object { " ^
+  "  try { $cmd = (Get-CimInstance Win32_Process -Filter \"ProcessId=$($_.Id)\").CommandLine; " ^
+  "    $cmd -and ($cmd -match 'supabase' -and $cmd -match 'functions' -and $cmd -match 'serve') " ^
+  "  } catch { $false } " ^
+  "}; " ^
+  "if ($procs) { exit 0 } else { exit 1 }"
+if %errorlevel% equ 0 ( set "FUNCTIONS_STATUS=[OK]" ) else ( set "FUNCTIONS_STATUS=[FAILED]" & set "FAIL=1" )
+
+:print_status
+
+echo   Supabase API:   http://localhost:54321      %API_STATUS%
+echo   Database:       localhost:54322             %DB_STATUS%
+echo   Frontend:       http://localhost:8080       %FRONTEND_STATUS%
+echo   Edge Functions: (via Supabase API)          %FUNCTIONS_STATUS%
 echo.
 echo  ============================================
 

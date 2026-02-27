@@ -221,42 +221,35 @@ const AlternateGroupDetail: React.FC = () => {
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/dashboard/alternate-groups')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-                  {group.name}
-                </h1>
-                {group.status === 'verified' && (
-                  <Badge className="bg-green-600">
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Verified
-                  </Badge>
-                )}
-                {group.status === 'deprecated' && (
-                  <Badge variant="secondary">Deprecated</Badge>
-                )}
-              </div>
-              {group.description && (
-                <p className="text-muted-foreground mt-1">{group.description}</p>
+        <PageHeader
+          title={group.name}
+          description={group.description || undefined}
+          breadcrumbs={[
+            { label: 'Alternate Groups', href: '/dashboard/alternate-groups' },
+            { label: group.name },
+          ]}
+          meta={
+            <>
+              {group.status === 'verified' && (
+                <Badge className="bg-green-600">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Verified
+                </Badge>
               )}
-            </div>
-          </div>
-          {canEdit && (
-            <Button variant="outline" onClick={() => setShowEditDialog(true)}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit Group
-            </Button>
-          )}
-        </div>
+              {group.status === 'deprecated' && (
+                <Badge variant="secondary">Deprecated</Badge>
+              )}
+            </>
+          }
+          actions={
+            canEdit ? (
+              <Button variant="outline" onClick={() => setShowEditDialog(true)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Group
+              </Button>
+            ) : undefined
+          }
+        />
 
         {/* Notes/Evidence */}
         {(group.notes || group.evidence_url) && (

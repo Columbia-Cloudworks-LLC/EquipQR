@@ -105,11 +105,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     onSubmit,
     onSuccess: () => {
       form.reset();
-      // Always close modal for edit mode or custom onSubmit
-      // For create mode, the hook handles navigation and modal will close when component unmounts
-      if (isEditMode || onSubmit) {
-        onClose();
-      }
+      onClose();
     }
   });
 

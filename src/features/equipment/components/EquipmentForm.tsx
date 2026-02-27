@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
+import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
 import CustomAttributesSection from './CustomAttributesSection';
 import { useCustomAttributes, type CustomAttribute } from '@/hooks/useCustomAttributes';
 import { useEquipmentForm } from './hooks/useEquipmentForm';
@@ -45,6 +46,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
           <DialogDescription>
             {isEdit ? 'Update equipment information' : 'Enter the details for the new equipment'}
           </DialogDescription>
+          <OfflineFormBanner />
         </DialogHeader>
 
         <Form {...form}>

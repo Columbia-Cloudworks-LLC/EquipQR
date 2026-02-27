@@ -7,17 +7,23 @@ import { Plus, Images, Clock, User, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
 import { equipment as equipmentQueryKeys } from '@/lib/queryKeys';
-import { 
-  createEquipmentNoteWithImages, 
-  getEquipmentNotesWithImages, 
+import {
+  createEquipmentNoteWithImages,
+  getEquipmentNotesWithImages,
   getEquipmentImages,
   deleteEquipmentNoteImage,
-  updateEquipmentDisplayImage
+  updateEquipmentDisplayImage,
 } from '@/features/equipment/services/equipmentNotesService';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
+import { useOfflineMergedNotes } from '@/features/offline-queue/hooks/useOfflineMergedNotes';
 import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import ImageGallery from '@/components/common/ImageGallery';
+import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
 import { logger } from '@/utils/logger';
 
 interface EquipmentNotesTabProps {
@@ -28,17 +34,22 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   equipmentId
 }) => {
   const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
+  const offlineCtx = useOfflineQueueOptional();
   const [showForm, setShowForm] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
 
   // Fetch notes with images
-  const { data: notes = [], isLoading: notesLoading } = useQuery({
+  const { data: serverNotes = [], isLoading: notesLoading } = useQuery({
     queryKey: equipmentQueryKeys.notesWithImages(equipmentId),
     queryFn: () => getEquipmentNotesWithImages(equipmentId),
     enabled: !!equipmentId
   });
+
+  // Merge server notes with any pending offline note items
+  const notes = useOfflineMergedNotes(serverNotes, 'equipment', equipmentId);
 
   // Fetch images for gallery
   const { data: images = [] } = useQuery({
@@ -62,29 +73,48 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     enabled: !!equipmentId
   });
 
-  // Create note mutation
+  // Create note mutation — supports offline (text only; images when online)
   const createNoteMutation = useMutation({
-    mutationFn: ({ content, hoursWorked, isPrivate, images, machineHours }: {
+    mutationFn: async ({ content, hoursWorked, isPrivate, images, machineHours }: {
       content: string;
       hoursWorked: number;
       isPrivate: boolean;
       images: File[];
       machineHours?: number;
     }) => {
-      // NOTE: machineHours collected by UI but not yet persisted -- no database column exists.
-      // When backend support is added, pass machineHours to the create function here.
       if (machineHours !== undefined && machineHours > 0) {
         logger.debug('Machine hours provided but not persisted', { machineHours });
       }
+      // Text-only when offline or when images are attached and online, use full flow
+      const useOfflinePath = !navigator.onLine || images.length === 0;
+      if (useOfflinePath && currentOrganization?.id && user?.id) {
+        const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
+        const result = await service.createEquipmentNote(equipmentId, content, hoursWorked, isPrivate);
+        if (result.queuedOffline) {
+          return { queuedOffline: true, hadImages: images.length > 0 };
+        }
+        return { queuedOffline: false, data: result.data };
+      }
       return createEquipmentNoteWithImages(equipmentId, content, hoursWorked, isPrivate, images);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
-      queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
+    onSuccess: (result) => {
+      const queuedOffline = result && typeof result === 'object' && 'queuedOffline' in result && result.queuedOffline;
+      if (queuedOffline) {
+        const hadImages = result && typeof result === 'object' && 'hadImages' in result && result.hadImages;
+        toast.success(
+          hadImages
+            ? 'Note saved offline. Attach images when you reconnect.'
+            : 'Note saved offline — will sync when you reconnect.',
+        );
+        offlineCtx?.refresh();
+      } else {
+        queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
+        queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
+        toast.success('Note created successfully');
+      }
       setShowForm(false);
       setNoteContent('');
       setAttachedImages([]);
-      toast.success('Note created successfully');
     },
     onError: (error) => {
       logger.error('Failed to create note', error);
@@ -197,6 +227,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
                 </Button>
               )}
             </CardTitle>
+            <OfflineFormBanner />
           </CardHeader>
           <CardContent>
             <InlineNoteComposer
@@ -239,9 +270,10 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
               <div className="space-y-3">
                 {/* Note Header */}
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                     <User className="h-4 w-4" />
                     <span>{note.author_name}</span>
+                    {(note as { _isPendingSync?: boolean })._isPendingSync && <PendingSyncBadge />}
                     <span>•</span>
                     <span>{formatDate(note.created_at)}</span>
                     {formatHours(note.hours_worked) && (

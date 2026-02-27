@@ -26,6 +26,8 @@ dist-ssr
 *.sln
 *.sw?
 .vs/VSWorkspaceState.json
+tmp/*
+tmpclaude-*-cwd
 
 # Environment files (secrets)
 .env
@@ -56,3 +58,7 @@ deno.lock
 
 # Playwright Files
 .playwright-mcp/*
+.playwright-cli/*
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md

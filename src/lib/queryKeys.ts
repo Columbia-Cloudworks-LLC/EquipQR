@@ -103,6 +103,12 @@ export const tickets = {
   mine: () => ['tickets', 'mine'] as const,
 };
 
+// Offline queue keys
+export const offlineQueue = {
+  root: ['offline-queue'] as const,
+  byOrg: (orgId: string) => ['offline-queue', orgId] as const,
+};
+
 // Dashboard preference keys
 export const dashboardPreferences = {
   root: ['dashboard-preferences'] as const,
@@ -123,4 +129,5 @@ export const queryKeys = {
   workspacePersonalOrgMerge,
   tickets,
   dashboardPreferences,
+  offlineQueue,
 };

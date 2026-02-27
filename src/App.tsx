@@ -9,6 +9,8 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard';
 import MFAEnforcementGuard from '@/components/auth/MFAEnforcementGuard';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
+import { OfflineQueueProvider } from '@/contexts/OfflineQueueContext';
+import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
 
 // Critical components loaded eagerly to prevent loading issues for unauthenticated users
 import Auth from '@/pages/Auth';
@@ -157,6 +159,7 @@ function App() {
                 <SimpleOrganizationProvider>
                   <MFAEnforcementGuard>
                   <WorkspaceOnboardingGuard>
+                    <OfflineQueueProvider>
                     <TeamProvider>
                       <SidebarProvider>
                       <BugReportProvider>
@@ -176,6 +179,7 @@ function App() {
                           }>
                             <BrandedTopBar />
                           </Suspense>
+                          <PendingSyncBanner />
                           <main id="main-content" className="flex-1 overflow-auto min-w-0 pb-16 md:pb-0">
                             <Suspense fallback={
                               <div className="flex items-center justify-center h-64" role="status" aria-label="Loading page content">
@@ -230,6 +234,7 @@ function App() {
                       </BugReportProvider>
                       </SidebarProvider>
                     </TeamProvider>
+                    </OfflineQueueProvider>
                   </WorkspaceOnboardingGuard>
                   </MFAEnforcementGuard>
                 </SimpleOrganizationProvider>
