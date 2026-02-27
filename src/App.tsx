@@ -1,6 +1,6 @@
 
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { TeamProvider } from '@/contexts/TeamContext';
 import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvider'; // Fixed import path
@@ -11,6 +11,7 @@ import MFAEnforcementGuard from '@/components/auth/MFAEnforcementGuard';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 import { OfflineQueueProvider } from '@/contexts/OfflineQueueContext';
 import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
+import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
 
 // Critical components loaded eagerly to prevent loading issues for unauthenticated users
 import Auth from '@/pages/Auth';
@@ -73,6 +74,16 @@ const AuditLog = lazy(() => import('@/pages/AuditLog'));
 
 const BrandedTopBar = () => {
   return <TopBar />;
+};
+
+/**
+ * Conditionally wraps children in OfflineQueueProvider when the OFFLINE_QUEUE
+ * feature flag is enabled. This keeps the provider and its IndexedDB/SW
+ * initialisation entirely out of the bundle path when the flag is off.
+ */
+const OptionalOfflineQueueProvider = ({ children }: { children: ReactNode }) => {
+  if (!OFFLINE_QUEUE_ENABLED) return <>{children}</>;
+  return <OfflineQueueProvider>{children}</OfflineQueueProvider>;
 };
 
 // Redirect components for backward compatibility
@@ -159,7 +170,7 @@ function App() {
                 <SimpleOrganizationProvider>
                   <MFAEnforcementGuard>
                   <WorkspaceOnboardingGuard>
-                    <OfflineQueueProvider>
+                    <OptionalOfflineQueueProvider>
                     <TeamProvider>
                       <SidebarProvider>
                       <BugReportProvider>
@@ -179,7 +190,7 @@ function App() {
                           }>
                             <BrandedTopBar />
                           </Suspense>
-                          <PendingSyncBanner />
+                          {OFFLINE_QUEUE_ENABLED && <PendingSyncBanner />}
                           <main id="main-content" className="flex-1 overflow-auto min-w-0 pb-16 md:pb-0">
                             <Suspense fallback={
                               <div className="flex items-center justify-center h-64" role="status" aria-label="Loading page content">
@@ -234,7 +245,7 @@ function App() {
                       </BugReportProvider>
                       </SidebarProvider>
                     </TeamProvider>
-                    </OfflineQueueProvider>
+                    </OptionalOfflineQueueProvider>
                   </WorkspaceOnboardingGuard>
                   </MFAEnforcementGuard>
                 </SimpleOrganizationProvider>

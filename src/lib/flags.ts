@@ -54,6 +54,19 @@ export const GEOLOCATION_HIERARCHY_ENABLED = import.meta.env.VITE_ENABLE_GEOLOCA
 export const MFA_ENABLED = import.meta.env.VITE_ENABLE_MFA === 'true';
 
 /**
+ * Controls whether the offline queue / offline-mode feature is enabled.
+ * When enabled, mutations are queued locally when the device is offline and
+ * replayed automatically on reconnect (OfflineQueueProvider + PendingSyncBanner).
+ *
+ * This feature is work-in-progress. Keep defaulting to false until it is
+ * fully validated and ready for general availability.
+ *
+ * Set via environment variable: VITE_ENABLE_OFFLINE_QUEUE
+ * Defaults to false (disabled) unless explicitly set to 'true'.
+ */
+export const OFFLINE_QUEUE_ENABLED = import.meta.env.VITE_ENABLE_OFFLINE_QUEUE === 'true';
+
+/**
  * Feature flag accessor utility
  */
 export const FeatureFlags = {
@@ -76,6 +89,10 @@ export const FeatureFlags = {
   mfa: {
     enabled: MFA_ENABLED,
     disabled: !MFA_ENABLED
+  },
+  offlineQueue: {
+    enabled: OFFLINE_QUEUE_ENABLED,
+    disabled: !OFFLINE_QUEUE_ENABLED
   }
 } as const;
 
@@ -133,4 +150,12 @@ export function isGeolocationHierarchyEnabled(): boolean {
  */
 export function isMFAEnabled(): boolean {
   return MFA_ENABLED;
+}
+
+/**
+ * Check if the offline queue feature is enabled
+ * @returns true if offline queue features should be active
+ */
+export function isOfflineQueueEnabled(): boolean {
+  return OFFLINE_QUEUE_ENABLED;
 }
