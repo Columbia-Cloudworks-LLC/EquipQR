@@ -85,7 +85,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
       if (machineHours !== undefined && machineHours > 0) {
         logger.debug('Machine hours provided but not persisted', { machineHours });
       }
-      // Text-only when offline or when images are attached and online, use full flow
+      // Use the offline path when offline, or when there are no images to upload (text-only note)
       const useOfflinePath = !navigator.onLine || images.length === 0;
       if (useOfflinePath && currentOrganization?.id && user?.id) {
         const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
