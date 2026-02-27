@@ -35,7 +35,8 @@ export const useCreateQuickEquipment = () => {
       const result = await service.createEquipmentQuick(data);
 
       if (result.queuedOffline) {
-        return { id: 'offline', name: data.name, queuedOffline: true };
+        const stableId = `offline-equip-${result.queueItemId}`;
+        return { id: stableId, name: data.name, queuedOffline: true, queueItemId: result.queueItemId };
       }
       if (result.data) {
         return result.data;
