@@ -371,16 +371,15 @@ describe('InventoryItemDetail - Action Buttons', () => {
 
   describe('Back Button', () => {
     it('navigates back to inventory list when back button is clicked', async () => {
-      const { user } = renderWithUser(<InventoryItemDetail />);
+      renderWithUser(<InventoryItemDetail />);
       
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
       });
       
-      // Find back button by its aria-label
-      const backButton = screen.getByRole('button', { name: /back to inventory/i });
-      await user.click(backButton);
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory');
+      // Navigation is now a breadcrumb link instead of a button
+      const breadcrumbLink = screen.getByRole('link', { name: /inventory/i });
+      expect(breadcrumbLink).toHaveAttribute('href', '/dashboard/inventory');
     });
   });
 
