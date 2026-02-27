@@ -30,13 +30,13 @@ export const useUpdateWorkOrder = () => {
   const offlineCtx = useOfflineQueueOptional();
 
   return useMutation({
-    mutationFn: async ({ workOrderId, data }: { workOrderId: string; data: UpdateWorkOrderData }): Promise<UpdateWorkOrderResult> => {
+    mutationFn: async ({ workOrderId, data, serverUpdatedAt }: { workOrderId: string; data: UpdateWorkOrderData; serverUpdatedAt?: string }): Promise<UpdateWorkOrderResult> => {
       if (!currentOrganization?.id || !user?.id) {
         throw new Error('Organization or user not available');
       }
 
       const svc = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
-      const result = await svc.updateWorkOrder(workOrderId, data);
+      const result = await svc.updateWorkOrder(workOrderId, data, serverUpdatedAt);
 
       if (result.queuedOffline) {
         offlineCtx?.refresh();

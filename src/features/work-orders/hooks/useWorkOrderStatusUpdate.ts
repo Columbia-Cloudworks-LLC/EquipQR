@@ -7,10 +7,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { workOrders, organization } from '@/lib/queryKeys';
 
 interface StatusUpdateData {
   workOrderId: string;
   newStatus: Database["public"]["Enums"]["work_order_status"];
+  /** The work order's `updated_at` value as seen by the client before this change. Used for conflict detection when the update is queued offline. */
+  serverUpdatedAt?: string;
 }
 
 /** Result shape from mutationFn. */
@@ -27,13 +30,13 @@ export const useWorkOrderStatusUpdate = () => {
   const offlineCtx = useOfflineQueueOptional();
 
   return useMutation({
-    mutationFn: async ({ workOrderId, newStatus }: StatusUpdateData): Promise<StatusUpdateResult> => {
+    mutationFn: async ({ workOrderId, newStatus, serverUpdatedAt }: StatusUpdateData): Promise<StatusUpdateResult> => {
       if (!currentOrganization?.id || !user?.id) {
         throw new Error('Organization or user not available');
       }
 
       const svc = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
-      const result = await svc.updateStatus(workOrderId, newStatus);
+      const result = await svc.updateStatus(workOrderId, newStatus, serverUpdatedAt);
 
       if (result.queuedOffline) {
         offlineCtx?.refresh();
@@ -52,16 +55,13 @@ export const useWorkOrderStatusUpdate = () => {
       }
 
       if (currentOrganization?.id) {
-        queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['team-based-work-orders', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['notifications', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['work-orders'], exact: false });
-        queryClient.invalidateQueries({ queryKey: ['workOrders'], exact: false });
-        queryClient.invalidateQueries({ queryKey: ['workOrder'], exact: false });
-        queryClient.invalidateQueries({ queryKey: ['dashboardStats'], exact: false });
+        const orgId = currentOrganization.id;
+        queryClient.invalidateQueries({ queryKey: workOrders.enhancedList(orgId) });
+        queryClient.invalidateQueries({ queryKey: workOrders.legacyList(orgId) });
+        queryClient.invalidateQueries({ queryKey: workOrders.optimized(orgId) });
+        queryClient.invalidateQueries({ queryKey: workOrders.teamBasedList(orgId) });
+        queryClient.invalidateQueries({ queryKey: organization(orgId).dashboardStats() });
+        queryClient.invalidateQueries({ queryKey: workOrders.root, exact: false });
       }
 
       toast({

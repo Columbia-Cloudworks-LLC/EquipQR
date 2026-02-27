@@ -231,7 +231,7 @@ export class OfflineAwareWorkOrderService {
           workOrderId,
           data,
           changedFields,
-          serverUpdatedAt: serverUpdatedAt || new Date().toISOString(),
+          serverUpdatedAt,
         },
         organizationId: this.orgId,
         userId: this.userId,
@@ -256,7 +256,7 @@ export class OfflineAwareWorkOrderService {
         payload: {
           workOrderId,
           newStatus,
-          serverUpdatedAt: serverUpdatedAt || new Date().toISOString(),
+          serverUpdatedAt,
         },
         organizationId: this.orgId,
         userId: this.userId,
