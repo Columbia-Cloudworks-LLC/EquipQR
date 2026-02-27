@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
+import { ArrowUp, ArrowDown, X, Plus } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -11,23 +11,27 @@ import {
 import { Button } from '@/components/ui/button';
 import { getWidget } from '@/features/dashboard/registry/widgetRegistry';
 
-interface MobileWidgetReorderProps {
+interface WidgetManagerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   activeWidgetIds: string[];
   onSave: (newOrder: string[]) => void;
+  onRemoveWidget: (widgetId: string) => void;
+  onOpenCatalog: () => void;
 }
 
 /**
- * Mobile-friendly reorder UI for dashboard widgets.
- * Uses simple up/down buttons instead of drag-and-drop for
- * better touch accessibility.
+ * Unified widget manager sheet for all screen sizes.
+ * Users can reorder widgets with up/down buttons, remove them inline,
+ * or open the widget catalog to add new ones.
  */
-export const MobileWidgetReorder: React.FC<MobileWidgetReorderProps> = ({
+export const WidgetManager: React.FC<WidgetManagerProps> = ({
   open,
   onOpenChange,
   activeWidgetIds,
   onSave,
+  onRemoveWidget,
+  onOpenCatalog,
 }) => {
   const [order, setOrder] = useState<string[]>(activeWidgetIds);
 
@@ -56,6 +60,11 @@ export const MobileWidgetReorder: React.FC<MobileWidgetReorderProps> = ({
     });
   }, []);
 
+  const removeFromOrder = useCallback((widgetId: string) => {
+    setOrder((prev) => prev.filter((id) => id !== widgetId));
+    onRemoveWidget(widgetId);
+  }, [onRemoveWidget]);
+
   const handleSave = () => {
     onSave(order);
     onOpenChange(false);
@@ -66,17 +75,22 @@ export const MobileWidgetReorder: React.FC<MobileWidgetReorderProps> = ({
     onOpenChange(false);
   };
 
+  const handleOpenCatalog = () => {
+    onOpenChange(false);
+    onOpenCatalog();
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto pb-safe">
-        <SheetHeader className="text-left">
-          <SheetTitle>Reorder Widgets</SheetTitle>
+      <SheetContent side="bottom" className="max-h-[85vh] flex flex-col pb-safe">
+        <SheetHeader className="text-left shrink-0">
+          <SheetTitle>Customize Dashboard</SheetTitle>
           <SheetDescription>
-            Move widgets up or down to change their order on your dashboard
+            Reorder or remove widgets. Use the button below to add new ones.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-4 space-y-2">
+        <div className="flex-1 overflow-y-auto mt-4 space-y-2">
           {order.map((widgetId, index) => {
             const widget = getWidget(widgetId);
             if (!widget) return null;
@@ -88,14 +102,11 @@ export const MobileWidgetReorder: React.FC<MobileWidgetReorderProps> = ({
                 key={widgetId}
                 className="flex items-center gap-3 rounded-lg border border-border p-3"
               >
-                <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm font-medium truncate">
-                    {widget.title}
-                  </span>
+                  <span className="text-sm font-medium truncate">{widget.title}</span>
                 </div>
-                <div className="flex gap-1 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -116,17 +127,40 @@ export const MobileWidgetReorder: React.FC<MobileWidgetReorderProps> = ({
                   >
                     <ArrowDown className="h-4 w-4" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => removeFromOrder(widgetId)}
+                    aria-label={`Remove ${widget.title}`}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             );
           })}
+
+          {order.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No widgets on your dashboard. Add some below.
+            </p>
+          )}
         </div>
 
-        <SheetFooter className="mt-6 gap-2">
-          <Button variant="outline" onClick={handleCancel}>
-            Cancel
+        <SheetFooter className="mt-4 shrink-0 flex-col gap-2 sm:flex-row">
+          <Button variant="outline" className="w-full sm:w-auto gap-1.5" onClick={handleOpenCatalog}>
+            <Plus className="h-4 w-4" />
+            Add Widgets
           </Button>
-          <Button onClick={handleSave}>Save order</Button>
+          <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
+            <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button className="flex-1 sm:flex-none" onClick={handleSave}>
+              Save
+            </Button>
+          </div>
         </SheetFooter>
       </SheetContent>
     </Sheet>

@@ -10,7 +10,6 @@ import {
   Zap,
 } from 'lucide-react';
 import type { WidgetDefinition, WidgetCategory } from '@/features/dashboard/types/dashboard';
-import type { Layout } from 'react-grid-layout';
 
 // Lazy-load self-contained widget wrappers for code splitting.
 // Each wrapper fetches its own data internally via hooks.
@@ -54,8 +53,6 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
     icon: LayoutDashboard,
     component: StatsGridWidget,
     defaultSize: { w: 12, h: 2 },
-    minSize: { w: 6, h: 2 },
-    maxSize: { w: 12, h: 3 },
     category: 'overview' as WidgetCategory,
   }],
   ['fleet-efficiency', {
@@ -65,8 +62,6 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
     icon: TrendingUp,
     component: FleetEfficiencyWidget,
     defaultSize: { w: 12, h: 7 },
-    minSize: { w: 6, h: 5 },
-    maxSize: { w: 12, h: 10 },
     category: 'overview' as WidgetCategory,
   }],
   ['recent-equipment', {
@@ -76,8 +71,6 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
     icon: Forklift,
     component: RecentEquipmentWidget,
     defaultSize: { w: 6, h: 6 },
-    minSize: { w: 4, h: 4 },
-    maxSize: { w: 12, h: 8 },
     category: 'equipment' as WidgetCategory,
   }],
   ['recent-work-orders', {
@@ -87,8 +80,6 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
     icon: ClipboardList,
     component: RecentWorkOrdersWidget,
     defaultSize: { w: 6, h: 6 },
-    minSize: { w: 4, h: 4 },
-    maxSize: { w: 12, h: 8 },
     category: 'work-orders' as WidgetCategory,
   }],
   ['high-priority-wo', {
@@ -98,11 +89,8 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
     icon: AlertTriangle,
     component: HighPriorityWOWidget,
     defaultSize: { w: 12, h: 4 },
-    minSize: { w: 6, h: 3 },
-    maxSize: { w: 12, h: 8 },
     category: 'work-orders' as WidgetCategory,
   }],
-  // Phase 2 widgets
   ['pm-compliance', {
     id: 'pm-compliance',
     title: 'PM Compliance',
@@ -110,8 +98,6 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
     icon: ClipboardCheck,
     component: PMComplianceWidget,
     defaultSize: { w: 6, h: 4 },
-    minSize: { w: 4, h: 3 },
-    maxSize: { w: 12, h: 6 },
     category: 'equipment' as WidgetCategory,
   }],
   ['equipment-by-status', {
@@ -121,8 +107,6 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
     icon: Forklift,
     component: EquipmentByStatusWidget,
     defaultSize: { w: 4, h: 4 },
-    minSize: { w: 3, h: 3 },
-    maxSize: { w: 8, h: 6 },
     category: 'equipment' as WidgetCategory,
   }],
   ['cost-trend', {
@@ -132,8 +116,6 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
     icon: DollarSign,
     component: CostTrendWidget,
     defaultSize: { w: 12, h: 4 },
-    minSize: { w: 6, h: 3 },
-    maxSize: { w: 12, h: 6 },
     category: 'work-orders' as WidgetCategory,
   }],
   ['quick-actions', {
@@ -143,8 +125,6 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
     icon: Zap,
     component: QuickActionsWidget,
     defaultSize: { w: 4, h: 3 },
-    minSize: { w: 3, h: 2 },
-    maxSize: { w: 6, h: 4 },
     category: 'overview' as WidgetCategory,
   }],
 ]);
@@ -164,7 +144,7 @@ export function getWidgetsByCategory(category: WidgetCategory): WidgetDefinition
   return getAllWidgets().filter((w) => w.category === category);
 }
 
-/** Default widget IDs for new users */
+/** Default widget IDs shown to new users, in display order */
 export const DEFAULT_WIDGET_IDS = [
   'stats-grid',
   'fleet-efficiency',
@@ -174,82 +154,14 @@ export const DEFAULT_WIDGET_IDS = [
 ];
 
 /**
- * Generates a default layout for a given set of active widget IDs.
- * Positions widgets in a vertical stack at full width, following
- * the order they appear in DEFAULT_WIDGET_IDS.
+ * Returns the default active widget list for new users.
+ * Filters out any IDs not present in the registry.
  */
 export function generateDefaultLayout(
   activeWidgetIds?: string[]
-): { layouts: Record<string, Layout[]>; activeWidgets: string[] } {
+): { activeWidgets: string[] } {
   const widgetIds = activeWidgetIds ?? DEFAULT_WIDGET_IDS;
-  const activeWidgets = widgetIds.filter((id) => WIDGET_REGISTRY.has(id));
-
-  const lgLayout: Layout[] = [];
-  let currentY = 0;
-
-  for (const id of activeWidgets) {
-    const widget = WIDGET_REGISTRY.get(id);
-    if (!widget) continue;
-
-    const { w, h } = widget.defaultSize;
-    const minW = widget.minSize?.w ?? 2;
-    const minH = widget.minSize?.h ?? 2;
-    const maxW = widget.maxSize?.w;
-    const maxH = widget.maxSize?.h;
-
-    lgLayout.push({
-      i: id,
-      x: 0,
-      y: currentY,
-      w,
-      h,
-      minW,
-      minH,
-      ...(maxW !== undefined ? { maxW } : {}),
-      ...(maxH !== undefined ? { maxH } : {}),
-    });
-    currentY += h;
-  }
-
-  // For smaller breakpoints, stack widgets at full available width
-  const mdLayout = lgLayout.map((item) => {
-    const widget = WIDGET_REGISTRY.get(item.i);
-    return {
-      ...item,
-      w: Math.min(item.w, 10),
-      minW: Math.min(widget?.minSize?.w ?? 2, 10),
-    };
-  });
-
-  const smLayout = lgLayout.map((item) => ({
-    ...item,
-    x: 0,
-    w: 6,
-    minW: Math.min(item.minW ?? 2, 6),
-  }));
-
-  const xsLayout = lgLayout.map((item) => ({
-    ...item,
-    x: 0,
-    w: 4,
-    minW: Math.min(item.minW ?? 2, 4),
-  }));
-
-  const xxsLayout = lgLayout.map((item) => ({
-    ...item,
-    x: 0,
-    w: 2,
-    minW: Math.min(item.minW ?? 2, 2),
-  }));
-
   return {
-    layouts: {
-      lg: lgLayout,
-      md: mdLayout,
-      sm: smLayout,
-      xs: xsLayout,
-      xxs: xxsLayout,
-    },
-    activeWidgets,
+    activeWidgets: widgetIds.filter((id) => WIDGET_REGISTRY.has(id)),
   };
 }

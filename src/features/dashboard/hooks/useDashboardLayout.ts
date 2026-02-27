@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 import { dashboardPreferences } from '@/lib/queryKeys';
 import { generateDefaultLayout, WIDGET_REGISTRY } from '@/features/dashboard/registry/widgetRegistry';
-import type { Layout } from 'react-grid-layout';
 
 /** localStorage key scoped to user + organization */
 function storageKey(userId: string, orgId: string): string {
@@ -13,24 +12,24 @@ function storageKey(userId: string, orgId: string): string {
 }
 
 interface StoredPreferences {
-  layouts: Record<string, Layout[]>;
   activeWidgets: string[];
   updatedAt: string;
 }
 
-/** Safely read preferences from localStorage */
+/** Safely read preferences from localStorage.
+ *  Handles both the new slim format and the legacy format that included a `layouts` key.
+ */
 function readFromLocalStorage(userId: string, orgId: string): StoredPreferences | null {
   try {
     const raw = localStorage.getItem(storageKey(userId, orgId));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as StoredPreferences;
-    // Validate basic structure
-    if (parsed && typeof parsed.layouts === 'object' && Array.isArray(parsed.activeWidgets)) {
-      return parsed;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    // Accept both new and legacy shapes — only activeWidgets is required.
+    if (parsed && Array.isArray(parsed.activeWidgets) && typeof parsed.updatedAt === 'string') {
+      return { activeWidgets: parsed.activeWidgets as string[], updatedAt: parsed.updatedAt as string };
     }
     return null;
   } catch {
-    // Corrupted JSON — remove and return null
     try { localStorage.removeItem(storageKey(userId, orgId)); } catch { /* noop */ }
     return null;
   }
@@ -46,34 +45,32 @@ function writeToLocalStorage(userId: string, orgId: string, prefs: StoredPrefere
 }
 
 interface UseDashboardLayoutResult {
-  layouts: Record<string, Layout[]>;
   activeWidgets: string[];
   isLoading: boolean;
-  updateLayout: (newLayouts: Record<string, Layout[]>) => void;
+  updateWidgetOrder: (newOrder: string[]) => void;
   addWidget: (widgetId: string) => void;
   removeWidget: (widgetId: string) => void;
   resetToDefault: () => void;
 }
 
 /**
- * Hook managing dashboard layout lifecycle with two-tier persistence:
+ * Hook managing dashboard widget list with two-tier persistence:
  * 1. localStorage for instant load (keyed to user+org)
  * 2. Supabase for cross-device durability (debounce-synced)
  *
- * When organizationId changes, layout is reloaded for the new org.
+ * Layout is now purely an ordered list of widget IDs — no per-breakpoint
+ * position/size data. CSS grid column spans are derived from the widget
+ * registry's `defaultSize.w` at render time.
  */
 export function useDashboardLayout(organizationId: string | undefined): UseDashboardLayoutResult {
   const { user } = useAuth();
   const userId = user?.id;
   const queryClient = useQueryClient();
 
-  // Local state for instant rendering
-  const [layouts, setLayouts] = useState<Record<string, Layout[]>>({});
   const [activeWidgets, setActiveWidgets] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Clear debounce timer on unmount or when org/user changes
   useEffect(() => {
     return () => {
       if (debounceTimer.current) {
@@ -89,11 +86,9 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
 
     const stored = readFromLocalStorage(userId, organizationId);
     if (stored) {
-      setLayouts(stored.layouts);
       setActiveWidgets(stored.activeWidgets);
     } else {
       const defaults = generateDefaultLayout();
-      setLayouts(defaults.layouts);
       setActiveWidgets(defaults.activeWidgets);
     }
     setInitialized(true);
@@ -106,7 +101,7 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
       if (!userId || !organizationId) return null;
       const { data, error } = await supabase
         .from('user_dashboard_preferences')
-        .select('layouts, active_widgets, updated_at')
+        .select('active_widgets, updated_at')
         .eq('user_id', userId)
         .eq('organization_id', organizationId)
         .maybeSingle();
@@ -118,7 +113,7 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
       return data;
     },
     enabled: !!userId && !!organizationId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -131,17 +126,12 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
     const localUpdatedAt = localPrefs ? new Date(localPrefs.updatedAt).getTime() : 0;
 
     if (supaUpdatedAt > localUpdatedAt) {
-      const supaLayouts = supabasePrefs.layouts as Record<string, Layout[]>;
       const supaWidgets = supabasePrefs.active_widgets as string[];
-
-      // Validate widgets still exist in registry
       const validWidgets = supaWidgets.filter((id) => WIDGET_REGISTRY.has(id));
 
-      if (validWidgets.length > 0 && supaLayouts && typeof supaLayouts === 'object') {
-        setLayouts(supaLayouts);
+      if (validWidgets.length > 0) {
         setActiveWidgets(validWidgets);
         writeToLocalStorage(userId, organizationId, {
-          layouts: supaLayouts,
           activeWidgets: validWidgets,
           updatedAt: supabasePrefs.updated_at,
         });
@@ -149,11 +139,9 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
     }
   }, [supabasePrefs, userId, organizationId, initialized]);
 
-  // Supabase upsert mutation — payload includes org/user captured at schedule
-  // time so a pending debounce never writes to the wrong organization.
+  // Supabase upsert mutation
   const upsertMutation = useMutation({
     mutationFn: async (prefs: {
-      layouts: Record<string, Layout[]>;
       activeWidgets: string[];
       targetUserId: string;
       targetOrgId: string;
@@ -164,7 +152,6 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
           {
             user_id: prefs.targetUserId,
             organization_id: prefs.targetOrgId,
-            layouts: prefs.layouts,
             active_widgets: prefs.activeWidgets,
             updated_at: new Date().toISOString(),
           },
@@ -187,114 +174,72 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
     },
   });
 
-  // Debounced sync to Supabase — captures userId/organizationId at call time
+  // Debounced sync to Supabase
   const debounceSyncToSupabase = useCallback(
-    (prefs: { layouts: Record<string, Layout[]>; activeWidgets: string[] }) => {
+    (widgets: string[]) => {
       if (!userId || !organizationId) return;
 
-      // Capture current org/user so the debounced callback uses the correct values
       const targetUserId = userId;
       const targetOrgId = organizationId;
 
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
       debounceTimer.current = setTimeout(() => {
-        upsertMutation.mutate({
-          ...prefs,
-          targetUserId,
-          targetOrgId,
-        });
+        upsertMutation.mutate({ activeWidgets: widgets, targetUserId, targetOrgId });
       }, 2000);
     },
     [userId, organizationId, upsertMutation]
   );
 
-  // Persist helper: write to localStorage immediately, debounce to Supabase
+  // Persist: write to localStorage immediately, debounce to Supabase
   const persist = useCallback(
-    (newLayouts: Record<string, Layout[]>, newWidgets: string[]) => {
+    (widgets: string[]) => {
       if (!userId || !organizationId) return;
-      const prefs: StoredPreferences = {
-        layouts: newLayouts,
-        activeWidgets: newWidgets,
+      writeToLocalStorage(userId, organizationId, {
+        activeWidgets: widgets,
         updatedAt: new Date().toISOString(),
-      };
-      writeToLocalStorage(userId, organizationId, prefs);
-      debounceSyncToSupabase({ layouts: newLayouts, activeWidgets: newWidgets });
+      });
+      debounceSyncToSupabase(widgets);
     },
     [userId, organizationId, debounceSyncToSupabase]
   );
 
-  const updateLayout = useCallback(
-    (newLayouts: Record<string, Layout[]>) => {
-      setLayouts(newLayouts);
-      persist(newLayouts, activeWidgets);
+  const updateWidgetOrder = useCallback(
+    (newOrder: string[]) => {
+      setActiveWidgets(newOrder);
+      persist(newOrder);
     },
-    [persist, activeWidgets]
+    [persist]
   );
 
   const addWidget = useCallback(
     (widgetId: string) => {
       if (activeWidgets.includes(widgetId) || !WIDGET_REGISTRY.has(widgetId)) return;
-
-      const widget = WIDGET_REGISTRY.get(widgetId)!;
       const newWidgets = [...activeWidgets, widgetId];
-
-      // Add to all breakpoint layouts
-      const newLayouts = { ...layouts };
-      for (const [bp, layout] of Object.entries(newLayouts)) {
-        const maxY = layout.reduce((max, item) => Math.max(max, item.y + item.h), 0);
-        const cols = bp === 'lg' ? 12 : bp === 'md' ? 10 : bp === 'sm' ? 6 : bp === 'xs' ? 4 : 2;
-        newLayouts[bp] = [
-          ...layout,
-          {
-            i: widgetId,
-            x: 0,
-            y: maxY,
-            w: Math.min(widget.defaultSize.w, cols),
-            h: widget.defaultSize.h,
-            minW: Math.min(widget.minSize?.w ?? 2, cols),
-            minH: widget.minSize?.h ?? 2,
-            ...(widget.maxSize?.w !== undefined ? { maxW: widget.maxSize.w } : {}),
-            ...(widget.maxSize?.h !== undefined ? { maxH: widget.maxSize.h } : {}),
-          },
-        ];
-      }
-
       setActiveWidgets(newWidgets);
-      setLayouts(newLayouts);
-      persist(newLayouts, newWidgets);
+      persist(newWidgets);
     },
-    [activeWidgets, layouts, persist]
+    [activeWidgets, persist]
   );
 
   const removeWidget = useCallback(
     (widgetId: string) => {
       const newWidgets = activeWidgets.filter((id) => id !== widgetId);
-      const newLayouts = { ...layouts };
-      for (const bp of Object.keys(newLayouts)) {
-        newLayouts[bp] = newLayouts[bp].filter((item) => item.i !== widgetId);
-      }
-
       setActiveWidgets(newWidgets);
-      setLayouts(newLayouts);
-      persist(newLayouts, newWidgets);
+      persist(newWidgets);
     },
-    [activeWidgets, layouts, persist]
+    [activeWidgets, persist]
   );
 
   const resetToDefault = useCallback(() => {
     const defaults = generateDefaultLayout();
-    setLayouts(defaults.layouts);
     setActiveWidgets(defaults.activeWidgets);
-    persist(defaults.layouts, defaults.activeWidgets);
+    persist(defaults.activeWidgets);
   }, [persist]);
 
   return {
-    layouts,
     activeWidgets,
     isLoading: !initialized,
-    updateLayout,
+    updateWidgetOrder,
     addWidget,
     removeWidget,
     resetToDefault,
