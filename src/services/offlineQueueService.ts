@@ -71,6 +71,16 @@ export interface OfflineQueueCreateItem extends OfflineQueueItemBase {
   payload: CreateWorkOrderData;
 }
 
+/** Field values captured from the server at the moment the user opened the edit form. */
+export interface WorkOrderServerSnapshot {
+  title?: string | null;
+  description?: string | null;
+  priority?: string | null;
+  due_date?: string | null;
+  estimated_hours?: number | null;
+  has_pm?: boolean | null;
+}
+
 export interface OfflineQueueUpdateItem extends OfflineQueueItemBase {
   type: 'work_order_update';
   payload: {
@@ -80,6 +90,12 @@ export interface OfflineQueueUpdateItem extends OfflineQueueItemBase {
     changedFields?: string[];
     /** Snapshot of the work order's updated_at when the edit was made. */
     serverUpdatedAt?: string;
+    /**
+     * Field values at the moment the user began editing (the "base" in a 3-way merge).
+     * Required for true field-level conflict detection: if a field's current server value
+     * differs from serverSnapshot[field], the server changed it while we were offline.
+     */
+    serverSnapshot?: WorkOrderServerSnapshot;
   };
 }
 
@@ -375,10 +391,22 @@ export class OfflineQueueService {
               ...(updateItem.payload.changedFields || []),
             ]),
           ];
+          // Keep the EARLIEST serverUpdatedAt — that is the true baseline the user
+          // saw when they began editing. Overwriting it with a later timestamp would
+          // cause conflict detection to use the wrong anchor.
+          const serverUpdatedAt = existing.payload.serverUpdatedAt ?? updateItem.payload.serverUpdatedAt;
+          // Prefer the earlier snapshot for fields that appear in both snapshots;
+          // fall back to the later snapshot for fields only it has.
+          const serverSnapshot = {
+            ...(updateItem.payload.serverSnapshot ?? {}),
+            ...(existing.payload.serverSnapshot ?? {}),
+          };
           existing.payload = {
             ...existing.payload,
             data: mergedData,
             changedFields: mergedFields,
+            serverUpdatedAt,
+            serverSnapshot: Object.keys(serverSnapshot).length > 0 ? serverSnapshot : undefined,
           };
           existing.timestamp = updateItem.timestamp; // use latest timestamp
         } else {

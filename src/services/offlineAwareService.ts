@@ -30,6 +30,7 @@ import type {
 } from '@/features/equipment/services/EquipmentService';
 import type { UpdateWorkingHoursData } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { OfflineQueueService, OfflineQueuePayloadError } from './offlineQueueService';
+import type { WorkOrderServerSnapshot } from './offlineQueueService';
 
 // ─── Result type ─────────────────────────────────────────────────────────────
 
@@ -112,10 +113,11 @@ export class OfflineAwareWorkOrderService {
     workOrderId: string,
     data: UpdateWorkOrderData,
     serverUpdatedAt?: string,
+    serverSnapshot?: WorkOrderServerSnapshot,
   ): Promise<OfflineAwareResult<Record<string, unknown>>> {
     // ── TIER 1: Fast pre-check ──
     if (!navigator.onLine) {
-      return this.queueUpdate(workOrderId, data, serverUpdatedAt);
+      return this.queueUpdate(workOrderId, data, serverUpdatedAt, serverSnapshot);
     }
 
     // ── TIER 2: Attempt real call ──
@@ -140,7 +142,7 @@ export class OfflineAwareWorkOrderService {
       return { data: result, queuedOffline: false };
     } catch (error) {
       if (isNetworkError(error)) {
-        return this.queueUpdate(workOrderId, data, serverUpdatedAt);
+        return this.queueUpdate(workOrderId, data, serverUpdatedAt, serverSnapshot);
       }
       throw error;
     }
@@ -218,6 +220,7 @@ export class OfflineAwareWorkOrderService {
     workOrderId: string,
     data: UpdateWorkOrderData,
     serverUpdatedAt?: string,
+    serverSnapshot?: WorkOrderServerSnapshot,
   ): OfflineAwareResult<Record<string, unknown>> {
     try {
       // Determine which fields changed for conflict resolution
@@ -232,6 +235,7 @@ export class OfflineAwareWorkOrderService {
           data,
           changedFields,
           serverUpdatedAt,
+          serverSnapshot,
         },
         organizationId: this.orgId,
         userId: this.userId,

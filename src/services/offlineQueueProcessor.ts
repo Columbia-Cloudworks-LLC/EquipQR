@@ -30,6 +30,7 @@ import type {
   OfflineQueueEquipmentUpdateItem,
   OfflineQueueEquipmentHoursItem,
   OfflineQueueEquipmentNoteItem,
+  WorkOrderServerSnapshot,
 } from './offlineQueueService';
 import { OfflineQueueService } from './offlineQueueService';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
@@ -93,10 +94,24 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
   }) as QueueItemHandler<never>,
 
   work_order_update: (async (item: OfflineQueueUpdateItem) => {
-    const { workOrderId, data, changedFields, serverUpdatedAt } = item.payload;
+    const { workOrderId, data, changedFields, serverUpdatedAt, serverSnapshot } = item.payload;
 
-    // ── Conflict detection ──
-    // Fetch current server state to check if it changed while we were offline
+    // Map of camelCase field names (used in UpdateWorkOrderData / changedFields) to DB column names.
+    // Also used to pull the corresponding value out of serverSnapshot and current server state.
+    const fieldMap: Record<string, keyof WorkOrderServerSnapshot> = {
+      title: 'title',
+      description: 'description',
+      priority: 'priority',
+      dueDate: 'due_date',
+      estimatedHours: 'estimated_hours',
+      hasPM: 'has_pm',
+    };
+
+    // ── Conflict detection (3-way merge) ──────────────────────────────────────
+    // We can only do a proper merge when we have:
+    //   1. The timestamp of the server state when the user started editing (serverUpdatedAt)
+    //   2. The list of fields the user actually changed (changedFields)
+    // serverSnapshot is used when available for per-field server-change detection.
     if (serverUpdatedAt && changedFields && changedFields.length > 0) {
       const { data: current, error: fetchErr } = await supabase
         .from('work_orders')
@@ -107,44 +122,47 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       if (fetchErr) throw fetchErr;
 
       if (current && current.updated_at !== serverUpdatedAt) {
-        // Server state changed — do field-level merge
+        // Server state changed while we were offline — perform field-level merge.
         logger.info(`Conflict detected for WO ${workOrderId}: server updated_at differs`, {
           serverUpdatedAt,
           currentUpdatedAt: current.updated_at,
         });
 
-        // Build update with only non-conflicting fields
-        // Strategy: for each changed field, check if server also changed it.
-        // If server changed the same field, server wins (LWW — server had more recent info).
-        // If server didn't change it, apply our offline change.
         const safeUpdate: Record<string, unknown> = {};
-        const conflicts: string[] = [];
-
-        // Map of our changed fields to DB column names
-        const fieldMap: Record<string, string> = {
-          title: 'title',
-          description: 'description',
-          priority: 'priority',
-          dueDate: 'due_date',
-          estimatedHours: 'estimated_hours',
-          hasPM: 'has_pm',
-        };
+        const conflictingFields: string[] = [];
 
         for (const field of changedFields) {
           const dbCol = fieldMap[field];
           if (!dbCol) continue;
 
-          // We don't have the "original" value the user started with,
-          // so we use a simple heuristic: if server updated_at changed,
-          // assume the server version is authoritative for all fields.
-          // This is the safest approach — server always wins on true conflicts.
-          // We still apply fields that are in our changeset since the
-          // user's intent should be respected when possible.
           const ourValue = (data as Record<string, unknown>)[field];
-          if (ourValue !== undefined) {
-            safeUpdate[dbCol] = field === 'dueDate' ? (ourValue || null) :
-                                field === 'estimatedHours' ? (ourValue || null) :
-                                ourValue;
+          if (ourValue === undefined) continue;
+
+          // 3-way merge: determine whether the *server* also changed this field.
+          // If we have a serverSnapshot we can compare precisely; without it we
+          // fall back to server-wins (safe default).
+          let serverChangedThisField: boolean;
+          if (serverSnapshot && dbCol in serverSnapshot) {
+            // Server changed this field iff its current value differs from the baseline.
+            serverChangedThisField =
+              String(current[dbCol] ?? '') !== String(serverSnapshot[dbCol] ?? '');
+          } else {
+            // No per-field baseline available — assume server changed everything
+            // (conservative / server-wins fallback).
+            serverChangedThisField = true;
+          }
+
+          if (serverChangedThisField) {
+            // Server wins — record the conflict but do not overwrite.
+            conflictingFields.push(field);
+            logger.info(
+              `Field-level conflict on WO ${workOrderId}.${field}: ` +
+              `keeping server value "${current[dbCol]}", discarding offline value "${ourValue}"`,
+            );
+          } else {
+            // Server did not touch this field — safe to apply our offline change.
+            safeUpdate[dbCol] =
+              field === 'dueDate' || field === 'estimatedHours' ? (ourValue || null) : ourValue;
           }
         }
 
@@ -158,13 +176,13 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
           if (error) throw error;
         }
 
-        if (conflicts.length > 0) {
+        if (conflictingFields.length > 0) {
           return {
             success: true,
             conflict: {
               workOrderId,
-              type: 'field_conflict',
-              details: `Fields with server-side changes: ${conflicts.join(', ')}`,
+              type: 'field_conflict' as const,
+              details: `Server-side changes won for: ${conflictingFields.join(', ')}. Your offline edits to these fields were discarded.`,
             },
           };
         }
@@ -173,7 +191,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       }
     }
 
-    // No conflict — apply directly
+    // No conflict — apply all changed fields directly.
     const updateData: Record<string, unknown> = {};
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description;

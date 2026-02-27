@@ -6,6 +6,7 @@ import { toast } from '@/hooks/use-toast';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import type { WorkOrderServerSnapshot } from '@/services/offlineQueueService';
 import { workOrders, organization, preventiveMaintenance } from '@/lib/queryKeys';
 
 export interface UpdateWorkOrderData {
@@ -30,13 +31,28 @@ export const useUpdateWorkOrder = () => {
   const offlineCtx = useOfflineQueueOptional();
 
   return useMutation({
-    mutationFn: async ({ workOrderId, data, serverUpdatedAt }: { workOrderId: string; data: UpdateWorkOrderData; serverUpdatedAt?: string }): Promise<UpdateWorkOrderResult> => {
+    mutationFn: async ({
+      workOrderId,
+      data,
+      serverUpdatedAt,
+      serverSnapshot,
+    }: {
+      workOrderId: string;
+      data: UpdateWorkOrderData;
+      serverUpdatedAt?: string;
+      /**
+       * Field values from the server at the time the user opened the edit form.
+       * Pass this so offline sync can perform a true 3-way merge instead of
+       * blindly overwriting the server with stale offline values.
+       */
+      serverSnapshot?: WorkOrderServerSnapshot;
+    }): Promise<UpdateWorkOrderResult> => {
       if (!currentOrganization?.id || !user?.id) {
         throw new Error('Organization or user not available');
       }
 
       const svc = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
-      const result = await svc.updateWorkOrder(workOrderId, data, serverUpdatedAt);
+      const result = await svc.updateWorkOrder(workOrderId, data, serverUpdatedAt, serverSnapshot);
 
       if (result.queuedOffline) {
         offlineCtx?.refresh();
