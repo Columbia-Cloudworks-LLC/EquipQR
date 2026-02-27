@@ -18,6 +18,28 @@ const WidgetSkeleton: React.FC = () => (
 );
 
 /**
+ * Maps a 12-col span value to its Tailwind `lg:col-span-*` class.
+ * All widgets default to `col-span-12` (full-width) on small screens and
+ * honour their registry width only at the `lg` breakpoint and above.
+ * Using a lookup table keeps all class names as static strings so Tailwind's
+ * JIT scanner never purges them.
+ */
+const LG_COL_SPAN: Record<number, string> = {
+  1:  'lg:col-span-1',
+  2:  'lg:col-span-2',
+  3:  'lg:col-span-3',
+  4:  'lg:col-span-4',
+  5:  'lg:col-span-5',
+  6:  'lg:col-span-6',
+  7:  'lg:col-span-7',
+  8:  'lg:col-span-8',
+  9:  'lg:col-span-9',
+  10: 'lg:col-span-10',
+  11: 'lg:col-span-11',
+  12: 'lg:col-span-12',
+};
+
+/**
  * Static CSS-grid dashboard. Widgets are rendered in `activeWidgets` order,
  * each spanning their `defaultSize.w` columns (out of 12) on large screens
  * and collapsing to full-width on smaller breakpoints.
@@ -47,14 +69,14 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({ activeWidgets }) =
         if (!widget) return null;
 
         const WidgetComponent = widget.component;
-        // defaultSize.w is defined in 12-col terms; cap to 12 for safety
-        const colSpan = Math.min(widget.defaultSize.w, 12);
+        // defaultSize.w is in 12-col terms; clamp to [1, 12]
+        const colSpan = Math.min(Math.max(widget.defaultSize.w, 1), 12);
+        const lgClass = LG_COL_SPAN[colSpan] ?? 'lg:col-span-12';
 
         return (
           <div
             key={widgetId}
-            style={{ gridColumn: `span ${colSpan}` }}
-            className="col-span-12 lg:col-auto"
+            className={`col-span-12 ${lgClass}`}
           >
             <Card className="h-full flex flex-col overflow-hidden">
               <CardContent className="flex-1 overflow-auto p-0">
