@@ -128,10 +128,22 @@ describe('useWorkOrderUpdate', () => {
       queryKey: ['workOrders', 'org-1']
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ['work-orders-filtered-optimized', 'org-1']
+      queryKey: ['work-orders', 'org-1', 'optimized']
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ['dashboardStats', 'org-1']
+      queryKey: ['team-based-work-orders', 'org-1']
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['organization', 'org-1', 'dashboard-stats']
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['workOrder', 'org-1', 'wo-1']
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['workOrder', 'enhanced', 'org-1', 'wo-1']
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['preventativeMaintenance', 'wo-1']
     });
 
     // Verify success toast
