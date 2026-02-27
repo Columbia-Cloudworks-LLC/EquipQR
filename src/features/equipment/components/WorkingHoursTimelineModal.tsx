@@ -6,6 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -257,6 +258,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
           <DialogDescription className={isMobile ? 'text-sm' : ''}>
             Track and manage runtime for {equipmentName}
           </DialogDescription>
+          <OfflineFormBanner />
         </DialogHeader>
 
         <div className="flex-shrink-0 space-y-4">

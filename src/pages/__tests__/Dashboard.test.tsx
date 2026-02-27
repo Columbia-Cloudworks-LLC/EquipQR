@@ -143,14 +143,6 @@ vi.mock('@/features/teams/hooks/useTeams', () => ({
   }))
 }));
 
-// Mock react-grid-layout for jsdom environment
-vi.mock('react-grid-layout', () => ({
-  Responsive: ({ children }: { children?: React.ReactNode }) => <div data-testid="responsive-grid">{children}</div>,
-}));
-
-vi.mock('react-grid-layout/css/styles.css', () => ({}));
-vi.mock('react-resizable/css/styles.css', () => ({}));
-
 // Mock Recharts components
 vi.mock('recharts', () => ({
   PieChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
@@ -174,19 +166,9 @@ vi.mock('recharts', () => ({
 // ============================================
 
 const defaultLayoutMock = {
-  layouts: {
-    lg: [
-      { i: 'stats-grid', x: 0, y: 0, w: 12, h: 2 },
-      { i: 'fleet-efficiency', x: 0, y: 2, w: 12, h: 7 },
-      { i: 'recent-equipment', x: 0, y: 9, w: 6, h: 6 },
-      { i: 'recent-work-orders', x: 6, y: 9, w: 6, h: 6 },
-      { i: 'high-priority-wo', x: 0, y: 15, w: 12, h: 4 },
-    ],
-    md: [], sm: [], xs: [], xxs: [],
-  },
   activeWidgets: ['stats-grid', 'fleet-efficiency', 'recent-equipment', 'recent-work-orders', 'high-priority-wo'],
   isLoading: false,
-  updateLayout: vi.fn(),
+  updateWidgetOrder: vi.fn(),
   addWidget: vi.fn(),
   removeWidget: vi.fn(),
   resetToDefault: vi.fn(),
@@ -323,11 +305,10 @@ describe('Dashboard', () => {
       expect(screen.getByText(`Welcome back to ${organizations.acme.name}`)).toBeInTheDocument();
     });
 
-    it('renders the dashboard grid with widgets', async () => {
+    it('renders the static dashboard grid', async () => {
       render(<Dashboard />);
-      // The grid should render with lazy-loaded widgets
       await waitFor(() => {
-        expect(screen.getByTestId('responsive-grid')).toBeInTheDocument();
+        expect(screen.getByTestId('dashboard-grid')).toBeInTheDocument();
       });
     });
 
@@ -338,7 +319,6 @@ describe('Dashboard', () => {
 
     it('displays widget content after lazy loading', async () => {
       render(<Dashboard />);
-      // Wait for lazy-loaded widgets to resolve
       await waitFor(() => {
         expect(screen.getByText('Total Equipment')).toBeInTheDocument();
       });
@@ -435,7 +415,7 @@ describe('Dashboard', () => {
 
     it('does NOT show the dashboard grid', () => {
       render(<Dashboard />);
-      expect(screen.queryByTestId('responsive-grid')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('dashboard-grid')).not.toBeInTheDocument();
     });
   });
 
@@ -511,19 +491,19 @@ describe('Dashboard', () => {
       });
     });
 
-    it('renders the responsive grid layout', async () => {
+    it('renders the static dashboard grid', async () => {
       render(<Dashboard />);
       await waitFor(() => {
-        expect(screen.getByTestId('responsive-grid')).toBeInTheDocument();
+        expect(screen.getByTestId('dashboard-grid')).toBeInTheDocument();
       });
     });
 
     it('renders widgets based on activeWidgets from layout hook', async () => {
       render(<Dashboard />);
-      // Grid should contain widget cards
       await waitFor(() => {
-        const grid = screen.getByTestId('responsive-grid');
-        expect(grid.children.length).toBe(5); // 5 default widgets
+        const grid = screen.getByTestId('dashboard-grid');
+        // 5 default widget slots rendered (one div per widget)
+        expect(grid.children.length).toBe(5);
       });
     });
 
@@ -531,10 +511,14 @@ describe('Dashboard', () => {
       vi.mocked(useDashboardLayoutModule.useDashboardLayout).mockReturnValue({
         ...defaultLayoutMock,
         activeWidgets: [],
-        layouts: { lg: [], md: [], sm: [], xs: [], xxs: [] },
       });
       render(<Dashboard />);
       expect(screen.getByText(/no widgets on your dashboard/i)).toBeInTheDocument();
+    });
+
+    it('shows the Customize button that opens the widget manager', () => {
+      render(<Dashboard />);
+      expect(screen.getByText('Customize')).toBeInTheDocument();
     });
   });
 });

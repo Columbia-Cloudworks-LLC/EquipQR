@@ -1,20 +1,77 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { equipmentFormSchema, EquipmentFormData, EquipmentRecord } from '@/features/equipment/types/equipment';
+import type { EquipmentCreateData, EquipmentUpdateData } from '@/features/equipment/services/EquipmentService';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { toast } from 'sonner';
 import { logEquipmentLocationChange } from '@/features/equipment/services/equipmentLocationHistoryService';
+
+function toEquipmentCreateData(data: EquipmentFormData): EquipmentCreateData {
+  return {
+    name: data.name,
+    manufacturer: data.manufacturer,
+    model: data.model,
+    serial_number: data.serial_number,
+    status: data.status,
+    location: data.location,
+    installation_date: data.installation_date,
+    customer_id: null,
+    warranty_expiration: data.warranty_expiration || null,
+    last_maintenance: data.last_maintenance || null,
+    notes: data.notes || null,
+    custom_attributes: (data.custom_attributes || {}) as Record<string, unknown>,
+    image_url: data.image_url || null,
+    last_known_location: data.last_known_location || null,
+    team_id: data.team_id || null,
+    default_pm_template_id: data.default_pm_template_id || null,
+    assigned_location_street: data.assigned_location_street || null,
+    assigned_location_city: data.assigned_location_city || null,
+    assigned_location_state: data.assigned_location_state || null,
+    assigned_location_country: data.assigned_location_country || null,
+    assigned_location_lat: data.assigned_location_lat ?? null,
+    assigned_location_lng: data.assigned_location_lng ?? null,
+    working_hours: 0,
+    import_id: null,
+  };
+}
+
+function toEquipmentUpdateData(data: EquipmentFormData): EquipmentUpdateData {
+  return {
+    name: data.name,
+    manufacturer: data.manufacturer,
+    model: data.model,
+    serial_number: data.serial_number,
+    status: data.status,
+    location: data.location,
+    installation_date: data.installation_date,
+    warranty_expiration: data.warranty_expiration || null,
+    last_maintenance: data.last_maintenance || null,
+    notes: data.notes || null,
+    custom_attributes: (data.custom_attributes || {}) as Record<string, unknown>,
+    image_url: data.image_url || null,
+    last_known_location: data.last_known_location || null,
+    team_id: data.team_id || null,
+    default_pm_template_id: data.default_pm_template_id || null,
+    assigned_location_street: data.assigned_location_street || null,
+    assigned_location_city: data.assigned_location_city || null,
+    assigned_location_state: data.assigned_location_state || null,
+    assigned_location_country: data.assigned_location_country || null,
+    assigned_location_lat: data.assigned_location_lat ?? null,
+    assigned_location_lng: data.assigned_location_lng ?? null,
+  };
+}
 
 export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () => void) => {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
+  const offlineCtx = useOfflineQueueOptional();
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentFormSchema),
@@ -71,43 +128,16 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         throw new Error('Organization or user not found');
       }
 
-      const equipmentData = {
-        name: data.name,
-        manufacturer: data.manufacturer,
-        model: data.model,
-        serial_number: data.serial_number,
-        status: data.status,
-        location: data.location,
-        installation_date: data.installation_date,
-        organization_id: currentOrganization.id,
-        customer_id: null,
-        warranty_expiration: data.warranty_expiration || null,
-        last_maintenance: data.last_maintenance || null,
-        notes: data.notes || null,
-        custom_attributes: data.custom_attributes || {},
-        image_url: data.image_url || null,
-        last_known_location: data.last_known_location || null,
-        team_id: data.team_id || null,
-        default_pm_template_id: data.default_pm_template_id || null,
-        assigned_location_street: data.assigned_location_street || null,
-        assigned_location_city: data.assigned_location_city || null,
-        assigned_location_state: data.assigned_location_state || null,
-        assigned_location_country: data.assigned_location_country || null,
-        assigned_location_lat: data.assigned_location_lat || null,
-        assigned_location_lng: data.assigned_location_lng || null,
-        working_hours: 0,
-        import_id: null
-      };
+      const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
+      const createData = toEquipmentCreateData(data);
+      const result = await service.createEquipmentFull(createData);
 
-      const { data: result, error } = await supabase
-        .from('equipment')
-        .insert(equipmentData)
-        .select()
-        .single();
+      if (result.queuedOffline) {
+        return { id: 'offline', queuedOffline: true };
+      }
+      if (!result.data) throw new Error('Failed to create equipment');
 
-      if (error) throw error;
-
-      // Log location change if assigned location fields are present
+      // Log location change if assigned location fields are present (only when online)
       if (
         data.assigned_location_street ||
         data.assigned_location_city ||
@@ -117,7 +147,7 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         data.assigned_location_lng != null
       ) {
         logEquipmentLocationChange({
-          equipmentId: result.id,
+          equipmentId: result.data.id,
           source: 'manual',
           latitude: data.assigned_location_lat ?? null,
           longitude: data.assigned_location_lng ?? null,
@@ -130,14 +160,19 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         });
       }
 
-      return result;
+      return result.data;
     },
-    onSuccess: () => {
-      // Invalidate with organization-specific key pattern
-      queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats', currentOrganization?.id] });
-      queryClient.invalidateQueries({ queryKey: ['equipment-status-counts', currentOrganization?.id] });
-      toast.success('Equipment created successfully');
+    onSuccess: (data) => {
+      const queuedOffline = data && 'queuedOffline' in data && data.queuedOffline;
+      if (queuedOffline) {
+        toast.success('Saved offline — equipment will be created when you reconnect.');
+        offlineCtx?.refresh();
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats', currentOrganization?.id] });
+        queryClient.invalidateQueries({ queryKey: ['equipment-status-counts', currentOrganization?.id] });
+        toast.success('Equipment created successfully');
+      }
       form.reset();
       setIsOpen(false);
       onSuccess?.();
@@ -153,41 +188,24 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
       if (!initialData?.id) {
         throw new Error('Equipment ID not found');
       }
+      if (!currentOrganization?.id || !user?.id) {
+        throw new Error('Organization or user not found');
+      }
 
-      const equipmentData = {
-        name: data.name,
-        manufacturer: data.manufacturer,
-        model: data.model,
-        serial_number: data.serial_number,
-        status: data.status,
-        location: data.location,
-        installation_date: data.installation_date,
-        warranty_expiration: data.warranty_expiration || null,
-        last_maintenance: data.last_maintenance || null,
-        notes: data.notes || null,
-        custom_attributes: data.custom_attributes || {},
-        image_url: data.image_url || null,
-        last_known_location: data.last_known_location || null,
-        team_id: data.team_id || null,
-        default_pm_template_id: data.default_pm_template_id || null,
-        assigned_location_street: data.assigned_location_street || null,
-        assigned_location_city: data.assigned_location_city || null,
-        assigned_location_state: data.assigned_location_state || null,
-        assigned_location_country: data.assigned_location_country || null,
-        assigned_location_lat: data.assigned_location_lat || null,
-        assigned_location_lng: data.assigned_location_lng || null
-      };
+      const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
+      const updateData = toEquipmentUpdateData(data);
+      const result = await service.updateEquipment(
+        initialData.id,
+        updateData,
+        initialData.updated_at,
+      );
 
-      const { data: result, error } = await supabase
-        .from('equipment')
-        .update(equipmentData)
-        .eq('id', initialData.id)
-        .select()
-        .single();
+      if (result.queuedOffline) {
+        return { id: initialData.id, queuedOffline: true };
+      }
+      if (!result.data) throw new Error('Failed to update equipment');
 
-      if (error) throw error;
-
-      // Log location change only if assigned location fields actually changed
+      // Log location change only if assigned location fields actually changed (only when online)
       const hasAssignedLocationChanged =
         (initialData.assigned_location_street ?? '') !== (data.assigned_location_street ?? '') ||
         (initialData.assigned_location_city ?? '') !== (data.assigned_location_city ?? '') ||
@@ -211,13 +229,18 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         });
       }
 
-      return result;
+      return result.data;
     },
-    onSuccess: () => {
-      // Invalidate with organization-specific key pattern
-      queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id] });
-      queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id, initialData?.id] });
-      toast.success('Equipment updated successfully');
+    onSuccess: (data) => {
+      const queuedOffline = data && 'queuedOffline' in data && data.queuedOffline;
+      if (queuedOffline) {
+        toast.success('Saved offline — equipment will be updated when you reconnect.');
+        offlineCtx?.refresh();
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id] });
+        queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id, initialData?.id] });
+        toast.success('Equipment updated successfully');
+      }
       setIsOpen(false);
       onSuccess?.();
     },

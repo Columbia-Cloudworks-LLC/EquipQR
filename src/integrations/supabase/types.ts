@@ -1030,6 +1030,74 @@ export type Database = {
           },
         ]
       }
+      inventory_item_images: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          inventory_item_id: string
+          mime_type: string | null
+          organization_id: string
+          uploaded_by: string
+          uploaded_by_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          inventory_item_id: string
+          mime_type?: string | null
+          organization_id: string
+          uploaded_by: string
+          uploaded_by_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          inventory_item_id?: string
+          mime_type?: string | null
+          organization_id?: string
+          uploaded_by?: string
+          uploaded_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_item_images_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_item_images_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_item_images_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_item_images_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           created_at: string
@@ -2550,6 +2618,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string | null
           email_private: boolean | null
@@ -2558,6 +2627,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           email_private?: boolean | null
@@ -2566,6 +2636,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           email_private?: boolean | null
@@ -3061,6 +3132,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          image_url: string | null
           location_address: string | null
           location_city: string | null
           location_country: string | null
@@ -3077,6 +3149,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           location_address?: string | null
           location_city?: string | null
           location_country?: string | null
@@ -3093,6 +3166,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           location_address?: string | null
           location_city?: string | null
           location_country?: string | null
@@ -5073,3 +5147,4 @@ export const Constants = {
     },
   },
 } as const
+

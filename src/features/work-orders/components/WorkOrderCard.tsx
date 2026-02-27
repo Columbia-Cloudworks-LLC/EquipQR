@@ -37,6 +37,8 @@ import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
 import type { WorkOrder, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import type { AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
+import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
+import type { MergedWorkOrder } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 
 // ============================================
 // Types
@@ -134,6 +136,7 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
             <span className="text-sm text-muted-foreground capitalize">
               {workOrder.priority} priority
             </span>
+            {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge />}
             <Badge className={getStatusColor(workOrder.status)}>
               {formatStatus(workOrder.status)}
             </Badge>
@@ -334,6 +337,7 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
               {workOrder.title}
             </CardTitle>
           </div>
+          {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
           <Badge
             className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs flex-shrink-0")}
             variant="outline"

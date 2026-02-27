@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { ArrowLeft, Settings, Users, Trash2, Plus, Edit, Forklift, ClipboardList } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Settings, Users, Trash2, Plus, Edit, Forklift, ClipboardList } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeam, useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -106,20 +106,22 @@ const TeamDetails = () => {
 
   return (
     <div className="container mx-auto py-6 px-4 sm:px-6 space-y-6">
-      {/* Header - Mobile: stacked, Desktop: horizontal */}
+      {/* Header */}
       <header className="space-y-4">
-        {/* Top row: Back button + Actions */}
+        {/* Breadcrumbs + Actions */}
         <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/dashboard/teams')}
-            className="text-muted-foreground hover:text-foreground -ml-2"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">Back to Teams</span>
-            <span className="sm:hidden">Back</span>
-          </Button>
+          <nav className="flex items-center gap-1.5 text-sm text-muted-foreground" aria-label="Breadcrumb">
+            <Link
+              to="/dashboard/teams"
+              className="hover:text-foreground hover:underline underline-offset-4 decoration-muted-foreground/40 transition-colors"
+            >
+              Teams
+            </Link>
+            <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 opacity-50" aria-hidden="true" />
+            <span className="text-foreground font-medium truncate max-w-[20ch] sm:max-w-none" aria-current="page" title={team.name}>
+              {team.name}
+            </span>
+          </nav>
           
           <div className="flex items-center gap-1 sm:gap-2">
             {canEdit && (

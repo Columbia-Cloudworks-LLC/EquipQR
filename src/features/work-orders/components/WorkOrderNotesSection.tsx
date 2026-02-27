@@ -8,11 +8,17 @@ import { Plus, MessageSquare, Images, Clock, User, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { workOrders as workOrderQueryKeys } from '@/lib/queryKeys';
 import {
   createWorkOrderNoteWithImages,
   getWorkOrderNotesWithImages,
 } from '@/features/work-orders/services/workOrderNotesService';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
+import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
+import { useOfflineMergedNotes } from '@/features/offline-queue/hooks/useOfflineMergedNotes';
 import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import { logger } from '@/utils/logger';
 
@@ -31,41 +37,64 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   autoOpenForm = false
 }) => {
   const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
+  const offlineCtx = useOfflineQueueOptional();
   const [showForm, setShowForm] = useState(autoOpenForm);
   const [noteContent, setNoteContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
 
   // Fetch notes with images
-  const { data: notes = [], isLoading } = useQuery({
+  const { data: serverNotes = [], isLoading } = useQuery({
     queryKey: workOrderQueryKeys.notesWithImages(workOrderId),
     queryFn: () => getWorkOrderNotesWithImages(workOrderId),
     enabled: !!workOrderId
   });
 
-  // Create note mutation
+  // Merge server notes with any pending offline note items
+  const notes = useOfflineMergedNotes(serverNotes, 'work_order', workOrderId);
+
+  // Create note mutation — supports offline (text only; images when online)
   const createNoteMutation = useMutation({
-    mutationFn: ({ content, hoursWorked, isPrivate, images, machineHours }: {
+    mutationFn: async ({ content, hoursWorked, isPrivate, images, machineHours }: {
       content: string;
       hoursWorked: number;
       isPrivate: boolean;
       images: File[];
       machineHours?: number;
     }) => {
-      // NOTE: machineHours collected by UI but not yet persisted -- no database column exists.
-      // When backend support is added, pass machineHours to the create function here.
       if (machineHours !== undefined && machineHours > 0) {
         logger.debug('Machine hours provided but not persisted', { machineHours });
       }
+      const useOfflinePath = !navigator.onLine || images.length === 0;
+      if (useOfflinePath && currentOrganization?.id && user?.id) {
+        const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
+        const result = await service.createWorkOrderNote(workOrderId, content, hoursWorked, isPrivate);
+        if (result.queuedOffline) {
+          return { queuedOffline: true, hadImages: images.length > 0 };
+        }
+        return { queuedOffline: false, data: result.data };
+      }
       return createWorkOrderNoteWithImages(workOrderId, content, hoursWorked, isPrivate, images);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.notesWithImages(workOrderId) });
-      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrderId) });
+    onSuccess: (result) => {
+      const queuedOffline = result && typeof result === 'object' && 'queuedOffline' in result && result.queuedOffline;
+      if (queuedOffline) {
+        const hadImages = result && typeof result === 'object' && 'hadImages' in result && result.hadImages;
+        toast.success(
+          hadImages
+            ? 'Note saved offline. Attach images when you reconnect.'
+            : 'Note saved offline — will sync when you reconnect.',
+        );
+        offlineCtx?.refresh();
+      } else {
+        queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.notesWithImages(workOrderId) });
+        queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrderId) });
+        toast.success('Note created successfully');
+      }
       setShowForm(false);
       setNoteContent('');
       setAttachedImages([]);
-      toast.success('Note created successfully');
     },
     onError: (error) => {
       logger.error('Failed to create note', error);
@@ -193,6 +222,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                 </Button>
               )}
             </CardTitle>
+            <OfflineFormBanner />
           </CardHeader>
           <CardContent>
             <InlineNoteComposer
@@ -256,9 +286,10 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                     <div className="space-y-3">
                       {/* Note Header */}
                       <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                           <User className="h-4 w-4" />
                           <span>{note.author_name}</span>
+                          {(note as { _isPendingSync?: boolean })._isPendingSync && <PendingSyncBadge />}
                           <span>•</span>
                           <span>{formatDate(note.created_at)}</span>
                           {formatHours(note.hours_worked) && (

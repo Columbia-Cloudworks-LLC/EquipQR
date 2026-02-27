@@ -1,10 +1,13 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import type { WorkOrderServerSnapshot } from '@/services/offlineQueueService';
+import { workOrders, organization, preventiveMaintenance } from '@/lib/queryKeys';
 
 export interface UpdateWorkOrderData {
   title?: string;
@@ -15,64 +18,69 @@ export interface UpdateWorkOrderData {
   hasPM?: boolean;
 }
 
+/** Result shape from mutationFn. */
+interface UpdateWorkOrderResult {
+  result: Record<string, unknown> | null;
+  queuedOffline: boolean;
+}
+
 export const useUpdateWorkOrder = () => {
   const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const offlineCtx = useOfflineQueueOptional();
 
   return useMutation({
-    mutationFn: async ({ workOrderId, data }: { workOrderId: string; data: UpdateWorkOrderData }) => {
-      const updateData: Database["public"]["Tables"]["work_orders"]["Update"] = {};
-      
-      if (data.title !== undefined) updateData.title = data.title;
-      if (data.description !== undefined) updateData.description = data.description;
-      if (data.priority !== undefined) updateData.priority = data.priority;
-      if (data.dueDate !== undefined) updateData.due_date = data.dueDate || null;
-      if (data.estimatedHours !== undefined) updateData.estimated_hours = data.estimatedHours || null;
-      if (data.hasPM !== undefined) updateData.has_pm = data.hasPM;
-
-      updateData.updated_at = new Date().toISOString();
-
-      const { data: result, error } = await supabase
-        .from('work_orders')
-        .update(updateData)
-        .eq('id', workOrderId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating work order:', error);
-        throw error;
+    mutationFn: async ({
+      workOrderId,
+      data,
+      serverUpdatedAt,
+      serverSnapshot,
+    }: {
+      workOrderId: string;
+      data: UpdateWorkOrderData;
+      serverUpdatedAt?: string;
+      /**
+       * Field values from the server at the time the user opened the edit form.
+       * Pass this so offline sync can perform a true 3-way merge instead of
+       * blindly overwriting the server with stale offline values.
+       */
+      serverSnapshot?: WorkOrderServerSnapshot;
+    }): Promise<UpdateWorkOrderResult> => {
+      if (!currentOrganization?.id || !user?.id) {
+        throw new Error('Organization or user not available');
       }
 
-      return result;
+      const svc = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
+      const result = await svc.updateWorkOrder(workOrderId, data, serverUpdatedAt, serverSnapshot);
+
+      if (result.queuedOffline) {
+        offlineCtx?.refresh();
+        return { result: null, queuedOffline: true };
+      }
+
+      return { result: result.data, queuedOffline: false };
     },
-    onSuccess: (result, variables) => {
+    onSuccess: ({ queuedOffline }, variables) => {
+      if (queuedOffline) {
+        toast({
+          title: 'Saved offline',
+          description: 'Your changes will sync when your connection returns.',
+        });
+        return;
+      }
+
       const { workOrderId } = variables;
-      
-      // Invalidate and refetch work order queries with standardized keys
-      queryClient.invalidateQueries({ 
-        queryKey: ['enhanced-work-orders', currentOrganization?.id] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['workOrders', currentOrganization?.id] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['work-orders-filtered-optimized', currentOrganization?.id] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['dashboardStats', currentOrganization?.id] 
-      });
-      // Also invalidate individual work order queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['workOrder', currentOrganization?.id, workOrderId] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['workOrder', 'enhanced', currentOrganization?.id, workOrderId] 
-      });
-      // Invalidate PM queries to refresh PM data
-      queryClient.invalidateQueries({ 
-        queryKey: ['preventativeMaintenance', workOrderId] 
-      });
+      const orgId = currentOrganization?.id ?? '';
+
+      queryClient.invalidateQueries({ queryKey: workOrders.enhancedList(orgId) });
+      queryClient.invalidateQueries({ queryKey: workOrders.legacyList(orgId) });
+      queryClient.invalidateQueries({ queryKey: workOrders.optimized(orgId) });
+      queryClient.invalidateQueries({ queryKey: workOrders.teamBasedList(orgId) });
+      queryClient.invalidateQueries({ queryKey: organization(orgId).dashboardStats() });
+      queryClient.invalidateQueries({ queryKey: workOrders.legacyById(orgId, workOrderId) });
+      queryClient.invalidateQueries({ queryKey: workOrders.enhancedById(orgId, workOrderId) });
+      queryClient.invalidateQueries({ queryKey: preventiveMaintenance.byWorkOrder(workOrderId) });
       
       toast({
         title: 'Work Order Updated',
@@ -100,5 +108,4 @@ export const useUpdateWorkOrder = () => {
     },
   });
 };
-
 

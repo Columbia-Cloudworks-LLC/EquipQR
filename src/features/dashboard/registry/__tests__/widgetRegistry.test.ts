@@ -79,31 +79,18 @@ describe('widgetRegistry', () => {
   });
 
   describe('generateDefaultLayout', () => {
-    it('generates layouts for all default widgets', () => {
-      const { layouts, activeWidgets } = generateDefaultLayout();
+    it('generates active widgets for all default widgets', () => {
+      const { activeWidgets } = generateDefaultLayout();
 
       expect(activeWidgets).toEqual(DEFAULT_WIDGET_IDS);
-      expect(layouts.lg).toHaveLength(DEFAULT_WIDGET_IDS.length);
-      expect(layouts.md).toHaveLength(DEFAULT_WIDGET_IDS.length);
-      expect(layouts.sm).toHaveLength(DEFAULT_WIDGET_IDS.length);
-      expect(layouts.xs).toHaveLength(DEFAULT_WIDGET_IDS.length);
-      expect(layouts.xxs).toHaveLength(DEFAULT_WIDGET_IDS.length);
-    });
-
-    it('assigns valid grid positions (y increases)', () => {
-      const { layouts } = generateDefaultLayout();
-      const lgLayout = layouts.lg;
-
-      for (let i = 1; i < lgLayout.length; i++) {
-        expect(lgLayout[i].y).toBeGreaterThanOrEqual(lgLayout[i - 1].y);
-      }
+      expect(activeWidgets).toHaveLength(DEFAULT_WIDGET_IDS.length);
     });
 
     it('generates layout for custom widget list', () => {
-      const { layouts, activeWidgets } = generateDefaultLayout(['stats-grid', 'fleet-efficiency']);
+      const { activeWidgets } = generateDefaultLayout(['stats-grid', 'fleet-efficiency']);
 
       expect(activeWidgets).toEqual(['stats-grid', 'fleet-efficiency']);
-      expect(layouts.lg).toHaveLength(2);
+      expect(activeWidgets).toHaveLength(2);
     });
 
     it('filters out unknown widget IDs', () => {
@@ -112,32 +99,24 @@ describe('widgetRegistry', () => {
       expect(activeWidgets).toEqual(['stats-grid', 'fleet-efficiency']);
     });
 
-    it('each layout item has minW and minH constraints', () => {
-      const { layouts } = generateDefaultLayout();
+    it('returns only widget IDs registered in the registry', () => {
+      const { activeWidgets } = generateDefaultLayout();
 
-      for (const item of layouts.lg) {
-        expect(item.minW).toBeDefined();
-        expect(item.minH).toBeDefined();
-        expect(item.minW).toBeGreaterThan(0);
-        expect(item.minH).toBeGreaterThan(0);
+      for (const id of activeWidgets) {
+        expect(WIDGET_REGISTRY.has(id)).toBe(true);
       }
     });
 
-    it('sm/xs/xxs breakpoints stack at full available width', () => {
-      const { layouts } = generateDefaultLayout();
+    it('returns an array of active widget IDs in display order', () => {
+      const { activeWidgets } = generateDefaultLayout(['stats-grid', 'fleet-efficiency', 'recent-equipment']);
 
-      for (const item of layouts.sm) {
-        expect(item.w).toBe(6);
-        expect(item.x).toBe(0);
-      }
-      for (const item of layouts.xs) {
-        expect(item.w).toBe(4);
-        expect(item.x).toBe(0);
-      }
-      for (const item of layouts.xxs) {
-        expect(item.w).toBe(2);
-        expect(item.x).toBe(0);
-      }
+      expect(activeWidgets).toEqual(['stats-grid', 'fleet-efficiency', 'recent-equipment']);
+    });
+
+    it('returns empty activeWidgets when no valid IDs provided', () => {
+      const { activeWidgets } = generateDefaultLayout(['fake-1', 'fake-2']);
+
+      expect(activeWidgets).toEqual([]);
     });
   });
 });

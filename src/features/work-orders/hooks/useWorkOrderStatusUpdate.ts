@@ -1,75 +1,67 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/hooks/useAuth';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { workOrders, organization } from '@/lib/queryKeys';
 
 interface StatusUpdateData {
   workOrderId: string;
   newStatus: Database["public"]["Enums"]["work_order_status"];
+  /** The work order's `updated_at` value as seen by the client before this change. Used for conflict detection when the update is queued offline. */
+  serverUpdatedAt?: string;
+}
+
+/** Result shape from mutationFn. */
+interface StatusUpdateResult {
+  data: Record<string, unknown> | null;
+  queuedOffline: boolean;
 }
 
 export const useWorkOrderStatusUpdate = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
+  const offlineCtx = useOfflineQueueOptional();
 
   return useMutation({
-    mutationFn: async ({ workOrderId, newStatus }: StatusUpdateData) => {
-      const updateData: Database["public"]["Tables"]["work_orders"]["Update"] = {
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      };
-
-      // Set completed_date when status is completed
-      if (newStatus === 'completed') {
-        updateData.completed_date = new Date().toISOString();
+    mutationFn: async ({ workOrderId, newStatus, serverUpdatedAt }: StatusUpdateData): Promise<StatusUpdateResult> => {
+      if (!currentOrganization?.id || !user?.id) {
+        throw new Error('Organization or user not available');
       }
 
-      // Clear completed_date when reopening
-      if (newStatus === 'submitted' || newStatus === 'accepted' || newStatus === 'assigned' || newStatus === 'in_progress') {
-        updateData.completed_date = null;
+      const svc = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
+      const result = await svc.updateStatus(workOrderId, newStatus, serverUpdatedAt);
+
+      if (result.queuedOffline) {
+        offlineCtx?.refresh();
+        return { data: null, queuedOffline: true };
       }
 
-      const { data, error } = await supabase
-        .from('work_orders')
-        .update(updateData)
-        .eq('id', workOrderId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return { data: result.data, queuedOffline: false };
     },
-    onSuccess: () => {
+    onSuccess: ({ queuedOffline }) => {
+      if (queuedOffline) {
+        toast({
+          title: 'Saved offline',
+          description: 'Status change will sync when your connection returns.',
+        });
+        return;
+      }
+
       if (currentOrganization?.id) {
-        // Invalidate all work order related queries with comprehensive pattern matching
-        queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['team-based-work-orders', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization.id] });
-        queryClient.invalidateQueries({ queryKey: ['notifications', currentOrganization.id] });
-        
-        // Also invalidate with partial matching to catch any other work order queries
-        queryClient.invalidateQueries({ 
-          queryKey: ['work-orders'], 
-          exact: false 
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: ['workOrders'], 
-          exact: false 
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: ['workOrder'], 
-          exact: false 
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: ['dashboardStats'], 
-          exact: false 
-        });
+        const orgId = currentOrganization.id;
+        queryClient.invalidateQueries({ queryKey: workOrders.enhancedList(orgId) });
+        queryClient.invalidateQueries({ queryKey: workOrders.legacyList(orgId) });
+        queryClient.invalidateQueries({ queryKey: workOrders.optimized(orgId) });
+        queryClient.invalidateQueries({ queryKey: workOrders.teamBasedList(orgId) });
+        queryClient.invalidateQueries({ queryKey: organization(orgId).dashboardStats() });
+        queryClient.invalidateQueries({ queryKey: workOrders.root, exact: false });
       }
 
       toast({
@@ -98,5 +90,4 @@ export const useWorkOrderStatusUpdate = () => {
     }
   });
 };
-
 

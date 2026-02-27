@@ -22,15 +22,51 @@ const SUPABASE_ERROR_PATTERNS: Record<
   'Invalid input': { category: 'validation', severity: 'warning' },
   'Permission denied': { category: 'permission', severity: 'error' },
   'Network error': { category: 'network', severity: 'error' },
+  'Failed to fetch': { category: 'network', severity: 'error' },
+  'Load failed': { category: 'network', severity: 'error' },
+  'NetworkError': { category: 'network', severity: 'error' },
+  'ERR_INTERNET_DISCONNECTED': { category: 'network', severity: 'error' },
+  'ERR_NETWORK': { category: 'network', severity: 'error' },
   'JWT expired': { category: 'permission', severity: 'warning' },
   'Row level security': { category: 'permission', severity: 'error' },
   'duplicate key': { category: 'validation', severity: 'warning' },
   'foreign key': { category: 'validation', severity: 'warning' },
 };
 
+/**
+ * Fast, reliable check for network-related errors.
+ * Uses navigator.onLine as primary signal (instant, no string matching)
+ * and falls back to regex pattern matching on error messages.
+ *
+ * This is the canonical check used by the offline queue to decide
+ * whether to save data locally instead of losing it.
+ */
+export const isNetworkError = (error?: unknown): boolean => {
+  // Primary signal: browser definitively reports offline
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+
+  // Secondary: match known network error message patterns
+  if (!error) return false;
+  const msg = error instanceof Error ? error.message : String(error);
+  return /Failed to fetch|Load failed|NetworkError|ERR_INTERNET|ERR_NETWORK|net::|TypeError: Failed|Operation failed/i.test(msg);
+};
+
 export const classifyError = (error: unknown): StandardError => {
   const errorMessage = getErrorMessage(error);
   const errorId = generateErrorId();
+
+  // Fast-path: check for network errors first (most common offline scenario)
+  if (isNetworkError(error)) {
+    return {
+      id: errorId,
+      message: errorMessage,
+      category: 'network',
+      severity: 'error',
+      action: getActionForError('network'),
+      retryable: true,
+      context: { originalError: error },
+    };
+  }
   
   // Check for known Supabase patterns
   for (const [pattern, classification] of Object.entries(SUPABASE_ERROR_PATTERNS)) {
