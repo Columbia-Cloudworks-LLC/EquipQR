@@ -7,10 +7,11 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.3.6] - 2026-02-26
+## [2.3.5] - 2026-02-26
 
 ### Fixed
 
+- **Dashboard stuck in edit mode on mobile** — On mobile viewports, the dashboard could appear in drag-and-drop edit mode and become unusable. Root cause: `useIsMobile()` returned `false` on the first render (state initialized as `undefined` and updated only in `useEffect`), so mobile users briefly saw the desktop "Customize" button that toggles grid edit mode; one tap enabled edit mode and the grid stayed draggable with no easy way to exit. Fixed by (1) rewriting `useIsMobile` with `useSyncExternalStore` so the viewport check runs synchronously and the correct value is available on first client render, and (2) hardening the Dashboard so the grid is never in edit mode on mobile (`isEditMode` forced false when `isMobile` is true) and any stray edit state is cleared when the hook resolves to mobile.
 - **Dashboard widgets now scroll correctly on mobile** — Removed `react-grid-layout` from the dashboard entirely. The library attached touch event listeners even when drag-and-drop was disabled, making it impossible to scroll the dashboard on mobile devices (every tap was intercepted as a drag). Replaced with a static CSS 12-column grid; widget order is determined solely by the `activeWidgets` array in user preferences.
 
 ### Changed
@@ -23,12 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - **`react-grid-layout` dependency removed** — Along with its peer `react-resizable`. This eliminates ~60 KB from the production bundle and removes the source of the mobile scroll regression.
-
-## [2.3.5] - 2026-02-26
-
-### Fixed
-
-- **Dashboard stuck in edit mode on mobile** — On mobile viewports, the dashboard could appear in drag-and-drop edit mode and become unusable. Root cause: `useIsMobile()` returned `false` on the first render (state initialized as `undefined` and updated only in `useEffect`), so mobile users briefly saw the desktop "Customize" button that toggles grid edit mode; one tap enabled edit mode and the grid stayed draggable with no easy way to exit. Fixed by (1) rewriting `useIsMobile` with `useSyncExternalStore` so the viewport check runs synchronously and the correct value is available on first client render, and (2) hardening the Dashboard so the grid is never in edit mode on mobile (`isEditMode` forced false when `isMobile` is true) and any stray edit state is cleared when the hook resolves to mobile.
 
 ## [2.3.4] - 2026-02-10
 
