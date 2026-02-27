@@ -119,7 +119,6 @@ const Dashboard = () => {
         onOpenChange={setManagerOpen}
         activeWidgetIds={activeWidgets}
         onSave={handleReorderSave}
-        onRemoveWidget={removeWidget}
         onOpenCatalog={() => setCatalogOpen(true)}
       />
 

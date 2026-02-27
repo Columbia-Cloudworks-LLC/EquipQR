@@ -16,7 +16,6 @@ interface WidgetManagerProps {
   onOpenChange: (open: boolean) => void;
   activeWidgetIds: string[];
   onSave: (newOrder: string[]) => void;
-  onRemoveWidget: (widgetId: string) => void;
   onOpenCatalog: () => void;
 }
 
@@ -30,7 +29,6 @@ export const WidgetManager: React.FC<WidgetManagerProps> = ({
   onOpenChange,
   activeWidgetIds,
   onSave,
-  onRemoveWidget,
   onOpenCatalog,
 }) => {
   const [order, setOrder] = useState<string[]>(activeWidgetIds);
@@ -62,8 +60,7 @@ export const WidgetManager: React.FC<WidgetManagerProps> = ({
 
   const removeFromOrder = useCallback((widgetId: string) => {
     setOrder((prev) => prev.filter((id) => id !== widgetId));
-    onRemoveWidget(widgetId);
-  }, [onRemoveWidget]);
+  }, []);
 
   const handleSave = () => {
     onSave(order);
