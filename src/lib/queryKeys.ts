@@ -63,8 +63,13 @@ export const workOrders = {
     filters ? ['work-orders', orgId, 'filtered', filters] as const
             : ['work-orders', orgId] as const,
   enhanced: (orgId: string) => ['work-orders', orgId, 'enhanced'] as const,
+  enhancedById: (orgId: string, workOrderId: string) => ['workOrder', 'enhanced', orgId, workOrderId] as const,
   optimized: (orgId: string) => ['work-orders', orgId, 'optimized'] as const,
   byId: (orgId: string, workOrderId: string) => ['work-orders', orgId, workOrderId] as const,
+  legacyById: (orgId: string, workOrderId: string) => ['workOrder', orgId, workOrderId] as const,
+  legacyList: (orgId: string) => ['workOrders', orgId] as const,
+  enhancedList: (orgId: string) => ['enhanced-work-orders', orgId] as const,
+  teamBasedList: (orgId: string) => ['team-based-work-orders', orgId] as const,
   notes: (workOrderId: string) => ['work-order-notes', workOrderId] as const,
   notesWithImages: (workOrderId: string) => ['work-order-notes-with-images', workOrderId] as const,
   images: (workOrderId: string) => ['work-order-images', workOrderId] as const,
@@ -74,6 +79,18 @@ export const workOrders = {
   equipmentWorkOrders: (orgId: string, equipmentId: string, status?: string) =>
     status ? ['work-orders', orgId, 'equipment', equipmentId, status] as const
            : ['work-orders', orgId, 'equipment', equipmentId] as const,
+};
+
+// Preventive Maintenance keys
+export const preventiveMaintenance = {
+  root: ['preventativeMaintenance'] as const,
+  byWorkOrder: (workOrderId: string) => ['preventativeMaintenance', workOrderId] as const,
+  byWorkOrderAndEquipment: (workOrderId: string, equipmentId: string, orgId: string) =>
+    ['preventativeMaintenance', workOrderId, equipmentId, orgId] as const,
+  all: (workOrderId: string, orgId: string) =>
+    ['preventativeMaintenance', 'all', workOrderId, orgId] as const,
+  byOrg: (workOrderId: string, orgId: string) =>
+    ['preventativeMaintenance', workOrderId, orgId] as const,
 };
 
 // Notification keys
@@ -124,6 +141,7 @@ export const queryKeys = {
   teamStats,
   equipment,
   workOrders,
+  preventiveMaintenance,
   notifications,
   pmTemplates,
   workspacePersonalOrgMerge,

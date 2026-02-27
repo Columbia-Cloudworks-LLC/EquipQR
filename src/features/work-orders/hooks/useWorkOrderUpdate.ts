@@ -6,6 +6,7 @@ import { toast } from '@/hooks/use-toast';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { workOrders, organization, preventiveMaintenance } from '@/lib/queryKeys';
 
 export interface UpdateWorkOrderData {
   title?: string;
@@ -54,15 +55,16 @@ export const useUpdateWorkOrder = () => {
       }
 
       const { workOrderId } = variables;
-      
-      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization?.id] });
-      queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization?.id] });
-      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization?.id] });
-      queryClient.invalidateQueries({ queryKey: ['team-based-work-orders', currentOrganization?.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization?.id] });
-      queryClient.invalidateQueries({ queryKey: ['workOrder', currentOrganization?.id, workOrderId] });
-      queryClient.invalidateQueries({ queryKey: ['workOrder', 'enhanced', currentOrganization?.id, workOrderId] });
-      queryClient.invalidateQueries({ queryKey: ['preventativeMaintenance', workOrderId] });
+      const orgId = currentOrganization?.id ?? '';
+
+      queryClient.invalidateQueries({ queryKey: workOrders.enhancedList(orgId) });
+      queryClient.invalidateQueries({ queryKey: workOrders.legacyList(orgId) });
+      queryClient.invalidateQueries({ queryKey: workOrders.optimized(orgId) });
+      queryClient.invalidateQueries({ queryKey: workOrders.teamBasedList(orgId) });
+      queryClient.invalidateQueries({ queryKey: organization(orgId).dashboardStats() });
+      queryClient.invalidateQueries({ queryKey: workOrders.legacyById(orgId, workOrderId) });
+      queryClient.invalidateQueries({ queryKey: workOrders.enhancedById(orgId, workOrderId) });
+      queryClient.invalidateQueries({ queryKey: preventiveMaintenance.byWorkOrder(workOrderId) });
       
       toast({
         title: 'Work Order Updated',
