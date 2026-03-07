@@ -7,6 +7,12 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.6] - 2026-03-06
+
+### Fixed
+
+- **Dashboard hover effect causes scrollbars** — Hovering over stats cards on the dashboard sometimes caused scrollbars to appear because the cards used `hover:scale-105`, which increased their rendered size and triggered overflow. Removed the scale effect and kept the shadow (`hover:shadow-lg`) so hover feedback remains without affecting layout. Fixes [#574](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/574).
+
 ## [2.3.5] - 2026-02-26
 
 ### Fixed
