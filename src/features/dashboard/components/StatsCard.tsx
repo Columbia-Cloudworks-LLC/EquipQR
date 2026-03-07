@@ -34,7 +34,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
     <Card 
       className={cn(
         "transition-all duration-200",
-        to && "hover:shadow-lg hover:scale-105 cursor-pointer"
+        to && "hover:shadow-lg cursor-pointer"
       )}
       aria-label={ariaDescription}
     >
