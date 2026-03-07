@@ -7,11 +7,21 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.3.7] - Unreleased
+## [2.3.7] - 2026-03-06
+
+### Fixed
+
+Implemented the fix for [Issue #575](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/575) in the shared image viewer so full-size images are no longer constrained by the old clipped container.
+
+- Updated `src/components/common/ImageGallery.tsx` modal image area:
+  - Replaced fixed/clipped wrapper (`max-h-96 overflow-hidden`) with a viewport-bounded, centered container:
+    - `min-h-[12rem] max-h-[72dvh] overflow-auto ...`
+  - Updated image sizing to true contain behavior in both dimensions:
+    - `max-w-full w-auto max-h-[68dvh] object-contain`
+- This applies to all current `ImageGallery` consumers automatically (`EquipmentImagesTab`, `EquipmentNotesTab`, `WorkOrderImagesSection`).
 
 chore: update package dependencies and versions
 
-- Bumped version of `equipqr` from 2.3.5 to 2.3.6.
 - Updated `jspdf` from 4.0.0 to 4.2.0.
 - Updated `supabase` from 2.72.9 to 2.77.0.
 - Updated `@babel/runtime` from 7.28.4 to 7.28.6.
