@@ -7,6 +7,28 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.7] - Unreleased
+
+chore: update package dependencies and versions
+
+- Bumped version of `equipqr` from 2.3.5 to 2.3.6.
+- Updated `jspdf` from 4.0.0 to 4.2.0.
+- Updated `supabase` from 2.72.9 to 2.77.0.
+- Updated `@babel/runtime` from 7.28.4 to 7.28.6.
+- Updated `dompurify` from 3.3.0 to 3.3.2.
+- Updated `tar` from 7.5.7 to 7.5.10.
+- Ran `npm audit --json` and confirmed the 5 reported issues:
+  - `ajv` (moderate), `bn.js` (moderate), `minimatch` (high), `rollup` (high) as transitive
+  - `xlsx` (high) as direct dependency
+- Applied `npm audit fix` to resolve the transitive vulnerabilities.
+- Replaced vulnerable `xlsx@0.18.5` with patched SheetJS tarball:
+  - Updated `package.json` dependency to  
+    `xlsx: "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"`
+  - Lockfile updated accordingly in `package-lock.json`.
+- Verified final state:
+  - `npm audit` → `found 0 vulnerabilities`
+  - `npm ls xlsx` → `xlsx@0.20.3`
+
 ## [2.3.6] - 2026-03-06
 
 ### Fixed
