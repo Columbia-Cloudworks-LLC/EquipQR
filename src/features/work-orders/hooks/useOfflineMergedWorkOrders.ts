@@ -11,7 +11,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
-import type { OfflineQueueItem, OfflineQueueCreateItem } from '@/services/offlineQueueService';
+import type { OfflineQueueCreateItem } from '@/services/offlineQueueService';
 
 // ─── Prefix used to identify offline-created items ──────────────────────────
 export const OFFLINE_ID_PREFIX = 'offline-';
@@ -56,6 +56,11 @@ export function useOfflineMergedWorkOrders(
       // Resolve equipment name from cache
       const equipment = allEquipment.find((e) => e.id === payload.equipmentId);
       const equipmentName = equipment?.name ?? 'Unknown Equipment';
+      const equipmentManufacturer = equipment?.manufacturer ?? undefined;
+      const equipmentModel = equipment?.model ?? undefined;
+      const equipmentSerialNumber = equipment?.serial_number ?? undefined;
+      const equipmentWorkingHours = equipment?.working_hours ?? null;
+      const equipmentImageUrl = equipment?.image_url ?? null;
       const equipmentTeamName = equipment && 'team' in equipment
         ? (equipment as { team?: { name: string } | null }).team?.name
         : undefined;
@@ -90,6 +95,11 @@ export function useOfflineMergedWorkOrders(
 
         // Computed display fields (camelCase)
         equipmentName,
+        equipmentManufacturer,
+        equipmentModel,
+        equipmentSerialNumber,
+        equipmentWorkingHours,
+        equipmentImageUrl,
         equipmentTeamName,
         assigneeName: undefined, // Assignee name hard to resolve without member data
         createdByName: user?.user_metadata?.full_name ?? undefined,

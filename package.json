@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "2.3.6",
+  "version": "2.3.7",
   "type": "module",
   "engines": {
     "node": "^20.17.0 || >=22.9.0"
@@ -74,7 +74,7 @@
     "embla-carousel-react": "^8.3.0",
     "file-saver": "^2.0.5",
     "input-otp": "^1.2.4",
-    "jspdf": "^4.0.0",
+    "jspdf": "^4.2.0",
     "lucide-react": "^0.462.0",
     "nanoid": "^5.1.5",
     "next-themes": "^0.4.6",
@@ -93,7 +93,7 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
-    "xlsx": "0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.23.8"
   },
   "size-limit": [
@@ -130,7 +130,7 @@
     "lovable-tagger": "^1.1.7",
     "postcss": "^8.4.47",
     "size-limit": "^11.2.0",
-    "supabase": "^2.72.9",
+    "supabase": "^2.77.0",
     "tailwindcss": "^3.4.11",
     "tsx": "4.20.6",
     "typescript": "^5.5.3",

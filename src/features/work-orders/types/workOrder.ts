@@ -52,6 +52,11 @@ export interface WorkOrder extends WorkOrderRow {
   assigneeName?: string;
   teamName?: string;
   equipmentName?: string;
+  equipmentManufacturer?: string;
+  equipmentModel?: string;
+  equipmentSerialNumber?: string;
+  equipmentWorkingHours?: number | null;
+  equipmentImageUrl?: string | null;
   equipmentTeamId?: string;
   equipmentTeamName?: string;
   createdByName?: string;
@@ -151,6 +156,11 @@ export interface WorkOrderData {
   estimatedHours?: number;
   completedDate?: string;
   equipmentName?: string;
+  equipmentManufacturer?: string;
+  equipmentModel?: string;
+  equipmentSerialNumber?: string;
+  equipmentWorkingHours?: number | null;
+  equipmentImageUrl?: string | null;
   createdByName?: string;
   equipmentTeamId?: string;
   equipmentTeamName?: string;
@@ -269,6 +279,11 @@ export function toWorkOrderData(row: WorkOrder): WorkOrderData {
     estimatedHours: row.estimated_hours ?? undefined,
     completedDate: row.completed_date ?? undefined,
     equipmentName: row.equipmentName ?? undefined,
+    equipmentManufacturer: row.equipmentManufacturer ?? undefined,
+    equipmentModel: row.equipmentModel ?? undefined,
+    equipmentSerialNumber: row.equipmentSerialNumber ?? undefined,
+    equipmentWorkingHours: row.equipmentWorkingHours ?? undefined,
+    equipmentImageUrl: row.equipmentImageUrl ?? undefined,
     createdByName: row.createdByName ?? row.created_by_name ?? undefined,
     equipmentTeamId: row.equipmentTeamId ?? undefined,
     equipmentTeamName: row.equipmentTeamName ?? undefined,

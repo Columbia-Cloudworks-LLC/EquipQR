@@ -43,6 +43,11 @@ const WORK_ORDER_SELECT = `
   equipment:equipment!work_orders_equipment_id_fkey (
     id,
     name,
+    manufacturer,
+    model,
+    serial_number,
+    working_hours,
+    image_url,
     team_id,
     location,
     use_team_location,
@@ -80,6 +85,11 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
   const equipment = wo.equipment as { 
     id?: string; 
     name?: string; 
+    manufacturer?: string;
+    model?: string;
+    serial_number?: string;
+    working_hours?: number | null;
+    image_url?: string | null;
     team_id?: string;
     location?: string;
     use_team_location?: boolean;
@@ -169,6 +179,11 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
     assigneeName: assignee?.name || undefined,
     teamName: equipment?.teams?.name || undefined,
     equipmentName: equipment?.name || undefined,
+    equipmentManufacturer: equipment?.manufacturer || undefined,
+    equipmentModel: equipment?.model || undefined,
+    equipmentSerialNumber: equipment?.serial_number || undefined,
+    equipmentWorkingHours: equipment?.working_hours ?? undefined,
+    equipmentImageUrl: equipment?.image_url ?? undefined,
     equipmentTeamId: equipment?.team_id || undefined,
     equipmentTeamName: equipment?.teams?.name || undefined,
     createdByName: creator?.name || undefined,

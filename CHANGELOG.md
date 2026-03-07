@@ -7,6 +7,54 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.7] - 2026-03-06
+
+### Fixed
+
+- Implemented the fix for [Issue #575](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/575) in the shared image viewer so full-size images are no longer constrained by the old clipped container.
+  - Updated `src/components/common/ImageGallery.tsx` modal image area:
+    - Replaced fixed/clipped wrapper (`max-h-96 overflow-hidden`) with a viewport-bounded, centered container:
+      - `min-h-[12rem] max-h-[72dvh] overflow-auto ...`
+    - Updated image sizing to true contain behavior in both dimensions:
+      - `max-w-full w-auto max-h-[68dvh] object-contain`
+  - This applies to all current `ImageGallery` consumers automatically (`EquipmentImagesTab`, `EquipmentNotesTab`, `WorkOrderImagesSection`).
+
+- Implemented Issue #576 work-order card enrichment from the attached plan, including data plumbing + UI updates for desktop/mobile cards and offline compatibility.
+  - Updated team-based work order fetch to include full equipment metadata and location inputs, then compute `effectiveLocation`:
+    - `src/features/teams/services/teamBasedWorkOrderService.ts`
+  - Extended shared work order types with equipment display fields:
+    - `src/features/work-orders/types/workOrder.ts`
+  - Enriched Work Order cards (desktop + mobile) with:
+    - equipment image (with safe fallback),
+    - manufacturer, model, serial, machine hours,
+    - existing clickable location behavior preserved via `ClickableAddress` (external Google Maps):
+    - `src/features/work-orders/components/WorkOrderCard.tsx`
+  - Added offline-safe defaults for new equipment fields in pending-sync items:
+    - `src/features/work-orders/hooks/useOfflineMergedWorkOrders.ts`
+  - Applied consistency pass to primary `WorkOrderService` so non-team-based work order paths expose the same equipment metadata:
+    - `src/features/work-orders/services/workOrderService.ts`
+
+### Chore
+
+Update package dependencies and versions
+
+- Updated `jspdf` from 4.0.0 to 4.2.0.
+- Updated `supabase` from 2.72.9 to 2.77.0.
+- Updated `@babel/runtime` from 7.28.4 to 7.28.6.
+- Updated `dompurify` from 3.3.0 to 3.3.2.
+- Updated `tar` from 7.5.7 to 7.5.10.
+- Ran `npm audit --json` and confirmed the 5 reported issues:
+  - `ajv` (moderate), `bn.js` (moderate), `minimatch` (high), `rollup` (high) as transitive
+  - `xlsx` (high) as direct dependency
+- Applied `npm audit fix` to resolve the transitive vulnerabilities.
+- Replaced vulnerable `xlsx@0.18.5` with patched SheetJS tarball:
+  - Updated `package.json` dependency to  
+    `xlsx: "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"`
+  - Lockfile updated accordingly in `package-lock.json`.
+- Verified final state:
+  - `npm audit` → `found 0 vulnerabilities`
+  - `npm ls xlsx` → `xlsx@0.20.3`
+
 ## [2.3.6] - 2026-03-06
 
 ### Fixed

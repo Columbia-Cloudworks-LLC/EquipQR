@@ -16,6 +16,7 @@ import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
 // Critical components loaded eagerly to prevent loading issues for unauthenticated users
 import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';
+import LegalFooter from '@/components/layout/LegalFooter';
 const DebugAuth = import.meta.env.DEV ? lazy(() => import('@/pages/DebugAuth')) : null;
 import Landing from '@/pages/Landing';
 const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
@@ -34,7 +35,6 @@ const MobileFirstDesignFeature = lazy(() => import('@/pages/features/MobileFirst
 // Dashboard components can be lazy-loaded since they're only needed after auth
 const AppSidebar = lazy(() => import('@/components/layout/AppSidebar'));
 const TopBar = lazy(() => import('@/components/layout/TopBar'));
-const LegalFooter = lazy(() => import('@/components/layout/LegalFooter'));
 const BottomNav = lazy(() => import('@/components/navigation/BottomNav'));
 const Dashboard = lazy(() => import('@/features/dashboard/pages/Dashboard'));
 const Equipment = lazy(() => import('@/features/equipment/pages/Equipment'));
@@ -233,9 +233,7 @@ function App() {
                               </Routes>
                             </Suspense>
                           </main>
-                          <Suspense fallback={null}>
-                            <LegalFooter />
-                          </Suspense>
+                          <LegalFooter />
                         </SidebarInset>
                         {/* Mobile bottom navigation - only visible on mobile */}
                         <Suspense fallback={null}>

@@ -6,7 +6,7 @@
 
 ## 🚜 Fleet Equipment Management Platform 🚧
 
-![Version](https://img.shields.io/badge/version-2.3.6-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.3.7-blue?style=for-the-badge)
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
@@ -68,6 +68,8 @@ EquipQR uses external services. For exact environment variables and where they�
     git clone https://github.com/Columbia-Cloudworks-LLC/EquipQR
     cd equipqr && npm i
     ```
+
+    > Note: This repo intentionally installs `xlsx` from `cdn.sheetjs.com` (not npm registry). Ensure your CI and network policy allow access to that host during `npm install`.
 
 2. **Configure Environment**
     Copy the example environment file and configure your Supabase credentials.

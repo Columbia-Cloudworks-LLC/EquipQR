@@ -230,11 +230,11 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
           
           {selectedImage && (
             <div className="space-y-4">
-              <div className="max-h-96 overflow-hidden rounded-lg">
+              <div className="flex min-h-[12rem] max-h-[72dvh] items-center justify-center overflow-auto rounded-lg bg-muted/30 p-2">
                 <img
                   src={selectedImage.file_url}
                   alt={selectedImage.file_name}
-                  className="w-full h-auto object-contain"
+                  className="mx-auto block max-h-[68dvh] w-auto max-w-full object-contain"
                 />
               </div>
               
