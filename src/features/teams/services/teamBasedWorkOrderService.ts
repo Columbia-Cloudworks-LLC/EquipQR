@@ -3,6 +3,7 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
+import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
 
 /**
  * TeamBasedWorkOrder extends WorkOrder with camelCase aliases for backward compatibility.
@@ -63,9 +64,30 @@ export const getTeamBasedWorkOrders = async (
         has_pm,
         equipment:equipment_id (
           name,
+          manufacturer,
+          model,
+          serial_number,
+          working_hours,
+          image_url,
           team_id,
+          use_team_location,
+          last_known_location,
+          assigned_location_lat,
+          assigned_location_lng,
+          assigned_location_street,
+          assigned_location_city,
+          assigned_location_state,
+          assigned_location_country,
           teams:team_id (
-            name
+            id,
+            name,
+            override_equipment_location,
+            location_lat,
+            location_lng,
+            location_address,
+            location_city,
+            location_state,
+            location_country
           )
         ),
         assignee:profiles!work_orders_assignee_id_fkey (
@@ -132,27 +154,72 @@ export const getTeamBasedWorkOrders = async (
       throw error;
     }
 
-    return (data || []).map(wo => ({
-      id: wo.id,
-      title: wo.title,
-      description: wo.description,
-      equipmentId: wo.equipment_id,
-      organizationId: wo.organization_id,
-      priority: wo.priority,
-      status: wo.status,
-      assigneeId: wo.assignee_id,
-      assigneeName: wo.assignee?.name,
-      teamId: wo.equipment?.team_id,
-      teamName: wo.equipment?.teams?.name,
-      createdDate: wo.created_date,
-      created_date: wo.created_date,
-      dueDate: wo.due_date,
-      estimatedHours: wo.estimated_hours,
-      completedDate: wo.completed_date,
-      equipmentName: wo.equipment?.name,
-      createdByName: wo.creator?.name,
-      has_pm: wo.has_pm
-    }));
+    return (data || []).map(wo => {
+      const lastKnown = wo.equipment?.last_known_location;
+      const lastScan =
+        lastKnown &&
+        typeof lastKnown === 'object' &&
+        'latitude' in lastKnown &&
+        'longitude' in lastKnown &&
+        typeof lastKnown.latitude === 'number' &&
+        typeof lastKnown.longitude === 'number'
+          ? { lat: lastKnown.latitude, lng: lastKnown.longitude }
+          : undefined;
+
+      const effectiveLocation = wo.equipment
+        ? resolveEffectiveLocation({
+            team: wo.equipment.teams
+              ? {
+                  override_equipment_location: wo.equipment.teams.override_equipment_location,
+                  location_lat: wo.equipment.teams.location_lat,
+                  location_lng: wo.equipment.teams.location_lng,
+                  location_address: wo.equipment.teams.location_address,
+                  location_city: wo.equipment.teams.location_city,
+                  location_state: wo.equipment.teams.location_state,
+                  location_country: wo.equipment.teams.location_country,
+                }
+              : undefined,
+            equipment: {
+              use_team_location: wo.equipment.use_team_location,
+              assigned_location_lat: wo.equipment.assigned_location_lat,
+              assigned_location_lng: wo.equipment.assigned_location_lng,
+              assigned_location_street: wo.equipment.assigned_location_street,
+              assigned_location_city: wo.equipment.assigned_location_city,
+              assigned_location_state: wo.equipment.assigned_location_state,
+              assigned_location_country: wo.equipment.assigned_location_country,
+            },
+            lastScan,
+          })
+        : null;
+
+      return {
+        id: wo.id,
+        title: wo.title,
+        description: wo.description,
+        equipmentId: wo.equipment_id,
+        organizationId: wo.organization_id,
+        priority: wo.priority,
+        status: wo.status,
+        assigneeId: wo.assignee_id,
+        assigneeName: wo.assignee?.name,
+        teamId: wo.equipment?.team_id,
+        teamName: wo.equipment?.teams?.name,
+        createdDate: wo.created_date,
+        created_date: wo.created_date,
+        dueDate: wo.due_date,
+        estimatedHours: wo.estimated_hours,
+        completedDate: wo.completed_date,
+        equipmentName: wo.equipment?.name,
+        equipmentManufacturer: wo.equipment?.manufacturer,
+        equipmentModel: wo.equipment?.model,
+        equipmentSerialNumber: wo.equipment?.serial_number,
+        equipmentWorkingHours: wo.equipment?.working_hours,
+        equipmentImageUrl: wo.equipment?.image_url,
+        createdByName: wo.creator?.name,
+        has_pm: wo.has_pm,
+        effectiveLocation,
+      };
+    });
   } catch (error) {
     logger.error('Error in getTeamBasedWorkOrders:', error);
     throw error;

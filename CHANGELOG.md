@@ -11,16 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-Implemented the fix for [Issue #575](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/575) in the shared image viewer so full-size images are no longer constrained by the old clipped container.
+- Implemented the fix for [Issue #575](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/575) in the shared image viewer so full-size images are no longer constrained by the old clipped container.
+  - Updated `src/components/common/ImageGallery.tsx` modal image area:
+    - Replaced fixed/clipped wrapper (`max-h-96 overflow-hidden`) with a viewport-bounded, centered container:
+      - `min-h-[12rem] max-h-[72dvh] overflow-auto ...`
+    - Updated image sizing to true contain behavior in both dimensions:
+      - `max-w-full w-auto max-h-[68dvh] object-contain`
+  - This applies to all current `ImageGallery` consumers automatically (`EquipmentImagesTab`, `EquipmentNotesTab`, `WorkOrderImagesSection`).
 
-- Updated `src/components/common/ImageGallery.tsx` modal image area:
-  - Replaced fixed/clipped wrapper (`max-h-96 overflow-hidden`) with a viewport-bounded, centered container:
-    - `min-h-[12rem] max-h-[72dvh] overflow-auto ...`
-  - Updated image sizing to true contain behavior in both dimensions:
-    - `max-w-full w-auto max-h-[68dvh] object-contain`
-- This applies to all current `ImageGallery` consumers automatically (`EquipmentImagesTab`, `EquipmentNotesTab`, `WorkOrderImagesSection`).
+- Implemented Issue #576 work-order card enrichment from the attached plan, including data plumbing + UI updates for desktop/mobile cards and offline compatibility.
+  - Updated team-based work order fetch to include full equipment metadata and location inputs, then compute `effectiveLocation`:
+    - `src/features/teams/services/teamBasedWorkOrderService.ts`
+  - Extended shared work order types with equipment display fields:
+    - `src/features/work-orders/types/workOrder.ts`
+  - Enriched Work Order cards (desktop + mobile) with:
+    - equipment image (with safe fallback),
+    - manufacturer, model, serial, machine hours,
+    - existing clickable location behavior preserved via `ClickableAddress` (external Google Maps):
+    - `src/features/work-orders/components/WorkOrderCard.tsx`
+  - Added offline-safe defaults for new equipment fields in pending-sync items:
+    - `src/features/work-orders/hooks/useOfflineMergedWorkOrders.ts`
+  - Applied consistency pass to primary `WorkOrderService` so non-team-based work order paths expose the same equipment metadata:
+    - `src/features/work-orders/services/workOrderService.ts`
 
-chore: update package dependencies and versions
+### Chore
+
+Update package dependencies and versions
 
 - Updated `jspdf` from 4.0.0 to 4.2.0.
 - Updated `supabase` from 2.72.9 to 2.77.0.

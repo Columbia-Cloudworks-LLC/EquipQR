@@ -15,7 +15,7 @@
  * <WorkOrderCard workOrder={order} variant="compact" onNavigate={handleNavigate} />
  */
 
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -67,6 +67,13 @@ export interface WorkOrderCardProps {
   isAccepting?: boolean;
 }
 
+interface EquipmentThumbnailProps {
+  imageUrl?: string | null;
+  equipmentName?: string;
+  className?: string;
+  iconClassName?: string;
+}
+
 // ============================================
 // Helper Functions
 // ============================================
@@ -89,6 +96,11 @@ const mapToWorkOrderData = (workOrder: WorkOrder): WorkOrderData => ({
   estimatedHours: workOrder.estimatedHours ?? workOrder.estimated_hours,
   completedDate: workOrder.completedDate ?? workOrder.completed_date,
   equipmentName: workOrder.equipmentName,
+  equipmentManufacturer: workOrder.equipmentManufacturer,
+  equipmentModel: workOrder.equipmentModel,
+  equipmentSerialNumber: workOrder.equipmentSerialNumber,
+  equipmentWorkingHours: workOrder.equipmentWorkingHours,
+  equipmentImageUrl: workOrder.equipmentImageUrl,
   createdByName: workOrder.createdByName,
 });
 
@@ -98,6 +110,38 @@ const getAssignmentContext = (workOrder: WorkOrder): AssignmentWorkOrderContext 
   equipment_id: workOrder.equipment_id ?? workOrder.equipmentId ?? '',
   equipmentTeamId: workOrder.equipmentTeamId ?? workOrder.team_id,
 });
+
+const formatMachineHours = (hours?: number | null): string | null => {
+  if (typeof hours !== 'number') return null;
+  return `${hours.toLocaleString()} hrs`;
+};
+
+const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
+  imageUrl,
+  equipmentName,
+  className,
+  iconClassName,
+}) => {
+  const [hasImageError, setHasImageError] = useState(false);
+
+  if (!imageUrl || hasImageError) {
+    return (
+      <div className={cn('rounded-md bg-muted flex items-center justify-center', className)}>
+        <Cog className={cn('text-muted-foreground', iconClassName)} />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={equipmentName ? `${equipmentName} equipment image` : 'Equipment image'}
+      className={cn('rounded-md object-cover bg-muted', className)}
+      loading="lazy"
+      onError={() => setHasImageError(true)}
+    />
+  );
+};
 
 // ============================================
 // Desktop Card Component
@@ -113,6 +157,13 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
   const assignmentContext = getAssignmentContext(workOrder);
 
   const equipmentTeamName = workOrder.equipmentTeamName ?? workOrder.teamName;
+  const machineHours = formatMachineHours(workOrder.equipmentWorkingHours);
+  const equipmentMeta = [
+    workOrder.equipmentManufacturer,
+    workOrder.equipmentModel,
+    workOrder.equipmentSerialNumber ? `S/N ${workOrder.equipmentSerialNumber}` : undefined,
+    machineHours ? `Hours ${machineHours}` : undefined,
+  ].filter(Boolean) as string[];
   const createdDateValue = workOrder.created_date ?? workOrder.createdDate;
   const dueDateValue = workOrder.due_date ?? workOrder.dueDate;
   const estimatedHoursValue = workOrder.estimated_hours ?? workOrder.estimatedHours;
@@ -144,6 +195,29 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
         </div>
       </CardHeader>
       <CardContent>
+        {(workOrder.equipmentName || workOrder.equipmentImageUrl || equipmentMeta.length > 0) && (
+          <div className="flex items-start gap-3 mb-4 pb-4 border-b">
+            <EquipmentThumbnail
+              imageUrl={workOrder.equipmentImageUrl}
+              equipmentName={workOrder.equipmentName}
+              className="h-14 w-14 flex-shrink-0"
+              iconClassName="h-6 w-6"
+            />
+            <div className="min-w-0">
+              <div className="font-medium truncate">
+                {workOrder.equipmentName ?? 'Equipment'}
+              </div>
+              {equipmentMeta.length > 0 && (
+                <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-1">
+                  {equipmentMeta.map((meta) => (
+                    <span key={meta}>{meta}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -288,6 +362,13 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
 }) => {
   const dueDateValue = workOrder.dueDate ?? workOrder.due_date;
   const createdDateValue = workOrder.createdDate ?? workOrder.created_date;
+  const machineHours = formatMachineHours(workOrder.equipmentWorkingHours);
+  const equipmentMeta = [
+    workOrder.equipmentManufacturer,
+    workOrder.equipmentModel,
+    workOrder.equipmentSerialNumber ? `S/N ${workOrder.equipmentSerialNumber}` : undefined,
+    machineHours ? `Hours ${machineHours}` : undefined,
+  ].filter(Boolean) as string[];
   const assigneeName =
     workOrder.assigneeName ??
     workOrder.assignee_name ??
@@ -348,12 +429,26 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
       </CardHeader>
 
       <CardContent className="pt-0 space-y-3">
-        {workOrder.equipmentName && (
-          <div className="rounded-md bg-muted/50 p-2.5 flex items-center gap-2.5">
-            <Cog className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-            <span className="font-semibold text-sm truncate">
-              {workOrder.equipmentName}
-            </span>
+        {(workOrder.equipmentName || workOrder.equipmentImageUrl || equipmentMeta.length > 0) && (
+          <div className="rounded-md bg-muted/50 p-2.5 flex items-start gap-2.5">
+            <EquipmentThumbnail
+              imageUrl={workOrder.equipmentImageUrl}
+              equipmentName={workOrder.equipmentName}
+              className="h-11 w-11 flex-shrink-0"
+              iconClassName="h-4 w-4"
+            />
+            <div className="min-w-0 flex-1">
+              <span className="font-semibold text-sm truncate block">
+                {workOrder.equipmentName ?? 'Equipment'}
+              </span>
+              {equipmentMeta.length > 0 && (
+                <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+                  {equipmentMeta.map((meta) => (
+                    <span key={meta}>{meta}</span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
