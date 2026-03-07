@@ -156,15 +156,15 @@ export const getTeamBasedWorkOrders = async (
 
     return (data || []).map(wo => {
       const lastKnown = wo.equipment?.last_known_location;
-      const lastScan =
-        lastKnown &&
-        typeof lastKnown === 'object' &&
-        'latitude' in lastKnown &&
-        'longitude' in lastKnown &&
-        typeof lastKnown.latitude === 'number' &&
-        typeof lastKnown.longitude === 'number'
-          ? { lat: lastKnown.latitude, lng: lastKnown.longitude }
-          : undefined;
+      let lastScan: { lat: number; lng: number } | undefined;
+      if (lastKnown && typeof lastKnown === 'object') {
+        const locationCandidate = lastKnown as Record<string, unknown>;
+        const lat = Number(locationCandidate.latitude ?? locationCandidate.lat);
+        const lng = Number(locationCandidate.longitude ?? locationCandidate.lng);
+        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+          lastScan = { lat, lng };
+        }
+      }
 
       const effectiveLocation = wo.equipment
         ? resolveEffectiveLocation({

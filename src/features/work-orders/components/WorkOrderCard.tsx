@@ -70,6 +70,7 @@ export interface WorkOrderCardProps {
 interface EquipmentThumbnailProps {
   imageUrl?: string | null;
   equipmentName?: string;
+  equipmentAltContext?: string;
   className?: string;
   iconClassName?: string;
 }
@@ -119,6 +120,7 @@ const formatMachineHours = (hours?: number | null): string | null => {
 const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
   imageUrl,
   equipmentName,
+  equipmentAltContext,
   className,
   iconClassName,
 }) => {
@@ -135,7 +137,13 @@ const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
   return (
     <img
       src={imageUrl}
-      alt={equipmentName ? `${equipmentName} equipment image` : 'Equipment image'}
+      alt={
+        equipmentName
+          ? `${equipmentName} equipment image`
+          : equipmentAltContext
+            ? `${equipmentAltContext} equipment image`
+            : 'Work order equipment image'
+      }
       className={cn('rounded-md object-cover bg-muted', className)}
       loading="lazy"
       onError={() => setHasImageError(true)}
@@ -159,11 +167,11 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
   const equipmentTeamName = workOrder.equipmentTeamName ?? workOrder.teamName;
   const machineHours = formatMachineHours(workOrder.equipmentWorkingHours);
   const equipmentMeta = [
-    workOrder.equipmentManufacturer,
-    workOrder.equipmentModel,
-    workOrder.equipmentSerialNumber ? `S/N ${workOrder.equipmentSerialNumber}` : undefined,
-    machineHours ? `Hours ${machineHours}` : undefined,
-  ].filter(Boolean) as string[];
+    { key: 'manufacturer', label: `Manufacturer: ${workOrder.equipmentManufacturer ?? 'Unavailable'}` },
+    { key: 'model', label: `Model: ${workOrder.equipmentModel ?? 'Unavailable'}` },
+    { key: 'serial', label: `S/N: ${workOrder.equipmentSerialNumber ?? 'Unavailable'}` },
+    { key: 'hours', label: machineHours ? machineHours : 'Hours unavailable' },
+  ];
   const createdDateValue = workOrder.created_date ?? workOrder.createdDate;
   const dueDateValue = workOrder.due_date ?? workOrder.dueDate;
   const estimatedHoursValue = workOrder.estimated_hours ?? workOrder.estimatedHours;
@@ -200,6 +208,7 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
             <EquipmentThumbnail
               imageUrl={workOrder.equipmentImageUrl}
               equipmentName={workOrder.equipmentName}
+              equipmentAltContext={workOrder.title}
               className="h-14 w-14 flex-shrink-0"
               iconClassName="h-6 w-6"
             />
@@ -207,13 +216,11 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
               <div className="font-medium truncate">
                 {workOrder.equipmentName ?? 'Equipment'}
               </div>
-              {equipmentMeta.length > 0 && (
-                <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-1">
-                  {equipmentMeta.map((meta) => (
-                    <span key={meta}>{meta}</span>
-                  ))}
-                </div>
-              )}
+              <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-1">
+                {equipmentMeta.map((meta, index) => (
+                  <span key={`${meta.key}-${index}`}>{meta.label}</span>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -364,11 +371,11 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
   const createdDateValue = workOrder.createdDate ?? workOrder.created_date;
   const machineHours = formatMachineHours(workOrder.equipmentWorkingHours);
   const equipmentMeta = [
-    workOrder.equipmentManufacturer,
-    workOrder.equipmentModel,
-    workOrder.equipmentSerialNumber ? `S/N ${workOrder.equipmentSerialNumber}` : undefined,
-    machineHours ? `Hours ${machineHours}` : undefined,
-  ].filter(Boolean) as string[];
+    { key: 'manufacturer', label: `Manufacturer: ${workOrder.equipmentManufacturer ?? 'Unavailable'}` },
+    { key: 'model', label: `Model: ${workOrder.equipmentModel ?? 'Unavailable'}` },
+    { key: 'serial', label: `S/N: ${workOrder.equipmentSerialNumber ?? 'Unavailable'}` },
+    { key: 'hours', label: machineHours ? machineHours : 'Hours unavailable' },
+  ];
   const assigneeName =
     workOrder.assigneeName ??
     workOrder.assignee_name ??
@@ -434,6 +441,7 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
             <EquipmentThumbnail
               imageUrl={workOrder.equipmentImageUrl}
               equipmentName={workOrder.equipmentName}
+              equipmentAltContext={workOrder.title}
               className="h-11 w-11 flex-shrink-0"
               iconClassName="h-4 w-4"
             />
@@ -441,13 +449,11 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
               <span className="font-semibold text-sm truncate block">
                 {workOrder.equipmentName ?? 'Equipment'}
               </span>
-              {equipmentMeta.length > 0 && (
-                <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
-                  {equipmentMeta.map((meta) => (
-                    <span key={meta}>{meta}</span>
-                  ))}
-                </div>
-              )}
+              <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+                {equipmentMeta.map((meta, index) => (
+                  <span key={`${meta.key}-${index}`}>{meta.label}</span>
+                ))}
+              </div>
             </div>
           </div>
         )}
