@@ -1,7 +1,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+const DEMO_CALENDLY_URL = 'https://calendly.com/equipqr';
 
 const CTASection = () => {
   return (
@@ -12,34 +14,28 @@ const CTASection = () => {
             Ready to Streamline Your Heavy Equipment Operations?
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join repair shops and rental operations using EquipQR™ to track equipment, manage inventory and parts, and handle maintenance workflows. 
+            Join repair shops and rental operations using EquipQR™ to track equipment, manage inventory and parts, and handle maintenance workflows.
             Built for teams of any size.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <Button asChild size="lg" className="text-lg px-8 py-6">
               <Link to="/auth?tab=signup">
-                Get Started
+                Get Started Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-          </div>
-          
-          <div className="text-sm text-muted-foreground space-y-2">
-            <p>✓ Enterprise-grade platform</p>
-            <p>✓ Unlimited team members</p>
-            <p>
-              ✓ 5GB image storage included (
-              <a 
-                href="mailto:nicholas.king@columbiacloudworks.com" 
-                className="text-primary hover:text-primary/80 transition-colors"
-                aria-label="Contact support for additional storage"
-              >
-                Contact us for more
+            <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6 border-foreground/30 text-foreground hover:bg-foreground/10">
+              <a href={DEMO_CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+                <Calendar className="mr-2 h-5 w-5" aria-hidden />
+                Schedule a Demo
               </a>
-              )
-            </p>
+            </Button>
           </div>
+
+          <p className="text-sm text-muted-foreground">
+            Enterprise-grade. Zero setup headaches. Free to start.
+          </p>
         </div>
       </div>
     </section>

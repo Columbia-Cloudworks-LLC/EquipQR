@@ -5,8 +5,9 @@ import HeroSection from '@/components/landing/HeroSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import SocialProofSection from '@/components/landing/SocialProofSection';
 import AboutSection from '@/components/landing/AboutSection';
+import PricingSection from '@/components/landing/PricingSection';
 import CTASection from '@/components/landing/CTASection';
-import LegalFooter from '@/components/layout/LegalFooter';
+import LandingFooter from '@/components/landing/LandingFooter';
 
 interface LandingProps {
   /** When true, skip rendering PageSEO (used when embedded in SmartLanding) */
@@ -37,13 +38,12 @@ const Landing: React.FC<LandingProps> = ({ skipSEO = false }) => {
       <main id="main-content">
         <HeroSection />
         <FeaturesSection id="features" />
-        <div id="pricing">
-          <SocialProofSection />
-        </div>
         <AboutSection id="about" />
+        <SocialProofSection />
+        <PricingSection />
         <CTASection />
       </main>
-      <LegalFooter />
+      <LandingFooter />
       </div>
     </>
   );

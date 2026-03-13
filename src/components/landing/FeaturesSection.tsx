@@ -1,14 +1,13 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  QrCode, 
+import {
+  QrCode,
   Building2,
   Receipt,
-  ClipboardList, 
-  Users, 
-  Map, 
-  BarChart3, 
+  ClipboardList,
+  Users,
+  Map,
   Smartphone,
   UserCircle,
   FileCheck,
@@ -71,13 +70,6 @@ const features: Feature[] = [
     link: '/features/fleet-visualization'
   },
   {
-    icon: BarChart3,
-    title: 'Analytics & Reports',
-    description: 'Comprehensive dashboards and reports providing insights into equipment utilization, maintenance costs, and team performance.',
-    benefits: ['Performance metrics', 'Cost analysis', 'Predictive insights'],
-    statusBadge: 'Coming Soon'
-  },
-  {
     icon: UserCircle,
     title: 'Customer CRM',
     description: 'Link equipment to specific customers. Maintain a permanent service history for every client asset.',
@@ -116,7 +108,7 @@ const features: Feature[] = [
 
 const FeaturesSection = ({ id }: { id?: string }) => {
   return (
-    <section id={id} className="py-24 bg-muted/30">
+    <section id={id} className="scroll-mt-20 py-24 bg-background">
       <div className="container px-4 mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
@@ -127,7 +119,7 @@ const FeaturesSection = ({ id }: { id?: string }) => {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => {
             const getIconColor = (index: number) => {
               const colors = ['text-primary', 'text-info', 'text-success', 'text-warning'];

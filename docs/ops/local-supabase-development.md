@@ -107,8 +107,8 @@ npx supabase start
 ```
 
 This will:
-- Start PostgreSQL on port `54322`
-- Start PostgREST API on port `54321`
+- Start PostgreSQL on a local port from `supabase/config.toml` (default `58122`)
+- Start PostgREST API on a local port from `supabase/config.toml` (default `58121`)
 - Start Auth service
 - Start Storage service
 - Start Edge Functions runtime
@@ -483,7 +483,7 @@ npx supabase start
 
 ### Port Conflicts
 
-If ports 54321 or 54322 are already in use:
+If local Supabase ports are blocked or already in use:
 
 ```bash
 # Stop Supabase
@@ -493,7 +493,8 @@ npx supabase stop
 # Windows: netstat -ano | findstr :54321
 # Mac/Linux: lsof -i :54321
 
-# Stop conflicting services or change Supabase ports in config.toml
+# dev-start.bat automatically reconciles Supabase ports in config.toml
+# to avoid Windows excluded ranges; rerun dev-start.bat first.
 ```
 
 ## Common Commands Reference

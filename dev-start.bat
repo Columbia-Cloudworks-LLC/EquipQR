@@ -28,6 +28,12 @@ setlocal EnableDelayedExpansion
 set "FAIL=0"
 set "OPT_RESET_DB=0"
 set "OPT_GEN_TYPES=0"
+set "SUPABASE_API_PORT=58121"
+set "SUPABASE_DB_PORT=58122"
+set "SUPABASE_DB_SHADOW_PORT=58120"
+set "SUPABASE_STUDIO_PORT=58123"
+set "SUPABASE_INBUCKET_PORT=58124"
+set "SUPABASE_ANALYTICS_PORT=58127"
 
 REM --- Parse command-line arguments ---
 :parse_args
@@ -136,24 +142,35 @@ if exist "node_modules\." (
     echo        npm ci completed successfully.
 )
 
+echo.
+echo  [2.5/7] Preparing Supabase local ports...
+set "SUPABASE_PORT_ENV=%TEMP%\equipqr-supabase-ports.env"
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\prepare-supabase-ports.ps1" -ConfigPath "supabase\config.toml" -EnvOutPath "%SUPABASE_PORT_ENV%"
+if %errorlevel% neq 0 (
+    echo        FAIL: Could not prepare Supabase ports from local config.
+    set "FAIL=1"
+    goto :summary
+)
+for /f "usebackq tokens=1,2 delims==" %%A in ("%SUPABASE_PORT_ENV%") do (
+    set "%%A=%%B"
+)
+del "%SUPABASE_PORT_ENV%" >nul 2>&1
+echo        Supabase ports ready: API %SUPABASE_API_PORT%, DB %SUPABASE_DB_PORT%, Studio %SUPABASE_STUDIO_PORT%
+
 REM ---------- 3. Start Supabase local stack -----------------------------------
 echo.
 echo  [3/7] Starting Supabase local stack...
 
-REM Check if Supabase is already running by querying the API port
-powershell -NoProfile -Command ^
-  "if (Get-NetTCPConnection -LocalPort 54321 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
-if %errorlevel% neq 0 goto :supabase_start
-
-echo        Supabase API already listening on port 54321 - verifying status...
+REM Use 'supabase status' as the primary running check.
+REM Docker Desktop on Windows binds container ports via its own proxy service;
+REM those ports do NOT appear in Get-NetTCPConnection, so a port-listener check
+REM is unreliable. 'supabase status' queries Docker by project label instead.
 call npx supabase status >nul 2>&1
 if %errorlevel% equ 0 (
-    echo        Supabase is running and healthy - skipped.
+    echo        Supabase is already running and healthy - skipped.
     goto :supabase_info
 )
-echo        Port 54321 is in use but Supabase status check failed.
-echo        Attempting cleanup and restart...
-call npx supabase stop >nul 2>&1
+echo        Supabase is not running - starting now...
 
 :supabase_start
 REM Pre-start cleanup: remove any stopped/zombie Supabase containers to avoid
@@ -185,7 +202,7 @@ powershell -NoProfile -Command ^
   "$timeout = 90; $elapsed = 0; " ^
   "while ($elapsed -lt $timeout) { " ^
   "  try { " ^
-  "    $r = Invoke-WebRequest -Uri 'http://localhost:54321/rest/v1/' -Method HEAD -TimeoutSec 3 -UseBasicParsing -ErrorAction Stop; " ^
+  "    $r = Invoke-WebRequest -Uri 'http://localhost:%SUPABASE_API_PORT%/rest/v1/' -Method HEAD -TimeoutSec 3 -UseBasicParsing -ErrorAction Stop; " ^
   "    if ($r.StatusCode -lt 500) { Write-Host '       Supabase API is responding.'; exit 0 } " ^
   "  } catch { }; " ^
   "  Start-Sleep -Seconds 3; $elapsed += 3; " ^
@@ -326,12 +343,12 @@ set "DB_STATUS=[UNKNOWN]"
 set "FUNCTIONS_STATUS=[SKIPPED]"
 
 powershell -NoProfile -Command ^
-  "try { $r = Invoke-WebRequest -Uri 'http://localhost:54321/rest/v1/' -Method HEAD -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop; exit 0 } catch { exit 1 }"
+  "try { $r = Invoke-WebRequest -Uri 'http://localhost:%SUPABASE_API_PORT%/rest/v1/' -Method HEAD -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop; exit 0 } catch { exit 1 }"
 if %errorlevel% equ 0 ( set "API_STATUS=[OK]" ) else ( set "API_STATUS=[FAILED]" & set "FAIL=1" )
 
-powershell -NoProfile -Command ^
-  "if (Get-NetTCPConnection -LocalPort 54322 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
-if %errorlevel% equ 0 ( set "DB_STATUS=[OK]" ) else ( set "DB_STATUS=[FAILED]" & set "FAIL=1" )
+REM DB check: Docker Desktop ports are not visible to Get-NetTCPConnection on Windows.
+REM Use the API health result as a proxy — if the API is up the DB container is up.
+if "%API_STATUS%"=="[OK]" ( set "DB_STATUS=[OK]" ) else ( set "DB_STATUS=[FAILED]" & set "FAIL=1" )
 
 REM Only check Vite and Edge Functions when not in --gen-types mode.
 REM Use goto instead of a parenthesised if-block to avoid the batch parser
@@ -353,8 +370,8 @@ if %errorlevel% equ 0 ( set "FUNCTIONS_STATUS=[OK]" ) else ( set "FUNCTIONS_STAT
 
 :print_status
 
-echo   Supabase API:   http://localhost:54321      %API_STATUS%
-echo   Database:       localhost:54322             %DB_STATUS%
+echo   Supabase API:   http://localhost:%SUPABASE_API_PORT%      %API_STATUS%
+echo   Database:       localhost:%SUPABASE_DB_PORT%             %DB_STATUS%
 echo   Frontend:       http://localhost:8080       %FRONTEND_STATUS%
 echo   Edge Functions: (via Supabase API)          %FUNCTIONS_STATUS%
 echo.
