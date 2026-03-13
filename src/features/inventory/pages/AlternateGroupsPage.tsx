@@ -185,7 +185,7 @@ const AlternateGroupsPage: React.FC = () => {
                       <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
                         <span className="truncate">{group.name}</span>
                         {group.status === 'verified' && (
-                          <Badge className="bg-green-600 shrink-0">
+                          <Badge className="bg-success shrink-0">
                             <CheckCircle2 className="h-3 w-3 mr-1" />
                             Verified
                           </Badge>
@@ -322,3 +322,4 @@ const AlternateGroupsPage: React.FC = () => {
 };
 
 export default AlternateGroupsPage;
+

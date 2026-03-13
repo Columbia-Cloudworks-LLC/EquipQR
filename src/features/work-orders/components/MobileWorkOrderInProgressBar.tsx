@@ -66,8 +66,8 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
         <div className={cn(
           "px-3 py-1.5 text-xs flex items-center justify-center gap-1.5",
           !isOnline 
-            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300"
-            : "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300"
+            ? "bg-warning/20 text-warning dark:bg-warning/20 dark:text-warning"
+            : "bg-info/20 text-info dark:bg-info/20 dark:text-info"
         )}>
           {!isOnline ? (
             <>
@@ -92,8 +92,8 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
               className={cn(
                 "text-xs",
                 isOnHold 
-                  ? "bg-yellow-50 text-yellow-700 border-yellow-200" 
-                  : "bg-green-50 text-green-700 border-green-200"
+                  ? "bg-warning/10 text-warning border-warning/30" 
+                  : "bg-success/10 text-success border-success/30"
               )}
             >
               {isOnHold ? 'On Hold' : 'In Progress'}
@@ -209,3 +209,4 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
 };
 
 export default MobileWorkOrderInProgressBar;
+

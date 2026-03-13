@@ -38,6 +38,7 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
 }) => {
   const [selectedAssignee, setSelectedAssignee] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const assigneeSelectId = 'work-order-acceptance-assignee';
   const { user: currentUser } = useAuth();
   
   // Get organization data
@@ -161,17 +162,17 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
           </Card>
 
           {isSingleUserOrg ? (
-            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <p className="text-sm text-blue-800">
+            <div className="flex items-center gap-2 rounded-lg bg-accent p-3 text-accent-foreground">
+              <AlertCircle className="h-4 w-4 text-accent-foreground" />
+              <p className="text-sm">
                 This work order will be automatically assigned to you and started.
               </p>
             </div>
           ) : (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Assign To</label>
+              <label htmlFor={assigneeSelectId} className="text-sm font-medium">Assign To</label>
               <Select value={selectedAssignee} onValueChange={setSelectedAssignee}>
-                <SelectTrigger>
+                <SelectTrigger id={assigneeSelectId} className="min-h-11">
                   <SelectValue placeholder="Select assignee..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -204,14 +205,14 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
               variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1"
+              className="flex-1 min-h-11"
             >
               Cancel
             </Button>
             <Button
               onClick={handleAccept}
               disabled={isSubmitting || (!isSingleUserOrg && !selectedAssignee)}
-              className="flex-1"
+              className="flex-1 min-h-11"
             >
               {isSubmitting ? 'Accepting...' : 'Accept & Assign'}
             </Button>

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { showErrorToast } from '@/utils/errorHandling';
 import { logger } from '@/utils/logger';
+import { organizations as organizationQueryKeys } from '@/lib/queryKeys';
 
 export interface Organization {
   id: string;
@@ -22,7 +23,7 @@ export const useUserOrganizations = () => {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['organizations', user?.id],
+    queryKey: organizationQueryKeys.byUser(user?.id ?? ''),
     queryFn: async (): Promise<Organization[]> => {
       if (!user) return [];
 

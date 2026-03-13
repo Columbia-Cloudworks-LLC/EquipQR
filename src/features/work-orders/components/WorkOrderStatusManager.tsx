@@ -103,6 +103,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     equipmentTeamId: workOrder.equipmentTeamId
   };
   const { assignmentOptions, isLoading: assignmentLoading, equipmentHasNoTeam } = useWorkOrderContextualAssignment(assignmentContext);
+  const startAssigneeFieldId = `work-order-start-assignee-${workOrder.id}`;
 
   const handleStatusChange = async (newStatus: WorkOrderStatus) => {
     // Check if trying to complete work order with incomplete PM
@@ -274,14 +275,14 @@ const getStatusActions = (): StatusAction[] => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'submitted': return 'bg-blue-100 text-blue-800';
-      case 'accepted': return 'bg-purple-100 text-purple-800';
-      case 'assigned': return 'bg-orange-100 text-orange-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'on_hold': return 'bg-gray-100 text-gray-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'submitted': return 'bg-info/20 text-info';
+      case 'accepted': return 'bg-primary/20 text-primary';
+      case 'assigned': return 'bg-warning/20 text-warning';
+      case 'in_progress': return 'bg-warning/20 text-warning';
+      case 'on_hold': return 'bg-muted text-foreground';
+      case 'completed': return 'bg-success/20 text-success';
+      case 'cancelled': return 'bg-destructive/20 text-destructive';
+      default: return 'bg-muted text-foreground';
     }
   };
 
@@ -316,9 +317,9 @@ const getStatusActions = (): StatusAction[] => {
 
           {/* PM Status Check Warning */}
           {workOrder.has_pm && workOrder.status === 'in_progress' && pmData && pmData.status !== 'completed' && (
-            <Alert className="border-amber-200 bg-amber-50">
+            <Alert className="border-warning/30 bg-warning/10">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-amber-800">
+              <AlertDescription className="text-warning">
                 <div className="flex items-center gap-2">
                   <Clipboard className="h-4 w-4" />
                   <span>Complete the PM checklist before marking this work order as completed.</span>
@@ -355,7 +356,7 @@ const getStatusActions = (): StatusAction[] => {
           {workOrder.status === 'accepted' && (isManager || isTechnician) && (
             <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Assign to start work</Label>
+                <Label htmlFor={startAssigneeFieldId} className="text-sm font-medium">Assign to start work</Label>
                 {equipmentHasNoTeam && (
                   <p className="text-xs text-muted-foreground">
                     Equipment has no team. Showing organization admins.
@@ -366,7 +367,7 @@ const getStatusActions = (): StatusAction[] => {
                   onValueChange={setSelectedAssigneeForStart}
                   disabled={assignmentLoading || updateStatusMutation.isPending}
                 >
-                  <SelectTrigger className="w-full" aria-label="Select assignee to start work">
+                  <SelectTrigger id={startAssigneeFieldId} className="w-full" aria-label="Select assignee to start work">
                     <SelectValue placeholder={assignmentLoading ? "Loading..." : "Select assignee..."} />
                   </SelectTrigger>
                   <SelectContent>
@@ -440,7 +441,7 @@ const getStatusActions = (): StatusAction[] => {
           )}
 
           {workOrder.status === 'completed' && (
-            <div className="text-sm text-green-600">
+            <div className="text-sm text-success">
               <CheckCircle className="h-4 w-4 inline mr-2" />
               Work order completed successfully
               {workOrder.completed_date && (
@@ -577,3 +578,4 @@ const getStatusActions = (): StatusAction[] => {
 };
 
 export default WorkOrderStatusManager;
+

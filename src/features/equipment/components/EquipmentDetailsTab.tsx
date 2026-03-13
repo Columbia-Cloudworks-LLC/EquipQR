@@ -140,9 +140,9 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
   if (isTeamOverride) {
     return (
       <div>
-        <label className="text-sm font-medium text-gray-500">Location</label>
+        <span className="text-sm font-medium text-muted-foreground">Location</span>
         <div className="mt-1 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <ClickableAddress
             address={teamAddress || undefined}
             lat={team!.location_lat}
@@ -183,7 +183,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
   if (isEditing) {
     return (
       <div>
-        <label className="text-sm font-medium text-gray-500">Location</label>
+        <span className="text-sm font-medium text-muted-foreground">Location</span>
         <div className="mt-1 space-y-2">
           <GooglePlacesAutocomplete
             value={isCleared ? '' : (pendingPlace?.formatted_address ?? equipmentAddress)}
@@ -226,9 +226,9 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
   if (equipmentAddress) {
     return (
       <div>
-        <label className="text-sm font-medium text-gray-500">Location</label>
+        <span className="text-sm font-medium text-muted-foreground">Location</span>
         <div className="mt-1 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <ClickableAddress
             address={equipmentAddress}
             lat={equipment.assigned_location_lat ?? undefined}
@@ -240,7 +240,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
               variant="ghost"
               size="sm"
               onClick={onStartEdit}
-              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              className="h-11 w-11 p-0 text-muted-foreground hover:text-foreground"
               aria-label="Edit location"
             >
               <Edit2 className="h-3.5 w-3.5" />
@@ -256,16 +256,16 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
   if (legacyLocation) {
     return (
       <div>
-        <label className="text-sm font-medium text-gray-500">Location</label>
+        <span className="text-sm font-medium text-muted-foreground">Location</span>
         <div className="mt-1 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <span className="text-base">{legacyLocation}</span>
           {canEdit && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onStartEdit}
-              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              className="h-11 w-11 p-0 text-muted-foreground hover:text-foreground"
               aria-label="Edit location"
             >
               <Edit2 className="h-3.5 w-3.5" />
@@ -279,16 +279,16 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
   // ── No location: empty state ──
   return (
     <div>
-      <label className="text-sm font-medium text-gray-500">Location</label>
+      <span className="text-sm font-medium text-muted-foreground">Location</span>
       <div className="mt-1 flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <span className="text-base text-muted-foreground">No location set</span>
         {canEdit && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onStartEdit}
-            className="h-auto p-0 text-xs text-primary hover:text-primary/80 hover:underline"
+            className="min-h-11 px-3 text-sm text-primary hover:text-primary/80 hover:underline"
           >
             Set Location
           </Button>
@@ -311,6 +311,18 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   const { data: teams = [] } = useTeams(currentOrganization?.id);
   const { data: pmTemplates = [] } = usePMTemplates();
   const updateEquipmentMutation = useUpdateEquipment(currentOrganization?.id || '');
+  const nameFieldId = `equipment-name-${equipment.id}`;
+  const statusFieldId = `equipment-status-${equipment.id}`;
+  const manufacturerFieldId = `equipment-manufacturer-${equipment.id}`;
+  const modelFieldId = `equipment-model-${equipment.id}`;
+  const serialNumberFieldId = `equipment-serial-number-${equipment.id}`;
+  const assignedTeamFieldId = `equipment-assigned-team-${equipment.id}`;
+  const pmTemplateFieldId = `equipment-pm-template-${equipment.id}`;
+  const descriptionFieldId = `equipment-description-${equipment.id}`;
+  const installationDateFieldId = `equipment-installation-date-${equipment.id}`;
+  const warrantyExpirationFieldId = `equipment-warranty-expiration-${equipment.id}`;
+  const maintenanceDateFieldId = `equipment-maintenance-date-${equipment.id}`;
+  const notesFieldId = `equipment-notes-${equipment.id}`;
 
   // Check if user can edit equipment
   const equipmentPermissions = permissions.equipment.getPermissions(equipment.team_id || undefined);
@@ -451,12 +463,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-500">Name</label>
+              <label htmlFor={nameFieldId} className="text-sm font-medium text-muted-foreground">Name</label>
               <div className="mt-1">
                 <InlineEditField
                   value={equipment.name || ''}
                   onSave={(value) => handleFieldUpdate('name', value)}
                   canEdit={canEdit}
+                  fieldId={nameFieldId}
                   placeholder="Enter equipment name"
                   className="text-base"
                 />
@@ -464,13 +477,14 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Status</label>
+              <label htmlFor={statusFieldId} className="text-sm font-medium text-muted-foreground">Status</label>
               <div className="mt-1">
                 {canEdit ? (
                   <InlineEditField
                     value={equipment.status || 'active'}
                     onSave={(value) => handleFieldUpdate('status', value)}
                     canEdit={canEdit}
+                    fieldId={statusFieldId}
                     type="select"
                     selectOptions={[...EQUIPMENT_STATUS_OPTIONS]}
                     className="text-base"
@@ -484,12 +498,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Manufacturer</label>
+              <label htmlFor={manufacturerFieldId} className="text-sm font-medium text-muted-foreground">Manufacturer</label>
               <div className="mt-1">
                 <InlineEditField
                   value={equipment.manufacturer || ''}
                   onSave={(value) => handleFieldUpdate('manufacturer', value)}
                   canEdit={canEdit}
+                  fieldId={manufacturerFieldId}
                   placeholder="Enter manufacturer"
                   className="text-base"
                 />
@@ -497,12 +512,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Model</label>
+              <label htmlFor={modelFieldId} className="text-sm font-medium text-muted-foreground">Model</label>
               <div className="mt-1">
                 <InlineEditField
                   value={equipment.model || ''}
                   onSave={(value) => handleFieldUpdate('model', value)}
                   canEdit={canEdit}
+                  fieldId={modelFieldId}
                   placeholder="Enter model"
                   className="text-base"
                 />
@@ -510,12 +526,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Serial Number</label>
+              <label htmlFor={serialNumberFieldId} className="text-sm font-medium text-muted-foreground">Serial Number</label>
               <div className="mt-1">
                 <InlineEditField
                   value={equipment.serial_number || ''}
                   onSave={(value) => handleFieldUpdate('serial_number', value)}
                   canEdit={canEdit}
+                  fieldId={serialNumberFieldId}
                   placeholder="Enter serial number"
                   className="text-base"
                 />
@@ -523,14 +540,14 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Working Hours</label>
+              <span className="text-sm font-medium text-muted-foreground">Working Hours</span>
               <div className="mt-1 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-gray-400" />
+                <Clock className="h-4 w-4 text-muted-foreground" />
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={() => setShowWorkingHoursModal(true)}
-                  className="h-auto p-0 font-normal text-base text-left justify-start hover:underline"
+                  className="min-h-11 justify-start px-2 text-left text-base font-normal hover:underline"
                 >
                   {equipment.working_hours ?? 0} hours
                 </Button>
@@ -538,9 +555,9 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Last Maintenance</label>
+              <span className="text-sm font-medium text-muted-foreground">Last Maintenance</span>
               <div className="mt-1 flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-400" />
+                <Calendar className="h-4 w-4 text-muted-foreground" />
                 {lastMaintenanceLink ? (
                   <Link
                     to={lastMaintenanceLink}
@@ -589,21 +606,22 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             />
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Assigned Team</label>
+              <label htmlFor={assignedTeamFieldId} className="text-sm font-medium text-muted-foreground">Assigned Team</label>
               <div className="mt-1 flex items-center gap-2">
-                <Users className="h-4 w-4 text-gray-400" />
+                <Users className="h-4 w-4 text-muted-foreground" />
                 {canAssignTeams ? (
                   <InlineEditField
                     value={equipment.team_id || 'unassigned'}
                     onSave={handleTeamAssignment}
                     canEdit={canAssignTeams}
+                    fieldId={assignedTeamFieldId}
                     type="select"
                     selectOptions={teamOptions}
                     placeholder="Select team"
                     className="text-base"
                   />
                 ) : (
-                  <span className="text-base text-gray-900">
+                  <span className="text-base text-foreground">
                     {getCurrentTeamDisplay()}
                   </span>
                 )}
@@ -611,21 +629,22 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">PM Template</label>
+              <label htmlFor={pmTemplateFieldId} className="text-sm font-medium text-muted-foreground">PM Template</label>
               <div className="mt-1 flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-gray-400" />
+                <Wrench className="h-4 w-4 text-muted-foreground" />
                 {canEdit ? (
                   <InlineEditField
                     value={equipment.default_pm_template_id || 'none'}
                     onSave={handlePMTemplateAssignment}
                     canEdit={canEdit}
+                    fieldId={pmTemplateFieldId}
                     type="select"
                     selectOptions={pmTemplateOptions}
                     placeholder="Select PM template"
                     className="text-base"
                   />
                 ) : (
-                  <span className="text-base text-gray-900">
+                  <span className="text-base text-foreground">
                     {getCurrentPMTemplateDisplay()}
                   </span>
                 )}
@@ -634,12 +653,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-500">Description</label>
+            <label htmlFor={descriptionFieldId} className="text-sm font-medium text-muted-foreground">Description</label>
             <div className="mt-1">
               <InlineEditField
                 value={equipment.notes || ''}
                 onSave={(value) => handleFieldUpdate('notes', value)}
                 canEdit={canEdit}
+                fieldId={descriptionFieldId}
                 type="textarea"
                 placeholder="Enter equipment description"
                 className="text-base"
@@ -660,12 +680,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-500">Installation Date</label>
+              <label htmlFor={installationDateFieldId} className="text-sm font-medium text-muted-foreground">Installation Date</label>
               <div className="mt-1">
                 <InlineEditField
                   value={formatDateForInput(equipment.installation_date)}
                   onSave={(value) => handleFieldUpdate('installation_date', value)}
                   canEdit={canEdit}
+                  fieldId={installationDateFieldId}
                   type="date"
                   placeholder="Select installation date"
                   className="text-base"
@@ -674,12 +695,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Warranty Expiration</label>
+              <label htmlFor={warrantyExpirationFieldId} className="text-sm font-medium text-muted-foreground">Warranty Expiration</label>
               <div className="mt-1">
                 <InlineEditField
                   value={formatDateForInput(equipment.warranty_expiration)}
                   onSave={(value) => handleFieldUpdate('warranty_expiration', value)}
                   canEdit={canEdit}
+                  fieldId={warrantyExpirationFieldId}
                   type="date"
                   placeholder="Select warranty expiration date"
                   className="text-base"
@@ -688,12 +710,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Last Maintenance</label>
+              <label htmlFor={maintenanceDateFieldId} className="text-sm font-medium text-muted-foreground">Last Maintenance</label>
               <div className="mt-1">
                 <InlineEditField
                   value={formatDateForInput(equipment.last_maintenance)}
                   onSave={(value) => handleFieldUpdate('last_maintenance', value)}
                   canEdit={canEdit}
+                  fieldId={maintenanceDateFieldId}
                   type="date"
                   placeholder="Select last maintenance date"
                   className="text-base"
@@ -713,8 +736,8 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Created Date</label>
-              <div className="mt-1 text-base text-gray-900">
+              <span className="text-sm font-medium text-muted-foreground">Created Date</span>
+              <div className="mt-1 text-base text-foreground">
                 {equipment.created_at ? format(new Date(equipment.created_at), 'PPP') : 'Not set'}
               </div>
             </div>
@@ -749,12 +772,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-500">Notes</label>
+            <label htmlFor={notesFieldId} className="text-sm font-medium text-muted-foreground">Notes</label>
             <div className="mt-1">
               <InlineEditField
                 value={equipment.notes || ''}
                 onSave={(value) => handleFieldUpdate('notes', value)}
                 canEdit={canEdit}
+                fieldId={notesFieldId}
                 type="textarea"
                 placeholder="Enter maintenance notes or additional information"
                 className="text-base"

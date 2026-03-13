@@ -62,6 +62,13 @@ const InventoryList = () => {
     navigate(`/dashboard/inventory/${itemId}`);
   };
 
+  const handleItemKeyDown = (e: React.KeyboardEvent<HTMLElement>, itemId: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleViewItem(itemId);
+    }
+  };
+
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingItem(null);
@@ -168,6 +175,7 @@ const InventoryList = () => {
                       value={filters.search || ''}
                       onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                       className="pl-9 h-10"
+                      aria-label="Search inventory by name, SKU, or external ID"
                     />
                   </div>
                   <Sheet>
@@ -234,6 +242,7 @@ const InventoryList = () => {
                       value={filters.search || ''}
                       onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                       className="pl-9"
+                      aria-label="Search inventory by name, SKU, or external ID"
                     />
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 rounded-md border bg-muted/30">
@@ -263,21 +272,31 @@ const InventoryList = () => {
               {filters.search && (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   Search: "{filters.search.length > 15 ? `${filters.search.slice(0, 15)}...` : filters.search}"
-                  <X
-                    className="h-3 w-3 cursor-pointer hover:text-foreground"
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4"
                     onClick={() => setFilters({ ...filters, search: '' })}
                     aria-label="Clear search filter"
-                  />
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 </Badge>
               )}
               {filters.lowStockOnly && (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   Low Stock
-                  <X
-                    className="h-3 w-3 cursor-pointer hover:text-foreground"
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4"
                     onClick={() => setFilters({ ...filters, lowStockOnly: false })}
                     aria-label="Clear low stock filter"
-                  />
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 </Badge>
               )}
               <Button
@@ -319,6 +338,10 @@ const InventoryList = () => {
                 key={item.id}
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => handleViewItem(item.id)}
+                onKeyDown={(e) => handleItemKeyDown(e, item.id)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open inventory item ${item.name}`}
               >
                 <CardContent className="p-4">
                   {/* Header: Name + Low Stock badge */}
@@ -382,6 +405,10 @@ const InventoryList = () => {
                       key={item.id}
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => handleViewItem(item.id)}
+                      onKeyDown={(e) => handleItemKeyDown(e, item.id)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Open inventory item ${item.name}`}
                     >
                       <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell className="text-muted-foreground">

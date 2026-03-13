@@ -51,9 +51,9 @@ const RepairShops = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-6xl mx-auto">
               {/* Instant Intake */}
-              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
                 <CardHeader className="pb-4">
                   <div className="mb-4">
                     <QrCode className="h-10 w-10 text-primary" />
@@ -85,7 +85,7 @@ const RepairShops = () => {
               </Card>
 
               {/* Photo Evidence */}
-              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
                 <CardHeader className="pb-4">
                   <div className="mb-4">
                     <Camera className="h-10 w-10 text-primary" />
@@ -117,7 +117,7 @@ const RepairShops = () => {
               </Card>
 
               {/* Customer Profiles */}
-              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
                 <CardHeader className="pb-4">
                   <div className="mb-4">
                     <UserCircle className="h-10 w-10 text-primary" />

@@ -22,6 +22,10 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
   setValue,
   preSelectedEquipment
 }) => {
+  const titleFieldId = "work-order-title";
+  const priorityFieldId = "work-order-priority";
+  const descriptionFieldId = "work-order-description";
+
   return (
     <Card>
       <CardContent className="pt-4 space-y-4">
@@ -30,8 +34,9 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
         </h3>
         
         <div className="space-y-2">
-          <Label>Title *</Label>
+          <Label htmlFor={titleFieldId}>Title *</Label>
           <Input
+            id={titleFieldId}
             placeholder={preSelectedEquipment ? 
               `Maintenance for ${preSelectedEquipment.name}` : 
               "Brief description of the work needed"
@@ -45,30 +50,30 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label>Priority *</Label>
+          <Label htmlFor={priorityFieldId}>Priority *</Label>
           <Select 
             value={values.priority} 
             onValueChange={(value) => setValue('priority', value as WorkOrderFormData['priority'])}
           >
-            <SelectTrigger>
+            <SelectTrigger id={priorityFieldId}>
               <SelectValue placeholder="Select priority" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="low">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <div className="w-2 h-2 rounded-full bg-success/100"></div>
                   Low Priority
                 </div>
               </SelectItem>
               <SelectItem value="medium">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                  <div className="w-2 h-2 rounded-full bg-warning/100"></div>
                   Medium Priority
                 </div>
               </SelectItem>
               <SelectItem value="high">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                  <div className="w-2 h-2 rounded-full bg-destructive/100"></div>
                   High Priority
                 </div>
               </SelectItem>
@@ -80,8 +85,9 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label>Description *</Label>
+          <Label htmlFor={descriptionFieldId}>Description *</Label>
           <Textarea
+            id={descriptionFieldId}
             placeholder={preSelectedEquipment ? 
               `Describe the work needed for ${preSelectedEquipment.name}. Include any specific requirements, safety considerations, or special instructions...` :
               "Provide detailed information about the work needed, including any specific requirements, safety considerations, or special instructions..."
@@ -98,6 +104,7 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
     </Card>
   );
 };
+
 
 
 

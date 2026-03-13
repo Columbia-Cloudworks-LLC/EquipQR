@@ -9,6 +9,7 @@ import {
   clearTeamCustomerMapping 
 } from '@/services/quickbooks';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import { quickBooks } from '@/lib/queryKeys';
 import { toast } from 'sonner';
 
 /**
@@ -27,7 +28,7 @@ export function useQuickBooksTeamMapping(
   const featureEnabled = isQuickBooksEnabled();
 
   return useQuery({
-    queryKey: ['quickbooks', 'team-mapping', organizationId, teamId],
+    queryKey: quickBooks.teamMapping(organizationId ?? '', teamId ?? ''),
     queryFn: () => {
       if (!organizationId || !teamId) {
         throw new Error('Organization ID and Team ID are required');
@@ -63,7 +64,7 @@ export function useUpdateQuickBooksTeamMapping() {
     onSuccess: (_, variables) => {
       toast.success('QuickBooks customer mapping updated');
       queryClient.invalidateQueries({ 
-        queryKey: ['quickbooks', 'team-mapping', variables.organizationId, variables.teamId] 
+        queryKey: quickBooks.teamMapping(variables.organizationId, variables.teamId) 
       });
     },
     onError: (error: Error) => {
@@ -91,7 +92,7 @@ export function useClearQuickBooksTeamMapping() {
     onSuccess: (_, variables) => {
       toast.success('QuickBooks customer mapping removed');
       queryClient.invalidateQueries({ 
-        queryKey: ['quickbooks', 'team-mapping', variables.organizationId, variables.teamId] 
+        queryKey: quickBooks.teamMapping(variables.organizationId, variables.teamId) 
       });
     },
     onError: (error: Error) => {

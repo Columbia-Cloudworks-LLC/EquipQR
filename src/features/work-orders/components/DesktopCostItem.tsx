@@ -30,13 +30,13 @@ const DesktopCostItem: React.FC<DesktopCostItemProps> = React.memo(({
   const isFromInventory = !!cost.inventory_item_id;
 
   return (
-    <div className={`flex items-center justify-between p-3 rounded-lg ${isFromInventory ? 'bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800' : 'bg-muted/50'}`}>
+    <div className={`flex items-center justify-between p-3 rounded-lg ${isFromInventory ? 'bg-info/10 dark:bg-info/15 border border-info/30 dark:border-info/40' : 'bg-muted/50'}`}>
       <div className="flex-1 grid grid-cols-4 gap-4 items-center">
         <div className="flex items-center gap-2">
           {isFromInventory && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Package className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                <Package className="h-4 w-4 text-info-foreground0 flex-shrink-0" />
               </TooltipTrigger>
               <TooltipContent>From inventory - removing will restore stock</TooltipContent>
             </Tooltip>
@@ -79,7 +79,7 @@ const DesktopCostItem: React.FC<DesktopCostItemProps> = React.memo(({
             variant="ghost"
             size="sm"
             onClick={() => onRemoveCost(cost.id)}
-            className="text-red-600 hover:text-red-700"
+            className="text-destructive hover:text-destructive"
             disabled={!canRemove}
           >
             <Trash2 className="h-4 w-4" />
@@ -93,3 +93,4 @@ const DesktopCostItem: React.FC<DesktopCostItemProps> = React.memo(({
 DesktopCostItem.displayName = 'DesktopCostItem';
 
 export default DesktopCostItem;
+

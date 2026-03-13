@@ -38,9 +38,9 @@ const MATCH_TYPE_OPTIONS: { value: ModelMatchType; label: string; description: s
 
 // Status options (ordered by lifecycle: new → deprecated → verified as final confirmation)
 const STATUS_OPTIONS: { value: VerificationStatus; label: string; className: string }[] = [
-  { value: 'unverified', label: 'Unverified', className: 'bg-yellow-100 text-yellow-800' },
-  { value: 'deprecated', label: 'Deprecated', className: 'bg-gray-100 text-gray-800' },
-  { value: 'verified', label: 'Verified', className: 'bg-green-100 text-green-800' },
+  { value: 'unverified', label: 'Unverified', className: 'bg-warning/20 text-warning' },
+  { value: 'deprecated', label: 'Deprecated', className: 'bg-muted text-foreground' },
+  { value: 'verified', label: 'Verified', className: 'bg-success/20 text-success' },
 ];
 
 /**
@@ -301,7 +301,7 @@ export const CompatibilityRulesEditor: React.FC<CompatibilityRulesEditorProps> =
                       {matchType === 'any' ? (
                         // Any Model: show confirmation text
                         <div className="flex-1 flex items-center gap-2 text-sm text-muted-foreground px-3 py-2 bg-muted/50 rounded-md">
-                          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                          <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
                           <span>Matches all models from this manufacturer</span>
                         </div>
                       ) : useDropdown ? (
@@ -312,7 +312,7 @@ export const CompatibilityRulesEditor: React.FC<CompatibilityRulesEditorProps> =
                             onValueChange={(value) => handleRuleChange(index, { model: value || null })}
                             disabled={disabled || !rule.manufacturer}
                           >
-                            <SelectTrigger className={`w-full ${!rule.model && rule.manufacturer ? 'border-amber-400' : ''}`}>
+                            <SelectTrigger className={`w-full ${!rule.model && rule.manufacturer ? 'border-warning/50' : ''}`}>
                               <SelectValue placeholder="Select model..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -325,7 +325,7 @@ export const CompatibilityRulesEditor: React.FC<CompatibilityRulesEditorProps> =
                           </Select>
                           {/* Validation hint for Specific Model with no selection */}
                           {!rule.model && rule.manufacturer && (
-                            <p className="text-xs text-amber-600">
+                            <p className="text-xs text-warning">
                               Select a model, or change match type to "Any Model" to match all models
                             </p>
                           )}
@@ -434,7 +434,7 @@ export const CompatibilityRulesEditor: React.FC<CompatibilityRulesEditorProps> =
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>Rules use case-insensitive matching. Duplicate rules are highlighted and will be deduplicated on save.</p>
                 <p className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                  <CheckCircle2 className="h-3 w-3 text-success" />
                   <span>Verified rules are shown first in part lookup results.</span>
                 </p>
               </div>
@@ -445,3 +445,4 @@ export const CompatibilityRulesEditor: React.FC<CompatibilityRulesEditorProps> =
     </Card>
   );
 };
+

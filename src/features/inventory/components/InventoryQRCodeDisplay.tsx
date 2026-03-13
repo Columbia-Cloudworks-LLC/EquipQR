@@ -116,7 +116,7 @@ const InventoryQRCodeDisplay: React.FC<InventoryQRCodeDisplayProps> = ({ open, o
           {/* QR Code Display */}
           <div className="flex justify-center">
             {qrCodeDataUrl ? (
-              <div className={`${isMobile ? 'p-2' : 'p-4'} bg-white rounded-lg border`}>
+              <div className={`${isMobile ? 'p-2' : 'p-4'} bg-background rounded-lg border`}>
                 <img 
                   src={qrCodeDataUrl} 
                   alt="Inventory Item QR Code"
@@ -147,7 +147,7 @@ const InventoryQRCodeDisplay: React.FC<InventoryQRCodeDisplayProps> = ({ open, o
                 aria-label="Copy URL to clipboard"
               >
                 {copied ? (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <CheckCircle className="h-4 w-4 text-success" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}
@@ -218,4 +218,5 @@ const InventoryQRCodeDisplay: React.FC<InventoryQRCodeDisplayProps> = ({ open, o
 };
 
 export default InventoryQRCodeDisplay;
+
 

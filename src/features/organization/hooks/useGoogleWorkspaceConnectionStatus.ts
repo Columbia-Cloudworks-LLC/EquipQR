@@ -5,6 +5,7 @@
 import { useQuery, type QueryObserverResult, type RefetchOptions } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { getGoogleWorkspaceConnectionStatus, type WorkspaceConnectionStatus } from '@/services/google-workspace';
+import { googleWorkspace } from '@/lib/queryKeys';
 
 interface UseGoogleWorkspaceConnectionStatusOptions {
   /** Organization ID to check. Falls back to current organization from context if not provided. */
@@ -38,7 +39,7 @@ export const useGoogleWorkspaceConnectionStatus = (
   const enabledOption = options?.enabled ?? true;
 
   const { data, isLoading, error, refetch } = useQuery<WorkspaceConnectionStatus, Error>({
-    queryKey: ['google-workspace', 'connection', organizationId],
+    queryKey: googleWorkspace.connection(organizationId ?? ''),
     queryFn: () => {
       if (!organizationId) {
         throw new Error('Organization ID is required to check Google Workspace connection status');

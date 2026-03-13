@@ -273,7 +273,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-amber-600" />
+              <Clock className="h-5 w-5 text-warning" />
               Equipment Working Hours Not Updated
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -281,7 +281,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
                 <p>
                   You're about to create a work order without updating the equipment's working hours.
                 </p>
-                <p className="font-medium text-amber-800">
+                <p className="font-medium text-warning">
                   Are you sure you want to start work on this machine without documenting the current hours?
                 </p>
                 <p>
@@ -294,7 +294,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             <AlertDialogCancel onClick={handleCancelSubmit}>
               Go Back & Update Hours
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmSubmit} className="bg-amber-600 hover:bg-amber-700">
+            <AlertDialogAction onClick={handleConfirmSubmit} className="bg-warning hover:bg-warning/90">
               Yes, Create Without Hours
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -305,3 +305,4 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
 };
 
 export default WorkOrderForm;
+

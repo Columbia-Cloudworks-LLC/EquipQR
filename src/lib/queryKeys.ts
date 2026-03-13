@@ -106,6 +106,64 @@ export const pmTemplates = {
   byId: (templateId: string) => ['pm-templates', templateId] as const,
 };
 
+// Inventory keys
+export const inventory = {
+  root: ['inventory'] as const,
+  itemImages: (orgId: string, itemId: string) =>
+    ['inventory-item-images', orgId, itemId] as const,
+  itemAlternates: (orgId: string, itemId: string) =>
+    ['inventory-item-alternates', orgId, itemId] as const,
+};
+
+// QuickBooks keys
+export const quickBooks = {
+  root: ['quickbooks'] as const,
+  connection: (orgId: string) => ['quickbooks', 'connection', orgId] as const,
+  teamMapping: (orgId: string, teamId: string) =>
+    ['quickbooks', 'team-mapping', orgId, teamId] as const,
+};
+
+// Google Workspace keys
+export const googleWorkspace = {
+  root: ['google-workspace'] as const,
+  connection: (orgId: string) => ['google-workspace', 'connection', orgId] as const,
+};
+
+// User organization list keys
+export const organizations = {
+  root: ['organizations'] as const,
+  byUser: (userId: string) => ['organizations', userId] as const,
+};
+
+// Billing-related organization keys
+export const organizationBilling = {
+  slots: (orgId: string) => ['organization-slots', orgId] as const,
+  slotAvailability: (orgId: string) => ['slot-availability', orgId] as const,
+  slotPurchases: (orgId: string) => ['slot-purchases', orgId] as const,
+};
+
+// Work-order equipment keys
+export const workOrderEquipment = {
+  byWorkOrder: (workOrderId: string) => ['work-order-equipment', workOrderId] as const,
+  primary: (workOrderId: string) => ['work-order-equipment', workOrderId, 'primary'] as const,
+  teamEquipment: (teamId: string, workOrderId: string, excludeIds: string[] = []) =>
+    ['team-equipment-for-work-order', teamId, workOrderId, excludeIds] as const,
+  count: (workOrderId: string) => ['work-order-equipment-count', workOrderId] as const,
+};
+
+// Work-order metrics keys
+export const workOrderMetrics = {
+  imageCount: (workOrderId: string) => ['workOrderImageCount', workOrderId] as const,
+  costsSubtotal: (workOrderId: string) => ['work-order-costs-subtotal', workOrderId] as const,
+};
+
+// Equipment working-hours keys
+export const equipmentWorkingHours = {
+  history: (equipmentId: string, page: number = 1, pageSize: number = 10) =>
+    ['equipment-working-hours-history', equipmentId, page, pageSize] as const,
+  current: (equipmentId: string) => ['equipment-current-working-hours', equipmentId] as const,
+};
+
 // Workspace personal org merge keys
 export const workspacePersonalOrgMerge = (userId: string) => ({
   root: ['workspace-personal-org-merge', userId] as const,
@@ -144,6 +202,14 @@ export const queryKeys = {
   preventiveMaintenance,
   notifications,
   pmTemplates,
+  inventory,
+  quickBooks,
+  googleWorkspace,
+  organizations,
+  organizationBilling,
+  workOrderEquipment,
+  workOrderMetrics,
+  equipmentWorkingHours,
   workspacePersonalOrgMerge,
   tickets,
   dashboardPreferences,

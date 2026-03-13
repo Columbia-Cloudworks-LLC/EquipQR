@@ -380,7 +380,7 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
 
           {/* Row Limit Warning */}
           {recordCount > 5000 && (
-            <div className="flex items-center gap-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-700 dark:text-yellow-400">
+            <div className="flex items-center gap-2 rounded-lg border border-warning/200/50 bg-warning/100/10 p-3 text-sm text-warning dark:text-warning">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
               <p>
                 Large dataset detected. Export will be limited to 5,000 work orders.
@@ -445,3 +445,4 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
 };
 
 export default WorkOrderExcelExportDialog;
+

@@ -52,10 +52,10 @@ const PartCard: React.FC<PartCardProps> = ({ part, onClick, isMobile }) => {
           {/* Alternates indicator on image */}
           {part.hasAlternates && (
             <div 
-              className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 rounded-full flex items-center justify-center"
+              className="absolute -top-1 -right-1 h-4 w-4 bg-info/100 rounded-full flex items-center justify-center"
               title="Has alternates"
             >
-              <RefreshCw className="h-2.5 w-2.5 text-white" />
+              <RefreshCw className="h-2.5 w-2.5 text-primary-foreground" />
             </div>
           )}
         </div>
@@ -73,7 +73,7 @@ const PartCard: React.FC<PartCardProps> = ({ part, onClick, isMobile }) => {
                 </h4>
                 {/* Alternates badge - shown on non-mobile for clarity */}
                 {part.hasAlternates && !isMobile && (
-                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 shrink-0">
+                  <Badge variant="outline" className="text-xs bg-info/10 text-info border-info/30 dark:bg-info/20 dark:text-info dark:border-info/40 shrink-0">
                     <RefreshCw className="h-3 w-3 mr-1" />
                     Alternates
                   </Badge>
@@ -93,14 +93,14 @@ const PartCard: React.FC<PartCardProps> = ({ part, onClick, isMobile }) => {
                   Out of Stock
                 </Badge>
               ) : isLowStock ? (
-                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                <Badge variant="secondary" className="text-xs bg-warning/20 text-warning dark:bg-warning/20 dark:text-warning">
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   Low Stock
                 </Badge>
               ) : null}
               <span className={cn(
                 "text-sm font-medium",
-                isOutOfStock ? "text-destructive" : isLowStock ? "text-amber-600 dark:text-amber-400" : "text-foreground"
+                isOutOfStock ? "text-destructive" : isLowStock ? "text-warning dark:text-warning" : "text-foreground"
               )}>
                 {part.quantity_on_hand} in stock
               </span>
@@ -117,7 +117,7 @@ const PartCard: React.FC<PartCardProps> = ({ part, onClick, isMobile }) => {
             )}
             {/* Alternates indicator for mobile */}
             {part.hasAlternates && isMobile && (
-              <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+              <div className="flex items-center gap-1 text-xs text-info dark:text-info">
                 <RefreshCw className="h-3 w-3" />
                 <span>Alternates</span>
               </div>
@@ -283,3 +283,4 @@ const EquipmentPartsTab: React.FC<EquipmentPartsTabProps> = ({
 };
 
 export default EquipmentPartsTab;
+

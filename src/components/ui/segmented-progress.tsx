@@ -17,15 +17,15 @@ interface SegmentedProgressProps {
 const getSegmentColor = (status: SegmentedProgressProps['segments'][0]['status']) => {
   switch (status) {
     case 'ok':
-      return 'bg-green-500'
+      return 'bg-success/100'
     case 'adjusted':
-      return 'bg-yellow-500'
+      return 'bg-warning/100'
     case 'recommend_repairs':
-      return 'bg-orange-500'
+      return 'bg-warning/100'
     case 'requires_immediate_repairs':
-      return 'bg-red-500'
+      return 'bg-destructive/100'
     case 'unsafe_condition':
-      return 'bg-red-700'
+      return 'bg-destructive'
     case 'not_rated':
     default:
       return 'bg-muted'

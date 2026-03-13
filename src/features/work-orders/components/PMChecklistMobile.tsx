@@ -79,26 +79,26 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+        return <CheckCircle className="h-4 w-4 text-success" />;
       case 'in_progress':
-        return <Clock className="h-4 w-4 text-blue-600" />;
+        return <Clock className="h-4 w-4 text-info" />;
       case 'pending':
-        return <Clock className="h-4 w-4 text-gray-600" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-600" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'bg-success/10 text-success border-success/30';
       case 'in_progress':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'bg-info/10 text-info border-info/30';
       case 'pending':
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'bg-muted/60 text-muted-foreground border-border';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'bg-muted/60 text-muted-foreground border-border';
     }
   };
 
@@ -106,15 +106,15 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
     if (condition === null || condition === undefined) return null;
     switch (condition) {
       case 1: // OK
-        return <CheckCircle className="h-3 w-3 text-green-600" />;
+        return <CheckCircle className="h-3 w-3 text-success" />;
       case 2: // Adjusted
-        return <Clock className="h-3 w-3 text-yellow-600" />;
+        return <Clock className="h-3 w-3 text-warning" />;
       case 3: // Recommend Repairs
-        return <AlertTriangle className="h-3 w-3 text-orange-600" />;
+        return <AlertTriangle className="h-3 w-3 text-warning" />;
       case 4: // Requires Immediate Repairs
-        return <AlertTriangle className="h-3 w-3 text-red-600" />;
+        return <AlertTriangle className="h-3 w-3 text-destructive" />;
       case 5: // Unsafe Condition
-        return <AlertTriangle className="h-3 w-3 text-red-600" />;
+        return <AlertTriangle className="h-3 w-3 text-destructive" />;
       default:
         return null;
     }
@@ -159,9 +159,9 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
             <span className="text-muted-foreground">Progress</span>
             <span className="font-medium">{completedItems}/{totalItems} items ({completionPercentage}%)</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-muted/80 rounded-full h-2">
             <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="bg-info h-2 rounded-full transition-all duration-300"
               style={{ width: `${completionPercentage}%` }}
             />
           </div>
@@ -190,7 +190,7 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
                 : 0;
               
               return (
-                <div key={section} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                <div key={section} className="flex items-center justify-between p-2 bg-muted/60 rounded-lg">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{section}</span>
                     <Badge variant="outline" className="text-xs">
@@ -198,9 +198,9 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                    <div className="w-16 bg-muted/80 rounded-full h-1.5">
                       <div 
-                        className="bg-blue-600 h-1.5 rounded-full"
+                        className="bg-info h-1.5 rounded-full"
                         style={{ width: `${sectionPercentage}%` }}
                       />
                     </div>
@@ -223,7 +223,7 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
                 .filter(item => item.condition && item.condition > 1)
                 .slice(0, 3)
                 .map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 text-sm p-2 bg-yellow-50 rounded">
+                  <div key={item.id} className="flex items-center gap-2 text-sm p-2 bg-warning/10 rounded">
                     {getConditionIcon(item.condition)}
                     <span className="flex-1 truncate">{item.description}</span>
                     <Badge variant="outline" className="text-xs">
@@ -257,7 +257,7 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2">
-                <p className="text-sm text-muted-foreground bg-gray-50 p-2 rounded">
+                <p className="text-sm text-muted-foreground bg-muted/60 p-2 rounded">
                   {pm.notes}
                 </p>
               </CollapsibleContent>
@@ -267,9 +267,9 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
 
         {/* Completion Info */}
         {pm.status === 'completed' && pm.completed_at && (
-          <div className="text-sm text-muted-foreground bg-green-50 p-2 rounded">
+          <div className="text-sm text-muted-foreground bg-success/10 p-2 rounded">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-success" />
               <span>Completed on {new Date(pm.completed_at).toLocaleDateString()}</span>
             </div>
           </div>
@@ -295,5 +295,6 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
     </Card>
   );
 };
+
 
 

@@ -201,7 +201,7 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <h3 className="font-semibold">{item.name}</h3>
                             {item.hasAlternates && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                              <Badge variant="outline" className="text-xs bg-info/10 text-info border-info/30 dark:bg-info/20 dark:text-info dark:border-info/40">
                                 <RefreshCw className="h-3 w-3 mr-1" />
                                 Alternates
                               </Badge>
@@ -298,6 +298,7 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
     </Dialog>
   );
 };
+
 
 
 

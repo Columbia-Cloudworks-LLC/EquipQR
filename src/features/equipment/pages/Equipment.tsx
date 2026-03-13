@@ -53,6 +53,7 @@ const Equipment = () => {
   const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
+  const pageSizeSelectId = 'equipment-page-size-select';
 
   // Apply URL parameter filters on initial load
   useEffect(() => {
@@ -108,7 +109,7 @@ const Equipment = () => {
                 <Button 
                   variant="outline"
                   onClick={() => setShowImportCsv(true)}
-                  className="hidden md:inline-flex w-full sm:w-auto"
+                  className="hidden w-full min-h-11 md:inline-flex sm:w-auto"
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Import CSV
@@ -117,7 +118,7 @@ const Equipment = () => {
               {canCreate && (
                 <Button 
                   onClick={handleAddEquipment}
-                  className="w-full sm:w-auto"
+                  className="w-full min-h-11 sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Equipment
@@ -170,7 +171,7 @@ const Equipment = () => {
             </p>
             
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <label className="text-sm text-muted-foreground whitespace-nowrap">Items per page:</label>
+              <label htmlFor={pageSizeSelectId} className="text-sm text-muted-foreground whitespace-nowrap">Items per page:</label>
               <Select
                 value={pageSize.toString()}
                 onValueChange={(value) => {
@@ -178,7 +179,7 @@ const Equipment = () => {
                   setCurrentPage(1); // Reset to first page when page size changes
                 }}
               >
-                <SelectTrigger className="w-full sm:w-[100px]">
+                <SelectTrigger id={pageSizeSelectId} className="w-full min-h-11 sm:w-[100px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -200,7 +201,7 @@ const Equipment = () => {
                   size="sm"
                   onClick={() => setCurrentPage(currentPage - 1)}
                   disabled={currentPage <= 1}
-                  className="flex-1 sm:flex-none h-10"
+                  className="flex-1 h-11 sm:flex-none"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Previous
@@ -213,7 +214,7 @@ const Equipment = () => {
                   size="sm"
                   onClick={() => setCurrentPage(currentPage + 1)}
                   disabled={currentPage >= totalPages}
-                  className="flex-1 sm:flex-none h-10"
+                  className="flex-1 h-11 sm:flex-none"
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-1" />

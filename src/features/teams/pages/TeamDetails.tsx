@@ -183,24 +183,24 @@ const TeamDetails = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h4 className="text-sm font-medium text-muted-foreground">Description</h4>
+            <span className="text-sm font-medium text-muted-foreground">Description</span>
             <p className="text-sm">{team.description || 'No description provided'}</p>
           </div>
           
           {/* Stats grid - responsive: 2 cols on mobile, 3 on tablet, 5 on desktop */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <div className="p-3 rounded-lg bg-muted/30">
-              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Members</h4>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Members</span>
               <p className="text-xl sm:text-2xl font-bold text-primary mt-1">{team.members.length}</p>
             </div>
             <Link 
               to={`/dashboard/equipment?team=${team.id}`}
               className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
             >
-              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1 group-hover:text-primary transition-colors">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1 group-hover:text-primary transition-colors">
                 <Forklift className="h-3 w-3" />
                 Equipment
-              </h4>
+              </span>
               {isLoadingEquipmentStats ? (
                 <Skeleton className="h-7 w-10 mt-1" />
               ) : (
@@ -211,10 +211,10 @@ const TeamDetails = () => {
               to={`/dashboard/work-orders?team=${team.id}`}
               className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
             >
-              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1 group-hover:text-primary transition-colors">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1 group-hover:text-primary transition-colors">
                 <ClipboardList className="h-3 w-3" />
                 Work Orders
-              </h4>
+              </span>
               {isLoadingWorkOrderStats ? (
                 <Skeleton className="h-7 w-10 mt-1" />
               ) : (
@@ -222,13 +222,13 @@ const TeamDetails = () => {
               )}
             </Link>
             <div className="p-3 rounded-lg bg-muted/30">
-              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Created</h4>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Created</span>
               <p className="text-sm text-foreground mt-1">
                 {new Date(team.created_at).toLocaleDateString()}
               </p>
             </div>
             <div className="p-3 rounded-lg bg-muted/30">
-              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</h4>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</span>
               <Badge className="bg-success/20 text-success border-success/30 mt-1">
                 Active
               </Badge>

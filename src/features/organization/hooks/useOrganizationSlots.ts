@@ -4,6 +4,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { organizationBilling } from '@/lib/queryKeys';
 
 export interface OrganizationSlot {
   id: string;
@@ -50,7 +51,7 @@ export interface SlotAvailability {
  */
 export const useOrganizationSlots = (organizationId: string) => {
   return useQuery({
-    queryKey: ['organization-slots', organizationId],
+    queryKey: organizationBilling.slots(organizationId),
     queryFn: async (): Promise<OrganizationSlot[]> => {
       return [];
     },
@@ -64,7 +65,7 @@ export const useOrganizationSlots = (organizationId: string) => {
  */
 export const useSlotAvailability = (organizationId: string) => {
   return useQuery({
-    queryKey: ['slot-availability', organizationId],
+    queryKey: organizationBilling.slotAvailability(organizationId),
     queryFn: async (): Promise<SlotAvailability> => {
       // Billing is disabled - return unlimited slots
       return {
@@ -86,7 +87,7 @@ export const useSlotAvailability = (organizationId: string) => {
  */
 export const useSlotPurchases = (organizationId: string) => {
   return useQuery({
-    queryKey: ['slot-purchases', organizationId],
+    queryKey: organizationBilling.slotPurchases(organizationId),
     queryFn: async (): Promise<SlotPurchase[]> => {
       return [];
     },

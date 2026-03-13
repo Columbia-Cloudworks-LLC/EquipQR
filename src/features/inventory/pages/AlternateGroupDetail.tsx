@@ -231,7 +231,7 @@ const AlternateGroupDetail: React.FC = () => {
           meta={
             <>
               {group.status === 'verified' && (
-                <Badge className="bg-green-600">
+                <Badge className="bg-success">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   Verified
                 </Badge>
@@ -318,7 +318,7 @@ const AlternateGroupDetail: React.FC = () => {
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       {member.is_primary && (
-                        <Star className="h-4 w-4 text-yellow-500 shrink-0" />
+                        <Star className="h-4 w-4 text-warning-foreground0 shrink-0" />
                       )}
                       <div className="min-w-0">
                         <p
@@ -625,3 +625,4 @@ const AlternateGroupDetail: React.FC = () => {
 };
 
 export default AlternateGroupDetail;
+

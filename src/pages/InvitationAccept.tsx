@@ -265,9 +265,9 @@ const InvitationAccept = () => {
             )}
           </div>
 
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h4 className="font-semibold text-blue-900 mb-2">What you'll get access to:</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
+          <div className="bg-info/10 rounded-lg p-4">
+            <h4 className="font-semibold text-info mb-2">What you'll get access to:</h4>
+            <ul className="text-sm text-info space-y-1">
               <li>• Equipment tracking and management</li>
               <li>• Work order creation and tracking</li>
               <li>• Team collaboration tools</li>

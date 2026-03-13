@@ -11,6 +11,7 @@ interface InlineEditFieldProps {
   value: string;
   onSave: (newValue: string) => Promise<void>;
   canEdit: boolean;
+  fieldId?: string;
   type?: 'text' | 'textarea' | 'date' | 'select';
   selectOptions?: { value: string; label: string }[];
   placeholder?: string;
@@ -22,6 +23,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
   value,
   onSave,
   canEdit,
+  fieldId,
   type = 'text',
   selectOptions,
   placeholder,
@@ -125,6 +127,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
     <div className={`flex items-center gap-2 ${className}`}>
       {type === 'textarea' ? (
         <Textarea
+          id={fieldId}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -134,7 +137,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
         />
       ) : type === 'select' && selectOptions ? (
         <Select value={editValue} onValueChange={setEditValue}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger id={fieldId} className="w-full">
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
           <SelectContent>
@@ -147,6 +150,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
         </Select>
       ) : (
         <Input
+          id={fieldId}
           type={type}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}

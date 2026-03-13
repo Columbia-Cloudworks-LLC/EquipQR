@@ -5,6 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getConnectionStatus } from '@/services/quickbooks';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import { quickBooks } from '@/lib/queryKeys';
 
 /**
  * Hook to get the QuickBooks connection status for an organization
@@ -20,7 +21,7 @@ export function useQuickBooksConnection(
   const featureEnabled = isQuickBooksEnabled();
 
   return useQuery({
-    queryKey: ['quickbooks', 'connection', organizationId],
+    queryKey: quickBooks.connection(organizationId ?? ''),
     queryFn: () => {
       if (!organizationId) {
         throw new Error('Organization ID is required');

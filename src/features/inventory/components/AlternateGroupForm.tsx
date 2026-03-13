@@ -150,19 +150,19 @@ export const AlternateGroupForm: React.FC<AlternateGroupFormProps> = ({
           <SelectContent>
             <SelectItem value="unverified">
               <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                <span className="w-2 h-2 rounded-full bg-warning/100" />
                 Unverified
               </span>
             </SelectItem>
             <SelectItem value="verified">
               <span className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <CheckCircle2 className="h-4 w-4 text-success" />
                 Verified
               </span>
             </SelectItem>
             <SelectItem value="deprecated">
               <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-gray-400" />
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/40" />
                 Deprecated
               </span>
             </SelectItem>
@@ -218,3 +218,4 @@ export const AlternateGroupForm: React.FC<AlternateGroupFormProps> = ({
     </form>
   );
 };
+

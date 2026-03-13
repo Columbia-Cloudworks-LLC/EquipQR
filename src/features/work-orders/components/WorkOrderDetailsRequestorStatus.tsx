@@ -22,14 +22,14 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'submitted': return 'bg-blue-100 text-blue-800';
-      case 'accepted': return 'bg-purple-100 text-purple-800';
-      case 'assigned': return 'bg-orange-100 text-orange-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'on_hold': return 'bg-gray-100 text-gray-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'submitted': return 'bg-info/20 text-info';
+      case 'accepted': return 'bg-primary/20 text-primary';
+      case 'assigned': return 'bg-warning/20 text-warning';
+      case 'in_progress': return 'bg-warning/20 text-warning';
+      case 'on_hold': return 'bg-muted text-foreground';
+      case 'completed': return 'bg-success/20 text-success';
+      case 'cancelled': return 'bg-destructive/20 text-destructive';
+      default: return 'bg-muted text-foreground';
     }
   };
 
@@ -103,7 +103,7 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
           )}
 
           {workOrder.completed_date && (
-            <div className="flex items-center gap-2 text-sm text-green-600">
+            <div className="flex items-center gap-2 text-sm text-success">
               <Clock className="h-4 w-4" />
               <span>Completed {new Date(workOrder.completed_date).toLocaleDateString()}</span>
             </div>
@@ -112,13 +112,13 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
 
         {/* Progress Information */}
         {workOrder.status === 'in_progress' && (
-          <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+          <div className="text-sm text-info bg-info/10 p-2 rounded">
             Work is currently in progress
           </div>
         )}
 
         {workOrder.status === 'on_hold' && (
-          <div className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded">
+          <div className="text-sm text-warning bg-warning/10 p-2 rounded">
             Work is temporarily on hold
           </div>
         )}
@@ -160,5 +160,6 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
     </Card>
   );
 };
+
 
 

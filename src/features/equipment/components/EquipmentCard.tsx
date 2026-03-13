@@ -60,10 +60,21 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
     onShowQRCode(equipment.id);
   };
 
+  const handleCardKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleCardClick();
+    }
+  };
+
   return (
-    <Card 
+    <Card
       className={cn("hover:shadow-lg transition-all duration-normal cursor-pointer", statusBorderClass)}
       onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open details for ${equipment.name}`}
     >
       {/* Mobile: compact horizontal list item */}
       <div className="md:hidden overflow-hidden">
@@ -75,6 +86,8 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
                 src={equipment.image_url}
                 alt={display.imageAlt}
                 className="h-full w-full object-cover"
+                loading="lazy"
+                decoding="async"
                 onError={(e) => {
                   e.currentTarget.src = display.imageFallbackSrc;
                 }}
@@ -110,8 +123,9 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 flex-shrink-0"
+                className="h-11 w-11 -mr-1 -mt-1 flex-shrink-0"
                 onClick={handleQRClick}
+                aria-label={`Show QR code for ${equipment.name}`}
               >
                 <QrCode className="h-3.5 w-3.5" />
                 <span className="sr-only">Show QR Code</span>
@@ -148,7 +162,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 flex-shrink-0"
+              className="h-10 w-10 flex-shrink-0"
               onClick={handleQRClick}
               aria-label={`Show QR code for ${equipment.name}`}
             >
@@ -164,6 +178,8 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
                 src={equipment.image_url}
                 alt={display.imageAlt}
                 className="h-full w-full object-cover transition-transform hover:scale-105"
+                loading="lazy"
+                decoding="async"
                 onError={(e) => {
                   e.currentTarget.src = display.imageFallbackSrc;
                 }}

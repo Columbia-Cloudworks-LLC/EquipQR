@@ -16,10 +16,10 @@ export const SessionStatus = () => {
   };
 
   const getStatusIcon = () => {
-    if (error) return <XCircle className="h-4 w-4 text-red-500" />;
-    if (isLoading) return <RefreshCw className="h-4 w-4 animate-spin text-yellow-500" />;
-    if (sessionData) return <CheckCircle className="h-4 w-4 text-green-500" />;
-    return <Database className="h-4 w-4 text-gray-500" />;
+    if (error) return <XCircle className="h-4 w-4 text-destructive-foreground0" />;
+    if (isLoading) return <RefreshCw className="h-4 w-4 animate-spin text-warning-foreground0" />;
+    if (sessionData) return <CheckCircle className="h-4 w-4 text-success-foreground0" />;
+    return <Database className="h-4 w-4 text-muted-foreground0" />;
   };
 
   return (
@@ -74,16 +74,16 @@ export const SessionStatus = () => {
         )}
 
         {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-xs text-red-700">
+          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/30 rounded-md">
+            <p className="text-xs text-destructive">
               {error}
             </p>
           </div>
         )}
 
         {!error && sessionData && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-xs text-green-700">
+          <div className="mt-4 p-3 bg-success/10 border border-success/30 rounded-md">
+            <p className="text-xs text-success">
               Session data loaded successfully. Using cached data for improved performance.
             </p>
           </div>
@@ -92,3 +92,4 @@ export const SessionStatus = () => {
     </Card>
   );
 };
+

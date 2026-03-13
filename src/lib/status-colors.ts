@@ -85,17 +85,17 @@ export const getStatusBadgeClass = (status: string): string => {
   
   switch (statusLower) {
     case 'open':
-      return 'bg-status-open text-white';
+      return 'bg-status-open text-primary-foreground';
     case 'assigned':
-      return 'bg-status-assigned text-white';
+      return 'bg-status-assigned text-primary-foreground';
     case 'in_progress':
     case 'in-progress':
       return 'bg-status-in-progress text-foreground';
     case 'completed':
-      return 'bg-status-completed text-white';
+      return 'bg-status-completed text-primary-foreground';
     case 'cancelled':
     case 'canceled':
-      return 'bg-status-cancelled text-white';
+      return 'bg-status-cancelled text-primary-foreground';
     default:
       return 'bg-muted text-muted-foreground';
   }
@@ -119,3 +119,4 @@ export const getPriorityBadgeClass = (priority: string): string => {
       return 'bg-muted text-muted-foreground';
   }
 };
+

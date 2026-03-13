@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Package, History, Link2, Plus, Minus, QrCode, Search, Check, X, Settings2, CheckCircle2, AlertCircle, RefreshCw, Layers, Cpu, LinkIcon } from 'lucide-react';
+import { ArrowLeft, Package, History, Link2, Plus, Minus, QrCode, Search, Check, X, Settings2, CheckCircle2, AlertCircle, RefreshCw, Layers, Cpu, LinkIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useInventoryItem, useInventoryTransactions, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useBulkLinkEquipmentToItem, useCompatibilityRulesForItem, useBulkSetCompatibilityRules, useEquipmentMatchingItemRules } from '@/features/inventory/hooks/useInventory';
@@ -29,17 +29,17 @@ import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { InventoryItemForm } from '@/features/inventory/components/InventoryItemForm';
 import InventoryQRCodeDisplay from '@/features/inventory/components/InventoryQRCodeDisplay';
-import InlineEditField from '@/features/equipment/components/InlineEditField';
-import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { HistoryTab } from '@/components/audit';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
-import type { PartAlternateGroup, InventoryItemImage } from '@/features/inventory/types/inventory';
+import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
 import { getInventoryItemImages, uploadInventoryItemImages, deleteInventoryItemImage } from '@/features/inventory/services/inventoryService';
-import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
 import { useAppToast } from '@/hooks/useAppToast';
+import { inventory as inventoryQueryKeys } from '@/lib/queryKeys';
+import InventoryItemOverviewTab from '@/features/inventory/pages/components/InventoryItemOverviewTab';
+import InventoryItemTransactionsTab from '@/features/inventory/pages/components/InventoryItemTransactionsTab';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -84,7 +84,7 @@ const InventoryItemDetail = () => {
   
   // Fetch uploaded images for this item
   const { data: itemImages = [], refetch: refetchImages } = useQuery({
-    queryKey: ['inventory-item-images', currentOrganization?.id, itemId],
+    queryKey: inventoryQueryKeys.itemImages(currentOrganization?.id ?? '', itemId ?? ''),
     queryFn: () => getInventoryItemImages(itemId!, currentOrganization!.id),
     enabled: !!itemId && !!currentOrganization?.id,
   });
@@ -116,7 +116,7 @@ const InventoryItemDetail = () => {
   
   // Query for alternate parts (part-number based interchangeability)
   const { data: alternates = [], isLoading: alternatesLoading, refetch: refetchAlternates } = useQuery({
-    queryKey: ['inventory-item-alternates', currentOrganization?.id, itemId],
+    queryKey: inventoryQueryKeys.itemAlternates(currentOrganization?.id ?? '', itemId ?? ''),
     queryFn: () => getAlternatesForInventoryItem(currentOrganization!.id, itemId!),
     enabled: !!currentOrganization?.id && !!itemId
   });
@@ -425,243 +425,31 @@ const InventoryItemDetail = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Basic Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Name</Label>
-                    <div className="mt-1">
-                      <InlineEditField
-                        value={item.name || ''}
-                        onSave={(value) => handleFieldUpdate('name', value)}
-                        canEdit={canEdit}
-                        placeholder="Enter item name"
-                        className="text-base"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Description</Label>
-                    <div className="mt-1">
-                      <InlineEditField
-                        value={item.description || ''}
-                        onSave={(value) => handleFieldUpdate('description', value)}
-                        canEdit={canEdit}
-                        type="textarea"
-                        placeholder="Enter description"
-                        className="text-base"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">SKU</Label>
-                    <div className="mt-1">
-                      <InlineEditField
-                        value={item.sku || ''}
-                        onSave={(value) => handleFieldUpdate('sku', value)}
-                        canEdit={canEdit}
-                        placeholder="Enter SKU"
-                        className="text-base font-mono"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">External ID</Label>
-                    <div className="mt-1">
-                      <InlineEditField
-                        value={item.external_id || ''}
-                        onSave={(value) => handleFieldUpdate('external_id', value)}
-                        canEdit={canEdit}
-                        placeholder="Enter external ID"
-                        className="text-base font-mono"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                    <div className="mt-1">
-                      <InlineEditField
-                        value={item.location || ''}
-                        onSave={(value) => handleFieldUpdate('location', value)}
-                        canEdit={canEdit}
-                        placeholder="Enter location"
-                        className="text-base"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Stock Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label className="text-muted-foreground">Quantity on Hand</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-2xl font-bold">{item.quantity_on_hand}</p>
-                      {item.isLowStock && (
-                        <Badge variant="destructive">Low Stock</Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Low Stock Threshold</Label>
-                    <p className="font-medium">{item.low_stock_threshold}</p>
-                  </div>
-                  {item.default_unit_cost && (
-                    <div>
-                      <Label className="text-muted-foreground">Default Unit Cost</Label>
-                      <p className="font-medium">${Number(item.default_unit_cost).toFixed(2)}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Item Images Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Images</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Display existing uploaded images */}
-                {itemImages.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {itemImages.map((img: InventoryItemImage) => (
-                      <div key={img.id} className="relative group">
-                        <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                          <img
-                            src={img.file_url}
-                            alt={img.file_name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        {canEdit && (
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            aria-label={`Remove image ${img.file_name}`}
-                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={async () => {
-                              try {
-                                await deleteInventoryItemImage(img.id, img.file_url, currentOrganization!.id);
-                                appToast.success({ description: 'Image removed' });
-                                refetchImages();
-                              } catch (error) {
-                                appToast.error({ description: error instanceof Error ? error.message : 'Failed to remove image' });
-                              }
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1 truncate">{img.file_name}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Legacy image_url display (backward compatibility) */}
-                {item.image_url && itemImages.length === 0 && (
-                  <div>
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="max-w-full h-auto rounded-md"
-                    />
-                    <p className="text-xs text-muted-foreground mt-2">Legacy image (URL-based)</p>
-                  </div>
-                )}
-
-                {/* Upload new images */}
-                {canEdit && itemImages.length < 5 && (
-                  <ImageUploadWithNote
-                    onUpload={async (files) => {
-                      if (!currentOrganization?.id || !itemId) return;
-                      await uploadInventoryItemImages(itemId, currentOrganization.id, files);
-                      refetchImages();
-                    }}
-                    maxFiles={5 - itemImages.length}
-                    disabled={false}
-                  />
-                )}
-
-                {/* No images and not editable */}
-                {!canEdit && itemImages.length === 0 && !item.image_url && (
-                  <p className="text-sm text-muted-foreground">No images uploaded</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Delete Section */}
-            {canEdit && (
-              <Card className="border-destructive">
-                <CardHeader>
-                  <CardTitle className="text-destructive">Delete Item</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Once you delete an inventory item, there is no going back. This action cannot be undone.
-                  </p>
-                  <Button
-                    variant="destructive"
-                    onClick={() => setShowDeleteConfirmation(true)}
-                    className="w-full sm:w-auto"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Inventory Item
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            <InventoryItemOverviewTab
+              item={item}
+              canEdit={canEdit}
+              itemImages={itemImages}
+              onFieldUpdate={handleFieldUpdate}
+              onDeleteImage={async (img) => {
+                try {
+                  await deleteInventoryItemImage(img.id, img.file_url, currentOrganization.id);
+                  appToast.success({ description: 'Image removed' });
+                  refetchImages();
+                } catch (error) {
+                  appToast.error({ description: error instanceof Error ? error.message : 'Failed to remove image' });
+                }
+              }}
+              onUploadImages={async (files) => {
+                if (!itemId) return;
+                await uploadInventoryItemImages(itemId, currentOrganization.id, files);
+                refetchImages();
+              }}
+              onDeleteItemRequest={() => setShowDeleteConfirmation(true)}
+            />
           </TabsContent>
 
           <TabsContent value="transactions" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {transactions.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No transactions yet</p>
-                ) : (
-                  <div className="space-y-4">
-                    {transactions.map((transaction) => (
-                      <div
-                        key={transaction.id}
-                        className="flex items-start justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge variant="outline">{transaction.transaction_type}</Badge>
-                            <span className="font-medium">
-                              {transaction.change_amount > 0 ? '+' : ''}
-                              {transaction.change_amount}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {transaction.previous_quantity} → {transaction.new_quantity}
-                          </p>
-                          {transaction.notes && (
-                            <p className="text-sm mt-1">{transaction.notes}</p>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {transaction.userName || 'Unknown'} •{' '}
-                            {format(new Date(transaction.created_at), 'PPp')}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <InventoryItemTransactionsTab transactions={transactions} />
           </TabsContent>
 
           <TabsContent value="compatibility" className="space-y-4">
@@ -746,7 +534,7 @@ const InventoryItemDetail = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             {status === 'verified' && (
-                              <Badge className="bg-green-600 text-xs">
+                              <Badge className="bg-success text-xs">
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
                                 Verified
                               </Badge>
@@ -815,7 +603,7 @@ const InventoryItemDetail = () => {
                               {equipment.matched_rule_match_type}
                             </Badge>
                             {equipment.matched_rule_status === 'verified' && (
-                              <Badge className="bg-green-600 text-xs">
+                              <Badge className="bg-success text-xs">
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
                                 Verified
                               </Badge>
@@ -990,7 +778,7 @@ const InventoryItemDetail = () => {
                               <div className="flex items-center gap-2">
                                 <h4 className="font-medium">{groupName}</h4>
                                 {groupVerified && (
-                                  <Badge className="bg-green-600 text-xs">
+                                  <Badge className="bg-success text-xs">
                                     <CheckCircle2 className="h-3 w-3 mr-1" />
                                     Verified
                                   </Badge>
@@ -1002,7 +790,7 @@ const InventoryItemDetail = () => {
                             </div>
                             <div className="text-right text-sm text-muted-foreground">
                               <div>{inventoryParts.length} in inventory</div>
-                              <div className={inStockParts.length > 0 ? 'text-green-600 font-medium' : ''}>
+                              <div className={inStockParts.length > 0 ? 'text-success font-medium' : ''}>
                                 {inStockParts.length} in stock
                               </div>
                             </div>
@@ -1070,7 +858,7 @@ const InventoryItemDetail = () => {
                                         part.is_low_stock 
                                           ? 'text-destructive' 
                                           : part.is_in_stock 
-                                            ? 'text-green-600' 
+                                            ? 'text-success' 
                                             : 'text-muted-foreground'
                                       }`}>
                                         {part.quantity_on_hand}
@@ -1579,7 +1367,7 @@ const InventoryItemDetail = () => {
                       <div className="flex items-center gap-2">
                         <p className="font-medium">{group.name}</p>
                         {group.status === 'verified' && (
-                          <Badge className="bg-green-600 text-xs">
+                          <Badge className="bg-success text-xs">
                             <CheckCircle2 className="h-3 w-3 mr-1" />
                             Verified
                           </Badge>
@@ -1622,4 +1410,5 @@ const InventoryItemDetail = () => {
 };
 
 export default InventoryItemDetail;
+
 

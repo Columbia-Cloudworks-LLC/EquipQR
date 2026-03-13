@@ -24,6 +24,7 @@ import {
 import type { EquipmentLocation } from './MapView';
 
 // ── Source colors (must match MapView) ────────────────────────
+// Hex used for badge pills; kept in sync with MapView marker colors. Semantic: info, primary, success, warning.
 
 const SOURCE_BADGE: Record<string, { bg: string; label: string }> = {
   team:      { bg: '#3B82F6', label: 'Team' },
@@ -129,6 +130,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${coveragePct}%`,
+                  // Hex required for inline style; semantic equivalents: success, warning, destructive
                   backgroundColor: coveragePct >= 80 ? '#16A34A' : coveragePct >= 40 ? '#F59E0B' : '#EF4444',
                 }}
               />
@@ -193,7 +195,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                           </p>
                         </div>
                         <span
-                          className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium text-white flex-shrink-0"
+                          className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium text-primary-foreground flex-shrink-0"
                           style={{ backgroundColor: badge.bg }}
                         >
                           {badge.label}
@@ -258,3 +260,4 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 };
 
 export default EquipmentPanel;
+

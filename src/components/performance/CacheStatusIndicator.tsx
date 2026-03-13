@@ -71,9 +71,9 @@ export const CacheStatusIndicator = () => {
           </CardTitle>
           <div className="flex items-center gap-2">
             {syncStatus?.isOnline ? (
-              <Wifi className="h-4 w-4 text-green-600" />
+              <Wifi className="h-4 w-4 text-success" />
             ) : (
-              <WifiOff className="h-4 w-4 text-red-600" />
+              <WifiOff className="h-4 w-4 text-destructive" />
             )}
             <Badge variant={getStatusColor()}>
               {syncStatus?.isOnline ? 'Online' : 'Offline'}
@@ -92,7 +92,7 @@ export const CacheStatusIndicator = () => {
             <div className="text-xs text-muted-foreground">Total Queries</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-success">
               {cacheStats?.activeQueries ?? 0}
             </div>
             <div className="text-xs text-muted-foreground">Active</div>
@@ -102,7 +102,7 @@ export const CacheStatusIndicator = () => {
         {/* Sync Status */}
         {(syncStatus?.queuedItems ?? 0) > 0 && (
           <div className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg">
-            <Clock className="h-4 w-4 text-orange-600" />
+            <Clock className="h-4 w-4 text-warning" />
             <span className="text-sm">
               {syncStatus?.queuedItems} items queued for sync
             </span>

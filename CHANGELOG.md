@@ -7,6 +7,12 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.8] - 2026-03-12
+
+### Changed
+
+- Rolled up the current set of in-progress repository updates into the 2.3.8 release version so package metadata and project documentation stay aligned for the next release cycle.
+
 ## [2.3.7] - 2026-03-06
 
 ### Fixed

@@ -51,7 +51,7 @@ const ChartContainer = React.forwardRef<
         data-chart={chartId}
         ref={ref}
         className={cn(
-          "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
+          "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_*]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_*]:stroke-border [&_.recharts-sector]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
           className
         )}
         {...props}
@@ -68,13 +68,18 @@ ChartContainer.displayName = "Chart"
 
 // Validate and sanitize color values to prevent XSS
 const sanitizeColor = (color: string): string => {
-  // Only allow hex colors, rgb/rgba values, and CSS color names
-  const colorRegex = /^(#[0-9a-fA-F]{3,6}|rgb\([\d\s,]+\)|rgba\([\d\s,.]+\)|[a-zA-Z]+)$/;
-  if (!colorRegex.test(color)) {
+  const trimmedColor = color.trim();
+
+  // Prevent declaration/context breakouts in generated CSS custom properties.
+  const hasUnsafeCharacters = /[;{}<>`]/.test(trimmedColor);
+  const isUrlValue = /^url\(/i.test(trimmedColor);
+  if (hasUnsafeCharacters || isUrlValue) {
     logger.warn(`Invalid color value detected: ${color}. Using fallback.`)
-    return '#000000'; // Safe fallback color
+    return 'hsl(var(--foreground))'; // Safe fallback color
   }
-  return color;
+
+  // Allow token-based and standard CSS color functions/keywords.
+  return trimmedColor;
 };
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {

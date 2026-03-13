@@ -7,7 +7,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,transparent,black)] dark:bg-grid-slate-800"></div>
+      <div className="absolute inset-0 bg-grid-muted bg-[length:24px_24px] [mask-image:linear-gradient(0deg,transparent,black)]"></div>
       
       <div className="container relative z-10 px-4 mx-auto">
         <div className="text-center max-w-4xl mx-auto">
@@ -28,7 +28,7 @@ const HeroSection = () => {
           
           {/* Dashboard Screenshot */}
           <div className="mb-10 flex justify-center">
-            <div className="w-full max-w-5xl rounded-xl border border-white/10 bg-background/50 backdrop-blur-sm shadow-2xl shadow-primary/10 overflow-hidden">
+            <div className="w-full max-w-5xl rounded-xl border border-background/10 bg-background/50 backdrop-blur-sm shadow-2xl shadow-primary/10 overflow-hidden">
               <img 
                 src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/equipqr-banner-image.jpg"
                 alt="EquipQR Dashboard - Equipment tracking and management platform"
@@ -61,7 +61,7 @@ const HeroSection = () => {
           
           {/* Trust Signal - Pill Badge */}
           <div className="flex justify-center mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 text-sm text-muted-foreground">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background/5 backdrop-blur-sm border border-background/10 text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Field-tested solution</span>
               <span>•</span>
               <span>

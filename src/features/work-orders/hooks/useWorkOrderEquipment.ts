@@ -15,13 +15,14 @@ import type {
   RemoveEquipmentFromWorkOrderParams,
   SetPrimaryEquipmentParams,
 } from '@/features/work-orders/types/workOrderEquipment';
+import { workOrderEquipment, workOrders } from '@/lib/queryKeys';
 
 /**
  * Hook to fetch all equipment linked to a work order
  */
 export const useWorkOrderEquipment = (workOrderId: string) => {
   return useQuery({
-    queryKey: ['work-order-equipment', workOrderId],
+    queryKey: workOrderEquipment.byWorkOrder(workOrderId),
     queryFn: () => getWorkOrderEquipment(workOrderId),
     enabled: !!workOrderId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -33,7 +34,7 @@ export const useWorkOrderEquipment = (workOrderId: string) => {
  */
 export const usePrimaryEquipment = (workOrderId: string) => {
   return useQuery({
-    queryKey: ['work-order-equipment', workOrderId, 'primary'],
+    queryKey: workOrderEquipment.primary(workOrderId),
     queryFn: () => getPrimaryEquipment(workOrderId),
     enabled: !!workOrderId,
     staleTime: 5 * 60 * 1000,
@@ -49,7 +50,7 @@ export const useTeamEquipmentForWorkOrder = (
   excludeIds: string[] = []
 ) => {
   return useQuery({
-    queryKey: ['team-equipment-for-work-order', teamId, workOrderId, excludeIds],
+    queryKey: workOrderEquipment.teamEquipment(teamId ?? '', workOrderId, excludeIds),
     queryFn: () => getTeamEquipmentForWorkOrder(workOrderId, teamId!, excludeIds),
     enabled: !!teamId && !!workOrderId,
     staleTime: 2 * 60 * 1000, // 2 minutes (shorter for selection UI)
@@ -61,7 +62,7 @@ export const useTeamEquipmentForWorkOrder = (
  */
 export const useWorkOrderEquipmentCount = (workOrderId: string) => {
   return useQuery({
-    queryKey: ['work-order-equipment-count', workOrderId],
+    queryKey: workOrderEquipment.count(workOrderId),
     queryFn: () => getWorkOrderEquipmentCount(workOrderId),
     enabled: !!workOrderId,
     staleTime: 5 * 60 * 1000,
@@ -79,13 +80,13 @@ export const useAddEquipmentToWorkOrder = () => {
     onSuccess: (_, variables) => {
       // Invalidate work order equipment queries
       queryClient.invalidateQueries({
-        queryKey: ['work-order-equipment', variables.workOrderId],
+        queryKey: workOrderEquipment.byWorkOrder(variables.workOrderId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['work-order-equipment-count', variables.workOrderId],
+        queryKey: workOrderEquipment.count(variables.workOrderId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['work-orders'],
+        queryKey: workOrders.root,
       });
 
       toast.success('Equipment added to work order');
@@ -108,13 +109,13 @@ export const useRemoveEquipmentFromWorkOrder = () => {
       removeEquipmentFromWorkOrder(params),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['work-order-equipment', variables.workOrderId],
+        queryKey: workOrderEquipment.byWorkOrder(variables.workOrderId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['work-order-equipment-count', variables.workOrderId],
+        queryKey: workOrderEquipment.count(variables.workOrderId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['work-orders'],
+        queryKey: workOrders.root,
       });
 
       toast.success('Equipment removed from work order');
@@ -136,10 +137,10 @@ export const useSetPrimaryEquipment = () => {
     mutationFn: (params: SetPrimaryEquipmentParams) => setPrimaryEquipment(params),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['work-order-equipment', variables.workOrderId],
+        queryKey: workOrderEquipment.byWorkOrder(variables.workOrderId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['work-orders'],
+        queryKey: workOrders.root,
       });
 
       toast.success('Primary equipment updated');

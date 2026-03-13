@@ -154,11 +154,11 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   const getStatusIcon = (status: UnifiedMember['status']) => {
     switch (status) {
       case 'active':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-success-foreground0" />;
       case 'pending_invite':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="h-4 w-4 text-warning-foreground0" />;
       case 'pending_gws':
-        return <CloudCog className="h-4 w-4 text-blue-500" />;
+        return <CloudCog className="h-4 w-4 text-info-foreground0" />;
     }
   };
 
@@ -518,3 +518,4 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
 };
 
 export default UnifiedMembersList;
+

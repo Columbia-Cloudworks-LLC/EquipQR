@@ -33,11 +33,11 @@ export const CSVSuccessStep: React.FC<CSVSuccessStepProps> = ({
     <div className="space-y-6">
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <CheckCircle className="w-16 h-16 text-green-500" />
+          <CheckCircle className="w-16 h-16 text-success-foreground0" />
         </div>
         
         <div>
-          <h3 className="text-xl font-semibold text-green-700">Import Complete!</h3>
+          <h3 className="text-xl font-semibold text-success">Import Complete!</h3>
           <p className="text-sm text-muted-foreground mt-1">
             Equipment has been successfully imported to {organizationName}
           </p>
@@ -47,14 +47,14 @@ export const CSVSuccessStep: React.FC<CSVSuccessStepProps> = ({
       <div className="bg-muted rounded-lg p-4 space-y-3">
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="font-medium text-green-600">Successfully processed:</span>
-            <div className="text-lg font-bold text-green-700">{successCount}</div>
+            <span className="font-medium text-success">Successfully processed:</span>
+            <div className="text-lg font-bold text-success">{successCount}</div>
           </div>
           
           {hasErrors && (
             <div>
-              <span className="font-medium text-red-600">Failed:</span>
-              <div className="text-lg font-bold text-red-700">{importProgress.errors.length}</div>
+              <span className="font-medium text-destructive">Failed:</span>
+              <div className="text-lg font-bold text-destructive">{importProgress.errors.length}</div>
             </div>
           )}
         </div>
@@ -66,11 +66,11 @@ export const CSVSuccessStep: React.FC<CSVSuccessStepProps> = ({
       </div>
 
       {hasErrors && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h4 className="font-medium text-red-800 mb-2">Some items failed to import</h4>
-              <p className="text-sm text-red-700">
+              <h4 className="font-medium text-destructive mb-2">Some items failed to import</h4>
+              <p className="text-sm text-destructive">
                 {importProgress.errors.length} items couldn't be processed. Download the error report to see details.
               </p>
             </div>
@@ -96,3 +96,4 @@ export const CSVSuccessStep: React.FC<CSVSuccessStepProps> = ({
     </div>
   );
 };
+

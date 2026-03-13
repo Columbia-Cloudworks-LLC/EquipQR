@@ -176,6 +176,7 @@ const PartLookup: React.FC = () => {
                       value={partNumber}
                       onChange={(e) => setPartNumber(e.target.value)}
                       className="pl-9"
+                      aria-label="Search by part number"
                     />
                   </div>
                   <Button 
@@ -183,6 +184,7 @@ const PartLookup: React.FC = () => {
                     size="icon"
                     onClick={() => refetchAlternates()}
                     disabled={isLoadingAlternates}
+                    aria-label="Refresh part number results"
                   >
                     <RefreshCw className={`h-4 w-4 ${isLoadingAlternates ? 'animate-spin' : ''}`} />
                   </Button>
@@ -245,7 +247,7 @@ const PartLookup: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1">
                     <Select value={manufacturer} onValueChange={handleManufacturerChange}>
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="Select equipment manufacturer">
                         <SelectValue placeholder="Select manufacturer..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -263,7 +265,7 @@ const PartLookup: React.FC = () => {
                       onValueChange={(v) => setModel(v === ANY_MODEL_VALUE ? '' : v)}
                       disabled={!manufacturer}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="Select equipment model">
                         <SelectValue placeholder={manufacturer ? "Select model (optional)..." : "Select manufacturer first..."} />
                       </SelectTrigger>
                       <SelectContent>
@@ -283,6 +285,7 @@ const PartLookup: React.FC = () => {
                     size="icon"
                     onClick={() => refetchCompatible()}
                     disabled={isLoadingCompatible}
+                    aria-label="Refresh make and model results"
                   >
                     <RefreshCw className={`h-4 w-4 ${isLoadingCompatible ? 'animate-spin' : ''}`} />
                   </Button>
@@ -377,7 +380,7 @@ const AlternateGroupCard: React.FC<AlternateGroupCardProps> = ({
             <CardTitle className="text-lg flex items-center gap-2">
               {groupName}
               {groupVerified && (
-                <Badge variant="default" className="bg-green-600">
+                <Badge variant="default" className="bg-success">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   Verified
                 </Badge>
@@ -389,7 +392,7 @@ const AlternateGroupCard: React.FC<AlternateGroupCardProps> = ({
           </div>
           <div className="text-right text-sm text-muted-foreground">
             <div>{inventoryParts.length} in inventory</div>
-            <div className={inStockParts.length > 0 ? 'text-green-600 font-medium' : ''}>
+            <div className={inStockParts.length > 0 ? 'text-success font-medium' : ''}>
               {inStockParts.length} in stock
             </div>
           </div>
@@ -406,6 +409,16 @@ const AlternateGroupCard: React.FC<AlternateGroupCardProps> = ({
                   : 'border-border hover:bg-muted/50'
               } ${part.inventory_item_id ? 'cursor-pointer' : ''}`}
               onClick={() => part.inventory_item_id && onViewItem(part.inventory_item_id)}
+              onKeyDown={(e) => {
+                if (!part.inventory_item_id) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onViewItem(part.inventory_item_id);
+                }
+              }}
+              role={part.inventory_item_id ? 'button' : undefined}
+              tabIndex={part.inventory_item_id ? 0 : undefined}
+              aria-label={part.inventory_item_id ? `Open inventory item ${part.inventory_name ?? part.identifier_value}` : undefined}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -466,7 +479,7 @@ const AlternateGroupCard: React.FC<AlternateGroupCardProps> = ({
                         part.is_low_stock 
                           ? 'text-destructive' 
                           : part.is_in_stock 
-                            ? 'text-green-600' 
+                            ? 'text-success' 
                             : 'text-muted-foreground'
                       }`}>
                         {part.quantity_on_hand} in stock
@@ -500,13 +513,22 @@ const CompatiblePartRow: React.FC<CompatiblePartRowProps> = ({ part, onViewItem 
     <div
       className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer"
       onClick={() => onViewItem(part.inventory_item_id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onViewItem(part.inventory_item_id);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open inventory item ${part.name}`}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium">{part.name}</span>
           
           {part.is_verified && (
-            <Badge variant="default" className="bg-green-600 text-xs">
+            <Badge variant="default" className="bg-success text-xs">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               Verified
             </Badge>
@@ -542,7 +564,7 @@ const CompatiblePartRow: React.FC<CompatiblePartRowProps> = ({ part, onViewItem 
             part.quantity_on_hand <= part.low_stock_threshold 
               ? 'text-destructive' 
               : part.is_in_stock 
-                ? 'text-green-600' 
+                ? 'text-success' 
                 : 'text-muted-foreground'
           }`}>
             {part.quantity_on_hand} in stock
@@ -561,3 +583,4 @@ const CompatiblePartRow: React.FC<CompatiblePartRowProps> = ({ part, onViewItem 
 };
 
 export default PartLookup;
+

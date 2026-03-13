@@ -204,7 +204,7 @@ export const QuickBooksIntegration = ({
           <>
             {/* Connected State */}
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <Badge variant="outline" className="bg-success/10 text-success border-success/30">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Connected
               </Badge>
@@ -331,4 +331,5 @@ export const QuickBooksIntegration = ({
 };
 
 export default QuickBooksIntegration;
+
 

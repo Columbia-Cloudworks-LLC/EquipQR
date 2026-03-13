@@ -39,7 +39,7 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
         type: 'user',
         name: assigneeName,
         icon: User,
-        color: 'bg-blue-100 text-blue-800 border-blue-200'
+        color: 'bg-info/20 text-info border-info/30'
       };
     }
     
@@ -47,7 +47,7 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
       type: 'unassigned',
       name: 'Unassigned',
       icon: UserMinus,
-      color: 'bg-gray-100 text-gray-800 border-gray-200'
+      color: 'bg-muted text-foreground border-border'
     };
   };
 
@@ -135,3 +135,4 @@ const WorkOrderAssigneeDisplay: React.FC<WorkOrderAssigneeDisplayProps> = ({
 };
 
 export default WorkOrderAssigneeDisplay;
+

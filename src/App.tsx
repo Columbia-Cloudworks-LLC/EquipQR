@@ -12,6 +12,7 @@ import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 import { OfflineQueueProvider } from '@/contexts/OfflineQueueContext';
 import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
 import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 // Critical components loaded eagerly to prevent loading issues for unauthenticated users
 import Auth from '@/pages/Auth';
@@ -106,6 +107,7 @@ function App() {
       >
         Skip to main content
       </a>
+      <ErrorBoundary>
       <Routes>
         {/* Public routes - no suspense needed, loaded eagerly */}
         <Route path="/" element={<SmartLanding />} />
@@ -251,6 +253,7 @@ function App() {
             }
           />
         </Routes>
+      </ErrorBoundary>
     </AppProviders>
   );
 }

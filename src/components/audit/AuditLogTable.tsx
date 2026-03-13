@@ -103,12 +103,17 @@ function FilterBar({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-4">
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+        <div className="relative min-w-[220px] flex-1 md:max-w-[360px]">
+          <label htmlFor="audit-log-search" className="sr-only">
+            Search audit entries
+          </label>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            id="audit-log-search"
             placeholder="Search by name or user..."
             value={filters.search || ''}
             onChange={(e) => onFilterChange({ ...filters, search: e.target.value })}
+            aria-label="Search audit entries by entity name or user"
             className="pl-9"
           />
         </div>
@@ -123,7 +128,7 @@ function FilterBar({
             })
           }
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter audit log by entity type">
             <SelectValue placeholder="Entity Type" />
           </SelectTrigger>
           <SelectContent>
@@ -146,7 +151,7 @@ function FilterBar({
             })
           }
         >
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter audit log by action">
             <SelectValue placeholder="Action" />
           </SelectTrigger>
           <SelectContent>
@@ -160,21 +165,31 @@ function FilterBar({
         </Select>
         
         {/* Date From */}
+        <label htmlFor="audit-log-date-from" className="sr-only">
+          Filter from date
+        </label>
         <Input
+          id="audit-log-date-from"
           type="date"
           placeholder="From"
           value={filters.dateFrom || ''}
           onChange={(e) => onFilterChange({ ...filters, dateFrom: e.target.value })}
-          className="w-[150px]"
+          aria-label="Filter from date"
+          className="w-full sm:w-[170px]"
         />
         
         {/* Date To */}
+        <label htmlFor="audit-log-date-to" className="sr-only">
+          Filter to date
+        </label>
         <Input
+          id="audit-log-date-to"
           type="date"
           placeholder="To"
           value={filters.dateTo || ''}
           onChange={(e) => onFilterChange({ ...filters, dateTo: e.target.value })}
-          className="w-[150px]"
+          aria-label="Filter to date"
+          className="w-full sm:w-[170px]"
         />
         
         {/* Actions */}
@@ -227,26 +242,28 @@ function AuditTableRow({ entry }: { entry: FormattedAuditEntry }) {
           <TableCell>
             <Badge variant="outline">{entry.entityTypeLabel}</Badge>
           </TableCell>
-          <TableCell>
-            <span className="font-medium">{entry.entity_name || 'Unknown'}</span>
+          <TableCell className="max-w-[220px]">
+            <span className="block truncate font-medium" title={entry.entity_name || 'Unknown'}>
+              {entry.entity_name || 'Unknown'}
+            </span>
           </TableCell>
           <TableCell>
             <Badge variant={getActionBadgeVariant(entry.action)}>
               {entry.actionLabel}
             </Badge>
           </TableCell>
-          <TableCell>
-            <div className="flex flex-col">
-              <span>{entry.actor_name}</span>
+          <TableCell className="max-w-[180px]">
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate" title={entry.actor_name}>{entry.actor_name}</span>
               {entry.actor_email && (
-                <span className="text-xs text-muted-foreground">
+                <span className="truncate text-xs text-muted-foreground" title={entry.actor_email}>
                   {entry.actor_email}
                 </span>
               )}
             </div>
           </TableCell>
-          <TableCell>
-            <span className="text-sm text-muted-foreground">
+          <TableCell className="max-w-[260px]">
+            <span className="block truncate text-sm text-muted-foreground">
               <ChangesSummary changes={entry.changes} />
             </span>
           </TableCell>
@@ -355,8 +372,8 @@ export function AuditLogTable({ organizationId }: AuditLogTableProps) {
       />
       
       {/* Table */}
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border overflow-x-auto">
+        <Table className="min-w-[820px]">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[120px]">Date</TableHead>

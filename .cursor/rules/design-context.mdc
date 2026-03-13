@@ -1,0 +1,32 @@
+---
+description: "Persistent design context for UI and UX decisions"
+alwaysApply: true
+---
+## Design Context
+
+### Users
+
+- EquipQR serves multi-tenant fleet and equipment management teams, with primary emphasis on field technicians working on mobile devices in real job-site conditions.
+- Secondary users include shop and operations staff on desktop, but core interaction decisions should prioritize technician speed and legibility first.
+- The core job to be done is to complete equipment, work order, and status updates quickly and accurately with minimal friction, even under time pressure.
+
+### Brand Personality
+
+- Personality: professional, technical, and practical.
+- Tone should communicate confidence, control, and reliability without looking flashy or playful.
+- UI copy and visual treatment should feel operationally credible for enterprise maintenance and rental workflows.
+
+### Aesthetic Direction
+
+- Visual direction: clean enterprise, structured and data-forward.
+- Use both light and dark mode as first-class experiences with equal polish.
+- Use balanced brand accents with semantic status colors; avoid over-saturating large surfaces with brand color.
+- Continue using existing EquipQR design tokens, shadcn/ui primitives, and Tailwind semantic classes as the default implementation path.
+
+### Design Principles
+
+- Optimize for speed and clarity in high-frequency technician workflows.
+- Keep layouts systematic and predictable so users can scan and act quickly.
+- Maintain WCAG 2.1 AA accessibility baseline across components and flows.
+- Use subtle motion for feedback and orientation only, and respect reduced-motion preferences.
+- Preserve consistency through shared component patterns, spacing, and semantic color usage.

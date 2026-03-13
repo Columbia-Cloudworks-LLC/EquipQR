@@ -23,13 +23,13 @@ const InvitationManagement = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="h-4 w-4 text-warning-foreground0" />;
       case 'accepted':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-success-foreground0" />;
       case 'declined':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <XCircle className="h-4 w-4 text-destructive-foreground0" />;
       case 'expired':
-        return <XCircle className="h-4 w-4 text-gray-500" />;
+        return <XCircle className="h-4 w-4 text-muted-foreground0" />;
       default:
         return <Clock className="h-4 w-4" />;
     }
@@ -38,15 +38,15 @@ const InvitationManagement = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-warning/20 text-warning border-warning/30';
       case 'accepted':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-success/20 text-success border-success/30';
       case 'declined':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-destructive/20 text-destructive border-destructive/30';
       case 'expired':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-foreground border-border';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -190,4 +190,5 @@ const InvitationManagement = () => {
 };
 
 export default InvitationManagement;
+
 

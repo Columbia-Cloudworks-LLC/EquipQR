@@ -15,31 +15,31 @@ export const SaveStatus: React.FC<SaveStatusProps> = ({ status, lastSaved, class
         return {
           icon: Clock,
           text: 'Saving...',
-          className: 'bg-blue-100 text-blue-800 border-blue-200'
+          className: 'bg-info/20 text-info border-info/30'
         };
       case 'saved':
         return {
           icon: CheckCircle,
           text: lastSaved ? `Saved ${formatTime(lastSaved)}` : 'Saved',
-          className: 'bg-green-100 text-green-800 border-green-200'
+          className: 'bg-success/20 text-success border-success/30'
         };
       case 'error':
         return {
           icon: AlertCircle,
           text: 'Save failed',
-          className: 'bg-red-100 text-red-800 border-red-200'
+          className: 'bg-destructive/20 text-destructive border-destructive/30'
         };
       case 'offline':
         return {
           icon: WifiOff,
           text: 'Offline',
-          className: 'bg-gray-100 text-gray-800 border-gray-200'
+          className: 'bg-muted text-foreground border-border'
         };
       default:
         return {
           icon: Wifi,
           text: 'Ready',
-          className: 'bg-gray-100 text-gray-800 border-gray-200'
+          className: 'bg-muted text-foreground border-border'
         };
     }
   };

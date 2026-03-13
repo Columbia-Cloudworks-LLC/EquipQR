@@ -51,9 +51,9 @@ export const WorkOrderDetailsPMInfo: React.FC<WorkOrderDetailsPMInfoProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">PM Status:</span>
             <Badge className={
-              pmData.status === 'completed' ? 'bg-green-100 text-green-800' :
-              pmData.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-              'bg-yellow-100 text-yellow-800'
+              pmData.status === 'completed' ? 'bg-success/20 text-success' :
+              pmData.status === 'in_progress' ? 'bg-info/20 text-info' :
+              'bg-warning/20 text-warning'
             }>
               {pmData.status.replace('_', ' ').toUpperCase()}
             </Badge>
@@ -62,7 +62,7 @@ export const WorkOrderDetailsPMInfo: React.FC<WorkOrderDetailsPMInfoProps> = ({
             This work order includes preventative maintenance tasks that will be completed by the assigned technician.
           </p>
           {pmData.status === 'completed' && pmData.completed_at && (
-            <p className="text-sm text-green-600">
+            <p className="text-sm text-success">
               PM completed on {new Date(pmData.completed_at).toLocaleDateString()}
             </p>
           )}
@@ -71,4 +71,5 @@ export const WorkOrderDetailsPMInfo: React.FC<WorkOrderDetailsPMInfoProps> = ({
     </Card>
   );
 };
+
 

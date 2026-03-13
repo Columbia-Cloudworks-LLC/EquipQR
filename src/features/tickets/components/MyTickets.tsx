@@ -30,11 +30,11 @@ import TicketDetail from './TicketDetail';
 function getStatusBadge(status: string) {
   switch (status) {
     case 'open':
-      return { label: 'Open', className: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30' };
+      return { label: 'Open', className: 'bg-warning/100/15 text-warning dark:text-warning border-warning/200/30' };
     case 'in_progress':
-      return { label: 'In Progress', className: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30' };
+      return { label: 'In Progress', className: 'bg-info/100/15 text-info dark:text-info border-info/200/30' };
     case 'closed':
-      return { label: 'Closed', className: 'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30' };
+      return { label: 'Closed', className: 'bg-success/100/15 text-success dark:text-success border-success/200/30' };
     default:
       return { label: status, className: '' };
   }
@@ -147,3 +147,4 @@ const MyTickets: React.FC = () => {
 };
 
 export default MyTickets;
+

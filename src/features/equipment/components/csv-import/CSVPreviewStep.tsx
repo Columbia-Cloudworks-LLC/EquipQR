@@ -45,9 +45,9 @@ export const CSVPreviewStep: React.FC<CSVPreviewStepProps> = ({
   const getActionBadge = (action: string) => {
     switch (action) {
       case 'create':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Create</Badge>;
+        return <Badge className="bg-success/20 text-success hover:bg-success/20">Create</Badge>;
       case 'merge':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Merge</Badge>;
+        return <Badge className="bg-info/20 text-info hover:bg-info/20">Merge</Badge>;
       case 'error':
         return <Badge variant="destructive">Error</Badge>;
       default:
@@ -66,7 +66,7 @@ export const CSVPreviewStep: React.FC<CSVPreviewStepProps> = ({
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
+              <CheckCircle className="w-5 h-5 text-success" />
               <div>
                 <p className="text-sm font-medium">Will Create</p>
                 <p className="text-2xl font-bold">{dryRunResult.willCreate}</p>
@@ -78,7 +78,7 @@ export const CSVPreviewStep: React.FC<CSVPreviewStepProps> = ({
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-blue-600" />
+              <AlertTriangle className="w-5 h-5 text-info" />
               <div>
                 <p className="text-sm font-medium">Will Merge</p>
                 <p className="text-2xl font-bold">{dryRunResult.willMerge}</p>
@@ -90,7 +90,7 @@ export const CSVPreviewStep: React.FC<CSVPreviewStepProps> = ({
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
-              <XCircle className="w-5 h-5 text-red-600" />
+              <XCircle className="w-5 h-5 text-destructive" />
               <div>
                 <p className="text-sm font-medium">Errors</p>
                 <p className="text-2xl font-bold">{dryRunResult.errorCount}</p>
@@ -196,10 +196,10 @@ export const CSVPreviewStep: React.FC<CSVPreviewStepProps> = ({
                     </TableCell>
                     <TableCell>
                       {row.error && (
-                        <div className="text-xs text-red-600">{row.error}</div>
+                        <div className="text-xs text-destructive">{row.error}</div>
                       )}
                       {row.warning && (
-                        <div className="text-xs text-yellow-600">{row.warning}</div>
+                        <div className="text-xs text-warning">{row.warning}</div>
                       )}
                     </TableCell>
                   </TableRow>

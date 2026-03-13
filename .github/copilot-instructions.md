@@ -198,6 +198,33 @@ useMutation({
 
 ---
 
+## Design Context Alignment (MEDIUM PRIORITY - High Confidence Only)
+
+Reference: `.cursor/rules/design-context.mdc`
+
+Only comment when there is a clear, user-impacting mismatch with the project's established design context:
+
+- Primary user context is field technicians on mobile; call out obvious regressions in mobile legibility or tap usability.
+- UI should optimize speed and clarity; flag changes that add avoidable friction to common task flows.
+- Visual direction should remain clean enterprise and data-forward; avoid subjective "make it prettier" feedback.
+- Light and dark mode should be equally usable; comment when one mode is clearly broken or unreadable.
+- Color usage should be balanced and semantic; flag hardcoded colors or status color misuse that harms meaning.
+- Motion should be subtle and purposeful; flag distracting animations or missing reduced-motion handling.
+
+High-confidence examples worth commenting on:
+
+- Touch targets are too small for common mobile actions.
+- Text contrast in either theme clearly fails readability.
+- A status color communicates the wrong meaning (for example, destructive state styled as success).
+- A workflow adds extra steps/clicks without clear functional value.
+
+Do NOT comment on:
+
+- Purely stylistic preferences with no usability impact.
+- Alternative visual ideas that are not violations of the design context.
+
+---
+
 ## UI Component Patterns (LOW PRIORITY - Usually Skip)
 
 These are style preferences. **Only comment if there's a clear violation with functional impact:**

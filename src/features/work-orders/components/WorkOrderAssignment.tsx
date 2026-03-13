@@ -54,9 +54,9 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
         </h3>
         
         {isAssignmentBlocked ? (
-          <Alert variant="default" className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800 dark:text-amber-200">
+          <Alert variant="default" className="border-warning/30 bg-warning/10 dark:border-warning/50 dark:bg-warning/15">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <AlertDescription className="text-warning dark:text-warning">
               This equipment has no team assigned. Assign a team to the equipment to enable work order assignments.
             </AlertDescription>
           </Alert>
@@ -117,6 +117,7 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
     </Card>
   );
 };
+
 
 
 

@@ -15,7 +15,11 @@ export const FleetMapErrorBoundary: React.FC<FleetMapErrorBoundaryProps> = ({
   isRetrying = false 
 }) => {
   return (
-    <div className="flex items-center justify-center min-h-[400px]">
+    <div
+      className="flex items-center justify-center min-h-[400px]"
+      role="alert"
+      aria-live="assertive"
+    >
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
