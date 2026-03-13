@@ -157,6 +157,15 @@ for /f "usebackq tokens=1,2 delims==" %%A in ("%SUPABASE_PORT_ENV%") do (
 del "%SUPABASE_PORT_ENV%" >nul 2>&1
 echo        Supabase ports ready: API %SUPABASE_API_PORT%, DB %SUPABASE_DB_PORT%, Studio %SUPABASE_STUDIO_PORT%
 
+echo.
+echo  [2.6/7] Syncing local Supabase URLs in env files...
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-local-supabase-env.ps1" -ApiPort %SUPABASE_API_PORT%
+if %errorlevel% neq 0 (
+    echo        FAIL: Could not sync local Supabase URLs into environment files.
+    set "FAIL=1"
+    goto :summary
+)
+
 REM ---------- 3. Start Supabase local stack -----------------------------------
 echo.
 echo  [3/7] Starting Supabase local stack...
