@@ -88,7 +88,7 @@ const LandingFooter = () => {
             <h3 className="text-sm font-semibold text-foreground mb-3">Connect</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="https://calendly.com/equipqr" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+                <a href="https://calendly.com/nicholas-king-columbiacloudworks/30min" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
                   Schedule a Demo
                 </a>
               </li>

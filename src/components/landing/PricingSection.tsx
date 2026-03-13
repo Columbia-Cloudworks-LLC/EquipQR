@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Calendar, ArrowRight } from 'lucide-react';
 
-const DEMO_CALENDLY_URL = 'https://calendly.com/equipqr';
+const DEMO_CALENDLY_URL = 'https://calendly.com/nicholas-king-columbiacloudworks/30min';
 const CONTACT_EMAIL = 'mailto:nicholas.king@columbiacloudworks.com';
 
 const PricingSection = () => {

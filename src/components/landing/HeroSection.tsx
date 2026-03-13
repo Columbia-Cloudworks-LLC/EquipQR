@@ -38,7 +38,7 @@ const HeroSection = () => {
               variant="outline"
               className="text-lg px-8 py-6 border-foreground/30 text-foreground hover:bg-foreground/10"
             >
-              <a href="https://calendly.com/equipqr" target="_blank" rel="noopener noreferrer">
+              <a href="https://calendly.com/nicholas-king-columbiacloudworks/30min" target="_blank" rel="noopener noreferrer">
                 <Calendar className="mr-2 h-5 w-5" aria-hidden />
                 Schedule a Demo
               </a>
