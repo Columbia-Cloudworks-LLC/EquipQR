@@ -135,7 +135,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError
       </div>
       
       <div className="absolute bottom-2 left-2 right-2 text-center">
-        <p className="text-primary-foreground text-sm bg-foreground bg-opacity-50 rounded px-2 py-1">
+        <p className="text-white text-sm bg-black/50 rounded px-2 py-1">
           Click on video to simulate QR scan
         </p>
       </div>

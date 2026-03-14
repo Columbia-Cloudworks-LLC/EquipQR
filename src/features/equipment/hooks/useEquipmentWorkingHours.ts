@@ -52,7 +52,8 @@ export const useUpdateEquipmentWorkingHours = () => {
       } else {
         toast.success('Equipment working hours updated successfully');
         queryClient.invalidateQueries({
-          queryKey: equipmentWorkingHours.history(variables.equipmentId),
+          queryKey: equipmentWorkingHours.historyRoot(variables.equipmentId),
+          exact: false,
         });
         queryClient.invalidateQueries({
           queryKey: equipmentWorkingHours.current(variables.equipmentId),

@@ -159,6 +159,8 @@ export const workOrderMetrics = {
 
 // Equipment working-hours keys
 export const equipmentWorkingHours = {
+  historyRoot: (equipmentId: string) =>
+    ['equipment-working-hours-history', equipmentId] as const,
   history: (equipmentId: string, page: number = 1, pageSize: number = 10) =>
     ['equipment-working-hours-history', equipmentId, page, pageSize] as const,
   current: (equipmentId: string) => ['equipment-current-working-hours', equipmentId] as const,
