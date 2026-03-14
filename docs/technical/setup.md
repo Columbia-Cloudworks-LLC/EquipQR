@@ -100,7 +100,7 @@ For local Edge Function development, create `supabase/functions/.env`:
 
 ```env
 # Copy values from 'npx supabase status' output
-SUPABASE_URL=http://localhost:58221
+SUPABASE_URL=http://localhost:54321
 SUPABASE_SERVICE_ROLE_KEY=<local-service-role-key>
 SUPABASE_ANON_KEY=<local-anon-key>
 
@@ -138,7 +138,7 @@ See **[Local Supabase Development Guide](../ops/local-supabase-development.md)**
 
 3. **Configure local environment**:
    - Create `.env.local` with local Supabase credentials (from `npx supabase status`)
-   - Use local Supabase URL: `http://localhost:58221`
+   - Use local Supabase URL from `supabase/config.toml` or `npx supabase status` (default: `http://localhost:54321`)
 
 **For production access (initial setup only):**
 

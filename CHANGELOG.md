@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Local Supabase ports configurable** — Supabase local stack now uses configurable ports from `supabase/config.toml` (e.g. API 58221, DB 58222, Studio 58223). `dev-start.bat` runs the port-prep script and uses the configured API port for health checks; `dev-stop.bat` updated accordingly.
+- **Local Supabase ports configurable** — Supabase local stack now uses configurable ports from `supabase/config.toml` (current defaults: API 54321, DB 54322, Studio 54323). `dev-start.bat` runs the port-prep script and uses the configured API port for health checks; `dev-stop.bat` updated accordingly.
 - **Supabase "already running" check** — Replaced port-listener check with `supabase status` so Docker Desktop on Windows (where container ports do not appear in `Get-NetTCPConnection`) is detected correctly.
 - **Landing page** — About, CTA, Features, Hero, header, and social proof sections updated (copy/layout/styling). Page order: Hero, Features, About, Social Proof, Pricing, CTA, Footer.
 - **Docs** — `docs/ops/local-supabase-development.md` updated for configurable ports and conflict resolution (rerun `dev-start.bat`).

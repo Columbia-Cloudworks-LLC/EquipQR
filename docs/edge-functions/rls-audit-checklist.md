@@ -107,7 +107,7 @@ import { assertEquals } from "https://deno.land/std@0.208.0/testing/asserts.ts";
 
 Deno.test("geocode-location: rejects unauthenticated requests", async () => {
   const response = await fetch(
-    "http://localhost:58221/functions/v1/geocode-location",
+    "http://localhost:54321/functions/v1/geocode-location",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -123,7 +123,7 @@ Deno.test("geocode-location: rejects cross-org access", async () => {
   const orgBId = "org-b-id";
 
   const response = await fetch(
-    "http://localhost:58221/functions/v1/geocode-location",
+    "http://localhost:54321/functions/v1/geocode-location",
     {
       method: "POST",
       headers: {
