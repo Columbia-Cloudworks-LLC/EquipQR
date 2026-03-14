@@ -91,7 +91,7 @@ REM ---------- 4. Safety-net: kill anything still on dev ports -----------------
 echo.
 echo  [4/4] Cleaning up orphan processes on dev ports...
 powershell -NoProfile -Command ^
-  "$ports = @(8080, 54321, 54322, 54323, 54324, 54325, 54326, 54327); " ^
+  "$ports = @(8080, 54321, 54322, 54323, 54324, 54325, 54326, 54327, 58220, 58221, 58222, 58223, 58224, 58225, 58226, 58227); " ^
   "$killed = 0; " ^
   "foreach ($port in $ports) { " ^
   "  $pids = (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue).OwningProcess | Sort-Object -Unique; " ^

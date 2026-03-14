@@ -12,9 +12,6 @@ CREATE TABLE IF NOT EXISTS public.user_dashboard_preferences (
   CONSTRAINT user_dashboard_preferences_user_org_key UNIQUE (user_id, organization_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_user_dashboard_preferences_user_org
-  ON public.user_dashboard_preferences (user_id, organization_id);
-
 DROP TRIGGER IF EXISTS update_user_dashboard_preferences_updated_at ON public.user_dashboard_preferences;
 CREATE TRIGGER update_user_dashboard_preferences_updated_at
   BEFORE UPDATE ON public.user_dashboard_preferences

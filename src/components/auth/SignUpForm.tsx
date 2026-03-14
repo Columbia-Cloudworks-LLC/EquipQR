@@ -253,7 +253,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           {passwordMatch !== null && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
               {passwordMatch ? (
-                <CheckCircle className="h-4 w-4 text-success-foreground" data-testid="password-match-success" />
+                <CheckCircle className="h-4 w-4 text-success" data-testid="password-match-success" />
               ) : (
                 <XCircle className="h-4 w-4 text-destructive" data-testid="password-match-error" />
               )}

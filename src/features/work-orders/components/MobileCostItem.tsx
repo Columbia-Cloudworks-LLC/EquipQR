@@ -33,10 +33,10 @@ const MobileCostItem: React.FC<MobileCostItemProps> = React.memo(({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isFromInventory && (
-            <Package className="h-4 w-4 text-info-foreground" title="From inventory - removing will restore stock" />
+            <Package className="h-4 w-4 text-info" title="From inventory - removing will restore stock" />
           )}
           <span className="text-sm font-medium text-muted-foreground">
-            Description {isFromInventory && <span className="text-info-foreground">(Inventory)</span>}
+            Description {isFromInventory && <span className="text-info">(Inventory)</span>}
           </span>
         </div>
         <Button
