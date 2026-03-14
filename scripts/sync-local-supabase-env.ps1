@@ -1,6 +1,5 @@
 param(
-    [Parameter(Mandatory = $true)]
-    [int]$ApiPort
+    [int]$ApiPort = 54321
 )
 
 $ErrorActionPreference = "Stop"

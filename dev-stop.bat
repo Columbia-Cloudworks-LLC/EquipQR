@@ -89,27 +89,10 @@ for /f "tokens=*" %%c in ('docker ps -aq --filter "name=supabase_" 2^>nul') do (
 REM ---------- 4. Safety-net: kill anything still on dev ports -----------------
 :port_cleanup
 echo.
-echo  [4/4] Cleaning up orphan processes on dev ports (from supabase\config.toml + 8080)...
+echo  [4/4] Cleaning up orphan processes on dev ports...
 powershell -NoProfile -Command ^
-  "$configPath = Join-Path (Get-Location) 'supabase\config.toml'; " ^
-  "$ports = [System.Collections.Generic.List[int]]::new(); " ^
-  "$ports.Add(8080) | Out-Null; " ^
-  "if (Test-Path $configPath) { " ^
-  "  $raw = Get-Content -Raw -LiteralPath $configPath; " ^
-  "  $patterns = @(" ^
-  "    '(?ms)\[api\][^\[]*?\bport\s*=\s*(\d+)', " ^
-  "    '(?ms)\[db\][^\[]*?\bport\s*=\s*(\d+)', " ^
-  "    '(?ms)\[db\][^\[]*?\bshadow_port\s*=\s*(\d+)', " ^
-  "    '(?ms)\[studio\][^\[]*?\bport\s*=\s*(\d+)', " ^
-  "    '(?ms)\[inbucket\][^\[]*?\bport\s*=\s*(\d+)', " ^
-  "    '(?ms)\[analytics\][^\[]*?\bport\s*=\s*(\d+)'" ^
-  "  ); " ^
-  "  foreach ($pattern in $patterns) { " ^
-  "    $match = [regex]::Match($raw, $pattern); " ^
-  "    if ($match.Success) { $ports.Add([int]$match.Groups[1].Value) | Out-Null } " ^
-  "  } " ^
-  "} " ^
-  "$ports = $ports | Sort-Object -Unique; $killed = 0; " ^
+  "$ports = @(8080, 54321, 54322, 54323, 54324, 54325, 54326, 54327); " ^
+  "$killed = 0; " ^
   "foreach ($port in $ports) { " ^
   "  $pids = (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue).OwningProcess | Sort-Object -Unique; " ^
   "  foreach ($p in $pids) { " ^
