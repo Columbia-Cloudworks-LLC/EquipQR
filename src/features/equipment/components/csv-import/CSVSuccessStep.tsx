@@ -33,7 +33,7 @@ export const CSVSuccessStep: React.FC<CSVSuccessStepProps> = ({
     <div className="space-y-6">
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <CheckCircle className="w-16 h-16 text-success-foreground0" />
+          <CheckCircle className="w-16 h-16 text-success-foreground" />
         </div>
         
         <div>

@@ -67,13 +67,13 @@ function ChangeRow({
     <div className="flex flex-col gap-1 py-2 border-b border-border/50 last:border-0">
       <div className="flex items-center gap-2">
         {isAddition && (
-          <Plus className="h-3.5 w-3.5 text-success-foreground0 shrink-0" />
+          <Plus className="h-3.5 w-3.5 text-success-foreground shrink-0" />
         )}
         {isDeletion && (
-          <Minus className="h-3.5 w-3.5 text-destructive-foreground0 shrink-0" />
+          <Minus className="h-3.5 w-3.5 text-destructive-foreground shrink-0" />
         )}
         {isModification && (
-          <ArrowRight className="h-3.5 w-3.5 text-info-foreground0 shrink-0" />
+          <ArrowRight className="h-3.5 w-3.5 text-info-foreground shrink-0" />
         )}
         <span className="font-medium text-sm text-foreground">
           {getFieldLabel(field)}

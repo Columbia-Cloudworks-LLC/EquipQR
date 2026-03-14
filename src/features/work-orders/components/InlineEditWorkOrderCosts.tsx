@@ -280,13 +280,13 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         <div className="flex-1">
           <div className="font-medium text-sm flex items-center gap-1.5">
             {cost.inventory_item_id && (
-              <Package className="h-3.5 w-3.5 text-info-foreground0 flex-shrink-0" title="From inventory" />
+              <Package className="h-3.5 w-3.5 text-info-foreground flex-shrink-0" title="From inventory" />
             )}
             {cost.description}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
             Added by {cost.created_by_name} • {new Date(cost.created_at).toLocaleDateString()}
-            {cost.inventory_item_id && <span className="ml-1 text-info-foreground0">(Inventory)</span>}
+            {cost.inventory_item_id && <span className="ml-1 text-info-foreground">(Inventory)</span>}
           </div>
         </div>
         <div className="text-right ml-2">
@@ -309,14 +309,14 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         <div>
           <div className="font-medium flex items-center gap-1.5">
             {cost.inventory_item_id && (
-              <Package className="h-4 w-4 text-info-foreground0 flex-shrink-0" title="From inventory" />
+              <Package className="h-4 w-4 text-info-foreground flex-shrink-0" title="From inventory" />
             )}
             {cost.description}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
             Added by {cost.created_by_name} on{' '}
             {new Date(cost.created_at).toLocaleDateString()}
-            {cost.inventory_item_id && <span className="ml-1 text-info-foreground0">(Inventory)</span>}
+            {cost.inventory_item_id && <span className="ml-1 text-info-foreground">(Inventory)</span>}
           </div>
         </div>
         <div className="text-sm">{cost.quantity}</div>

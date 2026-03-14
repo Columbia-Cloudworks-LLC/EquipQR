@@ -45,17 +45,17 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'work_order_request':
-        return <AlertCircle className="h-4 w-4 text-info-foreground0" />;
+        return <AlertCircle className="h-4 w-4 text-info-foreground" />;
       case 'work_order_accepted':
-        return <CheckCircle className="h-4 w-4 text-success-foreground0" />;
+        return <CheckCircle className="h-4 w-4 text-success-foreground" />;
       case 'work_order_assigned':
-        return <Settings className="h-4 w-4 text-warning-foreground0" />;
+        return <Settings className="h-4 w-4 text-warning-foreground" />;
       case 'work_order_completed':
-        return <CheckCircle className="h-4 w-4 text-success-foreground0" />;
+        return <CheckCircle className="h-4 w-4 text-success-foreground" />;
       case 'team_assignment':
-        return <Users className="h-4 w-4 text-primary-foreground0" />;
+        return <Users className="h-4 w-4 text-primary-foreground" />;
       default:
-        return <Bell className="h-4 w-4 text-muted-foreground0" />;
+        return <Bell className="h-4 w-4 text-muted-foreground" />;
     }
   };
 

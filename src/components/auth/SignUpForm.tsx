@@ -248,12 +248,12 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
             value={formData.confirmPassword}
             onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
             required
-            className={passwordMatch === false ? 'border-destructive' : passwordMatch === true ? 'border-success/200' : ''}
+            className={passwordMatch === false ? 'border-destructive' : passwordMatch === true ? 'border-success/30' : ''}
           />
           {passwordMatch !== null && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
               {passwordMatch ? (
-                <CheckCircle className="h-4 w-4 text-success-foreground0" data-testid="password-match-success" />
+                <CheckCircle className="h-4 w-4 text-success-foreground" data-testid="password-match-success" />
               ) : (
                 <XCircle className="h-4 w-4 text-destructive" data-testid="password-match-error" />
               )}

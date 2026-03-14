@@ -106,7 +106,7 @@ export const LeaveOrganizationDialog: React.FC<LeaveOrganizationDialogProps> = (
               placeholder={organization.name}
               value={confirmationName}
               onChange={(e) => setConfirmationName(e.target.value)}
-              className={isNameMatch ? 'border-success/200' : ''}
+              className={isNameMatch ? 'border-success/30' : ''}
             />
           </div>
         </div>

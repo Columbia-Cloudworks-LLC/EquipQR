@@ -107,8 +107,8 @@ npx supabase start
 ```
 
 This will:
-- Start PostgreSQL on a local port from `supabase/config.toml` (default `58122`)
-- Start PostgREST API on a local port from `supabase/config.toml` (default `58121`)
+- Start PostgreSQL on a local port from `supabase/config.toml` (default `58222`)
+- Start PostgREST API on a local port from `supabase/config.toml` (default `58221`)
 - Start Auth service
 - Start Storage service
 - Start Edge Functions runtime
@@ -134,12 +134,12 @@ Edit `.env.local` with local Supabase credentials (from `npx supabase status` ou
 
 ```env
 # Local Supabase URLs (from 'supabase start' output)
-VITE_SUPABASE_URL=http://localhost:54321
+VITE_SUPABASE_URL=http://localhost:58221
 VITE_SUPABASE_ANON_KEY=<local-anon-key-from-supabase-start-output>
 
 # For edge functions that need service role
 SUPABASE_SERVICE_ROLE_KEY=<local-service-role-key-from-supabase-start-output>
-SUPABASE_URL=http://localhost:54321
+SUPABASE_URL=http://localhost:58221
 SUPABASE_ANON_KEY=<local-anon-key>
 
 # QuickBooks (use sandbox credentials for local dev)
@@ -148,12 +148,12 @@ INTUIT_CLIENT_SECRET=<your-sandbox-client-secret>
 QUICKBOOKS_SANDBOX=true
 PRODUCTION_URL=http://localhost:8080
 # CRITICAL: Must match VITE_QB_OAUTH_REDIRECT_BASE_URL in client .env
-QB_OAUTH_REDIRECT_BASE_URL=http://localhost:54321
+QB_OAUTH_REDIRECT_BASE_URL=http://localhost:58221
 
 # Google Workspace Integration (if testing locally)
 GOOGLE_OAUTH_CLIENT_ID=<your-google-oauth-client-id>
 GOOGLE_OAUTH_CLIENT_SECRET=<your-google-oauth-client-secret>
-GW_OAUTH_REDIRECT_BASE_URL=http://localhost:54321
+GW_OAUTH_REDIRECT_BASE_URL=http://localhost:58221
 TOKEN_ENCRYPTION_KEY=<generate-with-openssl-rand-base64-32>
 KDF_SALT=<generate-unique-salt-with-openssl-rand-base64-32>
 
@@ -183,13 +183,13 @@ npx supabase functions serve --env-file .env.local
 
 ### Testing Edge Functions Locally
 
-1. **Functions run at**: `http://localhost:54321/functions/v1/<function-name>`
+1. **Functions run at**: `http://localhost:58221/functions/v1/<function-name>`
 2. **Use local anon key** for authenticated requests
 3. **Check logs** in the terminal where you're running `supabase functions serve`
 
 **Example: Test QuickBooks OAuth callback**:
 ```bash
-curl -X POST http://localhost:54321/functions/v1/quickbooks-oauth-callback \
+curl -X POST http://localhost:58221/functions/v1/quickbooks-oauth-callback \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <local-anon-key>" \
   -d '{"code": "test", "state": "test"}'

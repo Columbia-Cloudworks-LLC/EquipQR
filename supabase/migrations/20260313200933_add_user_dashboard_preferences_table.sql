@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS public.user_dashboard_preferences (
 CREATE INDEX IF NOT EXISTS idx_user_dashboard_preferences_user_org
   ON public.user_dashboard_preferences (user_id, organization_id);
 
-CREATE OR REPLACE TRIGGER update_user_dashboard_preferences_updated_at
+DROP TRIGGER IF EXISTS update_user_dashboard_preferences_updated_at ON public.user_dashboard_preferences;
+CREATE TRIGGER update_user_dashboard_preferences_updated_at
   BEFORE UPDATE ON public.user_dashboard_preferences
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 

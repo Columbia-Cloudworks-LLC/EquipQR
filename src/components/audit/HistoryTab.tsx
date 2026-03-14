@@ -69,7 +69,7 @@ function getActionIcon(action: AuditAction) {
 function getActionColor(action: AuditAction) {
   switch (action) {
     case 'INSERT':
-      return 'bg-success/20 text-success dark:bg-success/20/30 dark:text-success';
+      return 'bg-success/20 text-success dark:bg-success/20 dark:text-success';
     case 'UPDATE':
       return 'bg-info/20 text-info dark:bg-info/20 dark:text-info';
     case 'DELETE':

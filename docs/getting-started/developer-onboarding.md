@@ -112,7 +112,7 @@ Visit `http://localhost:8080` to see the application running!
 
 3. **Configure local environment**:
    - Create `.env.local` with local Supabase credentials (from `npx supabase status`)
-   - Use local Supabase URL: `http://localhost:54321`
+   - Use local Supabase URL: `http://localhost:58221`
 
 **For production access (initial setup only):**
 

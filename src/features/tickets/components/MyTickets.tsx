@@ -30,11 +30,11 @@ import TicketDetail from './TicketDetail';
 function getStatusBadge(status: string) {
   switch (status) {
     case 'open':
-      return { label: 'Open', className: 'bg-warning/100/15 text-warning dark:text-warning border-warning/200/30' };
+      return { label: 'Open', className: 'bg-warning/15 text-warning dark:text-warning border-warning/30' };
     case 'in_progress':
-      return { label: 'In Progress', className: 'bg-info/100/15 text-info dark:text-info border-info/200/30' };
+      return { label: 'In Progress', className: 'bg-info/15 text-info dark:text-info border-info/30' };
     case 'closed':
-      return { label: 'Closed', className: 'bg-success/100/15 text-success dark:text-success border-success/200/30' };
+      return { label: 'Closed', className: 'bg-success/15 text-success dark:text-success border-success/30' };
     default:
       return { label: status, className: '' };
   }

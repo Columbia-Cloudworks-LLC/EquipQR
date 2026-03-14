@@ -10,14 +10,14 @@ export const SecurityStatus = () => {
   const { testResult, isTestingComplete, runSecurityTest } = useOrganizationSecurity();
 
   const getStatusIcon = (success: boolean, hasErrors: boolean) => {
-    if (hasErrors) return <XCircle className="h-4 w-4 text-destructive-foreground0" />;
-    if (success) return <CheckCircle className="h-4 w-4 text-success-foreground0" />;
-    return <AlertTriangle className="h-4 w-4 text-warning-foreground0" />;
+    if (hasErrors) return <XCircle className="h-4 w-4 text-destructive-foreground" />;
+    if (success) return <CheckCircle className="h-4 w-4 text-success-foreground" />;
+    return <AlertTriangle className="h-4 w-4 text-warning-foreground" />;
   };
 
   const getStatusBadge = (success: boolean, hasErrors: boolean) => {
     if (hasErrors) return <Badge variant="destructive">Failed</Badge>;
-    if (success) return <Badge variant="default" className="bg-success/100">Passed</Badge>;
+    if (success) return <Badge variant="default" className="bg-success">Passed</Badge>;
     return <Badge variant="secondary">Pending</Badge>;
   };
 

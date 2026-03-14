@@ -36,7 +36,7 @@ const DesktopCostItem: React.FC<DesktopCostItemProps> = React.memo(({
           {isFromInventory && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Package className="h-4 w-4 text-info-foreground0 flex-shrink-0" />
+                <Package className="h-4 w-4 text-info-foreground flex-shrink-0" />
               </TooltipTrigger>
               <TooltipContent>From inventory - removing will restore stock</TooltipContent>
             </Tooltip>

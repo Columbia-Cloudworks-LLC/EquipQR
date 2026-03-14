@@ -63,7 +63,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
 
       {/* Outgoing Transfer Alert */}
       {!transferLoading && pendingTransfer && !pendingTransfer.is_incoming && isOwner && (
-        <Alert className="border-warning/200/50 bg-warning/100/10">
+        <Alert className="border-warning/50 bg-warning/10">
           <AlertTriangle className="h-4 w-4 text-warning" />
           <AlertDescription className="text-warning dark:text-warning">
             You have a pending ownership transfer request to{' '}

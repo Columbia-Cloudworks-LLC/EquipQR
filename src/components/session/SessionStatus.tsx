@@ -16,10 +16,10 @@ export const SessionStatus = () => {
   };
 
   const getStatusIcon = () => {
-    if (error) return <XCircle className="h-4 w-4 text-destructive-foreground0" />;
-    if (isLoading) return <RefreshCw className="h-4 w-4 animate-spin text-warning-foreground0" />;
-    if (sessionData) return <CheckCircle className="h-4 w-4 text-success-foreground0" />;
-    return <Database className="h-4 w-4 text-muted-foreground0" />;
+    if (error) return <XCircle className="h-4 w-4 text-destructive-foreground" />;
+    if (isLoading) return <RefreshCw className="h-4 w-4 animate-spin text-warning-foreground" />;
+    if (sessionData) return <CheckCircle className="h-4 w-4 text-success-foreground" />;
+    return <Database className="h-4 w-4 text-muted-foreground" />;
   };
 
   return (
