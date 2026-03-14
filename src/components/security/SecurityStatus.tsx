@@ -10,9 +10,9 @@ export const SecurityStatus = () => {
   const { testResult, isTestingComplete, runSecurityTest } = useOrganizationSecurity();
 
   const getStatusIcon = (success: boolean, hasErrors: boolean) => {
-    if (hasErrors) return <XCircle className="h-4 w-4 text-destructive-foreground" />;
-    if (success) return <CheckCircle className="h-4 w-4 text-success-foreground" />;
-    return <AlertTriangle className="h-4 w-4 text-warning-foreground" />;
+    if (hasErrors) return <XCircle className="h-4 w-4 text-destructive" />;
+    if (success) return <CheckCircle className="h-4 w-4 text-success" />;
+    return <AlertTriangle className="h-4 w-4 text-warning" />;
   };
 
   const getStatusBadge = (success: boolean, hasErrors: boolean) => {

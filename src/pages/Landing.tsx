@@ -6,6 +6,7 @@ import FeaturesSection from '@/components/landing/FeaturesSection';
 import SocialProofSection from '@/components/landing/SocialProofSection';
 import AboutSection from '@/components/landing/AboutSection';
 import PricingSection from '@/components/landing/PricingSection';
+import RoadmapSection from '@/components/landing/RoadmapSection';
 import CTASection from '@/components/landing/CTASection';
 import LandingFooter from '@/components/landing/LandingFooter';
 
@@ -41,6 +42,7 @@ const Landing: React.FC<LandingProps> = ({ skipSEO = false }) => {
         <AboutSection id="about" />
         <SocialProofSection />
         <PricingSection />
+        <RoadmapSection />
         <CTASection />
       </main>
       <LandingFooter />

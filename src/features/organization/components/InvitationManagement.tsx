@@ -23,11 +23,11 @@ const InvitationManagement = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Clock className="h-4 w-4 text-warning-foreground" />;
+        return <Clock className="h-4 w-4 text-warning" />;
       case 'accepted':
-        return <CheckCircle className="h-4 w-4 text-success-foreground" />;
+        return <CheckCircle className="h-4 w-4 text-success" />;
       case 'declined':
-        return <XCircle className="h-4 w-4 text-destructive-foreground" />;
+        return <XCircle className="h-4 w-4 text-destructive" />;
       case 'expired':
         return <XCircle className="h-4 w-4 text-muted-foreground" />;
       default:
