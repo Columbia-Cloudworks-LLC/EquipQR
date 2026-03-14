@@ -62,29 +62,12 @@ public = true
 file_size_limit = "10MB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
-[db]
-# Local ports are auto-reconciled by dev-start.bat to avoid Windows excluded ranges.
-port = 58222
-shadow_port = 58220
-
 [api]
 enabled = true
-port = 58221
+port = 54321
 schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
-
-[studio]
-enabled = true
-port = 58223
-
-[inbucket]
-enabled = true
-port = 58224
-
-[analytics]
-enabled = true
-port = 58227
 
 [functions.purchase-user-licenses]
 verify_jwt = true
