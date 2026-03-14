@@ -56,19 +56,19 @@ export const WorkOrderBasicFields: React.FC<WorkOrderBasicFieldsProps> = ({
             <SelectContent>
               <SelectItem value="low">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-success/100"></div>
+                  <div className="w-2 h-2 rounded-full bg-success"></div>
                   Low Priority
                 </div>
               </SelectItem>
               <SelectItem value="medium">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-warning/100"></div>
+                  <div className="w-2 h-2 rounded-full bg-warning"></div>
                   Medium Priority
                 </div>
               </SelectItem>
               <SelectItem value="high">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-destructive/100"></div>
+                  <div className="w-2 h-2 rounded-full bg-destructive"></div>
                   High Priority
                 </div>
               </SelectItem>

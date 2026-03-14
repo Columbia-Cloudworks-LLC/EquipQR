@@ -149,7 +149,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                   {/* Display Image Indicator */}
                   {currentDisplayImage === image.file_url && (
                     <div className="absolute top-2 left-2">
-                      <Badge className="bg-warning/100 text-warning text-xs">
+                      <Badge className="bg-warning text-warning-foreground text-xs">
                         <Star className="h-3 w-3 mr-1" />
                         Display
                       </Badge>

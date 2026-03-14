@@ -54,7 +54,7 @@ OAuth 2.0 requires that the `redirect_uri` used during authorization **must exac
 |-------------|------------------------------------------------------------------|
 | Production | `https://supabase.equipqr.app` |
 | Preview | `https://supabase.preview.equipqr.app` |
-| Local | `http://localhost:54321` |
+| Local | `http://localhost:58221` (or port from `supabase/config.toml`) |
 
 If these values don't match, OAuth will fail with "oauth_failed" error.
 
@@ -84,7 +84,7 @@ Configure separately for each environment (preview, production).
    - **Redirect URI**: `{your-base-url}/functions/v1/quickbooks-oauth-callback`
      - Default: `https://your-project-ref.supabase.co/functions/v1/quickbooks-oauth-callback`
      - Custom domain: `https://supabase.yourdomain.com/functions/v1/quickbooks-oauth-callback`
-     - Local dev: `http://localhost:54321/functions/v1/quickbooks-oauth-callback`
+     - Local dev: `http://localhost:58221/functions/v1/quickbooks-oauth-callback` (or port from `supabase status`)
      - Set `VITE_QB_OAUTH_REDIRECT_BASE_URL` to match the base URL
    - **Scopes**: `com.intuit.quickbooks.accounting`
 4. Copy the Client ID and Client Secret

@@ -490,8 +490,9 @@ If local Supabase ports are blocked or already in use:
 npx supabase stop
 
 # Check what's using the ports
-# Windows: netstat -ano | findstr :54321
-# Mac/Linux: lsof -i :54321
+# Windows: netstat -ano | findstr :<api_port>
+# Mac/Linux: lsof -i :<api_port>
+# Get api_port from: npx supabase status (or supabase/config.toml [api] port)
 
 # dev-start.bat automatically reconciles Supabase ports in config.toml
 # to avoid Windows excluded ranges; rerun dev-start.bat first.

@@ -52,7 +52,7 @@ const PartCard: React.FC<PartCardProps> = ({ part, onClick, isMobile }) => {
           {/* Alternates indicator on image */}
           {part.hasAlternates && (
             <div 
-              className="absolute -top-1 -right-1 h-4 w-4 bg-info/100 rounded-full flex items-center justify-center"
+              className="absolute -top-1 -right-1 h-4 w-4 bg-info rounded-full flex items-center justify-center"
               title="Has alternates"
             >
               <RefreshCw className="h-2.5 w-2.5 text-primary-foreground" />

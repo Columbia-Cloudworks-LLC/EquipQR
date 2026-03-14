@@ -150,7 +150,7 @@ export const AlternateGroupForm: React.FC<AlternateGroupFormProps> = ({
           <SelectContent>
             <SelectItem value="unverified">
               <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-warning/100" />
+                <span className="w-2 h-2 rounded-full bg-warning" />
                 Unverified
               </span>
             </SelectItem>
