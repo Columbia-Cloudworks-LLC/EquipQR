@@ -138,7 +138,7 @@ See **[Local Supabase Development Guide](../ops/local-supabase-development.md)**
 
 3. **Configure local environment**:
    - Create `.env.local` with local Supabase credentials (from `npx supabase status`)
-   - Use local Supabase URL: `http://localhost:54321`
+   - Use local Supabase URL from `supabase/config.toml` or `npx supabase status` (default: `http://localhost:54321`)
 
 **For production access (initial setup only):**
 

@@ -150,11 +150,11 @@ export const PendingSyncBanner: React.FC = () => {
 type BannerVariant = 'info' | 'warning' | 'muted' | 'destructive' | 'success';
 
 const variantStyles: Record<BannerVariant, string> = {
-  info: 'border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-100',
-  warning: 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-100',
+  info: 'border-info/30 bg-info/10 text-info dark:border-info/40 dark:bg-info/20 dark:text-info',
+  warning: 'border-warning/30 bg-warning/10 text-warning dark:border-warning/50 dark:bg-warning/20 dark:text-warning',
   muted: 'border-muted bg-muted/50 text-muted-foreground',
   destructive: 'border-destructive/50 bg-destructive/10 text-destructive dark:border-destructive/30 dark:bg-destructive/20',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-100',
+  success: 'border-success/30 bg-success/10 text-success dark:border-success/40 dark:bg-success/20 dark:text-success',
 };
 
 const BannerWrapper: React.FC<{
@@ -169,3 +169,4 @@ const BannerWrapper: React.FC<{
     {children}
   </Alert>
 );
+

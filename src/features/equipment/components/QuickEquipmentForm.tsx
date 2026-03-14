@@ -339,9 +339,9 @@ export const QuickEquipmentForm: React.FC<QuickEquipmentFormProps> = ({
           </div>
 
           {/* Info about parts matching */}
-          <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800 dark:text-blue-200">
+          <Alert className="border-info/30 bg-info/10 dark:bg-info/10">
+            <Info className="h-4 w-4 text-info" />
+            <AlertDescription className="text-info dark:text-info">
               Parts with compatibility rules matching this manufacturer/model will
               be automatically suggested for work orders on this equipment.
             </AlertDescription>
@@ -381,3 +381,4 @@ export const QuickEquipmentForm: React.FC<QuickEquipmentFormProps> = ({
 };
 
 export default QuickEquipmentForm;
+

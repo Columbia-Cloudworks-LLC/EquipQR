@@ -9,7 +9,7 @@
  * 4. Optionally updating the credentials row with new expiry/scopes
  */
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import { decryptToken, getTokenEncryptionKey } from "./crypto.ts";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";

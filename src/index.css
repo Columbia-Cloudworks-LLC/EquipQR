@@ -82,6 +82,13 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
+    /* Chart palette - for reports and data viz */
+    --chart-1: 217 91% 50%;
+    --chart-2: 162 63% 41%;
+    --chart-3: 45 93% 58%;
+    --chart-4: 20 90% 63%;
+    --chart-5: 252 57% 68%;
+
     --radius: 0.5rem;
 
     /* Spacing and layout tokens */
@@ -178,6 +185,10 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Construction border pattern (light) */
+    --construction-stripe-1: hsl(var(--foreground));
+    --construction-stripe-2: hsl(var(--warning));
   }
 
   .dark {
@@ -243,6 +254,13 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
 
+    /* Chart palette - lighter for dark bg visibility */
+    --chart-1: 217 91% 65%;
+    --chart-2: 162 63% 55%;
+    --chart-3: 45 93% 65%;
+    --chart-4: 20 90% 68%;
+    --chart-5: 252 57% 75%;
+
     /* Dark mode shadows - Enhanced elevation */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
     --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
@@ -276,6 +294,10 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Construction border pattern (dark) */
+    --construction-stripe-1: hsl(var(--warning));
+    --construction-stripe-2: hsl(var(--primary));
   }
 }
 
@@ -503,10 +525,10 @@
     background: 
       repeating-linear-gradient(
         45deg,
-        #000 0px,
-        #000 8px,
-        #FFEB3B 8px,
-        #FFEB3B 16px
+        var(--construction-stripe-1) 0px,
+        var(--construction-stripe-1) 8px,
+        var(--construction-stripe-2) 8px,
+        var(--construction-stripe-2) 16px
       );
     z-index: 0;
     pointer-events: none;
@@ -531,15 +553,15 @@
     z-index: 2;
   }
 
-  /* Dark mode variant - lighter colors for better visibility */
+  /* Dark mode variant - uses --construction-stripe-* from .dark */
   .dark .border-construction::before {
     background: 
       repeating-linear-gradient(
         45deg,
-        #FFEB3B 0px,
-        #FFEB3B 8px,
-        #FFA000 8px,
-        #FFA000 16px
+        var(--construction-stripe-1) 0px,
+        var(--construction-stripe-1) 8px,
+        var(--construction-stripe-2) 8px,
+        var(--construction-stripe-2) 16px
       );
   }
 }
@@ -590,7 +612,8 @@
   color: hsl(var(--foreground)) !important;
   font-size: 0.875rem !important;
   line-height: 1.25rem !important;
-  outline: none !important;
+  outline: 2px solid transparent !important;
+  outline-offset: 2px !important;
   box-shadow: none !important;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
 }

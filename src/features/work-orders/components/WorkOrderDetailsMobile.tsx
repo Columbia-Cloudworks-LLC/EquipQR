@@ -129,7 +129,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
           {workOrder.due_date && (
             <div className={cn(
               "flex items-center gap-2 text-sm",
-              dueUrgent && "text-red-600 dark:text-red-400"
+              dueUrgent && "text-destructive dark:text-destructive"
             )}>
               <Clock className="h-4 w-4" />
               <span className="font-medium">Due:</span>
@@ -191,7 +191,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
           className={cn(
             "shadow-elevation-2 transition-colors",
             onScrollToPM && "cursor-pointer hover:bg-muted/50",
-            workOrder.pm_status === 'completed' && "border-green-200 dark:border-green-800"
+            workOrder.pm_status === 'completed' && "border-success/30 dark:border-success/40"
           )}
           onClick={onScrollToPM ? () => onScrollToPM() : undefined}
         >
@@ -203,7 +203,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 {workOrder.pm_status === 'completed' ? (
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400">
+                  <Badge variant="outline" className="bg-success/10 text-success border-success/30 dark:bg-success/15 dark:text-success">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Complete
                   </Badge>
@@ -403,3 +403,4 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
     </div>
   );
 };
+

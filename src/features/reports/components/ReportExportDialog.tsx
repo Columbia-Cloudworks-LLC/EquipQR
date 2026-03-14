@@ -184,7 +184,7 @@ export const ReportExportDialog: React.FC<ReportExportDialogProps> = ({
 
           {/* Row Limit Warning */}
           {recordCount > 50000 && (
-            <div className="flex items-center gap-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-700 dark:text-yellow-400">
+            <div className="flex items-center gap-2 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm text-warning dark:text-warning">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
               <p>
                 Large dataset detected. Export will be limited to 50,000 records.
@@ -226,3 +226,4 @@ export const ReportExportDialog: React.FC<ReportExportDialogProps> = ({
 };
 
 export default ReportExportDialog;
+

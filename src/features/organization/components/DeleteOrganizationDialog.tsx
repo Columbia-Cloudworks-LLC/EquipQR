@@ -155,9 +155,9 @@ export const DeleteOrganizationDialog: React.FC<DeleteOrganizationDialogProps> =
 
             {/* Members warning */}
             {stats && stats.member_count > 0 && (
-              <Alert className="border-yellow-500/50 bg-yellow-500/10">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <AlertDescription className="text-yellow-700 dark:text-yellow-400">
+              <Alert className="border-warning/50 bg-warning/10">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <AlertDescription className="text-warning dark:text-warning">
                   This organization has <strong>{stats.member_count} other member(s)</strong>.
                   They will lose access when the organization is deleted.
                   <div className="mt-2">
@@ -238,3 +238,4 @@ export const DeleteOrganizationDialog: React.FC<DeleteOrganizationDialogProps> =
 };
 
 export default DeleteOrganizationDialog;
+

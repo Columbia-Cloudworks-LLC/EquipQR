@@ -30,30 +30,30 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'manager':
-        return <Users className="h-4 w-4 text-blue-600" />;
+        return <Users className="h-4 w-4 text-info" />;
       case 'technician':
-        return <User className="h-4 w-4 text-green-600" />;
+        return <User className="h-4 w-4 text-success" />;
       case 'requestor':
-        return <User className="h-4 w-4 text-orange-600" />;
+        return <User className="h-4 w-4 text-warning" />;
       case 'viewer':
-        return <User className="h-4 w-4 text-gray-600" />;
+        return <User className="h-4 w-4 text-muted-foreground" />;
       default:
-        return <User className="h-4 w-4 text-gray-600" />;
+        return <User className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'manager':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-info/20 text-info border-info/30';
       case 'technician':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-success/20 text-success border-success/30';
       case 'requestor':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-warning/20 text-warning border-warning/30';
       case 'viewer':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-foreground border-border';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -175,3 +175,4 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
 };
 
 export default TeamMembersList;
+

@@ -186,7 +186,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
         {/* PM Warning Indicator */}
         {primaryAction.disabled && workOrder.has_pm && workOrder.status === 'in_progress' && (
           <div className="absolute -top-1 -right-1">
-            <AlertTriangle className="h-3 w-3 text-amber-500" />
+            <AlertTriangle className="h-3 w-3 text-warning" />
           </div>
         )}
       </div>
@@ -201,4 +201,5 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
     </>
   );
 };
+
 

@@ -1,10 +1,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getWorkOrderCosts } from '@/features/work-orders/services/workOrderCostsService';
+import { workOrderMetrics } from '@/lib/queryKeys';
 
 export const useWorkOrderCostsSubtotal = (workOrderId: string) => {
   return useQuery({
-    queryKey: ['work-order-costs-subtotal', workOrderId],
+    queryKey: workOrderMetrics.costsSubtotal(workOrderId),
     queryFn: async () => {
       const costs = await getWorkOrderCosts(workOrderId);
       const subtotal = costs.reduce((sum, cost) => sum + cost.total_price_cents, 0);

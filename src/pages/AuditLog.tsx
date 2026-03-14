@@ -66,7 +66,7 @@ function AuditStatsCards({ organizationId }: { organizationId: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">{createdCount.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-success">{createdCount.toLocaleString()}</div>
         </CardContent>
       </Card>
       
@@ -77,7 +77,7 @@ function AuditStatsCards({ organizationId }: { organizationId: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-blue-600">{updatedCount.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-info">{updatedCount.toLocaleString()}</div>
         </CardContent>
       </Card>
       
@@ -88,7 +88,7 @@ function AuditStatsCards({ organizationId }: { organizationId: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">{deletedCount.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-destructive">{deletedCount.toLocaleString()}</div>
         </CardContent>
       </Card>
     </div>
@@ -240,3 +240,4 @@ function AuditLog() {
 }
 
 export default AuditLog;
+

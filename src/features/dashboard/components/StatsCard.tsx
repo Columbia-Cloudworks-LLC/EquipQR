@@ -65,8 +65,8 @@ export const StatsCard: React.FC<StatsCardProps> = ({
             {trend && (
               <div className={cn(
                 "text-xs flex items-center gap-1 mt-1",
-                trend.direction === 'up' && "text-green-600",
-                trend.direction === 'down' && "text-red-600",
+                trend.direction === 'up' && "text-success",
+                trend.direction === 'down' && "text-destructive",
                 trend.direction === 'flat' && "text-muted-foreground"
               )}>
                 <span>

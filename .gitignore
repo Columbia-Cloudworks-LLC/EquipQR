@@ -62,3 +62,8 @@ deno.lock
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+
+# Agent ecosystems not used in this Cursor-only workspace
+.agents/
+.claude/
+skills-lock.json

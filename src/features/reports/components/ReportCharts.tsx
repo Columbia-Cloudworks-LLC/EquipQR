@@ -10,7 +10,13 @@ interface ReportChartsProps {
   dashboardStats: DashboardStats | null;
 }
 
-const COLORS = ['#0088F2', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+];
 
 const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats }) => {
   const renderEquipmentCharts = (equipment: Equipment[]) => {
@@ -47,7 +53,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
                 labelLine={false}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 outerRadius={80}
-                fill="#8884d8"
+                fill="hsl(var(--chart-5))"
                 dataKey="value"
               >
                 {statusChartData.map((entry, index) => (
@@ -67,7 +73,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="count" fill="#8884d8" />
+              <Bar dataKey="count" fill="hsl(var(--chart-5))" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -121,7 +127,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
                 labelLine={false}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 outerRadius={80}
-                fill="#8884d8"
+                fill="hsl(var(--chart-5))"
                 dataKey="value"
               >
                 {statusChartData.map((entry, index) => (
@@ -141,7 +147,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="count" fill="#00C49F" />
+              <Bar dataKey="count" fill="hsl(var(--chart-2))" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -155,7 +161,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#FFBB28" strokeWidth={2} />
+                <Line type="monotone" dataKey="count" stroke="hsl(var(--chart-3))" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -183,7 +189,7 @@ const ReportCharts: React.FC<ReportChartsProps> = ({ data, type, dashboardStats 
             <XAxis dataKey="name" />
             <YAxis />
             <Tooltip />
-            <Bar dataKey="value" fill="#8884d8" />
+            <Bar dataKey="value" fill="hsl(var(--chart-5))" />
           </BarChart>
         </ResponsiveContainer>
       </div>

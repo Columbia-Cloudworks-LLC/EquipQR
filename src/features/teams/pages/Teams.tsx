@@ -28,6 +28,13 @@ const Teams = () => {
 
   const canCreateTeams = canCreateTeam();
 
+  const handleTeamCardKeyDown = (event: React.KeyboardEvent<HTMLElement>, teamId: string) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      navigate(`/dashboard/teams/${teamId}`);
+    }
+  };
+
   // Filter teams based on search term
   const filteredTeams = teams.filter(team =>
     team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -52,15 +59,15 @@ const Teams = () => {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'manager':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-info/20 text-info border-info/30';
       case 'technician':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-success/20 text-success border-success/30';
       case 'requestor':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-warning/20 text-warning border-warning/30';
       case 'viewer':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-foreground border-border';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -80,13 +87,13 @@ const Teams = () => {
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-4 bg-muted/80 rounded w-3/4"></div>
+                <div className="h-3 bg-muted/80 rounded w-1/2"></div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-3 bg-muted/80 rounded"></div>
+                  <div className="h-3 bg-muted/80 rounded w-2/3"></div>
                 </div>
               </CardContent>
             </Card>
@@ -121,6 +128,7 @@ const Teams = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
+          aria-label="Search teams by name or description"
         />
       </div>
 
@@ -162,6 +170,10 @@ const Teams = () => {
               key={team.id} 
               className="hover:shadow-md transition-shadow cursor-pointer group"
               onClick={() => navigate(`/dashboard/teams/${team.id}`)}
+              onKeyDown={(event) => handleTeamCardKeyDown(event, team.id)}
+              role="button"
+              tabIndex={0}
+              aria-label={`Open team details for ${team.name}`}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -227,7 +239,7 @@ const Teams = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+                <div className="pt-2 border-t">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -288,3 +300,4 @@ const Teams = () => {
 };
 
 export default Teams;
+

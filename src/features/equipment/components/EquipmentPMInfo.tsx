@@ -42,7 +42,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+            <AlertTriangle className="h-5 w-5 text-warning" />
             Preventative Maintenance (PM)
           </CardTitle>
         </CardHeader>
@@ -62,7 +62,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CheckCircle className="h-5 w-5 text-green-600" />
+          <CheckCircle className="h-5 w-5 text-success" />
             Latest Preventative Maintenance (PM)
         </CardTitle>
       </CardHeader>
@@ -90,7 +90,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge className="bg-green-100 text-green-800">
+          <Badge className="bg-success/20 text-success">
             Completed
           </Badge>
           <span className="text-sm text-muted-foreground">
@@ -115,3 +115,4 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
 };
 
 export default EquipmentPMInfo;
+

@@ -101,6 +101,13 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     document.body.removeChild(link);
   };
 
+  const handleImagePreviewKeyDown = (e: React.KeyboardEvent<HTMLElement>, image: ImageData) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setSelectedImage(image);
+    }
+  };
+
   if (images.length === 0) {
     return (
       <Card>
@@ -133,12 +140,16 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                     alt={image.file_name}
                     className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
                     onClick={() => setSelectedImage(image)}
+                    onKeyDown={(e) => handleImagePreviewKeyDown(e, image)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open image ${image.file_name}`}
                   />
                   
                   {/* Display Image Indicator */}
                   {currentDisplayImage === image.file_url && (
                     <div className="absolute top-2 left-2">
-                      <Badge className="bg-yellow-500 text-yellow-900 text-xs">
+                      <Badge className="bg-warning text-warning-foreground text-xs">
                         <Star className="h-3 w-3 mr-1" />
                         Display
                       </Badge>
@@ -152,6 +163,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                       variant="secondary"
                       className="h-8 w-8 p-0"
                       onClick={() => setSelectedImage(image)}
+                      aria-label={`View image ${image.file_name}`}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -163,6 +175,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                         className="h-8 w-8 p-0"
                         onClick={() => handleSetDisplayImage(image)}
                         disabled={isSettingDisplay === image.id}
+                        aria-label={`Set ${image.file_name} as display image`}
                       >
                         <Star className="h-4 w-4" />
                       </Button>
@@ -175,6 +188,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                         className="h-8 w-8 p-0"
                         onClick={handleRemoveDisplayImage}
                         disabled={isSettingDisplay === image.id}
+                        aria-label={`Remove ${image.file_name} as display image`}
                       >
                         <StarOff className="h-4 w-4" />
                       </Button>
@@ -187,6 +201,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                         className="h-8 w-8 p-0"
                         onClick={() => handleDelete(image)}
                         disabled={isDeleting === image.id}
+                        aria-label={`Delete image ${image.file_name}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -290,3 +305,4 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
 };
 
 export default ImageGallery;
+

@@ -114,8 +114,8 @@ const DevQuickLogin: React.FC = () => {
   const selectedUser = DEV_USERS.find((u) => u.email === selectedEmail);
 
   return (
-    <div className="rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 p-4 dark:border-amber-600 dark:bg-amber-950/30">
-      <div className="mb-3 flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+    <div className="rounded-lg border-2 border-dashed border-warning/50 bg-warning/10 p-4 dark:border-warning/50 dark:bg-warning/15">
+      <div className="mb-3 flex items-center gap-2 text-sm font-medium text-warning dark:text-warning">
         <Bug className="h-4 w-4" />
         <span>Dev Quick Login</span>
       </div>
@@ -151,7 +151,7 @@ const DevQuickLogin: React.FC = () => {
         <Button
           type="button"
           variant="outline"
-          className="w-full border-amber-400 hover:bg-amber-100 dark:border-amber-600 dark:hover:bg-amber-900/50"
+          className="w-full border-warning/50 hover:bg-warning/20 dark:border-warning/50 dark:hover:bg-warning/25"
           onClick={handleQuickLogin}
           disabled={!selectedEmail || isLoading}
         >
@@ -176,3 +176,4 @@ const DevQuickLogin: React.FC = () => {
 };
 
 export default DevQuickLogin;
+

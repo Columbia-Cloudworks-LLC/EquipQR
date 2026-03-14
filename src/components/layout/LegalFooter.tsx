@@ -52,7 +52,7 @@ export default function LegalFooter() {
                 <img 
                   src="/icons/Columbia-Cloudworks-Icon-Small.png" 
                   alt="Columbia Cloudworks" 
-                  className="hidden sm:inline w-5 h-5 md:w-6 md:h-6 self-center rounded-sm opacity-90 ring-1 ring-white/10"
+                  className="hidden sm:inline w-5 h-5 md:w-6 md:h-6 self-center rounded-sm opacity-90 ring-1 ring-background/10"
                 />
                 Columbia Cloudworks LLC
               </ExternalLink>
@@ -95,3 +95,4 @@ export default function LegalFooter() {
     </footer>
   );
 }
+

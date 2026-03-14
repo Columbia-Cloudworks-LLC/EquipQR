@@ -58,6 +58,17 @@ export const TemplateApplicationDialog: React.FC<TemplateApplicationDialogProps>
     }
   };
 
+  const handleCardKeyDown = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+    equipmentId: string,
+    isSelected: boolean,
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleSelectEquipment(equipmentId, !isSelected);
+    }
+  };
+
   const handleApplyTemplate = async () => {
     if (!template || !currentOrganization || selectedEquipment.length === 0) return;
 
@@ -149,10 +160,11 @@ export const TemplateApplicationDialog: React.FC<TemplateApplicationDialogProps>
             </div>
             <div className="flex items-center space-x-2 ml-4">
               <Checkbox
+                id="select-all-equipment"
                 checked={selectedEquipment.length === filteredEquipment.length && filteredEquipment.length > 0}
                 onCheckedChange={handleSelectAll}
               />
-              <Label>Select All ({filteredEquipment.length})</Label>
+              <Label htmlFor="select-all-equipment">Select All ({filteredEquipment.length})</Label>
             </div>
           </div>
 
@@ -162,11 +174,20 @@ export const TemplateApplicationDialog: React.FC<TemplateApplicationDialogProps>
 
           <div className="max-h-96 overflow-y-auto space-y-2">
             {filteredEquipment.map((eq) => (
-              <Card key={eq.id} className="p-3 hover:bg-muted/50 cursor-pointer"
-                    onClick={() => handleSelectEquipment(eq.id, !selectedEquipment.includes(eq.id))}>
+              <Card
+                key={eq.id}
+                className="p-3 hover:bg-muted/50 cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onClick={() => handleSelectEquipment(eq.id, !selectedEquipment.includes(eq.id))}
+                onKeyDown={(event) => handleCardKeyDown(event, eq.id, selectedEquipment.includes(eq.id))}
+                aria-pressed={selectedEquipment.includes(eq.id)}
+                aria-label={`Select equipment ${eq.name}`}
+              >
                 <div className="flex items-center space-x-3">
                   <Checkbox
                     checked={selectedEquipment.includes(eq.id)}
+                    onClick={(event) => event.stopPropagation()}
                     onCheckedChange={(checked) => handleSelectEquipment(eq.id, checked as boolean)}
                   />
                   <div className="flex-1 min-w-0">

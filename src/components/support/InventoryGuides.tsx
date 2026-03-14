@@ -412,8 +412,8 @@ const InventoryGuides: React.FC = () => {
                       <div className="space-y-2">
                         <p>Mark the rule's confidence level:</p>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Unverified</Badge>
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Verified</Badge>
+                          <Badge className="bg-warning/20 text-warning dark:bg-warning/20 dark:text-warning">Unverified</Badge>
+                          <Badge className="bg-success/20 text-success dark:bg-success/20 dark:text-success">Verified</Badge>
                           <Badge variant="secondary">Deprecated</Badge>
                         </div>
                       </div>
@@ -763,7 +763,7 @@ const InventoryGuides: React.FC = () => {
                       title="Change Status to Verified"
                       description={
                         <span>
-                          Set the status dropdown to <Badge className="bg-green-600">Verified</Badge>.
+                          Set the status dropdown to <Badge className="bg-success">Verified</Badge>.
                         </span>
                       }
                     />
@@ -786,7 +786,7 @@ const InventoryGuides: React.FC = () => {
                       title="Save Changes"
                       description={
                         <span>
-                          Click Save. The group now shows a green <Badge className="bg-green-600">Verified</Badge> badge, 
+                          Click Save. The group now shows a green <Badge className="bg-success">Verified</Badge> badge, 
                           indicating technicians can trust the interchangeability.
                         </span>
                       }
@@ -834,3 +834,4 @@ const InventoryGuides: React.FC = () => {
 };
 
 export default InventoryGuides;
+

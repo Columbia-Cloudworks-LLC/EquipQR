@@ -9,6 +9,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { toast } from 'sonner';
+import { equipment, equipmentWorkingHours } from '@/lib/queryKeys';
 
 export const useEquipmentWorkingHoursHistory = (
   equipmentId: string, 
@@ -16,7 +17,7 @@ export const useEquipmentWorkingHoursHistory = (
   pageSize: number = 10
 ) => {
   return useQuery({
-    queryKey: ['equipment-working-hours-history', equipmentId, page, pageSize],
+    queryKey: equipmentWorkingHours.history(equipmentId, page, pageSize),
     queryFn: () => getEquipmentWorkingHoursHistory(equipmentId, page, pageSize),
     enabled: !!equipmentId,
   });
@@ -24,7 +25,7 @@ export const useEquipmentWorkingHoursHistory = (
 
 export const useEquipmentCurrentWorkingHours = (equipmentId: string) => {
   return useQuery({
-    queryKey: ['equipment-current-working-hours', equipmentId],
+    queryKey: equipmentWorkingHours.current(equipmentId),
     queryFn: () => getEquipmentCurrentWorkingHours(equipmentId),
     enabled: !!equipmentId,
   });
@@ -51,13 +52,14 @@ export const useUpdateEquipmentWorkingHours = () => {
       } else {
         toast.success('Equipment working hours updated successfully');
         queryClient.invalidateQueries({
-          queryKey: ['equipment-working-hours-history', variables.equipmentId],
+          queryKey: equipmentWorkingHours.historyRoot(variables.equipmentId),
+          exact: false,
         });
         queryClient.invalidateQueries({
-          queryKey: ['equipment-current-working-hours', variables.equipmentId],
+          queryKey: equipmentWorkingHours.current(variables.equipmentId),
         });
         queryClient.invalidateQueries({
-          queryKey: ['equipment'],
+          queryKey: equipment.root,
           exact: false,
         });
       }

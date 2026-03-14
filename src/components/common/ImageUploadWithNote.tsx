@@ -168,6 +168,7 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
                     size="sm"
                     className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => removeFile(index)}
+                    aria-label={`Remove selected image ${file.name}`}
                   >
                     <X className="h-3 w-3" />
                   </Button>

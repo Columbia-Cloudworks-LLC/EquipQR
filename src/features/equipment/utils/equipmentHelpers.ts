@@ -52,13 +52,13 @@ export const getStatusColor = (status: string): string => {
 export const getStatusTextColor = (status: string): string => {
   switch (status) {
     case 'active':
-      return 'text-green-600';
+      return 'text-success';
     case 'maintenance':
-      return 'text-yellow-600';
+      return 'text-warning';
     case 'inactive':
-      return 'text-gray-600';
+      return 'text-muted-foreground';
     default:
-      return 'text-gray-600';
+      return 'text-muted-foreground';
   }
 };
 

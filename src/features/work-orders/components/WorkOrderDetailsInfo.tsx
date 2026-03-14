@@ -39,6 +39,27 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
   // Use historical working hours from work order if available, otherwise show current
   const workingHours = workOrder.equipment_working_hours_at_creation ?? currentWorkingHours;
 
+  const miniMapContainerStyle = React.useMemo(
+    () => ({ width: '100%', height: '100%' }),
+    []
+  );
+
+  const miniMapOptions = React.useMemo<google.maps.MapOptions>(
+    () => ({
+      disableDefaultUI: true,
+      zoomControl: false,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+    }),
+    []
+  );
+
+  const locationCenter = React.useMemo(() => {
+    if (effectiveLocation?.lat == null || effectiveLocation?.lng == null) return null;
+    return { lat: effectiveLocation.lat, lng: effectiveLocation.lng };
+  }, [effectiveLocation?.lat, effectiveLocation?.lng]);
+
   return (
     <Card className="shadow-elevation-2">
       <CardHeader>
@@ -87,26 +108,19 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                     {/* Location Map */}
                     <div className="rounded-lg overflow-hidden border">
                       {(() => {
-                        const hasCoords = effectiveLocation?.lat != null && effectiveLocation?.lng != null;
+                        const hasCoords = locationCenter !== null;
 
                         if (hasCoords && isMapsLoaded) {
-                          const center = { lat: effectiveLocation!.lat!, lng: effectiveLocation!.lng! };
                           return (
                             <div className="flex flex-col h-48">
                               <div className="flex-1 min-h-0">
                                 <GoogleMap
-                                  mapContainerStyle={{ width: '100%', height: '100%' }}
-                                  center={center}
+                                  mapContainerStyle={miniMapContainerStyle}
+                                  center={locationCenter!}
                                   zoom={14}
-                                  options={{
-                                    disableDefaultUI: true,
-                                    zoomControl: false,
-                                    mapTypeControl: false,
-                                    streetViewControl: false,
-                                    fullscreenControl: false,
-                                  }}
+                                  options={miniMapOptions}
                                 >
-                                  <MarkerF position={center} />
+                                  <MarkerF position={locationCenter!} />
                                 </GoogleMap>
                               </div>
                               {effectiveLocation!.formattedAddress && (
@@ -168,9 +182,9 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                   </Link>
                   <Badge variant="outline" className={`
                     w-fit
-                    ${equipment.status === 'active' ? 'border-green-200 text-green-800' :
-                    equipment.status === 'maintenance' ? 'border-yellow-200 text-yellow-800' :
-                    'border-red-200 text-red-800'}
+                    ${equipment.status === 'active' ? 'border-success/30 text-success' :
+                    equipment.status === 'maintenance' ? 'border-warning/30 text-warning' :
+                    'border-destructive/30 text-destructive'}
                   `}>
                     {equipment.status}
                   </Badge>
@@ -271,3 +285,4 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
 };
 
 export default WorkOrderDetailsInfo;
+

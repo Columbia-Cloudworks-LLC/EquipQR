@@ -131,7 +131,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-info/10 to-primary/20">
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
@@ -143,7 +143,7 @@ const Auth = () => {
             </CardTitle>
             <CardDescription>
               {pendingQRScan ? (
-                <span className="flex items-center justify-center gap-2 text-blue-600">
+                <span className="flex items-center justify-center gap-2 text-info">
                   <QrCode className="h-4 w-4" />
                   <span>Complete sign in to view scanned equipment</span>
                 </span>
@@ -269,3 +269,4 @@ const Auth = () => {
 };
 
 export default Auth;
+

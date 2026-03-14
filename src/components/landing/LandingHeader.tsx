@@ -19,11 +19,12 @@ interface NavigationItem {
 const navigation: NavigationItem[] = [
   { name: 'Features', href: '#features' },
   { name: 'About', href: '#about' },
-  { name: 'Field-Tested', href: '#pricing' },
+  { name: 'Customers', href: '#customers' },
+  { name: 'Pricing', href: '#pricing' },
 ];
 
-// Stable constant for section IDs to avoid unnecessary re-renders
-const SECTION_IDS: string[] = ['features', 'pricing', 'about'];
+// Stable constant for section IDs to avoid unnecessary re-renders (order matches page flow)
+const SECTION_IDS: string[] = ['features', 'about', 'customers', 'pricing'];
 
 const LandingHeader = () => {
   const location = useLocation();
@@ -87,7 +88,7 @@ const LandingHeader = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button asChild variant="ghost">
+            <Button asChild variant="outline">
               <Link to="/auth?tab=signin">Sign In</Link>
             </Button>
             <Button asChild>

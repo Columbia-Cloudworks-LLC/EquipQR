@@ -4,14 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { CheckCircle, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Circle, RotateCcw, MessageSquare, MessageSquareText } from 'lucide-react';
-
-import { SegmentedProgress } from '@/components/ui/segmented-progress';
-import { createSegmentsForSection } from '@/utils/pmChecklistHelpers';
+import { CheckCircle, Clock, AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
 import { PMChecklistItem, PreventativeMaintenance, defaultForkliftChecklist } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAutoSave } from '@/hooks/useAutoSave';
@@ -24,171 +18,16 @@ import { workOrderRevertService } from '@/features/work-orders/services/workOrde
 import { WorkOrderData, EquipmentData, TeamMemberData, OrganizationData } from '@/features/work-orders/types/workOrderDetails';
 import { logger } from '@/utils/logger';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
-import { cn } from '@/lib/utils';
+import PMChecklistSections from '@/features/work-orders/components/PMChecklistSections';
+import { preventiveMaintenance } from '@/lib/queryKeys';
 
 // ============================================
 // Pure utility functions (hoisted to module scope)
 // ============================================
 
-const CONDITION_RATINGS = [
-  { value: 1, label: 'OK', color: 'text-green-600' },
-  { value: 2, label: 'Adjusted', color: 'text-yellow-600' },
-  { value: 3, label: 'Recommend Repairs', color: 'text-orange-600' },
-  { value: 4, label: 'Requires Immediate Repairs', color: 'text-red-600' },
-  { value: 5, label: 'Unsafe Condition Present', color: 'text-red-800' }
-] as const;
-
-function getConditionColor(condition: number | null | undefined): string {
-  if (condition === null || condition === undefined) return 'text-red-600';
-  switch (condition) {
-    case 1: return 'text-green-600';
-    case 2: return 'text-yellow-600';
-    case 3: return 'text-orange-600';
-    case 4: return 'text-red-600';
-    case 5: return 'text-red-800';
-    default: return 'text-gray-600';
-  }
-}
-
-function getConditionText(condition: number | null | undefined): string {
-  if (condition === null || condition === undefined) return 'Not Rated';
-  switch (condition) {
-    case 1: return 'OK';
-    case 2: return 'Adjusted';
-    case 3: return 'Recommend Repairs';
-    case 4: return 'Requires Immediate Repairs';
-    case 5: return 'Unsafe Condition Present';
-    default: return 'Unknown';
-  }
-}
-
 function isItemComplete(item: PMChecklistItem): boolean {
   return item.condition !== undefined && item.condition !== null;
 }
-
-// ============================================
-// Memoized sub-component for individual checklist items
-// Prevents re-rendering all items when only one changes.
-// ============================================
-
-interface PMChecklistItemRowProps {
-  item: PMChecklistItem;
-  readOnly: boolean;
-  pmStatus: string;
-  onConditionChange: (itemId: string, condition: 1 | 2 | 3 | 4 | 5) => void;
-  onToggleNotes: (itemId: string) => void;
-  showNotes: boolean;
-  borderClass: string;
-  onNotesChange: (itemId: string, notes: string) => void;
-}
-
-const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMChecklistItemRow({
-  item,
-  readOnly,
-  pmStatus,
-  onConditionChange,
-  onToggleNotes,
-  showNotes,
-  borderClass,
-  onNotesChange,
-}) {
-  const editable = !readOnly && pmStatus !== 'completed';
-
-  return (
-    <div className={`p-4 border rounded-lg ${borderClass}`}>
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2">
-            {isItemComplete(item) ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            ) : (
-              <Circle className="h-4 w-4 text-red-600" />
-            )}
-            <span className="font-medium">{item.title}</span>
-          </div>
-          <span className={`text-sm font-medium ${getConditionColor(item.condition)}`}>
-            {getConditionText(item.condition)}
-          </span>
-        </div>
-        {item.description && (
-          <p className="text-sm text-muted-foreground">{item.description}</p>
-        )}
-
-        {editable && (
-          <div className="flex items-start gap-2">
-            <div className="flex-1 space-y-2">
-              <Label className="text-sm font-medium">Maintenance Assessment:</Label>
-              <Select
-                value={item.condition?.toString() || ''}
-                onValueChange={(value) => onConditionChange(item.id, parseInt(value) as 1 | 2 | 3 | 4 | 5)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select assessment..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONDITION_RATINGS.map((rating) => (
-                    <SelectItem
-                      key={rating.value}
-                      value={rating.value.toString()}
-                      className={rating.color}
-                    >
-                      {rating.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 mt-6 shrink-0"
-              onClick={() => onToggleNotes(item.id)}
-              aria-label={
-                showNotes
-                  ? "Hide notes"
-                  : item.notes
-                    ? "Show notes"
-                    : "Add notes"
-              }
-            >
-              {item.notes ? (
-                <MessageSquareText className="h-4 w-4 text-primary" />
-              ) : (
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              )}
-            </Button>
-          </div>
-        )}
-
-        {/* Animated notes container */}
-        {editable && (
-          <div
-            className={cn(
-              "grid min-h-0 transition-all duration-200 ease-out",
-              showNotes ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-            )}
-          >
-            <div className="overflow-hidden min-h-0">
-              <Textarea
-                placeholder="Add notes for this item..."
-                value={item.notes || ''}
-                onChange={(e) => onNotesChange(item.id, e.target.value)}
-                className="mt-2"
-                rows={2}
-              />
-            </div>
-          </div>
-        )}
-        {item.notes && (readOnly || pmStatus === 'completed') && (
-          <div className="mt-2 p-2 bg-muted rounded text-sm">
-            <strong>Notes:</strong> {item.notes}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-});
 
 // ============================================
 // Main Component
@@ -624,7 +463,11 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         return;
       }
       const orgId = organization.id;
-      const queryKey = ['preventativeMaintenance', workOrder?.id || pm.work_order_id, equipment?.id || pm.equipment_id, orgId];
+      const queryKey = preventiveMaintenance.byWorkOrderAndEquipment(
+        workOrder?.id || pm.work_order_id,
+        equipment?.id || pm.equipment_id,
+        orgId
+      );
       queryClient.setQueryData(queryKey, updatedPM);
       
       // Save to database using mutation hook
@@ -670,26 +513,26 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const getStatusIcon = () => {
     switch (pm.status) {
       case 'completed':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
+        return <CheckCircle className="h-5 w-5 text-success" />;
       case 'in_progress':
-        return <Clock className="h-5 w-5 text-blue-600" />;
+        return <Clock className="h-5 w-5 text-info" />;
       case 'pending':
-        return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
+        return <AlertTriangle className="h-5 w-5 text-warning" />;
       default:
-        return <Clock className="h-5 w-5 text-gray-600" />;
+        return <Clock className="h-5 w-5 text-muted-foreground" />;
     }
   };
 
   const getStatusColor = () => {
     switch (pm.status) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success/20 text-success';
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-info/20 text-info';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-warning/20 text-warning';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 
@@ -793,9 +636,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const getItemBorderClass = useCallback((item: PMChecklistItem) => {
     const isComplete = isItemComplete(item);
     if (isComplete) {
-      return 'border-l-4 border-l-green-500'; // Green border for completed items
+      return 'border-l-4 border-l-success'; // Green border for completed items
     } else if (item.required) {
-      return 'border-l-4 border-l-red-500'; // Red border for required unrated items
+      return 'border-l-4 border-l-destructive'; // Red border for required unrated items
     }
     return ''; // No colored border for optional unrated items
   }, []);
@@ -965,16 +808,16 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {pm.status !== 'completed' && unratedRequiredItems.length > 0 && (
-          <Alert className="border-red-200 bg-red-50">
+          <Alert className="border-destructive/30 bg-destructive/10">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-red-800">
+            <AlertDescription className="text-destructive">
               {unratedRequiredItems.length} required item(s) need to be rated before completion.
               {!readOnly && (
                 <>
                   {' '}
                   <button 
                     onClick={() => setShowSetAllOKDialog(true)}
-                    className="text-red-800 underline hover:no-underline focus:outline-none"
+                    className="text-destructive underline hover:no-underline focus:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
                     disabled={isSettingAllOK}
                   >
                     Set All to OK
@@ -986,60 +829,28 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         )}
 
         {pm.status !== 'completed' && unsafeItems.length > 0 && (
-          <Alert className="border-red-200 bg-red-50">
+          <Alert className="border-destructive/30 bg-destructive/10">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-red-800">
+            <AlertDescription className="text-destructive">
               {unsafeItems.length} item(s) marked as unsafe condition present require immediate attention.
             </AlertDescription>
           </Alert>
         )}
 
-        <div className="space-y-4">
-          {sections.map((section) => {
-            const sectionProgress = getSectionProgress(section);
-            const sectionItems = checklist.filter(item => item.section === section);
-            const segments = createSegmentsForSection(sectionItems);
-            
-            return (
-              <Collapsible key={section} open={openSections[section]} onOpenChange={() => toggleSection(section)}>
-                <CollapsibleTrigger asChild>
-                  <div className="relative overflow-hidden rounded-lg border bg-background shadow-sm">
-                    <SegmentedProgress 
-                      segments={segments}
-                      className="absolute inset-0 h-full opacity-30"
-                    />
-                    <Button variant="ghost" className="relative w-full justify-between p-4 h-auto hover:bg-accent/50">
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="font-semibold text-left">{section}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {sectionProgress.completed}/{sectionProgress.total} items completed ({Math.round(sectionProgress.percentage)}%)
-                        </span>
-                      </div>
-                      {openSections[section] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </CollapsibleTrigger>
-              <CollapsibleContent
-                className="pm-collapsible-animate space-y-3 pt-2 overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 data-[state=open]:duration-200 data-[state=closed]:duration-200"
-              >
-                {checklist.filter(item => item.section === section).map((item) => (
-                  <PMChecklistItemRow
-                    key={item.id}
-                    item={item}
-                    readOnly={!!readOnly}
-                    pmStatus={pm.status}
-                    onConditionChange={handleChecklistItemChange}
-                    onToggleNotes={toggleNotesVisibility}
-                    showNotes={shouldShowNotes(item)}
-                    borderClass={getItemBorderClass(item)}
-                    onNotesChange={handleNotesItemChange}
-                  />
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-            );
-          })}
-        </div>
+        <PMChecklistSections
+          sections={sections}
+          checklist={checklist}
+          openSections={openSections}
+          readOnly={!!readOnly}
+          pmStatus={pm.status}
+          toggleSection={toggleSection}
+          getSectionProgress={getSectionProgress}
+          handleChecklistItemChange={handleChecklistItemChange}
+          toggleNotesVisibility={toggleNotesVisibility}
+          shouldShowNotes={shouldShowNotes}
+          getItemBorderClass={getItemBorderClass}
+          handleNotesItemChange={handleNotesItemChange}
+        />
 
         <div className="space-y-2">
           <label className="text-sm font-medium">General Notes</label>
@@ -1077,7 +888,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
               onClick={revertPMCompletion}
               disabled={isReverting}
               variant="outline"
-              className="border-amber-300 text-amber-800 hover:bg-amber-100"
+              className="border-warning/40 text-warning hover:bg-warning/20"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               {isReverting ? 'Reverting...' : 'Revert Completion'}
@@ -1118,3 +929,4 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 };
 
 export default PMChecklistComponent;
+

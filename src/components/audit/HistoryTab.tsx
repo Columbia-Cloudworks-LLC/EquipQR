@@ -69,13 +69,13 @@ function getActionIcon(action: AuditAction) {
 function getActionColor(action: AuditAction) {
   switch (action) {
     case 'INSERT':
-      return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+      return 'bg-success/20 text-success dark:bg-success/20 dark:text-success';
     case 'UPDATE':
-      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      return 'bg-info/20 text-info dark:bg-info/20 dark:text-info';
     case 'DELETE':
-      return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+      return 'bg-destructive/20 text-destructive dark:bg-destructive/20 dark:text-destructive';
     default:
-      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
+      return 'bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground';
   }
 }
 
@@ -308,3 +308,4 @@ export function HistoryTab({ entityType, entityId, organizationId }: HistoryTabP
 }
 
 export default HistoryTab;
+

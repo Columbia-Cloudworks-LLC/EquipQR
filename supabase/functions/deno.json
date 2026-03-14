@@ -5,8 +5,7 @@
   },
   "compilerOptions": {
     "lib": ["deno.window"],
-    "strict": true,
-    "experimentalDecorators": true
+    "strict": true
   }
 }
 

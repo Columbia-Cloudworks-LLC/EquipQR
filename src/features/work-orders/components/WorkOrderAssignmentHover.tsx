@@ -86,7 +86,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
           {isLoading ? (
             <div className="text-xs text-muted-foreground">Loading options...</div>
           ) : isAssignmentBlocked ? (
-            <div className="flex items-start gap-2 text-xs text-amber-600">
+            <div className="flex items-start gap-2 text-xs text-warning">
               <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <span>No team assigned to equipment. Assign a team to enable assignments.</span>
             </div>
@@ -144,4 +144,5 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
     </Popover>
   );
 };
+
 

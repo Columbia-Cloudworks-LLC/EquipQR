@@ -160,13 +160,13 @@ const QRScanner = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-success/20 text-success border-success/30';
       case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-warning/20 text-warning border-warning/30';
       case 'inactive':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-foreground border-border';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -420,3 +420,4 @@ const QRScanner = () => {
 };
 
 export default QRScanner;
+

@@ -178,11 +178,11 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   const getStatusBadgeClass = (status?: QuickBooksExportLog['status']) => {
     switch (status) {
       case 'success':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'bg-success/10 text-success border-success/30';
       case 'error':
-        return 'bg-red-50 text-red-700 border-red-200';
+        return 'bg-destructive/10 text-destructive border-destructive/30';
       case 'pending':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-warning/10 text-warning border-warning/30';
       default:
         return 'bg-muted text-muted-foreground border-border';
     }
@@ -511,3 +511,4 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
 };
 
 export default QuickBooksExportButton;
+

@@ -194,7 +194,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
           ) : existingMapping ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                <Badge variant="outline" className="bg-success/10 text-success border-success/30">
                   <CheckCircle className="h-3 w-3 mr-1" />
                   Mapped
                 </Badge>
@@ -343,3 +343,4 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
 };
 
 export default QuickBooksCustomerMapping;
+

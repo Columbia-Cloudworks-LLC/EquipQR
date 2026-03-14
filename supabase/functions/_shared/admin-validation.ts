@@ -2,7 +2,7 @@
  * Admin validation utilities for super admin organization access control
  */
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 
 /**
  * Check if an organization ID matches the super admin organization

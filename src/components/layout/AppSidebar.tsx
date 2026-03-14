@@ -232,8 +232,8 @@ const AppSidebar = () => {
                       "transition-colors touch-manipulation",
                       textColorClass,
                       hasCustomBranding ? '' : 'data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground',
-                      hasCustomBranding && isLightBrand ? 'data-[state=open]:bg-black/10' : '',
-                      hasCustomBranding && !isLightBrand ? 'data-[state=open]:bg-white/20' : ''
+                      hasCustomBranding && isLightBrand ? 'data-[state=open]:bg-foreground/10' : '',
+                      hasCustomBranding && !isLightBrand ? 'data-[state=open]:bg-background/20' : ''
                     )}
                   >
                     <div className={cn(
@@ -304,3 +304,4 @@ const AppSidebar = () => {
 };
 
 export default AppSidebar;
+

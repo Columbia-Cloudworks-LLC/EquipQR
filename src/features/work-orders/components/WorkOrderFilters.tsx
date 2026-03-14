@@ -37,6 +37,14 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
   teams = []
 }) => {
   const isMobile = useIsMobile();
+  const mobileSearchInputId = 'work-order-search-mobile';
+  const mobileStatusFilterId = 'work-order-status-filter-mobile';
+  const mobileAssigneeFilterId = 'work-order-assignee-filter-mobile';
+  const mobilePriorityFilterId = 'work-order-priority-filter-mobile';
+  const mobileDueDateFilterId = 'work-order-due-date-filter-mobile';
+  const mobileTeamFilterId = 'work-order-team-filter-mobile';
+  const desktopSearchInputId = 'work-order-search-desktop';
+  const desktopStatusFilterId = 'work-order-status-filter-desktop';
 
   if (isMobile) {
     return (
@@ -45,6 +53,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
           <Input
+            id={mobileSearchInputId}
             placeholder="Search work orders..."
             value={filters.searchQuery}
             onChange={(e) => onFilterChange('searchQuery', e.target.value)}
@@ -64,7 +73,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
               key={preset.value}
               size="sm"
               variant="outline"
-              className="whitespace-nowrap flex-shrink-0"
+              className="whitespace-nowrap flex-shrink-0 min-h-11"
               onClick={() => {
                 onQuickFilter(preset.value);
                 onShowMobileFiltersChange(false);
@@ -105,9 +114,9 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                   
                   <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Status</label>
+                      <label htmlFor={mobileStatusFilterId} className="text-sm font-medium mb-2 block">Status</label>
                       <Select value={filters.statusFilter} onValueChange={(value) => onFilterChange('statusFilter', value)}>
-                        <SelectTrigger className="h-12">
+                        <SelectTrigger id={mobileStatusFilterId} className="h-12">
                           <SelectValue placeholder="All Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -124,9 +133,9 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Assignee</label>
+                      <label htmlFor={mobileAssigneeFilterId} className="text-sm font-medium mb-2 block">Assignee</label>
                       <Select value={filters.assigneeFilter} onValueChange={(value) => onFilterChange('assigneeFilter', value)}>
-                        <SelectTrigger className="h-12">
+                        <SelectTrigger id={mobileAssigneeFilterId} className="h-12">
                           <SelectValue placeholder="All Assignees" />
                         </SelectTrigger>
                         <SelectContent>
@@ -138,9 +147,9 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Priority</label>
+                      <label htmlFor={mobilePriorityFilterId} className="text-sm font-medium mb-2 block">Priority</label>
                       <Select value={filters.priorityFilter} onValueChange={(value) => onFilterChange('priorityFilter', value)}>
-                        <SelectTrigger className="h-12">
+                        <SelectTrigger id={mobilePriorityFilterId} className="h-12">
                           <SelectValue placeholder="All Priorities" />
                         </SelectTrigger>
                         <SelectContent>
@@ -153,9 +162,9 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Due Date</label>
+                      <label htmlFor={mobileDueDateFilterId} className="text-sm font-medium mb-2 block">Due Date</label>
                       <Select value={filters.dueDateFilter} onValueChange={(value) => onFilterChange('dueDateFilter', value)}>
-                        <SelectTrigger className="h-12">
+                        <SelectTrigger id={mobileDueDateFilterId} className="h-12">
                           <SelectValue placeholder="All Dates" />
                         </SelectTrigger>
                         <SelectContent>
@@ -168,9 +177,9 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Team</label>
+                      <label htmlFor={mobileTeamFilterId} className="text-sm font-medium mb-2 block">Team</label>
                       <Select value={filters.teamFilter} onValueChange={(value) => onFilterChange('teamFilter', value)}>
-                        <SelectTrigger className="h-12">
+                        <SelectTrigger id={mobileTeamFilterId} className="h-12">
                           <SelectValue placeholder="All Teams" />
                         </SelectTrigger>
                         <SelectContent>
@@ -203,59 +212,87 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-muted-foreground">Active:</span>
             {filters.statusFilter !== 'all' && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                Status: {filters.statusFilter}
-                <X
-                  className="h-3 w-3 cursor-pointer hover:text-foreground"
+              <Badge variant="secondary" className="flex max-w-full items-center gap-1">
+                <span className="truncate" title={`Status: ${filters.statusFilter}`}>
+                  Status: {filters.statusFilter}
+                </span>
+                <button
+                  type="button"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
                   onClick={() => onFilterChange('statusFilter', 'all')}
                   aria-label="Clear status filter"
-                />
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </Badge>
             )}
             {filters.assigneeFilter !== 'all' && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                Assignee: {filters.assigneeFilter === 'mine' ? 'Mine' : filters.assigneeFilter}
-                <X
-                  className="h-3 w-3 cursor-pointer hover:text-foreground"
+              <Badge variant="secondary" className="flex max-w-full items-center gap-1">
+                <span className="truncate" title={`Assignee: ${filters.assigneeFilter === 'mine' ? 'Mine' : filters.assigneeFilter}`}>
+                  Assignee: {filters.assigneeFilter === 'mine' ? 'Mine' : filters.assigneeFilter}
+                </span>
+                <button
+                  type="button"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
                   onClick={() => onFilterChange('assigneeFilter', 'all')}
                   aria-label="Clear assignee filter"
-                />
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </Badge>
             )}
             {filters.priorityFilter !== 'all' && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                Priority: {filters.priorityFilter}
-                <X
-                  className="h-3 w-3 cursor-pointer hover:text-foreground"
+              <Badge variant="secondary" className="flex max-w-full items-center gap-1">
+                <span className="truncate" title={`Priority: ${filters.priorityFilter}`}>
+                  Priority: {filters.priorityFilter}
+                </span>
+                <button
+                  type="button"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
                   onClick={() => onFilterChange('priorityFilter', 'all')}
                   aria-label="Clear priority filter"
-                />
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </Badge>
             )}
             {filters.dueDateFilter !== 'all' && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                Due: {filters.dueDateFilter}
-                <X
-                  className="h-3 w-3 cursor-pointer hover:text-foreground"
+              <Badge variant="secondary" className="flex max-w-full items-center gap-1">
+                <span className="truncate" title={`Due: ${filters.dueDateFilter}`}>
+                  Due: {filters.dueDateFilter}
+                </span>
+                <button
+                  type="button"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
                   onClick={() => onFilterChange('dueDateFilter', 'all')}
                   aria-label="Clear due date filter"
-                />
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </Badge>
             )}
             {filters.teamFilter !== 'all' && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                Team: {teams.find(t => t.id === filters.teamFilter)?.name || filters.teamFilter}
-                <X
-                  className="h-3 w-3 cursor-pointer hover:text-foreground"
+              <Badge variant="secondary" className="flex max-w-full items-center gap-1">
+                <span
+                  className="truncate"
+                  title={`Team: ${teams.find(t => t.id === filters.teamFilter)?.name || filters.teamFilter}`}
+                >
+                  Team: {teams.find(t => t.id === filters.teamFilter)?.name || filters.teamFilter}
+                </span>
+                <button
+                  type="button"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
                   onClick={() => onFilterChange('teamFilter', 'all')}
                   aria-label="Clear team filter"
-                />
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </Badge>
             )}
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs"
+              className="min-h-11 px-3 text-sm"
               onClick={onClearFilters}
             >
               Clear all
@@ -275,6 +312,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
+                  id={desktopSearchInputId}
                   placeholder="Search work orders..."
                   value={filters.searchQuery}
                   onChange={(e) => onFilterChange('searchQuery', e.target.value)}
@@ -283,7 +321,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
               </div>
             </div>
             <Select value={filters.statusFilter} onValueChange={(value) => onFilterChange('statusFilter', value)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger id={desktopStatusFilterId} className="w-full sm:w-[220px] min-h-11">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -311,6 +349,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                 key={preset.value}
                 size="sm"
                 variant="outline"
+                className="min-h-11"
                 onClick={() => onQuickFilter(preset.value)}
               >
                 {preset.label}
@@ -318,9 +357,9 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
             ))}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Select value={filters.assigneeFilter} onValueChange={(value) => onFilterChange('assigneeFilter', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="min-h-11">
                 <User className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Assignee" />
               </SelectTrigger>
@@ -332,7 +371,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
             </Select>
 
             <Select value={filters.priorityFilter} onValueChange={(value) => onFilterChange('priorityFilter', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="min-h-11">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
@@ -344,7 +383,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
             </Select>
 
             <Select value={filters.dueDateFilter} onValueChange={(value) => onFilterChange('dueDateFilter', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="min-h-11">
                 <Calendar className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Due Date" />
               </SelectTrigger>
@@ -357,7 +396,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
             </Select>
 
             <Select value={filters.teamFilter} onValueChange={(value) => onFilterChange('teamFilter', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="min-h-11">
                 <Users className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Team" />
               </SelectTrigger>
@@ -373,6 +412,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
 
             <Button
               variant="outline"
+              className="min-h-11"
               onClick={onClearFilters}
             >
               Clear Filters

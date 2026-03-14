@@ -31,7 +31,7 @@ const QRCodeIntegrationFeature = () => {
         description="Eliminate manual lookup and data entry. Technicians scan a code and land directly on the right equipment or work order—no typing, no lost time."
         className="bg-muted/30"
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-6xl mx-auto">
           {benefits.map((benefit) => (
             <BenefitCard
               key={benefit.title}

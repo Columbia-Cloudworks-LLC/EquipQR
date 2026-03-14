@@ -29,14 +29,14 @@ const MobileCostItem: React.FC<MobileCostItemProps> = React.memo(({
   const isFromInventory = !!cost.inventory_item_id;
 
   return (
-    <div className={`rounded-lg p-4 space-y-3 ${isFromInventory ? 'bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800' : 'bg-muted/50'}`}>
+    <div className={`rounded-lg p-4 space-y-3 ${isFromInventory ? 'bg-info/10 dark:bg-info/15 border border-info/30 dark:border-info/40' : 'bg-muted/50'}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isFromInventory && (
-            <Package className="h-4 w-4 text-blue-500" title="From inventory - removing will restore stock" />
+            <Package className="h-4 w-4 text-info" title="From inventory - removing will restore stock" />
           )}
           <span className="text-sm font-medium text-muted-foreground">
-            Description {isFromInventory && <span className="text-blue-500">(Inventory)</span>}
+            Description {isFromInventory && <span className="text-info">(Inventory)</span>}
           </span>
         </div>
         <Button
@@ -44,7 +44,7 @@ const MobileCostItem: React.FC<MobileCostItemProps> = React.memo(({
           variant="ghost"
           size="sm"
           onClick={() => onRemoveCost(cost.id)}
-          className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
+          className="text-destructive hover:text-destructive h-6 w-6 p-0"
           disabled={!canRemove}
         >
           <Trash2 className="h-4 w-4" />
@@ -107,3 +107,4 @@ const MobileCostItem: React.FC<MobileCostItemProps> = React.memo(({
 MobileCostItem.displayName = 'MobileCostItem';
 
 export default MobileCostItem;
+

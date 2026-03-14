@@ -62,6 +62,14 @@ export function DataTable<T extends Record<string, unknown>>({
   emptyMessage = 'No data available',
   className = ''
 }: DataTableProps<T>) {
+  const getAriaSort = (columnKey: string): 'ascending' | 'descending' | 'none' => {
+    if (sorting?.sortBy !== columnKey) {
+      return 'none';
+    }
+
+    return sorting.sortOrder === 'asc' ? 'ascending' : 'descending';
+  };
+
   const handleSort = (columnKey: string) => {
     if (!sorting?.onSortChange) return;
     
@@ -126,17 +134,25 @@ export function DataTable<T extends Record<string, unknown>>({
                 <TableHead 
                   key={index} 
                   style={{ width: column.width }}
-                  className={column.sortable ? 'cursor-pointer hover:bg-muted/50' : ''}
-                  onClick={() => column.sortable && handleSort(column.key as string)}
+                  className={column.sortable ? 'hover:bg-muted/50' : ''}
+                  aria-sort={column.sortable ? getAriaSort(column.key as string) : undefined}
                 >
-                  <div className="flex items-center gap-2">
-                    {column.title}
-                    {column.sortable && (
+                  {column.sortable ? (
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      onClick={() => handleSort(column.key as string)}
+                    >
+                      {column.title}
                       <span className="text-xs opacity-50">
                         {getSortIcon(column.key as string) || '↕'}
                       </span>
-                    )}
-                  </div>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {column.title}
+                    </div>
+                  )}
                 </TableHead>
               ))}
             </TableRow>

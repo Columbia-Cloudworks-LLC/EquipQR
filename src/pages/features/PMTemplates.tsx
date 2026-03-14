@@ -89,9 +89,9 @@ const PMTemplatesFeature = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-6xl mx-auto">
               {/* Consistency */}
-              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
                 <CardHeader className="pb-4">
                   <div className="mb-4">
                     <CheckCircle2 className="h-10 w-10 text-success" />
@@ -123,7 +123,7 @@ const PMTemplatesFeature = () => {
               </Card>
 
               {/* Documentation */}
-              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
                 <CardHeader className="pb-4">
                   <div className="mb-4">
                     <ClipboardCheck className="h-10 w-10 text-info" />
@@ -155,7 +155,7 @@ const PMTemplatesFeature = () => {
               </Card>
 
               {/* Customization */}
-              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
                 <CardHeader className="pb-4">
                   <div className="mb-4">
                     <Settings2 className="h-10 w-10 text-warning" />

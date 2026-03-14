@@ -81,8 +81,8 @@ const PartLookupAlternatesFeature = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-6xl mx-auto">
+              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
                 <CardHeader className="pb-4">
                   <div className="mb-4">
                     <Zap className="h-10 w-10 text-success" />
@@ -112,7 +112,7 @@ const PartLookupAlternatesFeature = () => {
                 </CardContent>
               </Card>
 
-              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
                 <CardHeader className="pb-4">
                   <div className="mb-4">
                     <GitCompare className="h-10 w-10 text-info" />
@@ -142,7 +142,7 @@ const PartLookupAlternatesFeature = () => {
                 </CardContent>
               </Card>
 
-              <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
                 <CardHeader className="pb-4">
                   <div className="mb-4">
                     <DollarSign className="h-10 w-10 text-warning" />

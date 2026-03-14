@@ -117,7 +117,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError
     <div className="relative">
       <video
         ref={videoRef}
-        className="w-full h-64 bg-black rounded-lg cursor-pointer"
+        className="w-full h-64 bg-foreground rounded-lg cursor-pointer"
         playsInline
         muted
         onClick={handleVideoClick}
@@ -126,7 +126,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError
       
       {/* Scanning overlay */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-4 border-2 border-white rounded-lg">
+        <div className="absolute inset-4 border-2 border-background rounded-lg">
           <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-lg"></div>
           <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-lg"></div>
           <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-lg"></div>
@@ -135,7 +135,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError
       </div>
       
       <div className="absolute bottom-2 left-2 right-2 text-center">
-        <p className="text-white text-sm bg-black bg-opacity-50 rounded px-2 py-1">
+        <p className="text-white text-sm bg-black/50 rounded px-2 py-1">
           Click on video to simulate QR scan
         </p>
       </div>
@@ -144,3 +144,4 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onScan, onError
 };
 
 export default QRScannerComponent;
+

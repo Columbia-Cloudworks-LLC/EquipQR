@@ -7,6 +7,26 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.9] - 2026-03-13
+
+### Added
+
+- **Landing page: Pricing, Roadmap, Footer** — New `PricingSection` (simple transparent pricing, CTA to Calendly/contact), `RoadmapSection` ("What's Next" with placeholder roadmap items), and `LandingFooter` (product/company links, contact, copyright). Landing page now includes these sections and scroll-to-hash for in-page anchors.
+- **Supabase local port preparation script** — `scripts/prepare-supabase-ports.ps1` reads ports from `supabase/config.toml` and writes env vars for `dev-start.bat`, so the local stack can use configurable ports and avoid Windows excluded ranges.
+
+### Changed
+
+- **Local Supabase ports configurable** — Supabase local stack now uses configurable ports from `supabase/config.toml` (current defaults: API 54321, DB 54322, Studio 54323). `dev-start.bat` runs the port-prep script and uses the configured API port for health checks; `dev-stop.bat` updated accordingly.
+- **Supabase "already running" check** — Replaced port-listener check with `supabase status` so Docker Desktop on Windows (where container ports do not appear in `Get-NetTCPConnection`) is detected correctly.
+- **Landing page** — About, CTA, Features, Hero, header, and social proof sections updated (copy/layout/styling). Page order: Hero, Features, About, Social Proof, Pricing, CTA, Footer.
+- **Docs** — `docs/ops/local-supabase-development.md` updated for configurable ports and conflict resolution (rerun `dev-start.bat`).
+
+## [2.3.8] - 2026-03-12
+
+### Changed
+
+- Rolled up the current set of in-progress repository updates into the 2.3.8 release version so package metadata and project documentation stay aligned for the next release cycle.
+
 ## [2.3.7] - 2026-03-06
 
 ### Fixed

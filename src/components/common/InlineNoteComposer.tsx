@@ -46,6 +46,7 @@ const ImageThumbnail: React.FC<{
           disabled={disabled}
           className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
           title="Remove image"
+          aria-label="Remove image"
         >
           <X className="h-3 w-3" />
         </Button>
@@ -297,7 +298,7 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
           placeholder={placeholder}
           disabled={disabled || isSubmitting}
           rows={3}
-          className="min-h-[80px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 pr-20"
+          className="min-h-[80px] resize-none border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 pr-20"
           aria-label="Note content"
         />
         

@@ -16,6 +16,8 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  private fallbackRef = React.createRef<HTMLDivElement>();
+
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
@@ -27,7 +29,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+
+    // Move focus to the fallback so keyboard and screen-reader users are alerted.
+    this.fallbackRef.current?.focus();
+
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
@@ -44,7 +49,13 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex items-center justify-center min-h-[200px] p-4">
+        <div
+          ref={this.fallbackRef}
+          className="flex items-center justify-center min-h-[200px] p-4"
+          role="alert"
+          aria-live="assertive"
+          tabIndex={-1}
+        >
           <Alert className="max-w-md">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Something went wrong</AlertTitle>

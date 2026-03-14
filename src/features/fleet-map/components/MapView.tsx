@@ -7,6 +7,7 @@ import { format, formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { DATE_DISPLAY_FORMAT } from '@/config/date-formats';
 import { buildGoogleMapsUrlFromCoords } from '@/utils/effectiveLocation';
 import ClickableAddress from '@/components/ui/ClickableAddress';
+import { cn } from '@/lib/utils';
 
 function formatDate(dateString: string): string {
   try {
@@ -30,14 +31,110 @@ function getRelativeTime(dateString: string): string {
   }
 }
 
-// ── Source color mapping ──────────────────────────────────────
+type SourceType = 'team' | 'equipment' | 'scan' | 'geocoded';
 
-const SOURCE_COLORS: Record<string, { fill: string; stroke: string; label: string }> = {
-  team:      { fill: '#3B82F6', stroke: '#1E40AF', label: 'Team Override' },
-  equipment: { fill: '#7C3AED', stroke: '#5B21B6', label: 'Manual Address' },
-  scan:      { fill: '#16A34A', stroke: '#15803D', label: 'QR Scan GPS' },
-  geocoded:  { fill: '#F59E0B', stroke: '#D97706', label: 'Geocoded' },
+type MarkerColor = {
+  fill: string;
+  stroke: string;
+  label: string;
 };
+
+const SOURCE_TOKEN_CONFIG: Record<SourceType, { token: 'info' | 'primary' | 'success' | 'warning'; label: string }> = {
+  team: { token: 'info', label: 'Team Override' },
+  equipment: { token: 'primary', label: 'Manual Address' },
+  scan: { token: 'success', label: 'QR Scan GPS' },
+  geocoded: { token: 'warning', label: 'Geocoded' },
+};
+
+const SOURCE_TOKEN_CLASSES: Record<
+  SourceType,
+  { badge: string; dot: string }
+> = {
+  team: {
+    badge: 'bg-info text-info-foreground',
+    dot: 'bg-info',
+  },
+  equipment: {
+    badge: 'bg-primary text-primary-foreground',
+    dot: 'bg-primary',
+  },
+  scan: {
+    badge: 'bg-success text-success-foreground',
+    dot: 'bg-success',
+  },
+  geocoded: {
+    badge: 'bg-warning text-warning-foreground',
+    dot: 'bg-warning',
+  },
+};
+
+const TEAM_HQ_CLASSES = {
+  subtle: 'bg-warning/20',
+  icon: 'text-warning',
+  badge: 'bg-warning text-warning-foreground',
+  dot: 'text-warning',
+};
+
+const SOURCE_TOKEN_FALLBACKS: Record<SourceType, string> = {
+  team: '#3B82F6',
+  equipment: '#7C3AED',
+  scan: '#16A34A',
+  geocoded: '#F59E0B',
+};
+
+const TEAM_HQ_TOKEN = { token: 'warning' as const, label: 'Team HQ', fallback: '#D97706' };
+
+function hslToHex(h: number, s: number, l: number): string {
+  const normalizedS = s / 100;
+  const normalizedL = l / 100;
+  const chroma = (1 - Math.abs(2 * normalizedL - 1)) * normalizedS;
+  const huePrime = h / 60;
+  const x = chroma * (1 - Math.abs((huePrime % 2) - 1));
+
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (huePrime >= 0 && huePrime < 1) [r, g, b] = [chroma, x, 0];
+  else if (huePrime < 2) [r, g, b] = [x, chroma, 0];
+  else if (huePrime < 3) [r, g, b] = [0, chroma, x];
+  else if (huePrime < 4) [r, g, b] = [0, x, chroma];
+  else if (huePrime < 5) [r, g, b] = [x, 0, chroma];
+  else [r, g, b] = [chroma, 0, x];
+
+  const matchLightness = normalizedL - chroma / 2;
+  const toHex = (value: number) =>
+    Math.round((value + matchLightness) * 255)
+      .toString(16)
+      .padStart(2, '0');
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function darkenHex(hexColor: string, amount = 0.2): string {
+  const hex = hexColor.replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return hexColor;
+
+  const clamp = (value: number) => Math.max(0, Math.min(255, value));
+  const darken = (value: number) => clamp(Math.round(value * (1 - amount)));
+
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+
+  return `#${darken(r).toString(16).padStart(2, '0')}${darken(g).toString(16).padStart(2, '0')}${darken(b).toString(16).padStart(2, '0')}`;
+}
+
+function resolveTokenHex(tokenName: string, fallbackHex: string): string {
+  if (typeof window === 'undefined') return fallbackHex;
+  const rawTokenValue = getComputedStyle(document.documentElement)
+    .getPropertyValue(`--${tokenName}`)
+    .trim();
+  const hslMatch = rawTokenValue.match(/^([\d.]+)\s+([\d.]+)%\s+([\d.]+)%$/);
+  if (!hslMatch) return fallbackHex;
+
+  const [, h, s, l] = hslMatch;
+  return hslToHex(Number(h), Number(s), Number(l));
+}
 
 function buildMarkerSvg(fillColor: string, strokeColor: string): string {
   return `<svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,10 +142,6 @@ function buildMarkerSvg(fillColor: string, strokeColor: string): string {
     <circle cx="14" cy="14" r="5" fill="white" opacity="0.9"/>
   </svg>`;
 }
-
-// ── Team HQ star marker ───────────────────────────────────────
-
-const TEAM_HQ_COLOR = { fill: '#D97706', stroke: '#92400E', label: 'Team HQ' };
 
 /**
  * Star-shaped marker SVG for team HQ locations.
@@ -126,10 +219,40 @@ export const MapView: React.FC<MapViewProps> = ({
   const [selectedMarker, setSelectedMarker] = useState<EquipmentLocation | null>(null);
   const [selectedHQ, setSelectedHQ] = useState<TeamHQLocation | null>(null);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
+  const [themeVersion, setThemeVersion] = useState(0);
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     setMapRef(map);
   }, []);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const observer = new MutationObserver(() => setThemeVersion((value) => value + 1));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const sourceColors = useMemo<Record<SourceType, MarkerColor>>(() => {
+    return (Object.keys(SOURCE_TOKEN_CONFIG) as SourceType[]).reduce((accumulator, sourceType) => {
+      const config = SOURCE_TOKEN_CONFIG[sourceType];
+      const fill = resolveTokenHex(config.token, SOURCE_TOKEN_FALLBACKS[sourceType]);
+      accumulator[sourceType] = {
+        fill,
+        stroke: darkenHex(fill, 0.22),
+        label: config.label,
+      };
+      return accumulator;
+    }, {} as Record<SourceType, MarkerColor>);
+  }, [themeVersion]);
+
+  const teamHQColor = useMemo<MarkerColor>(() => {
+    const fill = resolveTokenHex(TEAM_HQ_TOKEN.token, TEAM_HQ_TOKEN.fallback);
+    return {
+      fill,
+      stroke: darkenHex(fill, 0.3),
+      label: TEAM_HQ_TOKEN.label,
+    };
+  }, [themeVersion]);
 
   // Auto-focus on a specific equipment when focusEquipmentId changes
   React.useEffect(() => {
@@ -155,11 +278,18 @@ export const MapView: React.FC<MapViewProps> = ({
     return { lat: avgLat, lng: avgLng };
   }, [filteredLocations, equipmentLocations, teamHQLocations]);
 
+  const mapContainerStyle = useMemo(
+    () => ({ width: '100%', height: '100%' }),
+    []
+  );
+
+  const mapOptions = useMemo(() => MAP_OPTIONS, []);
+
   // Build marker icons (memoized by source)
   const markerIcons = useMemo(() => {
     if (!isMapsLoaded || !window.google?.maps) return {};
-    const icons: Record<string, google.maps.Icon> = {};
-    for (const [source, colors] of Object.entries(SOURCE_COLORS)) {
+    const icons: Record<SourceType, google.maps.Icon> = {} as Record<SourceType, google.maps.Icon>;
+    for (const [source, colors] of Object.entries(sourceColors) as [SourceType, MarkerColor][]) {
       icons[source] = {
         url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(buildMarkerSvg(colors.fill, colors.stroke)),
         scaledSize: new window.google.maps.Size(28, 36),
@@ -167,17 +297,17 @@ export const MapView: React.FC<MapViewProps> = ({
       };
     }
     return icons;
-  }, [isMapsLoaded]);
+  }, [isMapsLoaded, sourceColors]);
 
   // Build team HQ star marker icon
   const hqMarkerIcon = useMemo(() => {
     if (!isMapsLoaded || !window.google?.maps) return undefined;
     return {
-      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(buildStarMarkerSvg(TEAM_HQ_COLOR.fill, TEAM_HQ_COLOR.stroke)),
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(buildStarMarkerSvg(teamHQColor.fill, teamHQColor.stroke)),
       scaledSize: new window.google.maps.Size(32, 40),
       anchor: new window.google.maps.Point(16, 40),
     };
-  }, [isMapsLoaded]);
+  }, [isMapsLoaded, teamHQColor.fill, teamHQColor.stroke]);
 
   if (!isMapsLoaded) {
     return (
@@ -198,17 +328,19 @@ export const MapView: React.FC<MapViewProps> = ({
     );
   }
 
-  const sourceConfig = selectedMarker ? SOURCE_COLORS[selectedMarker.source] || SOURCE_COLORS.equipment : null;
+  const sourceConfig = selectedMarker ? sourceColors[selectedMarker.source] || sourceColors.equipment : null;
+  const selectedSourceType: SourceType = selectedMarker?.source ?? 'equipment';
+  const selectedSourceClasses = SOURCE_TOKEN_CLASSES[selectedSourceType];
 
   const totalMarkerCount = filteredLocations.length + teamHQLocations.length;
 
   return (
     <div className="relative h-full w-full">
       <GoogleMap
-        mapContainerStyle={{ width: '100%', height: '100%' }}
+        mapContainerStyle={mapContainerStyle}
         center={mapCenter}
         zoom={totalMarkerCount === 1 ? 14 : totalMarkerCount > 0 ? 6 : 4}
-        options={MAP_OPTIONS}
+        options={mapOptions}
         onLoad={onMapLoad}
       >
         {filteredLocations.map((location) => (
@@ -244,22 +376,23 @@ export const MapView: React.FC<MapViewProps> = ({
             position={{ lat: selectedHQ.lat, lng: selectedHQ.lng }}
             onCloseClick={() => setSelectedHQ(null)}
           >
-            <div className="p-3 min-w-[220px] max-w-[300px]">
+            <div className="w-[min(88vw,300px)] p-3">
               {/* Header */}
               <div className="flex items-center gap-2 mb-2">
                 <div
-                  className="p-1.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: TEAM_HQ_COLOR.fill + '20' }}
+                  className={cn("p-1.5 rounded-full flex-shrink-0", TEAM_HQ_CLASSES.subtle)}
                 >
-                  <Star className="h-4 w-4" style={{ color: TEAM_HQ_COLOR.fill }} />
+                  <Star className={cn("h-4 w-4", TEAM_HQ_CLASSES.icon)} />
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-semibold text-sm text-foreground truncate">{selectedHQ.name}</h3>
                   <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
-                    style={{ backgroundColor: TEAM_HQ_COLOR.fill }}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                      TEAM_HQ_CLASSES.badge
+                    )}
                   >
-                    Team HQ
+                    {teamHQColor.label}
                   </span>
                 </div>
               </div>
@@ -277,10 +410,10 @@ export const MapView: React.FC<MapViewProps> = ({
               )}
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
                   size="sm"
-                  className="flex-1 h-7 text-xs"
+                  className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
                   onClick={() => navigate(`/dashboard/teams/${selectedHQ.id}`)}
                 >
                   <ExternalLink className="h-3 w-3 mr-1" />
@@ -289,7 +422,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="flex-1 h-7 text-xs"
+                  className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
                   onClick={() => {
                     window.open(buildGoogleMapsUrlFromCoords(selectedHQ.lat, selectedHQ.lng), '_blank');
                   }}
@@ -307,7 +440,7 @@ export const MapView: React.FC<MapViewProps> = ({
             position={{ lat: selectedMarker.lat, lng: selectedMarker.lng }}
             onCloseClick={() => setSelectedMarker(null)}
           >
-            <div className="p-3 min-w-[280px] max-w-[350px]">
+            <div className="w-[min(92vw,350px)] p-3">
               {/* Header */}
               <div className="flex gap-3 mb-3">
                 {selectedMarker.image_url && (
@@ -320,11 +453,15 @@ export const MapView: React.FC<MapViewProps> = ({
                 )}
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-sm text-foreground truncate">{selectedMarker.name}</h3>
-                  <p className="text-xs text-muted-foreground">{selectedMarker.manufacturer} {selectedMarker.model}</p>
+                  <p className="truncate text-xs text-muted-foreground" title={`${selectedMarker.manufacturer} ${selectedMarker.model}`}>
+                    {selectedMarker.manufacturer} {selectedMarker.model}
+                  </p>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
-                      style={{ backgroundColor: sourceConfig?.fill }}
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                        selectedSourceClasses.badge
+                      )}
                     >
                       {sourceConfig?.label}
                     </span>
@@ -374,10 +511,10 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
                   size="sm"
-                  className="flex-1 h-7 text-xs"
+                  className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
                   onClick={() => navigate(`/dashboard/equipment/${selectedMarker.id}`)}
                 >
                   <ExternalLink className="h-3 w-3 mr-1" />
@@ -386,7 +523,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="flex-1 h-7 text-xs"
+                  className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
                   onClick={() => {
                     window.open(buildGoogleMapsUrlFromCoords(selectedMarker.lat, selectedMarker.lng), '_blank');
                   }}
@@ -404,16 +541,16 @@ export const MapView: React.FC<MapViewProps> = ({
       <div className="absolute bottom-6 right-2 bg-background/90 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-md">
         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Location Source</p>
         <div className="space-y-1">
-          {Object.entries(SOURCE_COLORS).map(([key, { fill, label }]) => (
+          {(Object.entries(sourceColors) as [SourceType, MarkerColor][]).map(([key, { fill, label }]) => (
             <div key={key} className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: fill }} />
+              <span className={cn("w-2.5 h-2.5 rounded-full flex-shrink-0", SOURCE_TOKEN_CLASSES[key].dot)} />
               <span className="text-[10px] text-muted-foreground">{label}</span>
             </div>
           ))}
           {teamHQLocations.length > 0 && (
             <div className="flex items-center gap-2 pt-0.5 border-t border-border/50 mt-0.5">
-              <Star className="w-2.5 h-2.5 flex-shrink-0" style={{ color: TEAM_HQ_COLOR.fill, fill: TEAM_HQ_COLOR.fill }} />
-              <span className="text-[10px] text-muted-foreground">{TEAM_HQ_COLOR.label}</span>
+              <Star className={cn("w-2.5 h-2.5 flex-shrink-0 fill-current", TEAM_HQ_CLASSES.dot)} />
+              <span className="text-[10px] text-muted-foreground">{teamHQColor.label}</span>
             </div>
           )}
         </div>
@@ -421,3 +558,4 @@ export const MapView: React.FC<MapViewProps> = ({
     </div>
   );
 };
+

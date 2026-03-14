@@ -120,6 +120,7 @@ const EquipmentNoteImageUpload: React.FC<EquipmentNoteImageUploadProps> = ({
                 size="sm"
                 className="absolute top-2 right-2"
                 onClick={removeFile}
+                aria-label="Remove selected image"
               >
                 <X className="h-4 w-4" />
               </Button>

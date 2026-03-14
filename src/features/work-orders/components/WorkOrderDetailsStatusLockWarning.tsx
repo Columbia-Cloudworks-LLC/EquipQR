@@ -63,8 +63,8 @@ export const WorkOrderDetailsStatusLockWarning: React.FC<WorkOrderDetailsStatusL
 
   return (
     <div className="px-4 lg:px-6">
-      <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 py-2 px-3">
-        <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+      <div className="flex items-center justify-between rounded-lg border border-warning/30 bg-warning/10 dark:bg-warning/10 dark:border-warning/50 py-2 px-3">
+        <div className="flex items-center gap-2 text-warning dark:text-warning">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <p className="text-sm font-medium">
             This work order is {workOrder.status}. Notes, images, and costs cannot be modified.
@@ -76,7 +76,7 @@ export const WorkOrderDetailsStatusLockWarning: React.FC<WorkOrderDetailsStatusL
             size="sm"
             onClick={handleRevert}
             disabled={isReverting}
-            className="border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/30 ml-3 shrink-0"
+            className="border-warning/40 text-warning hover:bg-warning/20 dark:border-warning/50 dark:text-warning dark:hover:bg-warning/20 ml-3 shrink-0"
           >
             <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
             {isReverting ? 'Reverting...' : 'Revert'}
@@ -86,4 +86,5 @@ export const WorkOrderDetailsStatusLockWarning: React.FC<WorkOrderDetailsStatusL
     </div>
   );
 };
+
 

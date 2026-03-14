@@ -120,8 +120,8 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
               </div>
 
               {selectedRole !== member.role && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800">
+                <div className="p-3 bg-info/10 border border-info/30 rounded-lg">
+                  <p className="text-sm text-info">
                     <strong>Role Change:</strong> {member.role} → {selectedRole}
                   </p>
                 </div>
@@ -147,3 +147,4 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
 };
 
 export default RoleChangeDialog;
+

@@ -68,7 +68,13 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         role="button"
         tabIndex={0}
         onClick={handleView}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleView()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleView();
+          }
+        }}
+        aria-label={`Open details for template ${template.name}`}
       >
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg line-clamp-2">{template.name}</CardTitle>
@@ -165,6 +171,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                 size="sm"
                 onClick={() => onConfigureRules(template.id)}
                 title="Configure equipment compatibility rules for your organization"
+                aria-label={`Configure compatibility rules for ${template.name}`}
               >
                 <Settings2 className="h-3 w-3" />
               </Button>
@@ -173,7 +180,12 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             {canDelete && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="px-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="px-2"
+                    aria-label={`Delete template ${template.name}`}
+                  >
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </AlertDialogTrigger>

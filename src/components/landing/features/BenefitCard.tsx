@@ -35,7 +35,7 @@ export const BenefitCard = ({
   benefitColor = 'success',
 }: BenefitCardProps) => {
   return (
-    <Card className="border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors">
+    <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
       <CardHeader className="pb-4">
         <div className="mb-4">
           <Icon className={`h-10 w-10 ${colorMap[iconColor]}`} />

@@ -44,6 +44,11 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
   filterOptions
 }) => {
   const [isSheetOpen, setIsSheetOpen] = React.useState(showMobileFilters);
+  const mobileSearchInputId = 'equipment-search-mobile';
+  const mobileStatusFilterId = 'equipment-status-filter-mobile';
+  const mobileManufacturerFilterId = 'equipment-manufacturer-filter-mobile';
+  const mobileLocationFilterId = 'equipment-location-filter-mobile';
+  const mobileTeamFilterId = 'equipment-team-filter-mobile';
 
   React.useEffect(() => {
     setIsSheetOpen(showMobileFilters);
@@ -61,10 +66,11 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            id={mobileSearchInputId}
             placeholder="Search equipment..."
             value={filters.search}
             onChange={(e) => onFilterChange('search', e.target.value)}
-            className="h-10 pl-9"
+            className="h-11 pl-9"
           />
         </div>
 
@@ -73,7 +79,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             <Button
               variant="outline"
               size="icon"
-              className="relative h-10 w-10"
+              className="relative h-11 w-11"
               aria-label="Open filters"
             >
               <Filter className="h-4 w-4" />
@@ -105,9 +111,9 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
 
                 <div className="space-y-3">
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Status</label>
+                    <label htmlFor={mobileStatusFilterId} className="mb-2 block text-sm font-medium">Status</label>
                     <Select value={filters.status} onValueChange={(value) => onFilterChange('status', value)}>
-                      <SelectTrigger className="h-12">
+                      <SelectTrigger id={mobileStatusFilterId} className="h-12">
                         <SelectValue placeholder="All Status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -120,9 +126,9 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Manufacturer</label>
+                    <label htmlFor={mobileManufacturerFilterId} className="mb-2 block text-sm font-medium">Manufacturer</label>
                     <Select value={filters.manufacturer} onValueChange={(value) => onFilterChange('manufacturer', value)}>
-                      <SelectTrigger className="h-12">
+                      <SelectTrigger id={mobileManufacturerFilterId} className="h-12">
                         <SelectValue placeholder="All Manufacturers" />
                       </SelectTrigger>
                       <SelectContent>
@@ -137,9 +143,9 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Location</label>
+                    <label htmlFor={mobileLocationFilterId} className="mb-2 block text-sm font-medium">Location</label>
                     <Select value={filters.location} onValueChange={(value) => onFilterChange('location', value)}>
-                      <SelectTrigger className="h-12">
+                      <SelectTrigger id={mobileLocationFilterId} className="h-12">
                         <SelectValue placeholder="All Locations" />
                       </SelectTrigger>
                       <SelectContent>
@@ -154,9 +160,9 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Team</label>
+                    <label htmlFor={mobileTeamFilterId} className="mb-2 block text-sm font-medium">Team</label>
                     <Select value={filters.team} onValueChange={(value) => onFilterChange('team', value)}>
-                      <SelectTrigger className="h-12">
+                      <SelectTrigger id={mobileTeamFilterId} className="h-12">
                         <SelectValue placeholder="All Teams" />
                       </SelectTrigger>
                       <SelectContent>
@@ -198,7 +204,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             key={preset.value}
             size="sm"
             variant="outline"
-            className="shrink-0 whitespace-nowrap"
+            className="shrink-0 whitespace-nowrap min-h-11"
             onClick={() => {
               onQuickFilter(preset.value);
               handleSheetOpenChange(false);
@@ -256,7 +262,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-xs"
+            className="min-h-11 px-3 text-sm"
             onClick={onClearFilters}
           >
             Clear all

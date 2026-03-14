@@ -163,8 +163,8 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {invitedOrgName && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-          <p className="text-blue-900">
+        <div className="bg-info/10 border border-info/30 rounded-lg p-3 text-sm">
+          <p className="text-info">
             You'll join <strong>{invitedOrgName}</strong> after signing up. Please choose a different name for your own workspace below.
           </p>
         </div>
@@ -248,12 +248,12 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
             value={formData.confirmPassword}
             onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
             required
-            className={passwordMatch === false ? 'border-destructive' : passwordMatch === true ? 'border-green-500' : ''}
+            className={passwordMatch === false ? 'border-destructive' : passwordMatch === true ? 'border-success/30' : ''}
           />
           {passwordMatch !== null && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
               {passwordMatch ? (
-                <CheckCircle className="h-4 w-4 text-green-500" data-testid="password-match-success" />
+                <CheckCircle className="h-4 w-4 text-success" data-testid="password-match-success" />
               ) : (
                 <XCircle className="h-4 w-4 text-destructive" data-testid="password-match-error" />
               )}
@@ -286,3 +286,4 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
 };
 
 export default SignUpForm;
+

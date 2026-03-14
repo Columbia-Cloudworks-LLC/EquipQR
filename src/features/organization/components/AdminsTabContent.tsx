@@ -61,8 +61,8 @@ const AdminsTabContent: React.FC<AdminsTabContentProps> = ({ admins, isLoading }
             </div>
           ))}
           
-          <div className="mt-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs sm:text-sm text-blue-800">
+          <div className="mt-4 p-3 sm:p-4 bg-info/10 border border-info/30 rounded-lg">
+            <p className="text-xs sm:text-sm text-info">
               <strong>Work Order Assignment:</strong> These administrators can receive work order assignments 
               for equipment that doesn't have an assigned team.
             </p>
@@ -74,4 +74,5 @@ const AdminsTabContent: React.FC<AdminsTabContentProps> = ({ admins, isLoading }
 };
 
 export default AdminsTabContent;
+
 

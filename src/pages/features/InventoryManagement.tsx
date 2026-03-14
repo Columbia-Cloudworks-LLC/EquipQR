@@ -37,7 +37,7 @@ const InventoryManagementFeature = () => {
         description="Keep parts organized, avoid stockouts, and ensure the right components are available when your technicians need them. Full visibility and audit trails for every transaction."
         className="bg-muted/30"
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-6xl mx-auto">
           {benefits.map((benefit) => (
             <BenefitCard
               key={benefit.title}
