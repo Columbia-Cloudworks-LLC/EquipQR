@@ -16,7 +16,7 @@ const MobileFirstDesignFeature = () => {
   return (
     <>
       <PageSEO
-        title="Mobile-First Design - EquipQR"
+        title="Mobile-First Design"
         description="Native mobile experience for field technicians. Work offline and sync when connected. Optimized for all devices."
         path="/features/mobile-first-design"
         keywords="mobile CMMS, mobile equipment management, offline mobile app, field service mobile, mobile maintenance software"

@@ -148,26 +148,26 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
       <CardContent className="pt-0">
         <div className="flex flex-col gap-2">
           <Button 
-            onClick={() => onClone(template.id)} 
+            onClick={() => onApply(template.id)} 
             className="w-full"
             size="sm"
-            disabled={!canClone}
-            title={!canClone ? 'Custom PM templates require user licenses' : ''}
           >
-            {!canClone && <Lock className="mr-2 h-4 w-4" />}
-            <Copy className="mr-2 h-4 w-4" />
-            Clone Template
+            <Wrench className="mr-2 h-4 w-4" />
+            Apply Template
           </Button>
           
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onApply(template.id)}
+              onClick={() => onClone(template.id)}
               className="flex-1"
+              disabled={!canClone}
+              title={!canClone ? 'Custom PM templates require user licenses' : ''}
             >
-              <Wrench className="mr-1 h-3 w-3" />
-              Apply
+              {!canClone && <Lock className="mr-1 h-3 w-3" />}
+              <Copy className="mr-1 h-3 w-3" />
+              Clone
             </Button>
             
             {canEdit && (

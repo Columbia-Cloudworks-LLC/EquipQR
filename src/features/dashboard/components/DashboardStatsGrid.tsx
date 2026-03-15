@@ -65,11 +65,12 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
 
       <StatsCard
         icon={<Wrench className="h-4 w-4" />}
-        label="Needs Attention"
+        label="Out of Service"
         value={needsAttentionCount}
         sublabel="In maintenance or inactive"
         to={isLoading ? undefined : "/dashboard/equipment"}
-        ariaDescription="View equipment needing attention"
+        ariaDescription="View out-of-service equipment"
+        variant={needsAttentionCount > 0 ? 'warning' : 'default'}
         loading={isLoading}
       />
     </div>

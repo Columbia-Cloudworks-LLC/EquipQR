@@ -64,7 +64,7 @@ const PMTemplatesFeature = () => {
   return (
     <>
       <PageSEO
-        title="PM Templates - EquipQR"
+        title="PM Templates"
         description="Create reusable preventative maintenance templates with checklists, schedules, and equipment compatibility rules. Standardize maintenance procedures across your fleet."
         path="/features/pm-templates"
         keywords="PM templates, preventative maintenance, maintenance checklists, equipment maintenance, CMMS templates, maintenance scheduling"

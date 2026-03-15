@@ -182,7 +182,22 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
   const statusBorderClass = getWorkOrderStatusBorderWithOverdue(workOrder.status, isWorkOrderOverdue);
 
   return (
-    <Card className={cn("hover:shadow-md transition-all duration-normal", statusBorderClass)}>
+    <Card
+      className={cn(
+        "transition-all duration-normal",
+        statusBorderClass,
+        onNavigate && "hover:shadow-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      )}
+      role={onNavigate ? "button" : undefined}
+      tabIndex={onNavigate ? 0 : undefined}
+      onClick={onNavigate ? () => onNavigate(workOrder.id) : undefined}
+      onKeyDown={onNavigate ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onNavigate(workOrder.id);
+        }
+      } : undefined}
+    >
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
@@ -530,7 +545,22 @@ const CompactCard: React.FC<WorkOrderCardProps> = memo(({
   }, [workOrder.status, workOrder.dueDate, workOrder.due_date, workOrder.createdDate, workOrder.created_date]);
 
   return (
-    <Card className={cn("h-full hover:shadow-md transition-all duration-normal", computedData.statusBorderClass)}>
+    <Card
+      className={cn(
+        "h-full transition-all duration-normal",
+        computedData.statusBorderClass,
+        onNavigate && "hover:shadow-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      )}
+      role={onNavigate ? "button" : undefined}
+      tabIndex={onNavigate ? 0 : undefined}
+      onClick={onNavigate ? () => onNavigate(workOrder.id) : undefined}
+      onKeyDown={onNavigate ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onNavigate(workOrder.id);
+        }
+      } : undefined}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">

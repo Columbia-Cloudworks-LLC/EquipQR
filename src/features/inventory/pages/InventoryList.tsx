@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Package, AlertTriangle, Users, MoreVertical, Filter, X, MapPin, Eye, QrCode, ChevronUp, ChevronDown, Pencil, ArrowUpDown, Minus } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -26,6 +26,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { InventoryItemForm } from '@/features/inventory/components/InventoryItemForm';
@@ -57,6 +64,18 @@ const InventoryList = () => {
     currentOrganization?.id,
     filters
   );
+
+  const { data: allItems = [] } = useInventoryItems(
+    currentOrganization?.id,
+    { search: '', lowStockOnly: false }
+  );
+
+  const uniqueLocations = useMemo(() => {
+    const locs = allItems
+      .map((item) => item.location)
+      .filter((loc): loc is string => !!loc && loc.trim() !== '');
+    return [...new Set(locs)].sort();
+  }, [allItems]);
 
   const handleAddItem = () => {
     setEditingItem(null);
@@ -290,6 +309,23 @@ const InventoryList = () => {
                       aria-label="Search inventory by name, SKU, or external ID"
                     />
                   </div>
+                  {uniqueLocations.length > 0 && (
+                    <Select
+                      value={filters.location || '__all__'}
+                      onValueChange={(v) => setFilters({ ...filters, location: v === '__all__' ? undefined : v })}
+                    >
+                      <SelectTrigger className="w-[180px]" aria-label="Filter by location">
+                        <MapPin className="h-4 w-4 mr-1 text-muted-foreground flex-shrink-0" />
+                        <SelectValue placeholder="All Locations" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">All Locations</SelectItem>
+                        {uniqueLocations.map((loc) => (
+                          <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <div className="flex items-center gap-3 px-3 py-2 rounded-md border bg-muted/30">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -311,9 +347,24 @@ const InventoryList = () => {
           </Card>
 
           {/* Active Filter Summary */}
-          {(filters.search || filters.lowStockOnly) && (
+          {(filters.search || filters.lowStockOnly || filters.location) && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-muted-foreground">Active filters:</span>
+              {filters.location && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  Location: {filters.location}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4"
+                    onClick={() => setFilters({ ...filters, location: undefined })}
+                    aria-label="Clear location filter"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
               {filters.search && (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   Search: "{filters.search.length > 15 ? `${filters.search.slice(0, 15)}...` : filters.search}"
@@ -352,6 +403,7 @@ const InventoryList = () => {
                   ...prev,
                   search: '',
                   lowStockOnly: false,
+                  location: undefined,
                 }))}
               >
                 Clear all

@@ -32,6 +32,7 @@ import { MobileWorkOrderActionSheet } from '@/features/work-orders/components/Mo
 import { MobileWorkOrderInProgressBar } from '@/features/work-orders/components/MobileWorkOrderInProgressBar';
 import { useWorkTimer } from '@/features/work-orders/hooks/useWorkTimer';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useInitializePMChecklist';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
@@ -87,6 +88,11 @@ const WorkOrderDetails = () => {
   } = useWorkOrderDetailsData(workOrderId || '', selectedEquipmentId);
 
   const initializePMChecklist = useInitializePMChecklist();
+
+  const documentTitle = workOrder
+    ? `${workOrder.title}${equipment ? ` – ${equipment.name}` : ''}`
+    : undefined;
+  useDocumentTitle(documentTitle);
 
   // Update selectedEquipmentId when workOrder loads
   React.useEffect(() => {

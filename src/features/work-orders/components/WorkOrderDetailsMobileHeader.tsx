@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, PanelRight, Clipboard, MapPin, Calendar, Users, MoreHorizontal, Clock, AlertCircle, AlertTriangle } from 'lucide-react';
-import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
+import { getStatusColor, formatStatus, isOverdue as checkIsOverdue } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
@@ -201,8 +201,8 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
             {workOrder.due_date && (() => {
               const due = new Date(workOrder.due_date);
               const hoursUntilDue = (due.getTime() - Date.now()) / (1000 * 60 * 60);
-              const isOverdue = hoursUntilDue < 0;
-              const isDueSoon = !isOverdue && hoursUntilDue < 24;
+              const isOverdue = checkIsOverdue(workOrder.due_date, workOrder.status);
+              const isDueSoon = !isOverdue && hoursUntilDue > 0 && hoursUntilDue < 24;
               return (
                 <div className={`flex items-center gap-1 ${isOverdue ? 'text-destructive' : isDueSoon ? 'text-warning' : ''}`}>
                   {isOverdue

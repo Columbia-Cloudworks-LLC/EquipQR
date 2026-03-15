@@ -15,12 +15,18 @@ interface EquipmentWorkOrdersTabProps {
   equipmentId: string;
   organizationId: string;
   onCreateWorkOrder?: () => void;
+  equipmentManufacturer?: string;
+  equipmentModel?: string;
+  equipmentSerialNumber?: string;
 }
 
 const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
   equipmentId,
   organizationId,
   onCreateWorkOrder,
+  equipmentManufacturer,
+  equipmentModel,
+  equipmentSerialNumber,
 }) => {
   const navigate = useNavigate();
   const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
@@ -92,7 +98,10 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
               estimatedHours: workOrder.estimated_hours,
               completedDate: workOrder.completed_date,
               assigneeId: workOrder.assignee_id,
-              teamId: undefined // Team info comes from equipment assignment
+              teamId: undefined,
+              equipmentManufacturer: workOrder.equipmentManufacturer ?? equipmentManufacturer,
+              equipmentModel: workOrder.equipmentModel ?? equipmentModel,
+              equipmentSerialNumber: workOrder.equipmentSerialNumber ?? equipmentSerialNumber,
             };
 
             return (

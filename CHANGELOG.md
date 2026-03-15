@@ -13,12 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **1Password Edge env sync** — New script `scripts/sync-1password-edge-env.ps1` syncs 1Password environment secrets into `supabase/functions/.env` for local Edge Functions, with local redirect URLs. Optional run from `dev-start.bat` when 1Password CLI is on PATH.
 - **Equipment location history seed** — New seed file `supabase/seeds/28_equipment_location_history.sql` populates manual and team_sync `equipment_location_history` records for location hierarchy and map testing.
+- **Landing page "How It Works" section** — Added `src/components/landing/HowItWorksSection.tsx` and integrated it into `src/pages/Landing.tsx` to show a 3-step QR workflow from label setup through QuickBooks draft invoice export.
 
 ### Changed
 
 - **dev-start.bat** — Before starting Edge Functions: optional sync of edge env from 1Password (configurable environment ID), validation of edge env file (existence, size, max line length), and use of `--no-verify-jwt` for local serve.
 - **Seed data for location hierarchy** — Teams seed (`05_teams.sql`) adds location columns (address, city, state, country, lat/lng, override_equipment_location). Equipment seed (`07_equipment.sql`) adds assigned/team location data and `use_team_location` for map hierarchy scenarios. Scans seed (`14_scans.sql`) adds GPS-format scans for 4-tier location testing.
 - **sync-local-supabase-env.ps1** — Removed `SUPABASE_URL` from managed edge env block (handled by 1Password sync or elsewhere).
+- **Landing and feature-page messaging refresh** — Updated hero/CTA/social-proof/value-prop copy, revised feature-page SEO titles to cleaner product-name-free variants, added stronger onboarding and trust language, and improved feature-page back navigation behavior in `FeatureHero`.
+- **Inventory and PM workflow clarity** — Added inventory location filtering and filter chips, introduced part-lookup empty-state guidance with quick example searches, switched PM template primary action to `Apply Template`, and moved the fleet map legend to the top-right for better overlap safety.
+- **Work order usability and status visibility** — Enabled keyboard/click card navigation states, normalized overdue/due-soon logic to respect completed statuses, made work-order descriptions optional in schema/UI, set document titles on work-order details, improved PM indicator labeling, and surfaced equipment manufacturer/model/serial metadata from equipment details into equipment-linked work-order cards.
+- **Navigation and UI polish updates** — Promoted `QR Scanner` into main sidebar navigation, added an out-of-service warning variant in dashboard stats, strengthened active tab visual treatment, and added completed-state coloring support for segmented progress bars.
+
+### Fixed
+
+- **Signup form validation feedback timing and accessibility** — Added touched-field behavior with blur-triggered required-field errors, ARIA invalid/description wiring, and submit-attempt fallback messaging so users get clear, field-level validation guidance without premature error noise.
 
 ## [2.3.12] - 2026-03-15
 

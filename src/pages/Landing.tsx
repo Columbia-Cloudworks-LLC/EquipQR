@@ -3,6 +3,7 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import LandingHeader from '@/components/landing/LandingHeader';
 import HeroSection from '@/components/landing/HeroSection';
 import WhyDifferentSection from '@/components/landing/WhyDifferentSection';
+import HowItWorksSection from '@/components/landing/HowItWorksSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import SocialProofSection from '@/components/landing/SocialProofSection';
 import AboutSection from '@/components/landing/AboutSection';
@@ -53,6 +54,7 @@ const Landing: React.FC<LandingProps> = ({ skipSEO = false }) => {
         <main id="main-content">
           <HeroSection />
           <WhyDifferentSection />
+          <HowItWorksSection />
           <FeaturesSection id="features" />
           <AboutSection id="about" />
           <SocialProofSection />

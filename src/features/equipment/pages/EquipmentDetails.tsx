@@ -547,6 +547,9 @@ const EquipmentDetails = () => {
             equipmentId={equipment.id} 
             organizationId={currentOrganization.id}
             onCreateWorkOrder={handleCreateWorkOrder}
+            equipmentManufacturer={equipment.manufacturer}
+            equipmentModel={equipment.model}
+            equipmentSerialNumber={equipment.serial_number}
           />
         </TabsContent>
 

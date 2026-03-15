@@ -30,6 +30,7 @@ import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWo
 import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 import { useAuth } from '@/hooks/useAuth';
 
+import { isOverdue as checkIsOverdue } from '@/features/work-orders/utils/workOrderHelpers';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
 import ClickableAddress from '@/components/ui/ClickableAddress';
@@ -496,8 +497,8 @@ const getStatusActions = (): StatusAction[] => {
                 {contextData.dueDate && (() => {
                   const due = new Date(contextData.dueDate);
                   const hoursUntilDue = (due.getTime() - Date.now()) / (1000 * 60 * 60);
-                  const isOverdue = hoursUntilDue < 0;
-                  const isDueSoon = !isOverdue && hoursUntilDue < 24;
+                  const isOverdue = checkIsOverdue(contextData.dueDate, workOrder.status);
+                  const isDueSoon = !isOverdue && hoursUntilDue > 0 && hoursUntilDue < 24;
                   return (
                     <div className={`flex items-center gap-2 text-sm ${isOverdue ? 'text-destructive' : isDueSoon ? 'text-warning' : ''}`}>
                       {isOverdue

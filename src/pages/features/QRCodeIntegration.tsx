@@ -13,7 +13,7 @@ const QRCodeIntegrationFeature = () => {
   return (
     <>
       <PageSEO
-        title="QR Code Integration - EquipQR"
+        title="QR Code Integration"
         description="Instantly access equipment details, work orders, and maintenance history with QR code scanning. Generate labels and streamline field operations from any device."
         path="/features/qr-code-integration"
         keywords="QR code tracking, equipment QR codes, QR code scanning, asset tracking QR codes, maintenance QR codes"

@@ -15,7 +15,7 @@ const HeroSection = () => {
               role="note"
               className="inline-flex max-w-3xl items-center justify-center rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-center text-xs leading-relaxed text-foreground break-words sm:text-sm"
             >
-              Early access: One paying shop is funding EquipQR, so heavy equipment repair shops can join and use it free right now.
+              Free during early access — limited spots available for heavy equipment repair shops.
             </p>
           </div>
 
@@ -26,38 +26,42 @@ const HeroSection = () => {
 
           {/* Main Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-4 break-words">
-            Stop Losing Money to Lost Work Orders and Tribal Knowledge
+            From &ldquo;Who Worked on That Last?&rdquo; to a Full Service Record in One Scan
           </h1>
 
           {/* Subheadline */}
           <p className="text-xl sm:text-2xl text-muted-foreground mb-6 max-w-3xl mx-auto break-words">
-            EquipQR keeps each machine&apos;s history, work orders, and status behind secure QR access. Customers can scan on site to request work, and your team can turn completed jobs into one-click QuickBooks draft invoices.
+            QR codes on every machine. Your team logs work from their phone. QuickBooks gets the invoice automatically.
           </p>
 
           {/* CTAs — above screenshot so they stay above the fold */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <Button asChild size="lg" className="w-full sm:w-auto text-lg px-8 py-6">
               <Link to="/auth?tab=signup" className="inline-flex w-full items-center justify-center gap-2 text-center break-words">
-                Get Started Free (Early Access)
+                Start Tracking Free — No Credit Card
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>
             <Button
               asChild
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto text-lg px-8 py-6 border-foreground/30 text-foreground hover:bg-foreground/10"
+              variant="ghost"
+              className="w-full sm:w-auto text-base text-muted-foreground hover:text-foreground"
             >
               <a
                 href="#customers"
                 aria-label="Jump to customer proof and testimonials"
                 className="inline-flex w-full items-center justify-center gap-2 text-center break-words"
               >
-                <ShieldCheck className="h-5 w-5" aria-hidden />
+                <ShieldCheck className="h-4 w-4" aria-hidden />
                 See How Shops Use EquipQR
+                <ArrowRight className="h-4 w-4" />
               </a>
             </Button>
           </div>
+
+          <p className="text-sm text-muted-foreground mb-8">
+            No credit card required. Most shops scan their first machine in under 20 minutes.
+          </p>
 
           {/* Dashboard Screenshot — constrained height so it doesn't push CTAs below fold */}
           <div className="mb-8 flex justify-center">

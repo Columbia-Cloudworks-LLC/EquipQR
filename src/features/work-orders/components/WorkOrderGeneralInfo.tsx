@@ -85,7 +85,7 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={descriptionFieldId}>Description *</Label>
+          <Label htmlFor={descriptionFieldId}>Description</Label>
           <Textarea
             id={descriptionFieldId}
             placeholder={preSelectedEquipment ? 

@@ -34,7 +34,7 @@ const CTASection = () => {
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Enterprise-grade. Zero setup headaches. Free to start.
+            No credit card. No setup fee. Most shops are scanning their first machine within 20 minutes of signup.
           </p>
         </div>
       </div>

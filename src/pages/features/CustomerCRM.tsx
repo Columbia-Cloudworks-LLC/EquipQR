@@ -16,7 +16,7 @@ const CustomerCRMFeature = () => {
   return (
     <>
       <PageSEO
-        title="Customer CRM - EquipQR"
+        title="Customer CRM"
         description="Link equipment to specific customers. Maintain a permanent service history for every client asset."
         path="/features/customer-crm"
         keywords="customer CRM, equipment customer tracking, service history, customer equipment management, repair shop CRM"

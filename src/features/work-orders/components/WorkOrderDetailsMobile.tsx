@@ -24,7 +24,7 @@ import { useEquipmentCurrentWorkingHours } from '@/features/equipment/hooks/useE
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { cn } from '@/lib/utils';
-import { humanizeAttributeKey, humanizeAttributeValue } from '@/features/work-orders/utils/workOrderHelpers';
+import { humanizeAttributeKey, humanizeAttributeValue, isOverdue as checkIsOverdue } from '@/features/work-orders/utils/workOrderHelpers';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 interface WorkOrderDetailsMobileProps {
@@ -77,12 +77,12 @@ interface WorkOrderDetailsMobileProps {
   onScrollToPM?: () => void;
 }
 
-const getDueDateStatus = (dueDate: string): 'overdue' | 'due_soon' | 'normal' => {
+const getDueDateStatus = (dueDate: string, status: string): 'overdue' | 'due_soon' | 'normal' => {
+  if (checkIsOverdue(dueDate, status as Parameters<typeof checkIsOverdue>[1])) return 'overdue';
   const due = new Date(dueDate);
   const now = new Date();
   const hoursUntilDue = (due.getTime() - now.getTime()) / (1000 * 60 * 60);
-  if (hoursUntilDue < 0) return 'overdue';
-  if (hoursUntilDue < 24) return 'due_soon';
+  if (hoursUntilDue > 0 && hoursUntilDue < 24) return 'due_soon';
   return 'normal';
 };
 
@@ -110,10 +110,9 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
     ? Math.round((workOrder.pm_progress || 0) / workOrder.pm_total * 100)
     : 0;
 
-  const dueDateStatus = workOrder.due_date ? getDueDateStatus(workOrder.due_date) : 'normal';
+  const dueDateStatus = workOrder.due_date ? getDueDateStatus(workOrder.due_date, workOrder.status) : 'normal';
   const isOverdue = dueDateStatus === 'overdue';
   const isDueSoon = dueDateStatus === 'due_soon';
-  const dueUrgent = isOverdue || isDueSoon;
 
   return (
     <div className="space-y-3">

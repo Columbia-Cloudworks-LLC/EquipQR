@@ -5,7 +5,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Shield, Smartphone, Building2, Receipt } from 'lucide-react';
 
 const trustBadges = [
-  { icon: Shield, label: 'Enterprise RLS Security' },
+  { icon: Shield, label: 'Your Data Stays Private' },
   { icon: Smartphone, label: 'Offline-Ready Mobile' },
   { icon: Building2, label: 'Google Workspace SSO' },
   { icon: Receipt, label: 'QuickBooks Integration' },
@@ -63,7 +63,10 @@ const SocialProofSection = () => {
                   </h3>
                   <Badge variant="secondary" className="mb-4">Heavy Equipment Repair Shop</Badge>
                   <p className="text-muted-foreground leading-relaxed">
-                    "EquipQR™ has streamlined how we manage our heavy equipment. The QR code system makes it easy for our technicians to access equipment records and update maintenance status right from their phones in the field."
+                    &ldquo;We used to track PMs on paper and hope nothing slipped through. Now every machine has a QR code &mdash; scanning it proves exactly where it was dropped off and pulls up the full inspection history. I can see at a glance that every item was checked for defects, and so can my customers.&rdquo;
+                  </p>
+                  <p className="text-sm font-medium text-foreground mt-3">
+                    &mdash; Matt Hankins, Owner, 3-A Equipment
                   </p>
                 </div>
               </div>
@@ -71,11 +74,11 @@ const SocialProofSection = () => {
               <div className="grid grid-cols-2 gap-4 pt-6 border-t border-border">
                 <div>
                   <div className="text-xl sm:text-2xl font-bold text-foreground">100%</div>
-                  <div className="text-xs sm:text-sm text-muted-foreground">Field adoption rate</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Field adoption &mdash; every technician on the team uses it daily</div>
                 </div>
                 <div>
                   <div className="text-xl sm:text-2xl font-bold text-foreground">50%</div>
-                  <div className="text-xs sm:text-sm text-muted-foreground">Faster work orders</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Faster work order close times since deploying EquipQR</div>
                 </div>
               </div>
             </CardContent>

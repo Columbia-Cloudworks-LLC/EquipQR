@@ -538,7 +538,7 @@ export const MapView: React.FC<MapViewProps> = ({
       </GoogleMap>
 
       {/* Map Legend */}
-      <div className="absolute bottom-6 right-2 bg-background/90 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-md">
+      <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-md z-10">
         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Location Source</p>
         <div className="space-y-1">
           {(Object.entries(sourceColors) as [SourceType, MarkerColor][]).map(([key, { fill, label }]) => (

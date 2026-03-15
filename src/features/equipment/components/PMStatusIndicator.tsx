@@ -68,10 +68,10 @@ const PMStatusIndicator: React.FC<PMStatusIndicatorProps> = ({ status, size = 's
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span
-            className={cn('inline-block h-2.5 w-2.5 rounded-full flex-shrink-0', config.dotClass, className)}
-            aria-label={config.label}
-          />
+          <span className={cn('inline-flex items-center gap-1 flex-shrink-0', className)} aria-label={config.label}>
+            <span className="text-[9px] font-medium uppercase text-muted-foreground leading-none">PM</span>
+            <span className={cn('inline-block h-2.5 w-2.5 rounded-full', config.dotClass)} />
+          </span>
         </TooltipTrigger>
         <TooltipContent>
           <p className="font-medium">{config.label}</p>

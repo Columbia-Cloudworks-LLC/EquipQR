@@ -16,7 +16,7 @@ const GoogleWorkspaceFeature = () => {
   return (
     <>
       <PageSEO
-        title="Google Workspace Integration - EquipQR"
+        title="Google Workspace Integration"
         description="Connect your Google Workspace to import users from your directory. Sync members, assign roles, and let users sign in with Google for seamless access."
         path="/features/google-workspace"
         keywords="Google Workspace integration, Google Workspace SSO, Google Workspace directory sync, enterprise SSO, Google sign in"

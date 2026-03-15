@@ -15,7 +15,7 @@ const TeamCollaborationFeature = () => {
   return (
     <>
       <PageSEO
-        title="Team Collaboration - EquipQR"
+        title="Team Collaboration"
         description="Organize teams across multiple organizations with role-based access control. Track performance and distribute workload efficiently."
         path="/features/team-collaboration"
         keywords="team collaboration, role-based access control, equipment management teams, fleet management teams, CMMS collaboration"
