@@ -7,6 +7,19 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **1Password Edge env sync** — New script `scripts/sync-1password-edge-env.ps1` syncs 1Password environment secrets into `supabase/functions/.env` for local Edge Functions, with local redirect URLs. Optional run from `dev-start.bat` when 1Password CLI is on PATH.
+- **Equipment location history seed** — New seed file `supabase/seeds/28_equipment_location_history.sql` populates manual and team_sync `equipment_location_history` records for location hierarchy and map testing.
+
+### Changed
+
+- **dev-start.bat** — Before starting Edge Functions: optional sync of edge env from 1Password (configurable environment ID), validation of edge env file (existence, size, max line length), and use of `--no-verify-jwt` for local serve.
+- **Seed data for location hierarchy** — Teams seed (`05_teams.sql`) adds location columns (address, city, state, country, lat/lng, override_equipment_location). Equipment seed (`07_equipment.sql`) adds assigned/team location data and `use_team_location` for map hierarchy scenarios. Scans seed (`14_scans.sql`) adds GPS-format scans for 4-tier location testing.
+- **sync-local-supabase-env.ps1** — Removed `SUPABASE_URL` from managed edge env block (handled by 1Password sync or elsewhere).
+
 ## [2.3.12] - 2026-03-15
 
 ### Changed
