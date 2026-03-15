@@ -169,7 +169,9 @@ export const AlternateGroupForm: React.FC<AlternateGroupFormProps> = ({
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          Verified groups are shown with higher priority in search results.
+          {isEditing
+            ? 'Verified groups are shown with higher priority in search results.'
+            : 'Groups start as Unverified. Change to Verified after adding evidence and part numbers.'}
         </p>
       </div>
 

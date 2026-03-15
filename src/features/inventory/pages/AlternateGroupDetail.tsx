@@ -7,6 +7,7 @@ import {
   Package,
   Tag,
   CheckCircle2,
+  AlertTriangle,
   Star,
   Search,
   ExternalLink,
@@ -36,6 +37,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -55,6 +63,7 @@ import {
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { AlternateGroupForm } from '@/features/inventory/components/AlternateGroupForm';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { PartIdentifierType } from '@/features/inventory/types/inventory';
 import type { AlternateGroupMember } from '@/features/inventory/services/partAlternatesService';
 
@@ -70,6 +79,7 @@ const IDENTIFIER_TYPES: { value: PartIdentifierType; label: string }[] = [
 const AlternateGroupDetail: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { currentOrganization } = useOrganization();
   const { canCreateEquipment } = usePermissions();
   const canEdit = canCreateEquipment();
@@ -111,7 +121,7 @@ const AlternateGroupDetail: React.FC = () => {
 
   // Filter by search
   const filteredItems = useMemo(() => {
-    if (!itemSearch.trim()) return availableItems.slice(0, 20);
+    if (!itemSearch.trim()) return [];
     const needle = itemSearch.toLowerCase();
     return availableItems
       .filter(
@@ -216,6 +226,152 @@ const AlternateGroupDetail: React.FC = () => {
 
   const inventoryMembers = group.members.filter(m => m.inventory_item_id);
   const identifierMembers = group.members.filter(m => m.part_identifier_id && !m.inventory_item_id);
+  const closeAddItemDialog = () => {
+    setShowAddItemDialog(false);
+    setSelectedItemId(null);
+    setIsPrimaryItem(false);
+    setItemSearch('');
+  };
+  const closeAddIdentifierDialog = () => {
+    setShowAddIdentifierDialog(false);
+    setIdentifierType('oem');
+    setIdentifierValue('');
+    setIdentifierManufacturer('');
+  };
+
+  const addItemDialogBody = (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search inventory items..."
+          value={itemSearch}
+          onChange={(e) => setItemSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      <div className="max-h-60 overflow-y-auto border rounded-md p-2 space-y-1">
+        {filteredItems.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            {!itemSearch.trim() && availableItems.length > 0
+              ? 'Search to find inventory items to add'
+              : availableItems.length === 0
+                ? 'All inventory items are already in this group'
+                : 'No items found matching your search'}
+          </p>
+        ) : (
+          filteredItems.map((item) => (
+            <div
+              key={item.id}
+              className={`p-2 rounded cursor-pointer hover:bg-muted/50 transition-colors ${
+                selectedItemId === item.id
+                  ? 'bg-primary/15 border-2 border-primary ring-2 ring-primary/20'
+                  : 'border border-transparent'
+              }`}
+              onClick={() => setSelectedItemId(item.id)}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium">{item.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {item.sku && `SKU: ${item.sku} • `}
+                    Qty: {item.quantity_on_hand}
+                  </p>
+                </div>
+                {selectedItemId === item.id && (
+                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="is-primary"
+          checked={isPrimaryItem}
+          onCheckedChange={(checked) => setIsPrimaryItem(checked as boolean)}
+        />
+        <Label htmlFor="is-primary" className="text-sm">
+          Mark as primary part in this group
+        </Label>
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={closeAddItemDialog}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleAddItem}
+          disabled={!selectedItemId || addItemMutation.isPending}
+        >
+          {addItemMutation.isPending ? 'Adding...' : 'Add Item'}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const addIdentifierDialogBody = (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="identifier-type">Type</Label>
+        <Select
+          value={identifierType}
+          onValueChange={(value) => setIdentifierType(value as PartIdentifierType)}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {IDENTIFIER_TYPES.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                {type.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="identifier-value">
+          Part Number <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="identifier-value"
+          placeholder="e.g., CAT-1R-0750, WIX 51773"
+          value={identifierValue}
+          onChange={(e) => setIdentifierValue(e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="identifier-manufacturer">Manufacturer</Label>
+        <Input
+          id="identifier-manufacturer"
+          placeholder="e.g., Caterpillar, WIX, Baldwin"
+          value={identifierManufacturer}
+          onChange={(e) => setIdentifierManufacturer(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Optional. The brand or manufacturer of this part number.
+        </p>
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={closeAddIdentifierDialog}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleAddIdentifier}
+          disabled={!identifierValue.trim() || addIdentifierMutation.isPending}
+        >
+          {addIdentifierMutation.isPending ? 'Adding...' : 'Add Part Number'}
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <Page maxWidth="7xl" padding="responsive">
@@ -226,7 +382,6 @@ const AlternateGroupDetail: React.FC = () => {
           description={group.description || undefined}
           breadcrumbs={[
             { label: 'Alternate Groups', href: '/dashboard/alternate-groups' },
-            { label: group.name },
           ]}
           meta={
             <>
@@ -237,7 +392,15 @@ const AlternateGroupDetail: React.FC = () => {
                 </Badge>
               )}
               {group.status === 'deprecated' && (
-                <Badge variant="secondary">Deprecated</Badge>
+                <Badge variant="outline" className="border-warning text-warning bg-warning/10">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Deprecated
+                </Badge>
+              )}
+              {group.status === 'unverified' && (
+                <Badge variant="outline" className="text-muted-foreground">
+                  Unverified
+                </Badge>
               )}
             </>
           }
@@ -339,7 +502,9 @@ const AlternateGroupDetail: React.FC = () => {
                       <Button
                         variant="ghost"
                         size="icon"
+                        className={isMobile ? 'min-h-11 min-w-11' : undefined}
                         onClick={() => setRemovingMember(member)}
+                        aria-label={`Remove ${member.inventory_name || 'inventory item'} from group`}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -411,7 +576,9 @@ const AlternateGroupDetail: React.FC = () => {
                       <Button
                         variant="ghost"
                         size="icon"
+                        className={isMobile ? 'min-h-11 min-w-11' : undefined}
                         onClick={() => setRemovingMember(member)}
+                        aria-label={`Remove ${member.identifier_value || 'part number'} from group`}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -424,179 +591,106 @@ const AlternateGroupDetail: React.FC = () => {
         </Card>
       </div>
 
-      {/* Edit Group Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Alternate Group</DialogTitle>
-            <DialogDescription>
-              Update the group details.
-            </DialogDescription>
-          </DialogHeader>
-          <AlternateGroupForm
-            group={group}
-            onSuccess={() => setShowEditDialog(false)}
-            onCancel={() => setShowEditDialog(false)}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Inventory Item Dialog */}
-      <Dialog open={showAddItemDialog} onOpenChange={setShowAddItemDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Inventory Item</DialogTitle>
-            <DialogDescription>
-              Select an inventory item to add to this alternate group.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search inventory items..."
-                value={itemSearch}
-                onChange={(e) => setItemSearch(e.target.value)}
-                className="pl-9"
+      {/* Edit Group Dialog / Drawer */}
+      {isMobile ? (
+        <Drawer open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DrawerContent className="max-h-[85dvh]">
+            <DrawerHeader>
+              <DrawerTitle>Edit Alternate Group</DrawerTitle>
+              <DrawerDescription>Update the group details.</DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-4 overflow-y-auto">
+              <AlternateGroupForm
+                group={group}
+                onSuccess={() => setShowEditDialog(false)}
+                onCancel={() => setShowEditDialog(false)}
               />
             </div>
-            
-            <div className="max-h-60 overflow-y-auto border rounded-md p-2 space-y-1">
-              {filteredItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  {availableItems.length === 0
-                    ? 'All inventory items are already in this group'
-                    : 'No items found matching your search'}
-                </p>
-              ) : (
-                filteredItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`p-2 rounded cursor-pointer hover:bg-muted/50 ${
-                      selectedItemId === item.id ? 'bg-primary/10 border border-primary' : ''
-                    }`}
-                    onClick={() => setSelectedItemId(item.id)}
-                  >
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {item.sku && `SKU: ${item.sku} • `}
-                      Qty: {item.quantity_on_hand}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Alternate Group</DialogTitle>
+              <DialogDescription>
+                Update the group details.
+              </DialogDescription>
+            </DialogHeader>
+            <AlternateGroupForm
+              group={group}
+              onSuccess={() => setShowEditDialog(false)}
+              onCancel={() => setShowEditDialog(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="is-primary"
-                checked={isPrimaryItem}
-                onCheckedChange={(checked) => setIsPrimaryItem(checked as boolean)}
-              />
-              <Label htmlFor="is-primary" className="text-sm">
-                Mark as primary part in this group
-              </Label>
-            </div>
+      {/* Add Inventory Item Dialog / Drawer */}
+      {isMobile ? (
+        <Drawer
+          open={showAddItemDialog}
+          onOpenChange={(open) => (open ? setShowAddItemDialog(true) : closeAddItemDialog())}
+        >
+          <DrawerContent className="max-h-[85dvh]">
+            <DrawerHeader>
+              <DrawerTitle>Add Inventory Item</DrawerTitle>
+              <DrawerDescription>
+                Select an inventory item to add to this alternate group.
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-4 overflow-y-auto">{addItemDialogBody}</div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog
+          open={showAddItemDialog}
+          onOpenChange={(open) => (open ? setShowAddItemDialog(true) : closeAddItemDialog())}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Add Inventory Item</DialogTitle>
+              <DialogDescription>
+                Select an inventory item to add to this alternate group.
+              </DialogDescription>
+            </DialogHeader>
+            {addItemDialogBody}
+          </DialogContent>
+        </Dialog>
+      )}
 
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowAddItemDialog(false);
-                  setSelectedItemId(null);
-                  setIsPrimaryItem(false);
-                  setItemSearch('');
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleAddItem}
-                disabled={!selectedItemId || addItemMutation.isPending}
-              >
-                {addItemMutation.isPending ? 'Adding...' : 'Add Item'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Part Identifier Dialog */}
-      <Dialog open={showAddIdentifierDialog} onOpenChange={setShowAddIdentifierDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Part Number</DialogTitle>
-            <DialogDescription>
-              Add an OEM, aftermarket, or cross-reference part number to this group.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="identifier-type">Type</Label>
-              <Select
-                value={identifierType}
-                onValueChange={(value) => setIdentifierType(value as PartIdentifierType)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {IDENTIFIER_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="identifier-value">
-                Part Number <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="identifier-value"
-                placeholder="e.g., CAT-1R-0750, WIX 51773"
-                value={identifierValue}
-                onChange={(e) => setIdentifierValue(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="identifier-manufacturer">Manufacturer</Label>
-              <Input
-                id="identifier-manufacturer"
-                placeholder="e.g., Caterpillar, WIX, Baldwin"
-                value={identifierManufacturer}
-                onChange={(e) => setIdentifierManufacturer(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Optional. The brand or manufacturer of this part number.
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowAddIdentifierDialog(false);
-                  setIdentifierType('oem');
-                  setIdentifierValue('');
-                  setIdentifierManufacturer('');
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleAddIdentifier}
-                disabled={!identifierValue.trim() || addIdentifierMutation.isPending}
-              >
-                {addIdentifierMutation.isPending ? 'Adding...' : 'Add Part Number'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Add Part Identifier Dialog / Drawer */}
+      {isMobile ? (
+        <Drawer
+          open={showAddIdentifierDialog}
+          onOpenChange={(open) => (open ? setShowAddIdentifierDialog(true) : closeAddIdentifierDialog())}
+        >
+          <DrawerContent className="max-h-[85dvh]">
+            <DrawerHeader>
+              <DrawerTitle>Add Part Number</DrawerTitle>
+              <DrawerDescription>
+                Add an OEM, aftermarket, or cross-reference part number to this group.
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-4 overflow-y-auto">{addIdentifierDialogBody}</div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog
+          open={showAddIdentifierDialog}
+          onOpenChange={(open) => (open ? setShowAddIdentifierDialog(true) : closeAddIdentifierDialog())}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Add Part Number</DialogTitle>
+              <DialogDescription>
+                Add an OEM, aftermarket, or cross-reference part number to this group.
+              </DialogDescription>
+            </DialogHeader>
+            {addIdentifierDialogBody}
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Remove Member Confirmation */}
       <AlertDialog open={!!removingMember} onOpenChange={() => setRemovingMember(null)}>

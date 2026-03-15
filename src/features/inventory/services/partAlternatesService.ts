@@ -463,14 +463,37 @@ export const getAlternateGroups = async (
   organizationId: string
 ): Promise<PartAlternateGroup[]> => {
   try {
-    const { data, error } = await supabase
+    const { data: groups, error } = await supabase
       .from('part_alternate_groups')
       .select('*')
       .eq('organization_id', organizationId)
       .order('name');
 
     if (error) throw error;
-    return (data || []) as PartAlternateGroup[];
+
+    const baseGroups = (groups || []) as PartAlternateGroup[];
+    if (baseGroups.length === 0) {
+      return [];
+    }
+
+    const groupIds = baseGroups.map((group) => group.id);
+    const { data: memberRows, error: memberCountError } = await supabase
+      .from('part_alternate_group_members')
+      .select('group_id')
+      .in('group_id', groupIds);
+
+    if (memberCountError) throw memberCountError;
+
+    const memberCounts = (memberRows || []).reduce<Record<string, number>>((acc, row) => {
+      const groupId = row.group_id;
+      acc[groupId] = (acc[groupId] || 0) + 1;
+      return acc;
+    }, {});
+
+    return baseGroups.map((group) => ({
+      ...group,
+      member_count: memberCounts[group.id] || 0,
+    }));
   } catch (error) {
     logger.error('Error fetching alternate groups:', error);
     throw error;

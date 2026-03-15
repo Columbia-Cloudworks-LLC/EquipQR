@@ -7,6 +7,20 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.12] - 2026-03-15
+
+### Changed
+
+- **Alternate part groups list clarity and control** — Added explicit `Unverified` status badges, stronger warning styling for `Deprecated`, full-name title tooltips, status filter chips, sort controls, inline result counts, and one-tap search clear actions to improve technician scanning and triage speed in dense group lists.
+- **Mobile-first alternate group actions** — Adapted list/card and form interactions for touch workflows by using bottom-sheet drawers for mobile create/edit/action flows, reducing hidden affordances and improving one-handed field usability.
+- **Alternate group detail workflow visibility** — Improved detail-page wayfinding and action confidence with simplified breadcrumbs, stronger selected-row states in add-item flows, and clearer verification guidance while creating new groups.
+
+### Fixed
+
+- **Mobile drawer layering over bottom navigation** — Raised shared drawer overlay/content layering so create/edit alternate-group sheets consistently render above persistent bottom nav and block background interaction as expected.
+- **Add-item modal scalability in large inventories** — Changed default add-item behavior to require search before listing inventory choices and added explicit empty-state guidance to prevent unfiltered long-list overload.
+- **Touch-target safety for destructive actions** — Increased mobile remove-action hit areas and labels on alternate-group member rows to reduce accidental destructive taps in field conditions.
+
 ## [2.3.11] - 2026-03-15
 
 ### Changed

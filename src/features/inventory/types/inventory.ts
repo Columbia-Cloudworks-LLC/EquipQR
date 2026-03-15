@@ -131,6 +131,7 @@ export interface PartAlternateGroup {
   verified_at: string | null;
   created_at: string;
   updated_at: string;
+  member_count?: number;
 }
 
 /**
