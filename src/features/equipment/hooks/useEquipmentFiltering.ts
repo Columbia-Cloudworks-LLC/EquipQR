@@ -44,7 +44,8 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>(initialSort);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10); // Default to 10 items per page
+  const [pageSize, setPageSize] = useState(10);
+  const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
 
   // Get equipment data using explicit organization ID
   const equipmentQuery = useEquipment(organizationId);
@@ -201,51 +202,51 @@ export const useEquipmentFiltering = (organizationId?: string) => {
     return filteredAndSortedEquipment.slice(startIndex, endIndex);
   }, [filteredAndSortedEquipment, currentPage, pageSize]);
 
-  // Quick filter presets
   const applyQuickFilter = useCallback((type: string) => {
+    if (activeQuickFilter === type) {
+      setFilters(initialFilters);
+      setSortConfig(initialSort);
+      setActiveQuickFilter(null);
+      setCurrentPage(1);
+      return;
+    }
+
+    setFilters(initialFilters);
+    setSortConfig(initialSort);
+
     switch (type) {
       case 'maintenance-due':
-        setFilters(prev => ({
-          ...prev,
-          status: 'maintenance'
-        }));
+        setFilters(prev => ({ ...prev, status: 'maintenance' }));
         break;
       case 'warranty-expiring':
-        setFilters(prev => ({
-          ...prev,
-          warrantyExpiring: true
-        }));
+        setFilters(prev => ({ ...prev, warrantyExpiring: true }));
         break;
       case 'recently-added':
-        setSortConfig({
-          field: 'created_at',
-          direction: 'desc'
-        });
+        setSortConfig({ field: 'created_at', direction: 'desc' });
         break;
       case 'active-only':
-        setFilters(prev => ({
-          ...prev,
-          status: 'active'
-        }));
+        setFilters(prev => ({ ...prev, status: 'active' }));
         break;
     }
+    setActiveQuickFilter(type);
     setCurrentPage(1);
-  }, []);
+  }, [activeQuickFilter]);
 
   const updateFilter = useCallback((key: keyof EquipmentFilters, value: EquipmentFilters[keyof EquipmentFilters]) => {
     setFilters(prev => ({
       ...prev,
       [key]: value
     }));
+    setActiveQuickFilter(null);
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
   }, [currentPage]);
 
-  const updateSort = useCallback((field: string) => {
+  const updateSort = useCallback((field: string, direction?: 'asc' | 'desc') => {
     setSortConfig(prev => ({
       field,
-      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+      direction: direction ?? (prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'),
     }));
     if (currentPage !== 1) {
       setCurrentPage(1);
@@ -255,6 +256,7 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   const clearFilters = useCallback(() => {
     setFilters(initialFilters);
     setSortConfig(initialSort);
+    setActiveQuickFilter(null);
     setCurrentPage(1);
   }, []);
 
@@ -277,12 +279,13 @@ export const useEquipmentFiltering = (organizationId?: string) => {
     filters,
     sortConfig,
     showAdvancedFilters,
-    filteredAndSortedEquipment, // Full filtered list for counts
-    paginatedEquipment, // Current page of equipment
+    filteredAndSortedEquipment,
+    paginatedEquipment,
     filterOptions,
     isLoading,
     hasActiveFilters,
-    equipment, // Return raw equipment data
+    activeQuickFilter,
+    equipment,
     currentPage,
     pageSize,
     totalPages,

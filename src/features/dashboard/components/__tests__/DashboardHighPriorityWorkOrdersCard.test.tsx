@@ -28,13 +28,15 @@ const mockWorkOrders = [
     id: 'wo-1',
     title: 'Critical engine failure',
     createdDate: '2026-01-08T10:00:00Z',
-    dueDate: '2026-01-10T10:00:00Z',
+    dueDate: '2030-01-10T10:00:00Z',
+    status: 'in_progress',
   },
   {
     id: 'wo-2',
     title: 'Safety valve replacement',
     createdDate: '2026-01-07T08:30:00Z',
     dueDate: null,
+    status: 'assigned',
   },
 ];
 
@@ -141,7 +143,7 @@ describe('DashboardHighPriorityWorkOrdersCard', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText(/Due: 1\/10\/2026/)).toBeInTheDocument();
+      expect(screen.getByText(/Due: 1\/10\/2030/)).toBeInTheDocument();
     });
 
     it('does not render due date when null', () => {

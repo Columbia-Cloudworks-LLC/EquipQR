@@ -166,7 +166,14 @@ vi.mock('recharts', () => ({
 // ============================================
 
 const defaultLayoutMock = {
-  activeWidgets: ['stats-grid', 'fleet-efficiency', 'recent-equipment', 'recent-work-orders', 'high-priority-wo'],
+  activeWidgets: [
+    'stats-grid',
+    'equipment-by-status',
+    'pm-compliance',
+    'recent-equipment',
+    'recent-work-orders',
+    'high-priority-wo',
+  ],
   isLoading: false,
   updateWidgetOrder: vi.fn(),
   addWidget: vi.fn(),
@@ -502,8 +509,8 @@ describe('Dashboard', () => {
       render(<Dashboard />);
       await waitFor(() => {
         const grid = screen.getByTestId('dashboard-grid');
-        // 5 default widget slots rendered (one div per widget)
-        expect(grid.children.length).toBe(5);
+        // 6 default widget slots rendered (stats-grid, equipment-by-status, pm-compliance, recent-equipment, recent-work-orders, high-priority-wo)
+        expect(grid.children.length).toBe(6);
       });
     });
 

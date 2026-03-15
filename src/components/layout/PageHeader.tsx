@@ -17,6 +17,8 @@ interface PageHeaderProps {
   breadcrumbs?: BreadcrumbItem[];
   actions?: React.ReactNode;
   className?: string;
+  /** Hide the description on mobile to save vertical space */
+  hideDescriptionOnMobile?: boolean;
 }
 
 const PageHeader: React.FC<PageHeaderProps> = ({
@@ -26,6 +28,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   breadcrumbs,
   actions,
   className,
+  hideDescriptionOnMobile = false,
 }) => {
   useDocumentTitle(title);
 
@@ -80,7 +83,10 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           )}
           
           {description && (
-            <p className="text-muted-foreground text-base sm:text-lg line-clamp-2">
+            <p className={cn(
+              "text-muted-foreground text-base sm:text-lg line-clamp-2",
+              hideDescriptionOnMobile && "hidden md:block"
+            )}>
               {description}
             </p>
           )}

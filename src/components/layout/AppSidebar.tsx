@@ -62,13 +62,13 @@ interface NavigationItem {
 
 const mainNavigation: NavigationItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Equipment", url: "/dashboard/equipment", icon: Forklift },
   { title: "Work Orders", url: "/dashboard/work-orders", icon: ClipboardList },
+  { title: "Equipment", url: "/dashboard/equipment", icon: Forklift },
+  { title: "Fleet Map", url: "/dashboard/fleet-map", icon: Map },
   { title: "Inventory", url: "/dashboard/inventory", icon: Warehouse },
   { title: "Part Lookup", url: "/dashboard/part-lookup", icon: Search },
   { title: "Part Alternates", url: "/dashboard/alternate-groups", icon: Layers },
   { title: "Teams", url: "/dashboard/teams", icon: Users },
-  { title: "Fleet Map", url: "/dashboard/fleet-map", icon: Map },
 ];
 
 const managementNavigation: NavigationItem[] = [

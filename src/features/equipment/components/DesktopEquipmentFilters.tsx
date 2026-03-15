@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Building, MapPin, Users } from 'lucide-react';
+import { Search, Filter, Building, MapPin, Users, X } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 import { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
 
 interface Team {
@@ -21,16 +22,20 @@ interface DesktopEquipmentFiltersProps {
   filters: EquipmentFilters;
   onFilterChange: (key: keyof EquipmentFilters, value: string) => void;
   onClearFilters: () => void;
+  onQuickFilter: (preset: string) => void;
   filterOptions: FilterOptions;
   hasActiveFilters: boolean;
+  activeQuickFilter?: string | null;
 }
 
 export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = ({
   filters,
   onFilterChange,
   onClearFilters,
+  onQuickFilter,
   filterOptions,
-  hasActiveFilters
+  hasActiveFilters,
+  activeQuickFilter,
 }) => {
   return (
     <Card className="bg-muted/50">
@@ -108,17 +113,91 @@ export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = (
               </SelectContent>
             </Select>
 
-            <div className="col-span-2 sm:col-span-1">
+            {hasActiveFilters && (
+              <div className="col-span-2 sm:col-span-1">
+                <Button
+                  variant="outline"
+                  onClick={onClearFilters}
+                  className="w-full"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { label: 'Maintenance Due', value: 'maintenance-due' },
+              { label: 'Warranty Expiring', value: 'warranty-expiring' },
+              { label: 'Recently Added', value: 'recently-added' },
+              { label: 'Active Only', value: 'active-only' },
+            ].map((preset) => (
               <Button
-                variant="outline"
-                onClick={onClearFilters}
-                disabled={!hasActiveFilters}
-                className="w-full"
+                key={preset.value}
+                size="sm"
+                variant={activeQuickFilter === preset.value ? 'default' : 'outline'}
+                className="h-7 text-xs"
+                onClick={() => onQuickFilter(preset.value)}
               >
-                {hasActiveFilters ? 'Clear Filters' : 'No Active Filters'}
+                {preset.label}
+              </Button>
+            ))}
+          </div>
+
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-xs text-muted-foreground">Active:</span>
+              {filters.status !== 'all' && (
+                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                  Status: {filters.status}
+                  <X
+                    className="h-3 w-3 cursor-pointer hover:text-foreground"
+                    onClick={() => onFilterChange('status', 'all')}
+                    aria-label="Clear status filter"
+                  />
+                </Badge>
+              )}
+              {filters.manufacturer !== 'all' && (
+                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                  Manufacturer: {filters.manufacturer}
+                  <X
+                    className="h-3 w-3 cursor-pointer hover:text-foreground"
+                    onClick={() => onFilterChange('manufacturer', 'all')}
+                    aria-label="Clear manufacturer filter"
+                  />
+                </Badge>
+              )}
+              {filters.location !== 'all' && (
+                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                  Location: {filters.location}
+                  <X
+                    className="h-3 w-3 cursor-pointer hover:text-foreground"
+                    onClick={() => onFilterChange('location', 'all')}
+                    aria-label="Clear location filter"
+                  />
+                </Badge>
+              )}
+              {filters.team !== 'all' && (
+                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                  Team: {filterOptions.teams.find(t => t.id === filters.team)?.name || filters.team}
+                  <X
+                    className="h-3 w-3 cursor-pointer hover:text-foreground"
+                    onClick={() => onFilterChange('team', 'all')}
+                    aria-label="Clear team filter"
+                  />
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={onClearFilters}
+              >
+                Clear all
               </Button>
             </div>
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>

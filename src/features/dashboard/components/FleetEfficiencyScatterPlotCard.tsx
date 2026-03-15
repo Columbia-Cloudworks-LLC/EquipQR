@@ -135,8 +135,8 @@ const FleetEfficiencyScatterPlotCard: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle as="h2" id="fleet-efficiency-heading" className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
+        <CardTitle as="h2" id="fleet-efficiency-heading" className="flex items-center gap-2 text-base">
+          <TrendingUp className="h-4 w-4" />
           Fleet Efficiency
         </CardTitle>
         <CardDescription>

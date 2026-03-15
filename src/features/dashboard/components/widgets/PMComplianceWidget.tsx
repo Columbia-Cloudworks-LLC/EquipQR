@@ -1,21 +1,35 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import EmptyState from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePMCompliance } from '@/features/dashboard/hooks/useDashboardWidgets';
+import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
+import { getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
+import { PM_INTERVALS_ENABLED } from '@/lib/flags';
 
-/**
- * Donut chart showing PM schedule compliance breakdown.
- * Queries work orders that originated from PM templates and groups by status.
- */
 const PMComplianceWidget: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const organizationId = currentOrganization?.id;
 
   const { data, isLoading } = usePMCompliance(organizationId);
+  const { data: pmStatuses } = useOrgEquipmentPMStatuses(organizationId);
+
+  const intervalSummary = React.useMemo(() => {
+    if (!pmStatuses || pmStatuses.length === 0) return null;
+    let current = 0;
+    let dueSoon = 0;
+    let overdue = 0;
+    for (const s of pmStatuses) {
+      const level = getPMComplianceLevel(s);
+      if (level === 'overdue') overdue++;
+      else if (level === 'due_soon') dueSoon++;
+      else if (level === 'current') current++;
+    }
+    return { current, dueSoon, overdue, total: current + dueSoon + overdue };
+  }, [pmStatuses]);
 
   return (
     <Card className="h-full">
@@ -67,6 +81,31 @@ const PMComplianceWidget: React.FC = () => {
             description="Preventive maintenance data will appear when PM templates are used."
             className="py-6"
           />
+        )}
+
+        {PM_INTERVALS_ENABLED && intervalSummary && intervalSummary.total > 0 && (
+          <div className="mt-3 border-t pt-3 space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Interval Tracking ({intervalSummary.total} equipment)</p>
+            <div className="flex items-center gap-2 text-xs">
+              <CheckCircle className="h-3.5 w-3.5 text-success flex-shrink-0" />
+              <span>Current</span>
+              <span className="ml-auto font-medium">{intervalSummary.current}</span>
+            </div>
+            {intervalSummary.dueSoon > 0 && (
+              <div className="flex items-center gap-2 text-xs">
+                <Clock className="h-3.5 w-3.5 text-warning flex-shrink-0" />
+                <span>Due Soon</span>
+                <span className="ml-auto font-medium">{intervalSummary.dueSoon}</span>
+              </div>
+            )}
+            {intervalSummary.overdue > 0 && (
+              <div className="flex items-center gap-2 text-xs text-destructive">
+                <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                <span>Overdue</span>
+                <span className="ml-auto font-medium">{intervalSummary.overdue}</span>
+              </div>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>

@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { FileSpreadsheet, RefreshCw, CheckCircle, AlertTriangle, ExternalLink, Info, Copy } from 'lucide-react';
+import { FileSpreadsheet, RefreshCw, CheckCircle, ExternalLink, Info, Copy } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -136,16 +136,16 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   let isDisabled = false;
 
   if (!isCompleted) {
-    tooltipMessage = 'Work order must be completed before exporting to QuickBooks.';
+    tooltipMessage = 'Complete this work order first, then export to QuickBooks.';
     isDisabled = true;
   } else if (!isConnected) {
-    tooltipMessage = 'QuickBooks is not connected. Connect in Organization Settings.';
+    tooltipMessage = 'QuickBooks is not connected. Go to Organization Settings > Integrations to connect QuickBooks.';
     isDisabled = true;
   } else if (!hasTeam) {
-    tooltipMessage = 'Equipment must be assigned to a team to export.';
+    tooltipMessage = 'Assign this equipment to a team before exporting to QuickBooks.';
     isDisabled = true;
   } else if (!hasMapping) {
-    tooltipMessage = "Equipment's team does not have a QuickBooks customer mapping. Set up mapping in Team Settings.";
+    tooltipMessage = "This team's QuickBooks customer mapping is missing. Set it in Team Settings > QuickBooks.";
     isDisabled = true;
   } else if (isExporting) {
     tooltipMessage = 'Exporting...';
@@ -172,6 +172,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
 
   // Use hasInvoiceIdentifiers for display consistency - malformed exports show as new export
   const showAsUpdate = alreadyExported && hasInvoiceIdentifiers;
+  const showSetupState = isDisabled && isCompleted && (!isConnected || !hasTeam || !hasMapping);
 
   const latestLog = exportLogs[0] ?? null;
 
@@ -403,11 +404,15 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
       ) : showAsUpdate ? (
         <CheckCircle className="h-4 w-4 mr-2" />
       ) : isDisabled ? (
-        <AlertTriangle className="h-4 w-4 mr-2" />
+        <Info className="h-4 w-4 mr-2" />
       ) : (
         <FileSpreadsheet className="h-4 w-4 mr-2" />
       )}
-      {showAsUpdate ? `Update Invoice ${invoiceDisplay}` : 'Export to QuickBooks'}
+      {showAsUpdate
+        ? `Update Invoice ${invoiceDisplay}`
+        : showSetupState
+          ? 'QuickBooks Setup Required'
+          : 'Export to QuickBooks'}
     </>
   );
 

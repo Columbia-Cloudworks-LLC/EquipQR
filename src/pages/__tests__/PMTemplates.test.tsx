@@ -475,7 +475,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      const assignButton = screen.getAllByText('Apply to Equipment')[0];
+      const assignButton = screen.getAllByRole('button', { name: 'Apply' })[0];
       fireEvent.click(assignButton);
 
       await waitFor(() => {
@@ -490,7 +490,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      const cloneButtons = screen.getAllByRole('button', { name: 'Clone' });
+      const cloneButtons = screen.getAllByRole('button', { name: 'Clone Template' });
       fireEvent.click(cloneButtons[0]);
 
       await waitFor(() => {
@@ -525,7 +525,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      const cloneButtons = screen.getAllByText('Clone');
+      const cloneButtons = screen.getAllByText('Clone Template');
       cloneButtons.forEach(button => {
         expect(button).toBeDisabled();
       });
@@ -588,7 +588,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      const cloneButtons = screen.getAllByRole('button', { name: 'Clone' });
+      const cloneButtons = screen.getAllByRole('button', { name: 'Clone Template' });
       fireEvent.click(cloneButtons[0]);
 
       await waitFor(() => {

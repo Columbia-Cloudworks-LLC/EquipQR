@@ -7,6 +7,20 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.10] - 2026-03-15
+
+### Added
+
+- **PM interval tracking foundation** — Added PM interval schema support and validation, PM completion working-hours snapshots, and new Supabase RPCs (`get_equipment_pm_status`, `get_org_equipment_pm_statuses`) to compute per-equipment and org-wide PM status.
+- **PM operational seed data** — Added `supabase/seeds/27_pm_operational_data.sql` to populate realistic PM/work order history and overdue/due-soon/current scenarios for local validation and demos.
+- **Equipment PM status UX components** — Added PM status indicator and PM status hooks, plus mobile action affordances for PM-priority actions in equipment workflows.
+
+### Changed
+
+- **Equipment and work-order UX refresh** — Updated equipment list/details, filtering/sorting, dashboard widgets/cards, and work-order detail/mobile surfaces for improved technician scanning, action speed, and PM visibility.
+- **PM templates and checklist editing flows** — Enhanced PM template data flow and checklist editor behavior to align with interval-aware PM operations.
+- **Landing page messaging and sitemap content** — Updated landing section content and generated sitemap output for the current product positioning.
+
 ## [2.3.9] - 2026-03-13
 
 ### Added

@@ -25,9 +25,11 @@ import {
   Lock,
   Loader2
 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { SaveStatus } from '@/components/ui/SaveStatus';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
+import { PM_INTERVALS_ENABLED } from '@/lib/flags';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { useCreatePMTemplate, useUpdatePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { PMTemplateCompatibilityRulesEditor } from '@/features/pm-templates/components/PMTemplateCompatibilityRulesEditor';
@@ -42,6 +44,7 @@ type SaveTrigger = 'text' | 'selection' | 'manual';
 
 interface ChecklistItemRowProps {
   item: PMChecklistItem;
+  autoFocus?: boolean;
   index: number;
   totalInSection: number;
   sections: string[];
@@ -56,6 +59,7 @@ interface ChecklistItemRowProps {
 
 const ChecklistItemRow = memo(function ChecklistItemRow({
   item,
+  autoFocus,
   index,
   totalInSection,
   sections,
@@ -67,6 +71,7 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
   onDelete,
   triggerAutoSave
 }: ChecklistItemRowProps) {
+  const titleRef = useRef<HTMLInputElement>(null);
   const [titleInput, setTitleInput] = useState(item.title);
   const [descInput, setDescInput] = useState(item.description || '');
 
@@ -74,6 +79,13 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
     setTitleInput(item.title);
     setDescInput(item.description || '');
   }, [item.id, item.title, item.description]);
+
+  useEffect(() => {
+    if (autoFocus && titleRef.current) {
+      titleRef.current.focus();
+      titleRef.current.select();
+    }
+  }, [autoFocus]);
 
   const handleTitleBlur = () => {
     if (titleInput !== item.title) {
@@ -97,13 +109,20 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
     }
   };
 
+  const autoExpandTextarea = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    const target = e.currentTarget;
+    target.style.height = 'auto';
+    target.style.height = `${target.scrollHeight}px`;
+  };
+
   return (
     <div className="border rounded-lg p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 space-y-3">
+        <div className="flex-1 space-y-3 min-w-0">
           <div>
             <Label>Title</Label>
             <Input
+              ref={titleRef}
               value={titleInput}
               onChange={(e) => setTitleInput(e.target.value)}
               onBlur={handleTitleBlur}
@@ -116,7 +135,9 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
               value={descInput}
               onChange={(e) => setDescInput(e.target.value)}
               onBlur={handleDescBlur}
+              onInput={autoExpandTextarea}
               placeholder="Item description"
+              className="resize-none"
               rows={2}
             />
           </div>
@@ -128,12 +149,12 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
             />
             <Label htmlFor={`required-${item.id}`}>Required</Label>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => onDuplicate(item.id)}>Duplicate</Button>
             <div className="flex items-center gap-2">
               <Label className="text-xs">Move to</Label>
               <Select onValueChange={(v) => onMoveToSection(item.id, v)} value={item.section}>
-                <SelectTrigger className="h-8 w-[200px]">
+                <SelectTrigger className="h-8 w-[200px] max-w-[50vw]">
                   <SelectValue placeholder="Section" />
                 </SelectTrigger>
                 <SelectContent>
@@ -148,7 +169,8 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
         <div className="flex flex-col gap-1 ml-2">
           <Button 
             variant="ghost" 
-            size="sm" 
+            size="sm"
+            className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
             onClick={() => onMoveUp(item.id)} 
             disabled={index === 0}
             aria-label="Move item up"
@@ -157,7 +179,8 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
           </Button>
           <Button 
             variant="ghost" 
-            size="sm" 
+            size="sm"
+            className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
             onClick={() => onMoveDown(item.id)} 
             disabled={index === totalInSection - 1}
             aria-label="Move item down"
@@ -166,7 +189,8 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
           </Button>
           <Button 
             variant="ghost" 
-            size="sm" 
+            size="sm"
+            className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
             onClick={() => onDelete(item.id)}
             aria-label="Delete item"
           >
@@ -184,6 +208,8 @@ interface ChecklistTemplateEditorProps {
     name: string;
     description?: string | null;
     template_data: PMChecklistItem[];
+    interval_value?: number | null;
+    interval_type?: 'days' | 'hours' | null;
     organization_id?: string | null;
     is_protected?: boolean;
     created_at?: string;
@@ -201,15 +227,28 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
   const [templateName, setTemplateName] = useState(template?.name || '');
   const [templateDescription, setTemplateDescription] = useState(template?.description || '');
   const [checklistItems, setChecklistItems] = useState<PMChecklistItem[]>(template?.template_data || []);
+  const [intervalValue, setIntervalValue] = useState<number | null>(template?.interval_value ?? null);
+  const [intervalType, setIntervalType] = useState<'days' | 'hours'>(template?.interval_type ?? 'days');
+  const [intervalEnabled, setIntervalEnabled] = useState(template?.interval_value != null);
   const [expanded, setExpanded] = useState<string[]>([]);
   const [previewMode, setPreviewMode] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Section dialogs state
+  // Auto-focus tracking for newly added items
+  const newItemIdRef = useRef<string | null>(null);
+
+  // Inline add section state (replaces nested modal)
+  const [addingSectionInline, setAddingSectionInline] = useState(false);
+  const [inlineSectionName, setInlineSectionName] = useState('');
+  const inlineSectionRef = useRef<HTMLInputElement>(null);
+
+  // Interval validation
+  const [intervalError, setIntervalError] = useState<string | null>(null);
+
+  // Section dialogs state (rename only -- add section is now inline)
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameOriginal, setRenameOriginal] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState('');
-  const [isNewSectionFlow, setIsNewSectionFlow] = useState(false);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -274,16 +313,42 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
   const expandAll = useCallback(() => setExpanded(sections), [sections]);
   const collapseAll = useCallback(() => setExpanded([]), []);
 
-  // Section dialogs
+  // Inline add section
   const openAddSection = () => {
-    setIsNewSectionFlow(true);
-    setRenameOriginal(null);
-    setRenameInput('');
-    setRenameDialogOpen(true);
+    setInlineSectionName('');
+    setAddingSectionInline(true);
+    requestAnimationFrame(() => inlineSectionRef.current?.focus());
   };
 
+  const confirmInlineAddSection = () => {
+    const newName = inlineSectionName.trim();
+    if (!newName || sections.includes(newName)) return;
+
+    const newId = nanoid();
+    newItemIdRef.current = newId;
+    const newItem: PMChecklistItem = {
+      id: newId,
+      title: 'New item',
+      description: '',
+      section: newName,
+      condition: null,
+      required: true,
+      notes: ''
+    };
+    setChecklistItems(prev => [...prev, newItem]);
+    setExpanded(prev => Array.from(new Set([...prev, newName])));
+    setHasUnsavedChanges(true);
+    setAddingSectionInline(false);
+    setInlineSectionName('');
+  };
+
+  const cancelInlineAddSection = () => {
+    setAddingSectionInline(false);
+    setInlineSectionName('');
+  };
+
+  // Section rename dialog
   const openRenameSection = (section: string) => {
-    setIsNewSectionFlow(false);
     setRenameOriginal(section);
     setRenameInput(section);
     setRenameDialogOpen(true);
@@ -292,27 +357,6 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
   const confirmRenameSection = () => {
     const newName = renameInput.trim();
     if (!newName) return;
-
-    if (isNewSectionFlow) {
-      if (sections.includes(newName)) {
-        setRenameDialogOpen(false);
-        return;
-      }
-      const newItem: PMChecklistItem = {
-        id: nanoid(),
-        title: 'New item',
-        description: '',
-        section: newName,
-        condition: null,
-        required: false,
-        notes: ''
-      };
-      setChecklistItems(prev => [...prev, newItem]);
-      setExpanded(prev => Array.from(new Set([...prev, newName])));
-      setHasUnsavedChanges(true);
-      setRenameDialogOpen(false);
-      return;
-    }
 
     if (renameOriginal && newName !== renameOriginal && !sections.includes(newName)) {
       const updatedItems = checklistItems.map(item => item.section === renameOriginal ? { ...item, section: newName } : item);
@@ -338,13 +382,15 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
   };
 
   const addItem = (section: string) => {
+    const newId = nanoid();
+    newItemIdRef.current = newId;
     const newItem: PMChecklistItem = {
-      id: nanoid(),
+      id: newId,
       title: 'New item',
       description: '',
       section,
       condition: null,
-      required: false,
+      required: true,
       notes: ''
     };
     setChecklistItems(prev => [...prev, newItem]);
@@ -426,23 +472,33 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
       return;
     }
 
+    if (intervalEnabled && (!intervalValue || intervalValue < 1)) {
+      setIntervalError('Enter a value of 1 or greater');
+      return;
+    }
+    setIntervalError(null);
+
+    const intervalPayload = intervalEnabled && intervalValue && intervalValue > 0
+      ? { interval_value: intervalValue, interval_type: intervalType }
+      : { interval_value: null as number | null, interval_type: null as 'days' | 'hours' | null };
+
     try {
       if (template) {
-        // Update existing template
         await updateMutation.mutateAsync({
           templateId: template.id,
           updates: {
             name: templateName,
             description: templateDescription,
-            template_data: checklistItems
+            template_data: checklistItems,
+            ...intervalPayload
           }
         });
       } else {
-        // Create new template
         await createMutation.mutateAsync({
           name: templateName,
           description: templateDescription,
-          template_data: checklistItems
+          template_data: checklistItems,
+          ...intervalPayload
         });
       }
       setHasUnsavedChanges(false);
@@ -458,7 +514,7 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
   const storageKey = `pm-template-editor-${template?.id || 'new'}`;
   const { loadFromStorage, clearStorage } = useBrowserStorage({
     key: storageKey,
-    data: { templateName, templateDescription, checklistItems },
+    data: { templateName, templateDescription, checklistItems, intervalValue, intervalType, intervalEnabled },
     enabled: true
   });
 
@@ -473,6 +529,9 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
       templateName?: string;
       templateDescription?: string;
       checklistItems?: PMChecklistItem[];
+      intervalValue?: number | null;
+      intervalType?: 'days' | 'hours';
+      intervalEnabled?: boolean;
     } | null;
 
     if (!draft) {
@@ -485,6 +544,9 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
     if (draft.checklistItems && Array.isArray(draft.checklistItems)) {
       setChecklistItems(draft.checklistItems);
     }
+    if (draft.intervalValue !== undefined) setIntervalValue(draft.intervalValue);
+    if (draft.intervalType !== undefined) setIntervalType(draft.intervalType);
+    if (draft.intervalEnabled !== undefined) setIntervalEnabled(draft.intervalEnabled);
 
     hasLoadedDraftRef.current = true;
   }, [template?.id, loadFromStorage]);
@@ -493,17 +555,21 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
   const isExisting = !!template?.id;
   const handleAutoSave = useCallback(async () => {
     if (!isExisting) return;
+    const ivPayload = intervalEnabled && intervalValue && intervalValue > 0
+      ? { interval_value: intervalValue, interval_type: intervalType }
+      : { interval_value: null as number | null, interval_type: null as 'days' | 'hours' | null };
     await updateMutation.mutateAsync({
       templateId: template!.id,
       updates: {
         name: templateName,
         description: templateDescription,
-        template_data: checklistItems
+        template_data: checklistItems,
+        ...ivPayload
       }
     });
     setHasUnsavedChanges(false);
     clearStorage();
-  }, [isExisting, template, templateName, templateDescription, checklistItems, updateMutation, clearStorage]);
+  }, [isExisting, template, templateName, templateDescription, checklistItems, intervalEnabled, intervalValue, intervalType, updateMutation, clearStorage]);
 
   const { triggerAutoSave, status: autoSaveInternalStatus, lastSaved } = useAutoSave({
     onSave: handleAutoSave,
@@ -527,6 +593,13 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
     return () => window.removeEventListener('beforeunload', handler);
   }, [hasUnsavedChanges]);
 
+  const handleCancel = () => {
+    if (!template?.id) {
+      clearStorage();
+    }
+    onCancel();
+  };
+
   const onNameChange = (value: string) => {
     setTemplateName(value);
     setHasUnsavedChanges(true);
@@ -542,14 +615,14 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
   const checklistEditorContent = (
     <>
       {/* Header controls */}
-      <div className="flex items-end justify-between gap-4 mb-4">
+      <div className="flex flex-wrap items-end justify-between gap-2 md:gap-4 mb-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Preview</span>
           <Switch checked={previewMode} onCheckedChange={setPreviewMode} />
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="ghost" onClick={expandAll}>Expand all</Button>
-          <Button size="sm" variant="ghost" onClick={collapseAll}>Collapse all</Button>
+          <Button size="sm" variant="ghost" onClick={expandAll} className="hidden md:inline-flex">Expand all</Button>
+          <Button size="sm" variant="ghost" onClick={collapseAll} className="hidden md:inline-flex">Collapse all</Button>
           <Button onClick={openAddSection} size="sm">
             <Plus className="mr-1 h-3 w-3" />
             Add Section
@@ -557,10 +630,53 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
         </div>
       </div>
 
+      {/* Inline add section input */}
+      {addingSectionInline && (
+        <div className="flex items-center gap-2 mb-4 p-3 border rounded-lg bg-muted/50">
+          <Input
+            ref={inlineSectionRef}
+            value={inlineSectionName}
+            onChange={(e) => setInlineSectionName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') confirmInlineAddSection();
+              if (e.key === 'Escape') cancelInlineAddSection();
+            }}
+            placeholder="New section name"
+            className="flex-1"
+          />
+          <Button size="sm" onClick={confirmInlineAddSection} disabled={!inlineSectionName.trim() || sections.includes(inlineSectionName.trim())}>
+            Add
+          </Button>
+          <Button size="sm" variant="ghost" onClick={cancelInlineAddSection}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Mobile-only section jump dropdown */}
+      {sections.length > 0 && (
+        <div className="lg:hidden mb-4">
+          <Select onValueChange={(v) => {
+            const el = document.getElementById(`section-${encodeURIComponent(v)}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setExpanded(prev => Array.from(new Set([...prev, v])));
+          }}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Jump to section..." />
+            </SelectTrigger>
+            <SelectContent>
+              {sections.map((s) => (
+                <SelectItem key={s} value={s}>{s} ({groupedItems[s].length})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Two-pane layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* TOC */}
-        <div className="lg:col-span-3 order-2 lg:order-1">
+        {/* TOC -- hidden on mobile */}
+        <div className="hidden lg:block lg:col-span-3">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
@@ -571,7 +687,7 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
                   <Button size="sm" variant="ghost" onClick={collapseAll}>Collapse all</Button>
                 )}
               </div>
-              <ScrollArea className="h-[50vh] pr-2">
+              <ScrollArea className="max-h-[50vh] pr-2">
                 <nav aria-label="Template sections table of contents">
                   <ul className="space-y-1 text-sm">
                     {sections.map((s) => (
@@ -589,7 +705,7 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
         </div>
 
         {/* Editor */}
-        <div className="lg:col-span-9 space-y-4 order-1 lg:order-2">
+        <div className="lg:col-span-9 space-y-4">
           {sections.length === 0 ? (
             <Card className="p-6 text-center">
               <div className="text-muted-foreground">
@@ -603,9 +719,9 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
                 return (
                   <AccordionItem key={section} value={section} id={`section-${encodeURIComponent(section)}`}>
                     <AccordionTrigger>
-                      <div className="flex items-center justify-between w-full">
-                        <div className="font-medium">{section}</div>
-                        <div className="text-sm text-muted-foreground">{sectionItems.length} items</div>
+                      <div className="flex items-center justify-between w-full min-w-0 gap-2">
+                        <div className="font-medium truncate min-w-0">{section}</div>
+                        <div className="text-sm text-muted-foreground flex-shrink-0 whitespace-nowrap">{sectionItems.length} items</div>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
@@ -613,7 +729,7 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
                         <div className="text-sm text-muted-foreground">Section actions</div>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="sm" onClick={() => openRenameSection(section)} aria-label={`Rename section ${section}`}>Rename</Button>
-                          <Button variant="ghost" size="sm" onClick={() => openDeleteSection(section)} aria-label={`Delete section ${section}`}>
+                          <Button variant="ghost" size="sm" className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0" onClick={() => openDeleteSection(section)} aria-label={`Delete section ${section}`}>
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
@@ -623,9 +739,9 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
                         <div className="space-y-3">
                           {sectionItems.map((item, idx) => (
                             <div key={item.id} className="rounded border p-3">
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium">{idx + 1}. {item.title}</div>
-                                <Badge variant={item.required ? 'default' : 'outline'}>
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="font-medium truncate min-w-0">{idx + 1}. {item.title}</div>
+                                <Badge variant={item.required ? 'default' : 'outline'} className="flex-shrink-0">
                                   {item.required ? 'Required' : 'Optional'}
                                 </Badge>
                               </div>
@@ -637,22 +753,29 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          {sectionItems.map((item, index) => (
-                            <ChecklistItemRow
-                              key={item.id}
-                              item={item}
-                              index={index}
-                              totalInSection={sectionItems.length}
-                              sections={sections}
-                              onCommit={updateItem}
-                              onDuplicate={duplicateItem}
-                              onMoveToSection={moveItemToSection}
-                              onMoveUp={(id) => moveItem(id, 'up')}
-                              onMoveDown={(id) => moveItem(id, 'down')}
-                              onDelete={deleteItem}
-                              triggerAutoSave={triggerAutoSave}
-                            />
-                          ))}
+                          {sectionItems.map((item, index) => {
+                            const isNewlyAdded = item.id === newItemIdRef.current;
+                            if (isNewlyAdded) {
+                              newItemIdRef.current = null;
+                            }
+                            return (
+                              <ChecklistItemRow
+                                key={item.id}
+                                item={item}
+                                autoFocus={isNewlyAdded}
+                                index={index}
+                                totalInSection={sectionItems.length}
+                                sections={sections}
+                                onCommit={updateItem}
+                                onDuplicate={duplicateItem}
+                                onMoveToSection={moveItemToSection}
+                                onMoveUp={(id) => moveItem(id, 'up')}
+                                onMoveDown={(id) => moveItem(id, 'down')}
+                                onDelete={deleteItem}
+                                triggerAutoSave={triggerAutoSave}
+                              />
+                            );
+                          })}
 
                           <Button variant="outline" onClick={() => addItem(section)} className="w-full">
                             <Plus className="mr-2 h-4 w-4" />
@@ -726,6 +849,78 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
               rows={2}
             />
           </div>
+          {PM_INTERVALS_ENABLED && (
+            <div className="space-y-3 rounded-md border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="intervalToggle" className="text-sm font-medium">Maintenance Interval</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Flag equipment as needing attention when this interval is exceeded since the last completed PM.
+                  </p>
+                </div>
+                <Switch
+                  id="intervalToggle"
+                  checked={intervalEnabled}
+                  onCheckedChange={(checked) => {
+                    setIntervalEnabled(checked);
+                    if (!checked) setIntervalValue(null);
+                    setHasUnsavedChanges(true);
+                    triggerAutoSave('selection');
+                  }}
+                />
+              </div>
+              {intervalEnabled && (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-end gap-4">
+                    <div className="flex-1 max-w-[200px]">
+                      <Label htmlFor="intervalValue" className="text-xs">Every</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="intervalValue"
+                          type="number"
+                          min={1}
+                          value={intervalValue ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value ? parseInt(e.target.value, 10) : null;
+                            setIntervalValue(val);
+                            setIntervalError(null);
+                            setHasUnsavedChanges(true);
+                            triggerAutoSave('text');
+                          }}
+                          placeholder="e.g. 90"
+                          className={intervalError ? 'border-destructive' : ''}
+                        />
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                          {intervalType === 'hours' ? 'Working Hours' : 'Calendar Days'}
+                        </span>
+                      </div>
+                      {intervalError && (
+                        <p className="text-xs text-destructive mt-1">{intervalError}</p>
+                      )}
+                    </div>
+                    <RadioGroup
+                      value={intervalType}
+                      onValueChange={(val) => {
+                        setIntervalType(val as 'days' | 'hours');
+                        setHasUnsavedChanges(true);
+                        triggerAutoSave('selection');
+                      }}
+                      className="flex gap-4 pb-1"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <RadioGroupItem value="days" id="interval-days" />
+                        <Label htmlFor="interval-days" className="text-sm font-normal cursor-pointer">Calendar Days</Label>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <RadioGroupItem value="hours" id="interval-hours" />
+                        <Label htmlFor="interval-hours" className="text-sm font-normal cursor-pointer">Working Hours</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {template && (
             <div className="flex items-center gap-2">
               {!template.organization_id && (
@@ -768,9 +963,9 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
         checklistEditorContent
       )}
 
-      {/* Footer actions */}
-      <div className="flex justify-end gap-2 pt-4 border-t">
-        <Button variant="outline" onClick={onCancel} disabled={isLoading}>
+      {/* Footer actions -- pb-20 on mobile to clear BottomNav */}
+      <div className="flex justify-end gap-2 pt-4 border-t pb-20 md:pb-0">
+        <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
           <X className="mr-2 h-4 w-4" />
           Cancel
         </Button>
@@ -780,13 +975,13 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
         </Button>
       </div>
 
-      {/* Rename/Add Section Dialog */}
+      {/* Rename Section Dialog */}
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{isNewSectionFlow ? 'Add Section' : 'Rename Section'}</DialogTitle>
+            <DialogTitle>Rename Section</DialogTitle>
             <DialogDescription>
-              {isNewSectionFlow ? 'Create a new section to group checklist items.' : `Rename section "${renameOriginal}".`}
+              {`Rename section "${renameOriginal}".`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -795,8 +990,8 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>Cancel</Button>
-            <Button onClick={confirmRenameSection} disabled={!renameInput.trim() || (!isNewSectionFlow && renameInput.trim() === renameOriginal)}>
-              {isNewSectionFlow ? 'Add Section' : 'Rename'}
+            <Button onClick={confirmRenameSection} disabled={!renameInput.trim() || renameInput.trim() === renameOriginal}>
+              Rename
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -49,7 +49,7 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
   ['stats-grid', {
     id: 'stats-grid',
     title: 'Key Metrics',
-    description: 'Total equipment, overdue work orders, total work orders, and organization members',
+    description: 'Total equipment, overdue work, total work orders, and equipment needing attention',
     icon: LayoutDashboard,
     component: StatsGridWidget,
     defaultSize: { w: 12, h: 2 },
@@ -106,7 +106,7 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
     description: 'Fleet breakdown by equipment status',
     icon: Forklift,
     component: EquipmentByStatusWidget,
-    defaultSize: { w: 4, h: 4 },
+    defaultSize: { w: 6, h: 4 },
     category: 'equipment' as WidgetCategory,
   }],
   ['cost-trend', {
@@ -147,7 +147,8 @@ export function getWidgetsByCategory(category: WidgetCategory): WidgetDefinition
 /** Default widget IDs shown to new users, in display order */
 export const DEFAULT_WIDGET_IDS = [
   'stats-grid',
-  'fleet-efficiency',
+  'equipment-by-status',
+  'pm-compliance',
   'recent-equipment',
   'recent-work-orders',
   'high-priority-wo',

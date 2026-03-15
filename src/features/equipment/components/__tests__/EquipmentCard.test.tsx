@@ -79,17 +79,17 @@ describe('EquipmentCard', () => {
   });
 
   describe('Status Badge', () => {
-    it('does not show badge for active status', () => {
+    it('shows Active badge for active status', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.queryByText('active')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Active')[0]).toBeInTheDocument();
     });
 
-    it('shows badge for non-active status', () => {
+    it('shows Under Maintenance badge for maintenance status', () => {
       const inactiveEquipment = { ...mockEquipment, status: 'maintenance' };
       render(<EquipmentCard equipment={inactiveEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getAllByText('maintenance')[0]).toBeInTheDocument();
+      expect(screen.getAllByText('Under Maintenance')[0]).toBeInTheDocument();
     });
   });
 

@@ -24,7 +24,7 @@ describe('EquipmentPMInfo', () => {
       render(<EquipmentPMInfo equipmentId="eq-1" organizationId="org-1" />);
       
       // Should show the PM title in loading state
-      expect(screen.getByText('Preventative Maintenance (PM)')).toBeInTheDocument();
+      expect(screen.getByText('Preventative Maintenance')).toBeInTheDocument();
     });
 
     it('renders no PM found message when no PM data exists', async () => {
@@ -34,11 +34,8 @@ describe('EquipmentPMInfo', () => {
       
       // Wait for loading to complete
       await waitFor(() => {
-        expect(screen.getByText('No preventative maintenance records found')).toBeInTheDocument();
+        expect(screen.getByText('No PM records found. Create a work order with PM to start tracking.')).toBeInTheDocument();
       });
-      
-      // Should also show the helper text
-      expect(screen.getByText(/Create work orders with PM requirements to track maintenance history/i)).toBeInTheDocument();
     });
 
     it('renders PM information when PM data exists', async () => {
@@ -52,19 +49,17 @@ describe('EquipmentPMInfo', () => {
       
       render(<EquipmentPMInfo equipmentId="eq-1" organizationId="org-1" />);
       
-      // Wait for data to load and verify specific content
+      // Wait for data to load (content that only appears when PM data is loaded)
       await waitFor(() => {
-        expect(screen.getByText('Latest Preventative Maintenance (PM)')).toBeInTheDocument();
+        expect(screen.getByText('Last PM')).toBeInTheDocument();
       });
       
-      // Verify completed date is displayed
-      expect(screen.getByText('Completed Date')).toBeInTheDocument();
-      
-      // Verify work order title is displayed
+      // Verify card and work order are displayed
+      expect(screen.getByText('Preventative Maintenance')).toBeInTheDocument();
       expect(screen.getByText('Work Order')).toBeInTheDocument();
       expect(screen.getByText('Scheduled Maintenance WO-123')).toBeInTheDocument();
       
-      // Verify status badge
+      // Verify status badge (no interval -> Completed)
       expect(screen.getByText('Completed')).toBeInTheDocument();
     });
   });

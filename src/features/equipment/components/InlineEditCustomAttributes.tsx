@@ -1,6 +1,12 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Edit2, Check, X } from 'lucide-react';
 import CustomAttributesSection from './CustomAttributesSection';
 import type { CustomAttribute } from '@/hooks/useCustomAttributes';
@@ -13,52 +19,57 @@ interface InlineEditCustomAttributesProps {
 }
 
 /**
+ * Converts snake_case, camelCase, or kebab-case keys into human-readable Title Case.
+ * "engine_power" -> "Engine Power", "bucketCapacity" -> "Bucket Capacity"
+ */
+function humanizeKey(key: string): string {
+  return key
+    .replace(/([a-z])([A-Z])/g, '$1 $2')  // camelCase boundaries
+    .replace(/[_-]+/g, ' ')                 // snake_case / kebab-case
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
+
+/**
  * Regular expression to detect dangerous URL protocols that could be used for XSS attacks
  */
 const DANGEROUS_PROTOCOLS_REGEX = /^(javascript|data|vbscript):/i;
 
 /**
- * Checks if a string is a valid URL
+ * Checks if a string is a valid URL.
+ * Only matches explicit protocol URLs (http/https) or www. prefixed strings.
+ * Does NOT match bare strings like "1.2_cubic_yards" or "160_hp".
  */
 const isUrl = (str: string): boolean => {
   if (!str || typeof str !== 'string') return false;
   
-  // Trim whitespace
   const trimmed = str.trim();
   
-  // Reject dangerous protocols - not valid URLs for our purposes
   if (DANGEROUS_PROTOCOLS_REGEX.test(trimmed)) {
     return false;
   }
   
-  // Check for common URL patterns
+  // Require explicit protocol or www. prefix to avoid false positives
+  // on values like "1.2_cubic_yards", "160_hp", "3.5_ton", etc.
   const urlPattern = /^(https?:\/\/|www\.)[\w-]+(\.[\w-]+)+([\w\-.,@?^=%&:/~+#]*[\w-@?^=%&/~+#])?$/i;
   
-  // Also check for URLs without protocol (will add https://)
-  const urlWithoutProtocol = /^[\w-]+(\.[\w-]+)+([\w\-.,@?^=%&:/~+#]*[\w-@?^=%&/~+#])?$/i;
-  
-  return urlPattern.test(trimmed) || (urlWithoutProtocol.test(trimmed) && trimmed.includes('.'));
+  return urlPattern.test(trimmed);
 };
 
 /**
- * Normalizes a URL string to include protocol if missing
+ * Normalizes a URL string to include protocol if missing (only www. prefix case)
  */
 const normalizeUrl = (url: string): string => {
   const trimmed = url.trim();
   
-  // Reject dangerous protocols (defense in depth)
   if (DANGEROUS_PROTOCOLS_REGEX.test(trimmed)) {
-    return trimmed; // Return as plain text, not a URL
+    return trimmed;
   }
   
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     return trimmed;
   }
   if (trimmed.startsWith('www.')) {
-    return `https://${trimmed}`;
-  }
-  // If it looks like a domain, add https://
-  if (trimmed.includes('.') && !trimmed.includes(' ')) {
     return `https://${trimmed}`;
   }
   return trimmed;
@@ -144,14 +155,23 @@ const InlineEditCustomAttributes: React.FC<InlineEditCustomAttributesProps> = ({
 
   if (!canEdit) {
     return (
-      <div className="flex flex-wrap gap-4">
-        {Object.entries(attributesData).map(([key, val]) => (
-          <div key={key} className="p-3 border rounded-lg min-w-[200px] flex-1 basis-[200px] max-w-full break-words">
-            <div className="text-sm font-medium text-muted-foreground mb-1">{key}</div>
-            {renderAttributeValue(val)}
-          </div>
-        ))}
-      </div>
+      <TooltipProvider>
+        <div className="flex flex-wrap gap-4">
+          {Object.entries(attributesData).map(([key, val]) => (
+            <div key={key} className="p-3 border rounded-lg min-w-[200px] flex-1 basis-[200px] max-w-full break-words">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="text-sm font-medium text-muted-foreground mb-1 cursor-default">{humanizeKey(key)}</div>
+                </TooltipTrigger>
+                {humanizeKey(key) !== key && (
+                  <TooltipContent side="top"><p>{key}</p></TooltipContent>
+                )}
+              </Tooltip>
+              {renderAttributeValue(String(val))}
+            </div>
+          ))}
+        </div>
+      </TooltipProvider>
     );
   }
 
@@ -171,14 +191,23 @@ const InlineEditCustomAttributes: React.FC<InlineEditCustomAttributesProps> = ({
           </Button>
         </div>
         {Object.keys(attributesData).length > 0 ? (
-          <div className="flex flex-wrap gap-4">
-            {Object.entries(attributesData).map(([key, val]) => (
-              <div key={key} className="p-3 border rounded-lg min-w-[200px] flex-1 basis-[200px] max-w-full break-words">
-                <div className="text-sm font-medium text-muted-foreground mb-1">{key}</div>
-                {renderAttributeValue(val)}
-              </div>
-            ))}
-          </div>
+          <TooltipProvider>
+            <div className="flex flex-wrap gap-4">
+              {Object.entries(attributesData).map(([key, val]) => (
+                <div key={key} className="p-3 border rounded-lg min-w-[200px] flex-1 basis-[200px] max-w-full break-words">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-sm font-medium text-muted-foreground mb-1 cursor-default">{humanizeKey(key)}</div>
+                    </TooltipTrigger>
+                    {humanizeKey(key) !== key && (
+                      <TooltipContent side="top"><p>{key}</p></TooltipContent>
+                    )}
+                  </Tooltip>
+                  {renderAttributeValue(String(val))}
+                </div>
+              ))}
+            </div>
+          </TooltipProvider>
         ) : (
           <p className="text-muted-foreground">No custom attributes</p>
         )}

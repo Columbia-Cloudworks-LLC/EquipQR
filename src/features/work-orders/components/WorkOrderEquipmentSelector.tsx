@@ -80,7 +80,7 @@ const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: (field: str
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Working Hours</span>
+          <span className="text-sm font-medium">Equipment Hours</span>
         </div>
         {!isUpdating && (
           <Button
@@ -103,7 +103,7 @@ const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: (field: str
             step="0.1"
             value={newHours}
             onChange={(e) => setNewHours(e.target.value)}
-            placeholder="Enter working hours"
+            placeholder="Enter equipment hours"
             className="h-8"
           />
           <div className="flex gap-2">

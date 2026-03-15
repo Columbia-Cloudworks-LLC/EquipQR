@@ -13,6 +13,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useEquipmentCurrentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
 import ClickableAddress from '@/components/ui/ClickableAddress';
+import { humanizeAttributeKey, humanizeAttributeValue } from '@/features/work-orders/utils/workOrderHelpers';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 interface WorkOrderDetailsInfoProps {
@@ -228,7 +229,7 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                   {/* Working Hours - standard data label */}
                   <div className="sm:col-span-2">
                     <span className="font-medium">
-                      {workOrder.equipment_working_hours_at_creation ? 'Working Hours (at creation):' : 'Working Hours:'}
+                      {workOrder.equipment_working_hours_at_creation ? 'Meter Reading (at creation):' : 'Equipment Hours:'}
                     </span>
                     <span className="ml-2 text-muted-foreground break-words">
                       {workingHoursLoading ? (
@@ -249,8 +250,8 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                       {Object.entries(equipment.custom_attributes as Record<string, unknown>).map(([key, val]) => (
                         val != null && (
                           <div key={key}>
-                            <span className="font-medium">{key}:</span>
-                            <span className="ml-2 text-muted-foreground break-words">{String(val)}</span>
+                            <span className="font-medium">{humanizeAttributeKey(key)}:</span>
+                            <span className="ml-2 text-muted-foreground break-words">{humanizeAttributeValue(val)}</span>
                           </div>
                         )
                       ))}

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clipboard, CheckCircle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Clipboard, CheckCircle, History } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useWorkOrderDetailsData } from '@/features/work-orders/components/hooks/useWorkOrderDetailsData';
 import { useWorkOrderDetailsActions } from '@/features/work-orders/hooks/useWorkOrderDetailsActions';
@@ -58,6 +59,12 @@ const WorkOrderDetails = () => {
 
   // State for mobile action sheet
   const [showMobileActionSheet, setShowMobileActionSheet] = useState(false);
+
+  // State for mobile complete confirmation dialog
+  const [showMobileCompleteDialog, setShowMobileCompleteDialog] = useState(false);
+
+  // Trigger to programmatically open the note form from mobile action bar/sheet
+  const [openNoteFormTrigger, setOpenNoteFormTrigger] = useState(0);
 
   // Use custom hooks for data and actions
   const {
@@ -365,6 +372,13 @@ const WorkOrderDetails = () => {
     workOrder.status !== 'completed' &&
     workOrder.status !== 'cancelled';
 
+  const showInProgressBar =
+    isMobile &&
+    (workOrder.status === 'in_progress' || workOrder.status === 'on_hold') &&
+    (permissionLevels.isManager || permissionLevels.isTechnician) &&
+    !isWorkOrderLocked &&
+    !showFloatingCTA;
+
   const scrollToPMSection = () => {
     pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -382,6 +396,7 @@ const WorkOrderDetails = () => {
           } : undefined,
           team: workOrder.team || (workOrder.teamName && workOrder.equipmentTeamId ? { id: workOrder.equipmentTeamId, name: workOrder.teamName } : undefined),
           created_at: workOrder.created_date || workOrder.createdDate,
+          due_date: workOrder.dueDate,
           effectiveLocation: workOrder.effectiveLocation
         }}
         canEdit={canEdit}
@@ -426,7 +441,8 @@ const WorkOrderDetails = () => {
         <div
           className={cn(
             isMobile ? 'space-y-4' : 'lg:col-span-2 space-y-6',
-            showFloatingCTA && 'pb-24'
+            showFloatingCTA && 'pb-24',
+            showInProgressBar && 'pb-28'
           )}
         >
           {/* Equipment Selector for Multi-Equipment Work Orders */}
@@ -561,7 +577,9 @@ const WorkOrderDetails = () => {
                   workOrderId={workOrder.id}
                   canAddNotes={canAddNotes}
                   showPrivateNotes={permissionLevels.isManager}
+                  hideInlineAddButton={showInProgressBar}
                   autoOpenForm={shouldAutoOpenNoteForm}
+                  openFormTrigger={openNoteFormTrigger}
                 />
               </div>
               </div>
@@ -587,9 +605,15 @@ const WorkOrderDetails = () => {
                 <div {...stagger(7)}>
                 <Card className="shadow-elevation-2">
                   <CardHeader>
-                    <CardTitle>Change History</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <History className="h-5 w-5" />
+                      Change History (Field Edits)
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
+                    <p className="mb-3 text-sm text-muted-foreground">
+                      Shows who changed work order fields and when.
+                    </p>
                     <HistoryTab 
                       entityType="work_order"
                       entityId={workOrder.id}
@@ -670,7 +694,9 @@ const WorkOrderDetails = () => {
                   workOrderId={workOrder.id}
                   canAddNotes={canAddNotes}
                   showPrivateNotes={permissionLevels.isManager}
+                  hideInlineAddButton={showInProgressBar}
                   autoOpenForm={shouldAutoOpenNoteForm}
+                  openFormTrigger={openNoteFormTrigger}
                 />
               </div>
               </div>
@@ -696,9 +722,15 @@ const WorkOrderDetails = () => {
                 <div {...stagger(7)}>
                 <Card className="shadow-elevation-2">
                   <CardHeader>
-                    <CardTitle>Change History</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <History className="h-5 w-5" />
+                      Change History (Field Edits)
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
+                    <p className="mb-3 text-sm text-muted-foreground">
+                      Shows who changed work order fields and when.
+                    </p>
                     <HistoryTab 
                       entityType="work_order"
                       entityId={workOrder.id}
@@ -781,28 +813,72 @@ const WorkOrderDetails = () => {
           workOrderId={workOrder.id}
           workOrderStatus={workOrder.status}
           equipmentTeamId={equipment?.team_id}
-          canAddNotes={canAddNotes}
-          canUploadImages={canUpload}
           isManager={permissionLevels.isManager}
-          onAddNote={() => {
-            notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}
-          onAddPhoto={() => {
-            // Navigate to images section - for now just scroll to notes
-            notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}
           onDownloadPDF={() => setShowMobilePDFDialog(true)}
           onExportExcel={() => exportSingle(workOrder.id)}
           isExportingExcel={isExportingSingle}
         />
       )}
 
+      {/* Mobile Complete Confirmation Dialog */}
+      <AlertDialog open={showMobileCompleteDialog} onOpenChange={setShowMobileCompleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-success" />
+              Complete Work Order
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>Are you sure you want to mark this work order as completed?</p>
+                {workTimer.elapsedSeconds > 0 && (
+                  <p className="text-sm">
+                    Timer: <span className="font-medium text-foreground">{workTimer.displayTime}</span> ({(workTimer.elapsedSeconds / 3600).toFixed(2)}h)
+                  </p>
+                )}
+                <p className="text-sm font-medium text-foreground">Before completing, please confirm:</p>
+                <ul className="text-sm space-y-1 list-disc pl-4">
+                  <li>All hours have been logged</li>
+                  <li>All cost items have been recorded</li>
+                  <li>Notes and photos are up to date</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updateStatusMutation.isPending}>
+              Go Back
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={updateStatusMutation.isPending}
+              onClick={() => {
+                const hoursWorked = Math.round((workTimer.elapsedSeconds / 3600) * 100) / 100;
+                updateStatusMutation.mutate(
+                  {
+                    workOrderId: workOrder.id,
+                    status: 'completed',
+                    organizationId: currentOrganization.id,
+                  },
+                  {
+                    onSuccess: () => {
+                      workTimer.stopAndGetHours();
+                      setShowMobileCompleteDialog(false);
+                      if (hoursWorked > 0) {
+                        toast.success(`Timer stopped: ${hoursWorked.toFixed(2)} hours worked`);
+                      }
+                    },
+                  }
+                );
+              }}
+            >
+              {updateStatusMutation.isPending ? 'Completing...' : 'Mark as Complete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Mobile In-Progress Bar */}
-      {isMobile && 
-        (workOrder.status === 'in_progress' || workOrder.status === 'on_hold') && 
-        (permissionLevels.isManager || permissionLevels.isTechnician) &&
-        !isWorkOrderLocked &&
-        !showFloatingCTA && (
+      {showInProgressBar && (
         <MobileWorkOrderInProgressBar
           workOrderId={workOrder.id}
           workOrderStatus={workOrder.status}
@@ -815,7 +891,10 @@ const WorkOrderDetails = () => {
           isOnline={isOnline}
           isSyncing={isSyncing}
           onAddNote={() => {
-            notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setOpenNoteFormTrigger(prev => prev + 1);
+            setTimeout(() => {
+              notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
           }}
           onAddPhoto={() => {
             notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -832,6 +911,21 @@ const WorkOrderDetails = () => {
                 onSuccess: () => {
                   if (newStatus === 'on_hold') {
                     workTimer.pause();
+                    toast('Work order paused', {
+                      action: {
+                        label: 'Undo',
+                        onClick: () => {
+                          updateStatusMutation.mutate({
+                            workOrderId: workOrder.id,
+                            status: 'in_progress',
+                            organizationId: currentOrganization.id,
+                          }, {
+                            onSuccess: () => workTimer.start(),
+                          });
+                        },
+                      },
+                      duration: 5000,
+                    });
                   } else {
                     workTimer.start();
                   }
@@ -840,22 +934,7 @@ const WorkOrderDetails = () => {
             );
           }}
           onComplete={() => {
-            const hoursWorked = Math.round((workTimer.elapsedSeconds / 3600) * 100) / 100;
-            updateStatusMutation.mutate(
-              {
-                workOrderId: workOrder.id,
-                status: 'completed',
-                organizationId: currentOrganization.id,
-              },
-              {
-                onSuccess: () => {
-                  workTimer.stopAndGetHours();
-                  if (hoursWorked > 0) {
-                    toast.success(`Timer stopped: ${hoursWorked.toFixed(2)} hours worked`);
-                  }
-                },
-              }
-            );
+            setShowMobileCompleteDialog(true);
           }}
           onToggleTimer={() => {
             if (workTimer.isRunning) {

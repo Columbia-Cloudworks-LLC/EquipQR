@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -17,10 +18,10 @@ import {
   AlertTriangle,
   Clipboard,
   Shield,
-  Calendar,
   Clock,
   Wrench,
-  MapPin
+  MapPin,
+  AlertCircle
 } from 'lucide-react';
 import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
@@ -64,7 +65,6 @@ interface WorkOrderStatusManagerProps {
   organizationId: string;
   /** Optional context data previously shown in QuickInfo */
   contextData?: {
-    createdDate?: string;
     dueDate?: string;
     estimatedHours?: number;
     equipmentId?: string;
@@ -88,6 +88,8 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   contextData
 }) => {
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [selectedAssigneeForStart, setSelectedAssigneeForStart] = useState<string>('');
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
@@ -109,13 +111,22 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     // Check if trying to complete work order with incomplete PM
     if (newStatus === 'completed' && workOrder.has_pm && pmData) {
       if (pmData.status !== 'completed') {
-        // Don't allow completion if PM is not completed
         return;
       }
     }
 
     if (newStatus === 'accepted') {
       setShowAcceptanceModal(true);
+      return;
+    }
+
+    if (newStatus === 'cancelled') {
+      setShowCancelDialog(true);
+      return;
+    }
+
+    if (newStatus === 'completed') {
+      setShowCompleteDialog(true);
       return;
     }
 
@@ -127,6 +138,32 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
       });
     } catch (error) {
       console.error('Error updating work order status:', error);
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    try {
+      await updateStatusMutation.mutateAsync({
+        workOrderId: workOrder.id,
+        status: 'cancelled',
+        organizationId
+      });
+      setShowCancelDialog(false);
+    } catch (error) {
+      console.error('Error cancelling work order:', error);
+    }
+  };
+
+  const handleConfirmComplete = async () => {
+    try {
+      await updateStatusMutation.mutateAsync({
+        workOrderId: workOrder.id,
+        status: 'completed',
+        organizationId
+      });
+      setShowCompleteDialog(false);
+    } catch (error) {
+      console.error('Error completing work order:', error);
     }
   };
 
@@ -190,22 +227,20 @@ const getStatusActions = (): StatusAction[] => {
           label: 'Cancel', 
           action: () => handleStatusChange('cancelled'), 
           icon: X,
-          variant: 'destructive' as const,
+          variant: 'outline' as const,
           description: 'Cancel this work order'
         });
         return actions;
       }
 
       case 'accepted':
-        // For accepted status, we render the assignment UI separately (dropdown + Start button)
-        // Only return the Cancel action here
         if (!isManager && !isTechnician) return [];
         return [
           { 
             label: 'Cancel', 
             action: () => handleStatusChange('cancelled'), 
             icon: X,
-            variant: 'destructive' as const,
+            variant: 'outline' as const,
             description: 'Cancel this work order'
           }
         ];
@@ -263,7 +298,7 @@ const getStatusActions = (): StatusAction[] => {
             label: 'Cancel', 
             action: () => handleStatusChange('cancelled'), 
             icon: X,
-            variant: 'destructive' as const,
+            variant: 'outline' as const,
             description: 'Cancel this work order'
           }
         ];
@@ -418,12 +453,13 @@ const getStatusActions = (): StatusAction[] => {
               <div className="space-y-2">
                 {statusActions.map((action, index) => {
                   const IconComponent = action.icon;
+                  const isCancelAction = action.label === 'Cancel';
                   return (
                     <div key={index}>
                       <Button
                         variant={action.variant}
                         size="sm"
-                        className="w-full justify-start"
+                        className={`w-full justify-start ${isCancelAction ? 'text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive' : ''}`}
                         onClick={action.action}
                         disabled={updateStatusMutation.isPending || acceptanceMutation.isPending || action.disabled}
                       >
@@ -457,29 +493,38 @@ const getStatusActions = (): StatusAction[] => {
             <>
               <Separator />
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <span className="font-medium">Created:</span>
-                    <span className="ml-1.5 text-muted-foreground">
-                      {contextData.createdDate ? new Date(contextData.createdDate).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                </div>
-
-                {contextData.dueDate && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <span className="font-medium">
-                        {contextData.formMode === 'requestor' && workOrder.status === 'submitted' ? 'Preferred Due:' : 'Due:'}
-                      </span>
-                      <span className="ml-1.5 text-muted-foreground">
-                        {new Date(contextData.dueDate).toLocaleDateString()}
-                      </span>
+                {contextData.dueDate && (() => {
+                  const due = new Date(contextData.dueDate);
+                  const hoursUntilDue = (due.getTime() - Date.now()) / (1000 * 60 * 60);
+                  const isOverdue = hoursUntilDue < 0;
+                  const isDueSoon = !isOverdue && hoursUntilDue < 24;
+                  return (
+                    <div className={`flex items-center gap-2 text-sm ${isOverdue ? 'text-destructive' : isDueSoon ? 'text-warning' : ''}`}>
+                      {isOverdue
+                        ? <AlertCircle className="h-4 w-4" />
+                        : <Clock className={`h-4 w-4 ${!isDueSoon ? 'text-muted-foreground' : ''}`} />
+                      }
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-medium">
+                          {contextData.formMode === 'requestor' && workOrder.status === 'submitted' ? 'Preferred Due:' : 'Due:'}
+                        </span>
+                        <span className={isOverdue || isDueSoon ? '' : 'text-muted-foreground'}>
+                          {due.toLocaleDateString()}
+                        </span>
+                        {isOverdue && (
+                          <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive border-destructive/30">
+                            OVERDUE
+                          </Badge>
+                        )}
+                        {isDueSoon && (
+                          <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/30">
+                            DUE SOON
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {contextData.estimatedHours != null && (
                   <div className="flex items-center gap-2 text-sm">
@@ -573,6 +618,68 @@ const getStatusActions = (): StatusAction[] => {
         organizationId={organizationId}
         onAccept={handleAcceptanceComplete}
       />
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Cancel Work Order
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this work order? This action cannot be undone.
+              Any logged hours, notes, and cost records will be preserved but the work order will be marked as cancelled.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updateStatusMutation.isPending}>
+              Go Back
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancel}
+              disabled={updateStatusMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {updateStatusMutation.isPending ? 'Cancelling...' : 'Yes, Cancel Work Order'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Complete Confirmation Dialog */}
+      <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-success" />
+              Complete Work Order
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>Are you sure you want to mark this work order as completed?</p>
+                <p className="text-sm font-medium text-foreground">Before completing, please confirm:</p>
+                <ul className="text-sm space-y-1 list-disc pl-4">
+                  <li>All hours have been logged</li>
+                  <li>All cost items have been recorded</li>
+                  <li>Notes and photos are up to date</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updateStatusMutation.isPending}>
+              Go Back
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmComplete}
+              disabled={updateStatusMutation.isPending}
+            >
+              {updateStatusMutation.isPending ? 'Completing...' : 'Mark as Complete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

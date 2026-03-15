@@ -54,6 +54,13 @@ export const equipment = {
                        : ['equipment', equipmentId, 'working-hours'] as const,
   teamBased: (orgId: string, userTeamIds: string[], isManager: boolean) =>
     ['equipment', orgId, 'team-based', userTeamIds, isManager] as const,
+  pmStatus: (equipmentId: string) => ['equipment', equipmentId, 'pm-status'] as const,
+};
+
+export const pmStatus = {
+  root: ['pm-status'] as const,
+  byEquipment: (equipmentId: string) => ['pm-status', equipmentId] as const,
+  byOrg: (orgId: string) => ['pm-status', 'org', orgId] as const,
 };
 
 // Work Order keys  
@@ -216,4 +223,5 @@ export const queryKeys = {
   tickets,
   dashboardPreferences,
   offlineQueue,
+  pmStatus,
 };

@@ -71,7 +71,6 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
             }} 
             organizationId={currentOrganization.id}
             contextData={{
-              createdDate: workOrder.created_date,
               dueDate: workOrder.due_date,
               estimatedHours: workOrder.estimated_hours,
               equipmentId: equipment?.id,

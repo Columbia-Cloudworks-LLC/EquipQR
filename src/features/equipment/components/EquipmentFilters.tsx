@@ -22,6 +22,7 @@ interface EquipmentFiltersProps {
   onQuickFilter: (preset: string) => void;
   filterOptions: FilterOptions;
   hasActiveFilters: boolean;
+  activeQuickFilter?: string | null;
 }
 
 export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
@@ -30,7 +31,8 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
   onClearFilters,
   onQuickFilter,
   filterOptions,
-  hasActiveFilters
+  hasActiveFilters,
+  activeQuickFilter,
 }) => {
   const isMobile = useIsMobile();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -62,6 +64,7 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
         onClearFilters={onClearFilters}
         onQuickFilter={onQuickFilter}
         filterOptions={filterOptions}
+        activeQuickFilter={activeQuickFilter}
       />
     );
   }
@@ -71,8 +74,10 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
       filters={filters}
       onFilterChange={onFilterChange}
       onClearFilters={onClearFilters}
+      onQuickFilter={onQuickFilter}
       filterOptions={filterOptions}
       hasActiveFilters={hasFiltersEnabled}
+      activeQuickFilter={activeQuickFilter}
     />
   );
 };

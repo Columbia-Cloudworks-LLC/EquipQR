@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import LandingHeader from '@/components/landing/LandingHeader';
 import HeroSection from '@/components/landing/HeroSection';
+import WhyDifferentSection from '@/components/landing/WhyDifferentSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import SocialProofSection from '@/components/landing/SocialProofSection';
 import AboutSection from '@/components/landing/AboutSection';
@@ -17,35 +18,49 @@ interface LandingProps {
 
 const Landing: React.FC<LandingProps> = ({ skipSEO = false }) => {
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash) {
-      const el = document.querySelector(hash);
-      el?.scrollIntoView({ behavior: 'smooth' });
+    const rawHash = window.location.hash;
+    if (!rawHash) return;
+
+    const sectionId = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash;
+    if (!sectionId) return;
+
+    let decodedId: string;
+    try {
+      decodedId = decodeURIComponent(sectionId);
+    } catch {
+      return;
     }
+
+    const target = document.getElementById(decodedId);
+    if (!target) return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
   }, []);
 
   return (
     <>
       {!skipSEO && (
         <PageSEO
-          title="EquipQR - Fleet Equipment Management Platform"
-          description="Streamline equipment operations with QR code tracking, intelligent work order management, and enterprise-grade team collaboration. Trusted by industry leaders."
+          title="EquipQR | Heavy Equipment Repair Work Order Software with QR Tracking"
+          description="Stop losing money to lost work orders. EquipQR gives heavy equipment repair shops secure QR code equipment tracking, team-based access, and one-click QuickBooks work order invoicing."
           path="/landing"
-          keywords="fleet management, equipment tracking, QR code, work orders, CMMS, maintenance management, team collaboration, mobile-first, enterprise"
+          keywords="heavy equipment repair work order software, QR code equipment tracking, QuickBooks work order integration, equipment maintenance software, shop work order management"
         />
       )}
       <div className="min-h-screen bg-background">
         <LandingHeader />
-      <main id="main-content">
-        <HeroSection />
-        <FeaturesSection id="features" />
-        <AboutSection id="about" />
-        <SocialProofSection />
-        <PricingSection />
-        <RoadmapSection />
-        <CTASection />
-      </main>
-      <LandingFooter />
+        <main id="main-content">
+          <HeroSection />
+          <WhyDifferentSection />
+          <FeaturesSection id="features" />
+          <AboutSection id="about" />
+          <SocialProofSection />
+          <PricingSection />
+          <RoadmapSection />
+          <CTASection />
+        </main>
+        <LandingFooter />
       </div>
     </>
   );

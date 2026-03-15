@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Settings2, RotateCcw } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useTeamBasedDashboardAccess } from '@/features/teams/hooks/useTeamBasedDashboard';
+import { useTeamBasedDashboardAccess, useTeamBasedDashboardStats } from '@/features/teams/hooks/useTeamBasedDashboard';
 import { useDashboardLayout } from '@/features/dashboard/hooks/useDashboardLayout';
 import { DashboardGrid } from '@/features/dashboard/components/DashboardGrid';
 import { WidgetCatalog } from '@/features/dashboard/components/WidgetCatalog';
@@ -25,6 +25,15 @@ const Dashboard = () => {
     removeWidget,
     resetToDefault,
   } = useDashboardLayout(organizationId);
+  const { dataUpdatedAt } = useTeamBasedDashboardStats(organizationId);
+
+  const lastUpdatedText = useMemo(() => {
+    if (!dataUpdatedAt) return null;
+    const minutes = Math.floor((Date.now() - dataUpdatedAt) / 60_000);
+    if (minutes < 1) return 'Updated just now';
+    if (minutes === 1) return 'Updated 1 min ago';
+    return `Updated ${minutes} min ago`;
+  }, [dataUpdatedAt]);
 
   const [managerOpen, setManagerOpen] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -71,7 +80,7 @@ const Dashboard = () => {
         <DashboardStatsGrid
           stats={null}
           activeWorkOrdersCount={0}
-          memberCount={0}
+          needsAttentionCount={0}
           isLoading
         />
       </Page>
@@ -87,7 +96,12 @@ const Dashboard = () => {
               title="Dashboard"
               description={`Welcome back to ${currentOrganization.name}`}
             />
-            <div className="flex items-center gap-2 shrink-0 pt-1">
+            <div className="flex items-center gap-3 shrink-0 pt-1">
+              {lastUpdatedText && (
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {lastUpdatedText}
+                </span>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -96,6 +110,7 @@ const Dashboard = () => {
                 title="Reset to default layout"
               >
                 <RotateCcw className="h-4 w-4" />
+                <span className="hidden sm:inline">Reset</span>
               </Button>
               <Button
                 variant="outline"

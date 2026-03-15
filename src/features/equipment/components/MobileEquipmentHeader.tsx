@@ -1,8 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, QrCode, MapPin, Calendar, Trash2, Clock } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
+import { getStatusColor, EQUIPMENT_STATUS_OPTIONS } from '@/features/equipment/utils/equipmentHelpers';
 
 type Equipment = Tables<'equipment'>;
 
@@ -50,7 +52,12 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
 
       {/* Equipment Title */}
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold leading-tight">{equipment.name}</h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-2xl font-bold leading-tight">{equipment.name}</h1>
+          <Badge className={getStatusColor(equipment.status || 'active')}>
+            {EQUIPMENT_STATUS_OPTIONS.find(opt => opt.value === equipment.status)?.label || 'Active'}
+          </Badge>
+        </div>
         <p className="text-sm text-muted-foreground">
           {equipment.manufacturer} {equipment.model}
         </p>

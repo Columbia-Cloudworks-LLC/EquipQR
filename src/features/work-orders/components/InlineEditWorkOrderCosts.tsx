@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Edit2, Check, X, DollarSign, Package } from 'lucide-react';
+import { Edit2, Check, X, DollarSign, Package, Plus } from 'lucide-react';
 import { WorkOrderCost } from '@/features/work-orders/services/workOrderCostsService';
 import { useWorkOrderCostsState } from '@/features/work-orders/hooks/useWorkOrderCostsState';
 import { 
@@ -407,15 +407,23 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     return (
       <div className="group">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="text-sm font-medium">Cost Items</h4>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={handleStartEdit}
-          >
-            <Edit2 className="h-3 w-3" />
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            {costs.length > 0
+              ? `${costs.length} cost item${costs.length === 1 ? '' : 's'}`
+              : 'No cost items yet'}
+          </p>
+          {costs.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+              onClick={handleStartEdit}
+              aria-label="Edit costs"
+              title="Edit costs"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
         
         {costs.length > 0 ? (
@@ -452,9 +460,17 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2 py-3 px-4 text-sm text-muted-foreground">
-            <DollarSign className="h-4 w-4 opacity-50" />
-            <span>No costs recorded yet. Click edit to add items.</span>
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <DollarSign className="h-8 w-8 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">No costs recorded yet</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleStartEdit}
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add Cost Item
+            </Button>
           </div>
         )}
       </div>

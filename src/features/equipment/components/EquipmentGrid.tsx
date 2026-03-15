@@ -2,7 +2,10 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Forklift } from 'lucide-react';
+import { cn } from "@/lib/utils";
 import EquipmentCard from './EquipmentCard';
+import type { EquipmentViewMode } from './EquipmentCard';
+import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentPMStatus';
 
 interface Equipment {
   id: string;
@@ -14,6 +17,7 @@ interface Equipment {
   location: string;
   last_maintenance?: string;
   image_url?: string;
+  team_name?: string;
 }
 
 interface EquipmentGridProps {
@@ -24,6 +28,8 @@ interface EquipmentGridProps {
   canCreate: boolean;
   onShowQRCode: (id: string) => void;
   onAddEquipment: () => void;
+  viewMode?: EquipmentViewMode;
+  pmStatuses?: Map<string, EquipmentPMStatus>;
 }
 
 const EquipmentGrid: React.FC<EquipmentGridProps> = ({
@@ -33,7 +39,9 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
   organizationName,
   canCreate,
   onShowQRCode,
-  onAddEquipment
+  onAddEquipment,
+  viewMode = 'grid',
+  pmStatuses,
 }) => {
   if (equipment.length === 0) {
     return (
@@ -58,12 +66,18 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
   }
 
   return (
-    <div className="grid gap-2 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className={cn(
+      viewMode === 'list'
+        ? 'flex flex-col gap-2 md:gap-0 md:divide-y md:rounded-lg md:border'
+        : 'grid gap-2 md:gap-6 md:grid-cols-2 lg:grid-cols-3'
+    )}>
       {equipment.map((item) => (
-        <div key={item.id} className="cv-auto-lg">
+        <div key={item.id} className={viewMode === 'grid' ? 'cv-auto-lg' : undefined}>
           <EquipmentCard
             equipment={item}
             onShowQRCode={onShowQRCode}
+            viewMode={viewMode}
+            pmStatus={pmStatuses?.get(item.id)}
           />
         </div>
       ))}

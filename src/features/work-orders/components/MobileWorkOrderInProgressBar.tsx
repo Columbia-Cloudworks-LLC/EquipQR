@@ -60,7 +60,7 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
   const isInProgress = workOrderStatus === 'in_progress';
 
   return (
-    <div className="fixed bottom-[70px] left-0 right-0 z-fixed border-t bg-background/95 backdrop-blur-sm lg:hidden">
+    <div className="fixed bottom-[70px] left-0 right-0 z-fixed border-t bg-background/95 backdrop-blur-sm shadow-elevation-2 lg:hidden">
       {/* Offline/Syncing Indicator Banner */}
       {(!isOnline || isSyncing) && (
         <div className={cn(
@@ -83,7 +83,7 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
         </div>
       )}
 
-      <div className="p-3 pb-safe-bottom">
+      <div className="p-3 pb-3">
         {/* Status and Timer Row */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -137,12 +137,13 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
               <Button
                 variant="outline"
                 size="sm"
-                className="h-11"
+                className="h-11 px-3"
                 onClick={onAddPhoto}
                 aria-label="Add photo"
                 title="Add photo"
               >
-                <Camera className="h-4 w-4" />
+                <Camera className="h-4 w-4 mr-1" />
+                <span className="text-xs">Photo</span>
               </Button>
             </>
           )}
@@ -152,7 +153,7 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
             <Button
               variant="outline"
               size="sm"
-              className="h-11"
+              className="h-11 px-3"
               onClick={onPauseResume}
               disabled={isUpdatingStatus}
               aria-label={isUpdatingStatus ? "Updating status" : "Pause work order"}
@@ -161,7 +162,10 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
               {isUpdatingStatus ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Pause className="h-4 w-4" />
+                <>
+                  <Pause className="h-4 w-4 mr-1" />
+                  <span className="text-xs">Pause</span>
+                </>
               )}
             </Button>
           )}

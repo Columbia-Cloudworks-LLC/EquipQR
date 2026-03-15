@@ -16,6 +16,7 @@ interface StatsCardProps {
   sublabel?: string;
   to?: string;
   trend?: TrendData;
+  variant?: 'default' | 'warning' | 'danger';
   loading?: boolean;
   ariaDescription?: string;
 }
@@ -27,13 +28,21 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   sublabel,
   to,
   trend,
+  variant = 'default',
   loading = false,
   ariaDescription
 }) => {
+  const variantClasses = {
+    default: '',
+    warning: 'border-warning/50 bg-warning/5',
+    danger: 'border-destructive/50 bg-destructive/5',
+  };
+
   const content = (
     <Card 
       className={cn(
         "transition-all duration-200",
+        variantClasses[variant],
         to && "hover:shadow-lg cursor-pointer"
       )}
       aria-label={ariaDescription}

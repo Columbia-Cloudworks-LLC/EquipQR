@@ -31,6 +31,7 @@ interface MobileEquipmentFiltersProps {
   onClearFilters: () => void;
   onQuickFilter: (preset: string) => void;
   filterOptions: FilterOptions;
+  activeQuickFilter?: string | null;
 }
 
 export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
@@ -41,7 +42,8 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
   onFilterChange,
   onClearFilters,
   onQuickFilter,
-  filterOptions
+  filterOptions,
+  activeQuickFilter,
 }) => {
   const [isSheetOpen, setIsSheetOpen] = React.useState(showMobileFilters);
   const mobileSearchInputId = 'equipment-search-mobile';
@@ -192,7 +194,6 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
         </Sheet>
       </div>
 
-      {/* Quick Filters with scroll hint */}
       <HorizontalChipRow ariaLabel="Quick filter options">
         {[
           { label: 'Maintenance Due', value: 'maintenance-due' },
@@ -203,7 +204,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
           <Button
             key={preset.value}
             size="sm"
-            variant="outline"
+            variant={activeQuickFilter === preset.value ? 'default' : 'outline'}
             className="shrink-0 whitespace-nowrap min-h-11"
             onClick={() => {
               onQuickFilter(preset.value);
