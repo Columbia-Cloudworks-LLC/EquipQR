@@ -156,7 +156,7 @@ describe('AlternateGroupsPage', () => {
       render(<AlternateGroupsPage />);
 
       // Oil Filter group is verified
-      expect(screen.getByText('Verified')).toBeInTheDocument();
+      expect(screen.getAllByText('Verified').length).toBeGreaterThan(0);
     });
 
     it('shows New Group button when user can edit', () => {
@@ -190,7 +190,7 @@ describe('AlternateGroupsPage', () => {
 
       render(<AlternateGroupsPage />);
 
-      expect(screen.getByPlaceholderText('Search groups...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search by name or description...')).toBeInTheDocument();
     });
 
     it('filters groups by name', async () => {
@@ -198,7 +198,7 @@ describe('AlternateGroupsPage', () => {
 
       render(<AlternateGroupsPage />);
 
-      const searchInput = screen.getByPlaceholderText('Search groups...');
+      const searchInput = screen.getByPlaceholderText('Search by name or description...');
       fireEvent.change(searchInput, { target: { value: 'Oil' } });
 
       await waitFor(() => {
@@ -212,7 +212,7 @@ describe('AlternateGroupsPage', () => {
 
       render(<AlternateGroupsPage />);
 
-      const searchInput = screen.getByPlaceholderText('Search groups...');
+      const searchInput = screen.getByPlaceholderText('Search by name or description...');
       fireEvent.change(searchInput, { target: { value: 'Industrial' } });
 
       await waitFor(() => {
@@ -226,7 +226,7 @@ describe('AlternateGroupsPage', () => {
 
       render(<AlternateGroupsPage />);
 
-      const searchInput = screen.getByPlaceholderText('Search groups...');
+      const searchInput = screen.getByPlaceholderText('Search by name or description...');
       fireEvent.change(searchInput, { target: { value: 'xyz123nonexistent' } });
 
       await waitFor(() => {
@@ -544,7 +544,7 @@ describe('AlternateGroupsPage User Journeys', () => {
       expect(screen.getByText(partAlternateGroups.airFilterGroup.name)).toBeInTheDocument();
 
       // Verified group should have badge
-      expect(screen.getByText('Verified')).toBeInTheDocument();
+      expect(screen.getAllByText('Verified').length).toBeGreaterThan(0);
     });
   });
 
@@ -558,7 +558,7 @@ describe('AlternateGroupsPage User Journeys', () => {
 
       render(<AlternateGroupsPage />);
 
-      fireEvent.change(screen.getByPlaceholderText('Search groups...'), {
+      fireEvent.change(screen.getByPlaceholderText('Search by name or description...'), {
         target: { value: 'oil' },
       });
 

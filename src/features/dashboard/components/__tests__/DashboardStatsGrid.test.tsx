@@ -48,7 +48,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByText('Total Equipment')).toBeInTheDocument();
       expect(screen.getByText('Overdue Work')).toBeInTheDocument();
       expect(screen.getByText('Total Work Orders')).toBeInTheDocument();
-      expect(screen.getByText('Needs Attention')).toBeInTheDocument();
+      expect(screen.getByText('Out of Service')).toBeInTheDocument();
     });
 
     it('renders stat values correctly', () => {
@@ -65,7 +65,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('42');
       expect(screen.getByTestId('overdue-work-value')).toHaveTextContent('5');
       expect(screen.getByTestId('total-work-orders-value')).toHaveTextContent('120');
-      expect(screen.getByTestId('needs-attention-value')).toHaveTextContent('7');
+      expect(screen.getByTestId('out-of-service-value')).toHaveTextContent('7');
     });
 
     it('renders sublabels correctly', () => {
@@ -152,7 +152,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByText('Total Equipment')).toBeInTheDocument();
       expect(screen.getByText('Overdue Work')).toBeInTheDocument();
       expect(screen.getByText('Total Work Orders')).toBeInTheDocument();
-      expect(screen.getByText('Needs Attention')).toBeInTheDocument();
+      expect(screen.getByText('Out of Service')).toBeInTheDocument();
     });
   });
 
@@ -171,7 +171,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('0');
       expect(screen.getByTestId('overdue-work-value')).toHaveTextContent('0');
       expect(screen.getByTestId('total-work-orders-value')).toHaveTextContent('0');
-      expect(screen.getByTestId('needs-attention-value')).toHaveTextContent('5');
+      expect(screen.getByTestId('out-of-service-value')).toHaveTextContent('5');
     });
 
     it('handles undefined stats gracefully', () => {
@@ -225,7 +225,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByLabelText('View all equipment in the fleet')).toBeInTheDocument();
       expect(screen.getByLabelText('View overdue work orders')).toBeInTheDocument();
       expect(screen.getByLabelText('View all work orders')).toBeInTheDocument();
-      expect(screen.getByLabelText('View equipment needing attention')).toBeInTheDocument();
+      expect(screen.getByLabelText('View out-of-service equipment')).toBeInTheDocument();
     });
   });
 });
