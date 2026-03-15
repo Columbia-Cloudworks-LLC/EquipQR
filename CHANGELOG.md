@@ -7,6 +7,20 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.11] - 2026-03-15
+
+### Changed
+
+- **Inventory list triage UX** — Added sortable inventory columns (including Quantity and Status), inline result counts, reduced External ID visual weight on constrained desktop widths, and stronger duplicate-name disambiguation by showing secondary SKU/location context under item names.
+- **Inventory list quick actions** — Added row/card overflow actions for fast workflows (`View Details`, `Add 1`, `Take 1`, `QR Code`, `Edit`) so technicians and parts managers can act from list view without repeated page hops.
+- **Inventory detail mobile clarity** — Replaced the mobile vertical tab stack with a horizontal scrollable tabs rail, changed the QR control to a labeled action with tooltip/title, and simplified mobile breadcrumb density to prioritize a clearer back path.
+- **Inventory audit readability** — Transaction timestamps now render as localized absolute date/time with timezone abbreviation, and change-history entries now show absolute timestamps as primary with relative time as secondary context.
+
+### Fixed
+
+- **Mobile add/edit inventory form action reachability** — Updated the inventory item form dialog to use safe-area-aware spacing with a sticky footer action row so `Cancel` and submit actions remain visible above bottom navigation.
+- **Adjust Quantity modal overflow and layering** — Hardened dialog overlay/content z-index tokens and mobile content bounds so the adjust-quantity flow remains fully contained, scroll-safe, and blocks background interaction while open.
+
 ## [2.3.10] - 2026-03-15
 
 ### Added

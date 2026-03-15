@@ -1,5 +1,4 @@
 import React from 'react';
-import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { InventoryTransaction } from '@/features/inventory/types/inventory';
@@ -11,6 +10,14 @@ interface InventoryItemTransactionsTabProps {
 const InventoryItemTransactionsTab: React.FC<InventoryItemTransactionsTabProps> = ({
   transactions,
 }) => {
+  const formatLocalDateTimeWithZone = (timestamp: string) => {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZoneName: 'short',
+    }).format(new Date(timestamp));
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -42,7 +49,7 @@ const InventoryItemTransactionsTab: React.FC<InventoryItemTransactionsTabProps> 
                   )}
                   <p className="text-xs text-muted-foreground mt-1">
                     {transaction.userName || 'Unknown'} •{' '}
-                    {format(new Date(transaction.created_at), 'PPp')}
+                    {formatLocalDateTimeWithZone(transaction.created_at)}
                   </p>
                 </div>
               </div>

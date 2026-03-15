@@ -357,7 +357,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto pb-safe-bottom">
         <DialogHeader>
           <DialogTitle>
             {editingItem ? 'Edit Inventory Item' : 'Create Inventory Item'}
@@ -370,7 +370,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-safe-bottom">
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
@@ -789,7 +789,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             )}
 
             {/* Actions */}
-            <div className="flex justify-end space-x-2">
+            <div className="sticky bottom-0 z-10 -mx-6 flex justify-end space-x-2 border-t bg-background/95 px-6 py-3 pb-safe-bottom backdrop-blur supports-[backdrop-filter]:bg-background/90">
               <Button type="button" variant="outline" onClick={onClose} disabled={isFormDisabled}>
                 Cancel
               </Button>

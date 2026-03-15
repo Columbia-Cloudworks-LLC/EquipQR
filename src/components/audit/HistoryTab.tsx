@@ -123,7 +123,10 @@ function HistoryEntry({ entry }: { entry: FormattedAuditEntry }) {
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
-                  <span title={entry.formattedDate}>{entry.relativeTime}</span>
+                  <span title={entry.relativeTime}>
+                    {entry.formattedDate}
+                    <span className="ml-1 text-xs text-muted-foreground/90">({entry.relativeTime})</span>
+                  </span>
                 </div>
               </div>
             </div>
