@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Seed equipment images pipeline** — New script `scripts/seed-equipment-images.ps1` uploads stock equipment photos from `supabase/seed-images/equipment/` to local Supabase Storage and sets `equipment.image_url` for all 35 seed equipment records. Runs automatically as step 5b in `dev-start.bat` after `--reset-db`, giving the demo environment real equipment imagery instead of placeholder icons.
 - **1Password Edge env sync** — New script `scripts/sync-1password-edge-env.ps1` syncs 1Password environment secrets into `supabase/functions/.env` for local Edge Functions, with local redirect URLs. Optional run from `dev-start.bat` when 1Password CLI is on PATH.
 - **Equipment location history seed** — New seed file `supabase/seeds/28_equipment_location_history.sql` populates manual and team_sync `equipment_location_history` records for location hierarchy and map testing.
 - **Landing page "How It Works" section** — Added `src/components/landing/HowItWorksSection.tsx` and integrated it into `src/pages/Landing.tsx` to show a 3-step QR workflow from label setup through QuickBooks draft invoice export.
