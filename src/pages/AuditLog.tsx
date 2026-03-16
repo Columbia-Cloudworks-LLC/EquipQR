@@ -227,8 +227,7 @@ function AuditLog() {
               <CardContent>
                 <p className="text-sm text-muted-foreground">
                   Audit records are retained indefinitely to meet regulatory requirements. 
-                  Standard exports are limited to the most recent 10,000 records. 
-                  Contact support if you need access to older history or larger exports.
+                  Exports include the full matching history for the selected filters.
                 </p>
               </CardContent>
             </Card>

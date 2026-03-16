@@ -25,12 +25,7 @@ import {
 // Constants
 // ============================================
 
-/**
- * Maximum number of records to export in a single CSV export.
- * This limit is applied for performance reasons. Large organizations
- * requiring access to older history or larger exports should contact support.
- */
-export const AUDIT_EXPORT_RECORD_LIMIT = 10000;
+const AUDIT_EXPORT_BATCH_SIZE = 5000;
 
 // ============================================
 // Response Types
@@ -61,6 +56,44 @@ function handleSuccess<T>(data: T): ServiceResponse<T> {
     error: null,
     success: true
   };
+}
+
+function applyAuditFilters<T>(query: T, filters?: AuditLogFilters): T {
+  let filteredQuery = query as T & {
+    eq: (column: string, value: string) => T;
+    gte: (column: string, value: string) => T;
+    lt: (column: string, value: string) => T;
+    or: (query: string) => T;
+  };
+
+  if (filters?.entityType && filters.entityType !== 'all') {
+    filteredQuery = filteredQuery.eq('entity_type', filters.entityType);
+  }
+
+  if (filters?.action && filters.action !== 'all') {
+    filteredQuery = filteredQuery.eq('action', filters.action);
+  }
+
+  if (filters?.actorId) {
+    filteredQuery = filteredQuery.eq('actor_id', filters.actorId);
+  }
+
+  if (filters?.dateFrom) {
+    filteredQuery = filteredQuery.gte('created_at', filters.dateFrom);
+  }
+
+  if (filters?.dateTo) {
+    const endDate = new Date(filters.dateTo);
+    endDate.setDate(endDate.getDate() + 1);
+    filteredQuery = filteredQuery.lt('created_at', endDate.toISOString());
+  }
+
+  if (filters?.search) {
+    const searchTerm = `%${filters.search}%`;
+    filteredQuery = filteredQuery.or(`entity_name.ilike.${searchTerm},actor_name.ilike.${searchTerm}`);
+  }
+
+  return filteredQuery;
 }
 
 /**
@@ -331,51 +364,58 @@ export const auditService = {
    */
   async exportToCsv(
     organizationId: string,
-    filters?: AuditLogFilters
+    filters?: AuditLogFilters,
+    onProgress?: (progress: { current: number; total: number }) => void
   ): Promise<ServiceResponse<string>> {
     try {
-      // Get all data matching filters (no pagination for export)
-      // Limit exports for performance - see AUDIT_EXPORT_RECORD_LIMIT
-      let query = supabase
+      let countQuery = supabase
         .from('audit_log')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false })
-        .limit(AUDIT_EXPORT_RECORD_LIMIT);
-      
-      // Apply filters
-      if (filters?.entityType && filters.entityType !== 'all') {
-        query = query.eq('entity_type', filters.entityType);
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId);
+
+      countQuery = applyAuditFilters(countQuery, filters);
+      const { count, error: countError } = await countQuery;
+      if (countError) throw countError;
+
+      const totalRecords = count ?? 0;
+      onProgress?.({ current: 0, total: totalRecords });
+
+      const allEntries: AuditLogEntry[] = [];
+      let offset = 0;
+
+      while (offset < totalRecords) {
+        let pageQuery = supabase
+          .from('audit_log')
+          .select('*')
+          .eq('organization_id', organizationId)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + AUDIT_EXPORT_BATCH_SIZE - 1);
+
+        pageQuery = applyAuditFilters(pageQuery, filters);
+
+        const { data: pageData, error: pageError } = await pageQuery;
+        if (pageError) throw pageError;
+
+        const pageEntries = (pageData ?? []) as AuditLogEntry[];
+        if (pageEntries.length === 0) break;
+
+        allEntries.push(...pageEntries);
+        offset += pageEntries.length;
+        onProgress?.({ current: Math.min(offset, totalRecords), total: totalRecords });
       }
-      
-      if (filters?.action && filters.action !== 'all') {
-        query = query.eq('action', filters.action);
+
+      // Best-effort security event notification for export activity.
+      if (allEntries.length > 0) {
+        const { error: notificationError } = await supabase.rpc('log_audit_export_notification', {
+          p_organization_id: organizationId,
+          p_exported_count: allEntries.length,
+        });
+        if (notificationError) {
+          logger.warn('Failed to log audit export notification', notificationError);
+        }
       }
-      
-      if (filters?.actorId) {
-        query = query.eq('actor_id', filters.actorId);
-      }
-      
-      if (filters?.dateFrom) {
-        query = query.gte('created_at', filters.dateFrom);
-      }
-      
-      if (filters?.dateTo) {
-        const endDate = new Date(filters.dateTo);
-        endDate.setDate(endDate.getDate() + 1);
-        query = query.lt('created_at', endDate.toISOString());
-      }
-      
-      if (filters?.search) {
-        const searchTerm = `%${filters.search}%`;
-        query = query.or(`entity_name.ilike.${searchTerm},actor_name.ilike.${searchTerm}`);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      const csvRows = convertToCsvRows(data as AuditLogEntry[]);
+
+      const csvRows = convertToCsvRows(allEntries);
       const csvString = generateCsvString(csvRows);
       
       return handleSuccess(csvString);

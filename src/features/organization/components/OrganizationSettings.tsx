@@ -55,7 +55,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
     defaultValues: {
       name: organization.name,
       backgroundColor: organization.backgroundColor || '',
-      scan_location_collection_enabled: organization.scanLocationCollectionEnabled ?? true,
+      scan_location_collection_enabled: organization.scanLocationCollectionEnabled ?? false,
     },
   });
 
@@ -276,7 +276,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">QR Scan Location Collection</FormLabel>
                       <FormDescription>
-                        When enabled, QR code scans will capture GPS coordinates for the Fleet Map.
+                        Disabled by default for new organizations. When enabled, QR code scans capture GPS coordinates for the Fleet Map.
                         Disabling this will prevent all future scans from collecting location data.
                       </FormDescription>
                     </div>

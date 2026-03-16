@@ -4806,6 +4806,10 @@ export type Database = {
         }
         Returns: string
       }
+      log_audit_export_notification: {
+        Args: { p_exported_count: number; p_organization_id: string }
+        Returns: undefined
+      }
       log_equipment_location_change: {
         Args: {
           p_address_city?: string
@@ -4860,6 +4864,17 @@ export type Database = {
       }
       normalize_domain: { Args: { p_domain: string }; Returns: string }
       normalize_email: { Args: { p_email: string }; Returns: string }
+      notify_org_admins: {
+        Args: {
+          p_actor_id?: string
+          p_data?: Json
+          p_message: string
+          p_organization_id: string
+          p_title: string
+          p_type: string
+        }
+        Returns: undefined
+      }
       preserve_user_attribution: {
         Args: { user_uuid: string }
         Returns: undefined

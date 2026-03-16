@@ -230,7 +230,7 @@ const NotificationSettings: React.FC = () => {
                   <li>• You'll only receive notifications for teams you enable</li>
                   <li>• Choose which work order status changes trigger notifications</li>
                   <li>• Organization admins and owners can see all teams but can still customize preferences</li>
-                  <li>• Notifications appear in real-time and are kept for 7 days</li>
+                  <li>• Notifications appear in real-time and are kept for 30 days</li>
                 </ul>
               </div>
             </div>

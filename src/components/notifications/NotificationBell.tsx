@@ -69,7 +69,12 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
         notification.type === 'ownership_transfer_rejected' ||
         notification.type === 'ownership_transfer_cancelled' ||
         notification.type === 'workspace_merge_accepted' ||
-        notification.type === 'workspace_merge_rejected') {
+        notification.type === 'workspace_merge_rejected' ||
+        notification.type === 'member_added' ||
+        notification.type === 'member_role_changed' ||
+        notification.type === 'team_member_added' ||
+        notification.type === 'team_member_role_changed' ||
+        notification.type === 'audit_export') {
       // These are informational - navigate to organization page
       const targetOrgId = notification.data?.organization_id || notification.data?.workspace_org_id;
       if (targetOrgId && targetOrgId !== organizationId) {
@@ -132,6 +137,16 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
         return '🚫';
       case 'member_removed':
         return '👋';
+      case 'member_added':
+        return '➕';
+      case 'member_role_changed':
+        return '🛡️';
+      case 'team_member_added':
+        return '👥';
+      case 'team_member_role_changed':
+        return '🔐';
+      case 'audit_export':
+        return '📤';
       default:
         return '📢';
     }
@@ -182,7 +197,12 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
               {recentNotifications.map((notification) => {
                 const hasAction = notification.data?.work_order_id || 
                   notification.type.startsWith('ownership_transfer') ||
-                  notification.type.startsWith('workspace_merge');
+                  notification.type.startsWith('workspace_merge') ||
+                  notification.type === 'member_added' ||
+                  notification.type === 'member_role_changed' ||
+                  notification.type === 'team_member_added' ||
+                  notification.type === 'team_member_role_changed' ||
+                  notification.type === 'audit_export';
                 const isTransferRequest = notification.type === 'ownership_transfer_request' || notification.type === 'workspace_merge_request';
                 
                 return (

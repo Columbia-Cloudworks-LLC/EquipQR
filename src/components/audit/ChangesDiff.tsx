@@ -155,17 +155,27 @@ export function ChangesSummary({ changes }: { changes: AuditChanges }) {
   }
   
   if (entries.length === 1) {
-    const [field] = entries[0];
-    return <span>{getFieldLabel(field)} changed</span>;
+    const [field, change] = entries[0];
+    const label = getFieldLabel(field);
+    if (change.old === null && change.new !== null) {
+      return <span>{label}: set to {formatValue(change.new)}</span>;
+    }
+    if (change.old !== null && change.new === null) {
+      return <span>{label}: cleared</span>;
+    }
+    return <span>{label}: {formatValue(change.old)} -&gt; {formatValue(change.new)}</span>;
   }
-  
-  // Show first field and count
-  const [firstField] = entries[0];
-  return (
-    <span>
-      {getFieldLabel(firstField)} and {entries.length - 1} other field{entries.length > 2 ? 's' : ''}
-    </span>
-  );
+
+  if (entries.length <= 3) {
+    const labels = entries.map(([field]) => getFieldLabel(field));
+    if (labels.length === 2) {
+      return <span>{labels[0]} and {labels[1]} changed</span>;
+    }
+    return <span>{labels[0]}, {labels[1]}, and {labels[2]} changed</span>;
+  }
+
+  const labels = entries.slice(0, 2).map(([field]) => getFieldLabel(field));
+  return <span>{labels[0]}, {labels[1]}, and {entries.length - 2} other fields</span>;
 }
 
 export default ChangesDiff;

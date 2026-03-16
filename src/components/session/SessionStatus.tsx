@@ -3,16 +3,49 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Database, RefreshCw, Clock, CheckCircle, XCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Database, RefreshCw, Clock, CheckCircle, XCircle, ShieldAlert, LogOut } from 'lucide-react';
 import { useSession } from '@/hooks/useSession';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const SessionStatus = () => {
   const { sessionData, isLoading, error, refreshSession } = useSession();
+  const { user, signOut } = useAuth();
 
   const getSessionAge = () => {
     if (!sessionData?.lastUpdated) return 'Unknown';
     return formatDistanceToNow(new Date(sessionData.lastUpdated), { addSuffix: true });
+  };
+
+  const getLastSignIn = () => {
+    if (!user?.last_sign_in_at) return 'Unknown';
+    return formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true });
+  };
+
+  const handleSignOutAllSessions = async () => {
+    try {
+      const { error: globalSignOutError } = await supabase.auth.signOut({ scope: 'global' });
+      if (globalSignOutError) throw globalSignOutError;
+
+      await signOut();
+      toast.success('Signed out of all sessions');
+      window.location.assign('/auth');
+    } catch (globalError) {
+      toast.error(globalError instanceof Error ? globalError.message : 'Failed to sign out all sessions');
+    }
   };
 
   const getStatusIcon = () => {
@@ -59,6 +92,15 @@ export const SessionStatus = () => {
                 {getSessionAge()}
               </span>
             </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">Last Sign In</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {getLastSignIn()}
+              </span>
+            </div>
 
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="text-center">
@@ -70,6 +112,29 @@ export const SessionStatus = () => {
                 <div className="text-xs text-muted-foreground">Team Memberships</div>
               </div>
             </div>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out all sessions
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Sign out all active sessions?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This revokes your active sessions across all devices. You will need to sign in again everywhere.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => void handleSignOutAllSessions()}>
+                    Sign out everywhere
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>
         )}
 
