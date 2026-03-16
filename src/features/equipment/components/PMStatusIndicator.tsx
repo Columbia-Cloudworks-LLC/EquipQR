@@ -34,8 +34,8 @@ const INDICATOR_CONFIG: Record<PMComplianceLevel, {
     label: 'PM Due Soon',
     detail: (s) =>
       s.interval_type === 'days'
-        ? `Due within ${s.interval_value} days`
-        : `Due within ${s.interval_value} hrs`,
+        ? `Approaching ${s.interval_value}-day interval (80%+ used)`
+        : `Approaching ${s.interval_value}-hr interval (80%+ used)`,
     dotClass: 'bg-warning',
     iconClass: 'text-warning',
   },

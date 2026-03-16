@@ -335,7 +335,13 @@ echo        Launching Edge Functions serve in a new window...
 REM --no-verify-jwt is safe only for local development (localhost API)
 if "%SUPABASE_API_PORT%"=="" set "SUPABASE_API_PORT=54321"
 set "EDGE_SERVE_FLAGS=--env-file %EDGE_ENV_FILE%"
-powershell -NoProfile -Command "if (Get-NetTCPConnection -LocalPort %SUPABASE_API_PORT% -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+powershell -NoProfile -Command ^
+  "try { " ^
+  "  $r = Invoke-WebRequest -Uri 'http://localhost:%SUPABASE_API_PORT%/rest/v1/' -Method HEAD -TimeoutSec 3 -UseBasicParsing -ErrorAction Stop; " ^
+  "  if ($r.StatusCode -lt 500) { exit 0 } else { exit 1 } " ^
+  "} catch { " ^
+  "  if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -lt 500) { exit 0 } else { exit 1 } " ^
+  "}"
 if %errorlevel% equ 0 (
     set "EDGE_SERVE_FLAGS=%EDGE_SERVE_FLAGS% --no-verify-jwt"
     echo        Local Supabase API detected on port %SUPABASE_API_PORT% - JWT verification disabled for dev.
