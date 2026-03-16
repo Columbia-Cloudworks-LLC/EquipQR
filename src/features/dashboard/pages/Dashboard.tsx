@@ -11,9 +11,12 @@ import { DashboardStatsGrid } from '@/features/dashboard/components/DashboardSta
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const { currentOrganization, isLoading: orgLoading } = useOrganization();
+  const { toast } = useToast();
   const organizationId = currentOrganization?.id;
   const { hasTeamAccess, isLoading: accessLoading } = useTeamBasedDashboardAccess();
 
@@ -37,6 +40,14 @@ const Dashboard = () => {
 
   const [managerOpen, setManagerOpen] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
+
+  const handleResetLayout = useCallback(() => {
+    resetToDefault();
+    toast({
+      title: 'Dashboard layout reset',
+      description: 'Your default widget layout has been restored.',
+    });
+  }, [resetToDefault, toast]);
 
   const handleReorderSave = useCallback(
     (newOrder: string[]) => {
@@ -102,16 +113,23 @@ const Dashboard = () => {
                   {lastUpdatedText}
                 </span>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetToDefault}
-                className="gap-1.5"
-                title="Reset to default layout"
-              >
-                <RotateCcw className="h-4 w-4" />
-                <span className="hidden sm:inline">Reset</span>
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetLayout}
+                      className="gap-1.5"
+                      title="Restore default widget layout"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      <span className="hidden sm:inline">Reset Layout</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Restore default widget layout</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Button
                 variant="outline"
                 size="sm"

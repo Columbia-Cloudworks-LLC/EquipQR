@@ -13,6 +13,7 @@ interface HighPriorityWorkOrder {
   createdDate: string;
   dueDate?: string | null;
   status: string;
+  equipmentName?: string;
 }
 
 interface DashboardHighPriorityWorkOrdersCardProps {
@@ -54,6 +55,9 @@ export const DashboardHighPriorityWorkOrdersCard: React.FC<DashboardHighPriority
                 >
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-2 font-medium">{order.title}</p>
+                    {order.equipmentName && (
+                      <p className="text-xs text-muted-foreground">Equipment: {order.equipmentName}</p>
+                    )}
                     <p className="text-sm text-muted-foreground">
                       {overdueLabel ? (
                         <span className="text-destructive font-medium">{overdueLabel}</span>

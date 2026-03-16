@@ -1,21 +1,29 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { ClipboardCheck, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { ClipboardCheck, AlertTriangle, CheckCircle, Clock, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import EmptyState from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { usePMCompliance } from '@/features/dashboard/hooks/useDashboardWidgets';
+import { useEquipmentByStatus, usePMCompliance } from '@/features/dashboard/hooks/useDashboardWidgets';
 import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import { getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import { PM_INTERVALS_ENABLED } from '@/lib/flags';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useNavigate } from 'react-router-dom';
 
 const PMComplianceWidget: React.FC = () => {
+  const navigate = useNavigate();
   const { currentOrganization } = useOrganization();
   const organizationId = currentOrganization?.id;
 
   const { data, isLoading } = usePMCompliance(organizationId);
+  const { data: equipmentByStatus } = useEquipmentByStatus(organizationId);
   const { data: pmStatuses } = useOrgEquipmentPMStatuses(organizationId);
+  const totalCount = React.useMemo(
+    () => (data ?? []).reduce((sum, item) => sum + item.count, 0),
+    [data]
+  );
 
   const intervalSummary = React.useMemo(() => {
     if (!pmStatuses || pmStatuses.length === 0) return null;
@@ -30,6 +38,38 @@ const PMComplianceWidget: React.FC = () => {
     }
     return { current, dueSoon, overdue, total: current + dueSoon + overdue };
   }, [pmStatuses]);
+  const totalEquipmentCount = React.useMemo(
+    () => (equipmentByStatus ?? []).reduce((sum, item) => sum + item.count, 0),
+    [equipmentByStatus]
+  );
+  const nonIntervalTrackedCount = Math.max((totalEquipmentCount || 0) - (intervalSummary?.total || 0), 0);
+
+  const handleSliceClick = React.useCallback(
+    (status: string) => {
+      if (status === 'overdue') {
+        navigate('/dashboard/work-orders?date=overdue');
+        return;
+      }
+      navigate(`/dashboard/work-orders?status=${status}`);
+    },
+    [navigate]
+  );
+
+  const tooltipContent = React.useCallback(
+    ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { label: string; count: number } }> }) => {
+      if (!active || !payload || payload.length === 0) return null;
+      const datum = payload[0]?.payload;
+      if (!datum) return null;
+      const percentage = totalCount > 0 ? Math.round((datum.count / totalCount) * 100) : 0;
+      return (
+        <div className="rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
+          <p className="font-medium">{datum.label}</p>
+          <p>{datum.count} work orders ({percentage}%)</p>
+        </div>
+      );
+    },
+    [totalCount]
+  );
 
   return (
     <Card className="h-full">
@@ -46,7 +86,8 @@ const PMComplianceWidget: React.FC = () => {
             <Skeleton className="h-32 w-32 rounded-full" />
           </div>
         ) : data && data.length > 0 ? (
-          <ResponsiveContainer width="100%" height={180}>
+          <div aria-label="Preventive maintenance compliance distribution chart">
+            <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie
                 data={data}
@@ -57,35 +98,61 @@ const PMComplianceWidget: React.FC = () => {
                 innerRadius={40}
                 outerRadius={70}
                 paddingAngle={2}
+                onClick={(entry) => handleSliceClick(entry.status)}
               >
-                {data.map((entry) => (
-                  <Cell key={entry.status} fill={entry.color} />
+                {data.map((entry, index) => (
+                  <Cell
+                    key={entry.status}
+                    fill={entry.color}
+                    stroke="hsl(var(--background))"
+                    strokeWidth={1.5}
+                    strokeDasharray={index % 2 === 0 ? '0' : '3 2'}
+                    style={{ cursor: 'pointer' }}
+                  />
                 ))}
               </Pie>
-              <Tooltip
-                formatter={(value: number, name: string) => [`${value} WOs`, name]}
-              />
+              <RechartsTooltip content={tooltipContent} />
               <Legend
                 verticalAlign="bottom"
                 height={30}
                 iconType="circle"
                 iconSize={8}
-                formatter={(value: string) => <span className="text-xs">{value}</span>}
+                formatter={(value: string, _entry, index) => (
+                  <span className="text-xs">{value} ({data[index]?.count ?? 0})</span>
+                )}
               />
             </PieChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+            <p className="sr-only">
+              PM compliance summary: {data.map((entry) => `${entry.label} ${entry.count}`).join(', ')}.
+            </p>
+          </div>
         ) : (
           <EmptyState
             icon={ClipboardCheck}
             title="No PM data"
-            description="Preventive maintenance data will appear when PM templates are used."
+            description="Create PM templates or work orders to track compliance trends."
             className="py-6"
           />
         )}
 
         {PM_INTERVALS_ENABLED && intervalSummary && intervalSummary.total > 0 && (
           <div className="mt-3 border-t pt-3 space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Interval Tracking ({intervalSummary.total} equipment)</p>
+            <div className="mb-2 flex items-center gap-1.5">
+              <p className="text-xs font-medium text-muted-foreground">Interval Tracking ({intervalSummary.total} equipment)</p>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-muted-foreground transition-colors hover:text-foreground" aria-label="Explain interval tracking">
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    Equipment with hour or mileage-based PM schedules. Equipment without interval tracking typically follows date-based PM schedules.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <div className="flex items-center gap-2 text-xs">
               <CheckCircle className="h-3.5 w-3.5 text-success flex-shrink-0" />
               <span>Current</span>
@@ -104,6 +171,11 @@ const PMComplianceWidget: React.FC = () => {
                 <span>Overdue</span>
                 <span className="ml-auto font-medium">{intervalSummary.overdue}</span>
               </div>
+            )}
+            {nonIntervalTrackedCount > 0 && (
+              <p className="pt-1 text-[11px] text-muted-foreground">
+                {nonIntervalTrackedCount} equipment use date-based tracking.
+              </p>
             )}
           </div>
         )}

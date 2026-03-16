@@ -84,6 +84,7 @@ const WorkOrders = () => {
     if (initializedFromUrl.current) return;
     const date = searchParams.get('date');
     const team = searchParams.get('team');
+    const status = searchParams.get('status');
     const sort = searchParams.get('sort');
     let didApply = false;
 
@@ -94,6 +95,13 @@ const WorkOrders = () => {
     if (date === 'overdue') {
       toggleQuickFilter('overdue');
       didApply = true;
+    }
+    if (status) {
+      const validStatuses = ['submitted', 'accepted', 'assigned', 'in_progress', 'on_hold', 'completed', 'cancelled'];
+      if (validStatuses.includes(status)) {
+        updateFilter('statusFilter', status);
+        didApply = true;
+      }
     }
     if (sort) {
       const [field, direction] = sort.split(':');
