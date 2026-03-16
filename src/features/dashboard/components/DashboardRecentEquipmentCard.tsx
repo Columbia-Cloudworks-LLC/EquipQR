@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Forklift } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ interface RecentEquipmentItem {
   manufacturer: string;
   model: string;
   status: string;
+  created_at?: string;
 }
 
 interface DashboardRecentEquipmentCardProps {
@@ -27,6 +29,15 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
   isLoading,
   hasMore,
 }) => {
+  const formatAddedLabel = (createdAt?: string) => {
+    if (!createdAt) return null;
+
+    const createdDate = new Date(createdAt);
+    if (Number.isNaN(createdDate.getTime())) return null;
+
+    return `Added ${formatDistanceToNow(createdDate, { addSuffix: true })}`;
+  };
+
   return (
     <section aria-labelledby="recent-equipment-heading">
       <Card>
@@ -46,26 +57,34 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
             </div>
           ) : equipment.length > 0 ? (
             <div className="space-y-4">
-              {equipment.map((item) => (
-                <Link
-                  key={item.id}
-                  to={`/dashboard/equipment/${item.id}`}
-                  className="flex items-center justify-between rounded-lg p-2 -m-2 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 font-medium">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {item.manufacturer} {item.model}
-                    </p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn("ml-2 flex-shrink-0", getStatusDisplayInfo(item.status).badgeClassName)}
+              {equipment.map((item) => {
+                const addedLabel = formatAddedLabel(item.created_at);
+                return (
+                  <Link
+                    key={item.id}
+                    to={`/dashboard/equipment/${item.id}`}
+                    className="flex items-center justify-between rounded-lg p-2 -m-2 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    {getStatusDisplayInfo(item.status).label}
-                  </Badge>
-                </Link>
-              ))}
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 font-medium">{item.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.manufacturer} {item.model}
+                      </p>
+                      {addedLabel && (
+                        <p className="text-[11px] text-muted-foreground">
+                          {addedLabel}
+                        </p>
+                      )}
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={cn("ml-2 flex-shrink-0", getStatusDisplayInfo(item.status).badgeClassName)}
+                    >
+                      {getStatusDisplayInfo(item.status).label}
+                    </Badge>
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <p className="text-muted-foreground">No equipment found</p>
@@ -73,7 +92,7 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
         </CardContent>
         {hasMore && !isLoading && (
           <CardFooter>
-            <Button asChild variant="secondary" className="w-full">
+            <Button asChild variant="outline" className="w-full">
               <Link to="/dashboard/equipment" className="inline-flex items-center justify-center gap-2">
                 View all
                 <ChevronRight className="h-4 w-4" />

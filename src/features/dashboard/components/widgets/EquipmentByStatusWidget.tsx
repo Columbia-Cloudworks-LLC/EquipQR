@@ -102,9 +102,9 @@ const EquipmentByStatusWidget: React.FC = () => {
                 verticalAlign="bottom"
                 height={30}
                 iconType="circle"
-                iconSize={8}
+                iconSize={10}
                 formatter={(value: string, _entry, index) => (
-                  <span className="text-xs">{value} ({data[index]?.count ?? 0})</span>
+                  <span className="inline-block px-1 py-1 text-xs">{value} ({data[index]?.count ?? 0})</span>
                 )}
               />
             </PieChart>

@@ -34,8 +34,8 @@ export const StatsCard: React.FC<StatsCardProps> = ({
 }) => {
   const variantClasses = {
     default: '',
-    warning: 'border-warning/50 bg-warning/5',
-    danger: 'border-destructive/50 bg-destructive/5',
+    warning: 'border-warning/50 bg-warning/5 dark:bg-warning/10',
+    danger: 'border-destructive/50 bg-destructive/5 dark:bg-destructive/10',
   };
 
   const content = (

@@ -28,7 +28,7 @@ const Dashboard = () => {
     removeWidget,
     resetToDefault,
   } = useDashboardLayout(organizationId);
-  const { dataUpdatedAt } = useTeamBasedDashboardStats(organizationId);
+  const { data: dashboardStats, dataUpdatedAt } = useTeamBasedDashboardStats(organizationId);
 
   const lastUpdatedText = useMemo(() => {
     if (!dataUpdatedAt) return null;
@@ -37,6 +37,20 @@ const Dashboard = () => {
     if (minutes === 1) return 'Updated 1 min ago';
     return `Updated ${minutes} min ago`;
   }, [dataUpdatedAt]);
+
+  const dashboardDescription = useMemo(() => {
+    const organizationName = currentOrganization?.name ?? "your organization";
+    const overdueCount = dashboardStats?.overdueWorkOrders ?? 0;
+    const needsAttentionCount = (dashboardStats?.maintenanceEquipment ?? 0) + (dashboardStats?.inactiveEquipment ?? 0);
+
+    if (overdueCount === 0 && needsAttentionCount === 0) {
+      return `Welcome back to ${organizationName}`;
+    }
+
+    const overdueLabel = `${overdueCount} overdue work order${overdueCount === 1 ? "" : "s"}`;
+    const needsAttentionLabel = `${needsAttentionCount} equipment need${needsAttentionCount === 1 ? "s" : ""} attention`;
+    return `${overdueLabel} - ${needsAttentionLabel}`;
+  }, [currentOrganization?.name, dashboardStats]);
 
   const [managerOpen, setManagerOpen] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -86,7 +100,7 @@ const Dashboard = () => {
       <Page maxWidth="full" padding="responsive">
         <PageHeader
           title="Dashboard"
-          description={`Welcome back to ${currentOrganization.name}`}
+          description={dashboardDescription}
         />
         <DashboardStatsGrid
           stats={null}
@@ -105,7 +119,7 @@ const Dashboard = () => {
           <div className="flex items-start justify-between gap-4">
             <PageHeader
               title="Dashboard"
-              description={`Welcome back to ${currentOrganization.name}`}
+              description={dashboardDescription}
             />
             <div className="flex items-center gap-3 shrink-0 pt-1">
               {lastUpdatedText && (
