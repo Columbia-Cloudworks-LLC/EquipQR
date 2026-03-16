@@ -4,7 +4,7 @@ REM  dev-start.bat — Idempotent startup of the EquipQR local development stack
 REM
 REM  Usage:
 REM    dev-start.bat                        Normal startup (skips already-running services)
-REM    dev-start.bat -Force                Full fresh reset: hard stop (same as dev-stop -Force),
+REM    dev-start.bat -Force                Full fresh reset: hard stop (same as dev-stop),
 REM                                         DB reset + type regen, then clean startup
 REM    dev-start.bat --reset-db             Reset local database after Supabase starts,
 REM                                         applying all migrations from scratch
@@ -70,13 +70,13 @@ echo.
 
 REM ---------- 0. Optional force-mode hard reset ---------------------------------
 if %OPT_FORCE% equ 1 (
-    echo  [0/10] Force mode: hard reset before startup...
+    echo  [0/10] Force mode: hard reset before startup ^(Docker Desktop stays running^)...
     if not exist "%~dp0dev-stop.bat" (
         echo        FAIL: dev-stop.bat not found next to dev-start.bat.
         set "FAIL=1"
         goto :summary
     )
-    call "%~dp0dev-stop.bat" -Force --no-pause
+    call "%~dp0dev-stop.bat" --no-pause
     if !errorlevel! neq 0 (
         echo        WARNING: dev-stop reported issues during force reset. Continuing startup.
     ) else (
