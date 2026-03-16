@@ -83,7 +83,7 @@ export const MobileWorkOrderInProgressBar: React.FC<MobileWorkOrderInProgressBar
         </div>
       )}
 
-      <div className="p-3 pb-3">
+      <div className="p-3 pb-safe-bottom">
         {/* Status and Timer Row */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
