@@ -192,12 +192,13 @@ Two batch files in the project root let you bring the entire local stack up or t
 
 | Script | What it does |
 |--------|-------------|
-| **`dev-start.bat`** | Idempotent startup — verifies prerequisites (Node, Docker), starts Supabase + Vite, health-checks every service, and prints a readiness report. Safe to run repeatedly; already-running services are skipped. |
+| **`dev-start.bat`** | Idempotent startup — verifies prerequisites (Node, Docker), optionally runs a full hard reset with `-Force`, starts Supabase + Edge Functions + Vite, health-checks every service, and prints a readiness report. Safe to run repeatedly; already-running services are skipped. |
 | **`dev-stop.bat`** | Graceful shutdown — stops the Vite dev server, any `supabase functions serve` process, the Supabase Docker stack, and cleans up orphan processes on dev ports. Safe to run when nothing is running. |
 
 ```bash
 # From the project root — or just double-click in Explorer
 .\dev-start.bat      # Spin up everything
+.\dev-start.bat -Force --reset-db --gen-types  # Full reset, rebuild DB/types, then start all services
 .\dev-stop.bat       # Tear down everything
 ```
 

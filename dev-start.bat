@@ -4,11 +4,13 @@ REM  dev-start.bat — Idempotent startup of the EquipQR local development stack
 REM
 REM  Usage:
 REM    dev-start.bat                        Normal startup (skips already-running services)
+REM    dev-start.bat -Force                Full hard reset first (same as dev-stop -Force),
+REM                                         then start from clean state
 REM    dev-start.bat --reset-db             Reset local database after Supabase starts,
 REM                                         applying all migrations from scratch
 REM    dev-start.bat --gen-types            Ensure Supabase is up and regenerate TypeScript
-REM                                         types; skip Edge Functions and Vite
-REM    dev-start.bat --reset-db --gen-types DB reset + type regen, then exit (no Vite/edge)
+REM                                         types, then continue normal startup
+REM    dev-start.bat --reset-db --gen-types DB reset + type regen, then continue startup
 REM
 REM  Steps (in dependency order):
 REM    1. Pre-flight checks    (node, npm, npx, docker)
@@ -18,8 +20,8 @@ REM    4. Supabase local stack (npx supabase start)
 REM    5. DB Reset             (only with --reset-db)
 REM    6. Supabase TypeScript types (regenerate from local schema)
 REM    7. Sync local env files (write VITE_SUPABASE_URL etc. to .env.local)
-REM    8. Supabase Edge Functions  (skipped with --gen-types)
-REM    9. Vite dev server          (skipped with --gen-types)
+REM    8. Supabase Edge Functions
+REM    9. Vite dev server
 REM
 REM  Idempotent: safe to run back-to-back without issues.
 REM  This script NEVER modifies tracked files (e.g. supabase/config.toml).
@@ -32,6 +34,7 @@ setlocal EnableDelayedExpansion
 set "FAIL=0"
 set "OPT_RESET_DB=0"
 set "OPT_GEN_TYPES=0"
+set "OPT_FORCE=0"
 
 REM Supabase CLI default ports (from config.toml — do NOT change here, change config.toml)
 set "SUPABASE_API_PORT=54321"
@@ -43,6 +46,9 @@ REM --- Parse command-line arguments ---
 if "%~1"=="" goto :args_done
 if /i "%~1"=="--reset-db"   set "OPT_RESET_DB=1"
 if /i "%~1"=="--gen-types"  set "OPT_GEN_TYPES=1"
+if /i "%~1"=="-Force"       set "OPT_FORCE=1"
+if /i "%~1"=="/Force"       set "OPT_FORCE=1"
+if /i "%~1"=="--force"      set "OPT_FORCE=1"
 shift
 goto :parse_args
 :args_done
@@ -50,13 +56,31 @@ goto :parse_args
 echo.
 echo  ============================================
 echo   EquipQR Dev Environment - Startup
+if %OPT_FORCE% equ 1     echo   Flag: -Force      (full hard reset before startup)
 if %OPT_RESET_DB% equ 1  echo   Flag: --reset-db   (database will be reset)
-if %OPT_GEN_TYPES% equ 1 echo   Flag: --gen-types  (types only; Vite + Edge Functions skipped)
+if %OPT_GEN_TYPES% equ 1 echo   Flag: --gen-types  (types regenerated before startup continues)
 echo  ============================================
 echo.
 
+REM ---------- 0. Optional force-mode hard reset ---------------------------------
+if %OPT_FORCE% equ 1 (
+    echo  [0/10] Force mode: hard reset before startup...
+    if not exist "%~dp0dev-stop.bat" (
+        echo        FAIL: dev-stop.bat not found next to dev-start.bat.
+        set "FAIL=1"
+        goto :summary
+    )
+    call "%~dp0dev-stop.bat" -Force --no-pause
+    if !errorlevel! neq 0 (
+        echo        WARNING: dev-stop reported issues during force reset. Continuing startup.
+    ) else (
+        echo        Force reset complete.
+    )
+    echo.
+)
+
 REM ---------- 1. Pre-flight checks -------------------------------------------
-echo  [1/9] Pre-flight checks...
+echo  [1/10] Pre-flight checks...
 
 REM -- Node.js --
 where node >nul 2>&1
@@ -129,7 +153,7 @@ echo        All pre-flight checks passed.
 
 REM ---------- 2. Verify node_modules -----------------------------------------
 echo.
-echo  [2/9] Checking node_modules...
+echo  [2/10] Checking node_modules...
 
 if exist "node_modules\." (
     echo        node_modules exists - skipping npm ci.
@@ -146,7 +170,7 @@ if exist "node_modules\." (
 
 REM ---------- 3. Stale container cleanup --------------------------------------
 echo.
-echo  [3/9] Cleaning up stale Supabase containers...
+echo  [3/10] Cleaning up stale Supabase containers...
 
 REM Docker Desktop for Windows often leaves Exited/dead Supabase containers after
 REM a reboot or unclean shutdown. These block the next 'supabase start' with
@@ -171,7 +195,7 @@ if %CLEANED% equ 0 echo        No stale containers found.
 
 REM ---------- 4. Start Supabase local stack -----------------------------------
 echo.
-echo  [4/9] Starting Supabase local stack...
+echo  [4/10] Starting Supabase local stack...
 
 call npx supabase status >nul 2>&1
 if %errorlevel% equ 0 (
@@ -233,11 +257,11 @@ echo        -----------------------
 REM ---------- 5. DB Reset (optional — only with --reset-db) -------------------
 echo.
 if %OPT_RESET_DB% equ 0 (
-    echo  [5/9] DB Reset - skipped.  Pass --reset-db to wipe and re-apply all migrations.
+    echo  [5/10] DB Reset - skipped.  Pass --reset-db to wipe and re-apply all migrations.
     goto :db_reset_done
 )
 
-echo  [5/9] Resetting local database ^(--reset-db^)...
+echo  [5/10] Resetting local database ^(--reset-db^)...
 echo        All local data will be wiped and every migration re-applied from scratch.
 call npx supabase db reset
 if !errorlevel! neq 0 (
@@ -258,7 +282,7 @@ if !errorlevel! neq 0 (
 
 REM ---------- 6. Regenerate Supabase TypeScript types -------------------------
 echo.
-echo  [6/9] Regenerating Supabase TypeScript types...
+echo  [6/10] Regenerating Supabase TypeScript types...
 
 REM Write to a temp file first so a failure does not corrupt the existing types
 call npx supabase gen types typescript --local > src\integrations\supabase\types.ts.tmp 2>nul
@@ -272,22 +296,15 @@ if !errorlevel! equ 0 (
 
 REM ---------- 7. Sync local env files -----------------------------------------
 echo.
-echo  [7/9] Syncing local Supabase URLs in env files...
+echo  [7/10] Syncing local Supabase URLs in env files...
 powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-local-supabase-env.ps1" -ApiPort %SUPABASE_API_PORT%
 if %errorlevel% neq 0 (
     echo        WARNING: Could not sync local Supabase URLs. You may need to update .env.local manually.
 )
 
-REM If --gen-types, skip Edge Functions and Vite and go straight to the summary
-if %OPT_GEN_TYPES% equ 1 (
-    echo.
-    echo        --gen-types: skipping Edge Functions and Vite dev server.
-    goto :healthcheck
-)
-
 REM ---------- 8. Start Supabase Edge Functions --------------------------------
 echo.
-echo  [8/9] Starting Supabase Edge Functions serve...
+echo  [8/10] Starting Supabase Edge Functions serve...
 
 set "EDGE_ENV_FILE=%DEFAULT_EDGE_ENV_FILE%"
 
@@ -365,7 +382,7 @@ echo        Edge Functions serve launched.
 
 REM ---------- 9. Start Vite dev server ----------------------------------------
 echo.
-echo  [9/9] Starting Vite dev server (port 8080)...
+echo  [9/10] Starting Vite dev server (port 8080)...
 
 REM Check if port 8080 is already in use
 powershell -NoProfile -Command ^
@@ -414,10 +431,10 @@ echo   EquipQR Dev Environment - Status Report
 echo  ============================================
 echo.
 
-set "FRONTEND_STATUS=[SKIPPED]"
+set "FRONTEND_STATUS=[UNKNOWN]"
 set "API_STATUS=[UNKNOWN]"
 set "DB_STATUS=[UNKNOWN]"
-set "FUNCTIONS_STATUS=[SKIPPED]"
+set "FUNCTIONS_STATUS=[UNKNOWN]"
 
 powershell -NoProfile -Command ^
   "try { $r = Invoke-WebRequest -Uri 'http://localhost:%SUPABASE_API_PORT%/rest/v1/' -Method HEAD -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop; exit 0 } catch { exit 1 }"
@@ -426,9 +443,6 @@ if %errorlevel% equ 0 ( set "API_STATUS=[OK]" ) else ( set "API_STATUS=[FAILED]"
 REM DB check: Docker Desktop ports are not visible to Get-NetTCPConnection on Windows.
 REM Use the API health result as a proxy — if the API is up the DB container is up.
 if "%API_STATUS%"=="[OK]" ( set "DB_STATUS=[OK]" ) else ( set "DB_STATUS=[FAILED]" & set "FAIL=1" )
-
-REM Only check Vite and Edge Functions when not in --gen-types mode.
-if %OPT_GEN_TYPES% equ 1 goto :print_status
 
 powershell -NoProfile -Command ^
   "try { $r = Invoke-WebRequest -Uri 'http://localhost:8080' -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop; exit 0 } catch { exit 1 }"

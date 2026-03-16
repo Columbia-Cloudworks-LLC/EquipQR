@@ -97,7 +97,7 @@ npx supabase functions pull quickbooks-oauth-callback
 
 ### Step 5: Start Local Supabase Instance
 
-> **Quick alternative**: Run `.\dev-start.bat` from the project root to start Docker, Supabase, and the Vite dev server in one step. It is idempotent and will skip services that are already running. See also `.\dev-stop.bat` to tear everything down.
+> **Quick alternative**: Run `.\dev-start.bat` from the project root to start Docker, Supabase, Edge Functions, and the Vite dev server in one step. It is idempotent and will skip services that are already running. Use `.\dev-start.bat -Force` for a full hard reset first (equivalent to `dev-stop -Force`), then clean startup. See also `.\dev-stop.bat` to tear everything down.
 
 Start a local Supabase instance (PostgreSQL, PostgREST, Auth, Storage, Edge Functions):
 
@@ -503,6 +503,7 @@ npx supabase stop
 ```bash
 # ---- One-click dev environment (Windows) ----
 .\dev-start.bat                      # Start Docker + Supabase + Vite (idempotent)
+.\dev-start.bat -Force --reset-db --gen-types  # Full hard reset + DB reset/types + start all components
 .\dev-stop.bat                       # Stop all dev processes gracefully
 
 # ---- Supabase CLI commands (always use npx) ----
