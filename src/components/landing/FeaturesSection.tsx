@@ -112,10 +112,10 @@ const FeaturesSection = ({ id }: { id?: string }) => {
       <div className="container px-4 mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Complete Equipment Management Platform
+            Every Tool Your Crew Needs, On Every Machine
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Everything you need to manage your fleet efficiently, from QR code tracking and inventory management to work orders and advanced analytics. Built for scale and security.
+            From the QR code on the machine to the invoice in QuickBooks &mdash; one platform your whole team actually uses.
           </p>
         </div>
         

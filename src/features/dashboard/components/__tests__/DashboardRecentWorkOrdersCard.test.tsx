@@ -36,7 +36,7 @@ const mockWorkOrders = [
     title: 'Annual inspection',
     priority: 'medium',
     assigneeName: null,
-    status: 'pending',
+    status: 'submitted',
   },
   {
     id: 'wo-3',
@@ -69,10 +69,14 @@ describe('DashboardRecentWorkOrdersCard', () => {
       expect(screen.getByText('Latest work order activity')).toBeInTheDocument();
     });
 
-    it('renders view all link when more items exist', () => {
+    it('renders view all link when hasMore is true', () => {
       render(
         <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} hasMore={true} />
+          <DashboardRecentWorkOrdersCard
+            workOrders={mockWorkOrders}
+            isLoading={false}
+            hasMore={true}
+          />
         </MemoryRouter>
       );
 
@@ -81,7 +85,7 @@ describe('DashboardRecentWorkOrdersCard', () => {
       expect(viewAllLink).toHaveAttribute('href', '/dashboard/work-orders');
     });
 
-    it('does not render view all link when there are not more items', () => {
+    it('does not render view all link when no work orders', () => {
       render(
         <MemoryRouter>
           <DashboardRecentWorkOrdersCard workOrders={[]} isLoading={false} hasMore={false} />
@@ -180,10 +184,10 @@ describe('DashboardRecentWorkOrdersCard', () => {
         </MemoryRouter>
       );
 
-      // "in_progress" should be formatted as "in progress"
-      expect(screen.getByText('in progress')).toBeInTheDocument();
-      expect(screen.getByText('pending')).toBeInTheDocument();
-      expect(screen.getByText('completed')).toBeInTheDocument();
+      // formatStatus: in_progress -> "In Progress", submitted -> "Submitted", completed -> "Completed"
+      expect(screen.getByText('In Progress')).toBeInTheDocument();
+      expect(screen.getByText('Submitted')).toBeInTheDocument();
+      expect(screen.getByText('Completed')).toBeInTheDocument();
     });
 
     it('renders links to work order detail pages', () => {

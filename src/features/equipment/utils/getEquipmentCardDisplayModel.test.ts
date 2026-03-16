@@ -24,43 +24,32 @@ describe('getEquipmentCardDisplayModel', () => {
     });
   });
 
-  describe('showStatusBadge', () => {
-    it('returns false for active status', () => {
+  describe('statusLabel', () => {
+    it('returns human-readable label for active status', () => {
       const result = getEquipmentCardDisplayModel({
         name: 'Test Equipment',
         status: 'active',
       });
 
-      expect(result.showStatusBadge).toBe(false);
+      expect(result.statusLabel).toBe('Active');
     });
 
-    it('returns true for maintenance status', () => {
+    it('returns human-readable label for maintenance status', () => {
       const result = getEquipmentCardDisplayModel({
         name: 'Test Equipment',
         status: 'maintenance',
       });
 
-      expect(result.showStatusBadge).toBe(true);
+      expect(result.statusLabel).toBe('Under Maintenance');
     });
 
-    it('returns true for inactive status', () => {
+    it('returns human-readable label for inactive status', () => {
       const result = getEquipmentCardDisplayModel({
         name: 'Test Equipment',
         status: 'inactive',
       });
 
-      expect(result.showStatusBadge).toBe(true);
-    });
-  });
-
-  describe('statusText', () => {
-    it('returns the raw status value', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'maintenance',
-      });
-
-      expect(result.statusText).toBe('maintenance');
+      expect(result.statusLabel).toBe('Inactive');
     });
   });
 
@@ -176,6 +165,28 @@ describe('getEquipmentCardDisplayModel', () => {
       });
 
       expect(result.workingHoursText).toBe('0 hours');
+    });
+  });
+
+  describe('workingHoursShortText', () => {
+    it('formats hours with abbreviated unit', () => {
+      const result = getEquipmentCardDisplayModel({
+        name: 'Test Equipment',
+        status: 'active',
+        working_hours: 1234,
+      });
+
+      expect(result.workingHoursShortText).toBe('1,234 hrs');
+    });
+
+    it('defaults to 0 when working_hours is null', () => {
+      const result = getEquipmentCardDisplayModel({
+        name: 'Test Equipment',
+        status: 'active',
+        working_hours: null,
+      });
+
+      expect(result.workingHoursShortText).toBe('0 hrs');
     });
   });
 });

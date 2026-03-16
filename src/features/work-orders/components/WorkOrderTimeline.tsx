@@ -82,12 +82,16 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
     }
   };
 
+  const formatStatusLabel = (status: string) => {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   const getStatusChangeDescription = (oldStatus: string | null, newStatus: string, reason?: string) => {
     if (!oldStatus) return 'Work order was submitted';
     
-    let baseDescription = `Status changed from ${oldStatus} to ${newStatus}`;
+    let baseDescription = `Status changed from ${formatStatusLabel(oldStatus)} to ${formatStatusLabel(newStatus)}`;
     if (reason && reason !== 'Status updated') {
-      baseDescription += ` - ${reason}`;
+      baseDescription += ` — ${reason}`;
     }
     return baseDescription;
   };
@@ -105,11 +109,13 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
     }
   };
 
-  // Generate timeline events based on work order data and history
   const getTimelineEvents = () => {
-    // Start with the creation event
-    const events: TimelineEvent[] = [
-      {
+    const events: TimelineEvent[] = [];
+
+    // Only add the hardcoded creation event if history doesn't already include one
+    const historyHasCreation = historyEvents.some(e => e.title === 'Work Order Created');
+    if (!historyHasCreation) {
+      events.push({
         id: 'created',
         title: 'Work Order Created',
         description: `Work order was submitted${workOrder.assigneeName ? ` and assigned to ${workOrder.assigneeName}` : ''}`,
@@ -118,10 +124,9 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
         icon: FileText,
         user: 'System',
         isPublic: true
-      }
-    ];
+      });
+    }
 
-    // Add history events
     events.push(...historyEvents);
 
     // Add the current status if different from last history event
@@ -171,6 +176,15 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
     }
   };
 
+  const formatEventTimestamp = (timestamp: string) =>
+    new Date(timestamp).toLocaleString([], {
+      month: 'numeric',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
   const timelineEvents = getTimelineEvents();
 
   return (
@@ -178,7 +192,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
-          Timeline
+          Timeline (Status Events)
           {!showDetailedHistory && (
             <Badge variant="outline" className="text-xs">
               Limited View
@@ -218,7 +232,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">{event.title}</h4>
                       <time className="text-sm text-muted-foreground">
-                        {new Date(event.timestamp).toLocaleDateString()}
+                        {formatEventTimestamp(event.timestamp)}
                       </time>
                     </div>
                     <p className="text-sm text-muted-foreground">{event.description}</p>

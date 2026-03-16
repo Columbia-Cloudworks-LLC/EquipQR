@@ -30,6 +30,9 @@ export const getInventoryItems = async (
   filters: InventoryFilters = {}
 ): Promise<InventoryItem[]> => {
   try {
+    const sortBy = filters.sortBy ?? 'name';
+    const ascending = (filters.sortOrder ?? 'asc') === 'asc';
+
     let query = supabase
       .from('inventory_items')
       .select('*')
@@ -53,7 +56,13 @@ export const getInventoryItems = async (
     // Note: Equipment compatibility filter is not applied in this function.
     // Use getCompatibleInventoryItems for equipment-based filtering.
 
-    const { data, error } = await query.order('name', { ascending: true });
+    if (sortBy !== 'status') {
+      query = query.order(sortBy, { ascending });
+    } else {
+      query = query.order('name', { ascending: true });
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -66,6 +75,18 @@ export const getInventoryItems = async (
     // Apply low stock filter client-side
     if (filters.lowStockOnly) {
       items = items.filter(item => item.isLowStock);
+    }
+
+    // Status is a computed value (isLowStock), so it must be sorted client-side.
+    if (sortBy === 'status') {
+      items.sort((a, b) => {
+        const statusA = a.isLowStock ? 0 : 1;
+        const statusB = b.isLowStock ? 0 : 1;
+        if (statusA === statusB) {
+          return a.name.localeCompare(b.name);
+        }
+        return ascending ? statusA - statusB : statusB - statusA;
+      });
     }
 
     return items;

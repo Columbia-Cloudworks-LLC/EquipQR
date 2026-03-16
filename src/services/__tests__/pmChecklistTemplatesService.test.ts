@@ -69,6 +69,8 @@ const mockTemplate: PMTemplate = {
   description: 'Test description',
   is_protected: false,
   template_data: [mockChecklistItem],
+  interval_value: null,
+  interval_type: null,
   created_by: 'user-1',
   updated_by: null,
   created_at: '2024-01-01T00:00:00Z',
@@ -187,6 +189,8 @@ describe('Helper Functions', () => {
         description: 'Test description',
         is_protected: false,
         organization_id: 'org-1',
+        interval_value: null,
+        interval_type: null,
         sections: [{ name: 'Engine', count: 1 }],
         itemCount: 1
       });

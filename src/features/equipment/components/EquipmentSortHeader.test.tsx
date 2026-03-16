@@ -30,112 +30,69 @@ describe('EquipmentSortHeader', () => {
       expect(countText.length).toBeGreaterThan(0);
     });
 
-    it('displays sort label', () => {
-      render(<EquipmentSortHeader {...defaultProps} />);
-      
-      expect(screen.getByText('Sort by:')).toBeInTheDocument();
-    });
-
-    it('renders sort select dropdown', () => {
+    it('renders a single sort select dropdown', () => {
       render(<EquipmentSortHeader {...defaultProps} />);
       
       const select = screen.getByRole('combobox');
       expect(select).toBeInTheDocument();
     });
-
-    it('renders sort direction button', () => {
-      render(<EquipmentSortHeader {...defaultProps} />);
-      
-      const sortButton = screen.getByRole('button');
-      expect(sortButton).toBeInTheDocument();
-    });
   });
 
   describe('Sort Functionality', () => {
-    it('displays current sort field in select', () => {
+    it('displays current composite sort label', () => {
       render(<EquipmentSortHeader {...defaultProps} />);
       
       const combobox = screen.getByRole('combobox');
-      expect(within(combobox).getByText('Name')).toBeInTheDocument();
+      expect(within(combobox).getByText('Name (A\u2013Z)')).toBeInTheDocument();
     });
 
-    it('calls onSortChange when select value changes', () => {
+    it('calls onSortChange with field and direction when option is selected', () => {
       const onSortChange = vi.fn();
       render(<EquipmentSortHeader {...defaultProps} onSortChange={onSortChange} />);
       
       const select = screen.getByRole('combobox');
       fireEvent.click(select);
       
-      const manufacturerOption = screen.getByText('Manufacturer');
-      fireEvent.click(manufacturerOption);
+      const option = screen.getByText('Hours (High\u2013Low)');
+      fireEvent.click(option);
       
-      expect(onSortChange).toHaveBeenCalledWith('manufacturer');
+      expect(onSortChange).toHaveBeenCalledWith('working_hours', 'desc');
     });
 
-    it('calls onSortChange when sort direction button is clicked', () => {
+    it('calls onSortChange with correct direction for descending option', () => {
       const onSortChange = vi.fn();
       render(<EquipmentSortHeader {...defaultProps} onSortChange={onSortChange} />);
       
-      const sortButton = screen.getByRole('button');
-      fireEvent.click(sortButton);
+      const select = screen.getByRole('combobox');
+      fireEvent.click(select);
       
-      expect(onSortChange).toHaveBeenCalledWith('name'); // current field
-    });
-
-    it('shows up arrow for ascending sort', () => {
-      render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'name', direction: 'asc' }} />);
+      const option = screen.getByText('Name (Z\u2013A)');
+      fireEvent.click(option);
       
-      // Should show ArrowUp icon - testing that the component renders
-      const sortButton = screen.getByRole('button');
-      expect(sortButton).toBeInTheDocument();
-    });
-
-    it('shows down arrow for descending sort', () => {
-      render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'name', direction: 'desc' }} />);
-      
-      // Should show ArrowDown icon - testing that the component renders
-      const sortButton = screen.getByRole('button');
-      expect(sortButton).toBeInTheDocument();
-    });
-
-    it('shows up-down arrow when field differs from current sort field', async () => {
-      render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'name', direction: 'asc' }} />);
-      
-      // Click to open dropdown
-      const combobox = screen.getByRole('combobox');
-      fireEvent.click(combobox);
-      
-      // Wait for dropdown and click on a different field
-      const listbox = await screen.findByRole('listbox');
-      const manufacturerOption = within(listbox).getByRole('option', { name: 'Manufacturer' });
-      
-      // The option should show ArrowUpDown icon when field differs
-      // This tests the branch where sortConfig.field !== option.value
-      expect(manufacturerOption).toBeInTheDocument();
+      expect(onSortChange).toHaveBeenCalledWith('name', 'desc');
     });
   });
 
   describe('Sort Options', () => {
-    it('includes all expected sort options', async () => {
+    it('includes all expected composite sort options', async () => {
       render(<EquipmentSortHeader {...defaultProps} />);
       
       const combobox = screen.getByRole('combobox');
       fireEvent.click(combobox);
       
-      // Wait for dropdown to appear and find all options
       const listbox = await screen.findByRole('listbox');
       
-      // Use within() to scope the queries to the listbox
-      expect(within(listbox).getByRole('option', { name: 'Name' })).toBeInTheDocument();
-      expect(within(listbox).getByRole('option', { name: 'Manufacturer' })).toBeInTheDocument();
-      expect(within(listbox).getByRole('option', { name: 'Model' })).toBeInTheDocument();
-      expect(within(listbox).getByRole('option', { name: 'Location' })).toBeInTheDocument();
-      expect(within(listbox).getByRole('option', { name: 'Status' })).toBeInTheDocument();
-      expect(within(listbox).getByRole('option', { name: 'Installation Date' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Name (A\u2013Z)' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Name (Z\u2013A)' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Hours (High\u2013Low)' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Hours (Low\u2013High)' })).toBeInTheDocument();
       expect(within(listbox).getByRole('option', { name: 'Last Maintenance' })).toBeInTheDocument();
-      expect(within(listbox).getByRole('option', { name: 'Warranty Expiration' })).toBeInTheDocument();
-      expect(within(listbox).getByRole('option', { name: 'Date Added' })).toBeInTheDocument();
       expect(within(listbox).getByRole('option', { name: 'Last Updated' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Status' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Location (A\u2013Z)' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Manufacturer (A\u2013Z)' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Recently Added' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Warranty Expiration' })).toBeInTheDocument();
     });
   });
 
@@ -167,36 +124,25 @@ describe('EquipmentSortHeader', () => {
   });
 
   describe('Different Sort Configurations', () => {
-    it('handles different sort fields', () => {
-      render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'manufacturer', direction: 'asc' }} />);
+    it('shows correct label for descending name sort', () => {
+      render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'name', direction: 'desc' }} />);
       
       const combobox = screen.getByRole('combobox');
-      expect(within(combobox).getByText('Manufacturer')).toBeInTheDocument();
+      expect(within(combobox).getByText('Name (Z\u2013A)')).toBeInTheDocument();
     });
 
-    it('handles installation_date field mapping', () => {
-      render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'installation_date', direction: 'asc' }} />);
+    it('shows correct label for hours sort', () => {
+      render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'working_hours', direction: 'desc' }} />);
       
       const combobox = screen.getByRole('combobox');
-      expect(within(combobox).getByText('Installation Date')).toBeInTheDocument();
+      expect(within(combobox).getByText('Hours (High\u2013Low)')).toBeInTheDocument();
     });
 
-    it('handles created_at field mapping', () => {
-      render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'created_at', direction: 'asc' }} />);
+    it('shows correct label for recently added sort', () => {
+      render(<EquipmentSortHeader {...defaultProps} sortConfig={{ field: 'created_at', direction: 'desc' }} />);
       
       const combobox = screen.getByRole('combobox');
-      expect(within(combobox).getByText('Date Added')).toBeInTheDocument();
-    });
-  });
-
-  describe('Props Validation', () => {
-    it('handles negative counts gracefully', () => {
-      render(<EquipmentSortHeader {...defaultProps} resultCount={-1} totalCount={-1} />);
-      
-      const countText = screen.getAllByText((_, element) => {
-        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing -1 of -1 equipment';
-      });
-      expect(countText.length).toBeGreaterThan(0);
+      expect(within(combobox).getByText('Recently Added')).toBeInTheDocument();
     });
   });
 });

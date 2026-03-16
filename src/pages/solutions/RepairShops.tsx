@@ -11,7 +11,7 @@ const RepairShops = () => {
   return (
     <>
       <PageSEO
-        title="Built for Repair Shops - EquipQR"
+        title="Built for Repair Shops"
         description="Streamline your repair operations with QR code tracking, photo documentation, and customer management—all completely free. Built specifically for repair shops."
         path="/solutions/repair-shops"
         keywords="repair shop software, equipment repair tracking, customer management, QR code tracking, repair shop management, free repair shop software"

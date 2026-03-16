@@ -161,8 +161,8 @@ describe('DashboardRecentEquipmentCard', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText('active')).toBeInTheDocument();
-      expect(screen.getByText('maintenance')).toBeInTheDocument();
+      expect(screen.getByText('Active')).toBeInTheDocument();
+      expect(screen.getByText('Under Maintenance')).toBeInTheDocument();
     });
 
     it('renders links to equipment detail pages', () => {

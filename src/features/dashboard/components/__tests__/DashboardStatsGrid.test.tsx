@@ -26,6 +26,8 @@ vi.mock('react-router-dom', async () => {
 const mockStats = {
   totalEquipment: 42,
   activeEquipment: 35,
+  maintenanceEquipment: 3,
+  inactiveEquipment: 4,
   totalWorkOrders: 120,
   overdueWorkOrders: 5,
 };
@@ -38,7 +40,7 @@ describe('DashboardStatsGrid', () => {
           <DashboardStatsGrid
             stats={mockStats}
             activeWorkOrdersCount={15}
-            memberCount={8}
+            needsAttentionCount={7}
           />
         </MemoryRouter>
       );
@@ -46,7 +48,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByText('Total Equipment')).toBeInTheDocument();
       expect(screen.getByText('Overdue Work')).toBeInTheDocument();
       expect(screen.getByText('Total Work Orders')).toBeInTheDocument();
-      expect(screen.getByText('Org Members')).toBeInTheDocument();
+      expect(screen.getByText('Out of Service')).toBeInTheDocument();
     });
 
     it('renders stat values correctly', () => {
@@ -55,7 +57,7 @@ describe('DashboardStatsGrid', () => {
           <DashboardStatsGrid
             stats={mockStats}
             activeWorkOrdersCount={15}
-            memberCount={8}
+            needsAttentionCount={7}
           />
         </MemoryRouter>
       );
@@ -63,7 +65,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('42');
       expect(screen.getByTestId('overdue-work-value')).toHaveTextContent('5');
       expect(screen.getByTestId('total-work-orders-value')).toHaveTextContent('120');
-      expect(screen.getByTestId('org-members-value')).toHaveTextContent('8');
+      expect(screen.getByTestId('out-of-service-value')).toHaveTextContent('7');
     });
 
     it('renders sublabels correctly', () => {
@@ -72,7 +74,7 @@ describe('DashboardStatsGrid', () => {
           <DashboardStatsGrid
             stats={mockStats}
             activeWorkOrdersCount={15}
-            memberCount={8}
+            needsAttentionCount={7}
           />
         </MemoryRouter>
       );
@@ -80,7 +82,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByText('35 active')).toBeInTheDocument();
       expect(screen.getByText('15 active')).toBeInTheDocument();
       expect(screen.getByText('Past due work orders')).toBeInTheDocument();
-      expect(screen.getByText('Active organization members')).toBeInTheDocument();
+      expect(screen.getByText('In maintenance or inactive')).toBeInTheDocument();
     });
 
     it('renders links when not loading', () => {
@@ -89,7 +91,7 @@ describe('DashboardStatsGrid', () => {
           <DashboardStatsGrid
             stats={mockStats}
             activeWorkOrdersCount={15}
-            memberCount={8}
+            needsAttentionCount={7}
           />
         </MemoryRouter>
       );
@@ -99,7 +101,7 @@ describe('DashboardStatsGrid', () => {
       expect(links[0]).toHaveAttribute('href', '/dashboard/equipment');
       expect(links[1]).toHaveAttribute('href', '/dashboard/work-orders?date=overdue');
       expect(links[2]).toHaveAttribute('href', '/dashboard/work-orders');
-      expect(links[3]).toHaveAttribute('href', '/dashboard/organization');
+      expect(links[3]).toHaveAttribute('href', '/dashboard/equipment');
     });
   });
 
@@ -110,7 +112,7 @@ describe('DashboardStatsGrid', () => {
           <DashboardStatsGrid
             stats={null}
             activeWorkOrdersCount={0}
-            memberCount={0}
+            needsAttentionCount={0}
             isLoading
           />
         </MemoryRouter>
@@ -126,7 +128,7 @@ describe('DashboardStatsGrid', () => {
           <DashboardStatsGrid
             stats={null}
             activeWorkOrdersCount={0}
-            memberCount={0}
+            needsAttentionCount={0}
             isLoading
           />
         </MemoryRouter>
@@ -141,7 +143,7 @@ describe('DashboardStatsGrid', () => {
           <DashboardStatsGrid
             stats={null}
             activeWorkOrdersCount={0}
-            memberCount={0}
+            needsAttentionCount={0}
             isLoading
           />
         </MemoryRouter>
@@ -150,7 +152,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByText('Total Equipment')).toBeInTheDocument();
       expect(screen.getByText('Overdue Work')).toBeInTheDocument();
       expect(screen.getByText('Total Work Orders')).toBeInTheDocument();
-      expect(screen.getByText('Org Members')).toBeInTheDocument();
+      expect(screen.getByText('Out of Service')).toBeInTheDocument();
     });
   });
 
@@ -161,7 +163,7 @@ describe('DashboardStatsGrid', () => {
           <DashboardStatsGrid
             stats={null}
             activeWorkOrdersCount={0}
-            memberCount={5}
+            needsAttentionCount={5}
           />
         </MemoryRouter>
       );
@@ -169,7 +171,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('0');
       expect(screen.getByTestId('overdue-work-value')).toHaveTextContent('0');
       expect(screen.getByTestId('total-work-orders-value')).toHaveTextContent('0');
-      expect(screen.getByTestId('org-members-value')).toHaveTextContent('5');
+      expect(screen.getByTestId('out-of-service-value')).toHaveTextContent('5');
     });
 
     it('handles undefined stats gracefully', () => {
@@ -178,7 +180,7 @@ describe('DashboardStatsGrid', () => {
           <DashboardStatsGrid
             stats={undefined}
             activeWorkOrdersCount={10}
-            memberCount={3}
+            needsAttentionCount={3}
           />
         </MemoryRouter>
       );
@@ -195,7 +197,7 @@ describe('DashboardStatsGrid', () => {
           <DashboardStatsGrid
             stats={mockStats}
             activeWorkOrdersCount={15}
-            memberCount={8}
+            needsAttentionCount={7}
           />
         </MemoryRouter>
       );
@@ -215,7 +217,7 @@ describe('DashboardStatsGrid', () => {
           <DashboardStatsGrid
             stats={mockStats}
             activeWorkOrdersCount={15}
-            memberCount={8}
+            needsAttentionCount={7}
           />
         </MemoryRouter>
       );
@@ -223,7 +225,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByLabelText('View all equipment in the fleet')).toBeInTheDocument();
       expect(screen.getByLabelText('View overdue work orders')).toBeInTheDocument();
       expect(screen.getByLabelText('View all work orders')).toBeInTheDocument();
-      expect(screen.getByLabelText('View organization members')).toBeInTheDocument();
+      expect(screen.getByLabelText('View out-of-service equipment')).toBeInTheDocument();
     });
   });
 });

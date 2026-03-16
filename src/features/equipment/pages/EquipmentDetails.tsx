@@ -10,7 +10,7 @@ import ClickableAddress from '@/components/ui/ClickableAddress';
 import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import { useEquipmentById, useEquipmentWorkOrders } from '@/features/equipment/hooks/useEquipment';
 import { useIsMobile } from '@/hooks/use-mobile';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
@@ -23,6 +23,7 @@ import EquipmentScansTab from '@/features/equipment/components/EquipmentScansTab
 import { HistoryTab } from '@/components/audit';
 
 import MobileEquipmentHeader from '@/features/equipment/components/MobileEquipmentHeader';
+import MobileEquipmentActionBar from '@/features/equipment/components/MobileEquipmentActionBar';
 import ResponsiveEquipmentTabs from '@/features/equipment/components/ResponsiveEquipmentTabs';
 import WorkOrderForm from '@/features/work-orders/components/WorkOrderForm';
 import QRCodeDisplay from '@/features/equipment/components/QRCodeDisplay';
@@ -54,6 +55,8 @@ const EquipmentDetails = () => {
   const { data: organizationMembers } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: teams = [] } = useTeams(currentOrganization?.id);
   const { isLoaded: isMapsLoaded } = useGoogleMapsLoader();
+  const { data: workOrders = [] } = useEquipmentWorkOrders(currentOrganization?.id, equipmentId, { staleTime: 5 * 60 * 1000 });
+  const openWorkOrderCount = workOrders.filter((wo: { status?: string }) => wo.status !== 'completed' && wo.status !== 'cancelled').length;
 
   const isLoading = orgLoading || equipmentLoading;
 
@@ -177,6 +180,10 @@ const EquipmentDetails = () => {
 
   const handleDeleteSuccess = () => {
     navigate('/dashboard/equipment');
+  };
+
+  const handleAddNote = () => {
+    setActiveTab('notes');
   };
 
   const handleShowWorkingHours = () => {
@@ -509,10 +516,21 @@ const EquipmentDetails = () => {
         </>
       )}
 
+      {/* Mobile Action Bar */}
+      {isMobile && equipment && (
+        <MobileEquipmentActionBar
+          equipmentId={equipment.id}
+          onCreateWorkOrder={handleCreateWorkOrder}
+          onLogHours={handleShowWorkingHours}
+          onAddNote={handleAddNote}
+        />
+      )}
+
       {/* Responsive Tabs */}
       <ResponsiveEquipmentTabs 
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        counts={{ 'work-orders': openWorkOrderCount }}
       >
         <TabsContent value="details">
           <EquipmentDetailsTab equipment={equipment} />
@@ -529,6 +547,9 @@ const EquipmentDetails = () => {
             equipmentId={equipment.id} 
             organizationId={currentOrganization.id}
             onCreateWorkOrder={handleCreateWorkOrder}
+            equipmentManufacturer={equipment.manufacturer}
+            equipmentModel={equipment.model}
+            equipmentSerialNumber={equipment.serial_number}
           />
         </TabsContent>
 

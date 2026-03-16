@@ -30,10 +30,13 @@ describe('DesktopEquipmentFilters', () => {
   const mockOnFilterChange = vi.fn();
   const mockOnClearFilters = vi.fn();
 
+  const mockOnQuickFilter = vi.fn();
+
   const defaultProps = {
     filters: defaultFilters,
     onFilterChange: mockOnFilterChange,
     onClearFilters: mockOnClearFilters,
+    onQuickFilter: mockOnQuickFilter,
     filterOptions: defaultFilterOptions,
     hasActiveFilters: false
   };
@@ -78,10 +81,11 @@ describe('DesktopEquipmentFilters', () => {
       expect(teamSelect).toBeInTheDocument();
     });
 
-    it('renders clear filters button', () => {
+    it('renders quick filter chips', () => {
       render(<DesktopEquipmentFilters {...defaultProps} />);
       
-      expect(screen.getByRole('button', { name: /no active filters/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /maintenance due/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /active only/i })).toBeInTheDocument();
     });
   });
 
@@ -231,12 +235,10 @@ describe('DesktopEquipmentFilters', () => {
   });
 
   describe('Clear Filters Button', () => {
-    it('shows "No Active Filters" when hasActiveFilters is false', () => {
+    it('hides clear button when hasActiveFilters is false', () => {
       render(<DesktopEquipmentFilters {...defaultProps} hasActiveFilters={false} />);
       
-      const clearButton = screen.getByRole('button', { name: /no active filters/i });
-      expect(clearButton).toBeInTheDocument();
-      expect(clearButton).toBeDisabled();
+      expect(screen.queryByRole('button', { name: /clear filters/i })).not.toBeInTheDocument();
     });
 
     it('shows "Clear Filters" when hasActiveFilters is true', () => {

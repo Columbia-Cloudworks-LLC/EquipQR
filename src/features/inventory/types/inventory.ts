@@ -131,6 +131,7 @@ export interface PartAlternateGroup {
   verified_at: string | null;
   created_at: string;
   updated_at: string;
+  member_count?: number;
 }
 
 /**
@@ -318,6 +319,8 @@ export interface InventoryFilters {
   lowStockOnly?: boolean;
   location?: string;
   equipmentId?: string;
+  sortBy?: 'name' | 'sku' | 'external_id' | 'quantity_on_hand' | 'location' | 'status';
+  sortOrder?: 'asc' | 'desc';
 }
 
 // ============================================

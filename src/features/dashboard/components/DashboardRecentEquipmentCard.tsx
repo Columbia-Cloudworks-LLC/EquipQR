@@ -5,6 +5,8 @@ import { ChevronRight, Forklift } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { getStatusDisplayInfo } from "@/features/equipment/utils/equipmentHelpers";
+import { cn } from "@/lib/utils";
 
 interface RecentEquipmentItem {
   id: string;
@@ -20,12 +22,6 @@ interface DashboardRecentEquipmentCardProps {
   hasMore: boolean;
 }
 
-function getEquipmentStatusBadgeVariant(status: string): "default" | "destructive" | "secondary" {
-  if (status === "active") return "default";
-  if (status === "maintenance") return "destructive";
-  return "secondary";
-}
-
 export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCardProps> = ({
   equipment,
   isLoading,
@@ -35,8 +31,8 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
     <section aria-labelledby="recent-equipment-heading">
       <Card>
         <CardHeader>
-          <CardTitle as="h2" id="recent-equipment-heading" className="flex items-center gap-2">
-            <Forklift className="h-5 w-5" />
+          <CardTitle as="h2" id="recent-equipment-heading" className="flex items-center gap-2 text-base">
+            <Forklift className="h-4 w-4" />
             Recent Equipment
           </CardTitle>
           <CardDescription>Latest equipment in your fleet</CardDescription>
@@ -63,10 +59,10 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
                     </p>
                   </div>
                   <Badge
-                    variant={getEquipmentStatusBadgeVariant(item.status)}
-                    className="ml-2 flex-shrink-0"
+                    variant="outline"
+                    className={cn("ml-2 flex-shrink-0", getStatusDisplayInfo(item.status).badgeClassName)}
                   >
-                    {item.status}
+                    {getStatusDisplayInfo(item.status).label}
                   </Badge>
                 </Link>
               ))}

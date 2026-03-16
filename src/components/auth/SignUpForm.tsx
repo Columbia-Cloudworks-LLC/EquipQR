@@ -39,6 +39,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordMatch, setPasswordMatch] = useState<boolean | null>(null);
   const [orgNameError, setOrgNameError] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   // Sync email field with prefillEmail when it changes (e.g., switching invitations)
   useEffect(() => {
@@ -81,6 +82,32 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     }
   };
 
+  const handleBlur = (field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+  };
+
+  const getFieldError = (field: string): string | null => {
+    if (!touched[field]) return null;
+    switch (field) {
+      case 'name':
+        return !formData.name.trim() ? 'Full name is required' : null;
+      case 'email':
+        if (!formData.email.trim()) return 'Email is required';
+        return emailError;
+      case 'organizationName':
+        if (orgNameError) return orgNameError;
+        return !formData.organizationName.trim() ? 'Organization name is required' : null;
+      case 'password':
+        if (!formData.password) return 'Password is required';
+        return formData.password.length < 6 ? 'Password must be at least 6 characters' : null;
+      case 'confirmPassword':
+        if (!formData.confirmPassword) return 'Please confirm your password';
+        return passwordMatch === false ? 'Passwords do not match' : null;
+      default:
+        return null;
+    }
+  };
+
   const isFormValid = () => {
     const baseValid = formData.name.trim() && 
       formData.email.trim() && 
@@ -97,6 +124,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     e.preventDefault();
     
     if (!isFormValid()) {
+      setTouched({ name: true, email: true, organizationName: true, password: true, confirmPassword: true });
       onError('Please fill in all fields correctly');
       return;
     }
@@ -178,8 +206,14 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           autoComplete="name"
           value={formData.name}
           onChange={(e) => handleInputChange('name', e.target.value)}
+          onBlur={() => handleBlur('name')}
           required
+          aria-invalid={!!getFieldError('name')}
+          aria-describedby={getFieldError('name') ? 'signup-name-error' : undefined}
         />
+        {getFieldError('name') && (
+          <p id="signup-name-error" className="text-sm text-destructive" aria-live="polite">{getFieldError('name')}</p>
+        )}
       </div>
       
       <div className="space-y-2">
@@ -193,12 +227,13 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           autoCapitalize="none"
           value={formData.email}
           onChange={(e) => handleInputChange('email', e.target.value)}
+          onBlur={() => handleBlur('email')}
           required
-          aria-invalid={emailError ? 'true' : 'false'}
-          aria-describedby={emailError ? 'signup-email-error' : undefined}
+          aria-invalid={!!(emailError || (touched.email && !formData.email.trim()))}
+          aria-describedby={getFieldError('email') ? 'signup-email-error' : undefined}
         />
-        {emailError && (
-          <p id="signup-email-error" className="text-sm text-destructive" aria-live="polite">{emailError}</p>
+        {getFieldError('email') && (
+          <p id="signup-email-error" className="text-sm text-destructive" aria-live="polite">{getFieldError('email')}</p>
         )}
       </div>
       
@@ -209,15 +244,16 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           type="text"
           value={formData.organizationName}
           onChange={(e) => handleInputChange('organizationName', e.target.value)}
+          onBlur={() => handleBlur('organizationName')}
           placeholder={invitedOrgName ? `Enter your organization name (not ${invitedOrgName})` : "Enter your organization name"}
           required
-          aria-invalid={orgNameError ? 'true' : 'false'}
-          aria-describedby={orgNameError ? 'signup-org-error' : undefined}
+          aria-invalid={!!getFieldError('organizationName')}
+          aria-describedby={getFieldError('organizationName') ? 'signup-org-error' : undefined}
         />
-        {orgNameError && (
+        {getFieldError('organizationName') && (
           <p id="signup-org-error" className="text-sm text-destructive flex items-center gap-1" aria-live="polite">
             <XCircle className="h-3 w-3" />
-            {orgNameError}
+            {getFieldError('organizationName')}
           </p>
         )}
       </div>
@@ -230,11 +266,14 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           autoComplete="new-password"
           value={formData.password}
           onChange={(e) => handleInputChange('password', e.target.value)}
+          onBlur={() => handleBlur('password')}
           required
           minLength={6}
+          aria-invalid={!!getFieldError('password')}
+          aria-describedby={getFieldError('password') ? 'signup-password-error' : undefined}
         />
-        {formData.password && formData.password.length < 6 && (
-          <p className="text-sm text-destructive">Password must be at least 6 characters</p>
+        {getFieldError('password') && (
+          <p id="signup-password-error" className="text-sm text-destructive" aria-live="polite">{getFieldError('password')}</p>
         )}
       </div>
       
@@ -247,6 +286,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
             autoComplete="new-password"
             value={formData.confirmPassword}
             onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+            onBlur={() => handleBlur('confirmPassword')}
             required
             className={passwordMatch === false ? 'border-destructive' : passwordMatch === true ? 'border-success/30' : ''}
           />
@@ -277,10 +317,18 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         type="submit" 
         className="w-full" 
         disabled={isLoading || !isFormValid()}
+        onClick={() => {
+          if (!isFormValid()) {
+            setTouched({ name: true, email: true, organizationName: true, password: true, confirmPassword: true });
+          }
+        }}
       >
         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" data-testid="loading-spinner" />}
         Create Account & Organization
       </Button>
+      {!isFormValid() && Object.keys(touched).length > 0 && (
+        <p className="text-xs text-muted-foreground text-center">Fill in all required fields to continue</p>
+      )}
     </form>
   );
 };

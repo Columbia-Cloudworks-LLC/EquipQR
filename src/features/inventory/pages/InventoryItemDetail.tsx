@@ -40,6 +40,7 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { inventory as inventoryQueryKeys } from '@/lib/queryKeys';
 import InventoryItemOverviewTab from '@/features/inventory/pages/components/InventoryItemOverviewTab';
 import InventoryItemTransactionsTab from '@/features/inventory/pages/components/InventoryItemTransactionsTab';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -374,10 +375,12 @@ const InventoryItemDetail = () => {
       <div className="space-y-4 md:space-y-6">
         <PageHeader
           title={item.name}
-          breadcrumbs={[
-            { label: 'Inventory', href: '/dashboard/inventory' },
-            { label: item.name },
-          ]}
+          breadcrumbs={isMobile
+            ? [{ label: 'Inventory', href: '/dashboard/inventory' }]
+            : [
+                { label: 'Inventory', href: '/dashboard/inventory' },
+                { label: item.name },
+              ]}
           actions={
             <div className="flex flex-wrap gap-2 md:flex-nowrap">
               {canEdit && (
@@ -392,33 +395,41 @@ const InventoryItemDetail = () => {
                   <span className="hidden md:inline">Adjust Quantity</span>
                 </Button>
               )}
-              <Button
-                variant="outline"
-                onClick={() => setShowQRCode(true)}
-                size="icon"
-                aria-label="Show QR Code"
-              >
-                <QrCode className="h-4 w-4" />
-              </Button>
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowQRCode(true)}
+                      aria-label="Show QR code"
+                      title="Generate QR Code"
+                    >
+                      <QrCode className="h-4 w-4 mr-2" />
+                      QR Code
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Generate QR code label</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           }
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className={cn(isMobile && "flex flex-col w-full h-auto gap-1")}>
-            <TabsTrigger value="overview" className={isMobile ? "w-full justify-start" : ""}>
+          <TabsList className={cn(isMobile && "flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-md p-1")}>
+            <TabsTrigger value="overview" className={isMobile ? "shrink-0" : ""}>
               <Package className="h-4 w-4 mr-2" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="transactions" className={isMobile ? "w-full justify-start" : ""}>
+            <TabsTrigger value="transactions" className={isMobile ? "shrink-0" : ""}>
               <History className="h-4 w-4 mr-2" />
               Transaction History
             </TabsTrigger>
-            <TabsTrigger value="compatibility" className={isMobile ? "w-full justify-start" : ""}>
+            <TabsTrigger value="compatibility" className={isMobile ? "shrink-0" : ""}>
               <Link2 className="h-4 w-4 mr-2" />
               Compatibility
             </TabsTrigger>
-            <TabsTrigger value="history" className={isMobile ? "w-full justify-start" : ""}>
+            <TabsTrigger value="history" className={isMobile ? "shrink-0" : ""}>
               <History className="h-4 w-4 mr-2" />
               Change History
             </TabsTrigger>
@@ -978,11 +989,21 @@ const InventoryItemDetail = () => {
             }
           }}
         >
-          <DialogContent>
+        <DialogContent
+          className={cn(
+            "max-w-lg",
+            isMobile && "max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-1rem)] p-4 pb-safe-bottom"
+          )}
+        >
             <DialogHeader>
               <DialogTitle>Adjust Quantity</DialogTitle>
             </DialogHeader>
-            <div className="space-y-6">
+            <div
+              className={cn(
+                "space-y-6",
+                isMobile && "max-h-[calc(100dvh-11rem)] overflow-y-auto overscroll-contain pr-1 pb-safe-bottom"
+              )}
+            >
               {/* Current Quantity Display */}
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-2">Current quantity</p>

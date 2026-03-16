@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 // ─── PM Compliance ──────────────────────────────────────────────────────────
 
-export interface PMWorkOrderRow {
+export interface PMComplianceRow {
   id: string;
   status: string;
 }
@@ -17,35 +17,52 @@ export interface PMOverdueRow {
 }
 
 /**
- * Fetch PM-templated work orders and their overdue subset for a given org.
- * Both queries scope by organization_id and limit to 2 years of history.
+ * Fetch preventative maintenance records and their overdue subset for a given
+ * org. Queries the `preventative_maintenance` table (not work_orders) so that
+ * the PM compliance donut chart reflects actual PM status distribution.
  */
 export async function fetchPMComplianceData(organizationId: string) {
   const twoYearsAgo = new Date();
   twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
   const cutoff = twoYearsAgo.toISOString();
 
-  const { data: rows, error: rowsError } = await supabase
-    .from('work_orders')
-    .select('id, status')
+  const { data: pmRows, error: pmError } = await supabase
+    .from('preventative_maintenance')
+    .select('id, status, work_order_id')
     .eq('organization_id', organizationId)
-    .not('pm_template_id', 'is', null)
+    .not('template_id', 'is', null)
     .gte('created_at', cutoff);
 
-  if (rowsError) throw rowsError;
+  if (pmError) throw pmError;
 
-  const { data: overdueRows, error: overdueError } = await supabase
-    .from('work_orders')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .not('pm_template_id', 'is', null)
-    .in('status', ['pending', 'submitted', 'assigned', 'in_progress'])
-    .lt('due_date', new Date().toISOString())
-    .gte('created_at', cutoff);
+  const allRows = pmRows ?? [];
+  const activePMs = allRows.filter(r =>
+    r.status === 'pending' || r.status === 'in_progress'
+  );
 
-  if (overdueError) throw overdueError;
+  let overdueRows: PMOverdueRow[] = [];
 
-  return { rows: rows ?? [], overdueRows: overdueRows ?? [] };
+  if (activePMs.length > 0) {
+    const { data: pastDueWOs, error: woError } = await supabase
+      .from('work_orders')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .in('id', activePMs.map(r => r.work_order_id))
+      .not('due_date', 'is', null)
+      .lt('due_date', new Date().toISOString());
+
+    if (woError) throw woError;
+
+    const pastDueIds = new Set((pastDueWOs ?? []).map(r => r.id));
+    overdueRows = activePMs
+      .filter(pm => pastDueIds.has(pm.work_order_id))
+      .map(pm => ({ id: pm.id }));
+  }
+
+  return {
+    rows: allRows.map(r => ({ id: r.id, status: r.status })),
+    overdueRows,
+  };
 }
 
 // ─── Equipment by Status ────────────────────────────────────────────────────

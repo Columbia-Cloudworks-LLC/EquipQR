@@ -8,12 +8,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { 
   ChevronDown, 
   ChevronUp, 
-  Calendar, 
   User,
   Clock,
   ExternalLink,
   Clipboard,
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   Wrench,
   Forklift,
@@ -24,6 +24,7 @@ import { useEquipmentCurrentWorkingHours } from '@/features/equipment/hooks/useE
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { cn } from '@/lib/utils';
+import { humanizeAttributeKey, humanizeAttributeValue, isOverdue as checkIsOverdue } from '@/features/work-orders/utils/workOrderHelpers';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 interface WorkOrderDetailsMobileProps {
@@ -76,12 +77,13 @@ interface WorkOrderDetailsMobileProps {
   onScrollToPM?: () => void;
 }
 
-/** Check if a due date is urgent (within 24 hours or overdue) */
-const isDueUrgent = (dueDate: string): boolean => {
+const getDueDateStatus = (dueDate: string, status: string): 'overdue' | 'due_soon' | 'normal' => {
+  if (checkIsOverdue(dueDate, status as Parameters<typeof checkIsOverdue>[1])) return 'overdue';
   const due = new Date(dueDate);
   const now = new Date();
   const hoursUntilDue = (due.getTime() - now.getTime()) / (1000 * 60 * 60);
-  return hoursUntilDue < 24;
+  if (hoursUntilDue > 0 && hoursUntilDue < 24) return 'due_soon';
+  return 'normal';
 };
 
 export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
@@ -91,7 +93,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
   effectiveLocation,
   onScrollToPM,
 }) => {
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   const [isEquipmentDetailsExpanded, setIsEquipmentDetailsExpanded] = useState(false);
   const { isLoaded: isMapsLoaded } = useGoogleMapsLoader();
   
@@ -108,8 +110,9 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
     ? Math.round((workOrder.pm_progress || 0) / workOrder.pm_total * 100)
     : 0;
 
-  // Check if due date is urgent
-  const dueUrgent = workOrder.due_date ? isDueUrgent(workOrder.due_date) : false;
+  const dueDateStatus = workOrder.due_date ? getDueDateStatus(workOrder.due_date, workOrder.status) : 'normal';
+  const isOverdue = dueDateStatus === 'overdue';
+  const isDueSoon = dueDateStatus === 'due_soon';
 
   return (
     <div className="space-y-3">
@@ -129,12 +132,23 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
           {workOrder.due_date && (
             <div className={cn(
               "flex items-center gap-2 text-sm",
-              dueUrgent && "text-destructive dark:text-destructive"
+              isOverdue && "text-destructive dark:text-destructive",
+              isDueSoon && !isOverdue && "text-warning dark:text-warning"
             )}>
-              <Clock className="h-4 w-4" />
+              {isOverdue ? <AlertCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
               <span className="font-medium">Due:</span>
               <span>{new Date(workOrder.due_date).toLocaleDateString()}</span>
-              {dueUrgent && <AlertCircle className="h-4 w-4" />}
+              {isOverdue && (
+                <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive border-destructive/30">
+                  OVERDUE
+                </Badge>
+              )}
+              {isDueSoon && !isOverdue && (
+                <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/30">
+                  <AlertTriangle className="h-3 w-3 mr-0.5" />
+                  DUE SOON
+                </Badge>
+              )}
             </div>
           )}
 
@@ -151,7 +165,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
           <div className="flex items-center gap-2 text-sm">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">
-              {workOrder.equipment_working_hours_at_creation ? 'Hours (at creation):' : 'Working Hours:'}
+              {workOrder.equipment_working_hours_at_creation ? 'Meter Reading (at creation):' : 'Equipment Hours:'}
             </span>
             <span className="text-muted-foreground">
               {workingHoursLoading ? (
@@ -228,12 +242,12 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
           <CardContent className="p-4">
             <Collapsible open={isDescriptionExpanded} onOpenChange={setIsDescriptionExpanded}>
               <CollapsibleTrigger asChild>
-                <button className="flex items-center justify-between w-full text-left">
+                <button className="flex items-center justify-between w-full text-left min-h-[44px]">
                   <span className="font-medium text-sm">Description</span>
                   {isDescriptionExpanded ? (
-                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
                   )}
                 </button>
               </CollapsibleTrigger>
@@ -258,12 +272,12 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
           <CardContent className="p-4">
             <Collapsible open={isEquipmentDetailsExpanded} onOpenChange={setIsEquipmentDetailsExpanded}>
               <CollapsibleTrigger asChild>
-                <button className="flex items-center justify-between w-full text-left">
+                <button className="flex items-center justify-between w-full text-left min-h-[44px]">
                   <span className="font-medium text-sm">Equipment Details</span>
                   {isEquipmentDetailsExpanded ? (
-                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
                   )}
                 </button>
               </CollapsibleTrigger>
@@ -380,8 +394,8 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
                     {Object.entries(equipment.custom_attributes).map(([key, val]) => (
                       val != null && (
                         <div key={key} className="flex justify-between gap-4">
-                          <span className="text-muted-foreground shrink-0">{key}</span>
-                          <span className="text-right break-words">{String(val)}</span>
+                          <span className="text-muted-foreground shrink-0">{humanizeAttributeKey(key)}</span>
+                          <span className="text-right break-words">{humanizeAttributeValue(val)}</span>
                         </div>
                       )
                     ))}
@@ -393,13 +407,6 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
         </Card>
       )}
 
-      {/* Quick Info Row */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
-        <Calendar className="h-3 w-3" />
-        <span>Created: {workOrder.created_at ? new Date(workOrder.created_at).toLocaleDateString() : 'N/A'}</span>
-        <span className="mx-1">•</span>
-        <span>ID: {workOrder.id.slice(0, 8)}...</span>
-      </div>
     </div>
   );
 };

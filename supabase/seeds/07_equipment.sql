@@ -640,3 +640,118 @@ INSERT INTO public.equipment (
     '2023-12-15 00:00:00+00'
   )
 ON CONFLICT (id) DO NOTHING;
+
+-- =====================================================
+-- Seed assigned/team location columns for map hierarchy testing
+-- =====================================================
+-- Tier 1: Team override scenarios (equipment opts in with use_team_location = true)
+UPDATE public.equipment
+SET use_team_location = true
+WHERE id IN (
+  'aa0e8400-e29b-41d4-a716-446655440000'::uuid, -- CAT 320 Excavator (Apex Heavy Equipment, override=true)
+  'aa0e8400-e29b-41d4-a716-446655440010'::uuid, -- Bobcat S650 (Metro Rental Fleet, override=true)
+  'aa0e8400-e29b-41d4-a716-446655440021'::uuid, -- Stihl MS 500i (Valley Grounds Crew, override=false)
+  'aa0e8400-e29b-41d4-a716-446655440030'::uuid  -- Toyota 8FGU25 Forklift (Industrial Warehouse, override=true)
+);
+
+-- Tier 2: Manual assigned location with full address + coordinates
+UPDATE public.equipment
+SET
+  assigned_location_street = '2000 Industrial Blvd',
+  assigned_location_city = 'Fort Worth',
+  assigned_location_state = 'TX',
+  assigned_location_country = 'US',
+  assigned_location_lat = 32.7555,
+  assigned_location_lng = -97.3308
+WHERE id = 'aa0e8400-e29b-41d4-a716-446655440001'::uuid; -- John Deere 850L Dozer
+
+UPDATE public.equipment
+SET
+  assigned_location_street = '1200 Smith St',
+  assigned_location_city = 'Houston',
+  assigned_location_state = 'TX',
+  assigned_location_country = 'US',
+  assigned_location_lat = 29.7604,
+  assigned_location_lng = -95.3698
+WHERE id = 'aa0e8400-e29b-41d4-a716-446655440002'::uuid; -- Portable Generator
+
+UPDATE public.equipment
+SET
+  assigned_location_street = '700 N Pearl St',
+  assigned_location_city = 'Dallas',
+  assigned_location_state = 'TX',
+  assigned_location_country = 'US',
+  assigned_location_lat = 32.7800,
+  assigned_location_lng = -96.8100
+WHERE id = 'aa0e8400-e29b-41d4-a716-446655440040'::uuid; -- CAT 320 Excavator #2
+
+UPDATE public.equipment
+SET
+  assigned_location_street = '3200 W Irving Blvd',
+  assigned_location_city = 'Irving',
+  assigned_location_state = 'TX',
+  assigned_location_country = 'US',
+  assigned_location_lat = 32.7600,
+  assigned_location_lng = -96.8200
+WHERE id = 'aa0e8400-e29b-41d4-a716-446655440041'::uuid; -- Komatsu PC210 Excavator
+
+UPDATE public.equipment
+SET
+  assigned_location_street = '555 California St',
+  assigned_location_city = 'San Francisco',
+  assigned_location_state = 'CA',
+  assigned_location_country = 'US',
+  assigned_location_lat = 37.7749,
+  assigned_location_lng = -122.4194
+WHERE id = 'aa0e8400-e29b-41d4-a716-446655440011'::uuid; -- JLG 450AJ Boom Lift
+
+UPDATE public.equipment
+SET
+  assigned_location_street = '6801 Hollywood Blvd',
+  assigned_location_city = 'Los Angeles',
+  assigned_location_state = 'CA',
+  assigned_location_country = 'US',
+  assigned_location_lat = 34.0600,
+  assigned_location_lng = -118.2500
+WHERE id = 'aa0e8400-e29b-41d4-a716-446655440050'::uuid; -- Bobcat S650 Skid Steer #2
+
+UPDATE public.equipment
+SET
+  assigned_location_street = '2001 Steele St',
+  assigned_location_city = 'Denver',
+  assigned_location_state = 'CO',
+  assigned_location_country = 'US',
+  assigned_location_lat = 39.7392,
+  assigned_location_lng = -104.9903
+WHERE id = 'aa0e8400-e29b-41d4-a716-446655440020'::uuid; -- John Deere Z930M Mower
+
+UPDATE public.equipment
+SET
+  assigned_location_street = '2000 E Jefferson Ave',
+  assigned_location_city = 'Detroit',
+  assigned_location_state = 'MI',
+  assigned_location_country = 'US',
+  assigned_location_lat = 42.3314,
+  assigned_location_lng = -83.0458
+WHERE id = 'aa0e8400-e29b-41d4-a716-446655440031'::uuid; -- Crown WP 3000 Pallet Jack
+
+UPDATE public.equipment
+SET
+  assigned_location_street = '1000 Northside Dr NW',
+  assigned_location_city = 'Atlanta',
+  assigned_location_state = 'GA',
+  assigned_location_country = 'US',
+  assigned_location_lat = 33.7490,
+  assigned_location_lng = -84.3880
+WHERE id = 'aa0e8400-e29b-41d4-a716-446655440032'::uuid; -- Ingersoll Rand P185 Compressor
+
+-- Address-only edge case (no coordinates): should not show on map
+UPDATE public.equipment
+SET
+  assigned_location_street = '123 Main St',
+  assigned_location_city = 'San Jose',
+  assigned_location_state = 'CA',
+  assigned_location_country = 'US',
+  assigned_location_lat = NULL,
+  assigned_location_lng = NULL
+WHERE id = 'aa0e8400-e29b-41d4-a716-446655440012'::uuid; -- Genie GS-2669 Scissor Lift

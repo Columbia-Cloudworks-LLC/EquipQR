@@ -354,8 +354,10 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
               <Input
                 id="hours-worked"
                 type="number"
+                inputMode="decimal"
                 min="0"
                 step="0.5"
+                placeholder="0.0"
                 value={hoursWorked || ''}
                 onChange={(e) => setHoursWorked(parseFloat(e.target.value) || 0)}
                 disabled={disabled || isSubmitting}
@@ -372,8 +374,10 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
               <Input
                 id="machine-hours"
                 type="number"
+                inputMode="decimal"
                 min="0"
                 step="0.5"
+                placeholder="0.0"
                 value={machineHours || ''}
                 onChange={(e) => setMachineHours(parseFloat(e.target.value) || 0)}
                 disabled={disabled || isSubmitting}
@@ -390,9 +394,12 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
                 onCheckedChange={setIsPrivate}
                 disabled={disabled || isSubmitting}
               />
-              <Label htmlFor="private-note" className="text-xs text-muted-foreground cursor-pointer">
+              <Label htmlFor="private-note" className="text-xs text-muted-foreground cursor-pointer" title="Private notes are only visible to your team">
                 Private
               </Label>
+              <span className="text-[10px] text-muted-foreground/70 hidden sm:inline">
+                (team only)
+              </span>
             </div>
           )}
         </div>

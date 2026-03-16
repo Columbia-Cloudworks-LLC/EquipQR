@@ -55,7 +55,7 @@ const PartLookupAlternatesFeature = () => {
   return (
     <>
       <PageSEO
-        title="Part Lookup & Alternates - EquipQR"
+        title="Part Lookup & Alternates"
         description="Find compatible parts quickly with intelligent search. Discover OEM, aftermarket, and cross-reference alternatives. Link parts to equipment for instant compatibility."
         path="/features/part-lookup-alternates"
         keywords="part lookup, part alternates, OEM parts, aftermarket parts, part compatibility, parts search, equipment parts"

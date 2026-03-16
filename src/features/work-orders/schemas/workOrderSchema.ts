@@ -43,8 +43,9 @@ export const workOrderFormSchema = z.object({
     .min(1, "Title is required")
     .max(100, "Title must be less than 100 characters"),
   description: z.string()
-    .min(1, "Description is required")
-    .max(1000, "Description must be less than 1000 characters"),
+    .max(1000, "Description must be less than 1000 characters")
+    .optional()
+    .default(''),
   equipmentId: z.string()
     .min(1, "Equipment is required"),
   priority: workOrderPrioritySchema,

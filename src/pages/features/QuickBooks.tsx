@@ -16,7 +16,7 @@ const QuickBooksFeature = () => {
   return (
     <>
       <PageSEO
-        title="QuickBooks Integration - EquipQR"
+        title="QuickBooks Integration"
         description="Connect QuickBooks Online and export completed work orders as draft invoices. Map teams to customers and streamline billing from EquipQR™."
         path="/features/quickbooks"
         keywords="QuickBooks integration, work order billing, invoice export, QuickBooks Online, equipment management billing, CMMS QuickBooks"

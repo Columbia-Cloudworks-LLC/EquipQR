@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Package, AlertTriangle, Users, MoreVertical, Filter, X, MapPin } from 'lucide-react';
+import { Plus, Search, Package, AlertTriangle, Users, MoreVertical, Filter, X, MapPin, Eye, QrCode, ChevronUp, ChevronDown, Pencil, ArrowUpDown, Minus } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useInventoryItems } from '@/features/inventory/hooks/useInventory';
+import { useAdjustInventoryQuantity, useInventoryItems } from '@/features/inventory/hooks/useInventory';
 import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
@@ -26,12 +26,20 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { InventoryItemForm } from '@/features/inventory/components/InventoryItemForm';
 import { PartsManagersSheet } from '@/features/inventory/components/PartsManagersSheet';
 import type { InventoryItem, InventoryFilters } from '@/features/inventory/types/inventory';
 import { useIsMobile } from '@/hooks/use-mobile';
+import InventoryQRCodeDisplay from '@/features/inventory/components/InventoryQRCodeDisplay';
 
 const InventoryList = () => {
   const navigate = useNavigate();
@@ -41,16 +49,33 @@ const InventoryList = () => {
   const isMobile = useIsMobile();
   const [showForm, setShowForm] = useState(false);
   const [showManagersSheet, setShowManagersSheet] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [selectedQRCodeItem, setSelectedQRCodeItem] = useState<InventoryItem | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [filters, setFilters] = useState<InventoryFilters>({
     search: '',
-    lowStockOnly: false
+    lowStockOnly: false,
+    sortBy: 'name',
+    sortOrder: 'asc',
   });
+  const adjustMutation = useAdjustInventoryQuantity();
 
   const { data: items = [], isLoading } = useInventoryItems(
     currentOrganization?.id,
     filters
   );
+
+  const { data: allItems = [] } = useInventoryItems(
+    currentOrganization?.id,
+    { search: '', lowStockOnly: false }
+  );
+
+  const uniqueLocations = useMemo(() => {
+    const locs = allItems
+      .map((item) => item.location)
+      .filter((loc): loc is string => !!loc && loc.trim() !== '');
+    return [...new Set(locs)].sort();
+  }, [allItems]);
 
   const handleAddItem = () => {
     setEditingItem(null);
@@ -72,6 +97,45 @@ const InventoryList = () => {
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingItem(null);
+  };
+
+  const handleEditItem = (item: InventoryItem) => {
+    setEditingItem(item);
+    setShowForm(true);
+  };
+
+  const handleShowQRCode = (item: InventoryItem) => {
+    setSelectedQRCodeItem(item);
+    setShowQRCode(true);
+  };
+
+  const handleSortChange = (sortBy: NonNullable<InventoryFilters['sortBy']>) => {
+    setFilters((prev) => ({
+      ...prev,
+      sortBy,
+      sortOrder: prev.sortBy === sortBy && prev.sortOrder === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
+  const getSortIcon = (sortBy: NonNullable<InventoryFilters['sortBy']>) => {
+    if (filters.sortBy !== sortBy) {
+      return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />;
+    }
+    return filters.sortOrder === 'asc'
+      ? <ChevronUp className="h-3.5 w-3.5" />
+      : <ChevronDown className="h-3.5 w-3.5" />;
+  };
+
+  const handleQuickAdjust = async (itemId: string, delta: 1 | -1) => {
+    if (!currentOrganization) return;
+    await adjustMutation.mutateAsync({
+      organizationId: currentOrganization.id,
+      adjustment: {
+        itemId,
+        delta,
+        reason: delta > 0 ? 'Quick add from inventory list' : 'Quick take from inventory list',
+      },
+    });
   };
 
   const canCreate = canManageInventory(isPartsManager);
@@ -245,6 +309,23 @@ const InventoryList = () => {
                       aria-label="Search inventory by name, SKU, or external ID"
                     />
                   </div>
+                  {uniqueLocations.length > 0 && (
+                    <Select
+                      value={filters.location || '__all__'}
+                      onValueChange={(v) => setFilters({ ...filters, location: v === '__all__' ? undefined : v })}
+                    >
+                      <SelectTrigger className="w-[180px]" aria-label="Filter by location">
+                        <MapPin className="h-4 w-4 mr-1 text-muted-foreground flex-shrink-0" />
+                        <SelectValue placeholder="All Locations" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">All Locations</SelectItem>
+                        {uniqueLocations.map((loc) => (
+                          <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <div className="flex items-center gap-3 px-3 py-2 rounded-md border bg-muted/30">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -266,9 +347,24 @@ const InventoryList = () => {
           </Card>
 
           {/* Active Filter Summary */}
-          {(filters.search || filters.lowStockOnly) && (
+          {(filters.search || filters.lowStockOnly || filters.location) && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-muted-foreground">Active filters:</span>
+              {filters.location && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  Location: {filters.location}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4"
+                    onClick={() => setFilters({ ...filters, location: undefined })}
+                    aria-label="Clear location filter"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
               {filters.search && (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   Search: "{filters.search.length > 15 ? `${filters.search.slice(0, 15)}...` : filters.search}"
@@ -303,12 +399,22 @@ const InventoryList = () => {
                 variant="ghost"
                 size="sm"
                 className="h-6 px-2 text-xs"
-                onClick={() => setFilters({ search: '', lowStockOnly: false })}
+                onClick={() => setFilters((prev) => ({
+                  ...prev,
+                  search: '',
+                  lowStockOnly: false,
+                  location: undefined,
+                }))}
               >
                 Clear all
               </Button>
             </div>
           )}
+          <div className="text-sm text-muted-foreground">
+            {filters.lowStockOnly
+              ? `Showing ${items.length} low-stock item${items.length === 1 ? '' : 's'}`
+              : `Showing ${items.length} inventory item${items.length === 1 ? '' : 's'}`}
+          </div>
         </div>
 
         {/* Inventory List */}
@@ -348,10 +454,62 @@ const InventoryList = () => {
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="min-w-0 flex-1">
                       <h3 className="font-semibold truncate">{item.name}</h3>
-                      {item.sku && (
-                        <p className="text-sm text-muted-foreground truncate">SKU: {item.sku}</p>
-                      )}
+                      <p className="text-sm text-muted-foreground truncate">
+                        SKU: {item.sku || '-'}
+                        {item.location ? `  •  ${item.location}` : ''}
+                      </p>
                     </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 flex-shrink-0"
+                          aria-label={`More actions for ${item.name}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={() => handleViewItem(item.id)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        {canCreate && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              void handleQuickAdjust(item.id, 1);
+                            }}
+                            disabled={adjustMutation.isPending}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add 1
+                          </DropdownMenuItem>
+                        )}
+                        {canCreate && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              void handleQuickAdjust(item.id, -1);
+                            }}
+                            disabled={adjustMutation.isPending}
+                          >
+                            <Minus className="h-4 w-4 mr-2" />
+                            Take 1
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleShowQRCode(item)}>
+                          <QrCode className="h-4 w-4 mr-2" />
+                          QR Code
+                        </DropdownMenuItem>
+                        {canCreate && (
+                          <DropdownMenuItem onClick={() => handleEditItem(item)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     {item.isLowStock && (
                       <Badge variant="destructive" className="flex-shrink-0">
                         <AlertTriangle className="h-3 w-3 mr-1" />
@@ -391,12 +549,45 @@ const InventoryList = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>External ID</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>
+                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('name')}>
+                        Name
+                        {getSortIcon('name')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('sku')}>
+                        SKU
+                        {getSortIcon('sku')}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="hidden xl:table-cell">
+                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('external_id')}>
+                        External ID
+                        {getSortIcon('external_id')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('quantity_on_hand')}>
+                        Quantity
+                        {getSortIcon('quantity_on_hand')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('location')}>
+                        Location
+                        {getSortIcon('location')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('status')}>
+                        Status
+                        {getSortIcon('status')}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="w-[56px]">
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -410,11 +601,19 @@ const InventoryList = () => {
                       tabIndex={0}
                       aria-label={`Open inventory item ${item.name}`}
                     >
-                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="min-w-0">
+                          <p className="truncate">{item.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            SKU: {item.sku || '-'}
+                            {item.location ? `  •  ${item.location}` : ''}
+                          </p>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {item.sku || '-'}
                       </TableCell>
-                      <TableCell className="text-muted-foreground font-mono text-sm">
+                      <TableCell className="hidden xl:table-cell text-muted-foreground font-mono text-sm">
                         {item.external_id || '-'}
                       </TableCell>
                       <TableCell>
@@ -442,6 +641,59 @@ const InventoryList = () => {
                           <Badge variant="outline">In Stock</Badge>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label={`Actions for ${item.name}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={() => handleViewItem(item.id)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            {canCreate && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  void handleQuickAdjust(item.id, 1);
+                                }}
+                                disabled={adjustMutation.isPending}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add 1
+                              </DropdownMenuItem>
+                            )}
+                            {canCreate && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  void handleQuickAdjust(item.id, -1);
+                                }}
+                                disabled={adjustMutation.isPending}
+                              >
+                                <Minus className="h-4 w-4 mr-2" />
+                                Take 1
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => handleShowQRCode(item)}>
+                              <QrCode className="h-4 w-4 mr-2" />
+                              QR Code
+                            </DropdownMenuItem>
+                            {canCreate && (
+                              <DropdownMenuItem onClick={() => handleEditItem(item)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -456,6 +708,18 @@ const InventoryList = () => {
             open={showForm}
             onClose={handleCloseForm}
             editingItem={editingItem}
+          />
+        )}
+
+        {selectedQRCodeItem && (
+          <InventoryQRCodeDisplay
+            open={showQRCode}
+            onClose={() => {
+              setShowQRCode(false);
+              setSelectedQRCodeItem(null);
+            }}
+            itemId={selectedQRCodeItem.id}
+            itemName={selectedQRCodeItem.name}
           />
         )}
 

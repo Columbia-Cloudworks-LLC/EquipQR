@@ -191,6 +191,7 @@ describe('SignUpForm', () => {
       
       const passwordInput = screen.getByLabelText('Password');
       await user.type(passwordInput, '123');
+      fireEvent.blur(passwordInput);
       
       expect(screen.getByText(/password must be at least 6 characters/i)).toBeInTheDocument();
     });
@@ -730,6 +731,7 @@ describe('SignUpForm', () => {
           prefillEmail="invalid-email"
         />
       );
+      fireEvent.blur(emailInput);
       
       // Wait for email to be updated and error to appear
       await waitFor(() => {
@@ -762,6 +764,7 @@ describe('SignUpForm', () => {
           prefillEmail="another-invalid"
         />
       );
+      fireEvent.blur(emailInput);
       
       // Wait for error to appear
       await waitFor(() => {
@@ -777,6 +780,7 @@ describe('SignUpForm', () => {
           prefillEmail="valid@example.com"
         />
       );
+      fireEvent.blur(emailInput);
       
       await waitFor(() => {
         expect(emailInput).toHaveValue('valid@example.com');
@@ -817,6 +821,7 @@ describe('SignUpForm', () => {
       
       const orgInput = screen.getByLabelText(/organization name/i);
       fireEvent.change(orgInput, { target: { value: 'Acme Corporation' } });
+      fireEvent.blur(orgInput);
       
       await waitFor(() => {
         expect(screen.getByText(/Please choose a different name than "Acme Corporation"/i)).toBeInTheDocument();
@@ -833,6 +838,7 @@ describe('SignUpForm', () => {
       
       const orgInput = screen.getByLabelText(/organization name/i);
       fireEvent.change(orgInput, { target: { value: 'acme corporation' } });
+      fireEvent.blur(orgInput);
       
       await waitFor(() => {
         const errorElement = document.getElementById('signup-org-error');

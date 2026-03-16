@@ -19,7 +19,7 @@ const InventoryManagementFeature = () => {
   return (
     <>
       <PageSEO
-        title="Inventory Management - EquipQR"
+        title="Inventory Management"
         description="Track parts, materials, and supplies with real-time stock levels, location management, and equipment compatibility rules. Never run out of critical parts."
         path="/features/inventory"
         keywords="inventory management, parts tracking, equipment parts, stock management, CMMS inventory, parts inventory software"

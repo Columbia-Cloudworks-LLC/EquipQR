@@ -2335,6 +2335,8 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          interval_type: string | null
+          interval_value: number | null
           is_protected: boolean
           name: string
           organization_id: string | null
@@ -2347,6 +2349,8 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
+          interval_type?: string | null
+          interval_value?: number | null
           is_protected?: boolean
           name: string
           organization_id?: string | null
@@ -2359,6 +2363,8 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          interval_type?: string | null
+          interval_value?: number | null
           is_protected?: boolean
           name?: string
           organization_id?: string | null
@@ -2527,6 +2533,7 @@ export type Database = {
           created_by: string
           created_by_name: string | null
           equipment_id: string
+          equipment_working_hours_at_completion: number | null
           historical_completion_date: string | null
           historical_notes: string | null
           id: string
@@ -2547,6 +2554,7 @@ export type Database = {
           created_by: string
           created_by_name?: string | null
           equipment_id: string
+          equipment_working_hours_at_completion?: number | null
           historical_completion_date?: string | null
           historical_notes?: string | null
           id?: string
@@ -2567,6 +2575,7 @@ export type Database = {
           created_by?: string
           created_by_name?: string | null
           equipment_id?: string
+          equipment_working_hours_at_completion?: number | null
           historical_completion_date?: string | null
           historical_notes?: string | null
           id?: string
@@ -4393,6 +4402,20 @@ export type Database = {
           status: string
         }[]
       }
+      get_equipment_pm_status: {
+        Args: { p_equipment_id: string }
+        Returns: {
+          days_overdue: number
+          equipment_id: string
+          hours_overdue: number
+          interval_type: string
+          interval_value: number
+          is_overdue: boolean
+          last_pm_completed_at: string
+          source: string
+          template_name: string
+        }[]
+      }
       get_fleet_efficiency: {
         Args: { p_org_id: string; p_team_ids?: string[] }
         Returns: {
@@ -4498,6 +4521,20 @@ export type Database = {
           id: string
           name: string
           updated_at: string
+        }[]
+      }
+      get_org_equipment_pm_statuses: {
+        Args: { p_organization_id: string }
+        Returns: {
+          days_overdue: number
+          equipment_id: string
+          hours_overdue: number
+          interval_type: string
+          interval_value: number
+          is_overdue: boolean
+          last_pm_completed_at: string
+          source: string
+          template_name: string
         }[]
       }
       get_organization_deletion_stats: {

@@ -6,6 +6,7 @@ const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 const mockEq = vi.fn();
+const mockIn = vi.fn();
 const mockIlike = vi.fn();
 const mockOrder = vi.fn();
 const mockLimit = vi.fn();
@@ -557,11 +558,12 @@ describe('Alternate Group Management', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset mock chain
-    mockSelect.mockReturnValue({ eq: mockEq });
+    mockSelect.mockReturnValue({ eq: mockEq, in: mockIn });
     mockInsert.mockReturnValue({ select: mockSelect });
     mockUpdate.mockReturnValue({ eq: mockEq });
     mockDelete.mockReturnValue({ eq: mockEq });
     mockEq.mockReturnValue({ eq: mockEq, single: mockSingle, order: mockOrder });
+    mockIn.mockResolvedValue({ data: [], error: null });
     mockOrder.mockReturnValue({ order: mockOrder, limit: mockLimit, data: [], error: null });
     mockLimit.mockReturnValue({ data: [], error: null });
     mockSingle.mockReturnValue({ data: null, error: null });

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus, Upload } from 'lucide-react';
+import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/features/equipment/hooks/useEquipmentFiltering';
@@ -18,6 +19,7 @@ import EquipmentGrid from '@/features/equipment/components/EquipmentGrid';
 import EquipmentLoadingState from '@/features/equipment/components/EquipmentLoadingState';
 import ImportCsvWizard from '@/features/equipment/components/ImportCsvWizard';
 import { useOfflineMergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
+import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
 
 const Equipment = () => {
   const { currentOrganization } = useOrganization();
@@ -33,6 +35,7 @@ const Equipment = () => {
     filterOptions,
     isLoading,
     hasActiveFilters,
+    activeQuickFilter,
     equipment,
     currentPage,
     pageSize,
@@ -49,11 +52,29 @@ const Equipment = () => {
   // Merge server equipment with pending offline queue items
   const mergedEquipment = useOfflineMergedEquipment(paginatedEquipment);
 
+  // PM interval status for all equipment (gated by feature flag internally)
+  const { data: pmStatusList } = useOrgEquipmentPMStatuses(currentOrganization?.id);
+  const pmStatuses = React.useMemo(() => {
+    if (!pmStatusList) return undefined;
+    const map = new Map<string, (typeof pmStatusList)[number]>();
+    for (const s of pmStatusList) map.set(s.equipment_id, s);
+    return map;
+  }, [pmStatusList]);
+
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<EquipmentViewMode>(() => {
+    const stored = localStorage.getItem('equipqr:equipment-view-mode');
+    return stored === 'list' ? 'list' : 'grid';
+  });
   const pageSizeSelectId = 'equipment-page-size-select';
+
+  const handleViewModeChange = useCallback((mode: EquipmentViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem('equipqr:equipment-view-mode', mode);
+  }, []);
 
   // Apply URL parameter filters on initial load
   useEffect(() => {
@@ -103,6 +124,7 @@ const Equipment = () => {
         <PageHeader 
           title="Equipment" 
           description={`Manage equipment for ${currentOrganization.name}`}
+          hideDescriptionOnMobile
           actions={
             <div className="flex flex-col sm:flex-row gap-2">
               {canImport && (
@@ -135,6 +157,7 @@ const Equipment = () => {
         onQuickFilter={applyQuickFilter}
         filterOptions={filterOptions}
         hasActiveFilters={hasActiveFilters}
+        activeQuickFilter={activeQuickFilter}
       />
 
       <EquipmentSortHeader
@@ -142,6 +165,8 @@ const Equipment = () => {
         onSortChange={updateSort}
         resultCount={totalFilteredCount}
         totalCount={equipment.length}
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
       />
 
       <EquipmentGrid
@@ -152,12 +177,14 @@ const Equipment = () => {
         canCreate={canCreate}
         onShowQRCode={setShowQRCode}
         onAddEquipment={handleAddEquipment}
+        viewMode={viewMode}
+        pmStatuses={pmStatuses}
       />
 
-      {/* Pagination and Page Size Selector */}
+      {/* Pagination */}
       {(totalPages > 1 || totalFilteredCount > 0) && (
         <div className="flex flex-col gap-4 border-t pt-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
               {totalFilteredCount > 0 ? (
                 <>
@@ -170,16 +197,17 @@ const Equipment = () => {
               )}
             </p>
             
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Items per page: desktop only */}
+            <div className="hidden md:flex items-center gap-2">
               <label htmlFor={pageSizeSelectId} className="text-sm text-muted-foreground whitespace-nowrap">Items per page:</label>
               <Select
                 value={pageSize.toString()}
                 onValueChange={(value) => {
                   setPageSize(Number(value));
-                  setCurrentPage(1); // Reset to first page when page size changes
+                  setCurrentPage(1);
                 }}
               >
-                <SelectTrigger id={pageSizeSelectId} className="w-full min-h-11 sm:w-[100px]">
+                <SelectTrigger id={pageSizeSelectId} className="w-[100px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -193,33 +221,59 @@ const Equipment = () => {
             </div>
           </div>
           
+          {/* Mobile: simple page strip */}
           {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage <= 1}
-                  className="flex-1 h-11 sm:flex-none"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <span className="text-sm px-4 whitespace-nowrap">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage >= totalPages}
-                  className="flex-1 h-11 sm:flex-none"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
+            <div className="flex items-center justify-center gap-2 md:hidden">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm px-3 whitespace-nowrap">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                aria-label="Next page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Desktop: full pagination */}
+          {totalPages > 1 && (
+            <div className="hidden md:flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <span className="text-sm px-4 whitespace-nowrap">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
             </div>
           )}
         </div>

@@ -82,7 +82,6 @@ Write-ManagedBlock -FilePath $viteLocalEnvPath -CreateIfMissing $true -BlockLine
 )
 
 Write-ManagedBlock -FilePath $edgeEnvPath -CreateIfMissing $false -BlockLines @(
-    "SUPABASE_URL=$localSupabaseBaseUrl"
     "INTUIT_REDIRECT_URI=$quickbooksRedirectUri"
     "QB_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"
     "GW_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"

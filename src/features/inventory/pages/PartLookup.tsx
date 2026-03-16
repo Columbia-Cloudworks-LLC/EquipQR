@@ -197,6 +197,31 @@ const PartLookup: React.FC = () => {
               </CardContent>
             </Card>
             
+            {/* Empty state guidance */}
+            {!partNumber && (
+              <Card className="border-dashed">
+                <CardContent className="py-8 text-center">
+                  <Search className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Search by part number to find compatible parts and alternates across your inventory.
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {['600-311-3620', 'CAT-1R-0750', 'WIX 51773'].map((example) => (
+                      <Button
+                        key={example}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => setPartNumber(example)}
+                      >
+                        Try: {example}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Part Number Results */}
             {isLoadingAlternates ? (
               <Card>

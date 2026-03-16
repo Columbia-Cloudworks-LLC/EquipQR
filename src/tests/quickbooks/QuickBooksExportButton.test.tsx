@@ -192,7 +192,7 @@ describe('QuickBooksExportButton Component', () => {
       renderComponent();
       
       await waitFor(() => {
-        const button = screen.getByRole('button', { name: /Export to QuickBooks/i });
+        const button = screen.getByRole('button', { name: /QuickBooks Setup Required/i });
         expect(button).toBeDisabled();
       });
     });
@@ -208,7 +208,7 @@ describe('QuickBooksExportButton Component', () => {
       });
       
       await waitFor(() => {
-        const button = screen.getByRole('button', { name: /Export to QuickBooks/i });
+        const button = screen.getByRole('button', { name: /QuickBooks Setup Required/i });
         expect(button).toBeDisabled();
       });
     });
@@ -221,7 +221,7 @@ describe('QuickBooksExportButton Component', () => {
       renderComponent();
       
       await waitFor(() => {
-        const button = screen.getByRole('button', { name: /Export to QuickBooks/i });
+        const button = screen.getByRole('button', { name: /QuickBooks Setup Required/i });
         expect(button).toBeDisabled();
       });
     });

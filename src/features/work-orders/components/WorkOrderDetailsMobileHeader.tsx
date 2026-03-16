@@ -2,8 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Menu, Clipboard, MapPin, Calendar, Users, MoreHorizontal } from 'lucide-react';
-import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
+import { ArrowLeft, Edit, PanelRight, Clipboard, MapPin, Calendar, Users, MoreHorizontal, Clock, AlertCircle, AlertTriangle } from 'lucide-react';
+import { getStatusColor, formatStatus, isOverdue as checkIsOverdue } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
@@ -18,6 +18,7 @@ interface WorkOrderDetailsMobileHeaderProps {
     assignee_id?: string;
     created_by?: string;
     created_at?: string;
+    due_date?: string;
     equipment?: {
       name: string;
       status: string;
@@ -77,19 +78,21 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
               variant="ghost" 
               size="sm"
               onClick={onOpenActionSheet}
-              className="p-2"
+              className="p-2 flex flex-col items-center gap-0.5"
               aria-label="More actions"
             >
               <MoreHorizontal className="h-4 w-4" />
+              <span className="text-[9px] leading-none text-muted-foreground">Actions</span>
             </Button>
             <Button 
               variant="ghost" 
               size="sm"
               onClick={onToggleSidebar}
-              className="p-2"
-              aria-label="View work order info"
+              className="p-2 flex flex-col items-center gap-0.5"
+              aria-label="View work order status and assignment"
             >
-              <Menu className="h-4 w-4" />
+              <PanelRight className="h-4 w-4" />
+              <span className="text-[9px] leading-none text-muted-foreground">Info</span>
             </Button>
           </div>
         </div>
@@ -111,10 +114,12 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
               </span>
             </div>
             
-            {/* Primary Action Button */}
-            <WorkOrderPrimaryActionButton 
-              workOrder={workOrder}
-            />
+            {/* Primary Action Button - hidden when in_progress/on_hold since the sticky bottom bar handles it */}
+            {workOrder.status !== 'in_progress' && workOrder.status !== 'on_hold' && (
+              <WorkOrderPrimaryActionButton 
+                workOrder={workOrder}
+              />
+            )}
           </div>
 
           {/* Equipment & Location Info */}
@@ -162,11 +167,6 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
                   {workOrder.team.name}
                 </Link>
               </div>
-              {workOrder.team.description && (
-                <p className="text-xs text-muted-foreground pl-5 line-clamp-1">
-                  {workOrder.team.description}
-                </p>
-              )}
               {workOrder.team.location_address && (
                 <div className="flex items-center gap-1.5 pl-5">
                   <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
@@ -190,13 +190,37 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
             </div>
           )}
 
-          {/* Created Date */}
-          {workOrder.created_at && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Calendar className="h-3 w-3" />
-              <span>{new Date(workOrder.created_at).toLocaleDateString()}</span>
-            </div>
-          )}
+          {/* Dates Row */}
+          <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+            {workOrder.created_at && (
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                <span>Created: {new Date(workOrder.created_at).toLocaleDateString()}</span>
+              </div>
+            )}
+            {workOrder.due_date && (() => {
+              const due = new Date(workOrder.due_date);
+              const hoursUntilDue = (due.getTime() - Date.now()) / (1000 * 60 * 60);
+              const isOverdue = checkIsOverdue(workOrder.due_date, workOrder.status);
+              const isDueSoon = !isOverdue && hoursUntilDue > 0 && hoursUntilDue < 24;
+              return (
+                <div className={`flex items-center gap-1 ${isOverdue ? 'text-destructive' : isDueSoon ? 'text-warning' : ''}`}>
+                  {isOverdue
+                    ? <AlertCircle className="h-3 w-3" />
+                    : isDueSoon
+                      ? <AlertTriangle className="h-3 w-3" />
+                      : <Clock className="h-3 w-3" />
+                  }
+                  <span>Due: {due.toLocaleDateString()}</span>
+                  {isOverdue && (
+                    <Badge variant="outline" className="text-[10px] px-1 py-0 bg-destructive/10 text-destructive border-destructive/30">
+                      OVERDUE
+                    </Badge>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
         </div>
       </div>
     </div>

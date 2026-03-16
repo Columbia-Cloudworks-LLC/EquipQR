@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,21 +26,33 @@ interface WorkOrderNotesSectionProps {
   workOrderId: string;
   canAddNotes: boolean;
   showPrivateNotes: boolean;
+  /** Hide inline add-note button when global sticky actions are present */
+  hideInlineAddButton?: boolean;
   /** If true, auto-open the note form on mount (used for quick action navigation) */
   autoOpenForm?: boolean;
+  /** External trigger to open the note form (incremented to re-trigger) */
+  openFormTrigger?: number;
 }
 
 const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   workOrderId,
   canAddNotes,
   showPrivateNotes,
-  autoOpenForm = false
+  hideInlineAddButton = false,
+  autoOpenForm = false,
+  openFormTrigger
 }) => {
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const offlineCtx = useOfflineQueueOptional();
   const [showForm, setShowForm] = useState(autoOpenForm);
+
+  useEffect(() => {
+    if (openFormTrigger && openFormTrigger > 0) {
+      setShowForm(true);
+    }
+  }, [openFormTrigger]);
   const [noteContent, setNoteContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
 
@@ -245,7 +257,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       )}
 
       {/* Add Note Button - Only show if notes exist and form is not shown */}
-      {canAddNotes && visibleNotes.length > 0 && !showForm && (
+      {canAddNotes && visibleNotes.length > 0 && !showForm && !hideInlineAddButton && (
         <div className="flex justify-center">
           <Button
             variant="outline"
@@ -296,7 +308,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                             <>
                               <span>•</span>
                               <Clock className="h-4 w-4" />
-                              <span>{formatHours(note.hours_worked)}</span>
+                              <span title="Hours worked">{formatHours(note.hours_worked)} worked</span>
                             </>
                           )}
                         </div>

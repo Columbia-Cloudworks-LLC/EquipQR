@@ -1,10 +1,12 @@
 import React from 'react';
-import { Forklift, Users, ClipboardList, AlertTriangle } from 'lucide-react';
+import { Forklift, Wrench, ClipboardList, AlertTriangle } from 'lucide-react';
 import { StatsCard } from './StatsCard';
 
 interface DashboardStats {
   totalEquipment: number;
   activeEquipment: number;
+  maintenanceEquipment?: number;
+  inactiveEquipment?: number;
   totalWorkOrders: number;
   overdueWorkOrders: number;
 }
@@ -12,7 +14,7 @@ interface DashboardStats {
 interface DashboardStatsGridProps {
   stats: DashboardStats | null | undefined;
   activeWorkOrdersCount: number;
-  memberCount: number;
+  needsAttentionCount: number;
   isLoading?: boolean;
 }
 
@@ -23,9 +25,11 @@ interface DashboardStatsGridProps {
 export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
   stats,
   activeWorkOrdersCount,
-  memberCount,
+  needsAttentionCount,
   isLoading = false,
 }) => {
+  const overdueCount = stats?.overdueWorkOrders ?? 0;
+
   return (
     <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
       <StatsCard
@@ -41,10 +45,11 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
       <StatsCard
         icon={<AlertTriangle className="h-4 w-4" />}
         label="Overdue Work"
-        value={stats?.overdueWorkOrders ?? 0}
+        value={overdueCount}
         sublabel="Past due work orders"
         to={isLoading ? undefined : "/dashboard/work-orders?date=overdue"}
         ariaDescription="View overdue work orders"
+        variant={overdueCount > 0 ? 'danger' : 'default'}
         loading={isLoading}
       />
 
@@ -59,12 +64,13 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
       />
 
       <StatsCard
-        icon={<Users className="h-4 w-4" />}
-        label="Org Members"
-        value={memberCount}
-        sublabel="Active organization members"
-        to={isLoading ? undefined : "/dashboard/organization"}
-        ariaDescription="View organization members"
+        icon={<Wrench className="h-4 w-4" />}
+        label="Out of Service"
+        value={needsAttentionCount}
+        sublabel="In maintenance or inactive"
+        to={isLoading ? undefined : "/dashboard/equipment"}
+        ariaDescription="View out-of-service equipment"
+        variant={needsAttentionCount > 0 ? 'warning' : 'default'}
         loading={isLoading}
       />
     </div>

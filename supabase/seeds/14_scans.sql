@@ -127,5 +127,39 @@ INSERT INTO public.scans (
     '2026-01-08 08:00:00+00',
     'Detroit Auto Plant',
     'Morning shift check'
+  ),
+
+  -- GPS-format scans for 4-tier location hierarchy testing
+  (
+    '5c0e8400-e29b-41d4-a716-446655440040'::uuid,
+    'aa0e8400-e29b-41d4-a716-446655440003'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440003'::uuid,
+    '2026-01-09 07:15:00+00',
+    '32.7900, -96.7800',
+    'GPS check-in from phone near Dallas yard'
+  ),
+  (
+    '5c0e8400-e29b-41d4-a716-446655440041'::uuid,
+    'aa0e8400-e29b-41d4-a716-446655440062'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440006'::uuid,
+    '2026-01-09 09:20:00+00',
+    '39.7200, -105.0100',
+    'GPS check-in from phone near Denver shop'
+  ),
+  (
+    '5c0e8400-e29b-41d4-a716-446655440042'::uuid,
+    'aa0e8400-e29b-41d4-a716-446655440043'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
+    '2026-01-09 10:05:00+00',
+    '32.7770, -96.7975',
+    'GPS validation scan at active generator job site'
+  ),
+  (
+    '5c0e8400-e29b-41d4-a716-446655440043'::uuid,
+    'aa0e8400-e29b-41d4-a716-446655440090'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440002'::uuid,
+    '2026-01-09 12:40:00+00',
+    '35.2271, -80.8431',
+    'GPS scan from Charlotte field trailer route'
   )
 ON CONFLICT (id) DO NOTHING;

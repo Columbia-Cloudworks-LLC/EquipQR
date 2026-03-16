@@ -7,6 +7,54 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **1Password Edge env sync** — New script `scripts/sync-1password-edge-env.ps1` syncs 1Password environment secrets into `supabase/functions/.env` for local Edge Functions, with local redirect URLs. Optional run from `dev-start.bat` when 1Password CLI is on PATH.
+- **Equipment location history seed** — New seed file `supabase/seeds/28_equipment_location_history.sql` populates manual and team_sync `equipment_location_history` records for location hierarchy and map testing.
+- **Landing page "How It Works" section** — Added `src/components/landing/HowItWorksSection.tsx` and integrated it into `src/pages/Landing.tsx` to show a 3-step QR workflow from label setup through QuickBooks draft invoice export.
+
+### Changed
+
+- **dev-start.bat** — Before starting Edge Functions: optional sync of edge env from 1Password (configurable environment ID), validation of edge env file (existence, size, max line length), and use of `--no-verify-jwt` for local serve.
+- **Seed data for location hierarchy** — Teams seed (`05_teams.sql`) adds location columns (address, city, state, country, lat/lng, override_equipment_location). Equipment seed (`07_equipment.sql`) adds assigned/team location data and `use_team_location` for map hierarchy scenarios. Scans seed (`14_scans.sql`) adds GPS-format scans for 4-tier location testing.
+- **sync-local-supabase-env.ps1** — Removed `SUPABASE_URL` from managed edge env block (handled by 1Password sync or elsewhere).
+- **Landing and feature-page messaging refresh** — Updated hero/CTA/social-proof/value-prop copy, revised feature-page SEO titles to cleaner product-name-free variants, added stronger onboarding and trust language, and improved feature-page back navigation behavior in `FeatureHero`.
+- **Inventory and PM workflow clarity** — Added inventory location filtering and filter chips, introduced part-lookup empty-state guidance with quick example searches, switched PM template primary action to `Apply Template`, and moved the fleet map legend to the top-right for better overlap safety.
+- **Work order usability and status visibility** — Enabled keyboard/click card navigation states, normalized overdue/due-soon logic to respect completed statuses, made work-order descriptions optional in schema/UI, set document titles on work-order details, improved PM indicator labeling, and surfaced equipment manufacturer/model/serial metadata from equipment details into equipment-linked work-order cards.
+- **Navigation and UI polish updates** — Promoted `QR Scanner` into main sidebar navigation, added an out-of-service warning variant in dashboard stats, strengthened active tab visual treatment, and added completed-state coloring support for segmented progress bars.
+- **Alternate part groups list clarity and control** — Added explicit `Unverified` status badges, stronger warning styling for `Deprecated`, full-name title tooltips, status filter chips, sort controls, inline result counts, and one-tap search clear actions to improve technician scanning and triage speed in dense group lists.
+- **Mobile-first alternate group actions** — Adapted list/card and form interactions for touch workflows by using bottom-sheet drawers for mobile create/edit/action flows, reducing hidden affordances and improving one-handed field usability.
+- **Alternate group detail workflow visibility** — Improved detail-page wayfinding and action confidence with simplified breadcrumbs, stronger selected-row states in add-item flows, and clearer verification guidance while creating new groups.
+- **Inventory list triage UX** — Added sortable inventory columns (including Quantity and Status), inline result counts, reduced External ID visual weight on constrained desktop widths, and stronger duplicate-name disambiguation by showing secondary SKU/location context under item names.
+- **Inventory list quick actions** — Added row/card overflow actions for fast workflows (`View Details`, `Add 1`, `Take 1`, `QR Code`, `Edit`) so technicians and parts managers can act from list view without repeated page hops.
+- **Inventory detail mobile clarity** — Replaced the mobile vertical tab stack with a horizontal scrollable tabs rail, changed the QR control to a labeled action with tooltip/title, and simplified mobile breadcrumb density to prioritize a clearer back path.
+- **Inventory audit readability** — Transaction timestamps now render as localized absolute date/time with timezone abbreviation, and change-history entries now show absolute timestamps as primary with relative time as secondary context.
+
+### Fixed
+
+- **Signup form validation feedback timing and accessibility** — Added touched-field behavior with blur-triggered required-field errors, ARIA invalid/description wiring, and submit-attempt fallback messaging so users get clear, field-level validation guidance without premature error noise.
+- **Mobile drawer layering over bottom navigation** — Raised shared drawer overlay/content layering so create/edit alternate-group sheets consistently render above persistent bottom nav and block background interaction as expected.
+- **Add-item modal scalability in large inventories** — Changed default add-item behavior to require search before listing inventory choices and added explicit empty-state guidance to prevent unfiltered long-list overload.
+- **Touch-target safety for destructive actions** — Increased mobile remove-action hit areas and labels on alternate-group member rows to reduce accidental destructive taps in field conditions.
+- **Mobile add/edit inventory form action reachability** — Updated the inventory item form dialog to use safe-area-aware spacing with a sticky footer action row so `Cancel` and submit actions remain visible above bottom navigation.
+- **Adjust Quantity modal overflow and layering** — Hardened dialog overlay/content z-index tokens and mobile content bounds so the adjust-quantity flow remains fully contained, scroll-safe, and blocks background interaction while open.
+
+## [2.3.10] - 2026-03-15
+
+### Added
+
+- **PM interval tracking foundation** — Added PM interval schema support and validation, PM completion working-hours snapshots, and new Supabase RPCs (`get_equipment_pm_status`, `get_org_equipment_pm_statuses`) to compute per-equipment and org-wide PM status.
+- **PM operational seed data** — Added `supabase/seeds/27_pm_operational_data.sql` to populate realistic PM/work order history and overdue/due-soon/current scenarios for local validation and demos.
+- **Equipment PM status UX components** — Added PM status indicator and PM status hooks, plus mobile action affordances for PM-priority actions in equipment workflows.
+
+### Changed
+
+- **Equipment and work-order UX refresh** — Updated equipment list/details, filtering/sorting, dashboard widgets/cards, and work-order detail/mobile surfaces for improved technician scanning, action speed, and PM visibility.
+- **PM templates and checklist editing flows** — Enhanced PM template data flow and checklist editor behavior to align with interval-aware PM operations.
+- **Landing page messaging and sitemap content** — Updated landing section content and generated sitemap output for the current product positioning.
+
 ## [2.3.9] - 2026-03-13
 
 ### Added
@@ -1228,7 +1276,13 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.4...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.10...HEAD
+[2.3.10]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.9...v2.3.10
+[2.3.9]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.8...v2.3.9
+[2.3.8]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.7...v2.3.8
+[2.3.7]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.6...v2.3.7
+[2.3.6]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.5...v2.3.6
+[2.3.5]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.4...v2.3.5
 [2.3.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.3...v2.3.4
 [2.3.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.2...v2.3.3
 [2.3.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.1...v2.3.2

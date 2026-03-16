@@ -35,6 +35,8 @@ set "OPT_GEN_TYPES=0"
 
 REM Supabase CLI default ports (from config.toml — do NOT change here, change config.toml)
 set "SUPABASE_API_PORT=54321"
+set "DEFAULT_EDGE_ENV_FILE=supabase\functions\.env"
+set "DEFAULT_OP_ENVIRONMENT_ID=f4rdrusaoxvzwngz2jxs7vy7ye"
 
 REM --- Parse command-line arguments ---
 :parse_args
@@ -280,6 +282,43 @@ REM ---------- 8. Start Supabase Edge Functions --------------------------------
 echo.
 echo  [8/9] Starting Supabase Edge Functions serve...
 
+set "EDGE_ENV_FILE=%DEFAULT_EDGE_ENV_FILE%"
+
+REM Try to sync secrets from 1Password into supabase\functions\.env
+set "OP_ENV_ID=%EQUIPQR_OP_ENVIRONMENT_ID%"
+if not defined OP_ENV_ID set "OP_ENV_ID=%DEFAULT_OP_ENVIRONMENT_ID%"
+
+where op >nul 2>&1
+if !errorlevel! equ 0 (
+    echo        Syncing edge env from 1Password Environment: !OP_ENV_ID!
+    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-1password-edge-env.ps1" -EnvironmentId !OP_ENV_ID! -ApiPort %SUPABASE_API_PORT%
+    if !errorlevel! neq 0 (
+        echo        WARNING: 1Password sync failed. Using existing %DEFAULT_EDGE_ENV_FILE%.
+    )
+) else (
+    echo        1Password CLI not found on PATH - using existing %DEFAULT_EDGE_ENV_FILE%.
+)
+
+echo        Using edge env file: %EDGE_ENV_FILE%
+echo        Validating edge env file...
+powershell -NoProfile -Command ^
+  "$p = '%EDGE_ENV_FILE%'; " ^
+  "if (-not (Test-Path -LiteralPath $p)) { Write-Host '       FAIL: Edge env file does not exist.'; exit 2 }; " ^
+  "$item = Get-Item -LiteralPath $p; " ^
+  "if ($item.Length -gt 1048576) { Write-Host '       FAIL: Edge env file is unexpectedly large (>1MB), likely corrupted.'; exit 3 }; " ^
+  "$maxLen = 0; " ^
+  "foreach ($line in [System.IO.File]::ReadLines($p)) { " ^
+  "  if ($line.Length -gt $maxLen) { $maxLen = $line.Length }; " ^
+  "  if ($line.Length -gt 32768) { Write-Host '       FAIL: Edge env file contains an oversized line, likely corrupted.'; exit 4 } " ^
+  "}; " ^
+  "Write-Host ('       Edge env sanity check passed. Max line length: ' + $maxLen)"
+if %errorlevel% neq 0 (
+    echo        FAIL: Edge env validation failed.
+    echo        Tip: confirm %DEFAULT_EDGE_ENV_FILE% has required keys after 1Password sync.
+    set "FAIL=1"
+    goto :summary
+)
+
 powershell -NoProfile -Command ^
   "$procs = Get-Process -Name 'node','deno' -ErrorAction SilentlyContinue | Where-Object { " ^
   "  try { $cmd = (Get-CimInstance Win32_Process -Filter \"ProcessId=$($_.Id)\").CommandLine; " ^
@@ -293,7 +332,23 @@ if %errorlevel% equ 0 (
 )
 
 echo        Launching Edge Functions serve in a new window...
-start "EquipQR Edge Functions" cmd /k "cd /d %~dp0 && npx supabase functions serve --env-file supabase\functions\.env"
+REM --no-verify-jwt is safe only for local development (localhost API)
+if "%SUPABASE_API_PORT%"=="" set "SUPABASE_API_PORT=54321"
+set "EDGE_SERVE_FLAGS=--env-file %EDGE_ENV_FILE%"
+powershell -NoProfile -Command ^
+  "try { " ^
+  "  $r = Invoke-WebRequest -Uri 'http://localhost:%SUPABASE_API_PORT%/rest/v1/' -Method HEAD -TimeoutSec 3 -UseBasicParsing -ErrorAction Stop; " ^
+  "  if ($r.StatusCode -lt 500) { exit 0 } else { exit 1 } " ^
+  "} catch { " ^
+  "  if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -lt 500) { exit 0 } else { exit 1 } " ^
+  "}"
+if %errorlevel% equ 0 (
+    set "EDGE_SERVE_FLAGS=%EDGE_SERVE_FLAGS% --no-verify-jwt"
+    echo        Local Supabase API detected on port %SUPABASE_API_PORT% - JWT verification disabled for dev.
+) else (
+    echo        WARNING: Could not confirm local Supabase on port %SUPABASE_API_PORT% - JWT verification enabled.
+)
+start "EquipQR Edge Functions" cmd /k "cd /d %~dp0 && npx supabase functions serve %EDGE_SERVE_FLAGS%"
 
 REM Brief pause to let the process start
 powershell -NoProfile -Command "Start-Sleep -Seconds 3"

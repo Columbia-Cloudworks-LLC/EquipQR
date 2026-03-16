@@ -3,7 +3,6 @@
  * 
  * A bottom sheet that consolidates all work order actions for mobile users.
  * Sections are role-gated:
- * - Work: Add note, Add photo (visible to techs and managers)
  * - Office tools: Download PDF, Export Excel (visible to managers/admins)
  * - QuickBooks: Export (visible only to users with can_manage_quickbooks)
  */
@@ -22,8 +21,6 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { 
-  Plus, 
-  Camera, 
   Download, 
   FileSpreadsheet, 
   Loader2,
@@ -44,11 +41,7 @@ interface MobileWorkOrderActionSheetProps {
   workOrderId: string;
   workOrderStatus: WorkOrderStatus;
   equipmentTeamId?: string | null;
-  canAddNotes: boolean;
-  canUploadImages: boolean;
   isManager: boolean;
-  onAddNote: () => void;
-  onAddPhoto: () => void;
   onDownloadPDF: () => void;
   onExportExcel: () => void;
   isExportingExcel: boolean;
@@ -60,11 +53,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   workOrderId,
   workOrderStatus,
   equipmentTeamId,
-  canAddNotes,
-  canUploadImages,
   isManager,
-  onAddNote,
-  onAddPhoto,
   onDownloadPDF,
   onExportExcel,
   isExportingExcel,
@@ -111,41 +100,9 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
           </SheetHeader>
 
           <div className="space-y-4">
-            {/* Work Section */}
-            {(canAddNotes || canUploadImages) && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Work
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {canAddNotes && (
-                    <Button
-                      variant="outline"
-                      className="h-14 flex-col gap-1"
-                      onClick={() => handleAction(onAddNote)}
-                    >
-                      <Plus className="h-5 w-5" />
-                      <span className="text-xs">Add Note</span>
-                    </Button>
-                  )}
-                  {canUploadImages && (
-                    <Button
-                      variant="outline"
-                      className="h-14 flex-col gap-1"
-                      onClick={() => handleAction(onAddPhoto)}
-                    >
-                      <Camera className="h-5 w-5" />
-                      <span className="text-xs">Add Photo</span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Office Tools Section */}
             {isManager && (
-              <>
-                <Separator />
+              <div className="space-y-2">
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Office Tools
@@ -174,7 +131,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                     </Button>
                   </div>
                 </div>
-              </>
+              </div>
             )}
 
             {/* QuickBooks Section */}
@@ -200,7 +157,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                 <Separator />
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-destructive uppercase tracking-wider">
-                    Danger Zone
+                    Destructive Actions
                   </p>
                   <Button
                     variant="outline"

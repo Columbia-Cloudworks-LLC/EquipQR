@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock, Settings2 } from 'lucide-react';
+import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock, Settings2, Timer, Calendar, Search, ExternalLink } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { PM_INTERVALS_ENABLED } from '@/lib/flags';
 import { TemplateAssignmentDialog } from '@/features/pm-templates/components/TemplateAssignmentDialog';
 import { PMTemplateRulesDialog } from '@/features/pm-templates/components/PMTemplateRulesDialog';
 import { ChecklistTemplateEditor } from '@/features/organization/components/ChecklistTemplateEditor';
@@ -26,6 +27,8 @@ interface TemplateCardProps {
     description?: string | null;
     organization_id: string | null;
     is_protected: boolean;
+    interval_value?: number | null;
+    interval_type?: 'days' | 'hours' | null;
     sections: { name: string; count: number }[];
     itemCount: number;
   };
@@ -78,7 +81,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
       >
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg line-clamp-2">{template.name}</CardTitle>
-          <div className="flex gap-1 ml-2">
+          <div className="flex flex-wrap gap-1 ml-2">
             {!isOrgTemplate && (
               <Badge variant="secondary" className="text-xs">
                 <Globe className="w-3 h-3 mr-1" />
@@ -89,6 +92,16 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
               <Badge variant="outline" className="text-xs">
                 <Shield className="w-3 h-3 mr-1" />
                 Protected
+              </Badge>
+            )}
+            {PM_INTERVALS_ENABLED && template.interval_value && template.interval_type && (
+              <Badge variant="outline" className="text-xs">
+                {template.interval_type === 'hours' ? (
+                  <Timer className="w-3 h-3 mr-1" />
+                ) : (
+                  <Calendar className="w-3 h-3 mr-1" />
+                )}
+                Every {template.interval_value} {template.interval_type === 'hours' ? 'hrs' : 'days'}
               </Badge>
             )}
           </div>
@@ -124,6 +137,11 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             <span className="font-medium">Total Items:</span>
             <span>{totalItems}</span>
           </div>
+
+          <div className="flex items-center gap-1 text-xs text-primary mt-2">
+            <ExternalLink className="w-3 h-3" />
+            <span>View details</span>
+          </div>
         </div>
       </CardHeader>
 
@@ -135,7 +153,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             size="sm"
           >
             <Wrench className="mr-2 h-4 w-4" />
-            Apply to Equipment
+            Apply Template
           </Button>
           
           <div className="flex gap-2">
@@ -164,16 +182,16 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
               </Button>
             )}
 
-            {/* Configure Rules button - for global templates (admins can set org-specific rules) */}
             {!isOrgTemplate && isAdmin && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onConfigureRules(template.id)}
-                title="Configure equipment compatibility rules for your organization"
+                className="flex-1"
                 aria-label={`Configure compatibility rules for ${template.name}`}
               >
-                <Settings2 className="h-3 w-3" />
+                <Settings2 className="mr-1 h-3 w-3" />
+                Rules
               </Button>
             )}
             
@@ -183,7 +201,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="px-2"
+                    className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 px-2"
                     aria-label={`Delete template ${template.name}`}
                   >
                     <Trash2 className="h-3 w-3" />
@@ -229,6 +247,7 @@ const PMTemplates = () => {
   const [cloneDialogOpen, setCloneDialogOpen] = useState<string | null>(null);
   const [cloneName, setCloneName] = useState('');
   const [rulesDialogTemplate, setRulesDialogTemplate] = useState<{ id: string; name: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch the template being edited
   const { data: templateToEdit } = usePMTemplate(editingTemplate || '');
@@ -330,35 +349,42 @@ const PMTemplates = () => {
     setRulesDialogTemplate(null);
   };
 
-  // Separate templates into global and organization-specific
-  const globalTemplates = templates?.filter(t => !t.organization_id) || [];
-  const orgTemplates = templates?.filter(t => t.organization_id === currentOrganization?.id) || [];
+  // Separate templates into global and organization-specific, with search filtering
+  const filterBySearch = (t: { name: string; description?: string | null }) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return t.name.toLowerCase().includes(q) || (t.description?.toLowerCase().includes(q) ?? false);
+  };
+
+  const globalTemplates = templates?.filter(t => !t.organization_id).filter(filterBySearch) || [];
+  const orgTemplates = templates?.filter(t => t.organization_id === currentOrganization?.id).filter(filterBySearch) || [];
   
-  // For free users, show upgrade message if they try to access org templates
   const showUpgradeMessage = !canCreateCustomTemplates && isAdmin;
 
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">PM Templates</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage preventative maintenance checklist templates for your organization.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">PM Templates</h1>
+            <p className="text-muted-foreground mt-1">
+              <span className="hidden sm:inline">Manage preventative maintenance checklist templates for your organization.</span>
+              <span className="sm:hidden">Manage PM checklist templates.</span>
+            </p>
+          </div>
+          {isAdmin && (
+            <Button 
+              onClick={handleCreateTemplate}
+              disabled={!canCreateCustomTemplates}
+              title={!canCreateCustomTemplates ? 'Custom PM templates require user licenses' : ''}
+              className="w-full sm:w-auto"
+            >
+              {!canCreateCustomTemplates && <Lock className="mr-2 h-4 w-4" />}
+              <Plus className="mr-2 h-4 w-4" />
+              New Template
+            </Button>
+          )}
         </div>
-        {isAdmin && (
-          <Button 
-            onClick={handleCreateTemplate}
-            disabled={!canCreateCustomTemplates}
-            title={!canCreateCustomTemplates ? 'Custom PM templates require user licenses' : ''}
-          >
-            {!canCreateCustomTemplates && <Lock className="mr-2 h-4 w-4" />}
-            <Plus className="mr-2 h-4 w-4" />
-            New Template
-          </Button>
-        )}
-      </div>
 
       {showUpgradeMessage && (
         <Alert>
@@ -370,8 +396,21 @@ const PMTemplates = () => {
         </Alert>
       )}
 
+      {/* Search */}
+      {!isLoading && templates && templates.length > 0 && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search templates..."
+            className="pl-9"
+          />
+        </div>
+      )}
+
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="space-y-3">
@@ -395,7 +434,7 @@ const PMTemplates = () => {
                 <Globe className="mr-2 h-5 w-5" />
                 Global Templates
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {globalTemplates.map((template) => (
                   <TemplateCard
                     key={template.id}
@@ -421,7 +460,7 @@ const PMTemplates = () => {
                 <Users className="mr-2 h-5 w-5" />
                 Organization Templates
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {orgTemplates.map((template) => (
                   <TemplateCard
                     key={template.id}

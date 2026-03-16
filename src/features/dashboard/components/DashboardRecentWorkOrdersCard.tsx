@@ -5,6 +5,8 @@ import { ChevronRight, ClipboardList } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { getStatusColor, formatStatus } from "@/features/work-orders/utils/workOrderHelpers";
+import { cn } from "@/lib/utils";
 
 interface RecentWorkOrder {
   id: string;
@@ -20,16 +22,6 @@ interface DashboardRecentWorkOrdersCardProps {
   hasMore: boolean;
 }
 
-function getWorkOrderStatusBadgeVariant(status: string): "default" | "secondary" | "outline" {
-  if (status === "completed") return "default";
-  if (status === "in_progress") return "secondary";
-  return "outline";
-}
-
-function formatWorkOrderStatus(status: string): string {
-  return status.replace("_", " ");
-}
-
 export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCardProps> = ({
   workOrders,
   isLoading,
@@ -39,8 +31,8 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
     <section aria-labelledby="recent-work-orders-heading">
       <Card>
         <CardHeader>
-          <CardTitle as="h2" id="recent-work-orders-heading" className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5" />
+          <CardTitle as="h2" id="recent-work-orders-heading" className="flex items-center gap-2 text-base">
+            <ClipboardList className="h-4 w-4" />
             Recent Work Orders
           </CardTitle>
           <CardDescription>Latest work order activity</CardDescription>
@@ -67,10 +59,10 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
                     </p>
                   </div>
                   <Badge
-                    variant={getWorkOrderStatusBadgeVariant(order.status)}
-                    className="ml-2 flex-shrink-0"
+                    variant="outline"
+                    className={cn("ml-2 flex-shrink-0", getStatusColor(order.status))}
                   >
-                    {formatWorkOrderStatus(order.status)}
+                    {formatStatus(order.status)}
                   </Badge>
                 </Link>
               ))}
@@ -79,7 +71,7 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
             <p className="text-muted-foreground">No work orders found</p>
           )}
         </CardContent>
-        {hasMore && !isLoading && (
+        {!isLoading && hasMore && (
           <CardFooter>
             <Button asChild variant="secondary" className="w-full">
               <Link to="/dashboard/work-orders" className="inline-flex items-center justify-center gap-2">

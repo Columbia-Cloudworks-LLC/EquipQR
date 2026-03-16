@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { ChecklistTemplateEditor } from './ChecklistTemplateEditor';
 import { TestProviders } from '@/test/utils/TestProviders';
@@ -177,14 +177,11 @@ describe('ChecklistTemplateEditor', () => {
         target: { value: 'New description' }
       });
 
-      // Open Add Section dialog (disambiguate button vs dialog title)
+      // Open inline Add Section (click Add Section, then type in placeholder and confirm)
       fireEvent.click(screen.getByRole('button', { name: /add section/i }));
-      // type section name and confirm
-      const sectionNameInput = screen.getByLabelText('Section Name');
+      const sectionNameInput = screen.getByPlaceholderText('New section name');
       fireEvent.change(sectionNameInput, { target: { value: 'Engine' } });
-      const dialog = await screen.findByRole('dialog');
-      const dialogSubmitButton = within(dialog).getByRole('button', { name: /^add section$/i });
-      fireEvent.click(dialogSubmitButton);
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);
@@ -194,6 +191,8 @@ describe('ChecklistTemplateEditor', () => {
         expect(mockMutateAsync).toHaveBeenCalledWith({
           name: 'New Template',
           description: 'New description',
+          interval_type: null,
+          interval_value: null,
           template_data: expect.arrayContaining([
             expect.objectContaining({
               section: 'Engine',
@@ -253,7 +252,9 @@ describe('ChecklistTemplateEditor', () => {
           updates: {
             name: 'Updated Template',
             description: 'Test description',
-            template_data: expect.any(Array)
+            template_data: expect.any(Array),
+            interval_type: null,
+            interval_value: null
           }
         });
       });
@@ -288,14 +289,11 @@ describe('ChecklistTemplateEditor', () => {
         target: { value: 'Test Template' }
       });
 
-      // Add a section via dialog
-      const addSectionButton = screen.getByRole('button', { name: /add section/i });
-      fireEvent.click(addSectionButton);
-      const sectionNameInput = screen.getByLabelText('Section Name');
+      // Add a section via inline form
+      fireEvent.click(screen.getByRole('button', { name: /add section/i }));
+      const sectionNameInput = screen.getByPlaceholderText('New section name');
       fireEvent.change(sectionNameInput, { target: { value: 'Engine' } });
-      const dialog = await screen.findByRole('dialog');
-      const dialogSubmitButton = within(dialog).getByRole('button', { name: /^add section$/i });
-      fireEvent.click(dialogSubmitButton);
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }));
       
       const saveButton = screen.getByText('Create Template');
       fireEvent.click(saveButton);

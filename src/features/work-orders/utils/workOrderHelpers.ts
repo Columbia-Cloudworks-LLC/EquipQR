@@ -212,6 +212,43 @@ export const sortByPriority = <T extends { priority: WorkOrderPriority }>(items:
 };
 
 // ============================================
+// Custom Attribute Formatting
+// ============================================
+
+const UNIT_ABBREVIATIONS = new Set([
+  'hp', 'kw', 'rpm', 'psi', 'mph', 'kph', 'lb', 'lbs', 'kg',
+  'ft', 'in', 'mm', 'cm', 'm', 'gal', 'l', 'qt', 'oz',
+]);
+
+/**
+ * Convert a snake_case or underscore-delimited key to a human-readable label.
+ * e.g. "engine_power" -> "Engine Power"
+ */
+export const humanizeAttributeKey = (key: string): string => {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase());
+};
+
+/**
+ * Convert a raw attribute value to a human-readable format.
+ * Handles underscore-delimited values with known unit suffixes.
+ * e.g. "160_hp" -> "160 HP", "1.2_cubic_yards" -> "1.2 Cubic Yards"
+ */
+export const humanizeAttributeValue = (value: unknown): string => {
+  const str = String(value);
+  const parts = str.split('_');
+  if (parts.length <= 1) return str;
+
+  return parts
+    .map(part => {
+      if (UNIT_ABBREVIATIONS.has(part.toLowerCase())) return part.toUpperCase();
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(' ');
+};
+
+// ============================================
 // Display Constants
 // ============================================
 

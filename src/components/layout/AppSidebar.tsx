@@ -62,21 +62,19 @@ interface NavigationItem {
 
 const mainNavigation: NavigationItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Equipment", url: "/dashboard/equipment", icon: Forklift },
   { title: "Work Orders", url: "/dashboard/work-orders", icon: ClipboardList },
+  { title: "Equipment", url: "/dashboard/equipment", icon: Forklift },
+  { title: "Fleet Map", url: "/dashboard/fleet-map", icon: Map },
   { title: "Inventory", url: "/dashboard/inventory", icon: Warehouse },
   { title: "Part Lookup", url: "/dashboard/part-lookup", icon: Search },
   { title: "Part Alternates", url: "/dashboard/alternate-groups", icon: Layers },
   { title: "Teams", url: "/dashboard/teams", icon: Users },
-  { title: "Fleet Map", url: "/dashboard/fleet-map", icon: Map },
+  { title: "QR Scanner", url: "/dashboard/scanner", icon: QrCode },
 ];
 
 const managementNavigation: NavigationItem[] = [
   { title: "Organization", url: "/dashboard/organization", icon: Building },
   { title: "PM Templates", url: "/dashboard/pm-templates", icon: ClipboardCheck, adminOnly: true },
-  { title: "QR Scanner", url: "/dashboard/scanner", icon: QrCode },
-  // Billing removed - app is now free
-  // { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
   { title: "Reports", url: "/dashboard/reports", icon: FileText },
   { title: "Audit Log", url: "/dashboard/audit-log", icon: History, adminOnly: true },
 ];

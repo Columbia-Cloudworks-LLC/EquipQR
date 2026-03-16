@@ -7,14 +7,15 @@ import { safeJsonParse } from '@/lib/safeJsonParse';
 type PMTemplateInsert = Database['public']['Tables']['pm_checklist_templates']['Insert'];
 type PMTemplateUpdate = Database['public']['Tables']['pm_checklist_templates']['Update'];
 
-// Temporary type until Supabase types are regenerated
 export type PMTemplate = {
   id: string;
   organization_id: string | null;
   name: string;
   description: string | null;
   is_protected: boolean;
-  template_data: PMChecklistItem[]; // PMChecklistItem[] stored as JSON
+  template_data: PMChecklistItem[];
+  interval_value: number | null;
+  interval_type: 'days' | 'hours' | null;
   created_by: string;
   updated_by: string | null;
   created_at: string;
@@ -27,6 +28,8 @@ export interface PMTemplateSummary {
   description?: string | null;
   is_protected: boolean;
   organization_id: string | null;
+  interval_value: number | null;
+  interval_type: 'days' | 'hours' | null;
   sections: { name: string; count: number }[];
   itemCount: number;
 }
@@ -72,6 +75,8 @@ export const templateToSummary = (template: PMTemplate): PMTemplateSummary => {
     description: template.description,
     is_protected: template.is_protected,
     organization_id: template.organization_id,
+    interval_value: template.interval_value ?? null,
+    interval_type: (template.interval_type as 'days' | 'hours' | null) ?? null,
     sections: generateSectionsSummary(templateData),
     itemCount: templateData.length
   };
@@ -106,18 +111,18 @@ export const pmChecklistTemplatesService = {
     return data as unknown as PMTemplate;
   },
 
-  // Create a new template
   async createTemplate(templateData: {
     organizationId: string;
     name: string;
     description?: string;
     template_data: PMChecklistItem[];
+    interval_value?: number | null;
+    interval_type?: 'days' | 'hours' | null;
     created_by: string;
   }): Promise<PMTemplate> {
-    // Sanitize template data - ensure condition is null and notes are empty
     const sanitizedData = templateData.template_data.map(item => ({
       ...item,
-      id: nanoid(), // Generate fresh IDs
+      id: nanoid(),
       condition: null,
       notes: ''
     }));
@@ -127,6 +132,8 @@ export const pmChecklistTemplatesService = {
       name: templateData.name,
       description: templateData.description,
       template_data: sanitizedData,
+      interval_value: templateData.interval_value ?? null,
+      interval_type: templateData.interval_type ?? null,
       created_by: templateData.created_by,
       updated_by: templateData.created_by
     };
@@ -141,11 +148,12 @@ export const pmChecklistTemplatesService = {
     return data as unknown as PMTemplate;
   },
 
-  // Update an existing template
   async updateTemplate(id: string, updates: {
     name?: string;
     description?: string;
     template_data?: PMChecklistItem[];
+    interval_value?: number | null;
+    interval_type?: 'days' | 'hours' | null;
     updated_by: string;
   }): Promise<PMTemplate> {
     const updateData: PMTemplateUpdate = {
@@ -154,8 +162,9 @@ export const pmChecklistTemplatesService = {
 
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.interval_value !== undefined) updateData.interval_value = updates.interval_value;
+    if (updates.interval_type !== undefined) updateData.interval_type = updates.interval_type;
     if (updates.template_data !== undefined) {
-      // Sanitize template data
       updateData.template_data = updates.template_data.map(item => ({
         ...item,
         condition: null,
@@ -209,7 +218,7 @@ export const pmChecklistTemplatesService = {
     const insertData: PMTemplateInsert = {
       organization_id: targetOrgId,
       name: cloneName,
-      description: sourceTemplate.description ? `${sourceTemplate.description} (Cloned)` : 'Cloned template',
+      description: sourceTemplate.description || null,
       template_data: clonedData,
       is_protected: false, // Cloned templates are never protected
       created_by: (await supabase.auth.getUser()).data.user?.id || '',

@@ -47,17 +47,20 @@ export const useCreatePMTemplate = () => {
       name: string;
       description?: string;
       template_data: PMChecklistItem[];
+      interval_value?: number | null;
+      interval_type?: 'days' | 'hours' | null;
     }) => {
       if (!currentOrganization?.id || !user?.id) {
         throw new Error('Organization or user not found');
       }
 
-      // Note: Authorization check is handled by RLS policies in the database
       return pmChecklistTemplatesService.createTemplate({
         organizationId: currentOrganization.id,
         name: templateData.name,
         description: templateData.description,
         template_data: templateData.template_data,
+        interval_value: templateData.interval_value,
+        interval_type: templateData.interval_type,
         created_by: user.id
       });
     },
@@ -96,6 +99,8 @@ export const useUpdatePMTemplate = () => {
         name?: string;
         description?: string;
         template_data?: PMChecklistItem[];
+        interval_value?: number | null;
+        interval_type?: 'days' | 'hours' | null;
       };
     }) => {
       if (!user?.id) {
