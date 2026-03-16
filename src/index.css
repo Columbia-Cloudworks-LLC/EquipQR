@@ -631,3 +631,46 @@
 .gmp-autocomplete-container gmp-place-autocomplete .icon {
   display: none !important;
 }
+
+/*
+ * Google Maps InfoWindow overrides
+ *
+ * The InfoWindow bubble is always white regardless of app theme, and Google's
+ * .gm-style ancestor sets color/font with higher specificity than Tailwind
+ * utilities. We force light-mode design tokens so all Tailwind classes inside
+ * (text-foreground, text-muted-foreground, badges, etc.) resolve correctly
+ * in both light and dark mode.
+ */
+.gm-style .gm-style-iw-d {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 44%;
+  --primary: 258 82% 57%;
+  --primary-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 222.2 84% 4.9%;
+  --info: 217 91% 60%;
+  --info-foreground: 210 40% 98%;
+  --success: 142 76% 36%;
+  --success-foreground: 210 40% 98%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 222.2 84% 4.9%;
+
+  color: hsl(var(--foreground)) !important;
+  font-family: var(--font-body) !important;
+}
+
+.gm-style .gm-style-iw-d * {
+  border-color: hsl(var(--border));
+}
+
+/* InfoWindow close button — keep visible against light bubble in dark mode */
+.gm-style .gm-ui-hover-effect {
+  filter: none !important;
+  opacity: 0.65 !important;
+}
+.gm-style .gm-ui-hover-effect:hover {
+  opacity: 1 !important;
+}

@@ -479,18 +479,18 @@ export const MapView: React.FC<MapViewProps> = ({
               <div className="space-y-1.5 text-xs mb-3">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Serial:</span>
-                  <span className="font-mono truncate ml-2">{selectedMarker.serial_number}</span>
+                  <span className="font-mono truncate ml-2 text-foreground">{selectedMarker.serial_number}</span>
                 </div>
                 {selectedMarker.working_hours != null && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />Hours:</span>
-                    <span>{selectedMarker.working_hours.toLocaleString()}</span>
+                    <span className="text-foreground">{selectedMarker.working_hours.toLocaleString()}</span>
                   </div>
                 )}
                 {selectedMarker.last_maintenance && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground flex items-center gap-1"><Wrench className="h-3 w-3" />Maintenance:</span>
-                    <span>{formatDate(selectedMarker.last_maintenance)}</span>
+                    <span className="text-foreground">{formatDate(selectedMarker.last_maintenance)}</span>
                   </div>
                 )}
                 {selectedMarker.formatted_address && (

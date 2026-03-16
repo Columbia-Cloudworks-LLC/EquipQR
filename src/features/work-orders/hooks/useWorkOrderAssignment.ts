@@ -24,6 +24,7 @@ export interface AssignmentOption {
 interface AssignmentQueryResult {
   assignees: AssignmentOption[];
   equipmentHasNoTeam: boolean;
+  teamName: string | null;
 }
 
 /**
@@ -37,19 +38,17 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
     queryKey: ['work-order-assignment-members', organizationId, equipmentId],
     queryFn: async (): Promise<AssignmentQueryResult> => {
       if (!organizationId) {
-        return { assignees: [], equipmentHasNoTeam: false };
+        return { assignees: [], equipmentHasNoTeam: false, teamName: null };
       }
       
-      // equipmentId is REQUIRED for assignment - if not provided, return empty
       if (!equipmentId) {
         logger.warn('[useWorkOrderAssignmentOptions] equipmentId is required for work order assignment');
-        return { assignees: [], equipmentHasNoTeam: false };
+        return { assignees: [], equipmentHasNoTeam: false, teamName: null };
       }
 
-      // Get the equipment's team_id
       const { data: equipment, error: equipmentError } = await supabase
         .from('equipment')
-        .select('team_id')
+        .select('team_id, teams:team_id ( name )')
         .eq('id', equipmentId)
         .eq('organization_id', organizationId)
         .single();
@@ -59,10 +58,11 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
         throw equipmentError;
       }
 
-      // If equipment has NO team, assignment is BLOCKED
       if (!equipment?.team_id) {
-        return { assignees: [], equipmentHasNoTeam: true };
+        return { assignees: [], equipmentHasNoTeam: true, teamName: null };
       }
+
+      const teamName = (equipment as { teams?: { name: string } | null }).teams?.name ?? null;
 
       const assignees: AssignmentOption[] = [];
 
@@ -136,7 +136,8 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
 
       return { 
         assignees: uniqueAssignees.sort((a, b) => a.name.localeCompare(b.name)),
-        equipmentHasNoTeam: false
+        equipmentHasNoTeam: false,
+        teamName
       };
     },
     // Only run query when both organizationId and equipmentId are provided
@@ -145,15 +146,15 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const queryResult = membersQuery.data || { assignees: [], equipmentHasNoTeam: false };
+  const queryResult = membersQuery.data || { assignees: [], equipmentHasNoTeam: false, teamName: null };
 
   return {
     assignmentOptions: queryResult.assignees,
     members: queryResult.assignees,
     isLoading: membersQuery.isLoading,
     error: membersQuery.error,
-    // Flag to indicate assignment is blocked because equipment has no team
-    equipmentHasNoTeam: queryResult.equipmentHasNoTeam
+    equipmentHasNoTeam: queryResult.equipmentHasNoTeam,
+    teamName: queryResult.teamName
   };
 };
 

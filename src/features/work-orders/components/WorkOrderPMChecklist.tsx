@@ -1,5 +1,4 @@
 import React from 'react';
-import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { 
@@ -9,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Wrench, Info, CheckCircle2, Globe } from "lucide-react";
+import { ClipboardList, Wrench, Info, CheckCircle2, Globe } from "lucide-react";
+import { cn } from '@/lib/utils';
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { useWorkOrderPMChecklist } from '@/features/work-orders/hooks/useWorkOrderPMChecklist';
 import { logger } from '@/utils/logger';
@@ -73,17 +73,35 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
 
   return (
     <>
-      <div className="flex items-center space-x-2 p-3 border rounded-lg bg-muted/50">
-        <Checkbox
-          id="hasPM"
-          checked={values.hasPM}
-          onCheckedChange={(checked) => setValue('hasPM', checked as boolean)}
-        />
-        <div className="flex items-center gap-2">
-          <Wrench className="h-4 w-4 text-primary" />
-          <Label htmlFor="hasPM" className="text-sm font-medium cursor-pointer">
-            Include Preventative Maintenance
-          </Label>
+      <div className="space-y-2">
+        <Label>Work Order Type</Label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setValue('hasPM', false)}
+            className={cn(
+              "flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-all",
+              !values.hasPM
+                ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                : "border-border hover:border-muted-foreground/40"
+            )}
+          >
+            <ClipboardList className={cn("h-6 w-6", !values.hasPM ? "text-primary" : "text-muted-foreground")} />
+            <span className="text-sm font-medium">Standard Work Order</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setValue('hasPM', true)}
+            className={cn(
+              "flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-all",
+              values.hasPM
+                ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                : "border-border hover:border-muted-foreground/40"
+            )}
+          >
+            <Wrench className={cn("h-6 w-6", values.hasPM ? "text-primary" : "text-muted-foreground")} />
+            <span className="text-sm font-medium">With PM Checklist</span>
+          </button>
         </div>
       </div>
 

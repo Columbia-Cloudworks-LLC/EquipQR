@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, ShieldCheck, Users } from 'lucide-react';
+import { Plus, ShieldCheck, Users, ArrowUpDown } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedWorkOrders, useTeamBasedAccess } from '@/features/teams/hooks/useTeamBasedWorkOrders';
 import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
@@ -13,6 +13,8 @@ import { useUser } from '@/contexts/useUser';
 import { WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { SortField } from '@/features/work-orders/hooks/useWorkOrderFilters';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import WorkOrderForm from '@/features/work-orders/components/WorkOrderForm';
@@ -60,14 +62,19 @@ const WorkOrders = () => {
   const {
     filters,
     filteredWorkOrders,
+    totalCount,
+    activePresets,
+    sortField,
+    sortDirection,
     getActiveFilterCount,
     clearAllFilters,
-    applyQuickFilter,
-    updateFilter
+    toggleQuickFilter,
+    updateFilter,
+    updateSort
   } = useWorkOrderFilters(mergedWorkOrders, currentUser?.id);
 
   // Apply URL parameter filters on initial load.
-  // updateFilter and applyQuickFilter are stable (useCallback in useWorkOrderFilters).
+  // updateFilter and toggleQuickFilter are stable (useCallback in useWorkOrderFilters).
   useEffect(() => {
     if (initializedFromUrl.current) return;
     const date = searchParams.get('date');
@@ -79,14 +86,14 @@ const WorkOrders = () => {
       didApply = true;
     }
     if (date === 'overdue') {
-      applyQuickFilter('overdue');
+      toggleQuickFilter('overdue');
       didApply = true;
     }
 
     if (didApply) {
       initializedFromUrl.current = true;
     }
-  }, [searchParams, applyQuickFilter, updateFilter]);
+  }, [searchParams, toggleQuickFilter, updateFilter]);
 
   // Check for unassigned work orders in single-user organization
   const unassignedCount = allWorkOrders.filter(order => 
@@ -125,7 +132,7 @@ const WorkOrders = () => {
   };
 
   const handleQuickFilter = (preset: string) => {
-    applyQuickFilter(preset);
+    toggleQuickFilter(preset as import('@/features/work-orders/hooks/useWorkOrderFilters').QuickFilterPreset);
     setShowMobileFilters(false);
   };
 
@@ -156,15 +163,22 @@ const WorkOrders = () => {
 
   const hasActiveFilters = getActiveFilterCount() > 0 || filters.searchQuery.length > 0;
 
-  // Generate appropriate subtitle based on user's access level
   const getSubtitle = () => {
-    if (isManager) {
-      return 'Showing all work orders';
-    } else if (userTeamIds.length > 0) {
-      return `Showing work orders for your ${userTeamIds.length} team${userTeamIds.length === 1 ? '' : 's'}`;
-    } else {
+    if (!isManager && userTeamIds.length === 0) {
       return 'No team assignments - contact your administrator for access';
     }
+
+    const total = mergedWorkOrders.length;
+    const shown = filteredWorkOrders.length;
+    const scope = isManager ? '' : ` across your ${userTeamIds.length} team${userTeamIds.length === 1 ? '' : 's'}`;
+
+    if (filters.searchQuery) {
+      return `${shown} result${shown === 1 ? '' : 's'} for "${filters.searchQuery}"`;
+    }
+    if (hasActiveFilters) {
+      return `Showing ${shown} of ${total} work orders${scope}`;
+    }
+    return `Showing all ${total} work orders${scope}`;
   };
 
   // Generate meta badge based on access level
@@ -215,6 +229,7 @@ const WorkOrders = () => {
           <WorkOrderFilters
             filters={filters}
             activeFilterCount={getActiveFilterCount()}
+            activePresets={activePresets}
             showMobileFilters={showMobileFilters}
             onShowMobileFiltersChange={setShowMobileFilters}
             onFilterChange={updateFilter}
@@ -222,6 +237,38 @@ const WorkOrders = () => {
             onQuickFilter={handleQuickFilter}
             teams={teams}
           />
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {hasActiveFilters
+                ? `${filteredWorkOrders.length} of ${totalCount} work orders`
+                : `${totalCount} work orders`}
+            </p>
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+              <Select
+                value={`${sortField}:${sortDirection}`}
+                onValueChange={(v) => {
+                  const [field, dir] = v.split(':') as [SortField, 'asc' | 'desc'];
+                  updateSort(field, dir);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[170px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created:desc">Created (newest)</SelectItem>
+                  <SelectItem value="created:asc">Created (oldest)</SelectItem>
+                  <SelectItem value="due_date:asc">Due Date (soonest)</SelectItem>
+                  <SelectItem value="due_date:desc">Due Date (latest)</SelectItem>
+                  <SelectItem value="priority:desc">Priority (high first)</SelectItem>
+                  <SelectItem value="priority:asc">Priority (low first)</SelectItem>
+                  <SelectItem value="status:asc">Status (earliest)</SelectItem>
+                  <SelectItem value="status:desc">Status (latest)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
           <WorkOrdersList
             workOrders={filteredWorkOrders}

@@ -238,7 +238,7 @@ describe('WorkOrders Page', () => {
 
     it('shows "Showing all work orders" subtitle', () => {
       render(<WorkOrders />);
-      expect(screen.getByText(/showing all work orders/i)).toBeInTheDocument();
+      expect(screen.getByText(/showing all \d+ work orders/i)).toBeInTheDocument();
     });
 
     it('displays the create work order button', () => {
@@ -294,7 +294,7 @@ describe('WorkOrders Page', () => {
 
     it('shows team-scoped subtitle', () => {
       render(<WorkOrders />);
-      expect(screen.getByText(/showing work orders for your 1 team/i)).toBeInTheDocument();
+      expect(screen.getByText(/across your 1 team/i)).toBeInTheDocument();
     });
 
     it('does NOT show the Admin badge', () => {
@@ -360,7 +360,7 @@ describe('WorkOrders Page', () => {
 
     it('shows team count for 2 teams', () => {
       render(<WorkOrders />);
-      expect(screen.getByText(/showing work orders for your 2 teams/i)).toBeInTheDocument();
+      expect(screen.getByText(/across your 2 teams/i)).toBeInTheDocument();
     });
   });
 

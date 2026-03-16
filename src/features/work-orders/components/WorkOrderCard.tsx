@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Calendar, Clock, User, Users, UserX, AlertTriangle, Cog, MapPin } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
@@ -259,7 +260,12 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
                 <div className={`text-muted-foreground ${isOverdue(dueDateValue, workOrder.status) ? 'text-destructive' : ''}`}>
                   {formatDate(dueDateValue)}
                   {isOverdue(dueDateValue, workOrder.status) && (
-                    <AlertTriangle className="h-3 w-3 inline ml-1" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertTriangle className="h-3.5 w-3.5 inline ml-1" />
+                      </TooltipTrigger>
+                      <TooltipContent>Overdue &mdash; due date has passed</TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
               </div>
@@ -312,6 +318,7 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
                   lng={workOrder.effectiveLocation.lng}
                   className="text-sm truncate"
                   showIcon={false}
+                  compact
                 />
               </div>
             </div>
@@ -482,6 +489,7 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
               lng={workOrder.effectiveLocation.lng}
               className="text-xs truncate"
               showIcon={false}
+              compact
             />
           </div>
         )}
@@ -629,6 +637,7 @@ const CompactCard: React.FC<WorkOrderCardProps> = memo(({
                 lng={workOrder.effectiveLocation.lng}
                 className="text-sm truncate"
                 showIcon={false}
+                compact
               />
             </div>
           )}
@@ -644,7 +653,14 @@ const CompactCard: React.FC<WorkOrderCardProps> = memo(({
             <div className={`flex items-center gap-1 ${
               computedData.isOverdue ? 'text-destructive' : ''
             }`}>
-              {computedData.isOverdue && <AlertTriangle className="h-3 w-3" />}
+              {computedData.isOverdue && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                  </TooltipTrigger>
+                  <TooltipContent>Overdue &mdash; due date has passed</TooltipContent>
+                </Tooltip>
+              )}
               Due: {computedData.formattedDueDate}
             </div>
           )}

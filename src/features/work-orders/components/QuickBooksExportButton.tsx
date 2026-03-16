@@ -425,6 +425,8 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   };
 
   if (asMenuItem) {
+    if (showSetupState) return null;
+
     return (
       <TooltipProvider>
         <Tooltip>

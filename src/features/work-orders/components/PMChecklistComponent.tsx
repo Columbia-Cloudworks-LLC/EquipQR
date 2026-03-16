@@ -891,7 +891,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
               className="border-warning/40 text-warning hover:bg-warning/20"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
-              {isReverting ? 'Reverting...' : 'Revert Completion'}
+              {isReverting ? 'Reverting...' : 'Revert PM Completion'}
             </Button>
           </div>
         )}

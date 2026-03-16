@@ -79,7 +79,7 @@ export const WorkOrderDetailsStatusLockWarning: React.FC<WorkOrderDetailsStatusL
             className="border-warning/40 text-warning hover:bg-warning/20 dark:border-warning/50 dark:text-warning dark:hover:bg-warning/20 ml-3 shrink-0"
           >
             <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-            {isReverting ? 'Reverting...' : 'Revert'}
+            {isReverting ? 'Reverting...' : 'Revert to Accepted'}
           </Button>
         )}
       </div>
