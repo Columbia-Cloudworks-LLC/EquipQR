@@ -315,7 +315,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       <Button 
         type="submit" 
         className="w-full" 
-        disabled={isLoading || !isFormValid()}
+        disabled={isLoading}
         onClick={() => {
           if (!isFormValid()) {
             setTouched({ name: true, email: true, organizationName: true, password: true, confirmPassword: true });
