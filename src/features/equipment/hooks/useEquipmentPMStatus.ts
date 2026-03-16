@@ -63,7 +63,7 @@ export function getPMComplianceLevel(status: EquipmentPMStatus | null | undefine
   }
 
   if (status.interval_type === 'hours' && status.hours_overdue !== null) {
-    const hoursUsed = -status.hours_overdue;
+    const hoursUsed = status.interval_value + status.hours_overdue;
     if (hoursUsed >= status.interval_value * 0.8) return 'due_soon';
   }
 

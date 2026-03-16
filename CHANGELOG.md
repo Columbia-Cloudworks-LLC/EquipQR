@@ -24,29 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Inventory and PM workflow clarity** — Added inventory location filtering and filter chips, introduced part-lookup empty-state guidance with quick example searches, switched PM template primary action to `Apply Template`, and moved the fleet map legend to the top-right for better overlap safety.
 - **Work order usability and status visibility** — Enabled keyboard/click card navigation states, normalized overdue/due-soon logic to respect completed statuses, made work-order descriptions optional in schema/UI, set document titles on work-order details, improved PM indicator labeling, and surfaced equipment manufacturer/model/serial metadata from equipment details into equipment-linked work-order cards.
 - **Navigation and UI polish updates** — Promoted `QR Scanner` into main sidebar navigation, added an out-of-service warning variant in dashboard stats, strengthened active tab visual treatment, and added completed-state coloring support for segmented progress bars.
-
-### Fixed
-
-- **Signup form validation feedback timing and accessibility** — Added touched-field behavior with blur-triggered required-field errors, ARIA invalid/description wiring, and submit-attempt fallback messaging so users get clear, field-level validation guidance without premature error noise.
-
-## [2.3.12] - 2026-03-15
-
-### Changed
-
 - **Alternate part groups list clarity and control** — Added explicit `Unverified` status badges, stronger warning styling for `Deprecated`, full-name title tooltips, status filter chips, sort controls, inline result counts, and one-tap search clear actions to improve technician scanning and triage speed in dense group lists.
 - **Mobile-first alternate group actions** — Adapted list/card and form interactions for touch workflows by using bottom-sheet drawers for mobile create/edit/action flows, reducing hidden affordances and improving one-handed field usability.
 - **Alternate group detail workflow visibility** — Improved detail-page wayfinding and action confidence with simplified breadcrumbs, stronger selected-row states in add-item flows, and clearer verification guidance while creating new groups.
-
-### Fixed
-
-- **Mobile drawer layering over bottom navigation** — Raised shared drawer overlay/content layering so create/edit alternate-group sheets consistently render above persistent bottom nav and block background interaction as expected.
-- **Add-item modal scalability in large inventories** — Changed default add-item behavior to require search before listing inventory choices and added explicit empty-state guidance to prevent unfiltered long-list overload.
-- **Touch-target safety for destructive actions** — Increased mobile remove-action hit areas and labels on alternate-group member rows to reduce accidental destructive taps in field conditions.
-
-## [2.3.11] - 2026-03-15
-
-### Changed
-
 - **Inventory list triage UX** — Added sortable inventory columns (including Quantity and Status), inline result counts, reduced External ID visual weight on constrained desktop widths, and stronger duplicate-name disambiguation by showing secondary SKU/location context under item names.
 - **Inventory list quick actions** — Added row/card overflow actions for fast workflows (`View Details`, `Add 1`, `Take 1`, `QR Code`, `Edit`) so technicians and parts managers can act from list view without repeated page hops.
 - **Inventory detail mobile clarity** — Replaced the mobile vertical tab stack with a horizontal scrollable tabs rail, changed the QR control to a labeled action with tooltip/title, and simplified mobile breadcrumb density to prioritize a clearer back path.
@@ -54,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Signup form validation feedback timing and accessibility** — Added touched-field behavior with blur-triggered required-field errors, ARIA invalid/description wiring, and submit-attempt fallback messaging so users get clear, field-level validation guidance without premature error noise.
+- **Mobile drawer layering over bottom navigation** — Raised shared drawer overlay/content layering so create/edit alternate-group sheets consistently render above persistent bottom nav and block background interaction as expected.
+- **Add-item modal scalability in large inventories** — Changed default add-item behavior to require search before listing inventory choices and added explicit empty-state guidance to prevent unfiltered long-list overload.
+- **Touch-target safety for destructive actions** — Increased mobile remove-action hit areas and labels on alternate-group member rows to reduce accidental destructive taps in field conditions.
 - **Mobile add/edit inventory form action reachability** — Updated the inventory item form dialog to use safe-area-aware spacing with a sticky footer action row so `Cancel` and submit actions remain visible above bottom navigation.
 - **Adjust Quantity modal overflow and layering** — Hardened dialog overlay/content z-index tokens and mobile content bounds so the adjust-quantity flow remains fully contained, scroll-safe, and blocks background interaction while open.
 

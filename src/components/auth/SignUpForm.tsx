@@ -92,6 +92,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       case 'name':
         return !formData.name.trim() ? 'Full name is required' : null;
       case 'email':
+        if (!formData.email.trim()) return 'Email is required';
         return emailError;
       case 'organizationName':
         if (orgNameError) return orgNameError;

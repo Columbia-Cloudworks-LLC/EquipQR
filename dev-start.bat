@@ -332,7 +332,17 @@ if %errorlevel% equ 0 (
 )
 
 echo        Launching Edge Functions serve in a new window...
-start "EquipQR Edge Functions" cmd /k "cd /d %~dp0 && npx supabase functions serve --env-file %EDGE_ENV_FILE% --no-verify-jwt"
+REM --no-verify-jwt is safe only for local development (localhost API)
+if "%SUPABASE_API_PORT%"=="" set "SUPABASE_API_PORT=54321"
+set "EDGE_SERVE_FLAGS=--env-file %EDGE_ENV_FILE%"
+powershell -NoProfile -Command "if (Get-NetTCPConnection -LocalPort %SUPABASE_API_PORT% -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+if %errorlevel% equ 0 (
+    set "EDGE_SERVE_FLAGS=%EDGE_SERVE_FLAGS% --no-verify-jwt"
+    echo        Local Supabase API detected on port %SUPABASE_API_PORT% - JWT verification disabled for dev.
+) else (
+    echo        WARNING: Could not confirm local Supabase on port %SUPABASE_API_PORT% - JWT verification enabled.
+)
+start "EquipQR Edge Functions" cmd /k "cd /d %~dp0 && npx supabase functions serve %EDGE_SERVE_FLAGS%"
 
 REM Brief pause to let the process start
 powershell -NoProfile -Command "Start-Sleep -Seconds 3"

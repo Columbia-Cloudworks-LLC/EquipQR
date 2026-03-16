@@ -98,7 +98,31 @@ DECLARE
   v_days_overdue         integer;
   v_hours_overdue        numeric;
   v_equipment_hours      numeric;
+  v_equipment_org_id     uuid;
 BEGIN
+  -- Security: caller must belong to the equipment's organization
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT e.organization_id INTO v_equipment_org_id
+  FROM public.equipment e
+  WHERE e.id = p_equipment_id;
+
+  IF v_equipment_org_id IS NULL THEN
+    RETURN;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.organization_members
+    WHERE organization_id = v_equipment_org_id
+      AND user_id = auth.uid()
+      AND status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Access denied: not an active member of this organization'
+      USING ERRCODE = '42501';
+  END IF;
+
   -- Find latest completed PM for this equipment
   SELECT pm.completed_at,
          pm.template_id,
@@ -147,11 +171,10 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Compute overdue
+  -- Compute overdue (always return the raw delta so clients can derive due-soon)
   IF v_interval_type = 'days' THEN
-    v_days_overdue := EXTRACT(DAY FROM (now() - v_last_pm.completed_at))::integer - v_interval_value;
+    v_days_overdue := (now()::date - v_last_pm.completed_at::date) - v_interval_value;
     v_is_overdue := v_days_overdue > 0;
-    IF NOT v_is_overdue THEN v_days_overdue := NULL; END IF;
 
   ELSIF v_interval_type = 'hours' THEN
     SELECT working_hours INTO v_equipment_hours
@@ -162,7 +185,6 @@ BEGIN
                          - v_last_pm.equipment_working_hours_at_completion
                          - v_interval_value;
       v_is_overdue := v_hours_overdue > 0;
-      IF NOT v_is_overdue THEN v_hours_overdue := NULL; END IF;
     END IF;
   END IF;
 

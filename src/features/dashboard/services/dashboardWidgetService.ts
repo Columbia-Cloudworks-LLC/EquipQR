@@ -46,6 +46,7 @@ export async function fetchPMComplianceData(organizationId: string) {
     const { data: pastDueWOs, error: woError } = await supabase
       .from('work_orders')
       .select('id')
+      .eq('organization_id', organizationId)
       .in('id', activePMs.map(r => r.work_order_id))
       .not('due_date', 'is', null)
       .lt('due_date', new Date().toISOString());
