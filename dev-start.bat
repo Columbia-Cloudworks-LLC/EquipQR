@@ -40,6 +40,7 @@ REM Supabase CLI default ports (from config.toml — do NOT change here, change 
 set "SUPABASE_API_PORT=54321"
 set "DEFAULT_EDGE_ENV_FILE=supabase\functions\.env"
 set "DEFAULT_OP_ENVIRONMENT_ID=f4rdrusaoxvzwngz2jxs7vy7ye"
+set "DEFAULT_OP_APP_ENV_ID=ylilu4hpf6nq6bfm5ykg6nh2kq"
 
 REM --- Parse command-line arguments ---
 :parse_args
@@ -156,6 +157,32 @@ if %errorlevel% neq 0 (
 :docker_ok
 echo        Docker daemon running
 echo        All pre-flight checks passed.
+
+REM ---------- 1b. Sync 1Password environments early ----------------------------
+echo.
+echo  [1b/10] Syncing 1Password environments early...
+
+set "OP_APP_ENV_ID=%EQUIPQR_OP_APP_ENVIRONMENT_ID%"
+if not defined OP_APP_ENV_ID set "OP_APP_ENV_ID=%DEFAULT_OP_APP_ENV_ID%"
+set "OP_ENV_ID=%EQUIPQR_OP_ENVIRONMENT_ID%"
+if not defined OP_ENV_ID set "OP_ENV_ID=%DEFAULT_OP_ENVIRONMENT_ID%"
+
+where op >nul 2>&1
+if !errorlevel! equ 0 (
+    echo        Syncing app env from 1Password Environment: !OP_APP_ENV_ID!
+    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-1password-app-env.ps1" -EnvironmentId !OP_APP_ENV_ID!
+    if !errorlevel! neq 0 (
+        echo        WARNING: 1Password app env sync failed. Using existing .env.
+    )
+
+    echo        Syncing edge env from 1Password Environment: !OP_ENV_ID!
+    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-1password-edge-env.ps1" -EnvironmentId !OP_ENV_ID! -ApiPort %SUPABASE_API_PORT%
+    if !errorlevel! neq 0 (
+        echo        WARNING: 1Password edge env sync failed. Using existing %DEFAULT_EDGE_ENV_FILE%.
+    )
+) else (
+    echo        1Password CLI not found on PATH - using existing .env and %DEFAULT_EDGE_ENV_FILE%.
+)
 
 REM ---------- 2. Verify node_modules -----------------------------------------
 echo.
@@ -313,21 +340,6 @@ echo.
 echo  [8/10] Starting Supabase Edge Functions serve...
 
 set "EDGE_ENV_FILE=%DEFAULT_EDGE_ENV_FILE%"
-
-REM Try to sync secrets from 1Password into supabase\functions\.env
-set "OP_ENV_ID=%EQUIPQR_OP_ENVIRONMENT_ID%"
-if not defined OP_ENV_ID set "OP_ENV_ID=%DEFAULT_OP_ENVIRONMENT_ID%"
-
-where op >nul 2>&1
-if !errorlevel! equ 0 (
-    echo        Syncing edge env from 1Password Environment: !OP_ENV_ID!
-    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-1password-edge-env.ps1" -EnvironmentId !OP_ENV_ID! -ApiPort %SUPABASE_API_PORT%
-    if !errorlevel! neq 0 (
-        echo        WARNING: 1Password sync failed. Using existing %DEFAULT_EDGE_ENV_FILE%.
-    )
-) else (
-    echo        1Password CLI not found on PATH - using existing %DEFAULT_EDGE_ENV_FILE%.
-)
 
 echo        Using edge env file: %EDGE_ENV_FILE%
 echo        Validating edge env file...
