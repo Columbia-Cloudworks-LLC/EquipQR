@@ -54,14 +54,26 @@ npm ci
 
 > **Note**: We use `npm ci` for consistent, reproducible installs. Never use other package managers.
 
-### 3. Environment Setup
+### 3. Environment Setup (1Password Preferred)
+
+If you have 1Password access for EquipQR, use it as the default setup path.
+`dev-start.bat` now syncs both app `.env` and `supabase/functions/.env` from 1Password before continuing startup.
+
+```powershell
+# Optional: verify 1Password CLI is installed
+op --version
+
+# Start the full local stack (prompts for 1Password auth early)
+.\dev-start.bat
+```
+
+If you do not have 1Password access, use the manual fallback:
 
 ```bash
-# Copy the environment template
 cp .env.example .env
 ```
 
-Edit `.env` with your Supabase credentials (minimum required):
+Then fill in `.env` with your Supabase credentials (minimum required):
 
 ```env
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
@@ -74,6 +86,14 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 > - **[Local Supabase Development](../ops/local-supabase-development.md)** - Local development environment setup
 
 ### 4. Start Development Server
+
+Preferred:
+
+```powershell
+.\dev-start.bat
+```
+
+Manual fallback (when not using full local stack automation):
 
 ```bash
 npm run dev
@@ -111,7 +131,8 @@ Visit `http://localhost:8080` to see the application running!
    ```
 
 3. **Configure local environment**:
-   - Create `.env.local` with local Supabase credentials (from `npx supabase status`)
+   - Preferred: run `.\dev-start.bat` and let it sync env files automatically (including 1Password-backed sync when available)
+   - Manual fallback: create `.env.local` with local Supabase credentials from `npx supabase status`
    - Use local Supabase URL from `supabase/config.toml` or `npx supabase status` (default: `http://localhost:54321`)
 
 **For production access (initial setup only):**

@@ -72,7 +72,14 @@ EquipQR uses external services. For exact environment variables and where theyâ€
     > Note: This repo intentionally installs `xlsx` from `cdn.sheetjs.com` (not npm registry). Ensure your CI and network policy allow access to that host during `npm install`.
 
 2. **Configure Environment**
-    Copy the example environment file and configure your Supabase credentials.
+    Preferred: if you have access, use 1Password CLI + `.\dev-start.bat` so env files are synced automatically.
+
+    ```powershell
+    op --version
+    .\dev-start.bat
+    ```
+
+    Manual fallback:
 
     ```bash
     cp .env.example .env
@@ -82,8 +89,8 @@ EquipQR uses external services. For exact environment variables and where theyâ€
 
 3. **Run Development Server**
 
-    ```bash
-    npm run dev
+    ```powershell
+    .\dev-start.bat
     ```
 
 ## ðŸ§ª Testing

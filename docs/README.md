@@ -43,6 +43,7 @@ Operational documentation for deployment and maintenance:
 
 ### For New Developers
 1. Start with **[Developer Onboarding](./getting-started/developer-onboarding.md)** - 5-minute quick start
+   - Preferred setup path: use 1Password CLI + `.\dev-start.bat` to auto-sync env files
 2. Review [Architecture](./technical/architecture.md) - Understand system design
 3. Read [Standards](./technical/standards.md) - Learn coding standards and UI patterns
 4. See [Setup Guide](./technical/setup.md) for detailed configuration options

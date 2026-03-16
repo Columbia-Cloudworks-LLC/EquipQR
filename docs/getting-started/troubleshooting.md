@@ -36,16 +36,19 @@ npm run build
 
 **Solution:**
 ```bash
-# 1. Check if .env file exists
+# 1. Preferred: run one-click startup with 1Password sync
+.\dev-start.bat
+
+# 2. Check if .env file exists
 ls -la .env
 
-# 2. If missing, copy from template
+# 3. If missing, copy from template (manual fallback)
 cp .env.example .env
 
-# 3. Verify required variables are set
+# 4. Verify required variables are set
 cat .env | grep -E "(VITE_SUPABASE_URL|VITE_SUPABASE_ANON_KEY)"
 
-# 4. Check for common issues
+# 5. Check for common issues
 grep -E "your-|placeholder|example" .env
 ```
 

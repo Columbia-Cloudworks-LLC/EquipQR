@@ -10,6 +10,7 @@ This guide covers setting up your local environment to work with Supabase, inclu
 - **npm** (comes with Node.js) - We use npm exclusively
 - **Docker** - Required for local Supabase instance ([Download here](https://www.docker.com/products/docker-desktop))
 - **Git** - [Download here](https://git-scm.com/)
+- **1Password CLI (`op`)** - Strongly recommended. `dev-start.bat` can sync `.env` and `supabase/functions/.env` automatically when available.
 
 ### Supabase CLI Installation
 
@@ -97,7 +98,7 @@ npx supabase functions pull quickbooks-oauth-callback
 
 ### Step 5: Start Local Supabase Instance
 
-> **Quick alternative**: Run `.\dev-start.bat` from the project root to start Docker, Supabase, Edge Functions, and the Vite dev server in one step. It is idempotent and will skip services that are already running. Use `.\dev-start.bat -Force` for a full fresh reset (equivalent to `dev-stop`, plus DB reset and type regeneration), then clean startup. Docker Desktop stays running. See also `.\dev-stop.bat` to tear everything down.
+> **Preferred workflow**: Run `.\dev-start.bat` from the project root. It now front-loads 1Password sync/auth early, then starts Docker, Supabase, Edge Functions, and the Vite dev server in one step. It is idempotent and skips services that are already running. Use `.\dev-start.bat -Force` for a full fresh reset (equivalent to `dev-stop`, plus DB reset and type regeneration), then clean startup. Docker Desktop stays running. See also `.\dev-stop.bat` to tear everything down.
 
 Start a local Supabase instance (PostgreSQL, PostgREST, Auth, Storage, Edge Functions):
 
@@ -123,7 +124,9 @@ npx supabase status
 
 ### Step 6: Set Up Local Environment Variables
 
-Create a `.env.local` file for local Supabase development:
+Preferred: use `.\dev-start.bat` with 1Password CLI available. It syncs base `.env` and edge env values automatically, then writes local Supabase URL overrides to `.env.local`.
+
+Manual fallback (without 1Password): create a `.env.local` file for local Supabase development:
 
 ```bash
 # Copy example environment file
