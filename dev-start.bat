@@ -4,8 +4,8 @@ REM  dev-start.bat — Idempotent startup of the EquipQR local development stack
 REM
 REM  Usage:
 REM    dev-start.bat                        Normal startup (skips already-running services)
-REM    dev-start.bat -Force                Full hard reset first (same as dev-stop -Force),
-REM                                         then start from clean state
+REM    dev-start.bat -Force                Full fresh reset: hard stop (same as dev-stop -Force),
+REM                                         DB reset + type regen, then clean startup
 REM    dev-start.bat --reset-db             Reset local database after Supabase starts,
 REM                                         applying all migrations from scratch
 REM    dev-start.bat --gen-types            Ensure Supabase is up and regenerate TypeScript
@@ -53,10 +53,16 @@ shift
 goto :parse_args
 :args_done
 
+REM Force mode implies a full fresh environment rebuild.
+if %OPT_FORCE% equ 1 (
+    set "OPT_RESET_DB=1"
+    set "OPT_GEN_TYPES=1"
+)
+
 echo.
 echo  ============================================
 echo   EquipQR Dev Environment - Startup
-if %OPT_FORCE% equ 1     echo   Flag: -Force      (full hard reset before startup)
+if %OPT_FORCE% equ 1     echo   Flag: -Force      (hard reset + DB reset + type regen + full startup)
 if %OPT_RESET_DB% equ 1  echo   Flag: --reset-db   (database will be reset)
 if %OPT_GEN_TYPES% equ 1 echo   Flag: --gen-types  (types regenerated before startup continues)
 echo  ============================================
