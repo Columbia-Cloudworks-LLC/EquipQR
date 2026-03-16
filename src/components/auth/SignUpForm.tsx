@@ -124,6 +124,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     e.preventDefault();
     
     if (!isFormValid()) {
+      setTouched({ name: true, email: true, organizationName: true, password: true, confirmPassword: true });
       onError('Please fill in all fields correctly');
       return;
     }
@@ -315,7 +316,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       <Button 
         type="submit" 
         className="w-full" 
-        disabled={isLoading}
+        disabled={isLoading || !isFormValid()}
         onClick={() => {
           if (!isFormValid()) {
             setTouched({ name: true, email: true, organizationName: true, password: true, confirmPassword: true });
