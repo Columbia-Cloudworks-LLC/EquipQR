@@ -73,7 +73,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
         </div>
 
         {/* Quick Filters with scroll hint */}
-        <HorizontalChipRow ariaLabel="Quick filter options">
+        <HorizontalChipRow ariaLabel="Quick filter options" className="-mx-1 px-1" gap="gap-1.5">
           {([
             { label: 'My Work', value: 'my-work' as QuickFilterPreset },
             { label: 'Urgent', value: 'urgent' as QuickFilterPreset },
@@ -86,13 +86,13 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                 key={preset.value}
                 size="sm"
                 variant={isActive ? 'default' : 'outline'}
-                className="whitespace-nowrap flex-shrink-0 min-h-11"
+                className="whitespace-nowrap flex-shrink-0 min-h-10 px-3 text-xs"
                 onClick={() => {
                   onQuickFilter(preset.value);
                   onShowMobileFiltersChange(false);
                 }}
               >
-                {isActive && <Check className="h-3.5 w-3.5 mr-1.5" />}
+                {isActive && <Check className="mr-1 h-3 w-3" />}
                 {preset.label}
               </Button>
             );

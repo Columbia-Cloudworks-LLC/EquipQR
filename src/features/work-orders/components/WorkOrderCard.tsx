@@ -31,7 +31,7 @@ import {
   formatDate,
   isOverdue 
 } from '@/features/work-orders/utils/workOrderHelpers';
-import { getWorkOrderStatusBorderWithOverdue } from '@/lib/status-colors';
+import { getPriorityBadgeClass, getWorkOrderStatusBorderWithOverdue } from '@/lib/status-colors';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import PMProgressIndicator from './PMProgressIndicator';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
@@ -116,6 +116,11 @@ const getAssignmentContext = (workOrder: WorkOrder): AssignmentWorkOrderContext 
 const formatMachineHours = (hours?: number | null): string | null => {
   if (typeof hours !== 'number') return null;
   return `${hours.toLocaleString()} hrs`;
+};
+
+const formatPriorityLabel = (priority?: string): string => {
+  if (!priority) return 'Priority';
+  return priority.replace('_', ' ');
 };
 
 const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
@@ -208,9 +213,12 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground capitalize">
-              {workOrder.priority} priority
-            </span>
+            <Badge
+              variant="outline"
+              className={cn('capitalize', getPriorityBadgeClass(workOrder.priority))}
+            >
+              {formatPriorityLabel(workOrder.priority)}
+            </Badge>
             {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge />}
             <Badge className={getStatusColor(workOrder.status)}>
               {formatStatus(workOrder.status)}
@@ -447,13 +455,24 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
               {workOrder.title}
             </CardTitle>
           </div>
-          {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
-          <Badge
-            className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs flex-shrink-0")}
-            variant="outline"
-          >
-            {formatStatus(workOrder.status)}
-          </Badge>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
+            <Badge
+              variant="outline"
+              className={cn(
+                'rounded-full px-2 py-0.5 text-xs capitalize',
+                getPriorityBadgeClass(workOrder.priority)
+              )}
+            >
+              {formatPriorityLabel(workOrder.priority)}
+            </Badge>
+            <Badge
+              className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs")}
+              variant="outline"
+            >
+              {formatStatus(workOrder.status)}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 

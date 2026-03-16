@@ -14,7 +14,7 @@ import { WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-or
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { SortField } from '@/features/work-orders/hooks/useWorkOrderFilters';
+import type { SortDirection, SortField } from '@/features/work-orders/hooks/useWorkOrderFilters';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import WorkOrderForm from '@/features/work-orders/components/WorkOrderForm';
@@ -25,6 +25,10 @@ import { WorkOrdersList } from '@/features/work-orders/components/WorkOrdersList
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
 import { useOfflineMergedWorkOrders } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+const VALID_SORT_FIELDS: readonly SortField[] = ['created', 'due_date', 'priority', 'status'];
+const VALID_SORT_DIRECTIONS: readonly SortDirection[] = ['asc', 'desc'];
 
 const WorkOrders = () => {
   const [showForm, setShowForm] = useState(false);
@@ -36,7 +40,8 @@ const WorkOrders = () => {
 
   const { currentOrganization } = useOrganization();
   const { currentUser } = useUser();
-  const [searchParams] = useSearchParams();
+  const isMobile = useIsMobile();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initializedFromUrl = useRef(false);
 
   // Use team-based access control
@@ -79,6 +84,7 @@ const WorkOrders = () => {
     if (initializedFromUrl.current) return;
     const date = searchParams.get('date');
     const team = searchParams.get('team');
+    const sort = searchParams.get('sort');
     let didApply = false;
 
     if (team) {
@@ -89,11 +95,39 @@ const WorkOrders = () => {
       toggleQuickFilter('overdue');
       didApply = true;
     }
+    if (sort) {
+      const [field, direction] = sort.split(':');
+      const isValidField = VALID_SORT_FIELDS.includes(field as SortField);
+      const isValidDirection = VALID_SORT_DIRECTIONS.includes(direction as SortDirection);
+
+      if (isValidField && isValidDirection) {
+        updateSort(field as SortField, direction as SortDirection);
+        didApply = true;
+      }
+    }
 
     if (didApply) {
       initializedFromUrl.current = true;
     }
-  }, [searchParams, toggleQuickFilter, updateFilter]);
+  }, [searchParams, toggleQuickFilter, updateFilter, updateSort]);
+
+  useEffect(() => {
+    const defaultSortParam = 'created:desc';
+    const nextSortParam = `${sortField}:${sortDirection}`;
+    const currentSortParam = searchParams.get('sort') ?? defaultSortParam;
+
+    if (currentSortParam === nextSortParam) {
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    if (nextSortParam === defaultSortParam) {
+      nextSearchParams.delete('sort');
+    } else {
+      nextSearchParams.set('sort', nextSortParam);
+    }
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [searchParams, setSearchParams, sortDirection, sortField]);
 
   // Check for unassigned work orders in single-user organization
   const unassignedCount = allWorkOrders.filter(order => 
@@ -209,11 +243,12 @@ const WorkOrders = () => {
           description={getSubtitle()}
           meta={getAccessBadge()}
           actions={
-            <Button onClick={() => setShowForm(true)} className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Create Work Order</span>
-              <span className="sm:hidden">Create</span>
-            </Button>
+            !isMobile ? (
+              <Button onClick={() => setShowForm(true)} className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                <span>Create Work Order</span>
+              </Button>
+            ) : undefined
           }
         />
 
@@ -277,11 +312,24 @@ const WorkOrders = () => {
             isUpdating={updateStatusMutation.isPending}
             isAccepting={acceptanceMutation.isPending}
             hasActiveFilters={hasActiveFilters}
+            activePresets={activePresets}
             onCreateClick={() => setShowForm(true)}
             onAssignClick={handleAssignClick}
             onReopenClick={() => undefined}
           />
         </div>
+
+        {isMobile && (
+          <Button
+            type="button"
+            size="icon"
+            className="fixed bottom-[78px] right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3"
+            onClick={() => setShowForm(true)}
+            aria-label="Create work order"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        )}
 
       {/* Work Order Form Modal */}
       <WorkOrderForm 

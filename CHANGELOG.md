@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Work Orders mobile triage and filtering UX** — Updated mobile Work Orders interactions for faster field use: quick-filter chips are now mutually exclusive with tap-again clear behavior, sort selection persists via URL query params across detail-page navigation, the top mobile create action was replaced with a bottom-right FAB to recover list space, chip sizing/spacing was tuned for narrow screens, cards now surface priority as a visible badge in list view, and Create Work Order equipment selection now uses a searchable combobox for large fleets.
 - **Teams list + detail workflow polish** — Refined team management UX across `Teams` and `TeamDetails`: moved card quick actions to an icon-only kebab in the card header, added list-card status + operational stats (members, equipment, active WOs, overdue), merged search/create into a unified toolbar, and added list sorting (A-Z, Z-A, member count, newest). On details, renamed the top work-order stat to `Active WOs`, removed redundant Quick Actions card, made `Completed` activity stat clickable, reduced map vertical footprint, clarified "team location overrides equipment" copy with tooltip help, moved delete into secondary overflow actions with an `AlertDialog` confirmation flow, improved clickable-link signaling on stat tiles, and strengthened Team Members actions with more prominent Add Member and inline clickable role badges.
 - **Team forms validation and clarity** — Replaced native browser required-tooltip validation in Create Team with inline app-styled field errors, added description counters (`0 / 500`) to create/edit team dialogs, and clarified Team Image helper copy to "Upload a logo or photo to identify this team."
 
@@ -39,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Work Orders mobile filter dropdown blocker** — Resolved a layering bug where `Select` option menus inside the mobile Filters sheet rendered in the DOM but were visually hidden behind modal layers. Select popover stacking now renders above sheet content so Status/Assignee/Priority/Due Date/Team options are visible and usable on mobile.
+- **Work Orders filter result correctness and empty-state clarity** — Overdue filtering now excludes terminal statuses (`completed`, `cancelled`) by using shared overdue logic, and the empty state is now context-aware for `My Work` with clear copy when no assignments are found.
 - **Fleet map pin popup text contrast** — Overrode Google Maps InfoWindow CSS cascade that was rendering all popup text as near-invisible light grey on the white bubble. Scoped light-mode design tokens inside the InfoWindow container so text, badges, and links render legibly in both light and dark mode.
 - **Signup form validation feedback timing and accessibility** — Added touched-field behavior with blur-triggered required-field errors, ARIA invalid/description wiring, and submit-attempt fallback messaging so users get clear, field-level validation guidance without premature error noise.
 - **Mobile drawer layering over bottom navigation** — Raised shared drawer overlay/content layering so create/edit alternate-group sheets consistently render above persistent bottom nav and block background interaction as expected.

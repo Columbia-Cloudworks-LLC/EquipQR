@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { isToday, isThisWeek } from 'date-fns';
 import { WorkOrderFilters, WorkOrderData } from '@/features/work-orders/types/workOrder';
-import { getPriorityValue } from '@/features/work-orders/utils/workOrderHelpers';
+import { getPriorityValue, isOverdue } from '@/features/work-orders/utils/workOrderHelpers';
 
 export type QuickFilterPreset = 'my-work' | 'urgent' | 'overdue' | 'unassigned';
 export type SortField = 'created' | 'due_date' | 'priority' | 'status';
@@ -16,13 +16,6 @@ const PRESET_FILTER_MAP: Record<QuickFilterPreset, { key: keyof WorkOrderFilters
   'urgent':     { key: 'priorityFilter', value: 'high' },
   'overdue':    { key: 'dueDateFilter',  value: 'overdue' },
   'unassigned': { key: 'assigneeFilter', value: 'unassigned' },
-};
-
-const CONFLICTING_PRESETS: Record<QuickFilterPreset, QuickFilterPreset[]> = {
-  'my-work':    ['unassigned'],
-  'unassigned': ['my-work'],
-  'urgent':     [],
-  'overdue':    [],
 };
 
 export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?: string) => {
@@ -56,7 +49,7 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
       const matchesPriority = filters.priorityFilter === 'all' || order.priority === filters.priorityFilter;
       
       const matchesDueDate = filters.dueDateFilter === 'all' || 
-                            (filters.dueDateFilter === 'overdue' && order.dueDate && new Date(order.dueDate) < new Date()) ||
+                            (filters.dueDateFilter === 'overdue' && isOverdue(order.dueDate, order.status)) ||
                             (filters.dueDateFilter === 'today' && order.dueDate && isToday(new Date(order.dueDate))) ||
                             (filters.dueDateFilter === 'this_week' && order.dueDate && isThisWeek(new Date(order.dueDate)));
       
@@ -111,22 +104,28 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
 
   const toggleQuickFilter = useCallback((preset: QuickFilterPreset) => {
     setActivePresets(prev => {
-      const next = new Set(prev);
+      const wasActive = prev.has(preset);
       const mapping = PRESET_FILTER_MAP[preset];
 
-      if (next.has(preset)) {
-        next.delete(preset);
-        setFilters(f => ({ ...f, [mapping.key]: 'all' }));
-      } else {
-        for (const conflict of CONFLICTING_PRESETS[preset]) {
-          if (next.has(conflict)) {
-            next.delete(conflict);
-          }
+      setFilters(f => {
+        const resetPresetFilters: WorkOrderFilters = {
+          ...f,
+          assigneeFilter: 'all',
+          priorityFilter: 'all',
+          dueDateFilter: 'all',
+        };
+
+        if (wasActive) {
+          return resetPresetFilters;
         }
-        next.add(preset);
-        setFilters(f => ({ ...f, [mapping.key]: mapping.value }));
-      }
-      return next;
+
+        return {
+          ...resetPresetFilters,
+          [mapping.key]: mapping.value,
+        };
+      });
+
+      return wasActive ? new Set() : new Set([preset]);
     });
   }, []);
 

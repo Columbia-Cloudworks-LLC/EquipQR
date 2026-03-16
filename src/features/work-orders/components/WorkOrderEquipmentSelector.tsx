@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Forklift, Clock, Edit, Plus, List } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Forklift, Clock, Edit, Plus, List, Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { useEquipmentCurrentWorkingHours, useUpdateEquipmentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
 import { QuickEquipmentForm } from '@/features/equipment/components/QuickEquipmentForm';
 import type { EquipmentSelectorItem } from '@/features/work-orders/types/workOrderEquipment';
+import { cn } from '@/lib/utils';
 
 type EquipmentMode = 'select' | 'create';
 
@@ -137,6 +139,8 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
   canCreateEquipment = false,
 }) => {
   const [mode, setMode] = useState<EquipmentMode>('select');
+  const [equipmentComboboxOpen, setEquipmentComboboxOpen] = useState(false);
+  const selectedEquipment = allEquipment.find((equipment) => equipment.id === values.equipmentId);
 
   // Handler for when equipment is created via quick entry
   const handleEquipmentCreated = (equipmentId: string) => {
@@ -203,40 +207,81 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
       {/* Select Existing Mode */}
       {mode === 'select' && (
         <div className="space-y-2">
-          <Select 
-            value={values.equipmentId} 
-            onValueChange={(value) => setValue('equipmentId', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select equipment" />
-            </SelectTrigger>
-            <SelectContent>
-              {allEquipment.length === 0 ? (
-                <SelectItem value="_empty" disabled>
-                  No equipment available
-                </SelectItem>
-              ) : (
-                allEquipment.map((equipment) => {
-                  const locationDisplay = getEquipmentLocationDisplay(equipment);
-                  return (
-                    <SelectItem key={equipment.id} value={equipment.id}>
-                      <div className="flex flex-col gap-0.5 py-1">
-                        <span className="font-medium">{equipment.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {[equipment.manufacturer, equipment.model].filter(Boolean).join(' ')}
-                          {equipment.serial_number ? ` • S/N: ${equipment.serial_number}` : ''}
-                          {equipment.working_hours != null ? ` • ${equipment.working_hours.toLocaleString()} hrs` : ''}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {equipment.team?.name || 'No team'} • {locationDisplay}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  );
-                })
-              )}
-            </SelectContent>
-          </Select>
+          <Popover open={equipmentComboboxOpen} onOpenChange={setEquipmentComboboxOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-expanded={equipmentComboboxOpen}
+                className={cn(
+                  'h-auto min-h-11 w-full justify-between px-3 py-2 text-left font-normal',
+                  !selectedEquipment && 'text-muted-foreground'
+                )}
+              >
+                <span className="truncate">
+                  {selectedEquipment
+                    ? `${selectedEquipment.name}${selectedEquipment.serial_number ? ` • ${selectedEquipment.serial_number}` : ''}`
+                    : 'Select equipment'}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search equipment..." />
+                <CommandList>
+                  <CommandEmpty>
+                    {allEquipment.length === 0 ? 'No equipment available' : 'No equipment found.'}
+                  </CommandEmpty>
+                  <CommandGroup>
+                    {allEquipment.map((equipment) => {
+                      const locationDisplay = getEquipmentLocationDisplay(equipment);
+                      return (
+                        <CommandItem
+                          key={equipment.id}
+                          value={[
+                            equipment.name,
+                            equipment.manufacturer,
+                            equipment.model,
+                            equipment.serial_number,
+                            equipment.team?.name,
+                            locationDisplay
+                          ]
+                            .filter(Boolean)
+                            .join(' ')
+                          }
+                          onSelect={() => {
+                            setValue('equipmentId', equipment.id);
+                            setEquipmentComboboxOpen(false);
+                          }}
+                          className="items-start"
+                        >
+                          <Check
+                            className={cn(
+                              'mr-2 mt-0.5 h-4 w-4',
+                              values.equipmentId === equipment.id ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                          <div className="flex min-w-0 flex-col gap-0.5 py-1">
+                            <span className="font-medium">{equipment.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {[equipment.manufacturer, equipment.model].filter(Boolean).join(' ')}
+                              {equipment.serial_number ? ` • S/N: ${equipment.serial_number}` : ''}
+                              {equipment.working_hours != null ? ` • ${equipment.working_hours.toLocaleString()} hrs` : ''}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {equipment.team?.name || 'No team'} • {locationDisplay}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
           {errors.equipmentId && (
             <p className="text-sm text-destructive">{errors.equipmentId}</p>
           )}
