@@ -247,6 +247,13 @@ if !errorlevel! neq 0 (
 )
 echo        Database reset complete - all migrations re-applied successfully.
 
+echo.
+echo  [5b]  Seeding equipment images into local storage...
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\seed-equipment-images.ps1" -ApiPort %SUPABASE_API_PORT%
+if !errorlevel! neq 0 (
+    echo        WARNING: Seed image upload had errors. Equipment images may be missing.
+)
+
 :db_reset_done
 
 REM ---------- 6. Regenerate Supabase TypeScript types -------------------------
