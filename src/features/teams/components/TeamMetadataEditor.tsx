@@ -46,12 +46,15 @@ function buildTeamAddressDisplay(team: TeamWithMembers): string {
   return parts.join(', ');
 }
 
+const DESCRIPTION_MAX_LENGTH = 500;
+
 const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({ 
   open, 
   onClose, 
   team 
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [descriptionLength, setDescriptionLength] = useState(team.description?.length ?? 0);
   const [locationData, setLocationData] = useState<PlaceLocationData | null>(null);
   const [locationCleared, setLocationCleared] = useState(false);
   const [overrideEquipmentLocation, setOverrideEquipmentLocation] = useState(
@@ -171,10 +174,15 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                 <Textarea
                   id="description"
                   name="description"
-                  defaultValue={team.description}
+                  defaultValue={team.description ?? ''}
+                  onChange={(e) => setDescriptionLength(e.target.value.length)}
                   placeholder="Brief description of the team's responsibilities..."
                   className="min-h-[100px]"
+                  maxLength={DESCRIPTION_MAX_LENGTH}
                 />
+                <p className="text-xs text-muted-foreground text-right">
+                  {descriptionLength} / {DESCRIPTION_MAX_LENGTH}
+                </p>
               </div>
 
               <SingleImageUpload
@@ -184,7 +192,7 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                 maxSizeMB={5}
                 disabled={isLoading}
                 label="Team Image"
-                helpText="Upload an image for this team or customer business"
+                helpText="Upload a logo or photo to identify this team"
               />
 
               <div className="space-y-2">

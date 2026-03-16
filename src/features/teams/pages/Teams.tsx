@@ -11,9 +11,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, Plus, Search, Settings, UserCheck, Eye, Wrench, Forklift, ClipboardList, MoreVertical } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Users, Plus, Search, Settings, UserCheck, Eye, Wrench, Forklift, ClipboardList, AlertTriangle, ArrowUpDown, MoreVertical } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeams } from '@/features/teams/hooks/useTeams';
+import { useTeamsListStats } from '@/features/teams/hooks/useTeamsListStats';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useNavigate } from 'react-router-dom';
 import CreateTeamDialog from '@/features/teams/components/CreateTeamDialog';
@@ -24,7 +26,11 @@ const Teams = () => {
   const { teams = [], isLoading } = useTeams();
   const { canCreateTeam } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'members' | 'newest'>('name-asc');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  const teamIds = teams.map(t => t.id);
+  const { data: listStats } = useTeamsListStats(currentOrganization?.id, teamIds);
 
   const canCreateTeams = canCreateTeam();
 
@@ -35,11 +41,25 @@ const Teams = () => {
     }
   };
 
-  // Filter teams based on search term
-  const filteredTeams = teams.filter(team =>
-    team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    team.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTeams = teams
+    .filter(team =>
+      team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      team.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        case 'members':
+          return b.member_count - a.member_count;
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        default:
+          return 0;
+      }
+    });
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -105,31 +125,43 @@ const Teams = () => {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Teams</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your organization's teams and members
-          </p>
+      <div>
+        <h1 className="text-3xl font-bold">Teams</h1>
+        <p className="text-muted-foreground mt-1">
+          Manage your organization's teams and members
+        </p>
+      </div>
+
+      {/* Search + Sort + Create toolbar */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search teams..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+            aria-label="Search teams by name or description"
+          />
         </div>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+          <SelectTrigger className="w-[160px] shrink-0">
+            <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name-asc">Name A–Z</SelectItem>
+            <SelectItem value="name-desc">Name Z–A</SelectItem>
+            <SelectItem value="members">Most Members</SelectItem>
+            <SelectItem value="newest">Newest First</SelectItem>
+          </SelectContent>
+        </Select>
         {canCreateTeams && (
-          <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+          <Button onClick={() => setShowCreateDialog(true)} className="gap-2 shrink-0">
             <Plus className="h-4 w-4" />
             Create Team
           </Button>
         )}
-      </div>
-
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search teams..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-          aria-label="Search teams by name or description"
-        />
       </div>
 
       {/* Teams Grid */}
@@ -176,26 +208,93 @@ const Teams = () => {
               aria-label={`Open team details for ${team.name}`}
             >
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <CardTitle className="text-lg group-hover:text-primary transition-colors truncate">
-                      {team.name}
-                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg group-hover:text-primary transition-colors truncate">
+                        {team.name}
+                      </CardTitle>
+                      <Badge variant="outline" className="bg-success/20 text-success border-success/30 text-xs shrink-0">
+                        Active
+                      </Badge>
+                    </div>
                     <CardDescription className="mt-1 line-clamp-2">
                       {team.description || 'No description provided'}
                     </CardDescription>
                   </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">Actions for {team.name}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/dashboard/teams/${team.id}`);
+                        }}
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        View Team Details
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/dashboard/equipment?team=${team.id}`);
+                        }}
+                      >
+                        <Forklift className="h-4 w-4 mr-2" />
+                        View Equipment
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/dashboard/work-orders?team=${team.id}`);
+                        }}
+                      >
+                        <ClipboardList className="h-4 w-4 mr-2" />
+                        View Work Orders
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardHeader>
               
               <CardContent className="space-y-4">
-                {/* Member Count */}
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{team.member_count} members</span>
-                  </div>
-                </div>
+                {/* Stats row */}
+                {(() => {
+                  const stats = listStats?.[team.id];
+                  return (
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3.5 w-3.5" />
+                        {team.member_count}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Forklift className="h-3.5 w-3.5" />
+                        {stats?.equipmentCount ?? '—'}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <ClipboardList className="h-3.5 w-3.5" />
+                        {stats?.activeWOs ?? '—'}
+                      </span>
+                      {(stats?.overdueWOs ?? 0) > 0 && (
+                        <span className="flex items-center gap-1 text-warning font-medium">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          {stats!.overdueWOs} overdue
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Member Preview */}
                 <div className="space-y-3">
@@ -238,52 +337,6 @@ const Teams = () => {
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="pt-2 border-t">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreVertical className="h-4 w-4 mr-2" />
-                        Quick Actions
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/dashboard/teams/${team.id}`);
-                        }}
-                      >
-                        <Settings className="h-4 w-4 mr-2" />
-                        View Team Details
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/dashboard/equipment?team=${team.id}`);
-                        }}
-                      >
-                        <Forklift className="h-4 w-4 mr-2" />
-                        View Equipment
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/dashboard/work-orders?team=${team.id}`);
-                        }}
-                      >
-                        <ClipboardList className="h-4 w-4 mr-2" />
-                        View Work Orders
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
               </CardContent>
             </Card>
           ))}

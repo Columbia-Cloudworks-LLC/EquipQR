@@ -111,12 +111,28 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
                 </div>
               </TableCell>
               <TableCell>
-                <Badge className={getRoleColor(member.role)} variant="outline">
-                  <div className="flex items-center gap-1">
-                    {getRoleIcon(member.role)}
-                    {member.role}
-                  </div>
-                </Badge>
+                {canManage ? (
+                  <button
+                    type="button"
+                    onClick={() => handleChangeRole(member)}
+                    className="inline-flex"
+                    title="Click to change role"
+                  >
+                    <Badge className={`${getRoleColor(member.role)} cursor-pointer hover:opacity-80 transition-opacity`} variant="outline">
+                      <div className="flex items-center gap-1">
+                        {getRoleIcon(member.role)}
+                        {member.role}
+                      </div>
+                    </Badge>
+                  </button>
+                ) : (
+                  <Badge className={getRoleColor(member.role)} variant="outline">
+                    <div className="flex items-center gap-1">
+                      {getRoleIcon(member.role)}
+                      {member.role}
+                    </div>
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>
                 <span className="text-muted-foreground">{member.profiles?.email || 'No email'}</span>

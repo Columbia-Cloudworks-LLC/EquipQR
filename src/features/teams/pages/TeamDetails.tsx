@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { ArrowLeft, ChevronRight, Settings, Users, Trash2, Plus, Edit, Forklift, ClipboardList } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronRight, Settings, Users, Trash2, Plus, Edit, Forklift, ClipboardList, MoreVertical } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeam, useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -14,8 +20,8 @@ import TeamMembersList from '@/features/teams/components/TeamMembersList';
 import TeamMetadataEditor from '@/features/teams/components/TeamMetadataEditor';
 import AddTeamMemberDialog from '@/features/teams/components/AddTeamMemberDialog';
 import { QuickBooksCustomerMapping } from '@/features/teams/components/QuickBooksCustomerMapping';
-import TeamQuickActions from '@/features/teams/components/TeamQuickActions';
 import TeamActivitySummary from '@/features/teams/components/TeamActivitySummary';
+import DeleteTeamDialog from '@/features/teams/components/DeleteTeamDialog';
 import TeamRecentEquipment from '@/features/teams/components/TeamRecentEquipment';
 import TeamRecentWorkOrders from '@/features/teams/components/TeamRecentWorkOrders';
 import TeamLocationCard from '@/features/teams/components/TeamLocationCard';
@@ -26,6 +32,7 @@ const TeamDetails = () => {
   const { currentOrganization, isLoading } = useOrganization();
   const [showMetadataEditor, setShowMetadataEditor] = useState(false);
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Use team hook for data
   const { data: team, isLoading: teamLoading } = useTeam(teamId);
@@ -92,10 +99,6 @@ const TeamDetails = () => {
 
   const handleDeleteTeam = async () => {
     if (!team) return;
-    
-    const confirmed = window.confirm(`Are you sure you want to delete "${team.name}"? This action cannot be undone.`);
-    if (!confirmed) return;
-
     try {
       await deleteTeam.mutateAsync(team.id);
       navigate('/dashboard/teams');
@@ -136,15 +139,23 @@ const TeamDetails = () => {
               </Button>
             )}
             {canDelete && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDeleteTeam}
-                className="text-destructive hover:text-destructive gap-1.5"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="hidden md:inline">Delete Team</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">More actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Team
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>
@@ -195,7 +206,7 @@ const TeamDetails = () => {
             </div>
             <Link 
               to={`/dashboard/equipment?team=${team.id}`}
-              className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
+              className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group relative"
             >
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1 group-hover:text-primary transition-colors">
                 <Forklift className="h-3 w-3" />
@@ -206,20 +217,22 @@ const TeamDetails = () => {
               ) : (
                 <p className="text-xl sm:text-2xl font-bold text-primary mt-1">{equipmentStats?.totalEquipment ?? 0}</p>
               )}
+              <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
             <Link 
               to={`/dashboard/work-orders?team=${team.id}`}
-              className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
+              className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group relative"
             >
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1 group-hover:text-primary transition-colors">
                 <ClipboardList className="h-3 w-3" />
-                Work Orders
+                Active WOs
               </span>
               {isLoadingWorkOrderStats ? (
                 <Skeleton className="h-7 w-10 mt-1" />
               ) : (
                 <p className="text-xl sm:text-2xl font-bold text-primary mt-1">{workOrderStats?.activeWorkOrders ?? 0}</p>
               )}
+              <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
             <div className="p-3 rounded-lg bg-muted/30">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Created</span>
@@ -243,9 +256,6 @@ const TeamDetails = () => {
         canEdit={canEdit}
         onEditClick={() => setShowMetadataEditor(true)}
       />
-
-      {/* Quick Actions */}
-      <TeamQuickActions teamId={team.id} teamName={team.name} />
 
       {/* Team Activity Summary */}
       <TeamActivitySummary
@@ -287,8 +297,9 @@ const TeamDetails = () => {
             </div>
             {canManageMembers && (
               <Button
+                size="sm"
                 onClick={() => setShowAddMemberDialog(true)}
-                className="flex items-center gap-2"
+                className="gap-1.5"
               >
                 <Plus className="h-4 w-4" />
                 Add Member
@@ -312,6 +323,14 @@ const TeamDetails = () => {
         open={showAddMemberDialog}
         onClose={() => setShowAddMemberDialog(false)}
         team={team}
+      />
+
+      <DeleteTeamDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        teamName={team.name}
+        isPending={deleteTeam.isPending}
+        onConfirm={handleDeleteTeam}
       />
     </div>
   );

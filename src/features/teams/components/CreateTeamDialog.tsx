@@ -26,9 +26,12 @@ interface CreateTeamDialogProps {
   organizationId: string;
 }
 
+const DESCRIPTION_MAX_LENGTH = 500;
+
 const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, organizationId }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [nameError, setNameError] = useState('');
   const [locationData, setLocationData] = useState<PlaceLocationData | null>(null);
   const [overrideEquipmentLocation, setOverrideEquipmentLocation] = useState(false);
   const { toast } = useToast();
@@ -48,6 +51,7 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
   const resetForm = useCallback(() => {
     setName('');
     setDescription('');
+    setNameError('');
     setLocationData(null);
     setOverrideEquipmentLocation(false);
   }, []);
@@ -56,11 +60,7 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
     e.preventDefault();
     
     if (!name.trim()) {
-      toast({
-        title: "Error",
-        description: "Team name is required",
-        variant: "destructive",
-      });
+      setNameError('Team name is required');
       return;
     }
 
@@ -122,10 +122,15 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
             <Input
               id="name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => { setName(e.target.value); setNameError(''); }}
               placeholder="Enter team name"
-              required
+              className={nameError ? 'border-destructive focus-visible:ring-destructive' : ''}
+              aria-invalid={!!nameError}
+              aria-describedby={nameError ? 'name-error' : undefined}
             />
+            {nameError && (
+              <p id="name-error" className="text-sm text-destructive">{nameError}</p>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -133,10 +138,14 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
             <Textarea
               id="description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => setDescription(e.target.value.slice(0, DESCRIPTION_MAX_LENGTH))}
               placeholder="Enter team description (optional)"
               rows={3}
+              maxLength={DESCRIPTION_MAX_LENGTH}
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {description.length} / {DESCRIPTION_MAX_LENGTH}
+            </p>
           </div>
 
           <div className="space-y-2">
