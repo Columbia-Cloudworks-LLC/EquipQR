@@ -69,13 +69,13 @@ describe('DashboardRecentWorkOrdersCard', () => {
       expect(screen.getByText('Latest work order activity')).toBeInTheDocument();
     });
 
-    it('renders view all link when work orders exist', () => {
+    it('renders view all link when hasMore is true', () => {
       render(
         <MemoryRouter>
           <DashboardRecentWorkOrdersCard
             workOrders={mockWorkOrders}
             isLoading={false}
-            hasMore={false}
+            hasMore={true}
           />
         </MemoryRouter>
       );
