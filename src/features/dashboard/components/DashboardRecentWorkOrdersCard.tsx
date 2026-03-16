@@ -25,7 +25,7 @@ interface DashboardRecentWorkOrdersCardProps {
 export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCardProps> = ({
   workOrders,
   isLoading,
-  hasMore: _hasMore,
+  hasMore,
 }) => {
   return (
     <section aria-labelledby="recent-work-orders-heading">
@@ -71,7 +71,7 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
             <p className="text-muted-foreground">No work orders found</p>
           )}
         </CardContent>
-        {!isLoading && workOrders.length > 0 && (
+        {!isLoading && hasMore && (
           <CardFooter>
             <Button asChild variant="secondary" className="w-full">
               <Link to="/dashboard/work-orders" className="inline-flex items-center justify-center gap-2">

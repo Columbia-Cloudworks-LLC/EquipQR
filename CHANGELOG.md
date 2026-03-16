@@ -1276,9 +1276,7 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.12...HEAD
-[2.3.12]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.11...v2.3.12
-[2.3.11]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.10...v2.3.11
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.10...HEAD
 [2.3.10]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.9...v2.3.10
 [2.3.9]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.8...v2.3.9
 [2.3.8]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.7...v2.3.8

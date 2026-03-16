@@ -477,18 +477,15 @@ export const getAlternateGroups = async (
     }
 
     const groupIds = baseGroups.map((group) => group.id);
-    const countPromises = groupIds.map(async (gid) => {
-      const { count, error: cErr } = await supabase
-        .from('part_alternate_group_members')
-        .select('*', { count: 'exact', head: true })
-        .eq('group_id', gid);
-      if (cErr) throw cErr;
-      return { group_id: gid, count: count ?? 0 };
-    });
-    const countResults = await Promise.all(countPromises);
+    const { data: memberRows, error: memberCountError } = await supabase
+      .from('part_alternate_group_members')
+      .select('group_id')
+      .in('group_id', groupIds);
 
-    const memberCounts = countResults.reduce<Record<string, number>>((acc, r) => {
-      acc[r.group_id] = r.count;
+    if (memberCountError) throw memberCountError;
+
+    const memberCounts = (memberRows ?? []).reduce<Record<string, number>>((acc, r) => {
+      acc[r.group_id] = (acc[r.group_id] || 0) + 1;
       return acc;
     }, {});
 

@@ -26,6 +26,7 @@ export const FeatureHero = ({ icon: Icon, title, description, ctaText, ctaLink =
       <div className="container px-4 mx-auto">
         <div className="max-w-4xl mx-auto">
           <button
+            type="button"
             onClick={handleBack}
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
           >
