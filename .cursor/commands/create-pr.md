@@ -9,6 +9,8 @@ Create a well-structured pull request with proper description, labels, and revie
 ### 1. Prepare branch
 
 - **Verify key files are current**:
+  - Read `/CHANGELOG.md`
+    - If it has unreleased changes, choose an appropriate new version number and update the section with the new version number and create a new empty unreleased section
   - Read `/package.json` — confirm `version` field is correct
   - Check if `package-lock.json` has uncommitted changes (it should be in sync with `package.json`)
   - Read `/README.md` — confirm version references, feature descriptions, and setup instructions are current
@@ -108,7 +110,7 @@ CallMcpTool({ server: "user-github", toolName: "issue_write", arguments: {
 ## Common Label Choices
 
 | Label | When to use |
-|---|---|
+| --- | --- |
 | `enhancement` | New features or improvements |
 | `bug` | Bug fixes |
 | `security` | Security fixes or hardening |
