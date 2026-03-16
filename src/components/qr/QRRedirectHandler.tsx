@@ -110,7 +110,7 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
               
               <Button 
                 variant="outline" 
-                onClick={() => window.location.href = '/dashboard/scanner'}
+                onClick={() => window.location.href = '/dashboard'}
                 className="w-full"
               >
                 Cancel
@@ -152,10 +152,10 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
               </Button>
               
               <Button 
-                onClick={() => window.location.href = '/dashboard/scanner'}
+                onClick={() => window.location.href = '/dashboard'}
                 className="w-full"
               >
-                Back to Scanner
+                Go to Dashboard
               </Button>
             </div>
           </CardContent>
@@ -181,6 +181,6 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
     );
   }
 
-  // Fallback to scanner if no other conditions match
-  return <Navigate to="/dashboard/scanner" replace />;
+  // Fallback to dashboard if no other conditions match
+  return <Navigate to="/dashboard" replace />;
 };

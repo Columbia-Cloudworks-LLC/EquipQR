@@ -120,12 +120,13 @@ Work orders progress through a defined lifecycle with the following statuses:
   5. Form shows context-specific placeholder text
 
 #### 3. QR Code Scanning
-- **Access**: QR Scanner page (`/scanner`) or mobile scanning
+- **Access**: Native mobile camera scanning of equipment QR codes
 - **Process**:
-  1. User scans equipment QR code
-  2. Redirected to equipment details page
-  3. Can create work order from equipment context
-  4. Equipment information auto-populated
+  1. User scans equipment QR code with their phone camera
+  2. Opens the QR URL (`/qr/equipment/{id}` or `/qr/inventory/{id}`) in EquipQR
+  3. System validates auth and organization context, then redirects to the target record
+  4. User can create a work order from equipment context
+  5. Equipment information is auto-populated
 
 ### Work Order Assignment System
 

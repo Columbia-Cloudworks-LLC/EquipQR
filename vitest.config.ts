@@ -77,7 +77,6 @@ export default defineConfig({
         'src/components/performance/**',
         'src/components/qr/**',
         'src/components/reports/**',
-        'src/components/scanner/**',
         'src/components/security/**',
         'src/components/session/**',
         'src/components/settings/**',
@@ -98,7 +97,6 @@ export default defineConfig({
         'src/utils/templatePDF.ts',
         'src/utils/navigationDebug.ts',
         'src/utils/invitationSystemValidation.ts',
-        'src/utils/qrTestHelper.ts',
         
         // Complex pages (will add journey tests)
         'src/pages/FleetMap.tsx',

@@ -167,18 +167,11 @@ const FleetMap: React.FC = () => {
               <h3 className="text-lg font-semibold mb-2">No Locations Yet</h3>
               <p className="text-sm text-muted-foreground max-w-md mb-4">
                 Add addresses to your equipment or teams to see them on the fleet map.
-                You can also scan QR codes to capture GPS coordinates.
               </p>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => window.location.href = '/dashboard/equipment'}>
-                  <Forklift className="h-4 w-4 mr-2" />
-                  Manage Equipment
-                </Button>
-                <Button onClick={() => window.location.href = '/dashboard/scanner'}>
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Scan QR Code
-                </Button>
-              </div>
+              <Button variant="outline" onClick={() => window.location.href = '/dashboard/equipment'}>
+                <Forklift className="h-4 w-4 mr-2" />
+                Manage Equipment
+              </Button>
             </CardContent>
           </Card>
         </div>

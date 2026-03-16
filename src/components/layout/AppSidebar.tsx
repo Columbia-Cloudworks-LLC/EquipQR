@@ -30,7 +30,6 @@ import {
   Users, 
   Map, 
   Building,
-  QrCode,
   Settings,
   FileText,
   ChevronUp,
@@ -77,7 +76,6 @@ const mainNavigation: NavigationItem[] = [
   { title: "Part Lookup", url: "/dashboard/part-lookup", icon: Search },
   { title: "Part Alternates", url: "/dashboard/alternate-groups", icon: Layers },
   { title: "Teams", url: "/dashboard/teams", icon: Users },
-  { title: "QR Scanner", url: "/dashboard/scanner", icon: QrCode },
 ];
 
 const managementNavigation: NavigationItem[] = [

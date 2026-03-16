@@ -16,8 +16,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
   Forklift, 
+  Warehouse,
   ClipboardList, 
-  ScanLine,
   Menu
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -34,7 +34,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: Home },
   { label: 'Equipment', href: '/dashboard/equipment', icon: Forklift },
-  { label: 'QR Scan', href: '/dashboard/scanner', icon: ScanLine },
+  { label: 'Inventory', href: '/dashboard/inventory', icon: Warehouse },
   { label: 'Work Orders', shortLabel: 'Orders', href: '/dashboard/work-orders', icon: ClipboardList },
 ];
 
