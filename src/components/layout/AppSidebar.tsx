@@ -17,6 +17,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -38,10 +42,14 @@ import {
   Search,
   Layers,
   History,
-  Bug
+  Bug,
+  Sun,
+  Moon,
+  Monitor
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { isLightColor } from "@/lib/utils";
 import OrganizationSwitcher from "@/features/organization/components/OrganizationSwitcher";
@@ -88,6 +96,7 @@ const AppSidebar = () => {
   const isMobile = useIsMobile();
   const { setOpenMobile } = useSidebar();
   const { openBugReport } = useBugReport();
+  const { theme, setTheme } = useTheme();
 
   const handleSignOut = async () => {
     await signOut();
@@ -287,6 +296,25 @@ const AppSidebar = () => {
                       Ctrl+Shift+B
                     </span>
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                    Theme
+                  </DropdownMenuLabel>
+                  <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>
+                    <DropdownMenuRadioItem value="light" className="text-sm">
+                      <Sun className="mr-2 h-4 w-4" />
+                      Light
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="dark" className="text-sm">
+                      <Moon className="mr-2 h-4 w-4" />
+                      Dark
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="system" className="text-sm">
+                      <Monitor className="mr-2 h-4 w-4" />
+                      System
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-sm">
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign out
