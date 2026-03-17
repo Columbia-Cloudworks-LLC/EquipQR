@@ -43,7 +43,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import EmptyState from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import { useOrganizationAuditLog, useAuditExport } from '@/hooks/useAuditLog';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { ChangesDiff, ChangesSummary } from './ChangesDiff';
 import { 
   AuditLogFilters,
@@ -337,13 +337,13 @@ function TableSkeleton() {
  * AuditLogTable main component
  */
 export function AuditLogTable({ organizationId }: AuditLogTableProps) {
-  const { currentOrganization } = useOrganization();
+  const { canManageOrganization } = usePermissions();
   const [filters, setFilters] = useState<AuditLogFilters>({});
   const [page, setPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgressLabel, setExportProgressLabel] = useState<string | undefined>(undefined);
   const pageSize = 50;
-  const canExport = currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
+  const canExport = canManageOrganization();
   
   const { exportToCsv } = useAuditExport(organizationId);
   

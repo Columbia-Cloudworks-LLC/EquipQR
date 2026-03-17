@@ -71,6 +71,17 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
     }
   }, [values.hasPM, selectedEquipment, hasAssignedTemplate, assignedTemplate, templates, isLoading, restrictions.canCreateCustomPMTemplates, values.pmTemplateId]);
 
+  const handleWorkOrderTypeKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      setValue('hasPM', false);
+    }
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      setValue('hasPM', true);
+    }
+  };
+
   return (
     <>
       <div className="space-y-2">
@@ -80,7 +91,9 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
             type="button"
             role="radio"
             aria-checked={!values.hasPM}
+            tabIndex={!values.hasPM ? 0 : -1}
             onClick={() => setValue('hasPM', false)}
+            onKeyDown={handleWorkOrderTypeKeyDown}
             className={cn(
               "flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-all",
               !values.hasPM
@@ -95,7 +108,9 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
             type="button"
             role="radio"
             aria-checked={values.hasPM}
+            tabIndex={values.hasPM ? 0 : -1}
             onClick={() => setValue('hasPM', true)}
+            onKeyDown={handleWorkOrderTypeKeyDown}
             className={cn(
               "flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-all",
               values.hasPM

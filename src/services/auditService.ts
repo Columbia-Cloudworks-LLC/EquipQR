@@ -26,6 +26,7 @@ import {
 // ============================================
 
 const AUDIT_EXPORT_BATCH_SIZE = 5000;
+const AUDIT_EXPORT_MAX_RECORDS = 10000;
 
 // ============================================
 // Response Types
@@ -377,19 +378,28 @@ export const auditService = {
       const { count, error: countError } = await countQuery;
       if (countError) throw countError;
 
-      const totalRecords = count ?? 0;
+      const matchedRecords = count ?? 0;
+      const totalRecords = Math.min(matchedRecords, AUDIT_EXPORT_MAX_RECORDS);
       onProgress?.({ current: 0, total: totalRecords });
+
+      if (matchedRecords > AUDIT_EXPORT_MAX_RECORDS) {
+        logger.warn(
+          `Audit CSV export capped at ${AUDIT_EXPORT_MAX_RECORDS.toLocaleString()} records (matched ${matchedRecords.toLocaleString()}).`
+        );
+      }
 
       const allEntries: AuditLogEntry[] = [];
       let offset = 0;
 
       while (offset < totalRecords) {
+        const pageEnd = Math.min(offset + AUDIT_EXPORT_BATCH_SIZE - 1, totalRecords - 1);
         let pageQuery = supabase
           .from('audit_log')
-          .select('*')
+          .select('id, created_at, entity_type, entity_name, action, actor_name, actor_email, changes')
           .eq('organization_id', organizationId)
           .order('created_at', { ascending: false })
-          .range(offset, offset + AUDIT_EXPORT_BATCH_SIZE - 1);
+          .order('id', { ascending: false })
+          .range(offset, pageEnd);
 
         pageQuery = applyAuditFilters(pageQuery, filters);
 

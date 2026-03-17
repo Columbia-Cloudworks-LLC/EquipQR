@@ -117,6 +117,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
                     onClick={() => handleChangeRole(member)}
                     className="inline-flex"
                     title="Click to change role"
+                    aria-label={`Change role for ${member.profiles?.name || 'team member'}`}
                   >
                     <Badge className={`${getRoleColor(member.role)} cursor-pointer hover:opacity-80 transition-opacity`} variant="outline">
                       <div className="flex items-center gap-1">
