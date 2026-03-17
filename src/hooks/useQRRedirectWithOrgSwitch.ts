@@ -57,7 +57,7 @@ export const useQRRedirectWithOrgSwitch = ({
       return {
         isLoading: false,
         error: `${itemType === 'equipment' ? 'Equipment' : 'Inventory item'} not found or access denied`,
-        targetPath: '/dashboard/scanner'
+        targetPath: '/dashboard'
       };
     }
 
@@ -65,7 +65,7 @@ export const useQRRedirectWithOrgSwitch = ({
       return {
         isLoading: false,
         error: `You don't have access to ${itemType} in ${orgInfo.organizationName}`,
-        targetPath: '/dashboard/scanner'
+        targetPath: '/dashboard'
       };
     }
 
@@ -136,7 +136,7 @@ export const useQRRedirectWithOrgSwitch = ({
         ...prev,
         isLoading: false,
         error: 'Failed to verify inventory item access',
-        targetPath: '/dashboard/scanner'
+        targetPath: '/dashboard'
       }));
     }
   }, [inventoryItemId, user, verifyOrganizationAccess]);
@@ -163,7 +163,7 @@ export const useQRRedirectWithOrgSwitch = ({
         ...prev,
         isLoading: false,
         error: 'Failed to verify equipment access',
-        targetPath: '/dashboard/scanner'
+        targetPath: '/dashboard'
       }));
     }
   }, [equipmentId, user, verifyOrganizationAccess]);
@@ -198,7 +198,7 @@ export const useQRRedirectWithOrgSwitch = ({
         ...prev,
         isLoading: false,
          error: 'No equipment ID or inventory item ID provided',
-         targetPath: '/dashboard/scanner'
+         targetPath: '/dashboard'
       }));
       return;
     }

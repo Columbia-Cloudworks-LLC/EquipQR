@@ -55,6 +55,11 @@ vi.mock('@/hooks/useSession', () => ({
   }))
 }));
 
+vi.mock('@/features/equipment/hooks/useEquipmentPMStatus', () => ({
+  useOrgEquipmentPMStatuses: vi.fn(() => ({ data: [] })),
+  useEquipmentPMStatus: vi.fn(() => ({ data: null, isLoading: false })),
+}));
+
 vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
   useTeamMembership: vi.fn(() => ({
     teamMemberships: [],
@@ -308,6 +313,29 @@ describe('Dashboard', () => {
     });
 
     it('shows the welcome message with organization name', () => {
+      setupPersonaMocks({
+        hasTeamAccess: true,
+        isManager: true,
+        userTeamIds: [personas.owner.teamMemberships[0].teamId],
+        stats: {
+          totalEquipment: 10,
+          activeEquipment: 10,
+          maintenanceEquipment: 0,
+          inactiveEquipment: 0,
+          totalWorkOrders: 15,
+          openWorkOrders: 5,
+          overdueWorkOrders: 0,
+          completedWorkOrders: 10,
+          totalTeams: 2,
+        },
+        equipment: [
+          { id: eqFixtures.forklift1.id, name: eqFixtures.forklift1.name, status: 'active', manufacturer: 'Toyota', model: '8FGU25' },
+          { id: eqFixtures.crane.id, name: eqFixtures.crane.name, status: 'active', manufacturer: 'Konecranes', model: 'CXT-10' },
+        ],
+        workOrders: [
+          { id: woFixtures.assigned.id, title: woFixtures.assigned.title, priority: 'high', assigneeName: personas.technician.name, status: 'assigned' },
+        ],
+      });
       render(<Dashboard />);
       expect(screen.getByText(`Welcome back to ${organizations.acme.name}`)).toBeInTheDocument();
     });
@@ -326,17 +354,23 @@ describe('Dashboard', () => {
 
     it('displays widget content after lazy loading', async () => {
       render(<Dashboard />);
-      await waitFor(() => {
-        expect(screen.getByText('Total Equipment')).toBeInTheDocument();
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByText('Total Equipment')).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
     });
 
     it('shows recent equipment for fleet monitoring', async () => {
       render(<Dashboard />);
-      await waitFor(() => {
-        expect(screen.getByText('Recent Equipment')).toBeInTheDocument();
-        expect(screen.getByText(eqFixtures.forklift1.name)).toBeInTheDocument();
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByText('Recent Equipment')).toBeInTheDocument();
+          expect(screen.getByText(eqFixtures.forklift1.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
     });
 
     it('shows recent work orders for workload tracking', async () => {

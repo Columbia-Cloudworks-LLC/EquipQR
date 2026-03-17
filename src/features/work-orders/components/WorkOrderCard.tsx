@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Calendar, Clock, User, Users, UserX, AlertTriangle, Cog, MapPin } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
@@ -30,7 +31,7 @@ import {
   formatDate,
   isOverdue 
 } from '@/features/work-orders/utils/workOrderHelpers';
-import { getWorkOrderStatusBorderWithOverdue } from '@/lib/status-colors';
+import { getPriorityBadgeClass, getWorkOrderStatusBorderWithOverdue } from '@/lib/status-colors';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import PMProgressIndicator from './PMProgressIndicator';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
@@ -115,6 +116,11 @@ const getAssignmentContext = (workOrder: WorkOrder): AssignmentWorkOrderContext 
 const formatMachineHours = (hours?: number | null): string | null => {
   if (typeof hours !== 'number') return null;
   return `${hours.toLocaleString()} hrs`;
+};
+
+const formatPriorityLabel = (priority?: string): string => {
+  if (!priority) return 'Priority';
+  return priority.replace('_', ' ');
 };
 
 const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
@@ -207,9 +213,12 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground capitalize">
-              {workOrder.priority} priority
-            </span>
+            <Badge
+              variant="outline"
+              className={cn('capitalize', getPriorityBadgeClass(workOrder.priority))}
+            >
+              {formatPriorityLabel(workOrder.priority)}
+            </Badge>
             {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge />}
             <Badge className={getStatusColor(workOrder.status)}>
               {formatStatus(workOrder.status)}
@@ -259,7 +268,12 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
                 <div className={`text-muted-foreground ${isOverdue(dueDateValue, workOrder.status) ? 'text-destructive' : ''}`}>
                   {formatDate(dueDateValue)}
                   {isOverdue(dueDateValue, workOrder.status) && (
-                    <AlertTriangle className="h-3 w-3 inline ml-1" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertTriangle className="h-3.5 w-3.5 inline ml-1" />
+                      </TooltipTrigger>
+                      <TooltipContent>Overdue &mdash; due date has passed</TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
               </div>
@@ -312,6 +326,7 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
                   lng={workOrder.effectiveLocation.lng}
                   className="text-sm truncate"
                   showIcon={false}
+                  compact
                 />
               </div>
             </div>
@@ -440,13 +455,24 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
               {workOrder.title}
             </CardTitle>
           </div>
-          {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
-          <Badge
-            className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs flex-shrink-0")}
-            variant="outline"
-          >
-            {formatStatus(workOrder.status)}
-          </Badge>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
+            <Badge
+              variant="outline"
+              className={cn(
+                'rounded-full px-2 py-0.5 text-xs capitalize',
+                getPriorityBadgeClass(workOrder.priority)
+              )}
+            >
+              {formatPriorityLabel(workOrder.priority)}
+            </Badge>
+            <Badge
+              className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs")}
+              variant="outline"
+            >
+              {formatStatus(workOrder.status)}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 
@@ -482,6 +508,7 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
               lng={workOrder.effectiveLocation.lng}
               className="text-xs truncate"
               showIcon={false}
+              compact
             />
           </div>
         )}
@@ -629,6 +656,7 @@ const CompactCard: React.FC<WorkOrderCardProps> = memo(({
                 lng={workOrder.effectiveLocation.lng}
                 className="text-sm truncate"
                 showIcon={false}
+                compact
               />
             </div>
           )}
@@ -644,7 +672,14 @@ const CompactCard: React.FC<WorkOrderCardProps> = memo(({
             <div className={`flex items-center gap-1 ${
               computedData.isOverdue ? 'text-destructive' : ''
             }`}>
-              {computedData.isOverdue && <AlertTriangle className="h-3 w-3" />}
+              {computedData.isOverdue && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                  </TooltipTrigger>
+                  <TooltipContent>Overdue &mdash; due date has passed</TooltipContent>
+                </Tooltip>
+              )}
               Due: {computedData.formattedDueDate}
             </div>
           )}

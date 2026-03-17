@@ -123,6 +123,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="maintenance">Maintenance</SelectItem>
                         <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="out_of_service">Out of Service</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -43,6 +43,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import EmptyState from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import { useOrganizationAuditLog, useAuditExport } from '@/hooks/useAuditLog';
+import { usePermissions } from '@/hooks/usePermissions';
 import { ChangesDiff, ChangesSummary } from './ChangesDiff';
 import { 
   AuditLogFilters,
@@ -84,12 +85,16 @@ function FilterBar({
   onClear,
   onExport,
   isExporting,
+  exportProgressLabel,
+  canExport,
 }: {
   filters: AuditLogFilters;
   onFilterChange: (filters: AuditLogFilters) => void;
   onClear: () => void;
   onExport: () => void;
   isExporting: boolean;
+  exportProgressLabel?: string;
+  canExport: boolean;
 }) {
   const hasActiveFilters = !!(
     filters.entityType ||
@@ -205,7 +210,7 @@ function FilterBar({
             variant="outline" 
             size="sm" 
             onClick={onExport}
-            disabled={isExporting}
+            disabled={isExporting || !canExport}
           >
             {isExporting ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -216,6 +221,14 @@ function FilterBar({
           </Button>
         </div>
       </div>
+      {!canExport ? (
+        <p className="text-xs text-muted-foreground">
+          Full CSV export is available to organization owners and admins.
+        </p>
+      ) : null}
+      {isExporting && exportProgressLabel ? (
+        <p className="text-xs text-muted-foreground">{exportProgressLabel}</p>
+      ) : null}
     </div>
   );
 }
@@ -324,10 +337,13 @@ function TableSkeleton() {
  * AuditLogTable main component
  */
 export function AuditLogTable({ organizationId }: AuditLogTableProps) {
+  const { canManageOrganization } = usePermissions();
   const [filters, setFilters] = useState<AuditLogFilters>({});
   const [page, setPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportProgressLabel, setExportProgressLabel] = useState<string | undefined>(undefined);
   const pageSize = 50;
+  const canExport = canManageOrganization();
   
   const { exportToCsv } = useAuditExport(organizationId);
   
@@ -342,11 +358,20 @@ export function AuditLogTable({ organizationId }: AuditLogTableProps) {
   const totalPages = Math.ceil(totalCount / pageSize);
   
   const handleExport = async () => {
+    if (!canExport) return;
     setIsExporting(true);
+    setExportProgressLabel('Preparing export...');
     try {
-      await exportToCsv(filters);
+      await exportToCsv(filters, ({ current, total }) => {
+        if (total === 0) {
+          setExportProgressLabel('No matching records found.');
+          return;
+        }
+        setExportProgressLabel(`Exporting ${current.toLocaleString()} of ${total.toLocaleString()} records...`);
+      });
     } finally {
       setIsExporting(false);
+      setExportProgressLabel(undefined);
     }
   };
   
@@ -369,6 +394,8 @@ export function AuditLogTable({ organizationId }: AuditLogTableProps) {
         onClear={handleClearFilters}
         onExport={handleExport}
         isExporting={isExporting}
+        exportProgressLabel={exportProgressLabel}
+        canExport={canExport}
       />
       
       {/* Table */}

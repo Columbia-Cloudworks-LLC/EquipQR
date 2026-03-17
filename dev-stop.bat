@@ -5,6 +5,7 @@ REM
 REM  Usage:
 REM    dev-stop.bat            Stop dev processes, leave Docker Desktop running
 REM    dev-stop.bat -Force     Stop dev processes AND shut down Docker Desktop
+REM    dev-stop.bat --no-pause Suppress final pause (for automation)
 REM
 REM  Stops (in order):
 REM    1. Vite dev server          (port 8080)
@@ -20,9 +21,16 @@ setlocal EnableDelayedExpansion
 
 REM ---------- Parse arguments -------------------------------------------------
 set "STOP_DOCKER=0"
+set "NO_PAUSE=0"
+:parse_args
+if "%~1"=="" goto :args_done
 if /i "%~1"=="-Force" set "STOP_DOCKER=1"
 if /i "%~1"=="/Force" set "STOP_DOCKER=1"
 if /i "%~1"=="--force" set "STOP_DOCKER=1"
+if /i "%~1"=="--no-pause" set "NO_PAUSE=1"
+shift
+goto :parse_args
+:args_done
 
 echo.
 echo  ============================================
@@ -136,5 +144,5 @@ if %STOP_DOCKER% equ 0 (
 )
 echo.
 
-pause
+if %NO_PAUSE% equ 0 pause
 endlocal

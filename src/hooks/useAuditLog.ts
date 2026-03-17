@@ -314,7 +314,10 @@ export function useAuditStats(
 export function useAuditExport(organizationId: string | undefined) {
   const { toast } = useAppToast();
 
-  const exportToCsv = useCallback(async (filters?: AuditLogFilters) => {
+  const exportToCsv = useCallback(async (
+    filters?: AuditLogFilters,
+    onProgress?: (progress: { current: number; total: number }) => void
+  ) => {
     if (!organizationId) {
       toast({
         title: 'Export Failed',
@@ -325,7 +328,7 @@ export function useAuditExport(organizationId: string | undefined) {
     }
 
     try {
-      const result = await auditService.exportToCsv(organizationId, filters);
+      const result = await auditService.exportToCsv(organizationId, filters, onProgress);
       
       if (!result.success || !result.data) {
         throw new Error(result.error || 'Export failed');

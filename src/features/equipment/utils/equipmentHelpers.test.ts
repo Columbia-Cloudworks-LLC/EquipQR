@@ -84,7 +84,7 @@ describe('equipmentHelpers', () => {
   });
 
   describe('EQUIPMENT_STATUS_OPTIONS', () => {
-    it('should contain all three status options', () => {
+    it('should contain DB-persisted status options only', () => {
       expect(EQUIPMENT_STATUS_OPTIONS).toHaveLength(3);
     });
 

@@ -127,6 +127,7 @@ const TeamActivitySummary: React.FC<TeamActivitySummaryProps> = ({
             label="Completed"
             value={workOrderStats?.completedWorkOrders ?? 0}
             icon={<CheckCircle className="h-5 w-5" />}
+            href={`/dashboard/work-orders?team=${teamId}&status=completed`}
             variant="success"
             isLoading={isLoading}
           />

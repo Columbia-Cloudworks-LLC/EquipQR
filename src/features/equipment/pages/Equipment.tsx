@@ -79,9 +79,26 @@ const Equipment = () => {
   // Apply URL parameter filters on initial load
   useEffect(() => {
     if (initializedFromUrl.current) return;
+    let didApply = false;
     const team = searchParams.get('team');
+    const status = searchParams.get('status');
     if (team) {
       updateFilter('team', team);
+      didApply = true;
+    }
+    if (status) {
+      const normalizedStatus =
+        status === 'out_of_service'
+          ? 'out_of_service'
+          : ['active', 'maintenance', 'inactive'].includes(status)
+            ? status
+            : null;
+      if (normalizedStatus) {
+        updateFilter('status', normalizedStatus);
+        didApply = true;
+      }
+    }
+    if (didApply) {
       initializedFromUrl.current = true;
     }
   }, [searchParams, updateFilter]);

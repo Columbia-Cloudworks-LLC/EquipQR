@@ -71,6 +71,14 @@ const Notifications: React.FC = () => {
     // Navigate based on notification type
     if (notification.data?.work_order_id) {
       navigate(`/dashboard/work-orders/${notification.data.work_order_id}`);
+    } else if (
+      notification.type === 'member_added' ||
+      notification.type === 'member_role_changed' ||
+      notification.type === 'team_member_added' ||
+      notification.type === 'team_member_role_changed' ||
+      notification.type === 'audit_export'
+    ) {
+      navigate('/dashboard/organization');
     } else if (notification.type === 'member_removed') {
       // Navigate to dashboard if removed from org
       navigate('/dashboard');
@@ -120,6 +128,16 @@ const Notifications: React.FC = () => {
         return '🚫';
       case 'member_removed':
         return '👋';
+      case 'member_added':
+        return '➕';
+      case 'member_role_changed':
+        return '🛡️';
+      case 'team_member_added':
+        return '👥';
+      case 'team_member_role_changed':
+        return '🔐';
+      case 'audit_export':
+        return '📤';
       default:
         return '📢';
     }
@@ -158,6 +176,16 @@ const Notifications: React.FC = () => {
         return 'Merge Declined';
       case 'member_removed':
         return 'Member Removed';
+      case 'member_added':
+        return 'Member Added';
+      case 'member_role_changed':
+        return 'Org Role Changed';
+      case 'team_member_added':
+        return 'Team Member Added';
+      case 'team_member_role_changed':
+        return 'Team Role Changed';
+      case 'audit_export':
+        return 'Audit Export';
       default:
         return 'General';
     }
@@ -193,7 +221,7 @@ const Notifications: React.FC = () => {
             )}
           </h1>
           <p className="text-muted-foreground mt-2">
-            Your notification history • Notifications are kept for 7 days
+            Your notification history • Notifications are kept for 30 days
           </p>
         </div>
         
@@ -246,6 +274,11 @@ const Notifications: React.FC = () => {
                 <SelectItem value="workspace_merge_request">Merge Request</SelectItem>
                 <SelectItem value="workspace_merge_accepted">Merge Accepted</SelectItem>
                 <SelectItem value="workspace_merge_rejected">Merge Declined</SelectItem>
+                <SelectItem value="member_added">Member Added</SelectItem>
+                <SelectItem value="member_role_changed">Org Role Changed</SelectItem>
+                <SelectItem value="team_member_added">Team Member Added</SelectItem>
+                <SelectItem value="team_member_role_changed">Team Role Changed</SelectItem>
+                <SelectItem value="audit_export">Audit Export</SelectItem>
               </SelectContent>
             </Select>
 
@@ -337,7 +370,14 @@ const Notifications: React.FC = () => {
                         {notification.message}
                       </p>
                       
-                      {(notification.data?.work_order_id || notification.type.startsWith('ownership_transfer') || notification.type.startsWith('workspace_merge')) && (
+                      {(notification.data?.work_order_id ||
+                        notification.type.startsWith('ownership_transfer') ||
+                        notification.type.startsWith('workspace_merge') ||
+                        notification.type === 'member_added' ||
+                        notification.type === 'member_role_changed' ||
+                        notification.type === 'team_member_added' ||
+                        notification.type === 'team_member_role_changed' ||
+                        notification.type === 'audit_export') && (
                         <div className="flex items-center gap-2 mt-3">
                           <ArrowRight className="h-3 w-3 text-primary" />
                           <span className="text-xs text-primary font-medium">
@@ -347,7 +387,7 @@ const Notifications: React.FC = () => {
                                 ? 'Click to respond to merge request'
                               : notification.data?.work_order_id 
                                 ? 'Click to view work order'
-                                : 'Click to view organization'
+                                : 'Click to view organization settings'
                             }
                           </span>
                         </div>

@@ -8,6 +8,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard';
 import MFAEnforcementGuard from '@/components/auth/MFAEnforcementGuard';
+import IdleSessionTimeoutGuard from '@/components/auth/IdleSessionTimeoutGuard';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 import { OfflineQueueProvider } from '@/contexts/OfflineQueueContext';
 import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
@@ -46,7 +47,6 @@ const Teams = lazy(() => import('@/features/teams/pages/Teams'));
 const TeamDetails = lazy(() => import('@/features/teams/pages/TeamDetails'));
 const FleetMap = lazy(() => import('@/features/fleet-map/pages/FleetMap'));
 const Organization = lazy(() => import('@/features/organization/pages/Organization'));
-const QRScanner = lazy(() => import('@/pages/QRScanner'));
 const QRRedirect = lazy(() => import('@/pages/QRRedirect'));
 const InventoryQRRedirect = lazy(() => import('@/pages/InventoryQRRedirect'));
 const LegacyEquipmentQRRedirect = lazy(() => import('@/pages/LegacyEquipmentQRRedirect'));
@@ -61,6 +61,7 @@ const Notifications = lazy(() => import('@/pages/Notifications'));
 const InvitationAccept = lazy(() => import('@/pages/InvitationAccept'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
+const Security = lazy(() => import('@/pages/Security'));
 const WorkspaceOnboarding = lazy(() => import('@/pages/WorkspaceOnboarding'));
 // const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
 // const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin'));
@@ -141,6 +142,7 @@ function App() {
         <Route path="/qr/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><LegacyEquipmentQRRedirect /></Suspense>} />
         <Route path="/terms-of-service" element={<Suspense fallback={<div>Loading...</div>}><TermsOfService /></Suspense>} />
         <Route path="/privacy-policy" element={<Suspense fallback={<div>Loading...</div>}><PrivacyPolicy /></Suspense>} />
+        <Route path="/security" element={<Suspense fallback={<div>Loading...</div>}><Security /></Suspense>} />
 
           {/* Redirect routes for backward compatibility */}
           <Route
@@ -177,6 +179,7 @@ function App() {
                       <SidebarProvider>
                       <BugReportProvider>
                       <div className="flex min-h-screen w-full">
+                        <IdleSessionTimeoutGuard />
                         <Suspense fallback={
                           <div className="w-64 border-r bg-sidebar">
                             <div className="animate-pulse h-full bg-sidebar-accent/20" />
@@ -212,7 +215,6 @@ function App() {
                                 <Route path="/teams/:teamId" element={<TeamDetails />} />
                                 <Route path="/fleet-map" element={<FleetMap />} />
                                 <Route path="/organization" element={<Organization />} />
-                                <Route path="/scanner" element={<QRScanner />} />
                                 {/* Billing route removed - billing is now free */}
                                 {/* <Route path="/billing" element={<Billing />} /> */}
                                 <Route path="/pm-templates" element={<PMTemplates />} />

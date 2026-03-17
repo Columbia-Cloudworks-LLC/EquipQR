@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, QrCode, Forklift, ClipboardList } from 'lucide-react';
+import { Plus, Forklift, ClipboardList } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -10,12 +10,6 @@ const ACTIONS = [
     icon: Plus,
     to: '/dashboard/work-orders/create',
     variant: 'default' as const,
-  },
-  {
-    label: 'Scan QR',
-    icon: QrCode,
-    to: '/dashboard/scan',
-    variant: 'outline' as const,
   },
   {
     label: 'Add Equipment',

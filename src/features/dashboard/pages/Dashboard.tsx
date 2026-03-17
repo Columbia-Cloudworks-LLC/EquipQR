@@ -11,9 +11,12 @@ import { DashboardStatsGrid } from '@/features/dashboard/components/DashboardSta
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const { currentOrganization, isLoading: orgLoading } = useOrganization();
+  const { toast } = useToast();
   const organizationId = currentOrganization?.id;
   const { hasTeamAccess, isLoading: accessLoading } = useTeamBasedDashboardAccess();
 
@@ -25,7 +28,7 @@ const Dashboard = () => {
     removeWidget,
     resetToDefault,
   } = useDashboardLayout(organizationId);
-  const { dataUpdatedAt } = useTeamBasedDashboardStats(organizationId);
+  const { data: dashboardStats, dataUpdatedAt } = useTeamBasedDashboardStats(organizationId);
 
   const lastUpdatedText = useMemo(() => {
     if (!dataUpdatedAt) return null;
@@ -35,8 +38,30 @@ const Dashboard = () => {
     return `Updated ${minutes} min ago`;
   }, [dataUpdatedAt]);
 
+  const dashboardDescription = useMemo(() => {
+    const organizationName = currentOrganization?.name ?? "your organization";
+    const overdueCount = dashboardStats?.overdueWorkOrders ?? 0;
+    const needsAttentionCount = (dashboardStats?.maintenanceEquipment ?? 0) + (dashboardStats?.inactiveEquipment ?? 0);
+
+    if (overdueCount === 0 && needsAttentionCount === 0) {
+      return `Welcome back to ${organizationName}`;
+    }
+
+    const overdueLabel = `${overdueCount} overdue work order${overdueCount === 1 ? "" : "s"}`;
+    const needsAttentionLabel = `${needsAttentionCount} equipment need${needsAttentionCount === 1 ? "s" : ""} attention`;
+    return `${overdueLabel} - ${needsAttentionLabel}`;
+  }, [currentOrganization?.name, dashboardStats]);
+
   const [managerOpen, setManagerOpen] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
+
+  const handleResetLayout = useCallback(() => {
+    resetToDefault();
+    toast({
+      title: 'Dashboard layout reset',
+      description: 'Your default widget layout has been restored.',
+    });
+  }, [resetToDefault, toast]);
 
   const handleReorderSave = useCallback(
     (newOrder: string[]) => {
@@ -75,7 +100,7 @@ const Dashboard = () => {
       <Page maxWidth="full" padding="responsive">
         <PageHeader
           title="Dashboard"
-          description={`Welcome back to ${currentOrganization.name}`}
+          description={dashboardDescription}
         />
         <DashboardStatsGrid
           stats={null}
@@ -94,7 +119,7 @@ const Dashboard = () => {
           <div className="flex items-start justify-between gap-4">
             <PageHeader
               title="Dashboard"
-              description={`Welcome back to ${currentOrganization.name}`}
+              description={dashboardDescription}
             />
             <div className="flex items-center gap-3 shrink-0 pt-1">
               {lastUpdatedText && (
@@ -102,16 +127,23 @@ const Dashboard = () => {
                   {lastUpdatedText}
                 </span>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetToDefault}
-                className="gap-1.5"
-                title="Reset to default layout"
-              >
-                <RotateCcw className="h-4 w-4" />
-                <span className="hidden sm:inline">Reset</span>
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetLayout}
+                      className="gap-1.5"
+                      title="Restore default widget layout"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      <span className="hidden sm:inline">Reset Layout</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Restore default widget layout</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Button
                 variant="outline"
                 size="sm"

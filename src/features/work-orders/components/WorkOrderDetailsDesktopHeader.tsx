@@ -146,7 +146,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
 
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="text-3xl font-bold tracking-tight truncate">{workOrder.title}</h1>
+              <h1 className="text-3xl font-bold tracking-tight break-words">{workOrder.title}</h1>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <span className="capitalize">{formatPriority(workOrder.priority)} priority</span>
                 {formMode === 'requestor' && !permissionLevels.isManager && (

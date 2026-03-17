@@ -6,6 +6,7 @@ import WorkOrderCard from './WorkOrderCard';
 import { WorkOrdersEmptyState } from './WorkOrdersEmptyState';
 import { isOfflineId } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
+import type { QuickFilterPreset } from '@/features/work-orders/hooks/useWorkOrderFilters';
 
 interface WorkOrdersListProps {
   workOrders: WorkOrder[];
@@ -14,6 +15,7 @@ interface WorkOrdersListProps {
   isUpdating: boolean;
   isAccepting: boolean;
   hasActiveFilters: boolean;
+  activePresets: Set<QuickFilterPreset>;
   onCreateClick: () => void;
   onAssignClick?: () => void;
   onReopenClick?: () => void;
@@ -26,6 +28,7 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
   isUpdating,
   isAccepting,
   hasActiveFilters,
+  activePresets,
   onCreateClick,
   onAssignClick,
   onReopenClick
@@ -48,6 +51,7 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
     return (
       <WorkOrdersEmptyState 
         hasActiveFilters={hasActiveFilters}
+        activePresets={activePresets}
         onCreateClick={onCreateClick}
       />
     );

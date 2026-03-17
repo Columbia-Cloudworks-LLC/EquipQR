@@ -68,7 +68,7 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
         label="Out of Service"
         value={needsAttentionCount}
         sublabel="In maintenance or inactive"
-        to={isLoading ? undefined : "/dashboard/equipment"}
+        to={isLoading ? undefined : "/dashboard/equipment?status=out_of_service"}
         ariaDescription="View out-of-service equipment"
         variant={needsAttentionCount > 0 ? 'warning' : 'default'}
         loading={isLoading}

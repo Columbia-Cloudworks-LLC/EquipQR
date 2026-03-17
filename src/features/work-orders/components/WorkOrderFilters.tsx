@@ -5,10 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Search, Filter, Calendar, User, X, Users } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Search, Filter, Calendar, User, X, Users, Check } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/workOrder';
+import type { QuickFilterPreset } from '@/features/work-orders/hooks/useWorkOrderFilters';
 
 interface Team {
   id: string;
@@ -18,17 +20,26 @@ interface Team {
 interface WorkOrderFiltersProps {
   filters: FiltersType;
   activeFilterCount: number;
+  activePresets: Set<QuickFilterPreset>;
   showMobileFilters: boolean;
   onShowMobileFiltersChange: (show: boolean) => void;
   onFilterChange: (key: keyof FiltersType, value: string) => void;
   onClearFilters: () => void;
-  onQuickFilter: (preset: string) => void;
+  onQuickFilter: (preset: QuickFilterPreset) => void;
   teams?: Team[];
 }
+
+const CHIP_TOOLTIPS: Record<QuickFilterPreset, string> = {
+  'my-work': 'Filter to work orders assigned to you',
+  'urgent': 'Filter to high-priority work orders',
+  'overdue': 'Filter to work orders past their due date',
+  'unassigned': 'Filter to unassigned work orders',
+};
 
 export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
   filters,
   activeFilterCount,
+  activePresets,
   showMobileFilters,
   onShowMobileFiltersChange,
   onFilterChange,
@@ -62,26 +73,30 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
         </div>
 
         {/* Quick Filters with scroll hint */}
-        <HorizontalChipRow ariaLabel="Quick filter options">
-          {[
-            { label: 'My Work', value: 'my-work' },
-            { label: 'Urgent', value: 'urgent' },
-            { label: 'Overdue', value: 'overdue' },
-            { label: 'Unassigned', value: 'unassigned' }
-          ].map((preset) => (
-            <Button
-              key={preset.value}
-              size="sm"
-              variant="outline"
-              className="whitespace-nowrap flex-shrink-0 min-h-11"
-              onClick={() => {
-                onQuickFilter(preset.value);
-                onShowMobileFiltersChange(false);
-              }}
-            >
-              {preset.label}
-            </Button>
-          ))}
+        <HorizontalChipRow ariaLabel="Quick filter options" className="-mx-1 px-1" gap="gap-1.5">
+          {([
+            { label: 'My Work', value: 'my-work' as QuickFilterPreset },
+            { label: 'Urgent', value: 'urgent' as QuickFilterPreset },
+            { label: 'Overdue', value: 'overdue' as QuickFilterPreset },
+            { label: 'Unassigned', value: 'unassigned' as QuickFilterPreset }
+          ]).map((preset) => {
+            const isActive = activePresets.has(preset.value);
+            return (
+              <Button
+                key={preset.value}
+                size="sm"
+                variant={isActive ? 'default' : 'outline'}
+                className="whitespace-nowrap flex-shrink-0 min-h-10 px-3 text-xs"
+                onClick={() => {
+                  onQuickFilter(preset.value);
+                  onShowMobileFiltersChange(false);
+                }}
+              >
+                {isActive && <Check className="mr-1 h-3 w-3" />}
+                {preset.label}
+              </Button>
+            );
+          })}
         </HorizontalChipRow>
 
         {/* Filter Button with Active Count */}
@@ -303,11 +318,13 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
     );
   }
 
+  const hasFilters = activeFilterCount > 0 || filters.searchQuery.length > 0;
+
   return (
     <Card className="bg-muted/50">
       <CardContent className="pt-6">
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -320,10 +337,50 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                 />
               </div>
             </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              { label: 'My Work', value: 'my-work' as QuickFilterPreset },
+              { label: 'Urgent', value: 'urgent' as QuickFilterPreset },
+              { label: 'Overdue', value: 'overdue' as QuickFilterPreset },
+              { label: 'Unassigned', value: 'unassigned' as QuickFilterPreset }
+            ]).map((preset) => {
+              const isActive = activePresets.has(preset.value);
+              return (
+                <Tooltip key={preset.value}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant={isActive ? 'default' : 'outline'}
+                      className="min-h-11"
+                      onClick={() => onQuickFilter(preset.value)}
+                    >
+                      {isActive && <Check className="h-3.5 w-3.5 mr-1.5" />}
+                      {preset.label}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{CHIP_TOOLTIPS[preset.value]}</TooltipContent>
+                </Tooltip>
+              );
+            })}
+            {hasFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="min-h-11 text-muted-foreground"
+                onClick={onClearFilters}
+              >
+                Clear Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              </Button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Select value={filters.statusFilter} onValueChange={(value) => onFilterChange('statusFilter', value)}>
-              <SelectTrigger id={desktopStatusFilterId} className="w-full sm:w-[220px] min-h-11">
+              <SelectTrigger id={desktopStatusFilterId} className="min-h-11">
                 <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
@@ -336,28 +393,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
-          </div>
 
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: 'My Work', value: 'my-work' },
-              { label: 'Urgent', value: 'urgent' },
-              { label: 'Overdue', value: 'overdue' },
-              { label: 'Unassigned', value: 'unassigned' }
-            ].map((preset) => (
-              <Button
-                key={preset.value}
-                size="sm"
-                variant="outline"
-                className="min-h-11"
-                onClick={() => onQuickFilter(preset.value)}
-              >
-                {preset.label}
-              </Button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Select value={filters.assigneeFilter} onValueChange={(value) => onFilterChange('assigneeFilter', value)}>
               <SelectTrigger className="min-h-11">
                 <User className="h-4 w-4 mr-2" />
@@ -409,14 +445,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                 ))}
               </SelectContent>
             </Select>
-
-            <Button
-              variant="outline"
-              className="min-h-11"
-              onClick={onClearFilters}
-            >
-              Clear Filters
-            </Button>
           </div>
         </div>
       </CardContent>

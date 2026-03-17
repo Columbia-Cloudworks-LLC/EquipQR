@@ -88,8 +88,14 @@ export const useEquipmentFiltering = (organizationId?: string) => {
       }
 
       // Status filter
-      if (filters.status !== 'all' && item.status !== filters.status) {
-        return false;
+      if (filters.status !== 'all') {
+        if (filters.status === 'out_of_service') {
+          if (item.status !== 'maintenance' && item.status !== 'inactive') {
+            return false;
+          }
+        } else if (item.status !== filters.status) {
+          return false;
+        }
       }
 
       // Manufacturer filter

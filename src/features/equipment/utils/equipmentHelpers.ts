@@ -10,7 +10,7 @@ interface Equipment {
   image_url?: string;
 }
 
-export type EquipmentStatus = 'active' | 'maintenance' | 'inactive';
+export type EquipmentStatus = 'active' | 'maintenance' | 'inactive' | 'out_of_service';
 
 export interface StatusDisplayInfo {
   label: string;
@@ -40,6 +40,8 @@ export const getStatusColor = (status: string): string => {
       return 'bg-warning/10 text-warning border-warning/20';
     case 'inactive':
       return 'bg-muted text-muted-foreground border-border';
+    case 'out_of_service':
+      return 'bg-warning/10 text-warning border-warning/20';
     default:
       return 'bg-muted text-muted-foreground border-border';
   }
@@ -57,6 +59,8 @@ export const getStatusTextColor = (status: string): string => {
       return 'text-warning';
     case 'inactive':
       return 'text-muted-foreground';
+    case 'out_of_service':
+      return 'text-warning';
     default:
       return 'text-muted-foreground';
   }
@@ -86,7 +90,11 @@ export const filterEquipment = (
       item.manufacturer.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.serial_number.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'out_of_service'
+        ? item.status === 'maintenance' || item.status === 'inactive'
+        : item.status === statusFilter);
     return matchesSearch && matchesStatus;
   });
 };

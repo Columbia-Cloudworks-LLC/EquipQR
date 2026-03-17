@@ -34,8 +34,8 @@ export const StatsCard: React.FC<StatsCardProps> = ({
 }) => {
   const variantClasses = {
     default: '',
-    warning: 'border-warning/50 bg-warning/5',
-    danger: 'border-destructive/50 bg-destructive/5',
+    warning: 'border-warning/50 bg-warning/5 dark:bg-warning/10',
+    danger: 'border-destructive/50 bg-destructive/5 dark:bg-destructive/10',
   };
 
   const content = (
@@ -43,7 +43,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
       className={cn(
         "transition-all duration-200",
         variantClasses[variant],
-        to && "hover:shadow-lg cursor-pointer"
+        to && "cursor-pointer hover:shadow-lg hover:border-primary/50 hover:-translate-y-0.5 active:scale-[0.98]"
       )}
       aria-label={ariaDescription}
     >

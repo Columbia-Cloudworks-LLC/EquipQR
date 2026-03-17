@@ -32,7 +32,7 @@ const HighPriorityWOWidget: React.FC = () => {
       <EmptyState
         icon={CheckCircle2}
         title="All caught up"
-        description="No high priority work orders at this time."
+        description="No high priority work orders need attention right now."
         className="py-6"
       />
     );

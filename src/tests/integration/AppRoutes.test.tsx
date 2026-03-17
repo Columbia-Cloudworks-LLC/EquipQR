@@ -51,7 +51,6 @@ vi.mock('@/pages/WorkOrderDetails', () => ({ default: () => <div data-testid="wo
 vi.mock('@/features/teams/pages/Teams', () => ({ default: () => <div data-testid="teams-page">Teams</div> }));
 vi.mock('@/pages/FleetMap', () => ({ default: () => <div data-testid="fleet-map-page">Fleet Map</div> }));
 vi.mock('@/pages/Organization', () => ({ default: () => <div data-testid="organization-page">Organization</div> }));
-vi.mock('@/pages/QRScanner', () => ({ default: () => <div data-testid="scanner-page">Scanner</div> }));
 vi.mock('@/pages/Billing', () => ({ default: () => <div data-testid="billing-page">Billing</div> }));
 vi.mock('@/pages/Settings', () => ({ default: () => <div data-testid="settings-page">Settings</div> }));
 vi.mock('@/pages/Support', () => ({ default: () => <div data-testid="support-page">Support</div> }));

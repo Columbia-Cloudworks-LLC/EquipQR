@@ -13,6 +13,12 @@ import { GoogleMap, MarkerF } from '@react-google-maps/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { MapPin, Edit, Navigation } from 'lucide-react';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
@@ -38,7 +44,7 @@ function buildAddress(team: TeamWithMembers): string {
 
 const MAP_CONTAINER_STYLE = {
   width: '100%',
-  height: '250px',
+  height: '180px',
   borderRadius: '0.5rem',
 };
 
@@ -133,7 +139,7 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({
           </div>
         ) : hasCoords && !isLoaded ? (
           /* Map is loading */
-          <div className="h-[250px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+          <div className="h-[180px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
             <div className="text-center space-y-2">
               <MapPin className="h-8 w-8 text-muted-foreground/50 mx-auto animate-pulse" />
               <p className="text-xs text-muted-foreground">Loading map...</p>
@@ -141,7 +147,7 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({
           </div>
         ) : (
           /* Has address but no coords */
-          <div className="h-[180px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+          <div className="h-[120px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
             <div className="text-center space-y-2 px-4">
               <MapPin className="h-8 w-8 text-muted-foreground/50 mx-auto" />
               <p className="text-xs text-muted-foreground">
@@ -166,13 +172,25 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({
 
         {/* Override badge */}
         {team.override_equipment_location && (
-          <Badge
-            variant="outline"
-            className="bg-info/10 text-info border-info/30 text-xs font-normal"
-          >
-            <Navigation className="h-3 w-3 mr-1" />
-            Location overrides equipment
-          </Badge>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="bg-info/10 text-info border-info/30 text-xs font-normal cursor-help"
+                >
+                  <Navigation className="h-3 w-3 mr-1" />
+                  Team location overrides equipment
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[260px]">
+                <p>
+                  All equipment assigned to this team uses this address as
+                  their effective location on the Fleet Map.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </CardContent>
     </Card>

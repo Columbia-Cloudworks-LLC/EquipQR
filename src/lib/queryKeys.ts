@@ -32,6 +32,7 @@ export const teamStats = {
 export const teams = (orgId: string) => ({
   root: ['teams', orgId] as const,
   optimized: () => ['teams', orgId, 'optimized'] as const,
+  listStats: () => ['teams', orgId, 'list-stats'] as const,
   availableUsers: (teamId: string) => ['teams', orgId, 'available-users', teamId] as const,
 });
 
