@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { teams as teamsKeys } from '@/lib/queryKeys';
@@ -19,16 +20,20 @@ export function useTeamsListStats(
   organizationId: string | undefined,
   teamIds: string[]
 ) {
-  return useQuery({
-    queryKey: teamsKeys(organizationId || '').listStats(),
-    queryFn: async (): Promise<Record<string, TeamListStats>> => {
-      if (!organizationId || teamIds.length === 0) return {};
+  const sortedIds = useMemo(() => [...teamIds].sort(), [teamIds]);
 
-      const { data: equipmentRows } = await supabase
+  return useQuery({
+    queryKey: [...teamsKeys(organizationId || '').listStats(), sortedIds],
+    queryFn: async (): Promise<Record<string, TeamListStats>> => {
+      if (!organizationId || sortedIds.length === 0) return {};
+
+      const { data: equipmentRows, error: eqError } = await supabase
         .from('equipment')
         .select('id, team_id')
         .eq('organization_id', organizationId)
-        .in('team_id', teamIds);
+        .in('team_id', sortedIds);
+
+      if (eqError) throw eqError;
 
       const result: Record<string, TeamListStats> = {};
       for (const tid of teamIds) {
@@ -45,11 +50,13 @@ export function useTeamsListStats(
       const equipmentIds = Array.from(eqIdToTeam.keys());
       if (equipmentIds.length === 0) return result;
 
-      const { data: workOrders } = await supabase
+      const { data: workOrders, error: woError } = await supabase
         .from('work_orders')
         .select('equipment_id, status, due_date')
         .eq('organization_id', organizationId)
         .in('equipment_id', equipmentIds);
+
+      if (woError) throw woError;
 
       const now = new Date();
       for (const wo of workOrders || []) {
@@ -70,7 +77,7 @@ export function useTeamsListStats(
 
       return result;
     },
-    enabled: !!organizationId && teamIds.length > 0,
+    enabled: !!organizationId && sortedIds.length > 0,
     staleTime: 60 * 1000,
   });
 }

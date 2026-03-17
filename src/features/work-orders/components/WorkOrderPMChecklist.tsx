@@ -74,10 +74,12 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
   return (
     <>
       <div className="space-y-2">
-        <Label>Work Order Type</Label>
-        <div className="grid grid-cols-2 gap-3">
+        <Label id="wo-type-label">Work Order Type</Label>
+        <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-labelledby="wo-type-label">
           <button
             type="button"
+            role="radio"
+            aria-checked={!values.hasPM}
             onClick={() => setValue('hasPM', false)}
             className={cn(
               "flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-all",
@@ -91,6 +93,8 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
           </button>
           <button
             type="button"
+            role="radio"
+            aria-checked={values.hasPM}
             onClick={() => setValue('hasPM', true)}
             className={cn(
               "flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-all",

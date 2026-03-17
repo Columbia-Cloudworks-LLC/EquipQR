@@ -26,7 +26,6 @@ export const EQUIPMENT_STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
   { value: 'maintenance', label: 'Under Maintenance' },
   { value: 'inactive', label: 'Inactive' },
-  { value: 'out_of_service', label: 'Out of Service' },
 ] as const;
 
 /**

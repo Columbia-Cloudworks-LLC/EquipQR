@@ -67,7 +67,7 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
           return (aDate - bDate) * dir;
         }
         case 'priority':
-          return (getPriorityValue(b.priority) - getPriorityValue(a.priority)) * dir;
+          return (getPriorityValue(a.priority) - getPriorityValue(b.priority)) * dir;
         case 'status':
           return ((STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)) * dir;
         case 'created':
