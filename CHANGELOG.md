@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- _No unreleased changes yet._
+
+## [2.4.0] - 2026-03-16
+
+### Added
+
 - **SOC-2 session lifecycle controls** — Added inactivity-based session protection with a new `useIdleTimeout` hook and `IdleSessionTimeoutGuard` dialog flow: after 30 minutes idle, users are warned that the session will expire in 2 minutes, then are automatically signed out and redirected to `/auth` if inactivity continues.
 - **Security event notifications for detective controls** — Added DB-level security notifications and trigger plumbing via `20260316102000_add_security_event_notifications.sql` for `member_added`, `member_role_changed`, `team_member_added`, `team_member_role_changed`, and `audit_export`, with owner/admin fan-out and UI rendering support in Notifications surfaces.
 - **Security trust page** — Added a public `/security` page (`src/pages/Security.tsx`) with summary content for authentication/access controls, tenant isolation/audit posture, monitoring controls, and responsible disclosure contact.
@@ -1309,7 +1315,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.10...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.10...v2.4.0
 [2.3.10]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.9...v2.3.10
 [2.3.9]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.8...v2.3.9
 [2.3.8]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.7...v2.3.8
