@@ -101,7 +101,7 @@ describe('DashboardStatsGrid', () => {
       expect(links[0]).toHaveAttribute('href', '/dashboard/equipment');
       expect(links[1]).toHaveAttribute('href', '/dashboard/work-orders?date=overdue');
       expect(links[2]).toHaveAttribute('href', '/dashboard/work-orders');
-      expect(links[3]).toHaveAttribute('href', '/dashboard/equipment');
+      expect(links[3]).toHaveAttribute('href', '/dashboard/equipment?status=out_of_service');
     });
   });
 

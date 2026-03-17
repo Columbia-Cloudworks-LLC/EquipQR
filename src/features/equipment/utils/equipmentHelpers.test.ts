@@ -84,8 +84,8 @@ describe('equipmentHelpers', () => {
   });
 
   describe('EQUIPMENT_STATUS_OPTIONS', () => {
-    it('should contain all three status options', () => {
-      expect(EQUIPMENT_STATUS_OPTIONS).toHaveLength(3);
+    it('should contain all four status options', () => {
+      expect(EQUIPMENT_STATUS_OPTIONS).toHaveLength(4);
     });
 
     it('should have correct values and labels', () => {
@@ -93,6 +93,7 @@ describe('equipmentHelpers', () => {
         { value: 'active', label: 'Active' },
         { value: 'maintenance', label: 'Under Maintenance' },
         { value: 'inactive', label: 'Inactive' },
+        { value: 'out_of_service', label: 'Out of Service' },
       ]);
     });
   });
