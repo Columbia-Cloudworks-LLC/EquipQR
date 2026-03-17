@@ -30,7 +30,7 @@ At the end of your critique, include a **Cursor plan-mode prompt** — a single 
 
 Format it clearly, e.g.:
 
-```
+```plaintext
 ---
 ## Cursor plan-mode prompt (copy-paste below)
 
