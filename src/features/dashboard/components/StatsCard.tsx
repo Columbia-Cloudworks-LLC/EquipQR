@@ -1,9 +1,47 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+
+function useCountUp(target: number, durationMs = 300): number {
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const [displayed, setDisplayed] = useState(prefersReducedMotion ? target : 0);
+  const rafRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setDisplayed(target);
+      return;
+    }
+
+    startTimeRef.current = null;
+
+    const animate = (timestamp: number) => {
+      if (startTimeRef.current === null) startTimeRef.current = timestamp;
+      const elapsed = timestamp - startTimeRef.current;
+      const progress = Math.min(elapsed / durationMs, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayed(Math.round(eased * target));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, durationMs, prefersReducedMotion]);
+
+  return displayed;
+}
 
 interface TrendData {
   direction: 'up' | 'down' | 'flat';
@@ -49,6 +87,9 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   ariaDescription,
 }) => {
   const styles = variantStyles[variant];
+  const numericValue = typeof value === 'number' ? value : 0;
+  const animatedValue = useCountUp(loading ? 0 : numericValue, 300);
+  const displayValue = typeof value === 'number' ? animatedValue : value;
 
   const content = (
     <Card
@@ -61,7 +102,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
       )}
       aria-label={ariaDescription}
     >
-      <CardContent className="p-4 pt-4 sm:p-5 sm:pt-5">
+      <CardContent className="p-4 pb-5 pt-4 sm:p-5 sm:pb-6 sm:pt-5">
         {loading ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -75,7 +116,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
           <>
             <div className="flex items-center gap-2 mb-2">
               <span className={cn("flex-shrink-0", styles.text)}>{icon}</span>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <span className="text-[13px] font-medium text-muted-foreground uppercase tracking-wide">
                 {label}
               </span>
             </div>
@@ -83,10 +124,10 @@ export const StatsCard: React.FC<StatsCardProps> = ({
               className="text-3xl font-bold tracking-tight text-foreground"
               data-testid={`${label.toLowerCase().replace(/\s+/g, '-')}-value`}
             >
-              {value}
+              {displayValue}
             </div>
             {sublabel && (
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-[13px] text-muted-foreground">
                 {sublabel}
               </p>
             )}

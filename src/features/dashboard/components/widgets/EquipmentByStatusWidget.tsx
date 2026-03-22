@@ -40,7 +40,7 @@ const CenterLabel: React.FC<CenterLabelProps> = ({ cx, cy, total }) => (
     </text>
     <text
       x={cx}
-      y={cy + 12}
+      y={cy + 13}
       textAnchor="middle"
       dominantBaseline="middle"
       style={{ fontSize: '0.65rem', fill: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em' }}
@@ -94,7 +94,7 @@ const EquipmentByStatusWidget: React.FC = () => {
           <Forklift className="h-4 w-4" />
           Equipment by Status
         </CardTitle>
-        <CardDescription>Fleet breakdown by equipment status</CardDescription>
+        <CardDescription className="opacity-75">Fleet breakdown by equipment status</CardDescription>
       </CardHeader>
       <CardContent className="pb-4">
         {isLoading ? (
@@ -110,7 +110,7 @@ const EquipmentByStatusWidget: React.FC = () => {
             aria-label="Equipment status distribution chart"
           >
             <div className="flex-shrink-0">
-              <ResponsiveContainer width={140} height={140}>
+              <ResponsiveContainer width={160} height={160}>
                 <PieChart>
                   <Pie
                     data={data}
@@ -118,8 +118,8 @@ const EquipmentByStatusWidget: React.FC = () => {
                     nameKey="label"
                     cx="50%"
                     cy="50%"
-                    innerRadius={42}
-                    outerRadius={62}
+                    innerRadius={48}
+                    outerRadius={70}
                     paddingAngle={2}
                     onClick={(entry) => handleSliceClick(entry.status)}
                   >
@@ -128,11 +128,11 @@ const EquipmentByStatusWidget: React.FC = () => {
                         key={entry.status}
                         fill={getStatusColor(entry.status)}
                         stroke="hsl(var(--card))"
-                        strokeWidth={2}
+                        strokeWidth={3}
                         style={{ cursor: 'pointer' }}
                       />
                     ))}
-                    <CenterLabel cx={70} cy={70} total={totalCount} />
+                    <CenterLabel cx={80} cy={80} total={totalCount} />
                   </Pie>
                   <Tooltip content={tooltipContent} />
                 </PieChart>
@@ -145,7 +145,7 @@ const EquipmentByStatusWidget: React.FC = () => {
                   <button
                     key={entry.status}
                     onClick={() => handleSliceClick(entry.status)}
-                    className="flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-xs transition-colors hover:bg-muted/50"
+                    className="flex w-full items-center gap-2 rounded px-1 py-1.5 text-left text-xs transition-colors hover:bg-muted/50 touch-manipulation"
                   >
                     <span
                       className="h-2 w-2 flex-shrink-0 rounded-full"

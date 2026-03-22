@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import DashboardFAB from '@/features/dashboard/components/DashboardFAB';
 
 const Dashboard = () => {
   const { currentOrganization, isLoading: orgLoading } = useOrganization();
@@ -122,8 +123,8 @@ const Dashboard = () => {
             <div className="min-w-0 flex-1 space-y-1.5">
               <PageHeader title="Dashboard" />
               {alertInfo && (
-                <div className="inline-flex items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive dark:border-destructive/40 dark:bg-destructive/15">
-                  <AlertTriangle className="h-3 w-3 flex-shrink-0" aria-hidden />
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive dark:border-destructive/40 dark:bg-destructive/15">
+                  <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
                   {alertInfo}
                 </div>
               )}
@@ -177,6 +178,9 @@ const Dashboard = () => {
         onAddWidget={addWidget}
         onRemoveWidget={removeWidget}
       />
+
+      {/* Persistent mobile FAB for quick actions */}
+      <DashboardFAB />
     </Page>
   );
 };

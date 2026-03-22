@@ -35,7 +35,7 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
             <Forklift className="h-4 w-4" />
             Recent Equipment
           </CardTitle>
-          <CardDescription>Latest equipment in your fleet</CardDescription>
+          <CardDescription className="opacity-75">Latest equipment in your fleet</CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading ? (
@@ -55,6 +55,7 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
                     className={cn(
                       "flex items-center gap-3 py-2.5 pl-3 pr-2 -mx-3 transition-colors",
                       "hover:bg-muted/60 dark:hover:bg-white/[0.04]",
+                      "active:bg-white/5 dark:active:bg-white/[0.03]",
                       "border-l-2 border-transparent",
                       statusInfo.badgeClassName?.includes('green') || item.status === 'active'
                         ? "hover:border-l-success"
@@ -95,10 +96,10 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
           )}
         </CardContent>
         {hasMore && !isLoading && (
-          <CardFooter className="pt-2 border-t border-border/50">
+          <CardFooter className="pt-0 border-t border-border/50">
             <Link
               to="/dashboard/equipment"
-              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1 min-h-[44px] text-sm text-muted-foreground hover:text-foreground active:text-foreground transition-colors touch-manipulation"
             >
               View all equipment
               <ChevronRight className="h-3.5 w-3.5" />

@@ -47,7 +47,7 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
             <ClipboardList className="h-4 w-4" />
             Recent Work Orders
           </CardTitle>
-          <CardDescription>Latest work order activity</CardDescription>
+          <CardDescription className="opacity-75">Latest work order activity</CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading ? (
@@ -66,6 +66,7 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
                     className={cn(
                       "flex items-center gap-3 py-2.5 pl-3 pr-2 -mx-3 transition-colors",
                       "hover:bg-muted/60 dark:hover:bg-white/[0.04]",
+                      "active:bg-white/5 dark:active:bg-white/[0.03]",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     )}
                   >
@@ -92,10 +93,10 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
           )}
         </CardContent>
         {!isLoading && hasMore && (
-          <CardFooter className="pt-2 border-t border-border/50">
+          <CardFooter className="pt-0 border-t border-border/50">
             <Link
               to="/dashboard/work-orders"
-              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1 min-h-[44px] text-sm text-muted-foreground hover:text-foreground active:text-foreground transition-colors touch-manipulation"
             >
               View all work orders
               <ChevronRight className="h-3.5 w-3.5" />

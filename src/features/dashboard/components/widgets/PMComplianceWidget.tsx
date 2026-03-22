@@ -31,7 +31,7 @@ const CenterLabel: React.FC<CenterLabelProps> = ({ cx, cy, pct }) => (
     </text>
     <text
       x={cx}
-      y={cy + 11}
+      y={cy + 13}
       textAnchor="middle"
       dominantBaseline="middle"
       style={{ fontSize: '0.6rem', fill: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em' }}
@@ -114,7 +114,7 @@ const PMComplianceWidget: React.FC = () => {
           <ClipboardCheck className="h-4 w-4" />
           PM Compliance
         </CardTitle>
-        <CardDescription>Preventive maintenance schedule status</CardDescription>
+        <CardDescription className="opacity-75">Preventive maintenance schedule status</CardDescription>
       </CardHeader>
       <CardContent className="pb-4">
         {isLoading ? (
@@ -128,7 +128,7 @@ const PMComplianceWidget: React.FC = () => {
           <div aria-label="Preventive maintenance compliance distribution chart">
             <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
-                <ResponsiveContainer width={140} height={140}>
+                <ResponsiveContainer width={160} height={160}>
                   <PieChart>
                     <Pie
                       data={data}
@@ -136,8 +136,8 @@ const PMComplianceWidget: React.FC = () => {
                       nameKey="label"
                       cx="50%"
                       cy="50%"
-                      innerRadius={42}
-                      outerRadius={62}
+                      innerRadius={48}
+                      outerRadius={70}
                       paddingAngle={2}
                       onClick={(entry) => handleSliceClick(entry.status)}
                     >
@@ -146,12 +146,12 @@ const PMComplianceWidget: React.FC = () => {
                           key={entry.status}
                           fill={entry.color}
                           stroke="hsl(var(--card))"
-                          strokeWidth={2}
+                          strokeWidth={3}
                           strokeDasharray={index % 2 === 0 ? '0' : '3 2'}
                           style={{ cursor: 'pointer' }}
                         />
                       ))}
-                      <CenterLabel cx={70} cy={70} pct={compliancePct} />
+                      <CenterLabel cx={80} cy={80} pct={compliancePct} />
                     </Pie>
                     <RechartsTooltip content={tooltipContent} />
                   </PieChart>
@@ -164,7 +164,7 @@ const PMComplianceWidget: React.FC = () => {
                     <button
                       key={entry.status}
                       onClick={() => handleSliceClick(entry.status)}
-                      className="flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-xs transition-colors hover:bg-muted/50"
+                      className="flex w-full items-center gap-2 rounded px-1 py-1.5 text-left text-xs transition-colors hover:bg-muted/50 touch-manipulation"
                     >
                       <span
                         className="h-2 w-2 flex-shrink-0 rounded-full"

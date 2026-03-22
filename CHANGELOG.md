@@ -9,12 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Dashboard mobile quick-actions FAB** — `DashboardFAB` on the dashboard route (mobile viewports only): bottom-right speed-dial above the tab bar opens **New Work Order** and **Scan QR** actions with backdrop dismiss and expanded-state affordance, aligned with the existing work-orders list FAB positioning.
+
 ### Fixed
 
 - **Work orders list PM segment tooltips** — Removed `content-visibility: auto` row wrappers from the work orders list so Radix/Floating UI can measure PM segment triggers correctly; segment tooltips now show item details on the list the same way they do from equipment-linked work orders.
 - **Dashboard widget layout and padding** — Removed the redundant outer `Card` + `CardContent p-0` wrapper from `DashboardGrid` so each widget’s own `Card` is the only chrome (eliminates double borders and content flush against the outer shell). Lazy-load skeleton uses matching rounded border/card background. `StatsCard` restores top padding when used without `CardHeader` (`pt-4 sm:pt-5` on `CardContent`).
 
 ### Changed
+
+- **Dashboard mobile UX polish** — Overdue/attention alert uses a pill shape, semibold text, and a slightly larger warning icon. Stat cards gain extra bottom padding, 13px minimum for KPI labels/sublabels, and a short count-up animation for numeric values (skipped when `prefers-reduced-motion: reduce`). Equipment-by-status and PM Compliance donuts use a larger chart footprint, thicker segment strokes, and taller legend row tap targets. Recent equipment and work orders: `View all` links meet a 44px minimum touch height, rows show a subtle active press state, and card subtitles use reduced opacity so they read below list metadata. High-priority work order **View** controls are taller for reliable taps. Mobile bottom navigation renames the overflow tab label from **More** to **Menu**.
 
 - **Dashboard premium polish (dense “power tool” UI)** — Aligned the in-app dashboard with a Supabase-style information-dense layout: dark theme **surface stack** (`--background` vs `--card` vs new `--card-elevated` in `index.css`, `card.elevated` in Tailwind) so cards read as distinct from the page; **Card** defaults tightened (`p-4 sm:p-5`, `CardTitle` `text-lg`, `CardDescription` `text-xs`, `border-border/60` + `dark:border-white/[0.08]`). **PageHeader** page titles reduced to `text-xl sm:text-2xl font-semibold` with smaller description text. **Dashboard** page: overdue/attention summary as a destructive-styled **alert chip**; **Reset layout** / **Customize** moved into a **⋯ overflow menu**; “Updated … ago” retained. **KPI `StatsCard`s**: colored **left border** by variant, **icon left of label**, **hero `text-3xl`** value, Lucide trend icons when `trend` is set. **App sidebar**: **uppercase tracked** section labels, **separator** between Navigation and Management, **active** items use **`border-l-2` + sidebar accent**. **Equipment by Status** and **PM Compliance** widgets: **donut center labels** (total / compliance %), **smaller ring**, **table-style legend** beside the chart, tooltips preserved. **Recent Equipment / Recent Work Orders** cards: **status-colored row rail**, **chevron** affordance, stronger hover, **text “View all …”** footers instead of full-width outline buttons; recent equipment no longer shows noisy “Added … ago” lines. **High Priority Work Orders** card: **destructive-tinted** shell, **overdue as `Badge`**, per-row **View** CTA. **TopBar** shows the **current section label** from the route (breadcrumb-style). **Dashboard tests** updated for the new header/actions copy and structure.
 

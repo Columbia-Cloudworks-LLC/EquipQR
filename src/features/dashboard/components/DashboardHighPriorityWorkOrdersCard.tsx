@@ -96,7 +96,7 @@ export const DashboardHighPriorityWorkOrdersCard: React.FC<DashboardHighPriority
                       asChild
                       size="sm"
                       variant="outline"
-                      className="h-7 border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 text-xs px-2"
+                      className="h-9 min-w-[60px] border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 active:bg-destructive/10 text-xs px-3 touch-manipulation"
                     >
                       <Link to={`/dashboard/work-orders/${order.id}`}>
                         View
