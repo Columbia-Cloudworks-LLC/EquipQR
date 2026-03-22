@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, ChevronRight } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { WorkOrderStatus } from "@/features/work-orders/types/workOrder";
 import { isOverdue } from "@/features/work-orders/utils/workOrderHelpers";
@@ -43,55 +44,67 @@ export const DashboardHighPriorityWorkOrdersCard: React.FC<DashboardHighPriority
 
   return (
     <section aria-labelledby="high-priority-heading">
-      <Card>
+      <Card className="border-destructive/30 bg-destructive/[0.03] dark:bg-destructive/[0.06]">
         <CardHeader>
           <CardTitle as="h2" id="high-priority-heading" className="flex items-center gap-2 text-base text-destructive">
             <AlertTriangle className="h-4 w-4" />
             High Priority Work Orders
           </CardTitle>
-          <CardDescription>{workOrders.length} work orders require immediate attention</CardDescription>
+          <CardDescription>{workOrders.length} work order{workOrders.length === 1 ? '' : 's'} require immediate attention</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="pt-0">
+          <div className="divide-y divide-border/50">
             {workOrders.map((order) => {
               const overdueLabel = getOverdueLabel(order.dueDate ?? null, order.status);
               const overdueDays = getOverdueDays(order.dueDate ?? null, order.status);
               const isCriticalOverdue = overdueDays > 30;
               return (
-                <Link
+                <div
                   key={order.id}
-                  to={`/dashboard/work-orders/${order.id}`}
                   className={cn(
-                    "flex items-center justify-between rounded-lg border p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    "flex items-center gap-3 py-3 -mx-3 pl-3 pr-2",
                     isCriticalOverdue
-                      ? "border-destructive/40 bg-destructive/10 hover:bg-destructive/15"
-                      : "border-destructive/20 hover:bg-destructive/5"
+                      ? "bg-destructive/10 dark:bg-destructive/15"
+                      : ""
                   )}
                 >
+                  <div className="w-0.5 self-stretch flex-shrink-0 rounded-full bg-destructive" />
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 font-medium">{order.title}</p>
+                    <p className="truncate text-sm font-medium leading-tight">{order.title}</p>
                     {order.equipmentName && (
-                      <p className="text-xs text-muted-foreground">Equipment: {order.equipmentName}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {order.equipmentName}
+                      </p>
                     )}
-                    <p className="text-sm text-muted-foreground">
-                      {overdueLabel ? (
-                        <span className="inline-flex items-center gap-1 text-destructive font-medium">
-                          {isCriticalOverdue && <AlertTriangle className="h-3.5 w-3.5" aria-hidden />}
+                    {overdueLabel && (
+                      <div className="mt-1">
+                        <Badge variant="destructive" className="text-xs">
+                          {isCriticalOverdue && <AlertTriangle className="mr-1 h-3 w-3" aria-hidden />}
                           {overdueLabel}
-                        </span>
-                      ) : (
-                        <>
-                          Created: {new Date(order.createdDate).toLocaleDateString()}
-                          {order.dueDate && <> • Due: {new Date(order.dueDate).toLocaleDateString()}</>}
-                        </>
-                      )}
-                    </p>
+                        </Badge>
+                      </div>
+                    )}
+                    {!overdueLabel && (
+                      <p className="text-xs text-muted-foreground">
+                        Created: {new Date(order.createdDate).toLocaleDateString()}
+                        {order.dueDate && <> · Due: {new Date(order.dueDate).toLocaleDateString()}</>}
+                      </p>
+                    )}
                   </div>
-                  <div className="ml-2 flex flex-shrink-0 items-center gap-2">
-                    <Badge variant="destructive">High Priority</Badge>
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="h-7 border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 text-xs px-2"
+                    >
+                      <Link to={`/dashboard/work-orders/${order.id}`}>
+                        View
+                      </Link>
+                    </Button>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
@@ -100,4 +113,3 @@ export const DashboardHighPriorityWorkOrdersCard: React.FC<DashboardHighPriority
     </section>
   );
 };
-

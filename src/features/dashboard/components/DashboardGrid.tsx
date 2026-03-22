@@ -1,5 +1,4 @@
 import React, { Suspense } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getWidget } from '@/features/dashboard/registry/widgetRegistry';
 
@@ -10,7 +9,7 @@ interface DashboardGridProps {
 
 /** Loading fallback for lazy-loaded widgets */
 const WidgetSkeleton: React.FC = () => (
-  <div className="p-4 space-y-3">
+  <div className="rounded-lg border border-border/60 dark:border-white/[0.08] bg-card p-4 sm:p-5 space-y-3">
     <Skeleton className="h-4 w-1/3" />
     <Skeleton className="h-20 w-full" />
     <Skeleton className="h-4 w-2/3" />
@@ -78,13 +77,9 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({ activeWidgets }) =
             key={widgetId}
             className={`col-span-12 ${lgClass}`}
           >
-            <Card className="h-full flex flex-col overflow-hidden">
-              <CardContent className="flex-1 overflow-auto p-0">
-                <Suspense fallback={<WidgetSkeleton />}>
-                  <WidgetComponent />
-                </Suspense>
-              </CardContent>
-            </Card>
+            <Suspense fallback={<WidgetSkeleton />}>
+              <WidgetComponent />
+            </Suspense>
           </div>
         );
       })}

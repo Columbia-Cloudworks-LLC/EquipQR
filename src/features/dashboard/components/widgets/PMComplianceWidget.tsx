@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ClipboardCheck, AlertTriangle, CheckCircle, Clock, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import EmptyState from '@/components/ui/empty-state';
@@ -11,6 +11,35 @@ import { getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMS
 import { PM_INTERVALS_ENABLED } from '@/lib/flags';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
+
+interface CenterLabelProps {
+  cx: number;
+  cy: number;
+  pct: number;
+}
+
+const CenterLabel: React.FC<CenterLabelProps> = ({ cx, cy, pct }) => (
+  <>
+    <text
+      x={cx}
+      y={cy - 6}
+      textAnchor="middle"
+      dominantBaseline="middle"
+      style={{ fontSize: '1.125rem', fontWeight: 700, fill: 'hsl(var(--foreground))' }}
+    >
+      {pct}%
+    </text>
+    <text
+      x={cx}
+      y={cy + 11}
+      textAnchor="middle"
+      dominantBaseline="middle"
+      style={{ fontSize: '0.6rem', fill: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+    >
+      Compliant
+    </text>
+  </>
+);
 
 const PMComplianceWidget: React.FC = () => {
   const navigate = useNavigate();
@@ -25,6 +54,12 @@ const PMComplianceWidget: React.FC = () => {
     [data]
   );
 
+  const compliancePct = React.useMemo(() => {
+    if (!data || totalCount === 0) return 0;
+    const compliant = data.find((d) => d.status === 'completed' || d.label?.toLowerCase().includes('compli'))?.count ?? 0;
+    return Math.round((compliant / totalCount) * 100);
+  }, [data, totalCount]);
+
   const intervalSummary = React.useMemo(() => {
     if (!pmStatuses || pmStatuses.length === 0) return null;
     let current = 0;
@@ -38,6 +73,7 @@ const PMComplianceWidget: React.FC = () => {
     }
     return { current, dueSoon, overdue, total: current + dueSoon + overdue };
   }, [pmStatuses]);
+
   const totalEquipmentCount = React.useMemo(
     () => (equipmentByStatus ?? []).reduce((sum, item) => sum + item.count, 0),
     [equipmentByStatus]
@@ -78,51 +114,70 @@ const PMComplianceWidget: React.FC = () => {
           <ClipboardCheck className="h-4 w-4" />
           PM Compliance
         </CardTitle>
-        <CardDescription className="text-xs">Preventive maintenance schedule status</CardDescription>
+        <CardDescription>Preventive maintenance schedule status</CardDescription>
       </CardHeader>
       <CardContent className="pb-4">
         {isLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <Skeleton className="h-32 w-32 rounded-full" />
+          <div className="flex items-center gap-6">
+            <Skeleton className="h-32 w-32 rounded-full flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+            </div>
           </div>
         ) : data && data.length > 0 ? (
           <div aria-label="Preventive maintenance compliance distribution chart">
-            <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie
-                data={data}
-                dataKey="count"
-                nameKey="label"
-                cx="50%"
-                cy="50%"
-                innerRadius={40}
-                outerRadius={70}
-                paddingAngle={2}
-                onClick={(entry) => handleSliceClick(entry.status)}
-              >
-                {data.map((entry, index) => (
-                  <Cell
-                    key={entry.status}
-                    fill={entry.color}
-                    stroke="hsl(var(--background))"
-                    strokeWidth={1.5}
-                    strokeDasharray={index % 2 === 0 ? '0' : '3 2'}
-                    style={{ cursor: 'pointer' }}
-                  />
-                ))}
-              </Pie>
-              <RechartsTooltip content={tooltipContent} />
-              <Legend
-                verticalAlign="bottom"
-                height={30}
-                iconType="circle"
-                iconSize={10}
-                formatter={(value: string, _entry, index) => (
-                  <span className="inline-block px-1 py-1 text-xs">{value} ({data[index]?.count ?? 0})</span>
-                )}
-              />
-            </PieChart>
-            </ResponsiveContainer>
+            <div className="flex items-center gap-4">
+              <div className="flex-shrink-0">
+                <ResponsiveContainer width={140} height={140}>
+                  <PieChart>
+                    <Pie
+                      data={data}
+                      dataKey="count"
+                      nameKey="label"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={42}
+                      outerRadius={62}
+                      paddingAngle={2}
+                      onClick={(entry) => handleSliceClick(entry.status)}
+                    >
+                      {data.map((entry, index) => (
+                        <Cell
+                          key={entry.status}
+                          fill={entry.color}
+                          stroke="hsl(var(--card))"
+                          strokeWidth={2}
+                          strokeDasharray={index % 2 === 0 ? '0' : '3 2'}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      ))}
+                      <CenterLabel cx={70} cy={70} pct={compliancePct} />
+                    </Pie>
+                    <RechartsTooltip content={tooltipContent} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex-1 min-w-0 space-y-1.5">
+                {data.map((entry) => {
+                  const pct = totalCount > 0 ? Math.round((entry.count / totalCount) * 100) : 0;
+                  return (
+                    <button
+                      key={entry.status}
+                      onClick={() => handleSliceClick(entry.status)}
+                      className="flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-xs transition-colors hover:bg-muted/50"
+                    >
+                      <span
+                        className="h-2 w-2 flex-shrink-0 rounded-full"
+                        style={{ backgroundColor: entry.color }}
+                      />
+                      <span className="flex-1 truncate text-muted-foreground">{entry.label}</span>
+                      <span className="font-medium tabular-nums">{entry.count}</span>
+                      <span className="w-8 text-right text-muted-foreground tabular-nums">{pct}%</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <p className="sr-only">
               PM compliance summary: {data.map((entry) => `${entry.label} ${entry.count}`).join(', ')}.
             </p>

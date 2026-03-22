@@ -12,6 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 
 import {
   DropdownMenu,
@@ -150,7 +151,10 @@ const AppSidebar = () => {
         
         <SidebarContent className="px-2 sm:px-3" role="navigation" aria-label="Main navigation">
           <SidebarGroup>
-            <SidebarGroupLabel className={cn("text-xs", mutedTextColorClass)}>
+            <SidebarGroupLabel className={cn(
+              "text-[10px] uppercase tracking-widest font-semibold",
+              mutedTextColorClass || "text-sidebar-foreground/50"
+            )}>
               Navigation
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -162,13 +166,13 @@ const AppSidebar = () => {
                       <SidebarMenuButton 
                         asChild
                         className={cn(
-                          "text-sm transition-colors",
+                          "text-sm transition-colors duration-fast",
                           textColorClass,
                           hasCustomBranding ? '' : 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                           hoverBackgroundClass,
                           isActive && hasCustomBranding ? activeBackgroundClass : '',
                           isActive && hasCustomBranding ? 'font-medium' : '',
-                          isActive && !hasCustomBranding ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground' : ''
+                          isActive && !hasCustomBranding ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground border-l-2 border-l-sidebar-primary rounded-l-none' : ''
                         )}
                       >
                         <Link to={item.url} onClick={handleNavClick}>
@@ -182,9 +186,14 @@ const AppSidebar = () => {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+
+          <Separator className="mx-1 my-1 opacity-30" />
           
           <SidebarGroup>
-            <SidebarGroupLabel className={cn("text-xs", mutedTextColorClass)}>
+            <SidebarGroupLabel className={cn(
+              "text-[10px] uppercase tracking-widest font-semibold",
+              mutedTextColorClass || "text-sidebar-foreground/50"
+            )}>
               Management
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -193,7 +202,6 @@ const AppSidebar = () => {
                   const isActive = location.pathname === item.url;
                   const isAdmin = currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
                   
-                  // Hide admin-only items for non-admins
                   if (item.adminOnly && !isAdmin) {
                     return null;
                   }
@@ -203,13 +211,13 @@ const AppSidebar = () => {
                       <SidebarMenuButton 
                         asChild
                         className={cn(
-                          "text-sm transition-colors",
+                          "text-sm transition-colors duration-fast",
                           textColorClass,
                           hasCustomBranding ? '' : 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                           hoverBackgroundClass,
                           isActive && hasCustomBranding ? activeBackgroundClass : '',
                           isActive && hasCustomBranding ? 'font-medium' : '',
-                          isActive && !hasCustomBranding ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground' : ''
+                          isActive && !hasCustomBranding ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground border-l-2 border-l-sidebar-primary rounded-l-none' : ''
                         )}
                       >
                         <Link to={item.url} onClick={handleNavClick}>

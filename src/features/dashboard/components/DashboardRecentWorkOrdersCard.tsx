@@ -1,10 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, ClipboardList } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { getStatusColor, formatStatus } from "@/features/work-orders/utils/workOrderHelpers";
 import { cn } from "@/lib/utils";
@@ -24,20 +22,23 @@ interface DashboardRecentWorkOrdersCardProps {
   hasMore: boolean;
 }
 
+function getStatusLeftBorder(status: string): string {
+  switch (status) {
+    case 'completed': return 'bg-success';
+    case 'in_progress': return 'bg-warning';
+    case 'overdue': return 'bg-destructive';
+    case 'open': return 'bg-info';
+    case 'assigned': return 'bg-blue-400';
+    case 'cancelled': return 'bg-muted-foreground/40';
+    default: return 'bg-muted-foreground/40';
+  }
+}
+
 export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCardProps> = ({
   workOrders,
   isLoading,
   hasMore,
 }) => {
-  const formatCreatedLabel = (createdDateRaw?: string) => {
-    if (!createdDateRaw) return null;
-
-    const createdDate = new Date(createdDateRaw);
-    if (Number.isNaN(createdDate.getTime())) return null;
-
-    return `Created ${formatDistanceToNow(createdDate, { addSuffix: true })}`;
-  };
-
   return (
     <section aria-labelledby="recent-work-orders-heading">
       <Card>
@@ -48,60 +49,60 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
           </CardTitle>
           <CardDescription>Latest work order activity</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 animate-pulse rounded bg-muted" />
+                <div key={i} className="h-12 animate-pulse rounded bg-muted" />
               ))}
             </div>
           ) : workOrders.length > 0 ? (
-            <div className="space-y-4">
+            <div className="divide-y divide-border/50">
               {workOrders.map((order) => {
-                const createdLabel = formatCreatedLabel(order.created_date);
                 return (
                   <Link
                     key={order.id}
                     to={`/dashboard/work-orders/${order.id}`}
-                    className="flex items-center justify-between rounded-lg p-2 -m-2 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className={cn(
+                      "flex items-center gap-3 py-2.5 pl-3 pr-2 -mx-3 transition-colors",
+                      "hover:bg-muted/60 dark:hover:bg-white/[0.04]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    )}
                   >
+                    <div className={cn("w-0.5 self-stretch flex-shrink-0 rounded-full", getStatusLeftBorder(order.status))} />
                     <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 font-medium">{order.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {order.priority} priority • {order.assigneeName || "Unassigned"}
+                      <p className="truncate text-sm font-medium leading-tight">{order.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {order.priority} priority · {order.assigneeName || 'Unassigned'}
                       </p>
-                      {createdLabel && (
-                        <p className="text-[11px] text-muted-foreground">
-                          {createdLabel}
-                        </p>
-                      )}
                     </div>
                     <Badge
                       variant="outline"
-                      className={cn("ml-2 flex-shrink-0", getStatusColor(order.status))}
+                      className={cn("ml-1 flex-shrink-0 text-xs", getStatusColor(order.status))}
                     >
                       {formatStatus(order.status)}
                     </Badge>
+                    <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/50" aria-hidden />
                   </Link>
                 );
               })}
             </div>
           ) : (
-            <p className="text-muted-foreground">No work orders found</p>
+            <p className="text-sm text-muted-foreground py-2">No work orders found</p>
           )}
         </CardContent>
         {!isLoading && hasMore && (
-          <CardFooter>
-            <Button asChild variant="outline" className="w-full">
-              <Link to="/dashboard/work-orders" className="inline-flex items-center justify-center gap-2">
-                View all
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
+          <CardFooter className="pt-2 border-t border-border/50">
+            <Link
+              to="/dashboard/work-orders"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              View all work orders
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
           </CardFooter>
         )}
       </Card>
     </section>
   );
 };
-

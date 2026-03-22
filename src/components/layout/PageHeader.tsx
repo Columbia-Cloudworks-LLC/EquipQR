@@ -64,7 +64,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
         <div className="min-w-0 flex-1 space-y-1">
           {/* Title row with inline meta on desktop */}
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
               {title}
             </h1>
             {/* Meta badges/labels - shown inline with title on desktop */}
@@ -84,7 +84,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           
           {description && (
             <p className={cn(
-              "text-muted-foreground text-base sm:text-lg line-clamp-2",
+              "text-sm text-muted-foreground line-clamp-2",
               hideDescriptionOnMobile && "hidden md:block"
             )}>
               {description}
