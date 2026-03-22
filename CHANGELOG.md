@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Changed
 
-- _No unreleased changes yet._
+- **Equipment list desktop toolbar redesign** — Replaced the multi-row Card-based filter area and separate sort header with a single compact toolbar row on desktop. Filters are now accessed via a popover (with an active-count badge), sort options via a keyboard-navigable Command popover, and view mode via a ToggleGroup — matching the dense, professional toolbar pattern common in data-forward apps. An active-filter badge row appears conditionally below the toolbar when filters are set. Mobile experience (Sheet-based filters and sort header) is unchanged.
 
 ## [2.4.0] - 2026-03-16
 

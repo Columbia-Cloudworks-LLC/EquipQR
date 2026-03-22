@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileEquipmentFilters } from './MobileEquipmentFilters';
-import { DesktopEquipmentFilters } from './DesktopEquipmentFilters';
-import { EquipmentFilters as EquipmentFiltersType } from '@/features/equipment/hooks/useEquipmentFiltering';
+import EquipmentToolbar from './EquipmentToolbar';
+import { EquipmentFilters as EquipmentFiltersType, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
+import type { EquipmentViewMode } from './EquipmentCard';
 
 interface Team {
   id: string;
@@ -17,22 +18,34 @@ interface FilterOptions {
 
 interface EquipmentFiltersProps {
   filters: EquipmentFiltersType;
+  sortConfig: SortConfig;
   onFilterChange: (key: keyof EquipmentFiltersType, value: string) => void;
   onClearFilters: () => void;
   onQuickFilter: (preset: string) => void;
+  onSortChange: (field: string, direction?: 'asc' | 'desc') => void;
   filterOptions: FilterOptions;
   hasActiveFilters: boolean;
   activeQuickFilter?: string | null;
+  resultCount: number;
+  totalCount: number;
+  viewMode: EquipmentViewMode;
+  onViewModeChange: (mode: EquipmentViewMode) => void;
 }
 
 export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
   filters,
+  sortConfig,
   onFilterChange,
   onClearFilters,
   onQuickFilter,
+  onSortChange,
   filterOptions,
   hasActiveFilters,
   activeQuickFilter,
+  resultCount,
+  totalCount,
+  viewMode,
+  onViewModeChange,
 }) => {
   const isMobile = useIsMobile();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -50,7 +63,6 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
   };
 
   const activeFilterCount = getActiveFilterCount();
-
   const hasFiltersEnabled = hasActiveFilters || activeFilterCount > 0;
 
   if (isMobile) {
@@ -70,14 +82,20 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
   }
 
   return (
-    <DesktopEquipmentFilters
+    <EquipmentToolbar
       filters={filters}
+      sortConfig={sortConfig}
       onFilterChange={onFilterChange}
       onClearFilters={onClearFilters}
       onQuickFilter={onQuickFilter}
+      onSortChange={onSortChange}
       filterOptions={filterOptions}
       hasActiveFilters={hasFiltersEnabled}
       activeQuickFilter={activeQuickFilter}
+      resultCount={resultCount}
+      totalCount={totalCount}
+      viewMode={viewMode}
+      onViewModeChange={onViewModeChange}
     />
   );
 };

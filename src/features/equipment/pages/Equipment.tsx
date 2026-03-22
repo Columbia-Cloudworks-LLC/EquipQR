@@ -5,6 +5,7 @@ import type { EquipmentViewMode } from '@/features/equipment/components/Equipmen
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/features/equipment/hooks/useEquipmentFiltering';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
@@ -24,6 +25,7 @@ import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipme
 const Equipment = () => {
   const { currentOrganization } = useOrganization();
   const { canCreateEquipment, hasRole } = usePermissions();
+  const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const initializedFromUrl = useRef(false);
   
@@ -169,22 +171,31 @@ const Equipment = () => {
 
       <EquipmentFilters
         filters={filters}
+        sortConfig={sortConfig}
         onFilterChange={updateFilter}
         onClearFilters={clearFilters}
         onQuickFilter={applyQuickFilter}
+        onSortChange={updateSort}
         filterOptions={filterOptions}
         hasActiveFilters={hasActiveFilters}
         activeQuickFilter={activeQuickFilter}
-      />
-
-      <EquipmentSortHeader
-        sortConfig={sortConfig}
-        onSortChange={updateSort}
         resultCount={totalFilteredCount}
         totalCount={equipment.length}
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
       />
+
+      {/* Mobile-only: sort + view mode below the filter bar */}
+      {isMobile && (
+        <EquipmentSortHeader
+          sortConfig={sortConfig}
+          onSortChange={updateSort}
+          resultCount={totalFilteredCount}
+          totalCount={equipment.length}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+        />
+      )}
 
       <EquipmentGrid
         equipment={mergedEquipment}
