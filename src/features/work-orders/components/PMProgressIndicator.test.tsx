@@ -58,6 +58,14 @@ const createMockQueryResult = (data: unknown) => ({
   error: null
 } as ReturnType<typeof usePMByWorkOrderId>);
 
+/** Icons replace legacy "PM Required" / "PM Complete" copy */
+const pmRowIcons = (container: HTMLElement) => ({
+  wrench: container.querySelector('.lucide-wrench'),
+  circleCheck: container.querySelector('.lucide-circle-check'),
+  circleDashed: container.querySelector('.lucide-circle-dashed'),
+  segmentBar: container.querySelector('.relative.w-full.overflow-hidden.rounded-md'),
+});
+
 describe('PMProgressIndicator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -67,32 +75,36 @@ describe('PMProgressIndicator', () => {
     it('shows nothing when PM is not required', () => {
       (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(mockPMData));
       
-      render(<PMProgressIndicator workOrderId="wo-1" hasPM={false} />, { wrapper: TestProviders });
+      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={false} />, { wrapper: TestProviders });
       
-      expect(screen.queryByText('PM Required')).not.toBeInTheDocument();
-      expect(screen.queryByText('PM Complete')).not.toBeInTheDocument();
+      const { wrench, circleCheck, circleDashed } = pmRowIcons(container);
+      expect(wrench).toBeNull();
+      expect(circleCheck).toBeNull();
+      expect(circleDashed).toBeNull();
     });
 
     it('shows nothing when PM data is null', () => {
       (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(null));
       
-      render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
+      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      expect(screen.queryByText('PM Required')).not.toBeInTheDocument();
-      expect(screen.queryByText('PM Complete')).not.toBeInTheDocument();
+      const { wrench, circleCheck, circleDashed } = pmRowIcons(container);
+      expect(wrench).toBeNull();
+      expect(circleCheck).toBeNull();
+      expect(circleDashed).toBeNull();
     });
   });
 
   describe('PM Required Badge', () => {
-    it('shows PM Required badge with segmented progress', () => {
+    it('shows PM row with wrench icon and segmented progress', () => {
       (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(mockPMData));
       
-      render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
+      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      expect(screen.getByText('PM Required')).toBeInTheDocument();
-      // SegmentedProgress should be rendered (check for container with segments)
-      const container = screen.getByText('PM Required').closest('div')?.parentElement;
-      expect(container).toBeInTheDocument();
+      const { wrench, segmentBar, circleDashed } = pmRowIcons(container);
+      expect(wrench).toBeInTheDocument();
+      expect(segmentBar).toBeInTheDocument();
+      expect(circleDashed).toBeInTheDocument();
     });
 
     it('renders segmented progress for all checklist items', () => {
@@ -100,9 +112,9 @@ describe('PMProgressIndicator', () => {
       
       const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      expect(screen.getByText('PM Required')).toBeInTheDocument();
-      // Check for SegmentedProgress component (it renders divs with segments)
-      const segmentedProgress = container.querySelector('[class*="rounded-md"]');
+      const { wrench, segmentBar } = pmRowIcons(container);
+      expect(wrench).toBeInTheDocument();
+      const segmentedProgress = segmentBar ?? container.querySelector('[class*="rounded-md"]');
       expect(segmentedProgress).toBeInTheDocument();
     });
 
@@ -118,9 +130,9 @@ describe('PMProgressIndicator', () => {
       
       const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      expect(screen.getByText('PM Required')).toBeInTheDocument();
-      // SegmentedProgress should still render with not_rated segments
-      const segmentedProgress = container.querySelector('[class*="rounded-md"]');
+      const { wrench, segmentBar } = pmRowIcons(container);
+      expect(wrench).toBeInTheDocument();
+      const segmentedProgress = segmentBar ?? container.querySelector('[class*="rounded-md"]');
       expect(segmentedProgress).toBeInTheDocument();
     });
 
@@ -131,38 +143,46 @@ describe('PMProgressIndicator', () => {
       };
       (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(emptyData));
       
-      render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
+      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      expect(screen.getByText('PM Required')).toBeInTheDocument();
-      // No progress bar shown for empty checklist
+      const { wrench, segmentBar, circleDashed } = pmRowIcons(container);
+      expect(wrench).toBeInTheDocument();
+      expect(circleDashed).toBeInTheDocument();
+      expect(segmentBar).not.toBeInTheDocument();
       expect(screen.queryByText('%')).not.toBeInTheDocument();
     });
   });
 
   describe('PM Complete Badge', () => {
-    it('shows PM Complete badge when status is completed', () => {
+    it('shows completion icon when status is completed', () => {
       const completePMData = {
         ...mockPMData,
         status: 'completed'
       };
       (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(completePMData));
       
-      render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
+      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      expect(screen.getByText('PM Complete')).toBeInTheDocument();
+      const { wrench, circleCheck, circleDashed, segmentBar } = pmRowIcons(container);
+      expect(wrench).toBeInTheDocument();
+      expect(circleCheck).toBeInTheDocument();
+      expect(circleDashed).not.toBeInTheDocument();
+      expect(segmentBar).toBeInTheDocument();
       expect(screen.queryByText('%')).not.toBeInTheDocument();
     });
 
-    it('hides progress bar when complete', () => {
+    it('keeps segment bar visible when complete', () => {
       const completePMData = {
         ...mockPMData,
         status: 'completed'
       };
       (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(completePMData));
       
-      render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
+      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      expect(screen.getByText('PM Complete')).toBeInTheDocument();
+      const { circleCheck, segmentBar } = pmRowIcons(container);
+      expect(circleCheck).toBeInTheDocument();
+      expect(segmentBar).toBeInTheDocument();
       expect(screen.queryByText('%')).not.toBeInTheDocument();
     });
   });
@@ -175,10 +195,12 @@ describe('PMProgressIndicator', () => {
       };
       (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(nullChecklistData));
       
-      render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
+      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      expect(screen.getByText('PM Required')).toBeInTheDocument();
-      // No progress bar shown for null data
+      const { wrench, segmentBar, circleDashed } = pmRowIcons(container);
+      expect(wrench).toBeInTheDocument();
+      expect(circleDashed).toBeInTheDocument();
+      expect(segmentBar).not.toBeInTheDocument();
       expect(screen.queryByText('%')).not.toBeInTheDocument();
     });
 
@@ -189,10 +211,12 @@ describe('PMProgressIndicator', () => {
       };
       (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(undefinedChecklistData));
       
-      render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
+      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      expect(screen.getByText('PM Required')).toBeInTheDocument();
-      // No progress bar shown for undefined data
+      const { wrench, segmentBar, circleDashed } = pmRowIcons(container);
+      expect(wrench).toBeInTheDocument();
+      expect(circleDashed).toBeInTheDocument();
+      expect(segmentBar).not.toBeInTheDocument();
       expect(screen.queryByText('%')).not.toBeInTheDocument();
     });
 
@@ -210,9 +234,9 @@ describe('PMProgressIndicator', () => {
       
       const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      expect(screen.getByText('PM Required')).toBeInTheDocument();
-      // SegmentedProgress should render with 4 segments
-      const segmentedProgress = container.querySelector('[class*="rounded-md"]');
+      const { wrench, segmentBar } = pmRowIcons(container);
+      expect(wrench).toBeInTheDocument();
+      const segmentedProgress = segmentBar ?? container.querySelector('[class*="rounded-md"]');
       expect(segmentedProgress).toBeInTheDocument();
     });
   });

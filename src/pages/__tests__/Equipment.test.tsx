@@ -185,8 +185,8 @@ describe('Equipment page', () => {
 
     render(<Equipment />);
 
-    // The mock shows the correct values now
-    expect(screen.getByText('SortHeader resultCount=2 totalCount=3')).toBeInTheDocument();
+    // Sort header is mobile-only; pagination reflects filtered vs total equipment counts
+    expect(screen.getByText(/showing 1 to 2 of 2 results/i)).toBeInTheDocument();
 
     // Open form
     fireEvent.click(screen.getByText('Add Equipment'));
