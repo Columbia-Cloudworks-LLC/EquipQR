@@ -6,10 +6,11 @@
  */
 
 import React from 'react';
-import { History, Shield, FileText, AlertCircle } from 'lucide-react';
+import { History, Shield, AlertCircle } from 'lucide-react';
 import Page from '@/components/layout/Page';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AuditLogTable } from '@/components/audit';
 import { useAuditStats } from '@/hooks/useAuditLog';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -152,81 +153,68 @@ function AuditLog() {
   
   return (
     <Page maxWidth="7xl" padding="responsive">
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <History className="h-7 w-7 text-primary shrink-0" />
           <div>
-            <div className="flex items-center gap-2">
-              <History className="h-8 w-8 text-primary" />
-              <h1 className="text-3xl font-bold">Audit Log</h1>
-            </div>
-            <p className="text-muted-foreground mt-2">
-              Track all changes made to your organization's data for compliance and accountability.
+            <h1 className="text-2xl font-bold leading-tight">Audit Log</h1>
+            <p className="text-sm text-muted-foreground">
+              Track all changes made to your organization's data for compliance and accountability.{' '}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="inline-flex items-center gap-0.5 text-muted-foreground hover:text-foreground underline decoration-dotted underline-offset-2 text-sm">
+                    <Shield className="h-3 w-3" />
+                    Regulatory compliance
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-xs">
+                  This audit log helps you comply with OSHA, DOT, and other regulatory requirements
+                  by maintaining a complete record of all equipment, work order, and inventory changes.
+                  Records are immutable and cannot be modified or deleted.
+                </TooltipContent>
+              </Tooltip>
             </p>
           </div>
         </div>
-        
-        {/* Compliance info banner */}
-        <Alert>
-          <Shield className="h-4 w-4" />
-          <AlertTitle>Regulatory Compliance</AlertTitle>
-          <AlertDescription>
-            This audit log helps you comply with OSHA, DOT, and other regulatory requirements 
-            by maintaining a complete record of all equipment, work order, and inventory changes. 
-            Records are immutable and cannot be modified or deleted.
-          </AlertDescription>
-        </Alert>
-        
+
         {/* Stats */}
         <AuditStatsCards organizationId={currentOrganization.id} />
-        
+
         {/* Main content grid */}
         <div className="grid gap-6 lg:grid-cols-4">
-          {/* Main audit table */}
+          {/* Main audit table — no Card wrapper, toolbar provides visual grouping */}
           <div className="lg:col-span-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Activity Log
-                </CardTitle>
-                <CardDescription>
-                  Complete history of all changes in your organization
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AuditLogTable organizationId={currentOrganization.id} />
-              </CardContent>
-            </Card>
+            <AuditLogTable organizationId={currentOrganization.id} />
           </div>
-          
+
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             <TopContributors organizationId={currentOrganization.id} />
-            
+
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">What's Tracked</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">What's Tracked</CardTitle>
               </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm text-muted-foreground">
+              <CardContent className="pt-0">
+                <ul className="space-y-1.5 text-sm text-muted-foreground">
                   {Object.values(AUDIT_ENTITY_TYPES).map((type) => (
                     <li key={type} className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                       {ENTITY_TYPE_LABELS[type]}
                     </li>
                   ))}
                 </ul>
               </CardContent>
             </Card>
-            
+
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Data Retention</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Data Retention</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Audit records are retained indefinitely to meet regulatory requirements. 
+              <CardContent className="pt-0">
+                <p className="text-xs text-muted-foreground">
+                  Audit records are retained indefinitely to meet regulatory requirements.
                   Exports include the full matching history for the selected filters.
                 </p>
               </CardContent>
