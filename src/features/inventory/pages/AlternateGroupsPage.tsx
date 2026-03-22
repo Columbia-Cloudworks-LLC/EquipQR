@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
-  Search,
   Layers,
   CheckCircle2,
   AlertTriangle,
@@ -10,8 +9,6 @@ import {
   Pencil,
   Trash2,
   Eye,
-  X,
-  ArrowUpDown,
 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -20,7 +17,6 @@ import {
   useDeleteAlternateGroup,
 } from '@/features/inventory/hooks/useAlternateGroups';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,13 +26,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -69,9 +58,9 @@ import {
 } from '@/components/ui/tooltip';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
-import HorizontalChipRow from '@/components/layout/HorizontalChipRow';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AlternateGroupForm } from '@/features/inventory/components/AlternateGroupForm';
+import AlternateGroupsToolbar from '@/features/inventory/components/AlternateGroupsToolbar';
 import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
 
 type GroupStatusFilter = 'all' | 'verified' | 'unverified' | 'deprecated';
@@ -172,86 +161,18 @@ const AlternateGroupsPage: React.FC = () => {
           }
         />
 
-        {/* Search + Sort */}
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="relative w-full md:max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search by name or description..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-9"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label="Clear search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-          <div className="w-full md:w-56">
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as GroupSortOption)}>
-              <SelectTrigger aria-label="Sort alternate groups">
-                <ArrowUpDown className="h-4 w-4 mr-2 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name-asc">Name (A-Z)</SelectItem>
-                <SelectItem value="name-desc">Name (Z-A)</SelectItem>
-                <SelectItem value="updated-desc">Recently Modified</SelectItem>
-                <SelectItem value="updated-asc">Oldest Modified</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Status Filters */}
-        <HorizontalChipRow ariaLabel="Alternate group status filters">
-          {[
-            { value: 'all', label: 'All' },
-            { value: 'verified', label: 'Verified' },
-            { value: 'unverified', label: 'Unverified' },
-            { value: 'deprecated', label: 'Deprecated' },
-          ].map((status) => (
-            <Button
-              key={status.value}
-              type="button"
-              size="sm"
-              variant={statusFilter === status.value ? 'default' : 'outline'}
-              className="whitespace-nowrap"
-              onClick={() => setStatusFilter(status.value as GroupStatusFilter)}
-            >
-              {status.label}
-            </Button>
-          ))}
-        </HorizontalChipRow>
-
-        {statusFilter !== 'all' && (
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">
-              Status: {statusFilter}
-            </Badge>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setStatusFilter('all')}
-            >
-              <X className="h-3.5 w-3.5 mr-1" />
-              Clear filter
-            </Button>
-          </div>
-        )}
-
-        {!isLoading && groups.length > 0 && (
-          <p className="text-sm text-muted-foreground">
-            Showing {filteredGroups.length} of {groups.length} group{groups.length === 1 ? '' : 's'}
-          </p>
-        )}
+        {/* Toolbar */}
+        <AlternateGroupsToolbar
+          search={search}
+          onSearchChange={setSearch}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          filteredGroups={filteredGroups}
+          totalCount={groups.length}
+          canEdit={canEdit}
+        />
 
         {/* Groups List */}
         {isLoading ? (
