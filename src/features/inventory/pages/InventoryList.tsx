@@ -40,6 +40,7 @@ import { PartsManagersSheet } from '@/features/inventory/components/PartsManager
 import type { InventoryItem, InventoryFilters } from '@/features/inventory/types/inventory';
 import { useIsMobile } from '@/hooks/use-mobile';
 import InventoryQRCodeDisplay from '@/features/inventory/components/InventoryQRCodeDisplay';
+import InventoryToolbar from '@/features/inventory/components/InventoryToolbar';
 
 const InventoryList = () => {
   const navigate = useNavigate();
@@ -225,197 +226,85 @@ const InventoryList = () => {
         />
 
         {/* Filters */}
-        <div className="space-y-3">
-          {/* Search + Filter Controls */}
-          <Card>
-            <CardContent className="pt-6">
-              {isMobile ? (
-                // Mobile: Search bar + Filter icon button
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search by name, SKU, or external ID..."
-                      value={filters.search || ''}
-                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                      className="pl-9 h-10"
-                      aria-label="Search inventory by name, SKU, or external ID"
-                    />
-                  </div>
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="relative h-10 w-10 flex-shrink-0"
-                        aria-label="Open filters"
-                      >
-                        <Filter className="h-4 w-4" />
-                        {filters.lowStockOnly && (
-                          <Badge
-                            variant="secondary"
-                            className="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px]"
-                          >
-                            1
-                          </Badge>
-                        )}
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="bottom" className="h-auto max-h-[50vh]">
-                      <SheetHeader className="pb-4">
-                        <SheetTitle>Filter Inventory</SheetTitle>
-                        <SheetDescription>
-                          Use the options below to filter inventory items.
-                        </SheetDescription>
-                      </SheetHeader>
-                      <div className="space-y-4 pb-6">
-                        <div className="flex items-center justify-between py-3 border-b">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4 text-destructive" />
-                            <Label htmlFor="low-stock-mobile" className="text-base font-medium">
-                              Low Stock Only
-                            </Label>
-                          </div>
-                          <Switch
-                            id="low-stock-mobile"
-                            checked={filters.lowStockOnly}
-                            onCheckedChange={(checked) => 
-                              setFilters({ ...filters, lowStockOnly: checked })
-                            }
-                          />
-                        </div>
-                        <Button
-                          variant="outline"
-                          onClick={() => setFilters({ search: '', lowStockOnly: false })}
-                          className="w-full h-12"
-                          disabled={!filters.search && !filters.lowStockOnly}
-                        >
-                          Clear All Filters
-                        </Button>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                </div>
-              ) : (
-                // Desktop: Search bar + inline Switch
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search by name, SKU, or external ID..."
-                      value={filters.search || ''}
-                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                      className="pl-9"
-                      aria-label="Search inventory by name, SKU, or external ID"
-                    />
-                  </div>
-                  {uniqueLocations.length > 0 && (
-                    <Select
-                      value={filters.location || '__all__'}
-                      onValueChange={(v) => setFilters({ ...filters, location: v === '__all__' ? undefined : v })}
+        {isMobile ? (
+          /* Mobile: Search bar + Filter Sheet */
+          <div className="flex items-center gap-2">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search by name, SKU, or external ID..."
+                value={filters.search || ''}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                className="pl-9 h-10"
+                aria-label="Search inventory by name, SKU, or external ID"
+              />
+            </div>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="relative h-10 w-10 flex-shrink-0"
+                  aria-label="Open filters"
+                >
+                  <Filter className="h-4 w-4" />
+                  {filters.lowStockOnly && (
+                    <Badge
+                      variant="secondary"
+                      className="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px]"
                     >
-                      <SelectTrigger className="w-[180px]" aria-label="Filter by location">
-                        <MapPin className="h-4 w-4 mr-1 text-muted-foreground flex-shrink-0" />
-                        <SelectValue placeholder="All Locations" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__all__">All Locations</SelectItem>
-                        {uniqueLocations.map((loc) => (
-                          <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      1
+                    </Badge>
                   )}
-                  <div className="flex items-center gap-3 px-3 py-2 rounded-md border bg-muted/30">
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-auto max-h-[50vh]">
+                <SheetHeader className="pb-4">
+                  <SheetTitle>Filter Inventory</SheetTitle>
+                  <SheetDescription>
+                    Use the options below to filter inventory items.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="space-y-4 pb-6">
+                  <div className="flex items-center justify-between py-3 border-b">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-destructive" />
-                      <Label htmlFor="low-stock-desktop" className="text-sm font-medium whitespace-nowrap cursor-pointer">
+                      <Label htmlFor="low-stock-mobile" className="text-base font-medium">
                         Low Stock Only
                       </Label>
                     </div>
                     <Switch
-                      id="low-stock-desktop"
+                      id="low-stock-mobile"
                       checked={filters.lowStockOnly}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         setFilters({ ...filters, lowStockOnly: checked })
                       }
                     />
                   </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setFilters({ search: '', lowStockOnly: false })}
+                    className="w-full h-12"
+                    disabled={!filters.search && !filters.lowStockOnly}
+                  >
+                    Clear All Filters
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Active Filter Summary */}
-          {(filters.search || filters.lowStockOnly || filters.location) && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground">Active filters:</span>
-              {filters.location && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Location: {filters.location}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4"
-                    onClick={() => setFilters({ ...filters, location: undefined })}
-                    aria-label="Clear location filter"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              )}
-              {filters.search && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Search: "{filters.search.length > 15 ? `${filters.search.slice(0, 15)}...` : filters.search}"
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4"
-                    onClick={() => setFilters({ ...filters, search: '' })}
-                    aria-label="Clear search filter"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              )}
-              {filters.lowStockOnly && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Low Stock
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4"
-                    onClick={() => setFilters({ ...filters, lowStockOnly: false })}
-                    aria-label="Clear low stock filter"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={() => setFilters((prev) => ({
-                  ...prev,
-                  search: '',
-                  lowStockOnly: false,
-                  location: undefined,
-                }))}
-              >
-                Clear all
-              </Button>
-            </div>
-          )}
-          <div className="text-sm text-muted-foreground">
-            {filters.lowStockOnly
-              ? `Showing ${items.length} low-stock item${items.length === 1 ? '' : 's'}`
-              : `Showing ${items.length} inventory item${items.length === 1 ? '' : 's'}`}
+              </SheetContent>
+            </Sheet>
           </div>
-        </div>
+        ) : (
+          /* Desktop: compact toolbar */
+          <InventoryToolbar
+            filters={filters}
+            uniqueLocations={uniqueLocations}
+            resultCount={items.length}
+            onFilterChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+            onClearFilters={() =>
+              setFilters((prev) => ({ ...prev, search: '', lowStockOnly: false, location: undefined }))
+            }
+          />
+        )}
 
         {/* Inventory List */}
         {items.length === 0 ? (

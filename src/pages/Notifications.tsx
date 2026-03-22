@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bell, Check, Search, Filter, Calendar, ArrowRight } from 'lucide-react';
+import { Bell, Check, Calendar, ArrowRight } from 'lucide-react';
+import NotificationsToolbar from './notifications/NotificationsToolbar';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -234,67 +233,20 @@ const Notifications: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search notifications..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="work_order_submitted">Submitted</SelectItem>
-                <SelectItem value="work_order_accepted">Accepted</SelectItem>
-                <SelectItem value="work_order_assigned">Assigned</SelectItem>
-                <SelectItem value="work_order_in_progress">In Progress</SelectItem>
-                <SelectItem value="work_order_on_hold">On Hold</SelectItem>
-                <SelectItem value="work_order_completed">Completed</SelectItem>
-                <SelectItem value="work_order_cancelled">Cancelled</SelectItem>
-                <SelectItem value="ownership_transfer_request">Transfer Request</SelectItem>
-                <SelectItem value="ownership_transfer_accepted">Transfer Accepted</SelectItem>
-                <SelectItem value="ownership_transfer_rejected">Transfer Declined</SelectItem>
-                <SelectItem value="workspace_merge_request">Merge Request</SelectItem>
-                <SelectItem value="workspace_merge_accepted">Merge Accepted</SelectItem>
-                <SelectItem value="workspace_merge_rejected">Merge Declined</SelectItem>
-                <SelectItem value="member_added">Member Added</SelectItem>
-                <SelectItem value="member_role_changed">Org Role Changed</SelectItem>
-                <SelectItem value="team_member_added">Team Member Added</SelectItem>
-                <SelectItem value="team_member_role_changed">Team Role Changed</SelectItem>
-                <SelectItem value="audit_export">Audit Export</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filterRead} onValueChange={setFilterRead}>
-              <SelectTrigger className="w-full sm:w-32">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="unread">Unread</SelectItem>
-                <SelectItem value="read">Read</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <NotificationsToolbar
+        searchTerm={searchTerm}
+        filterType={filterType}
+        filterRead={filterRead}
+        resultCount={filteredNotifications.length}
+        onSearchChange={setSearchTerm}
+        onFilterTypeChange={setFilterType}
+        onFilterReadChange={setFilterRead}
+        onClearFilters={() => {
+          setSearchTerm('');
+          setFilterType('all');
+          setFilterRead('all');
+        }}
+      />
 
       {/* Notifications List */}
       <Card>

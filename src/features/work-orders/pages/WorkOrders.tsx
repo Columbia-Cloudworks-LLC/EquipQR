@@ -279,39 +279,47 @@ const WorkOrders = () => {
             onClearFilters={clearAllFilters}
             onQuickFilter={handleQuickFilter}
             teams={teams}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSortChange={updateSort}
+            resultCount={filteredWorkOrders.length}
+            totalCount={totalCount}
           />
 
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {hasActiveFilters
-                ? `${filteredWorkOrders.length} of ${totalCount} work orders`
-                : `${totalCount} work orders`}
-            </p>
-            <div className="flex items-center gap-2">
-              <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-              <Select
-                value={`${sortField}:${sortDirection}`}
-                onValueChange={(v) => {
-                  const [field, dir] = v.split(':') as [SortField, 'asc' | 'desc'];
-                  updateSort(field, dir);
-                }}
-              >
-                <SelectTrigger className="h-8 w-[170px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="created:desc">Created (newest)</SelectItem>
-                  <SelectItem value="created:asc">Created (oldest)</SelectItem>
-                  <SelectItem value="due_date:asc">Due Date (soonest)</SelectItem>
-                  <SelectItem value="due_date:desc">Due Date (latest)</SelectItem>
-                  <SelectItem value="priority:desc">Priority (high first)</SelectItem>
-                  <SelectItem value="priority:asc">Priority (low first)</SelectItem>
-                  <SelectItem value="status:asc">Status (earliest)</SelectItem>
-                  <SelectItem value="status:desc">Status (latest)</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Mobile-only: result count + sort row */}
+          {isMobile && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {hasActiveFilters
+                  ? `${filteredWorkOrders.length} of ${totalCount} work orders`
+                  : `${totalCount} work orders`}
+              </p>
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+                <Select
+                  value={`${sortField}:${sortDirection}`}
+                  onValueChange={(v) => {
+                    const [field, dir] = v.split(':') as [SortField, 'asc' | 'desc'];
+                    updateSort(field, dir);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[170px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="created:desc">Created (newest)</SelectItem>
+                    <SelectItem value="created:asc">Created (oldest)</SelectItem>
+                    <SelectItem value="due_date:asc">Due Date (soonest)</SelectItem>
+                    <SelectItem value="due_date:desc">Due Date (latest)</SelectItem>
+                    <SelectItem value="priority:desc">Priority (high first)</SelectItem>
+                    <SelectItem value="priority:asc">Priority (low first)</SelectItem>
+                    <SelectItem value="status:asc">Status (earliest)</SelectItem>
+                    <SelectItem value="status:desc">Status (latest)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
+          )}
 
           <WorkOrdersList
             workOrders={filteredWorkOrders}
