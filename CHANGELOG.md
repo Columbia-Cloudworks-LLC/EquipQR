@@ -9,8 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Work orders list PM segment tooltips** — Removed `content-visibility: auto` row wrappers from the work orders list so Radix/Floating UI can measure PM segment triggers correctly; segment tooltips now show item details on the list the same way they do from equipment-linked work orders.
+
 ### Changed
 
+- **Work orders list PM risk and completion cues** — PM bar segments always use per-condition colors (unsafe / immediate repair remain clearly visible even when the checklist is complete). Completion is indicated only by a right-side icon with tooltip (green checkmark when complete, dashed circle when incomplete); removed the redundant PM Complete/Required badge and the previous all-green segment styling for completed checklists.
+- **PM checklist section segment tooltips** — `createSegmentsForSection` now passes section, title, and notes into segment tooltips on work order PM checklist headers for consistent detail with list cards.
 - **Equipment list desktop toolbar redesign** — Replaced the multi-row Card-based filter area and separate sort header with a single compact toolbar row on desktop. Filters are now accessed via a popover (with an active-count badge), sort options via a keyboard-navigable Command popover, and view mode via a ToggleGroup — matching the dense, professional toolbar pattern common in data-forward apps. An active-filter badge row appears conditionally below the toolbar when filters are set. Mobile experience (Sheet-based filters and sort header) is unchanged.
 - **Work orders desktop toolbar redesign** — Replaced the Card-based filter section (search + 5 inline Selects + quick filter buttons) and separate standalone sort row with a single compact toolbar row. Filter popover contains the 5 filter Selects (status, assignee, priority, due date, team) and 4 quick filter presets (My Work, Urgent, Overdue, Unassigned) with tooltips. Sort popover lists all 8 sort options via keyboard-navigable Command list. Active filter badge row appears conditionally below. Mobile Sheet-based experience is unchanged.
 - **Inventory list desktop toolbar redesign** — Replaced the Card-wrapped filter section (search + location Select + low-stock Switch) with a single compact toolbar row. Filter popover contains the location Select and low-stock toggle. Active filter badge row shows search term, location, and low-stock badges with individual clear buttons. Mobile Sheet experience is unchanged; table column-header sorting is preserved.

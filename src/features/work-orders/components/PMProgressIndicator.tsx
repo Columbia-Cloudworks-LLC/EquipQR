@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
-import { Wrench, CheckCircle2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Wrench, CheckCircle2, CircleDashed } from 'lucide-react';
 import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
 import { getItemStatus } from '@/utils/pmChecklistHelpers';
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
@@ -43,22 +43,38 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1">
-        {isCompleted ? (
-          <CheckCircle2 className="h-4 w-4 text-success" />
-        ) : (
-          <Wrench className="h-4 w-4 text-primary" />
-        )}
-        <Badge variant="secondary" className="text-xs">
-          PM {isCompleted ? 'Complete' : 'Required'}
-        </Badge>
-      </div>
-      
+      {/* PM label */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Wrench className="h-4 w-4 text-muted-foreground shrink-0" />
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <p className="text-sm">Preventive Maintenance Checklist</p>
+        </TooltipContent>
+      </Tooltip>
+
+      {/* Segment bar — colors always reflect actual condition severity */}
       {segments.length > 0 && (
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <SegmentedProgress segments={segments} className="h-2 flex-1" completed={isCompleted} />
+        <div className="min-w-0 flex-1">
+          <SegmentedProgress segments={segments} className="h-2" />
         </div>
       )}
+
+      {/* Right-side completion icon */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {isCompleted ? (
+            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+          ) : (
+            <CircleDashed className="h-4 w-4 text-muted-foreground shrink-0" />
+          )}
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <p className="text-sm">
+            {isCompleted ? 'Checklist complete' : 'Checklist incomplete'}
+          </p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 };

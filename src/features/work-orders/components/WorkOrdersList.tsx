@@ -60,7 +60,9 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
   return (
     <div className="space-y-4">
       {workOrders.map((order) => (
-        <div key={order.id} className="cv-auto">
+        // Avoid content-visibility (cv-auto): it breaks Radix Tooltip positioning
+        // (getBoundingClientRect) for PM segment tooltips on list cards.
+        <div key={order.id}>
           <WorkOrderCard
             workOrder={order}
             variant={isMobile ? 'mobile' : 'desktop'}

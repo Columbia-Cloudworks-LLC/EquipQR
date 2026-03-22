@@ -87,9 +87,9 @@ describe('pmChecklistHelpers', () => {
       const result = createSegmentsForSection(items);
 
       expect(result).toEqual([
-        { id: '1', status: 'ok' },
-        { id: '2', status: 'recommend_repairs' },
-        { id: '3', status: 'not_rated' },
+        { id: '1', status: 'ok', section: undefined, title: undefined, notes: undefined },
+        { id: '2', status: 'recommend_repairs', section: undefined, title: undefined, notes: undefined },
+        { id: '3', status: 'not_rated', section: undefined, title: undefined, notes: undefined },
       ]);
     });
   });
