@@ -169,16 +169,12 @@ if not defined OP_ENV_ID set "OP_ENV_ID=%DEFAULT_OP_ENVIRONMENT_ID%"
 
 where op >nul 2>&1
 if !errorlevel! equ 0 (
-    echo        Syncing app env from 1Password Environment: !OP_APP_ENV_ID!
-    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-1password-app-env.ps1" -EnvironmentId !OP_APP_ENV_ID!
+    echo        Syncing app + edge env from 1Password ^(one PowerShell session, two environment reads^)
+    echo          App:  !OP_APP_ENV_ID!
+    echo          Edge: !OP_ENV_ID!
+    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-1password-dev-envs.ps1" -AppEnvironmentId !OP_APP_ENV_ID! -EdgeEnvironmentId !OP_ENV_ID! -ApiPort %SUPABASE_API_PORT%
     if !errorlevel! neq 0 (
-        echo        WARNING: 1Password app env sync failed. Using existing .env.
-    )
-
-    echo        Syncing edge env from 1Password Environment: !OP_ENV_ID!
-    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync-1password-edge-env.ps1" -EnvironmentId !OP_ENV_ID! -ApiPort %SUPABASE_API_PORT%
-    if !errorlevel! neq 0 (
-        echo        WARNING: 1Password edge env sync failed. Using existing %DEFAULT_EDGE_ENV_FILE%.
+        echo        WARNING: One or both 1Password env syncs failed. Using existing .env and %DEFAULT_EDGE_ENV_FILE%.
     )
 ) else (
     echo        1Password CLI not found on PATH - using existing .env and %DEFAULT_EDGE_ENV_FILE%.
