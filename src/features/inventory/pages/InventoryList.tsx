@@ -303,6 +303,8 @@ const InventoryList = () => {
             onClearFilters={() =>
               setFilters((prev) => ({ ...prev, search: '', lowStockOnly: false, location: undefined }))
             }
+            canExport={canCreate}
+            items={items}
           />
         )}
 

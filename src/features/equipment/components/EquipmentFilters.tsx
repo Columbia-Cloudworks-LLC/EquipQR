@@ -4,6 +4,7 @@ import { MobileEquipmentFilters } from './MobileEquipmentFilters';
 import EquipmentToolbar from './EquipmentToolbar';
 import { EquipmentFilters as EquipmentFiltersType, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 import type { EquipmentViewMode } from './EquipmentCard';
+import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 
 interface Team {
   id: string;
@@ -30,6 +31,10 @@ interface EquipmentFiltersProps {
   totalCount: number;
   viewMode: EquipmentViewMode;
   onViewModeChange: (mode: EquipmentViewMode) => void;
+  canImport?: boolean;
+  canExport?: boolean;
+  onImportCsv?: () => void;
+  equipment?: EquipmentRecord[];
 }
 
 export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
@@ -46,6 +51,10 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
   totalCount,
   viewMode,
   onViewModeChange,
+  canImport,
+  canExport,
+  onImportCsv,
+  equipment,
 }) => {
   const isMobile = useIsMobile();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -96,6 +105,10 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
       totalCount={totalCount}
       viewMode={viewMode}
       onViewModeChange={onViewModeChange}
+      canImport={canImport}
+      canExport={canExport}
+      onImportCsv={onImportCsv}
+      equipment={equipment}
     />
   );
 };

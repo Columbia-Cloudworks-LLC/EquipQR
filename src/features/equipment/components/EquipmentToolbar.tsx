@@ -8,8 +8,10 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import EquipmentFilterPopover from './EquipmentFilterPopover';
 import EquipmentSortPopover from './EquipmentSortPopover';
+import EquipmentActionsMenu from './EquipmentActionsMenu';
 import type { EquipmentFilters, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 import type { EquipmentViewMode } from './EquipmentCard';
+import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 
 interface Team {
   id: string;
@@ -36,6 +38,10 @@ interface EquipmentToolbarProps {
   totalCount: number;
   viewMode: EquipmentViewMode;
   onViewModeChange: (mode: EquipmentViewMode) => void;
+  canImport?: boolean;
+  canExport?: boolean;
+  onImportCsv?: () => void;
+  equipment?: EquipmentRecord[];
 }
 
 const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
@@ -52,6 +58,10 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
   totalCount,
   viewMode,
   onViewModeChange,
+  canImport = false,
+  canExport = false,
+  onImportCsv,
+  equipment = [],
 }) => {
   const activeFilterCount = [
     filters.status !== 'all',
@@ -106,6 +116,19 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
           sortConfig={sortConfig}
           onSortChange={onSortChange}
         />
+
+        {/* Actions menu (import/export) */}
+        {(canImport || canExport) && (
+          <>
+            <Separator orientation="vertical" className="h-5" />
+            <EquipmentActionsMenu
+              canImport={canImport}
+              canExport={canExport}
+              onImportCsv={onImportCsv ?? (() => {})}
+              equipment={equipment}
+            />
+          </>
+        )}
 
         {/* Spacer */}
         <div className="flex-1" />

@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import InventoryFilterPopover from './InventoryFilterPopover';
-import type { InventoryFilters } from '@/features/inventory/types/inventory';
+import InventoryDownloadMenu from './InventoryDownloadMenu';
+import type { InventoryFilters, InventoryItem } from '@/features/inventory/types/inventory';
 
 interface InventoryToolbarProps {
   filters: InventoryFilters;
@@ -13,6 +14,8 @@ interface InventoryToolbarProps {
   resultCount: number;
   onFilterChange: (patch: Partial<InventoryFilters>) => void;
   onClearFilters: () => void;
+  canExport?: boolean;
+  items?: InventoryItem[];
 }
 
 const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
@@ -21,6 +24,8 @@ const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
   resultCount,
   onFilterChange,
   onClearFilters,
+  canExport = false,
+  items = [],
 }) => {
   const activeFilterCount = [
     !!filters.location,
@@ -63,6 +68,14 @@ const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
           activeFilterCount={activeFilterCount}
           onFilterChange={onFilterChange}
           onClearFilters={onClearFilters}
+        />
+
+        <Separator orientation="vertical" className="h-5" />
+
+        {/* Download menu */}
+        <InventoryDownloadMenu
+          canExport={canExport}
+          items={items}
         />
 
         {/* Spacer */}
