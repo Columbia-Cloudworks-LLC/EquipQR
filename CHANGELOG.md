@@ -11,10 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Fleet Map: auto-fit viewport and Fit All** — On load the map fits a bounding box around all located equipment and team HQ markers (60px padding, dedicated single-marker zoom, max zoom 15 after multi-point fit). A floating **Fit All** control (maximize icon, bottom-left overlay) re-applies the same fit after the user pans or zooms away.
+
 - **Dashboard mobile quick-actions FAB** — `DashboardFAB` on the dashboard route (mobile viewports only): bottom-right speed-dial above the tab bar opens **New Work Order** and **Scan QR** actions with backdrop dismiss and expanded-state affordance, aligned with the existing work-orders list FAB positioning.
 - **Dashboard KPI sparklines** — `StatsCard` supports an optional 7-point Recharts area sparkline; `DashboardStatsGrid` wires synthetic directional series per metric (placeholder until real 7-day history is available).
 
 ### Fixed
+
+- **Fleet Map: Google Maps InfoWindow** — Dark mode uses a card-matched bubble surface, dark design tokens inside the content, and a matching map tail; native inner overflow/scrollbar is suppressed so a white vertical strip no longer appears on the right edge of popups. Light mode keeps scoped light tokens on Google’s default white bubble for legibility.
 
 - **Dashboard desktop horizontal overflow** — Widget grid cells use `min-w-0` so wide content cannot blow out the 12-column layout; high-priority work order rows no longer use negative horizontal margins that extended past card padding; dashboard alert chip text truncates within `max-w-full`.
 
@@ -22,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dashboard widget layout and padding** — Removed the redundant outer `Card` + `CardContent p-0` wrapper from `DashboardGrid` so each widget’s own `Card` is the only chrome (eliminates double borders and content flush against the outer shell). Lazy-load skeleton uses matching rounded border/card background. `StatsCard` restores top padding when used without `CardHeader` (`pt-4 sm:pt-5` on `CardContent`).
 
 ### Changed
+
+- **Fleet Map desktop polish** — Dark-themed basemap when the app is in dark mode; toolbar regrouped (panel toggle, team filter, located summary with separators); equipment list with clearer hover/selected states, Lucide icons for metadata, source badges aligned to semantic tokens and the **Location Source** legend (elevated frosted card, bottom-right); progress header shows **Updated … ago** from the newest `location_updated_at`, with an amber **Stale** chip when that timestamp is older than 24 hours; stronger typographic hierarchy (semibold equipment titles, softer model/team/address lines); notification bell unread badge slightly smaller; global `LegalFooter` uses lighter muted text for a quieter chrome strip.
 
 - **Work order detail mobile UX refinement** — Mobile sticky header: **Work Orders** back affordance with ≥44px touch targets, **More** label (replacing unlabeled overflow), taller **Edit** / **Info** actions, priority shown as a semantic **Badge** next to status, and larger tap areas for address/team location links. Body: summary card uses **15px** metadata, **border-t** separation for equipment link, **Description** / **Equipment Details** at **17px semibold** with **150–200ms** collapsible motion (`pm-collapsible-animate` + reduced-motion respect); **PM Checklist** card uses animated progress (0→value on load via **700ms** eased `Progress` indicator). PM checklist: category headers use subtler **SegmentedProgress** overlay (**15%** opacity) to avoid per-section tint drift; item rows use **`bg-card`**, improved description/read-only notes contrast, **44px** assessment trigger + notes button, optional **vibrate(30)** on condition change; admin **Revert PM Completion** opens **AlertDialog** confirm with destructive primary action. **General Notes** textarea and **Notes & Updates** list body use higher-contrast foreground typography for dark-mode readability.
 

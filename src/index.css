@@ -637,12 +637,14 @@
 /*
  * Google Maps InfoWindow overrides
  *
- * The InfoWindow bubble is always white regardless of app theme, and Google's
- * .gm-style ancestor sets color/font with higher specificity than Tailwind
- * utilities. We force light-mode design tokens so all Tailwind classes inside
- * (text-foreground, text-muted-foreground, badges, etc.) resolve correctly
- * in both light and dark mode.
+ * Google's InfoWindow renders with a hardcoded white background and its
+ * .gm-style ancestor sets color/font at higher specificity than Tailwind.
+ * We override design tokens for both light and dark themes so all Tailwind
+ * utility classes inside the popup (text-foreground, badges, etc.) resolve
+ * correctly, and in dark mode we also swap the bubble surface itself.
  */
+
+/* ── Light mode (default) ──────────────────────────────────────────────── */
 .gm-style .gm-style-iw-d {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
@@ -660,6 +662,10 @@
   --warning: 38 92% 50%;
   --warning-foreground: 222.2 84% 4.9%;
 
+  /* Suppress the native scrollbar that creates a white strip on the right edge */
+  overflow: hidden !important;
+  max-height: none !important;
+
   color: hsl(var(--foreground)) !important;
   font-family: var(--font-body) !important;
 }
@@ -668,11 +674,66 @@
   border-color: hsl(var(--border));
 }
 
-/* InfoWindow close button — keep visible against light bubble in dark mode */
+/* Close button — visible against the white bubble */
 .gm-style .gm-ui-hover-effect {
   filter: none !important;
   opacity: 0.65 !important;
 }
 .gm-style .gm-ui-hover-effect:hover {
+  opacity: 1 !important;
+}
+
+/* ── Dark mode ─────────────────────────────────────────────────────────── */
+
+/* Swap bubble background to match the dark card surface */
+.dark .gm-style .gm-style-iw-c {
+  background-color: hsl(224 71% 7%) !important;
+  box-shadow:
+    0 8px 24px -4px rgb(0 0 0 / 0.65),
+    0 2px 8px -2px rgb(0 0 0 / 0.45) !important;
+  border: 1px solid hsl(217.2 32.6% 17.5%) !important;
+  /* Remove any white outline/padding that can produce edge artifacts */
+  outline: none !important;
+  overflow: hidden !important;
+}
+
+/* Tail triangle — must match bubble background */
+.dark .gm-style .gm-style-iw-tc::after {
+  background: hsl(224 71% 7%) !important;
+}
+
+/* Override design tokens inside the scrollable content div */
+.dark .gm-style .gm-style-iw-d {
+  overflow: hidden !important;
+  max-height: none !important;
+  --background: 224 71% 7%;
+  --foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --primary: 258 82% 67%;
+  --primary-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 212.7 26.8% 83.9%;
+  --info: 217 91% 70%;
+  --info-foreground: 222.2 84% 4.9%;
+  --success: 142 69% 58%;
+  --success-foreground: 222.2 84% 4.9%;
+  --warning: 38 92% 60%;
+  --warning-foreground: 222.2 84% 4.9%;
+
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .gm-style .gm-style-iw-d * {
+  border-color: hsl(217.2 32.6% 17.5%);
+}
+
+/* Close button — invert to stay visible against dark bubble */
+.dark .gm-style .gm-ui-hover-effect {
+  filter: invert(1) brightness(0.9) !important;
+  opacity: 0.75 !important;
+}
+.dark .gm-style .gm-ui-hover-effect:hover {
   opacity: 1 !important;
 }

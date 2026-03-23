@@ -19,18 +19,23 @@ import {
   ChevronDown,
   Users,
   AlertCircle,
+  AlertTriangle,
   Forklift,
+  RefreshCw,
 } from 'lucide-react';
+import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
+import { cn } from '@/lib/utils';
 import type { EquipmentLocation } from './MapView';
 
-// ── Source colors (must match MapView) ────────────────────────
-// Hex used for badge pills; kept in sync with MapView marker colors. Semantic: info, primary, success, warning.
+// ── Source badge classes (aligned with MapView SOURCE_TOKEN_CLASSES) ──────────
+// Using Tailwind semantic token classes instead of hardcoded hex so badges
+// adapt to both light and dark mode and stay in sync with map marker colors.
 
-const SOURCE_BADGE: Record<string, { bg: string; label: string }> = {
-  team:      { bg: '#3B82F6', label: 'Team' },
-  equipment: { bg: '#7C3AED', label: 'Manual' },
-  scan:      { bg: '#16A34A', label: 'Scan' },
-  geocoded:  { bg: '#F59E0B', label: 'Geocoded' },
+const SOURCE_BADGE: Record<string, { badge: string; label: string }> = {
+  team:      { badge: 'bg-info text-info-foreground',     label: 'Team' },
+  equipment: { badge: 'bg-primary text-primary-foreground', label: 'Manual' },
+  scan:      { badge: 'bg-success text-success-foreground', label: 'Scan' },
+  geocoded:  { badge: 'bg-warning text-warning-foreground', label: 'Geocoded' },
 };
 
 // ── Types ─────────────────────────────────────────────────────
@@ -97,6 +102,25 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
   const locatedCount = locatedEquipment.length;
   const coveragePct = totalEquipmentCount > 0 ? Math.round((locatedCount / totalEquipmentCount) * 100) : 0;
 
+  // Most recent location update — derives both the label and a staleness flag.
+  // Data older than 24 hours is considered stale and rendered in amber.
+  const lastUpdatedInfo = useMemo(() => {
+    const timestamps = locatedEquipment
+      .map((e) => e.location_updated_at)
+      .filter(Boolean) as string[];
+    if (timestamps.length === 0) return null;
+    const mostRecent = timestamps
+      .map((ts) => parseISO(ts))
+      .filter(isValid)
+      .sort((a, b) => b.getTime() - a.getTime())[0];
+    if (!mostRecent) return null;
+    const isStale = Date.now() - mostRecent.getTime() > 24 * 60 * 60 * 1000;
+    return {
+      label: formatDistanceToNow(mostRecent, { addSuffix: true }),
+      isStale,
+    };
+  }, [locatedEquipment]);
+
   return (
     <div
       className={`absolute top-0 left-0 h-full z-20 transition-transform duration-300 ease-in-out ${
@@ -135,6 +159,19 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 }}
               />
             </div>
+            {lastUpdatedInfo && (
+              lastUpdatedInfo.isStale ? (
+                <div className="inline-flex items-center gap-1 bg-warning/15 text-warning border border-warning/30 rounded-md px-1.5 py-0.5 text-[10px] font-medium">
+                  <AlertTriangle className="h-2.5 w-2.5 flex-shrink-0" />
+                  <span>Stale · {lastUpdatedInfo.label}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60">
+                  <RefreshCw className="h-2.5 w-2.5" />
+                  <span>Updated {lastUpdatedInfo.label}</span>
+                </div>
+              )
+            )}
           </div>
 
           {/* Search */}
@@ -162,7 +199,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
         {/* Equipment List */}
         <ScrollArea className="flex-1">
-          <div className="p-2 space-y-1">
+          <div className="p-2">
             {filteredLocated.length === 0 && filteredUnlocated.length === 0 ? (
               <div className="py-8 text-center">
                 <MapPin className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
@@ -181,36 +218,40 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                     <button
                       key={equip.id}
                       onClick={() => onEquipmentSelect(equip.id)}
-                      className={`w-full text-left rounded-lg p-2.5 transition-colors ${
+                      className={cn(
+                        'w-full text-left rounded-lg py-3 px-3 transition-colors cursor-pointer',
+                        'border-b border-border/10 last:border-b-0',
                         isSelected
-                          ? 'bg-primary/10 border border-primary/30'
-                          : 'hover:bg-muted/70 border border-transparent'
-                      }`}
+                          ? 'bg-primary/[0.08] border border-primary/25 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.15)] last:border-b last:border-primary/25'
+                          : 'hover:bg-accent/60 border-transparent'
+                      )}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{equip.name}</p>
-                          <p className="text-[11px] text-muted-foreground truncate">
+                          <p className="text-sm font-semibold truncate">{equip.name}</p>
+                          <p className="text-[11px] text-muted-foreground/70 truncate mt-0.5">
                             {equip.manufacturer} {equip.model}
                           </p>
                         </div>
                         <span
-                          className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium text-primary-foreground flex-shrink-0"
-                          style={{ backgroundColor: badge.bg }}
+                          className={cn(
+                            'inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium flex-shrink-0',
+                            badge.badge
+                          )}
                         >
                           {badge.label}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2.5 mt-2">
                         {equip.team_name && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                            <Users className="h-2.5 w-2.5" />
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/70">
+                            <Users className="h-2.5 w-2.5 opacity-70" />
                             {equip.team_name}
                           </span>
                         )}
                         {equip.formatted_address && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground truncate">
-                            <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/55 truncate">
+                            <MapPin className="h-2.5 w-2.5 flex-shrink-0 opacity-50" />
                             {equip.formatted_address}
                           </span>
                         )}
@@ -222,26 +263,26 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 {/* Unlocated Equipment */}
                 {filteredUnlocated.length > 0 && (
                   <Collapsible open={showUnlocated} onOpenChange={setShowUnlocated}>
-                    <CollapsibleTrigger className="w-full flex items-center justify-between px-2.5 py-2 mt-2 rounded-lg hover:bg-muted/70 transition-colors">
+                    <CollapsibleTrigger className="w-full flex items-center justify-between px-3 py-2.5 mt-1 rounded-lg hover:bg-accent/60 transition-colors">
                       <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                         <AlertCircle className="h-3.5 w-3.5 text-warning" />
                         Unlocated ({filteredUnlocated.length})
                       </span>
-                      <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showUnlocated ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', showUnlocated ? 'rotate-180' : '')} />
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-1 mt-1">
+                    <CollapsibleContent className="mt-1 space-y-1">
                       {filteredUnlocated.map((equip) => (
                         <div
                           key={equip.id}
-                          className="rounded-lg p-2.5 border border-dashed border-muted-foreground/20 bg-muted/30"
+                          className="rounded-lg py-3 px-3 border border-dashed border-muted-foreground/20 bg-muted/30"
                         >
                           <p className="text-xs font-medium truncate">{equip.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">
+                          <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                             {equip.manufacturer} {equip.model}
                           </p>
                           {equip.team_name && (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground mt-0.5">
-                              <Users className="h-2.5 w-2.5" />
+                            <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground mt-1">
+                              <Users className="h-2.5 w-2.5 opacity-70" />
                               {equip.team_name}
                             </span>
                           )}
