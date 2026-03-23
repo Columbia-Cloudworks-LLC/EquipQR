@@ -75,7 +75,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({ activeWidgets }) =
         return (
           <div
             key={widgetId}
-            className={`col-span-12 ${lgClass}`}
+            className={`col-span-12 min-w-0 ${lgClass}`}
           >
             <Suspense fallback={<WidgetSkeleton />}>
               <WidgetComponent />

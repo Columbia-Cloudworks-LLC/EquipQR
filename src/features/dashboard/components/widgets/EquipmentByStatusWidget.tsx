@@ -105,58 +105,59 @@ const EquipmentByStatusWidget: React.FC = () => {
             </div>
           </div>
         ) : data && data.length > 0 ? (
-          <div
-            className="flex items-center gap-4"
-            aria-label="Equipment status distribution chart"
-          >
-            <div className="flex-shrink-0">
-              <ResponsiveContainer width={160} height={160}>
-                <PieChart>
-                  <Pie
-                    data={data}
-                    dataKey="count"
-                    nameKey="label"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={48}
-                    outerRadius={70}
-                    paddingAngle={2}
-                    onClick={(entry) => handleSliceClick(entry.status)}
-                  >
-                    {data.map((entry) => (
-                      <Cell
+          <div aria-label="Equipment status distribution chart">
+            <div className="flex items-center justify-center">
+              <div className="flex items-center gap-6">
+                <div className="flex-shrink-0">
+                  <ResponsiveContainer width={160} height={160}>
+                    <PieChart>
+                      <Pie
+                        data={data}
+                        dataKey="count"
+                        nameKey="label"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={48}
+                        outerRadius={70}
+                        paddingAngle={2}
+                        onClick={(entry) => handleSliceClick(entry.status)}
+                      >
+                        {data.map((entry) => (
+                          <Cell
+                            key={entry.status}
+                            fill={getStatusColor(entry.status)}
+                            stroke="hsl(var(--card))"
+                            strokeWidth={3}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        ))}
+                        <CenterLabel cx={80} cy={80} total={totalCount} />
+                      </Pie>
+                      <Tooltip content={tooltipContent} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="min-w-0 w-44 space-y-1.5">
+                  {data.map((entry) => {
+                    const pct = totalCount > 0 ? Math.round((entry.count / totalCount) * 100) : 0;
+                    return (
+                      <button
                         key={entry.status}
-                        fill={getStatusColor(entry.status)}
-                        stroke="hsl(var(--card))"
-                        strokeWidth={3}
-                        style={{ cursor: 'pointer' }}
-                      />
-                    ))}
-                    <CenterLabel cx={80} cy={80} total={totalCount} />
-                  </Pie>
-                  <Tooltip content={tooltipContent} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex-1 min-w-0 space-y-1.5">
-              {data.map((entry) => {
-                const pct = totalCount > 0 ? Math.round((entry.count / totalCount) * 100) : 0;
-                return (
-                  <button
-                    key={entry.status}
-                    onClick={() => handleSliceClick(entry.status)}
-                    className="flex w-full items-center gap-2 rounded px-1 py-1.5 text-left text-xs transition-colors hover:bg-muted/50 touch-manipulation"
-                  >
-                    <span
-                      className="h-2 w-2 flex-shrink-0 rounded-full"
-                      style={{ backgroundColor: getStatusColor(entry.status) }}
-                    />
-                    <span className="flex-1 truncate capitalize text-muted-foreground">{entry.label}</span>
-                    <span className="font-medium tabular-nums">{entry.count}</span>
-                    <span className="w-8 text-right text-muted-foreground tabular-nums">{pct}%</span>
-                  </button>
-                );
-              })}
+                        onClick={() => handleSliceClick(entry.status)}
+                        className="flex w-full items-center gap-2 rounded px-1 py-1.5 text-left text-xs transition-colors hover:bg-muted/50 touch-manipulation"
+                      >
+                        <span
+                          className="h-2 w-2 flex-shrink-0 rounded-full"
+                          style={{ backgroundColor: getStatusColor(entry.status) }}
+                        />
+                        <span className="flex-1 truncate capitalize text-muted-foreground">{entry.label}</span>
+                        <span className="font-medium tabular-nums">{entry.count}</span>
+                        <span className="w-8 text-right text-muted-foreground tabular-nums">{pct}%</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             <p className="sr-only">
               Equipment status summary: {data.map((entry) => `${entry.label} ${entry.count}`).join(', ')}.

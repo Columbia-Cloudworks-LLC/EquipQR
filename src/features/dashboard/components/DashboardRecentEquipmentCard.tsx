@@ -56,12 +56,6 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
                       "flex items-center gap-3 py-2.5 pl-3 pr-2 -mx-3 transition-colors",
                       "hover:bg-muted/60 dark:hover:bg-white/[0.04]",
                       "active:bg-white/5 dark:active:bg-white/[0.03]",
-                      "border-l-2 border-transparent",
-                      statusInfo.badgeClassName?.includes('green') || item.status === 'active'
-                        ? "hover:border-l-success"
-                        : item.status === 'maintenance'
-                          ? "hover:border-l-warning"
-                          : "hover:border-l-muted-foreground",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     )}
                   >
@@ -99,7 +93,7 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
           <CardFooter className="pt-0 border-t border-border/50">
             <Link
               to="/dashboard/equipment"
-              className="inline-flex items-center gap-1 min-h-[44px] text-sm text-muted-foreground hover:text-foreground active:text-foreground transition-colors touch-manipulation"
+              className="inline-flex items-center gap-1 min-h-[44px] text-sm font-medium text-primary hover:text-primary/80 hover:underline active:text-primary/70 transition-colors touch-manipulation"
             >
               View all equipment
               <ChevronRight className="h-3.5 w-3.5" />

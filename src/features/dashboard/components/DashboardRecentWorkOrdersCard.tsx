@@ -28,7 +28,7 @@ function getStatusLeftBorder(status: string): string {
     case 'in_progress': return 'bg-warning';
     case 'overdue': return 'bg-destructive';
     case 'open': return 'bg-info';
-    case 'assigned': return 'bg-blue-400';
+    case 'assigned': return 'bg-info';
     case 'cancelled': return 'bg-muted-foreground/40';
     default: return 'bg-muted-foreground/40';
   }
@@ -96,7 +96,7 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
           <CardFooter className="pt-0 border-t border-border/50">
             <Link
               to="/dashboard/work-orders"
-              className="inline-flex items-center gap-1 min-h-[44px] text-sm text-muted-foreground hover:text-foreground active:text-foreground transition-colors touch-manipulation"
+              className="inline-flex items-center gap-1 min-h-[44px] text-sm font-medium text-primary hover:text-primary/80 hover:underline active:text-primary/70 transition-colors touch-manipulation"
             >
               View all work orders
               <ChevronRight className="h-3.5 w-3.5" />

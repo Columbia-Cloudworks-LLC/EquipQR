@@ -1,4 +1,5 @@
-import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from 'react-router-dom';
@@ -55,6 +56,8 @@ interface StatsCardProps {
   sublabel?: string;
   to?: string;
   trend?: TrendData;
+  /** Optional 7-point sparkline data array for micro-chart visualization */
+  sparkline?: number[];
   variant?: 'default' | 'warning' | 'danger';
   loading?: boolean;
   ariaDescription?: string;
@@ -64,15 +67,51 @@ const variantStyles = {
   default: {
     border: 'border-l-primary',
     text: 'text-primary',
+    chartColor: 'hsl(var(--primary))',
   },
   warning: {
     border: 'border-l-warning',
     text: 'text-warning',
+    chartColor: 'hsl(var(--warning))',
   },
   danger: {
     border: 'border-l-destructive',
     text: 'text-destructive',
+    chartColor: 'hsl(var(--destructive))',
   },
+};
+
+interface SparklineChartProps {
+  data: number[];
+  color: string;
+  gradientId: string;
+}
+
+const SparklineChart: React.FC<SparklineChartProps> = ({ data, color, gradientId }) => {
+  const chartData = data.map((v) => ({ v }));
+  return (
+    <div aria-hidden title="Recent 7-day trend" className="mt-2 h-10">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <Area
+            type="monotone"
+            dataKey="v"
+            stroke={color}
+            strokeWidth={1.5}
+            fill={`url(#${gradientId})`}
+            dot={false}
+            isAnimationActive={false}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
 };
 
 export const StatsCard: React.FC<StatsCardProps> = ({
@@ -82,6 +121,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   sublabel,
   to,
   trend,
+  sparkline,
   variant = 'default',
   loading = false,
   ariaDescription,
@@ -90,6 +130,9 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   const numericValue = typeof value === 'number' ? value : 0;
   const animatedValue = useCountUp(loading ? 0 : numericValue, 300);
   const displayValue = typeof value === 'number' ? animatedValue : value;
+  const uid = useId();
+  const gradientId = `sparkline-${uid.replace(/:/g, '')}`;
+  const hasSparkline = sparkline && sparkline.length > 1;
 
   const content = (
     <Card
@@ -102,7 +145,10 @@ export const StatsCard: React.FC<StatsCardProps> = ({
       )}
       aria-label={ariaDescription}
     >
-      <CardContent className="p-4 pb-5 pt-4 sm:p-5 sm:pb-6 sm:pt-5">
+      <CardContent className={cn(
+        "p-4 pt-4 sm:p-5 sm:pt-5",
+        hasSparkline ? "pb-3 sm:pb-3" : "pb-5 sm:pb-6"
+      )}>
         {loading ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -116,7 +162,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
           <>
             <div className="flex items-center gap-2 mb-2">
               <span className={cn("flex-shrink-0", styles.text)}>{icon}</span>
-              <span className="text-[13px] font-medium text-muted-foreground uppercase tracking-wide">
+              <span className="text-[13px] font-medium text-muted-foreground uppercase tracking-wide truncate">
                 {label}
               </span>
             </div>
@@ -126,11 +172,12 @@ export const StatsCard: React.FC<StatsCardProps> = ({
             >
               {displayValue}
             </div>
-            {sublabel && (
-              <p className="mt-1 text-[13px] text-muted-foreground">
-                {sublabel}
-              </p>
-            )}
+            <p className={cn(
+              "mt-1 text-[13px] text-muted-foreground min-h-[1.25rem]",
+              !sublabel && "invisible"
+            )}>
+              {sublabel ?? '\u00A0'}
+            </p>
             {trend && (
               <div className={cn(
                 "mt-1.5 flex items-center gap-1 text-xs font-medium",
@@ -143,6 +190,13 @@ export const StatsCard: React.FC<StatsCardProps> = ({
                 {trend.direction === 'flat' && <Minus className="h-3 w-3" aria-hidden />}
                 {trend.delta}% this week
               </div>
+            )}
+            {hasSparkline && (
+              <SparklineChart
+                data={sparkline!}
+                color={styles.chartColor}
+                gradientId={gradientId}
+              />
             )}
           </>
         )}

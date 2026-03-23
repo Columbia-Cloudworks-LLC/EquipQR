@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Settings2, RotateCcw, AlertTriangle, MoreHorizontal } from 'lucide-react';
+import { Settings2, RotateCcw, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedDashboardAccess, useTeamBasedDashboardStats } from '@/features/teams/hooks/useTeamBasedDashboard';
 import { useDashboardLayout } from '@/features/dashboard/hooks/useDashboardLayout';
@@ -35,7 +35,7 @@ const Dashboard = () => {
     removeWidget,
     resetToDefault,
   } = useDashboardLayout(organizationId);
-  const { data: dashboardStats, dataUpdatedAt } = useTeamBasedDashboardStats(organizationId);
+  const { data: dashboardStats, dataUpdatedAt, refetch: refetchStats } = useTeamBasedDashboardStats(organizationId);
 
   const lastUpdatedText = useMemo(() => {
     if (!dataUpdatedAt) return null;
@@ -65,6 +65,16 @@ const Dashboard = () => {
       description: 'Your default widget layout has been restored.',
     });
   }, [resetToDefault, toast]);
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refetchStats();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refetchStats]);
 
   const handleReorderSave = useCallback(
     (newOrder: string[]) => {
@@ -123,23 +133,34 @@ const Dashboard = () => {
             <div className="min-w-0 flex-1 space-y-1.5">
               <PageHeader title="Dashboard" />
               {alertInfo && (
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive dark:border-destructive/40 dark:bg-destructive/15">
+                <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive dark:border-destructive/40 dark:bg-destructive/15">
                   <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
-                  {alertInfo}
+                  <span className="truncate">{alertInfo}</span>
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2 shrink-0 pt-0.5">
+            <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
               {lastUpdatedText && (
-                <span className="text-xs text-muted-foreground hidden md:inline">
+                <span className="text-xs text-muted-foreground hidden md:inline mr-1">
                   {lastUpdatedText}
                 </span>
               )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                title="Refresh dashboard data"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="sr-only">Refresh dashboard</span>
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Dashboard options">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Dashboard options</span>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Dashboard settings">
+                    <Settings2 className="h-4 w-4" />
+                    <span className="sr-only">Dashboard settings</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
