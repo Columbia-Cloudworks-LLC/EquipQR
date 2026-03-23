@@ -21,7 +21,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import EmptyState from '@/components/ui/empty-state';
-import { cn } from '@/lib/utils';
 import { useOrganizationAuditLog, useAuditExport } from '@/hooks/useAuditLog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ChangesSummary } from './ChangesDiff';

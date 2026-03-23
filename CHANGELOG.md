@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-03-22
+
 ### Fixed
 
 - **App sidebar horizontal scrollbar** — Active nav items use a left `border-l-2` accent chip; combined with `SidebarContent`’s `overflow-auto`, that slight width overflow showed a horizontal scrollbar whether or not the nav scrolled vertically. `AppSidebar` now passes `overflow-x-hidden` on `SidebarContent` so only vertical scrolling is allowed.
@@ -1368,7 +1370,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.1...HEAD
+[2.5.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.10...v2.4.0
 [2.3.10]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.9...v2.3.10

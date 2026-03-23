@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Search, Filter, Calendar, User, X, Users, Check } from 'lucide-react';
+import { Search, Filter, X, Check } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/workOrder';
@@ -33,13 +33,6 @@ interface WorkOrderFiltersProps {
   totalCount: number;
 }
 
-const CHIP_TOOLTIPS: Record<QuickFilterPreset, string> = {
-  'my-work': 'Filter to work orders assigned to you',
-  'urgent': 'Filter to high-priority work orders',
-  'overdue': 'Filter to work orders past their due date',
-  'unassigned': 'Filter to unassigned work orders',
-};
-
 export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
   filters,
   activeFilterCount,
@@ -63,8 +56,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
   const mobilePriorityFilterId = 'work-order-priority-filter-mobile';
   const mobileDueDateFilterId = 'work-order-due-date-filter-mobile';
   const mobileTeamFilterId = 'work-order-team-filter-mobile';
-  const desktopSearchInputId = 'work-order-search-desktop';
-  const desktopStatusFilterId = 'work-order-status-filter-desktop';
 
   if (isMobile) {
     return (
