@@ -46,7 +46,9 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
       {/* PM label */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Wrench className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span tabIndex={0} className="inline-flex shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Preventive Maintenance Checklist">
+            <Wrench className="h-4 w-4 text-muted-foreground" />
+          </span>
         </TooltipTrigger>
         <TooltipContent side="top">
           <p className="text-sm">Preventive Maintenance Checklist</p>
@@ -63,11 +65,17 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
       {/* Right-side completion icon */}
       <Tooltip>
         <TooltipTrigger asChild>
-          {isCompleted ? (
-            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-          ) : (
-            <CircleDashed className="h-4 w-4 text-muted-foreground shrink-0" />
-          )}
+          <span
+            tabIndex={0}
+            className="inline-flex shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={isCompleted ? 'Checklist complete' : 'Checklist incomplete'}
+          >
+            {isCompleted ? (
+              <CheckCircle2 className="h-4 w-4 text-success" />
+            ) : (
+              <CircleDashed className="h-4 w-4 text-muted-foreground" />
+            )}
+          </span>
         </TooltipTrigger>
         <TooltipContent side="top">
           <p className="text-sm">
