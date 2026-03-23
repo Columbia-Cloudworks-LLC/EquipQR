@@ -35,10 +35,19 @@ function CopyableValue({ value }: { value: string }) {
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(value).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    if (!navigator.clipboard?.writeText) {
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(value)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => {
+        // Fail silently if clipboard write is not permitted or fails.
+      });
   };
 
   return (

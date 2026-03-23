@@ -288,12 +288,14 @@ export const MapView: React.FC<MapViewProps> = ({
     });
   }, [mapRef, filteredLocations, teamHQLocations]);
 
-  // Auto-fit all markers when the map first becomes available.
+  // Auto-fit all markers once when the map and data are both available.
+  const hasAutoFitted = React.useRef(false);
   React.useEffect(() => {
-    if (!mapRef) return;
+    if (!mapRef || hasAutoFitted.current) return;
+    if (filteredLocations.length === 0 && teamHQLocations.length === 0) return;
     fitAllMarkers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapRef]); // Intentionally only on initial load — filter changes don't auto-refit.
+    hasAutoFitted.current = true;
+  }, [mapRef, filteredLocations, teamHQLocations, fitAllMarkers]);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;

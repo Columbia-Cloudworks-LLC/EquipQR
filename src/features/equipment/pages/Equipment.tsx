@@ -107,6 +107,7 @@ const Equipment = () => {
 
   const canCreate = canCreateEquipment();
   const canImport = hasRole(['owner', 'admin']);
+  const canExport = hasRole(['owner', 'admin', 'member']);
 
   if (!currentOrganization) {
     return (
@@ -172,7 +173,7 @@ const Equipment = () => {
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         canImport={canImport}
-        canExport={canImport}
+        canExport={canExport}
         onImportCsv={() => setShowImportCsv(true)}
         equipment={equipment}
       />

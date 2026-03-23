@@ -443,10 +443,13 @@ export const auditService = {
     onProgress?: (progress: { current: number; total: number }) => void
   ): Promise<ServiceResponse<string>> {
     try {
+      const cutoff = new Date().toISOString();
+
       let countQuery = supabase
         .from('audit_log')
         .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organizationId);
+        .eq('organization_id', organizationId)
+        .lte('created_at', cutoff);
 
       countQuery = applyAuditFilters(countQuery, filters);
       const { count, error: countError } = await countQuery;
@@ -471,6 +474,7 @@ export const auditService = {
           .from('audit_log')
           .select('*')
           .eq('organization_id', organizationId)
+          .lte('created_at', cutoff)
           .order('created_at', { ascending: false })
           .order('id', { ascending: false })
           .range(offset, pageEnd);
@@ -486,6 +490,16 @@ export const auditService = {
         allEntries.push(...pageEntries);
         offset += pageEntries.length;
         onProgress?.({ current: Math.min(offset, totalRecords), total: totalRecords });
+      }
+
+      if (allEntries.length > 0) {
+        const { error: notificationError } = await supabase.rpc('log_audit_export_notification', {
+          p_organization_id: organizationId,
+          p_exported_count: allEntries.length,
+        });
+        if (notificationError) {
+          logger.warn('Failed to log audit export notification', notificationError);
+        }
       }
 
       const jsonString = JSON.stringify(allEntries, null, 2);
