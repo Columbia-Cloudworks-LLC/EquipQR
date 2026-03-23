@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@/test/utils/test-utils';
+import { render, screen, waitFor } from '@/test/utils/test-utils';
 import { StatsCard } from './StatsCard';
 import { Package } from 'lucide-react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -27,9 +27,19 @@ vi.mock('react-router-dom', async () => {
 describe('StatsCard', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
   });
 
-  it('renders basic stats card', () => {
+  it('renders basic stats card', async () => {
     render(
       <StatsCard
         icon={<Package data-testid="package-icon" />}
@@ -40,7 +50,9 @@ describe('StatsCard', () => {
     );
 
     expect(screen.getByText('Total Equipment')).toBeInTheDocument();
-    expect(screen.getByText('42')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('42');
+    });
     expect(screen.getByText('5 active')).toBeInTheDocument();
     expect(screen.getByTestId('package-icon')).toBeInTheDocument();
   });
@@ -55,8 +67,8 @@ describe('StatsCard', () => {
       />
     );
 
-    expect(screen.getByText('Total Equipment')).toBeInTheDocument();
-    // Should show skeleton instead of value
+    expect(screen.queryByText('Total Equipment')).not.toBeInTheDocument();
+    // Should show skeleton instead of value and label
     expect(screen.queryByText('42')).not.toBeInTheDocument();
   });
 
@@ -99,8 +111,7 @@ describe('StatsCard', () => {
       />
     );
 
-    expect(screen.getByText('↗')).toBeInTheDocument();
-    expect(screen.getByText('12%')).toBeInTheDocument();
+    expect(screen.getByText('12% this week')).toBeInTheDocument();
   });
 
   it('renders different trend directions', () => {
@@ -113,7 +124,7 @@ describe('StatsCard', () => {
       />
     );
 
-    expect(screen.getByText('↘')).toBeInTheDocument();
+    expect(screen.getByText('5% this week')).toBeInTheDocument();
 
     rerender(
       <StatsCard
@@ -124,7 +135,7 @@ describe('StatsCard', () => {
       />
     );
 
-    expect(screen.getByText('→')).toBeInTheDocument();
+    expect(screen.getByText('0% this week')).toBeInTheDocument();
   });
 
   it('applies aria-label when ariaDescription is provided', () => {

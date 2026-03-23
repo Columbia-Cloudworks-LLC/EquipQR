@@ -98,7 +98,7 @@ describe('DashboardHighPriorityWorkOrdersCard', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText('1 work orders require immediate attention')).toBeInTheDocument();
+      expect(screen.getByLabelText(/High priority: Critical engine failure/i)).toBeInTheDocument();
     });
 
     it('has proper aria-labelledby for accessibility', () => {
@@ -156,15 +156,19 @@ describe('DashboardHighPriorityWorkOrdersCard', () => {
       expect(screen.queryByText(/Due:/)).not.toBeInTheDocument();
     });
 
-    it('renders high priority badges', () => {
+    it('renders overdue badges when work orders are past due', () => {
+      const overdueWorkOrder = {
+        ...mockWorkOrders[0],
+        dueDate: '2020-01-10T10:00:00Z',
+      };
+
       render(
         <MemoryRouter>
-          <DashboardHighPriorityWorkOrdersCard workOrders={mockWorkOrders} />
+          <DashboardHighPriorityWorkOrdersCard workOrders={[overdueWorkOrder, mockWorkOrders[1]]} />
         </MemoryRouter>
       );
 
-      const badges = screen.getAllByText('High Priority');
-      expect(badges).toHaveLength(2);
+      expect(screen.getByText(/Overdue by/i)).toBeInTheDocument();
     });
 
     it('renders links to work order detail pages', () => {

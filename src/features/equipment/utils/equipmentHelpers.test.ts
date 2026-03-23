@@ -33,8 +33,8 @@ describe('equipmentHelpers', () => {
 
   describe('getStatusColor', () => {
     it('should return CSS variable-based colors for each status', () => {
-      expect(getStatusColor('active')).toBe('bg-success/10 text-success border-success/20');
-      expect(getStatusColor('maintenance')).toBe('bg-warning/10 text-warning border-warning/20');
+      expect(getStatusColor('active')).toBe('bg-success/20 text-success border-success/30');
+      expect(getStatusColor('maintenance')).toBe('bg-warning/20 text-warning border-warning/30');
       expect(getStatusColor('inactive')).toBe('bg-muted text-muted-foreground border-border');
     });
 
@@ -59,14 +59,14 @@ describe('equipmentHelpers', () => {
     it('should return complete display info for active status', () => {
       const info = getStatusDisplayInfo('active');
       expect(info.label).toBe('Active');
-      expect(info.badgeClassName).toBe('bg-success/10 text-success border-success/20');
+      expect(info.badgeClassName).toBe('bg-success/20 text-success border-success/30');
       expect(info.textClassName).toBe('text-success');
     });
 
     it('should return complete display info for maintenance status', () => {
       const info = getStatusDisplayInfo('maintenance');
       expect(info.label).toBe('Under Maintenance');
-      expect(info.badgeClassName).toBe('bg-warning/10 text-warning border-warning/20');
+      expect(info.badgeClassName).toBe('bg-warning/20 text-warning border-warning/30');
       expect(info.textClassName).toBe('text-warning');
     });
 

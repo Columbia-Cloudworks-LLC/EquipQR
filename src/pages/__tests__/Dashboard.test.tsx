@@ -153,6 +153,8 @@ vi.mock('recharts', () => ({
   PieChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
   Pie: () => <div data-testid="pie" />,
   Cell: () => <div data-testid="cell" />,
+  AreaChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="area-chart">{children}</div>,
+  Area: () => <div data-testid="area" />,
   BarChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
   Bar: () => <div data-testid="bar" />,
   XAxis: () => <div data-testid="x-axis" />,
@@ -349,7 +351,7 @@ describe('Dashboard', () => {
 
     it('displays the dashboard options button', () => {
       render(<Dashboard />);
-      expect(screen.getByTitle('Dashboard options')).toBeInTheDocument();
+      expect(screen.getByTitle('Dashboard settings')).toBeInTheDocument();
     });
 
     it('displays widget content after lazy loading', async () => {
@@ -559,7 +561,7 @@ describe('Dashboard', () => {
 
     it('shows the dashboard options button that opens the widget manager', () => {
       render(<Dashboard />);
-      expect(screen.getByTitle('Dashboard options')).toBeInTheDocument();
+      expect(screen.getByTitle('Dashboard settings')).toBeInTheDocument();
     });
   });
 });
