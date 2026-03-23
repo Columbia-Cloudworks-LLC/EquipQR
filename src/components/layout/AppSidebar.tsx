@@ -149,7 +149,7 @@ const AppSidebar = () => {
           <OrganizationSwitcher />
         </SidebarHeader>
         
-        <SidebarContent className="px-2 sm:px-3" role="navigation" aria-label="Main navigation">
+        <SidebarContent className="px-2 sm:px-3 overflow-x-hidden" role="navigation" aria-label="Main navigation">
           <SidebarGroup>
             <SidebarGroupLabel className={cn(
               "text-[10px] uppercase tracking-widest font-semibold",

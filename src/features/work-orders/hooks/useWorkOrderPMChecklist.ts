@@ -99,21 +99,17 @@ export const useWorkOrderPMChecklist = ({
     if (!values.hasPM) return;
     
     if (hasAssignedTemplate && assignedTemplate) {
-      // Direct assignment - use assigned template
-      setValue('pmTemplateId', assignedTemplate.id);
+      if (values.pmTemplateId !== assignedTemplate.id) {
+        setValue('pmTemplateId', assignedTemplate.id);
+      }
     } else if (templates.length > 0 && !values.pmTemplateId) {
-      // Auto-select first matching template if no template selected yet
       setValue('pmTemplateId', templates[0].id);
     } else if (templates.length > 0 && values.pmTemplateId) {
-      // Verify current selection is still valid (in case equipment changed)
       const isValid = templates.some(t => t.id === values.pmTemplateId);
       if (!isValid) {
-        // Current template not compatible with new equipment, reset to first matching
         setValue('pmTemplateId', templates[0].id);
       }
     } else if (templates.length === 0 && values.pmTemplateId && !hasAssignedTemplate) {
-      // No matching templates for this equipment, clear selection
-      // (unless we're in edit mode, which is handled by the filter logic above)
       const isEditMode = allTemplates.some(t => t.id === values.pmTemplateId);
       if (!isEditMode) {
         setValue('pmTemplateId', undefined as unknown as string);
