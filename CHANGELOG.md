@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-03-22
+
 ### Added
 
 - **Fleet Map: auto-fit viewport and Fit All** — On load the map fits a bounding box around all located equipment and team HQ markers (60px padding, dedicated single-marker zoom, max zoom 15 after multi-point fit). A floating **Fit All** control (maximize icon, bottom-left overlay) re-applies the same fit after the user pans or zooms away.
@@ -1356,7 +1358,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.10...v2.4.0
 [2.3.10]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.9...v2.3.10
 [2.3.9]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.8...v2.3.9
