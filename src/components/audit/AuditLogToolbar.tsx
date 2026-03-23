@@ -18,7 +18,6 @@ interface AuditLogToolbarProps {
   exportProgressLabel?: string;
   canExport: boolean;
   resultCount: number;
-  totalCount: number;
 }
 
 const AuditLogToolbar: React.FC<AuditLogToolbarProps> = ({
@@ -31,7 +30,6 @@ const AuditLogToolbar: React.FC<AuditLogToolbarProps> = ({
   exportProgressLabel,
   canExport,
   resultCount,
-  totalCount,
 }) => {
   const activeFilterCount = [
     !!filters.entityType && filters.entityType !== 'all',
@@ -99,12 +97,6 @@ const AuditLogToolbar: React.FC<AuditLogToolbarProps> = ({
           aria-atomic="true"
         >
           <span className="font-medium text-foreground">{resultCount.toLocaleString()}</span>
-          {totalCount !== resultCount && (
-            <>
-              {' / '}
-              <span className="font-medium text-foreground">{totalCount.toLocaleString()}</span>
-            </>
-          )}
           {' entries'}
         </span>
       </div>

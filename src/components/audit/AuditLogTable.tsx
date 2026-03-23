@@ -283,8 +283,7 @@ export function AuditLogTable({ organizationId }: AuditLogTableProps) {
         isExporting={isExporting}
         exportProgressLabel={exportProgressLabel}
         canExport={canExport}
-        resultCount={entries.length}
-        totalCount={totalCount}
+        resultCount={totalCount}
       />
 
       {/* Table */}
