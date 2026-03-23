@@ -153,6 +153,8 @@ vi.mock('recharts', () => ({
   PieChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
   Pie: () => <div data-testid="pie" />,
   Cell: () => <div data-testid="cell" />,
+  AreaChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="area-chart">{children}</div>,
+  Area: () => <div data-testid="area" />,
   BarChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
   Bar: () => <div data-testid="bar" />,
   XAxis: () => <div data-testid="x-axis" />,
@@ -312,7 +314,7 @@ describe('Dashboard', () => {
       });
     });
 
-    it('shows the welcome message with organization name', () => {
+    it('shows the dashboard heading', () => {
       setupPersonaMocks({
         hasTeamAccess: true,
         isManager: true,
@@ -337,7 +339,7 @@ describe('Dashboard', () => {
         ],
       });
       render(<Dashboard />);
-      expect(screen.getByText(`Welcome back to ${organizations.acme.name}`)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument();
     });
 
     it('renders the static dashboard grid', async () => {
@@ -347,9 +349,9 @@ describe('Dashboard', () => {
       });
     });
 
-    it('displays the Customize button', () => {
+    it('displays the dashboard options button', () => {
       render(<Dashboard />);
-      expect(screen.getByText('Customize')).toBeInTheDocument();
+      expect(screen.getByTitle('Dashboard settings')).toBeInTheDocument();
     });
 
     it('displays widget content after lazy loading', async () => {
@@ -498,7 +500,7 @@ describe('Dashboard', () => {
 
     it('prompts user to select an organization', () => {
       render(<Dashboard />);
-      expect(screen.getByText(/please select an organization/i)).toBeInTheDocument();
+      expect(screen.getByText(/select an organization/i)).toBeInTheDocument();
     });
   });
 
@@ -515,9 +517,9 @@ describe('Dashboard', () => {
       });
     });
 
-    it('still displays the welcome header during load', () => {
+    it('still displays the dashboard heading during load', () => {
       render(<Dashboard />);
-      expect(screen.getByText(`Welcome back to ${organizations.acme.name}`)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument();
     });
   });
 
@@ -557,9 +559,9 @@ describe('Dashboard', () => {
       expect(screen.getByText(/no widgets on your dashboard/i)).toBeInTheDocument();
     });
 
-    it('shows the Customize button that opens the widget manager', () => {
+    it('shows the dashboard options button that opens the widget manager', () => {
       render(<Dashboard />);
-      expect(screen.getByText('Customize')).toBeInTheDocument();
+      expect(screen.getByTitle('Dashboard settings')).toBeInTheDocument();
     });
   });
 });

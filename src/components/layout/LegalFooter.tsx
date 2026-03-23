@@ -8,11 +8,11 @@ export default function LegalFooter() {
   const appVersion = APP_VERSION;
 
   return (
-    <footer className="border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
+    <footer className="hidden md:block border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
       <div className="container mx-auto px-4 py-4 sm:py-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
           {/* Copyright section - stacked on mobile, inline on larger screens */}
-          <div className="text-sm text-muted-foreground text-center sm:text-left">
+          <div className="text-xs text-muted-foreground/70 text-center sm:text-left">
             <span className="block sm:inline">
               © {currentYear} EquipQR™ v{appVersion}
             </span>
@@ -35,10 +35,10 @@ export default function LegalFooter() {
           </div>
           
           {/* Links section */}
-          <div className="flex items-baseline gap-3 text-sm">
-            <ExternalLink 
-              href="https://equipqr.app" 
-              className="hidden sm:inline-flex text-muted-foreground hover:text-foreground transition-colors items-baseline no-underline hover:underline gap-1.5"
+          <div className="flex items-baseline gap-3 text-xs text-muted-foreground/70">
+            <ExternalLink
+              href="https://equipqr.app"
+              className="hidden sm:inline-flex text-muted-foreground/70 hover:text-foreground transition-colors items-baseline no-underline hover:underline gap-1.5"
               showIcon={false}
             >
               <img 
@@ -51,30 +51,30 @@ export default function LegalFooter() {
             
             <span className="hidden sm:inline text-muted-foreground/50">·</span>
             
-            <Link 
-              to="/terms-of-service" 
-              className="text-muted-foreground hover:text-foreground transition-colors"
+            <Link
+              to="/terms-of-service"
+              className="text-muted-foreground/70 hover:text-foreground transition-colors"
             >
               Terms
             </Link>
-            <span className="text-muted-foreground/50">·</span>
+            <span className="text-muted-foreground/40">·</span>
             <Link
               to="/security"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground/70 hover:text-foreground transition-colors"
             >
               Security
             </Link>
-            <span className="text-muted-foreground/50">·</span>
-            <Link 
-              to="/privacy-policy" 
-              className="text-muted-foreground hover:text-foreground transition-colors"
+            <span className="text-muted-foreground/40">·</span>
+            <Link
+              to="/privacy-policy"
+              className="text-muted-foreground/70 hover:text-foreground transition-colors"
             >
               Privacy
             </Link>
-            <span className="text-muted-foreground/50">·</span>
+            <span className="text-muted-foreground/40">·</span>
             <ExternalLink
               href="https://status.equipqr.app"
-              className="text-muted-foreground hover:text-foreground transition-colors no-underline hover:underline"
+              className="text-muted-foreground/70 hover:text-foreground transition-colors no-underline hover:underline"
               showIcon={false}
             >
               Status

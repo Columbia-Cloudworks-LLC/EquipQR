@@ -69,7 +69,7 @@ describe('DashboardRecentEquipmentCard', () => {
         </MemoryRouter>
       );
 
-      const viewAllLink = screen.getByText('View all');
+      const viewAllLink = screen.getByText('View all equipment');
       expect(viewAllLink).toBeInTheDocument();
       expect(viewAllLink.closest('a')).toHaveAttribute('href', '/dashboard/equipment');
     });
@@ -81,7 +81,7 @@ describe('DashboardRecentEquipmentCard', () => {
         </MemoryRouter>
       );
 
-      expect(screen.queryByText('View all')).not.toBeInTheDocument();
+      expect(screen.queryByText('View all equipment')).not.toBeInTheDocument();
     });
 
     it('has proper aria-labelledby for accessibility', () => {

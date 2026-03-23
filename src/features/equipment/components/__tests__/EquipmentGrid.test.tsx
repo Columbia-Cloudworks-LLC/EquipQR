@@ -83,7 +83,7 @@ describe('EquipmentGrid', () => {
     it('renders empty state when no equipment', () => {
       render(<EquipmentGrid {...defaultProps} equipment={[]} />);
       
-      expect(screen.getByText('No equipment found')).toBeInTheDocument();
+      expect(screen.getByText('No equipment yet')).toBeInTheDocument();
       expect(screen.getByText(/Get started by adding your first piece of equipment/)).toBeInTheDocument();
     });
 
@@ -109,7 +109,7 @@ describe('EquipmentGrid', () => {
         />
       );
       
-      expect(screen.getByText('No equipment matches your current filters.')).toBeInTheDocument();
+      expect(screen.getByText('No equipment matches your filters')).toBeInTheDocument();
     });
 
     it('shows different message when status filter is active', () => {
@@ -121,7 +121,7 @@ describe('EquipmentGrid', () => {
         />
       );
       
-      expect(screen.getByText('No equipment matches your current filters.')).toBeInTheDocument();
+      expect(screen.getByText('No equipment matches your filters')).toBeInTheDocument();
     });
 
     it('does not show "Add Equipment" button when filters are active', () => {

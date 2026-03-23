@@ -99,8 +99,9 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
     >
       {/* Mobile: compact horizontal list item */}
       <div className="md:hidden overflow-hidden">
-        <div className="flex min-w-0 items-center">
-          <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-l-md bg-muted">
+        <div className="flex min-w-0 items-stretch">
+          {/* Thumbnail — slightly taller to give content breathing room */}
+          <div className="relative h-[88px] w-[88px] flex-shrink-0 overflow-hidden rounded-l-md bg-muted self-center">
             {equipment.image_url ? (
               <img
                 src={equipment.image_url}
@@ -119,43 +120,47 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
             )}
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col justify-between p-3 overflow-hidden">
+          {/* Content */}
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3 py-3 overflow-hidden">
+            {/* Title row */}
             <div className="flex items-center gap-2 min-w-0">
-              <div className="truncate text-sm font-semibold">{equipment.name}</div>
+              <div className="truncate text-sm font-semibold leading-tight">{equipment.name}</div>
               {(equipment as MergedEquipment)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
             </div>
-            <div className="mt-0.5 flex items-center gap-2 min-w-0">
+            {/* Status + PM indicator row */}
+            <div className="flex items-center gap-2 min-w-0">
               <Badge className={`${display.statusClassName} px-1.5 py-0 text-[10px] flex-shrink-0`} variant="outline">
                 {display.statusLabel}
               </Badge>
               <PMStatusIndicator status={pmStatus} size="sm" />
-              <span className="truncate text-xs text-muted-foreground">
-                ID: {equipment.serial_number}
-              </span>
             </div>
-            <div className="mt-1.5 flex items-center gap-3 min-w-0 text-xs text-muted-foreground">
+            {/* Metadata row — bumped to 13px and higher contrast for field legibility */}
+            <div className="flex items-center gap-3 min-w-0 text-[13px] text-foreground/65">
               <span className="flex items-center gap-1 min-w-0 truncate">
-                <MapPin className="h-3 w-3 flex-shrink-0" />
+                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
                 <span className="truncate">{equipment.location}</span>
               </span>
               <span className="flex items-center gap-1 flex-shrink-0">
-                <Clock className="h-3 w-3" />
+                <Clock className="h-3.5 w-3.5" />
                 {display.workingHoursShortText}
               </span>
             </div>
           </div>
 
-          <div className="flex flex-shrink-0 items-center gap-0.5 pr-2">
+          {/* Actions — QR separated from chevron by a border to prevent mis-taps */}
+          <div className="flex flex-shrink-0 items-center self-stretch border-l">
             <Button
               variant="ghost"
               size="icon"
-              className="h-11 w-11 flex-shrink-0"
+              className="h-full w-12 rounded-none flex-shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/60"
               onClick={handleQRClick}
               aria-label={`Show QR code for ${equipment.name}`}
             >
-              <QrCode className="h-4 w-4" />
+              <QrCode className="h-4.5 w-4.5" />
             </Button>
-            <ChevronRight className="h-4 w-4 text-muted-foreground/60" aria-hidden="true" />
+            <div className="flex h-full w-10 items-center justify-center text-muted-foreground/60" aria-hidden="true">
+              <ChevronRight className="h-4 w-4" />
+            </div>
           </div>
         </div>
       </div>

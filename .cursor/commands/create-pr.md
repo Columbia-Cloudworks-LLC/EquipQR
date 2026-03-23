@@ -8,6 +8,10 @@ Create a well-structured pull request with proper description, labels, and revie
 
 ### 1. Prepare branch
 
+- **Run ALL tests and fix all warnings, errors, and failures**:
+  - Run the lint & type checks
+  - Run the full CI test suite and all unit tests
+  - Before moving to the next step, fix ALL of the issues
 - **Verify key files are current**:
   - Read `/CHANGELOG.md`
     - If it has unreleased changes, choose an appropriate new version number and update the section with the new version number and create a new empty unreleased section

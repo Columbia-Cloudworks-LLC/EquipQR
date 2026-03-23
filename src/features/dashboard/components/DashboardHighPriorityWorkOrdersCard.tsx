@@ -36,14 +36,51 @@ function getOverdueDays(dueDate: string | null | undefined, status: string): num
   return Math.floor((now.getTime() - due.getTime()) / (24 * 60 * 60 * 1000));
 }
 
+/** Compact inline alert strip used when only a single high-priority item exists. */
+const SingleItemAlertStrip: React.FC<{ order: HighPriorityWorkOrder }> = ({ order }) => {
+  const overdueLabel = getOverdueLabel(order.dueDate ?? null, order.status);
+  return (
+    <Link
+      to={`/dashboard/work-orders/${order.id}`}
+      className={cn(
+        "flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/[0.04] dark:bg-destructive/[0.08]",
+        "px-4 py-3 transition-colors",
+        "hover:bg-destructive/[0.08] dark:hover:bg-destructive/[0.14]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      )}
+      aria-label={`High priority: ${order.title}${overdueLabel ? ` — ${overdueLabel}` : ""}`}
+    >
+      <AlertTriangle className="h-4 w-4 flex-shrink-0 text-destructive" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-destructive">{order.title}</p>
+        {(order.equipmentName || overdueLabel) && (
+          <p className="truncate text-xs text-destructive/70">
+            {overdueLabel ?? order.equipmentName}
+          </p>
+        )}
+      </div>
+      <ChevronRight className="h-4 w-4 flex-shrink-0 text-destructive/60" aria-hidden />
+    </Link>
+  );
+};
+
 export const DashboardHighPriorityWorkOrdersCard: React.FC<DashboardHighPriorityWorkOrdersCardProps> = ({ workOrders }) => {
   if (workOrders.length === 0) {
     return null;
   }
 
+  if (workOrders.length === 1) {
+    return (
+      <section aria-labelledby="high-priority-heading-single">
+        <h2 id="high-priority-heading-single" className="sr-only">High Priority Work Orders</h2>
+        <SingleItemAlertStrip order={workOrders[0]} />
+      </section>
+    );
+  }
+
   return (
     <section aria-labelledby="high-priority-heading">
-      <Card>
+      <Card className="overflow-hidden border-destructive/30 bg-destructive/[0.03] dark:bg-destructive/[0.06]">
         <CardHeader>
           <CardTitle as="h2" id="high-priority-heading" className="flex items-center gap-2 text-base text-destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -51,8 +88,8 @@ export const DashboardHighPriorityWorkOrdersCard: React.FC<DashboardHighPriority
           </CardTitle>
           <CardDescription>{workOrders.length} work orders require immediate attention</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="pt-0 px-0">
+          <div className="divide-y divide-border/50">
             {workOrders.map((order) => {
               const overdueLabel = getOverdueLabel(order.dueDate ?? null, order.status);
               const overdueDays = getOverdueDays(order.dueDate ?? null, order.status);
@@ -62,35 +99,36 @@ export const DashboardHighPriorityWorkOrdersCard: React.FC<DashboardHighPriority
                   key={order.id}
                   to={`/dashboard/work-orders/${order.id}`}
                   className={cn(
-                    "flex items-center justify-between rounded-lg border p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                    isCriticalOverdue
-                      ? "border-destructive/40 bg-destructive/10 hover:bg-destructive/15"
-                      : "border-destructive/20 hover:bg-destructive/5"
+                    "flex items-center gap-3 px-4 sm:px-5 py-3 transition-colors",
+                    "hover:bg-destructive/[0.06] dark:hover:bg-destructive/[0.10]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                    isCriticalOverdue && "bg-destructive/10 dark:bg-destructive/15"
                   )}
                 >
+                  <div className="w-0.5 self-stretch flex-shrink-0 rounded-full bg-destructive" />
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 font-medium">{order.title}</p>
+                    <p className="truncate text-sm font-medium leading-tight">{order.title}</p>
                     {order.equipmentName && (
-                      <p className="text-xs text-muted-foreground">Equipment: {order.equipmentName}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {order.equipmentName}
+                      </p>
                     )}
-                    <p className="text-sm text-muted-foreground">
-                      {overdueLabel ? (
-                        <span className="inline-flex items-center gap-1 text-destructive font-medium">
-                          {isCriticalOverdue && <AlertTriangle className="h-3.5 w-3.5" aria-hidden />}
+                    {overdueLabel && (
+                      <div className="mt-1">
+                        <Badge variant="destructive" className="text-xs">
+                          {isCriticalOverdue && <AlertTriangle className="mr-1 h-3 w-3" aria-hidden />}
                           {overdueLabel}
-                        </span>
-                      ) : (
-                        <>
-                          Created: {new Date(order.createdDate).toLocaleDateString()}
-                          {order.dueDate && <> • Due: {new Date(order.dueDate).toLocaleDateString()}</>}
-                        </>
-                      )}
-                    </p>
+                        </Badge>
+                      </div>
+                    )}
+                    {!overdueLabel && (
+                      <p className="text-xs text-muted-foreground">
+                        Created: {new Date(order.createdDate).toLocaleDateString()}
+                        {order.dueDate && <> · Due: {new Date(order.dueDate).toLocaleDateString()}</>}
+                      </p>
+                    )}
                   </div>
-                  <div className="ml-2 flex flex-shrink-0 items-center gap-2">
-                    <Badge variant="destructive">High Priority</Badge>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
-                  </div>
+                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-destructive/60" aria-hidden />
                 </Link>
               );
             })}
@@ -100,4 +138,3 @@ export const DashboardHighPriorityWorkOrdersCard: React.FC<DashboardHighPriority
     </section>
   );
 };
-

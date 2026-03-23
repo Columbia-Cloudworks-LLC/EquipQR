@@ -182,48 +182,59 @@ const FleetMap: React.FC = () => {
   // ── Main fleet map view ──
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
-      {/* Floating control bar */}
-      <div className="flex items-center gap-2 px-4 py-2 bg-background border-b z-10 flex-shrink-0">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setPanelOpen(!panelOpen)}
-          className="gap-1.5 h-8"
-        >
-          {panelOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
-          <span className="hidden sm:inline">{panelOpen ? 'Hide Panel' : 'Equipment'}</span>
-        </Button>
+      {/* Toolbar — left: panel + team filter | right: status summary */}
+      <div className="flex items-center px-4 py-2 bg-background border-b shadow-sm z-10 flex-shrink-0">
+        {/* Left controls group */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPanelOpen(!panelOpen)}
+            className="gap-1.5 h-8 bg-background"
+          >
+            {panelOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{panelOpen ? 'Hide Panel' : 'Equipment'}</span>
+          </Button>
 
-        <Select
-          value={selectedTeamId || 'all'}
-          onValueChange={(value) => setSelectedTeamId(value)}
-        >
-          <SelectTrigger className="w-[200px] h-8 text-xs">
-            <SelectValue placeholder="All Teams" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">
-              <span className="flex items-center gap-1.5">All Teams</span>
-            </SelectItem>
-            {(teamFleetData?.teams || []).map((team) => (
-              <SelectItem key={team.id} value={team.id}>
-                <span className="flex items-center gap-1.5">
-                  {team.name}
-                  {team.hasLocationData && (
-                    <span className="text-[10px] text-muted-foreground">({team.equipmentCount})</span>
-                  )}
-                </span>
+          {/* Visual separator between panel toggle and team filter */}
+          <div className="hidden sm:block w-px h-5 bg-border/40 mx-0.5" />
+
+          <Select
+            value={selectedTeamId || 'all'}
+            onValueChange={(value) => setSelectedTeamId(value)}
+          >
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <SelectValue placeholder="All Teams" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                <span className="flex items-center gap-1.5">All Teams</span>
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              {(teamFleetData?.teams || []).map((team) => (
+                <SelectItem key={team.id} value={team.id}>
+                  <span className="flex items-center gap-1.5">
+                    {team.name}
+                    {team.hasLocationData && (
+                      <span className="text-[10px] text-muted-foreground">({team.equipmentCount})</span>
+                    )}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="flex-1" />
 
-        <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
+        {/* Right status group */}
+        <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="w-px h-4 bg-border/40" />
           <MapPin className="h-3.5 w-3.5" />
           <span>
-            <span className="font-semibold text-foreground">{equipmentLocations.length}</span> located
+            <span className="font-semibold text-foreground">{equipmentLocations.length}</span>
+            {' of '}
+            <span className="font-semibold text-foreground">{totalEquipmentCount}</span>
+            {' located'}
           </span>
         </div>
       </div>

@@ -12,7 +12,6 @@ interface SegmentedProgressProps {
     notes?: string
   }>
   className?: string
-  completed?: boolean
 }
 
 const getSegmentColor = (status: SegmentedProgressProps['segments'][0]['status']) => {
@@ -36,7 +35,7 @@ const getSegmentColor = (status: SegmentedProgressProps['segments'][0]['status']
 const SegmentedProgress = React.forwardRef<
   HTMLDivElement,
   SegmentedProgressProps
->(({ segments, className, completed }, ref) => (
+>(({ segments, className }, ref) => (
   <div
     ref={ref}
     className={cn(
@@ -74,7 +73,7 @@ const SegmentedProgress = React.forwardRef<
         <div
           className={cn(
             "h-full transition-all duration-300 cursor-help",
-            completed ? 'bg-success' : getSegmentColor(segment.status),
+            getSegmentColor(segment.status),
             index > 0 && "border-l border-background"
           )}
           style={{ 

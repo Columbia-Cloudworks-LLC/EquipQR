@@ -35,13 +35,13 @@ export const EQUIPMENT_STATUS_OPTIONS = [
 export const getStatusColor = (status: string): string => {
   switch (status) {
     case 'active':
-      return 'bg-success/10 text-success border-success/20';
+      return 'bg-success/20 text-success border-success/30';
     case 'maintenance':
-      return 'bg-warning/10 text-warning border-warning/20';
+      return 'bg-warning/20 text-warning border-warning/30';
     case 'inactive':
       return 'bg-muted text-muted-foreground border-border';
     case 'out_of_service':
-      return 'bg-warning/10 text-warning border-warning/20';
+      return 'bg-warning/20 text-warning border-warning/30';
     default:
       return 'bg-muted text-muted-foreground border-border';
   }

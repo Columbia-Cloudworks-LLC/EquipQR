@@ -435,6 +435,81 @@ export const auditService = {
   },
 
   /**
+   * Export audit log to JSON
+   */
+  async exportToJson(
+    organizationId: string,
+    filters?: AuditLogFilters,
+    onProgress?: (progress: { current: number; total: number }) => void
+  ): Promise<ServiceResponse<string>> {
+    try {
+      const cutoff = new Date().toISOString();
+
+      let countQuery = supabase
+        .from('audit_log')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .lte('created_at', cutoff);
+
+      countQuery = applyAuditFilters(countQuery, filters);
+      const { count, error: countError } = await countQuery;
+      if (countError) throw countError;
+
+      const matchedRecords = count ?? 0;
+      const totalRecords = Math.min(matchedRecords, AUDIT_EXPORT_MAX_RECORDS);
+      onProgress?.({ current: 0, total: totalRecords });
+
+      if (matchedRecords > AUDIT_EXPORT_MAX_RECORDS) {
+        logger.warn(
+          `Audit JSON export capped at ${AUDIT_EXPORT_MAX_RECORDS.toLocaleString()} records (matched ${matchedRecords.toLocaleString()}).`
+        );
+      }
+
+      const allEntries: AuditLogEntry[] = [];
+      let offset = 0;
+
+      while (offset < totalRecords) {
+        const pageEnd = Math.min(offset + AUDIT_EXPORT_BATCH_SIZE - 1, totalRecords - 1);
+        let pageQuery = supabase
+          .from('audit_log')
+          .select('*')
+          .eq('organization_id', organizationId)
+          .lte('created_at', cutoff)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
+          .range(offset, pageEnd);
+
+        pageQuery = applyAuditFilters(pageQuery, filters);
+
+        const { data: pageData, error: pageError } = await pageQuery;
+        if (pageError) throw pageError;
+
+        const pageEntries = (pageData ?? []) as AuditLogEntry[];
+        if (pageEntries.length === 0) break;
+
+        allEntries.push(...pageEntries);
+        offset += pageEntries.length;
+        onProgress?.({ current: Math.min(offset, totalRecords), total: totalRecords });
+      }
+
+      if (allEntries.length > 0) {
+        const { error: notificationError } = await supabase.rpc('log_audit_export_notification', {
+          p_organization_id: organizationId,
+          p_exported_count: allEntries.length,
+        });
+        if (notificationError) {
+          logger.warn('Failed to log audit export notification', notificationError);
+        }
+      }
+
+      const jsonString = JSON.stringify(allEntries, null, 2);
+      return handleSuccess(jsonString);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  /**
    * Get summary statistics for audit log
    */
   async getAuditStats(

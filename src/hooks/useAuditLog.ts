@@ -334,7 +334,6 @@ export function useAuditExport(organizationId: string | undefined) {
         throw new Error(result.error || 'Export failed');
       }
 
-      // Create and download the file
       const blob = new Blob([result.data], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -359,7 +358,51 @@ export function useAuditExport(organizationId: string | undefined) {
     }
   }, [organizationId, toast]);
 
-  return { exportToCsv };
+  const exportToJson = useCallback(async (
+    filters?: AuditLogFilters,
+    onProgress?: (progress: { current: number; total: number }) => void
+  ) => {
+    if (!organizationId) {
+      toast({
+        title: 'Export Failed',
+        description: 'Organization ID is required',
+        variant: 'error',
+      });
+      return;
+    }
+
+    try {
+      const result = await auditService.exportToJson(organizationId, filters, onProgress);
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Export failed');
+      }
+
+      const blob = new Blob([result.data], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `audit-log-${format(new Date(), 'yyyy-MM-dd')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Export Complete',
+        description: 'Audit log has been exported to JSON',
+        variant: 'success',
+      });
+    } catch (error) {
+      toast({
+        title: 'Export Failed',
+        description: error instanceof Error ? error.message : 'Failed to export audit log',
+        variant: 'error',
+      });
+    }
+  }, [organizationId, toast]);
+
+  return { exportToCsv, exportToJson };
 }
 
 // ============================================

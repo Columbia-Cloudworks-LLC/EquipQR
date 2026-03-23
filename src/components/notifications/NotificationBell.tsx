@@ -158,9 +158,9 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
         <Button variant="ghost" size="sm" className="relative" aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}>
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+            <Badge
+              variant="destructive"
+              className="absolute -top-1 -right-1 h-3.5 min-w-3.5 flex items-center justify-center p-0 text-[9px] font-medium border border-background"
             >
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>

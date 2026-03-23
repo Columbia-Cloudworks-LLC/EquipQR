@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Forklift } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import EmptyState from '@/components/ui/empty-state';
@@ -19,6 +19,36 @@ const STATUS_COLORS: Record<string, string> = {
 function getStatusColor(status: string): string {
   return STATUS_COLORS[status] || 'hsl(var(--muted))';
 }
+
+interface CenterLabelProps {
+  cx: number;
+  cy: number;
+  total: number;
+}
+
+const CenterLabel: React.FC<CenterLabelProps> = ({ cx, cy, total }) => (
+  <>
+    <text
+      x={cx}
+      y={cy - 6}
+      textAnchor="middle"
+      dominantBaseline="middle"
+      className="fill-foreground"
+      style={{ fontSize: '1.25rem', fontWeight: 700, fill: 'hsl(var(--foreground))' }}
+    >
+      {total}
+    </text>
+    <text
+      x={cx}
+      y={cy + 13}
+      textAnchor="middle"
+      dominantBaseline="middle"
+      style={{ fontSize: '0.65rem', fill: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+    >
+      Total
+    </text>
+  </>
+);
 
 /**
  * Donut chart showing equipment breakdown by status (active, maintenance, retired, etc.).
@@ -64,51 +94,71 @@ const EquipmentByStatusWidget: React.FC = () => {
           <Forklift className="h-4 w-4" />
           Equipment by Status
         </CardTitle>
-        <CardDescription className="text-xs">Fleet breakdown by equipment status</CardDescription>
+        <CardDescription className="opacity-75">Fleet breakdown by equipment status</CardDescription>
       </CardHeader>
       <CardContent className="pb-4">
         {isLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <Skeleton className="h-32 w-32 rounded-full" />
+          <div className="flex items-center gap-6">
+            <Skeleton className="h-32 w-32 rounded-full flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+            </div>
           </div>
         ) : data && data.length > 0 ? (
           <div aria-label="Equipment status distribution chart">
-            <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie
-                data={data}
-                dataKey="count"
-                nameKey="label"
-                cx="50%"
-                cy="50%"
-                innerRadius={40}
-                outerRadius={70}
-                paddingAngle={2}
-                onClick={(entry) => handleSliceClick(entry.status)}
-              >
-                {data.map((entry, index) => (
-                  <Cell
-                    key={entry.status}
-                    fill={getStatusColor(entry.status)}
-                    stroke="hsl(var(--background))"
-                    strokeWidth={1.5}
-                    strokeDasharray={index % 2 === 0 ? '0' : '3 2'}
-                    style={{ cursor: 'pointer' }}
-                  />
-                ))}
-              </Pie>
-              <Tooltip content={tooltipContent} />
-              <Legend
-                verticalAlign="bottom"
-                height={30}
-                iconType="circle"
-                iconSize={10}
-                formatter={(value: string, _entry, index) => (
-                  <span className="inline-block px-1 py-1 text-xs">{value} ({data[index]?.count ?? 0})</span>
-                )}
-              />
-            </PieChart>
-            </ResponsiveContainer>
+            <div className="flex items-center justify-center">
+              <div className="flex items-center gap-6">
+                <div className="flex-shrink-0">
+                  <ResponsiveContainer width={160} height={160}>
+                    <PieChart>
+                      <Pie
+                        data={data}
+                        dataKey="count"
+                        nameKey="label"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={48}
+                        outerRadius={70}
+                        paddingAngle={2}
+                        onClick={(entry) => handleSliceClick(entry.status)}
+                      >
+                        {data.map((entry) => (
+                          <Cell
+                            key={entry.status}
+                            fill={getStatusColor(entry.status)}
+                            stroke="hsl(var(--card))"
+                            strokeWidth={3}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        ))}
+                        <CenterLabel cx={80} cy={80} total={totalCount} />
+                      </Pie>
+                      <Tooltip content={tooltipContent} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="min-w-0 w-44 space-y-1.5">
+                  {data.map((entry) => {
+                    const pct = totalCount > 0 ? Math.round((entry.count / totalCount) * 100) : 0;
+                    return (
+                      <button
+                        key={entry.status}
+                        onClick={() => handleSliceClick(entry.status)}
+                        className="flex w-full items-center gap-2 rounded px-1 py-1.5 text-left text-xs transition-colors hover:bg-muted/50 touch-manipulation"
+                      >
+                        <span
+                          className="h-2 w-2 flex-shrink-0 rounded-full"
+                          style={{ backgroundColor: getStatusColor(entry.status) }}
+                        />
+                        <span className="flex-1 truncate capitalize text-muted-foreground">{entry.label}</span>
+                        <span className="font-medium tabular-nums">{entry.count}</span>
+                        <span className="w-8 text-right text-muted-foreground tabular-nums">{pct}%</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
             <p className="sr-only">
               Equipment status summary: {data.map((entry) => `${entry.label} ${entry.count}`).join(', ')}.
             </p>

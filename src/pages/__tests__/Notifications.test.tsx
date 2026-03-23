@@ -52,11 +52,13 @@ describe('Notifications Page', () => {
       expect(screen.getByPlaceholderText(/search notifications/i)).toBeInTheDocument();
     });
 
-    it('renders filter select elements', () => {
+    it('renders filter control in toolbar', () => {
       render(<Notifications />);
 
-      // Type filter and read status filter should be present
-      expect(screen.getAllByRole('combobox').length).toBeGreaterThanOrEqual(1);
+      // Filters live in a popover; trigger is always visible
+      expect(
+        screen.getByRole('button', { name: /filter notifications/i })
+      ).toBeInTheDocument();
     });
   });
 

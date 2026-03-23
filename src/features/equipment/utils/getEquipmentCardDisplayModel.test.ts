@@ -60,7 +60,7 @@ describe('getEquipmentCardDisplayModel', () => {
         status: 'active',
       });
 
-      expect(result.statusClassName).toBe('bg-success/10 text-success border-success/20');
+      expect(result.statusClassName).toBe('bg-success/20 text-success border-success/30');
     });
 
     it('returns CSS variable-based classes for maintenance status', () => {
@@ -69,7 +69,7 @@ describe('getEquipmentCardDisplayModel', () => {
         status: 'maintenance',
       });
 
-      expect(result.statusClassName).toBe('bg-warning/10 text-warning border-warning/20');
+      expect(result.statusClassName).toBe('bg-warning/20 text-warning border-warning/30');
     });
 
     it('returns CSS variable-based classes for inactive status', () => {

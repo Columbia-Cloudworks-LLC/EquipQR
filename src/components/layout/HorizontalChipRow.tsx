@@ -70,7 +70,7 @@ export const HorizontalChipRow: React.FC<HorizontalChipRowProps> = ({
       {/* Left scroll hint gradient */}
       <div
         className={cn(
-          'pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 transition-opacity duration-200',
+          'pointer-events-none absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-background via-background/80 to-transparent z-10 transition-opacity duration-200',
           showLeftHint ? 'opacity-100' : 'opacity-0'
         )}
         aria-hidden="true"
@@ -90,7 +90,7 @@ export const HorizontalChipRow: React.FC<HorizontalChipRowProps> = ({
       {/* Right scroll hint gradient */}
       <div
         className={cn(
-          'pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent z-10 transition-opacity duration-200',
+          'pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-background via-background/80 to-transparent z-10 transition-opacity duration-200',
           showRightHint ? 'opacity-100' : 'opacity-0'
         )}
         aria-hidden="true"

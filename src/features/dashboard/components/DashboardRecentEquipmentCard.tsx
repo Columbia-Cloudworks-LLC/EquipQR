@@ -1,10 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Forklift } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { getStatusDisplayInfo } from "@/features/equipment/utils/equipmentHelpers";
 import { cn } from "@/lib/utils";
@@ -29,15 +27,6 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
   isLoading,
   hasMore,
 }) => {
-  const formatAddedLabel = (createdAt?: string) => {
-    if (!createdAt) return null;
-
-    const createdDate = new Date(createdAt);
-    if (Number.isNaN(createdDate.getTime())) return null;
-
-    return `Added ${formatDistanceToNow(createdDate, { addSuffix: true })}`;
-  };
-
   return (
     <section aria-labelledby="recent-equipment-heading">
       <Card>
@@ -46,62 +35,72 @@ export const DashboardRecentEquipmentCard: React.FC<DashboardRecentEquipmentCard
             <Forklift className="h-4 w-4" />
             Recent Equipment
           </CardTitle>
-          <CardDescription>Latest equipment in your fleet</CardDescription>
+          <CardDescription className="opacity-75">Latest equipment in your fleet</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 animate-pulse rounded bg-muted" />
+                <div key={i} className="h-12 animate-pulse rounded bg-muted" />
               ))}
             </div>
           ) : equipment.length > 0 ? (
-            <div className="space-y-4">
+            <div className="divide-y divide-border/50">
               {equipment.map((item) => {
-                const addedLabel = formatAddedLabel(item.created_at);
+                const statusInfo = getStatusDisplayInfo(item.status);
                 return (
                   <Link
                     key={item.id}
                     to={`/dashboard/equipment/${item.id}`}
-                    className="flex items-center justify-between rounded-lg p-2 -m-2 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className={cn(
+                      "flex items-center gap-3 py-2.5 pl-3 pr-2 -mx-3 transition-colors",
+                      "hover:bg-muted/60 dark:hover:bg-white/[0.04]",
+                      "active:bg-white/5 dark:active:bg-white/[0.03]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    )}
                   >
+                    <div
+                      className={cn(
+                        "w-0.5 self-stretch flex-shrink-0 rounded-full",
+                        item.status === 'active' ? "bg-success" :
+                        item.status === 'maintenance' ? "bg-warning" :
+                        item.status === 'retired' || item.status === 'inactive' ? "bg-muted-foreground/40" :
+                        "bg-destructive"
+                      )}
+                    />
                     <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="truncate text-sm font-medium leading-tight">{item.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
                         {item.manufacturer} {item.model}
                       </p>
-                      {addedLabel && (
-                        <p className="text-[11px] text-muted-foreground">
-                          {addedLabel}
-                        </p>
-                      )}
                     </div>
                     <Badge
                       variant="outline"
-                      className={cn("ml-2 flex-shrink-0", getStatusDisplayInfo(item.status).badgeClassName)}
+                      className={cn("ml-1 flex-shrink-0 text-xs", statusInfo.badgeClassName)}
                     >
-                      {getStatusDisplayInfo(item.status).label}
+                      {statusInfo.label}
                     </Badge>
+                    <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/50" aria-hidden />
                   </Link>
                 );
               })}
             </div>
           ) : (
-            <p className="text-muted-foreground">No equipment found</p>
+            <p className="text-sm text-muted-foreground py-2">No equipment found</p>
           )}
         </CardContent>
         {hasMore && !isLoading && (
-          <CardFooter>
-            <Button asChild variant="outline" className="w-full">
-              <Link to="/dashboard/equipment" className="inline-flex items-center justify-center gap-2">
-                View all
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
+          <CardFooter className="pt-0 border-t border-border/50">
+            <Link
+              to="/dashboard/equipment"
+              className="inline-flex items-center gap-1 min-h-[44px] text-sm font-medium text-primary hover:text-primary/80 hover:underline active:text-primary/70 transition-colors touch-manipulation"
+            >
+              View all equipment
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
           </CardFooter>
         )}
       </Card>
     </section>
   );
 };
-

@@ -29,13 +29,15 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
   isLoading = false,
 }) => {
   const overdueCount = stats?.overdueWorkOrders ?? 0;
+  const totalEquipment = stats?.totalEquipment ?? 0;
+  const totalWorkOrders = stats?.totalWorkOrders ?? 0;
 
   return (
     <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
       <StatsCard
         icon={<Forklift className="h-4 w-4" />}
         label="Total Equipment"
-        value={stats?.totalEquipment ?? 0}
+        value={totalEquipment}
         sublabel={`${stats?.activeEquipment ?? 0} active`}
         to={isLoading ? undefined : "/dashboard/equipment"}
         ariaDescription="View all equipment in the fleet"
@@ -56,7 +58,7 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
       <StatsCard
         icon={<ClipboardList className="h-4 w-4" />}
         label="Total Work Orders"
-        value={stats?.totalWorkOrders ?? 0}
+        value={totalWorkOrders}
         sublabel={`${activeWorkOrdersCount} active`}
         to={isLoading ? undefined : "/dashboard/work-orders"}
         ariaDescription="View all work orders"

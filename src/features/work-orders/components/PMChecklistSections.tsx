@@ -49,9 +49,9 @@ const PMChecklistSections: React.FC<PMChecklistSectionsProps> = ({
               <div className="relative overflow-hidden rounded-lg border bg-background shadow-sm">
                 <SegmentedProgress
                   segments={segments}
-                  className="absolute inset-0 h-full opacity-30"
+                  className="absolute inset-0 h-full opacity-[0.15]"
                 />
-                <Button variant="ghost" className="relative w-full justify-between p-4 h-auto hover:bg-accent/50">
+                <Button variant="ghost" className="relative w-full justify-between p-4 h-auto hover:bg-accent/50 active:bg-accent/40 active:scale-[0.99] transition-all duration-75 touch-manipulation">
                   <div className="flex flex-col items-start gap-1">
                     <span className="font-semibold text-left">{section}</span>
                     <span className="text-xs text-muted-foreground">

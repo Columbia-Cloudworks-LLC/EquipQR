@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { GoogleMap, MarkerF, InfoWindowF } from '@react-google-maps/api';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Clock, Wrench, Users, Navigation, Star } from 'lucide-react';
+import { ExternalLink, Clock, Wrench, Users, Navigation, Star, Maximize2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { DATE_DISPLAY_FORMAT } from '@/config/date-formats';
@@ -196,13 +196,47 @@ interface MapViewProps {
   onMarkerClick?: (id: string) => void;
 }
 
-const MAP_OPTIONS: google.maps.MapOptions = {
+const BASE_MAP_OPTIONS: google.maps.MapOptions = {
   disableDefaultUI: false,
   zoomControl: true,
   streetViewControl: false,
   mapTypeControl: true,
   fullscreenControl: true,
 };
+
+/**
+ * Dark basemap style — deep navy/charcoal palette matching the EquipQR dark shell.
+ * Applied automatically when the user's OS/app theme is dark.
+ */
+const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
+  { elementType: 'geometry', stylers: [{ color: '#1e2533' }] },
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#8896aa' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#1e2533' }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#313d52' }] },
+  { featureType: 'administrative.country', elementType: 'labels.text.fill', stylers: [{ color: '#9aa6b8' }] },
+  { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#adb9c8' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#1e2533' }] },
+  { featureType: 'landscape.man_made', elementType: 'geometry', stylers: [{ color: '#252e3f' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#252e3f' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#6b7a8d' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1a2d22' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#3d6b4a' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2c3a52' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a2233' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#8896aa' }] },
+  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#33415a' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3d5270' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#1e2d40' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#b8c8d8' }] },
+  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#6b7a8d' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#283245' }] },
+  { featureType: 'transit.station', elementType: 'labels.text.fill', stylers: [{ color: '#7888a0' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f1824' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d5068' }] },
+  { featureType: 'water', elementType: 'labels.text.stroke', stylers: [{ color: '#0f1824' }] },
+];
 
 // ── Component ─────────────────────────────────────────────────
 
@@ -224,6 +258,44 @@ export const MapView: React.FC<MapViewProps> = ({
   const onMapLoad = useCallback((map: google.maps.Map) => {
     setMapRef(map);
   }, []);
+
+  // Compute the bounding box of all visible markers and fit the map to it.
+  // Called once on initial load and exposed for the "Fit All" button.
+  const fitAllMarkers = useCallback(() => {
+    if (!mapRef || typeof window === 'undefined' || !window.google?.maps) return;
+
+    const allPoints: { lat: number; lng: number }[] = [
+      ...filteredLocations.map((l) => ({ lat: l.lat, lng: l.lng })),
+      ...teamHQLocations.map((h) => ({ lat: h.lat, lng: h.lng })),
+    ];
+
+    if (allPoints.length === 0) return;
+
+    if (allPoints.length === 1) {
+      mapRef.panTo(allPoints[0]);
+      mapRef.setZoom(14);
+      return;
+    }
+
+    const bounds = new window.google.maps.LatLngBounds();
+    allPoints.forEach((p) => bounds.extend(p));
+    mapRef.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
+
+    // Cap zoom at 15 to prevent over-zooming on tightly-clustered markers.
+    window.google.maps.event.addListenerOnce(mapRef, 'idle', () => {
+      const z = mapRef.getZoom();
+      if (z !== undefined && z > 15) mapRef.setZoom(15);
+    });
+  }, [mapRef, filteredLocations, teamHQLocations]);
+
+  // Auto-fit all markers once when the map and data are both available.
+  const hasAutoFitted = React.useRef(false);
+  React.useEffect(() => {
+    if (!mapRef || hasAutoFitted.current) return;
+    if (filteredLocations.length === 0 && teamHQLocations.length === 0) return;
+    fitAllMarkers();
+    hasAutoFitted.current = true;
+  }, [mapRef, filteredLocations, teamHQLocations, fitAllMarkers]);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -283,7 +355,17 @@ export const MapView: React.FC<MapViewProps> = ({
     []
   );
 
-  const mapOptions = useMemo(() => MAP_OPTIONS, []);
+  // Recompute map options whenever the theme changes so the basemap switches
+  // between light (default Google tiles) and dark (navy/charcoal custom styles).
+  const mapOptions = useMemo<google.maps.MapOptions>(() => {
+    const isDark =
+      typeof document !== 'undefined' &&
+      document.documentElement.classList.contains('dark');
+    return {
+      ...BASE_MAP_OPTIONS,
+      styles: isDark ? DARK_MAP_STYLES : [],
+    };
+  }, [themeVersion]);
 
   // Build marker icons (memoized by source)
   const markerIcons = useMemo(() => {
@@ -537,20 +619,33 @@ export const MapView: React.FC<MapViewProps> = ({
         )}
       </GoogleMap>
 
-      {/* Map Legend */}
-      <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-md z-10">
-        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Location Source</p>
-        <div className="space-y-1">
-          {(Object.entries(sourceColors) as [SourceType, MarkerColor][]).map(([key, { fill, label }]) => (
-            <div key={key} className="flex items-center gap-2">
-              <span className={cn("w-2.5 h-2.5 rounded-full flex-shrink-0", SOURCE_TOKEN_CLASSES[key].dot)} />
-              <span className="text-[10px] text-muted-foreground">{label}</span>
+      {/* Fit All button — bottom-left mirrors the legend on the right.
+           Visible when the equipment panel is closed; behind the panel when open (z-20). */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={fitAllMarkers}
+        title="Fit all markers in view"
+        aria-label="Fit all markers in view"
+        className="absolute bottom-16 left-4 z-10 h-8 w-8 p-0 bg-background/95 backdrop-blur-sm border-border/80 shadow-xl hover:bg-background"
+      >
+        <Maximize2 className="h-3.5 w-3.5" />
+      </Button>
+
+      {/* Map Legend — bottom-right to avoid conflict with Google's top-right controls */}
+      <div className="absolute bottom-6 right-4 bg-background/95 backdrop-blur-sm border border-border/80 rounded-xl px-3.5 py-3 shadow-xl z-10">
+        <p className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider mb-2">Location Source</p>
+        <div className="space-y-1.5">
+          {(Object.entries(sourceColors) as [SourceType, MarkerColor][]).map(([key, { label }]) => (
+            <div key={key} className="flex items-center gap-2.5">
+              <span className={cn("w-3 h-3 rounded-full flex-shrink-0 ring-1 ring-black/10", SOURCE_TOKEN_CLASSES[key].dot)} />
+              <span className="text-[11px] text-muted-foreground leading-none">{label}</span>
             </div>
           ))}
           {teamHQLocations.length > 0 && (
-            <div className="flex items-center gap-2 pt-0.5 border-t border-border/50 mt-0.5">
-              <Star className={cn("w-2.5 h-2.5 flex-shrink-0 fill-current", TEAM_HQ_CLASSES.dot)} />
-              <span className="text-[10px] text-muted-foreground">{teamHQColor.label}</span>
+            <div className="flex items-center gap-2.5 pt-1.5 border-t border-border/40 mt-0.5">
+              <Star className={cn("w-3 h-3 flex-shrink-0 fill-current", TEAM_HQ_CLASSES.dot)} />
+              <span className="text-[11px] text-muted-foreground leading-none">{teamHQColor.label}</span>
             </div>
           )}
         </div>

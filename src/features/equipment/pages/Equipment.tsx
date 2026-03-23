@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Upload } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/features/equipment/hooks/useEquipmentFiltering';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
@@ -24,6 +25,7 @@ import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipme
 const Equipment = () => {
   const { currentOrganization } = useOrganization();
   const { canCreateEquipment, hasRole } = usePermissions();
+  const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const initializedFromUrl = useRef(false);
   
@@ -105,6 +107,7 @@ const Equipment = () => {
 
   const canCreate = canCreateEquipment();
   const canImport = hasRole(['owner', 'admin']);
+  const canExport = hasRole(['owner', 'admin', 'member']);
 
   if (!currentOrganization) {
     return (
@@ -143,48 +146,49 @@ const Equipment = () => {
           description={`Manage equipment for ${currentOrganization.name}`}
           hideDescriptionOnMobile
           actions={
-            <div className="flex flex-col sm:flex-row gap-2">
-              {canImport && (
-                <Button 
-                  variant="outline"
-                  onClick={() => setShowImportCsv(true)}
-                  className="hidden w-full min-h-11 md:inline-flex sm:w-auto"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import CSV
-                </Button>
-              )}
-              {canCreate && (
-                <Button 
-                  onClick={handleAddEquipment}
-                  className="w-full min-h-11 sm:w-auto"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Equipment
-                </Button>
-              )}
-            </div>
+            canCreate && (
+              <Button 
+                onClick={handleAddEquipment}
+                className="w-full min-h-11 sm:w-auto"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Equipment
+              </Button>
+            )
           }
         />
 
       <EquipmentFilters
         filters={filters}
+        sortConfig={sortConfig}
         onFilterChange={updateFilter}
         onClearFilters={clearFilters}
         onQuickFilter={applyQuickFilter}
+        onSortChange={updateSort}
         filterOptions={filterOptions}
         hasActiveFilters={hasActiveFilters}
         activeQuickFilter={activeQuickFilter}
-      />
-
-      <EquipmentSortHeader
-        sortConfig={sortConfig}
-        onSortChange={updateSort}
         resultCount={totalFilteredCount}
         totalCount={equipment.length}
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
+        canImport={canImport}
+        canExport={canExport}
+        onImportCsv={() => setShowImportCsv(true)}
+        equipment={equipment}
       />
+
+      {/* Mobile-only: sort + view mode below the filter bar */}
+      {isMobile && (
+        <EquipmentSortHeader
+          sortConfig={sortConfig}
+          onSortChange={updateSort}
+          resultCount={totalFilteredCount}
+          totalCount={equipment.length}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+        />
+      )}
 
       <EquipmentGrid
         equipment={mergedEquipment}
@@ -194,6 +198,7 @@ const Equipment = () => {
         canCreate={canCreate}
         onShowQRCode={setShowQRCode}
         onAddEquipment={handleAddEquipment}
+        onClearFilters={clearFilters}
         viewMode={viewMode}
         pmStatuses={pmStatuses}
       />

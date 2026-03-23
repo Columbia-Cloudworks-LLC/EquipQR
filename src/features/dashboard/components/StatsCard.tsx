@@ -1,8 +1,48 @@
-import React, { ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from 'react-router-dom';
 import { cn } from "@/lib/utils";
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+
+function useCountUp(target: number, durationMs = 300): number {
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const [displayed, setDisplayed] = useState(prefersReducedMotion ? target : 0);
+  const rafRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setDisplayed(target);
+      return;
+    }
+
+    startTimeRef.current = null;
+
+    const animate = (timestamp: number) => {
+      if (startTimeRef.current === null) startTimeRef.current = timestamp;
+      const elapsed = timestamp - startTimeRef.current;
+      const progress = Math.min(elapsed / durationMs, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayed(Math.round(eased * target));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, durationMs, prefersReducedMotion]);
+
+  return displayed;
+}
 
 interface TrendData {
   direction: 'up' | 'down' | 'flat';
@@ -16,10 +56,63 @@ interface StatsCardProps {
   sublabel?: string;
   to?: string;
   trend?: TrendData;
+  /** Optional 7-point sparkline data array for micro-chart visualization */
+  sparkline?: number[];
   variant?: 'default' | 'warning' | 'danger';
   loading?: boolean;
   ariaDescription?: string;
 }
+
+const variantStyles = {
+  default: {
+    border: 'border-l-primary',
+    text: 'text-primary',
+    chartColor: 'hsl(var(--primary))',
+  },
+  warning: {
+    border: 'border-l-warning',
+    text: 'text-warning',
+    chartColor: 'hsl(var(--warning))',
+  },
+  danger: {
+    border: 'border-l-destructive',
+    text: 'text-destructive',
+    chartColor: 'hsl(var(--destructive))',
+  },
+};
+
+interface SparklineChartProps {
+  data: number[];
+  color: string;
+  gradientId: string;
+}
+
+const SparklineChart: React.FC<SparklineChartProps> = ({ data, color, gradientId }) => {
+  const chartData = data.map((v) => ({ v }));
+  return (
+    <div aria-hidden title="Recent 7-day trend" className="mt-2 h-10">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <Area
+            type="monotone"
+            dataKey="v"
+            stroke={color}
+            strokeWidth={1.5}
+            fill={`url(#${gradientId})`}
+            dot={false}
+            isAnimationActive={false}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
 
 export const StatsCard: React.FC<StatsCardProps> = ({
   icon,
@@ -28,63 +121,82 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   sublabel,
   to,
   trend,
+  sparkline,
   variant = 'default',
   loading = false,
-  ariaDescription
+  ariaDescription,
 }) => {
-  const variantClasses = {
-    default: '',
-    warning: 'border-warning/50 bg-warning/5 dark:bg-warning/10',
-    danger: 'border-destructive/50 bg-destructive/5 dark:bg-destructive/10',
-  };
+  const styles = variantStyles[variant];
+  const numericValue = typeof value === 'number' ? value : 0;
+  const animatedValue = useCountUp(loading ? 0 : numericValue, 300);
+  const displayValue = typeof value === 'number' ? animatedValue : value;
+  const uid = useId();
+  const gradientId = `sparkline-${uid.replace(/:/g, '')}`;
+  const hasSparkline = sparkline && sparkline.length > 1;
 
   const content = (
-    <Card 
+    <Card
       className={cn(
-        "transition-all duration-200",
-        variantClasses[variant],
-        to && "cursor-pointer hover:shadow-lg hover:border-primary/50 hover:-translate-y-0.5 active:scale-[0.98]"
+        "border-l-[3px] transition-all duration-200",
+        styles.border,
+        variant === 'warning' && 'bg-warning/5 dark:bg-warning/10',
+        variant === 'danger' && 'bg-destructive/5 dark:bg-destructive/10',
+        to && "cursor-pointer hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98]"
       )}
       aria-label={ariaDescription}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{label}</CardTitle>
+      <CardContent className={cn(
+        "p-4 pt-4 sm:p-5 sm:pt-5",
+        hasSparkline ? "pb-3 sm:pb-3" : "pb-5 sm:pb-6"
+      )}>
         {loading ? (
-          <Skeleton className="h-4 w-4" />
-        ) : (
-          <div className="text-muted-foreground">{icon}</div>
-        )}
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-4 w-24" />
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-4 rounded" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <Skeleton className="h-9 w-16" />
+            <Skeleton className="h-3 w-20" />
           </div>
         ) : (
           <>
-            <div className="text-2xl font-bold" data-testid={`${label.toLowerCase().replace(/\s+/g, '-')}-value`}>
-              {value}
+            <div className="flex items-center gap-2 mb-2">
+              <span className={cn("flex-shrink-0", styles.text)}>{icon}</span>
+              <span className="text-[13px] font-medium text-muted-foreground uppercase tracking-wide truncate">
+                {label}
+              </span>
             </div>
-            {sublabel && (
-              <p className="text-xs text-muted-foreground">
-                {sublabel}
-              </p>
-            )}
+            <div
+              className="text-3xl font-bold tracking-tight text-foreground"
+              data-testid={`${label.toLowerCase().replace(/\s+/g, '-')}-value`}
+            >
+              {displayValue}
+            </div>
+            <p className={cn(
+              "mt-1 text-[13px] text-muted-foreground min-h-[1.25rem]",
+              !sublabel && "invisible"
+            )}>
+              {sublabel ?? '\u00A0'}
+            </p>
             {trend && (
               <div className={cn(
-                "text-xs flex items-center gap-1 mt-1",
+                "mt-1.5 flex items-center gap-1 text-xs font-medium",
                 trend.direction === 'up' && "text-success",
                 trend.direction === 'down' && "text-destructive",
                 trend.direction === 'flat' && "text-muted-foreground"
               )}>
-                <span>
-                  {trend.direction === 'up' && '↗'}
-                  {trend.direction === 'down' && '↘'}
-                  {trend.direction === 'flat' && '→'}
-                </span>
-                {trend.delta}%
+                {trend.direction === 'up' && <TrendingUp className="h-3 w-3" aria-hidden />}
+                {trend.direction === 'down' && <TrendingDown className="h-3 w-3" aria-hidden />}
+                {trend.direction === 'flat' && <Minus className="h-3 w-3" aria-hidden />}
+                {trend.delta}% this week
               </div>
+            )}
+            {hasSparkline && (
+              <SparklineChart
+                data={sparkline!}
+                color={styles.chartColor}
+                gradientId={gradientId}
+              />
             )}
           </>
         )}
@@ -93,7 +205,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   );
 
   if (to && !loading) {
-    return <Link to={to} className="cursor-pointer">{content}</Link>;
+    return <Link to={to} className="cursor-pointer block">{content}</Link>;
   }
 
   return content;

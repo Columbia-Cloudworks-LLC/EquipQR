@@ -43,6 +43,9 @@ export const getStatusText = (status: 'not_rated' | 'ok' | 'adjusted' | 'recomme
 export const createSegmentsForSection = (items: PMChecklistItem[]) => {
   return items.map(item => ({
     id: item.id,
-    status: getItemStatus(item)
+    status: getItemStatus(item),
+    section: item.section,
+    title: item.title,
+    notes: item.notes,
   }))
 }

@@ -141,7 +141,7 @@ const BottomNav: React.FC = () => {
           <div className="p-1.5 rounded-lg">
             <Menu className="h-5 w-5" />
           </div>
-          <span className="mt-0.5">More</span>
+          <span className="mt-0.5">Menu</span>
         </button>
       </div>
     </nav>

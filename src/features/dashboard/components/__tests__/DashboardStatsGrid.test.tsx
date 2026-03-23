@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { DashboardStatsGrid } from '../DashboardStatsGrid';
 import { MemoryRouter } from 'react-router-dom';
@@ -51,7 +51,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByText('Out of Service')).toBeInTheDocument();
     });
 
-    it('renders stat values correctly', () => {
+    it('renders stat values correctly', async () => {
       render(
         <MemoryRouter>
           <DashboardStatsGrid
@@ -62,10 +62,12 @@ describe('DashboardStatsGrid', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('42');
-      expect(screen.getByTestId('overdue-work-value')).toHaveTextContent('5');
-      expect(screen.getByTestId('total-work-orders-value')).toHaveTextContent('120');
-      expect(screen.getByTestId('out-of-service-value')).toHaveTextContent('7');
+      await waitFor(() => {
+        expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('42');
+        expect(screen.getByTestId('overdue-work-value')).toHaveTextContent('5');
+        expect(screen.getByTestId('total-work-orders-value')).toHaveTextContent('120');
+        expect(screen.getByTestId('out-of-service-value')).toHaveTextContent('7');
+      });
     });
 
     it('renders sublabels correctly', () => {
@@ -137,7 +139,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.queryAllByRole('link')).toHaveLength(0);
     });
 
-    it('renders card labels even when loading', () => {
+    it('hides card labels when loading and shows skeleton content', () => {
       render(
         <MemoryRouter>
           <DashboardStatsGrid
@@ -149,15 +151,16 @@ describe('DashboardStatsGrid', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText('Total Equipment')).toBeInTheDocument();
-      expect(screen.getByText('Overdue Work')).toBeInTheDocument();
-      expect(screen.getByText('Total Work Orders')).toBeInTheDocument();
-      expect(screen.getByText('Out of Service')).toBeInTheDocument();
+      expect(screen.queryByText('Total Equipment')).not.toBeInTheDocument();
+      expect(screen.queryByText('Overdue Work')).not.toBeInTheDocument();
+      expect(screen.queryByText('Total Work Orders')).not.toBeInTheDocument();
+      expect(screen.queryByText('Out of Service')).not.toBeInTheDocument();
+      expect(screen.queryAllByTestId(/-value$/)).toHaveLength(0);
     });
   });
 
   describe('null stats handling', () => {
-    it('renders zero values when stats is null', () => {
+    it('renders zero values when stats is null', async () => {
       render(
         <MemoryRouter>
           <DashboardStatsGrid
@@ -168,10 +171,12 @@ describe('DashboardStatsGrid', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('0');
-      expect(screen.getByTestId('overdue-work-value')).toHaveTextContent('0');
-      expect(screen.getByTestId('total-work-orders-value')).toHaveTextContent('0');
-      expect(screen.getByTestId('out-of-service-value')).toHaveTextContent('5');
+      await waitFor(() => {
+        expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('0');
+        expect(screen.getByTestId('overdue-work-value')).toHaveTextContent('0');
+        expect(screen.getByTestId('total-work-orders-value')).toHaveTextContent('0');
+        expect(screen.getByTestId('out-of-service-value')).toHaveTextContent('5');
+      });
     });
 
     it('handles undefined stats gracefully', () => {

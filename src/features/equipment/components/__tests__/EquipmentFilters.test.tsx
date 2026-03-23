@@ -20,8 +20,8 @@ vi.mock('../MobileEquipmentFilters', () => ({
   )
 }));
 
-vi.mock('../DesktopEquipmentFilters', () => ({
-  DesktopEquipmentFilters: ({ hasActiveFilters }: { hasActiveFilters: boolean }) => (
+vi.mock('../EquipmentToolbar', () => ({
+  default: ({ hasActiveFilters }: { hasActiveFilters: boolean }) => (
     <div data-testid="desktop-filters">
       <div>Desktop Filters</div>
       <div>Has Active: {hasActiveFilters ? 'true' : 'false'}</div>
@@ -55,11 +55,17 @@ describe('EquipmentFilters', () => {
 
   const defaultProps = {
     filters: defaultFilters,
+    sortConfig: { field: 'name', direction: 'asc' as const },
     onFilterChange: mockOnFilterChange,
     onClearFilters: mockOnClearFilters,
     onQuickFilter: mockOnQuickFilter,
+    onSortChange: vi.fn(),
     filterOptions: defaultFilterOptions,
-    hasActiveFilters: false
+    hasActiveFilters: false,
+    resultCount: 0,
+    totalCount: 0,
+    viewMode: 'grid' as const,
+    onViewModeChange: vi.fn(),
   };
 
   beforeEach(() => {
