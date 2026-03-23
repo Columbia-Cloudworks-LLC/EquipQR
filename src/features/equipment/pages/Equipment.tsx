@@ -197,6 +197,7 @@ const Equipment = () => {
         canCreate={canCreate}
         onShowQRCode={setShowQRCode}
         onAddEquipment={handleAddEquipment}
+        onClearFilters={clearFilters}
         viewMode={viewMode}
         pmStatuses={pmStatuses}
       />

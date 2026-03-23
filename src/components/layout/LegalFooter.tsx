@@ -8,7 +8,7 @@ export default function LegalFooter() {
   const appVersion = APP_VERSION;
 
   return (
-    <footer className="border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
+    <footer className="hidden md:block border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
       <div className="container mx-auto px-4 py-4 sm:py-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
           {/* Copyright section - stacked on mobile, inline on larger screens */}
