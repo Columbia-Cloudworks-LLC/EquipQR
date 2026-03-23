@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Work order form equipment dropdown invisible behind dialog** — Popover `z-index` used hardcoded `z-50` (50) while the Dialog overlay/content used the project's semantic `z-modal` scale (1040–1050), hiding the equipment selector dropdown behind the modal. Updated `PopoverContent` to use `z-popover` (1060) to match the project's z-index hierarchy.
+
 ## [2.5.0] - 2026-03-22
 
 ### Added
