@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Work order form equipment dropdown invisible behind dialog** — Popover `z-index` used hardcoded `z-50` (50) while the Dialog overlay/content used the project's semantic `z-modal` scale (1040–1050), hiding the equipment selector dropdown behind the modal. Updated `PopoverContent` to use `z-popover` (1060) to match the project's z-index hierarchy.
 
+- **Work order create: “With PM Checklist” stutter / freeze** — For equipment with an assigned PM template, `useWorkOrderPMChecklist`’s auto-set effect called `setValue('pmTemplateId', …)` every run even when the form already held that ID, retriggering validation and re-renders in a tight loop. The effect now only updates `pmTemplateId` when it differs from the assigned template.
+
+- **Work order create: working-hours warning never visible** — The “Equipment Working Hours Not Updated” `AlertDialog` nested under the work order `Dialog` used hardcoded `z-50` while the dialog stack uses `z-modal-backdrop` / `z-modal` (~1040–1050), so the alert rendered behind the form modal and appeared to do nothing on submit. `AlertDialog` overlay and content now use the same semantic modal z-index tokens so the warning stacks above the form.
+
 ## [2.5.0] - 2026-03-22
 
 ### Added
