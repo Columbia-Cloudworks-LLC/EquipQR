@@ -160,7 +160,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
           {unreadCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-3.5 min-w-3.5 flex items-center justify-center p-0 text-[9px] font-medium bg-red-500/85 border border-background"
+              className="absolute -top-1 -right-1 h-3.5 min-w-3.5 flex items-center justify-center p-0 text-[9px] font-medium border border-background"
             >
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
