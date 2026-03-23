@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -110,6 +110,15 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
     ? Math.round((workOrder.pm_progress || 0) / workOrder.pm_total * 100)
     : 0;
 
+  // Animate progress bar from 0 → real value on mount for visual satisfaction
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      setAnimatedProgress(pmProgressPercent);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [pmProgressPercent]);
+
   const dueDateStatus = workOrder.due_date ? getDueDateStatus(workOrder.due_date, workOrder.status) : 'normal';
   const isOverdue = dueDateStatus === 'overdue';
   const isDueSoon = dueDateStatus === 'due_soon';
@@ -121,8 +130,8 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
         <CardContent className="p-4 space-y-3">
           {/* Assignee */}
           {assignee && (
-            <div className="flex items-center gap-2 text-sm">
-              <User className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2 text-[15px]">
+              <User className="h-4 w-4 text-muted-foreground shrink-0" />
               <span className="font-medium">Assigned to:</span>
               <span className="text-muted-foreground">{assignee.name}</span>
             </div>
@@ -131,11 +140,16 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
           {/* Due Date */}
           {workOrder.due_date && (
             <div className={cn(
-              "flex items-center gap-2 text-sm",
-              isOverdue && "text-destructive dark:text-destructive",
-              isDueSoon && !isOverdue && "text-warning dark:text-warning"
+              "flex items-center gap-2 text-[15px]",
+              isOverdue && "text-destructive",
+              isDueSoon && !isOverdue && "text-warning"
             )}>
-              {isOverdue ? <AlertCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+              {isOverdue
+                ? <AlertCircle className="h-4 w-4 shrink-0" />
+                : isDueSoon
+                  ? <AlertTriangle className="h-4 w-4 shrink-0" />
+                  : <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+              }
               <span className="font-medium">Due:</span>
               <span>{new Date(workOrder.due_date).toLocaleDateString()}</span>
               {isOverdue && (
@@ -154,18 +168,18 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
 
           {/* Estimated Hours */}
           {workOrder.estimated_hours != null && (
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2 text-[15px]">
+              <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
               <span className="font-medium">Estimated:</span>
               <span className="text-muted-foreground">{workOrder.estimated_hours}h</span>
             </div>
           )}
 
-          {/* Working Hours — standard data label, de-emphasized */}
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground" />
+          {/* Working Hours */}
+          <div className="flex items-center gap-2 text-[15px]">
+            <Wrench className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="font-medium">
-              {workOrder.equipment_working_hours_at_creation ? 'Meter Reading (at creation):' : 'Equipment Hours:'}
+              {workOrder.equipment_working_hours_at_creation ? 'Meter at creation:' : 'Equipment hours:'}
             </span>
             <span className="text-muted-foreground">
               {workingHoursLoading ? (
@@ -178,15 +192,15 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
 
           {/* Equipment quick link */}
           {equipment && (
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-[15px] border-t pt-3 mt-1">
               <div className="flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Equipment:</span>
+                <Wrench className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="font-medium text-muted-foreground">Equipment</span>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1 text-primary"
+                className="min-h-[44px] gap-1.5 text-primary touch-manipulation"
                 asChild
               >
                 <Link to={`/dashboard/equipment/${equipment.id}`}>
@@ -210,25 +224,25 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
           onClick={onScrollToPM ? () => onScrollToPM() : undefined}
         >
           <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Clipboard className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium text-sm">PM Checklist</span>
+                <span className="font-semibold text-base">PM Checklist</span>
               </div>
               <div className="flex items-center gap-2">
                 {workOrder.pm_status === 'completed' ? (
-                  <Badge variant="outline" className="bg-success/10 text-success border-success/30 dark:bg-success/15 dark:text-success">
+                  <Badge variant="outline" className="bg-success/20 text-success border-success/30">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Complete
                   </Badge>
                 ) : (
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm font-medium tabular-nums">
                     {workOrder.pm_progress || 0} / {workOrder.pm_total || 0}
                   </span>
                 )}
               </div>
             </div>
-            <Progress value={pmProgressPercent} className="h-2" />
+            <Progress value={animatedProgress} className="h-2.5" />
             <p className="text-xs text-muted-foreground mt-2">
               Tap to view and complete checklist items
             </p>
@@ -242,23 +256,23 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
           <CardContent className="p-4">
             <Collapsible open={isDescriptionExpanded} onOpenChange={setIsDescriptionExpanded}>
               <CollapsibleTrigger asChild>
-                <button className="flex items-center justify-between w-full text-left min-h-[44px]">
-                  <span className="font-medium text-sm">Description</span>
+                <button className="flex items-center justify-between w-full text-left min-h-[44px] touch-manipulation">
+                  <span className="font-semibold text-base">Description</span>
                   {isDescriptionExpanded ? (
-                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
                   ) : (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   )}
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-3">
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              <CollapsibleContent className="pm-collapsible-animate overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 data-[state=open]:duration-200 data-[state=closed]:duration-150 mt-3">
+                <p className="text-[15px] text-foreground/80 leading-relaxed whitespace-pre-wrap">
                   {workOrder.description}
                 </p>
               </CollapsibleContent>
             </Collapsible>
             {!isDescriptionExpanded && workOrder.description.length > 100 && (
-              <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+              <p className="text-[15px] text-muted-foreground mt-2 line-clamp-2">
                 {workOrder.description}
               </p>
             )}
@@ -272,16 +286,16 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
           <CardContent className="p-4">
             <Collapsible open={isEquipmentDetailsExpanded} onOpenChange={setIsEquipmentDetailsExpanded}>
               <CollapsibleTrigger asChild>
-                <button className="flex items-center justify-between w-full text-left min-h-[44px]">
-                  <span className="font-medium text-sm">Equipment Details</span>
+                <button className="flex items-center justify-between w-full text-left min-h-[44px] touch-manipulation">
+                  <span className="font-semibold text-base">Equipment Details</span>
                   {isEquipmentDetailsExpanded ? (
-                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
                   ) : (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   )}
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-3 space-y-3 text-sm">
+              <CollapsibleContent className="pm-collapsible-animate overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 data-[state=open]:duration-200 data-[state=closed]:duration-150 mt-3 space-y-3 text-sm">
                 {/* Equipment Image */}
                 <div className="rounded-lg overflow-hidden border">
                   {equipment.image_url ? (
@@ -323,8 +337,8 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
                             </GoogleMap>
                           </div>
                           {effectiveLocation!.formattedAddress && (
-                            <div className="flex items-start gap-1.5 px-2 py-1.5 bg-background">
-                              <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <div className="flex items-center gap-1.5 px-2 py-1.5 bg-background min-h-[44px] touch-manipulation">
+                              <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                               <ClickableAddress
                                 address={effectiveLocation!.formattedAddress}
                                 lat={effectiveLocation!.lat!}

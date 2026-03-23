@@ -77,6 +77,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showSetAllOKDialog, setShowSetAllOKDialog] = useState(false);
   const [isSettingAllOK, setIsSettingAllOK] = useState(false);
+  const [showRevertPMDialog, setShowRevertPMDialog] = useState(false);
   const [isManuallyUpdated, setIsManuallyUpdated] = useState(false);
   
   // Track the current template ID to detect template changes
@@ -853,13 +854,14 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         />
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">General Notes</label>
+          <label className="text-base font-semibold">General Notes</label>
           <Textarea
             placeholder="Add general notes about this PM..."
             value={notes}
             onChange={(e) => handleNotesChange(e.target.value)}
             disabled={readOnly || pm.status === 'completed'}
             rows={3}
+            className="text-[15px] text-foreground placeholder:text-muted-foreground/70"
           />
         </div>
 
@@ -885,13 +887,13 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         {isAdmin && pm.status === 'completed' && (
           <div className="flex gap-2 pt-4 border-t">
             <Button
-              onClick={revertPMCompletion}
+              onClick={() => setShowRevertPMDialog(true)}
               disabled={isReverting}
               variant="outline"
-              className="border-warning/40 text-warning hover:bg-warning/20"
+              className="border-destructive/50 text-destructive hover:bg-destructive/10"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
-              {isReverting ? 'Reverting...' : 'Revert PM Completion'}
+              Revert PM Completion
             </Button>
           </div>
         )}
@@ -919,6 +921,31 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
                 disabled={isSettingAllOK}
               >
                 {isSettingAllOK ? 'Setting & Saving...' : 'Set All to OK & Save'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Revert PM Completion Confirmation Dialog */}
+        <AlertDialog open={showRevertPMDialog} onOpenChange={setShowRevertPMDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Revert PM Completion?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will revert the PM checklist status from completed back to in-progress. All checklist item assessments and notes will be preserved. This action can only be performed by an administrator.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isReverting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setShowRevertPMDialog(false);
+                  revertPMCompletion();
+                }}
+                disabled={isReverting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isReverting ? 'Reverting...' : 'Yes, Revert Completion'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -67,23 +67,23 @@ const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMCheckl
   const editable = !readOnly && pmStatus !== 'completed';
 
   return (
-    <div className={`p-4 border rounded-lg ${borderClass}`}>
+    <div className={`p-4 border rounded-lg bg-card ${borderClass}`}>
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             {isItemComplete(item) ? (
-              <CheckCircle className="h-4 w-4 text-success" />
+              <CheckCircle className="h-4 w-4 text-success shrink-0" />
             ) : (
-              <Circle className="h-4 w-4 text-destructive" />
+              <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
             )}
-            <span className="font-medium">{item.title}</span>
+            <span className="font-medium text-[15px]">{item.title}</span>
           </div>
-          <span className={`text-sm font-medium ${getConditionColor(item.condition)}`}>
+          <span className={`text-sm font-medium shrink-0 ${getConditionColor(item.condition)}`}>
             {getConditionText(item.condition)}
           </span>
         </div>
         {item.description && (
-          <p className="text-sm text-muted-foreground">{item.description}</p>
+          <p className="text-sm text-foreground/75 leading-snug">{item.description}</p>
         )}
 
         {editable && (
@@ -92,9 +92,12 @@ const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMCheckl
               <Label className="text-sm font-medium">Maintenance Assessment:</Label>
               <Select
                 value={item.condition?.toString() || ''}
-                onValueChange={(value) => onConditionChange(item.id, parseInt(value, 10) as 1 | 2 | 3 | 4 | 5)}
+                onValueChange={(value) => {
+                  onConditionChange(item.id, parseInt(value, 10) as 1 | 2 | 3 | 4 | 5);
+                  if ('vibrate' in navigator) navigator.vibrate(30);
+                }}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full min-h-[44px] touch-manipulation">
                   <SelectValue placeholder="Select assessment..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -114,7 +117,7 @@ const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMCheckl
               type="button"
               variant="ghost"
               size="icon"
-              className="h-9 w-9 mt-6 shrink-0"
+              className="min-h-[44px] min-w-[44px] mt-5 shrink-0 touch-manipulation"
               onClick={() => onToggleNotes(item.id)}
               aria-label={
                 showNotes
@@ -152,8 +155,8 @@ const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMCheckl
           </div>
         )}
         {item.notes && (readOnly || pmStatus === 'completed') && (
-          <div className="mt-2 p-2 bg-muted rounded text-sm">
-            <strong>Notes:</strong> {item.notes}
+          <div className="mt-2 p-2.5 bg-muted rounded text-sm text-foreground/90 border border-border/50">
+            <strong className="text-foreground">Notes:</strong> {item.notes}
           </div>
         )}
       </div>

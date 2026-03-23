@@ -298,7 +298,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                     <div className="space-y-3">
                       {/* Note Header */}
                       <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                        <div className="flex items-center gap-2 text-[13px] text-muted-foreground flex-wrap">
                           <User className="h-4 w-4" />
                           <span>{note.author_name}</span>
                           {(note as { _isPendingSync?: boolean })._isPendingSync && <PendingSyncBadge />}
@@ -330,8 +330,8 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                       </div>
 
                       {/* Note Content */}
-                      <div className="prose prose-sm max-w-none">
-                        <p className="whitespace-pre-wrap">{note.content}</p>
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        <p className="whitespace-pre-wrap text-[15px] text-foreground/90 leading-relaxed">{note.content}</p>
                       </div>
 
                       {/* Note Images */}
