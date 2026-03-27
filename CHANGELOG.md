@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-03-27
+
 ### Added
 
 - **Landing mobile UX regression tests** — `LandingMobileUX.test.tsx` covers hero carousel accessibility, secondary CTA touch target, why-different headings, how-it-works ordered list, reveal markers, social-proof metric list, About “The Win” chips, and mobile footer accordion triggers.
@@ -1384,7 +1386,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.1...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.2...HEAD
+[2.5.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.10...v2.4.0
