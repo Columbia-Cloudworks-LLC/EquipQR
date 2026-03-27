@@ -515,6 +515,7 @@ const WorkOrderDetails = () => {
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
                 effectiveLocation={workOrder.effectiveLocation}
                 onScrollToPM={scrollToPMSection}
+                onDeleteRequest={() => setShowMobileActionSheet(true)}
               />
               </div>
 

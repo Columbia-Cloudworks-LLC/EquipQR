@@ -45,6 +45,17 @@ const ROUTES_WITH_PAGE_H1 = new Set([
   '/dashboard/organization',
 ]);
 
+const MOBILE_DETAIL_PREFIXES = [
+  '/dashboard/equipment/',
+  '/dashboard/work-orders/',
+  '/dashboard/inventory/',
+];
+
+function shouldSuppressLabelOnMobile(pathname: string): boolean {
+  if (ROUTES_WITH_PAGE_H1.has(pathname)) return true;
+  return MOBILE_DETAIL_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 function getPageLabel(pathname: string): string {
   if (ROUTE_LABELS[pathname]) return ROUTE_LABELS[pathname];
   // Match dynamic routes, e.g. /dashboard/equipment/:id
@@ -71,7 +82,7 @@ const TopBar: React.FC<TopBarProps> = ({ title, breadcrumb }) => {
   // On mobile, hide the text label for pages that already show an H1 in their content.
   // Show the brand icon in its place so the top bar still has a visual anchor.
   const suppressLabelOnMobile =
-    isMobile && ROUTES_WITH_PAGE_H1.has(location.pathname);
+    isMobile && shouldSuppressLabelOnMobile(location.pathname);
 
   return (
     <header

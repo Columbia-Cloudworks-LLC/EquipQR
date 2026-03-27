@@ -213,6 +213,9 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <Badge className={getStatusColor(workOrder.status)}>
+              {formatStatus(workOrder.status)}
+            </Badge>
             <Badge
               variant="outline"
               className={cn('capitalize', getPriorityBadgeClass(workOrder.priority))}
@@ -220,9 +223,6 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
               {formatPriorityLabel(workOrder.priority)}
             </Badge>
             {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge />}
-            <Badge className={getStatusColor(workOrder.status)}>
-              {formatStatus(workOrder.status)}
-            </Badge>
           </div>
         </div>
       </CardHeader>
@@ -458,6 +458,12 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
             <Badge
+              className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs")}
+              variant="outline"
+            >
+              {formatStatus(workOrder.status)}
+            </Badge>
+            <Badge
               variant="outline"
               className={cn(
                 'rounded-full px-2 py-0.5 text-xs capitalize',
@@ -465,12 +471,6 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
               )}
             >
               {formatPriorityLabel(workOrder.priority)}
-            </Badge>
-            <Badge
-              className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs")}
-              variant="outline"
-            >
-              {formatStatus(workOrder.status)}
             </Badge>
           </div>
         </div>

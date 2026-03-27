@@ -30,20 +30,20 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
       {/* Navigation and Actions */}
       <div className="flex items-center justify-between">
         <Button 
-          variant="outline" 
+          variant="ghost"
           size="sm"
           onClick={() => navigate('/dashboard/equipment')}
-          className="flex items-center gap-2"
+          className="min-h-[44px] -ml-2 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          Equipment
         </Button>
         <div className="flex items-center gap-2">
-          <Button size="sm" onClick={onShowQRCode}>
+          <Button size="sm" variant="outline" className="min-h-[44px] px-3" onClick={onShowQRCode} aria-label="Show QR code">
             <QrCode className="h-4 w-4" />
           </Button>
           {canDelete && onDelete && (
-            <Button size="sm" variant="destructive" onClick={onDelete}>
+            <Button size="sm" variant="destructive" className="min-h-[44px] px-3" onClick={onDelete} aria-label="Delete equipment">
               <Trash2 className="h-4 w-4" />
             </Button>
           )}
@@ -54,7 +54,7 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
       <div className="space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
           <h1 className="text-2xl font-bold leading-tight">{equipment.name}</h1>
-          <Badge className={getStatusColor(equipment.status || 'active')}>
+          <Badge className={`${getStatusColor(equipment.status || 'active')} rounded-full px-2 py-0.5 text-xs`} variant="outline">
             {EQUIPMENT_STATUS_OPTIONS.find(opt => opt.value === equipment.status)?.label || 'Active'}
           </Badge>
         </div>
@@ -99,7 +99,7 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
             <p className="text-sm text-muted-foreground">
               {equipment.last_maintenance ? 
                 new Date(equipment.last_maintenance).toLocaleDateString() : 
-                'Not recorded'
+                '—'
               }
             </p>
           </div>

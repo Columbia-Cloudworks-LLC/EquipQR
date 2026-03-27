@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, X } from 'lucide-react';
+import { FileText, Image as ImageIcon, Package2, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +40,10 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-semibold tracking-tight">Basic Information</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+              <FileText className="h-5 w-5" />
+              Basic Information
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-1.5">
@@ -109,14 +112,17 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-semibold tracking-tight">Stock Information</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+              <Package2 className="h-5 w-5" />
+              Stock Information
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-1.5">
               <Label className="text-muted-foreground">Quantity on Hand</Label>
               <div className="flex flex-wrap items-center gap-2 mt-0.5">
                 <p className="text-2xl font-bold">{item.quantity_on_hand}</p>
-                <Badge variant="outline" className={cn('text-xs font-medium', stockHealth.className)}>
+                <Badge variant="outline" className={cn('rounded-full px-2 py-0.5 text-xs font-medium', stockHealth.className)}>
                   {stockHealth.label}
                 </Badge>
               </div>
@@ -137,7 +143,10 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold tracking-tight">Images</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <ImageIcon className="h-5 w-5" />
+            Images
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {itemImages.length > 0 && (

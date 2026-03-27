@@ -58,7 +58,7 @@ describe('MobileEquipmentHeader', () => {
         />
       );
       
-      const backButton = screen.getByRole('button', { name: /back/i });
+      const backButton = screen.getByRole('button', { name: /equipment/i });
       expect(backButton).toBeInTheDocument();
     });
   });
@@ -72,7 +72,7 @@ describe('MobileEquipmentHeader', () => {
         />
       );
       
-      const backButton = screen.getByRole('button', { name: /back/i });
+      const backButton = screen.getByRole('button', { name: /equipment/i });
       fireEvent.click(backButton);
       
       expect(mockNavigate).toHaveBeenCalled();
@@ -88,11 +88,7 @@ describe('MobileEquipmentHeader', () => {
         />
       );
       
-      // QR button is the second button (index 1) after the Back button
-      const buttons = screen.getAllByRole('button');
-      expect(buttons.length).toBeGreaterThanOrEqual(2);
-      // Verify QR button exists by checking it's not the Back button
-      const qrButton = buttons.find(btn => !btn.textContent?.includes('Back'));
+      const qrButton = screen.getByRole('button', { name: /show qr code/i });
       expect(qrButton).toBeInTheDocument();
     });
 

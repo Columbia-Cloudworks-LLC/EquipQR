@@ -538,16 +538,17 @@ const InventoryItemDetail = () => {
       <div className="space-y-4 md:space-y-6">
         <PageHeader
           title={item.name}
+          backLink={isMobile ? { label: 'Inventory', href: '/dashboard/inventory' } : undefined}
           meta={
             <Badge
               variant="outline"
-              className={cn('shrink-0 text-xs font-medium', stockHealth.className)}
+              className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-medium', stockHealth.className)}
             >
               {stockHealth.label}
             </Badge>
           }
           breadcrumbs={isMobile
-            ? [{ label: 'Inventory', href: '/dashboard/inventory' }]
+            ? undefined
             : [
                 { label: 'Inventory', href: '/dashboard/inventory' },
                 { label: item.name },
@@ -558,7 +559,7 @@ const InventoryItemDetail = () => {
                 <Button
                   variant="default"
                   onClick={() => setShowAdjustDialog(true)}
-                  className="flex-1 md:flex-initial"
+                  className="min-h-[44px] flex-1 md:flex-initial"
                   aria-label="Adjust Quantity"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -577,7 +578,7 @@ const InventoryItemDetail = () => {
                       title="Generate QR Code"
                       className={cn(
                         isMobile &&
-                          'h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground border border-transparent hover:border-border/60'
+                          'h-11 w-11 shrink-0 text-muted-foreground hover:text-foreground border border-transparent hover:border-border/60'
                       )}
                     >
                       <QrCode className="h-4 w-4" aria-hidden />

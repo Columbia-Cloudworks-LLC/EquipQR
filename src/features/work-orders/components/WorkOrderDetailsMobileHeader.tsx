@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, PanelRight, Clipboard, MapPin, Calendar, Users, MoreHorizontal, Clock, AlertCircle, AlertTriangle } from 'lucide-react';
 import { getStatusColor, formatStatus, getPriorityColor, isOverdue as checkIsOverdue } from '@/features/work-orders/utils/workOrderHelpers';
+import { getStatusDisplayInfo as getEquipmentStatusDisplayInfo } from '@/features/equipment/utils/equipmentHelpers';
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
@@ -50,6 +51,10 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
   onToggleSidebar,
   onOpenActionSheet,
 }) => {
+  const equipmentStatusInfo = workOrder.equipment
+    ? getEquipmentStatusDisplayInfo(workOrder.equipment.status || 'active')
+    : null;
+
   return (
     <div className="sticky top-0 z-10 bg-background border-b lg:hidden">
       <div className="px-3 pt-2 pb-3 space-y-2">
@@ -110,10 +115,10 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
           {/* Status + Priority badges + primary action */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge className={`${getStatusColor(workOrder.status)} text-xs font-semibold`}>
+              <Badge className={`${getStatusColor(workOrder.status)} rounded-full px-2 py-0.5 text-xs font-semibold`}>
                 {formatStatus(workOrder.status)}
               </Badge>
-              <Badge variant="outline" className={`text-xs capitalize ${getPriorityColor(workOrder.priority)}`}>
+              <Badge variant="outline" className={`rounded-full px-2 py-0.5 text-xs capitalize ${getPriorityColor(workOrder.priority)}`}>
                 {workOrder.priority} priority
               </Badge>
             </div>
@@ -130,9 +135,14 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clipboard className="h-4 w-4 shrink-0" />
                 <span className="font-medium text-foreground">{workOrder.equipment.name}</span>
-                <Badge variant="outline" className="text-xs">
-                  {workOrder.equipment.status}
-                </Badge>
+                {equipmentStatusInfo && (
+                  <Badge
+                    variant="outline"
+                    className={`${equipmentStatusInfo.badgeClassName} rounded-full px-2 py-0.5 text-xs`}
+                  >
+                    {equipmentStatusInfo.label}
+                  </Badge>
+                )}
               </div>
               {(workOrder.effectiveLocation || workOrder.equipment.location) && (
                 <div className="flex items-center gap-2 min-h-[44px] touch-manipulation text-sm text-muted-foreground">
