@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import InlineEditField from '@/features/equipment/components/InlineEditField';
 import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
+import { getStockHealthPresentation } from '@/features/inventory/utils/stockHealth';
+import { cn } from '@/lib/utils';
 import type { InventoryItem, InventoryItemImage } from '@/features/inventory/types/inventory';
 
 interface InventoryItemOverviewTabProps {
@@ -30,17 +33,19 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
   onUploadImages,
   onDeleteItemRequest,
 }) => {
+  const stockHealth = getStockHealthPresentation(item);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
+            <CardTitle className="text-lg font-semibold tracking-tight">Basic Information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
+          <CardContent className="space-y-5">
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium text-muted-foreground">Name</Label>
-              <div className="mt-1">
+              <div className="mt-0.5">
                 <InlineEditField
                   value={item.name || ''}
                   onSave={(value) => onFieldUpdate('name', value)}
@@ -50,9 +55,9 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
                 />
               </div>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium text-muted-foreground">Description</Label>
-              <div className="mt-1">
+              <div className="mt-0.5">
                 <InlineEditField
                   value={item.description || ''}
                   onSave={(value) => onFieldUpdate('description', value)}
@@ -63,9 +68,9 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
                 />
               </div>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium text-muted-foreground">SKU</Label>
-              <div className="mt-1">
+              <div className="mt-0.5">
                 <InlineEditField
                   value={item.sku || ''}
                   onSave={(value) => onFieldUpdate('sku', value)}
@@ -75,9 +80,9 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
                 />
               </div>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium text-muted-foreground">External ID</Label>
-              <div className="mt-1">
+              <div className="mt-0.5">
                 <InlineEditField
                   value={item.external_id || ''}
                   onSave={(value) => onFieldUpdate('external_id', value)}
@@ -87,9 +92,9 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
                 />
               </div>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-              <div className="mt-1">
+              <div className="mt-0.5">
                 <InlineEditField
                   value={item.location || ''}
                   onSave={(value) => onFieldUpdate('location', value)}
@@ -104,24 +109,24 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
 
         <Card>
           <CardHeader>
-            <CardTitle>Stock Information</CardTitle>
+            <CardTitle className="text-lg font-semibold tracking-tight">Stock Information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
+          <CardContent className="space-y-5">
+            <div className="space-y-1.5">
               <Label className="text-muted-foreground">Quantity on Hand</Label>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
                 <p className="text-2xl font-bold">{item.quantity_on_hand}</p>
-                {item.isLowStock && (
-                  <Badge variant="destructive">Low Stock</Badge>
-                )}
+                <Badge variant="outline" className={cn('text-xs font-medium', stockHealth.className)}>
+                  {stockHealth.label}
+                </Badge>
               </div>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label className="text-muted-foreground">Low Stock Threshold</Label>
               <p className="font-medium">{item.low_stock_threshold}</p>
             </div>
             {item.default_unit_cost && (
-              <div>
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground">Default Unit Cost</Label>
                 <p className="font-medium">${Number(item.default_unit_cost).toFixed(2)}</p>
               </div>
@@ -132,7 +137,7 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
 
       <Card>
         <CardHeader>
-          <CardTitle>Images</CardTitle>
+          <CardTitle className="text-lg font-semibold tracking-tight">Images</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {itemImages.length > 0 && (
@@ -190,10 +195,14 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
       </Card>
 
       {canEdit && (
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Delete Item</CardTitle>
-          </CardHeader>
+        <div className="mt-8 space-y-4">
+          <Separator />
+          <Card className="border-destructive/80 bg-destructive/[0.06] dark:bg-destructive/10">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold tracking-tight text-destructive">
+                Delete Item
+              </CardTitle>
+            </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Once you delete an inventory item, there is no going back. This action cannot be undone.
@@ -208,6 +217,7 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
             </Button>
           </CardContent>
         </Card>
+        </div>
       )}
     </div>
   );

@@ -13,6 +13,7 @@ const renderWithUser = (ui: React.ReactElement) => {
 };
 import type { InventoryItem, PartCompatibilityRule } from '@/features/inventory/types/inventory';
 import * as useInventoryModule from '@/features/inventory/hooks/useInventory';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Mock react-router-dom
 const mockNavigate = vi.fn();
@@ -246,6 +247,14 @@ describe('InventoryItemDetail - Compatibility Rules', () => {
         expect(tabTexts.some(t => t.includes('compatibility'))).toBe(true);
       });
     });
+
+    it('shows Healthy stock badge when quantity is above threshold', async () => {
+      render(<InventoryItemDetail />);
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Healthy').length).toBeGreaterThanOrEqual(1);
+      });
+    });
   });
 
   describe('Hooks Usage', () => {
@@ -335,8 +344,8 @@ describe('InventoryItemDetail - Item Information', () => {
         expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
       });
       
-      // "Low Stock" badge should not be visible
-      expect(screen.queryByText('Low Stock')).not.toBeInTheDocument();
+      // Low stock badge should not be visible when quantity is healthy
+      expect(screen.queryByText('Low stock')).not.toBeInTheDocument();
     });
 
     it('shows low stock badge when stock is low', async () => {
@@ -357,7 +366,7 @@ describe('InventoryItemDetail - Item Information', () => {
       render(<InventoryItemDetail />);
       
       await waitFor(() => {
-        expect(screen.getByText('Low Stock')).toBeInTheDocument();
+        expect(screen.getAllByText('Low stock').length).toBeGreaterThanOrEqual(1);
       });
     });
   });
@@ -423,6 +432,7 @@ describe('InventoryItemDetail - Quantity Adjustment', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useIsMobile).mockReturnValue(false);
     mockAdjustMutateAsync = vi.fn().mockResolvedValue({});
     setupMocks();
     
@@ -447,6 +457,24 @@ describe('InventoryItemDetail - Quantity Adjustment', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
     }
+  });
+
+  it('opens adjust bottom sheet on mobile when adjust quantity is clicked', async () => {
+    vi.mocked(useIsMobile).mockReturnValue(true);
+    const { user } = renderWithUser(<InventoryItemDetail />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /adjust/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /adjust quantity/i })
+      ).toBeInTheDocument();
+    });
   });
 });
 

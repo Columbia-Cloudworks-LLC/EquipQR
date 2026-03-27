@@ -13,9 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Landing mobile UX regression tests** — `LandingMobileUX.test.tsx` covers hero carousel accessibility, secondary CTA touch target, why-different headings, how-it-works ordered list, reveal markers, social-proof metric list, About “The Win” chips, and mobile footer accordion triggers.
 
+- **Inventory item detail manual mobile QA** — `docs/technical/inventory-detail-mobile-qa.md` checklist for tab rail overflow hints, adjust-quantity sheet, header/stock badge, change-history expansion, and empty inline fields.
+
 ### Changed
 
 - **Public landing page mobile UX pass** — Hero: stronger early-access banner contrast, heavier mobile subhead with left-aligned long copy (`sm+` centering preserved), secondary “See How Shops” CTA with ≥44px tap zone and clearer in-page jump affordance (down chevron, subdued styling vs primary), and a keyboard-accessible 3-slide product preview carousel (Embla/shadcn) with dot pickers, prev/next controls, and swipe cue. Why EquipQR / How It Works: larger icon treatment, h3+body bullet structure, combined step number + icon marker (no floating double-icon), ordered list semantics, and staggered scroll-reveal via shared `LandingReveal` (IntersectionObserver, `prefers-reduced-motion` respected). Social proof: `100%` / `50%` metrics in tinted accent cards with large purple numerals and labels. Who Is EquipQR For: “The Win” as bordered pill chips. Footer: Radix accordion on small screens with 44px link rows; desktop four-column layout unchanged.
+
+- **Inventory item detail mobile polish** — Stock health (`Healthy` / `Low stock` / `Out of stock`) in `PageHeader` meta and overview stock row via shared `getStockHealthPresentation`. QR action demoted on small screens (ghost/icon, preserved accessible name). Mobile tab rail uses `HorizontalChipRow` fade hints; tab panels get a light opacity/directional transition with reduced-motion safety. **Adjust quantity**: `Drawer` bottom sheet on mobile (tuned handle + top radius in `drawer.tsx`), `Dialog` on desktop with screen-reader description; mobile layout uses full-width outline **Cancel** and stronger borders on secondary add/take actions. Overview: larger section titles, more vertical rhythm between field groups, clearer separation between **Images** and **Delete** (spacing, separator, destructive-tinted delete card). **InlineEditField** empty values use an em dash and muted body styling instead of “Not set”. **HistoryTab** uses animated expand/collapse for change details. Vitest coverage extended for stock badge, mobile sheet, and empty-field display.
 
 ## [2.5.1] - 2026-03-22
 

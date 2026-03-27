@@ -1,0 +1,27 @@
+import type { InventoryItem } from '@/features/inventory/types/inventory';
+
+/** Stock level for header badges, overview card, and list-style semantics. */
+export function getStockHealthPresentation(item: InventoryItem): {
+  label: string;
+  className: string;
+} {
+  const q = item.quantity_on_hand;
+  const threshold = item.low_stock_threshold;
+  const isLow = item.isLowStock ?? q < threshold;
+  if (q === 0) {
+    return {
+      label: 'Out of stock',
+      className: 'border-destructive/60 text-destructive bg-destructive/10',
+    };
+  }
+  if (isLow) {
+    return {
+      label: 'Low stock',
+      className: 'border-warning text-warning bg-warning/10',
+    };
+  }
+  return {
+    label: 'Healthy',
+    className: 'border-success/50 bg-success/15 text-success',
+  };
+}

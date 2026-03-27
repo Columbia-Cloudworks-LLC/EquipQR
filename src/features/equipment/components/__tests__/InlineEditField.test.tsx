@@ -18,10 +18,11 @@ describe('InlineEditField', () => {
       expect(screen.getByText('Test Value')).toBeInTheDocument();
     });
 
-    it('shows "Not set" when value is empty', () => {
+    it('shows em dash empty placeholder when value is empty', () => {
       render(<InlineEditField value="" onSave={mockOnSave} canEdit={true} />);
-      
-      expect(screen.getByText('Not set')).toBeInTheDocument();
+
+      expect(screen.getByLabelText(/no value set/i)).toBeInTheDocument();
+      expect(screen.getByText('—')).toBeInTheDocument();
     });
 
     it('does not show edit button when canEdit is false', () => {

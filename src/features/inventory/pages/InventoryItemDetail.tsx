@@ -21,6 +21,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,7 +47,9 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { inventory as inventoryQueryKeys } from '@/lib/queryKeys';
 import InventoryItemOverviewTab from '@/features/inventory/pages/components/InventoryItemOverviewTab';
 import InventoryItemTransactionsTab from '@/features/inventory/pages/components/InventoryItemTransactionsTab';
+import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getStockHealthPresentation } from '@/features/inventory/utils/stockHealth';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -370,11 +379,173 @@ const InventoryItemDetail = () => {
     );
   }
 
+  const stockHealth = getStockHealthPresentation(item);
+
+  const handleAdjustOpenChange = (open: boolean) => {
+    setShowAdjustDialog(open);
+    if (!open) {
+      resetAdjustDialog();
+    }
+  };
+
+  const outlineSecondaryClass = isMobile ? 'border-2 border-input bg-muted/25 hover:bg-muted/40' : '';
+
+  const adjustQuantityInner = (
+    <div
+      className={cn(
+        'space-y-6',
+        isMobile
+          ? 'max-h-[min(85dvh,calc(100dvh-8rem))] overflow-y-auto overscroll-contain px-4 pb-2 [-webkit-overflow-scrolling:touch]'
+          : 'max-h-[calc(100dvh-11rem)] overflow-y-auto overscroll-contain pr-1 pb-safe-bottom'
+      )}
+    >
+      <div className="text-center">
+        <p className="text-sm text-muted-foreground mb-2">Current quantity</p>
+        <p className="text-4xl font-bold">{item.quantity_on_hand}</p>
+      </div>
+
+      {!showSubtractInput && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Add to inventory</Label>
+          {showAddInput ? (
+            <div className="space-y-3">
+              <Input
+                type="number"
+                min="1"
+                value={adjustmentAmount}
+                onChange={(e) => setAdjustmentAmount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                placeholder="Enter amount to add"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleCancelInput} className="flex-1">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmitMore}
+                  disabled={adjustmentAmount <= 0 || adjustMutation.isPending}
+                  className="flex-1"
+                >
+                  {adjustMutation.isPending ? 'Adding...' : 'Add'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button onClick={handleQuickAdd} disabled={adjustMutation.isPending} className="flex-1">
+                <Plus className="h-4 w-4 mr-2" />
+                Add 1
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleShowAddMore}
+                className={cn('flex-1', outlineSecondaryClass)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add More
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!showAddInput && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Take from inventory</Label>
+          {showSubtractInput ? (
+            <div className="space-y-3">
+              <Input
+                type="number"
+                min="1"
+                value={adjustmentAmount}
+                onChange={(e) => setAdjustmentAmount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                placeholder="Enter amount to take"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleCancelInput} className="flex-1">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmitMore}
+                  disabled={adjustmentAmount <= 0 || adjustMutation.isPending}
+                  className="flex-1"
+                >
+                  {adjustMutation.isPending ? 'Taking...' : 'Take'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                onClick={handleQuickTake}
+                disabled={adjustMutation.isPending}
+                variant="destructive"
+                className="flex-1"
+              >
+                <Minus className="h-4 w-4 mr-2" />
+                Take 1
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleShowTakeMore}
+                className={cn('flex-1', outlineSecondaryClass)}
+              >
+                <Minus className="h-4 w-4 mr-2" />
+                Take More
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div>
+        <Label htmlFor="adjust-reason" className="text-sm font-medium">
+          Reason <span className="text-muted-foreground font-normal">(optional)</span>
+        </Label>
+        <Textarea
+          id="adjust-reason"
+          value={adjustReason}
+          onChange={(e) => setAdjustReason(e.target.value)}
+          placeholder="Reason for adjustment..."
+          rows={3}
+          className="mt-1"
+        />
+      </div>
+
+      {!showAddInput && !showSubtractInput && (
+        isMobile ? (
+          <Button
+            variant="outline"
+            className="w-full min-h-11 border-border/80 bg-transparent"
+            onClick={() => setShowAdjustDialog(false)}
+          >
+            Cancel
+          </Button>
+        ) : (
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setShowAdjustDialog(false)}>
+              Cancel
+            </Button>
+          </div>
+        )
+      )}
+    </div>
+  );
+
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-4 md:space-y-6">
         <PageHeader
           title={item.name}
+          meta={
+            <Badge
+              variant="outline"
+              className={cn('shrink-0 text-xs font-medium', stockHealth.className)}
+            >
+              {stockHealth.label}
+            </Badge>
+          }
           breadcrumbs={isMobile
             ? [{ label: 'Inventory', href: '/dashboard/inventory' }]
             : [
@@ -382,7 +553,7 @@ const InventoryItemDetail = () => {
                 { label: item.name },
               ]}
           actions={
-            <div className="flex flex-wrap gap-2 md:flex-nowrap">
+            <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
               {canEdit && (
                 <Button
                   variant="default"
@@ -399,13 +570,22 @@ const InventoryItemDetail = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="outline"
+                      variant={isMobile ? 'ghost' : 'outline'}
+                      size={isMobile ? 'icon' : 'default'}
                       onClick={() => setShowQRCode(true)}
                       aria-label="Show QR code"
                       title="Generate QR Code"
+                      className={cn(
+                        isMobile &&
+                          'h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground border border-transparent hover:border-border/60'
+                      )}
                     >
-                      <QrCode className="h-4 w-4 mr-2" />
-                      QR Code
+                      <QrCode className="h-4 w-4" aria-hidden />
+                      {isMobile ? (
+                        <span className="sr-only">QR Code</span>
+                      ) : (
+                        <span>QR Code</span>
+                      )}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Generate QR code label</TooltipContent>
@@ -416,26 +596,52 @@ const InventoryItemDetail = () => {
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className={cn(isMobile && "flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-md p-1")}>
-            <TabsTrigger value="overview" className={isMobile ? "shrink-0" : ""}>
-              <Package className="h-4 w-4 mr-2" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="transactions" className={isMobile ? "shrink-0" : ""}>
-              <History className="h-4 w-4 mr-2" />
-              Transaction History
-            </TabsTrigger>
-            <TabsTrigger value="compatibility" className={isMobile ? "shrink-0" : ""}>
-              <Link2 className="h-4 w-4 mr-2" />
-              Compatibility
-            </TabsTrigger>
-            <TabsTrigger value="history" className={isMobile ? "shrink-0" : ""}>
-              <History className="h-4 w-4 mr-2" />
-              Change History
-            </TabsTrigger>
-          </TabsList>
+          {isMobile ? (
+            <HorizontalChipRow ariaLabel="Item detail sections" className="w-full" gap="gap-1">
+              <TabsList className="flex h-auto w-max min-w-0 shrink-0 justify-start gap-1 rounded-md bg-muted p-1">
+                <TabsTrigger value="overview" className="shrink-0">
+                  <Package className="h-4 w-4 mr-2" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="transactions" className="shrink-0">
+                  <History className="h-4 w-4 mr-2" />
+                  Transaction History
+                </TabsTrigger>
+                <TabsTrigger value="compatibility" className="shrink-0">
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Compatibility
+                </TabsTrigger>
+                <TabsTrigger value="history" className="shrink-0">
+                  <History className="h-4 w-4 mr-2" />
+                  Change History
+                </TabsTrigger>
+              </TabsList>
+            </HorizontalChipRow>
+          ) : (
+            <TabsList>
+              <TabsTrigger value="overview">
+                <Package className="h-4 w-4 mr-2" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="transactions">
+                <History className="h-4 w-4 mr-2" />
+                Transaction History
+              </TabsTrigger>
+              <TabsTrigger value="compatibility">
+                <Link2 className="h-4 w-4 mr-2" />
+                Compatibility
+              </TabsTrigger>
+              <TabsTrigger value="history">
+                <History className="h-4 w-4 mr-2" />
+                Change History
+              </TabsTrigger>
+            </TabsList>
+          )}
 
-          <TabsContent value="overview" className="space-y-4">
+          <TabsContent
+            value="overview"
+            className="space-y-4 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150 motion-reduce:data-[state=active]:animate-none"
+          >
             <InventoryItemOverviewTab
               item={item}
               canEdit={canEdit}
@@ -459,11 +665,17 @@ const InventoryItemDetail = () => {
             />
           </TabsContent>
 
-          <TabsContent value="transactions" className="space-y-4">
+          <TabsContent
+            value="transactions"
+            className="space-y-4 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150 motion-reduce:data-[state=active]:animate-none"
+          >
             <InventoryItemTransactionsTab transactions={transactions} />
           </TabsContent>
 
-          <TabsContent value="compatibility" className="space-y-4">
+          <TabsContent
+            value="compatibility"
+            className="space-y-4 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150 motion-reduce:data-[state=active]:animate-none"
+          >
             {/* Compatibility Rules Card - First */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -895,7 +1107,10 @@ const InventoryItemDetail = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="history" className="space-y-4">
+          <TabsContent
+            value="history"
+            className="space-y-4 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150 motion-reduce:data-[state=active]:animate-none"
+          >
             <Card>
               <CardHeader>
                 <CardTitle>Change History</CardTitle>
@@ -979,172 +1194,32 @@ const InventoryItemDetail = () => {
           />
         )}
 
-        {/* Adjust Quantity Dialog */}
-        <Dialog 
-          open={showAdjustDialog} 
-          onOpenChange={(open) => {
-            setShowAdjustDialog(open);
-            if (!open) {
-              resetAdjustDialog();
-            }
-          }}
-        >
-        <DialogContent
-          className={cn(
-            "max-w-lg",
-            isMobile && "max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-1rem)] p-4 pb-safe-bottom"
-          )}
-        >
-            <DialogHeader>
-              <DialogTitle>Adjust Quantity</DialogTitle>
-            </DialogHeader>
-            <div
-              className={cn(
-                "space-y-6",
-                isMobile && "max-h-[calc(100dvh-11rem)] overflow-y-auto overscroll-contain pr-1 pb-safe-bottom"
-              )}
-            >
-              {/* Current Quantity Display */}
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-2">Current quantity</p>
-                <p className="text-4xl font-bold">{item.quantity_on_hand}</p>
-              </div>
-
-              {/* Add Section */}
-              {!showSubtractInput && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Add to inventory</Label>
-                  {showAddInput ? (
-                    <div className="space-y-3">
-                      <Input
-                        type="number"
-                        min="1"
-                        value={adjustmentAmount}
-                        onChange={(e) => setAdjustmentAmount(Math.max(1, parseInt(e.target.value) || 1))}
-                        placeholder="Enter amount to add"
-                        autoFocus
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={handleCancelInput}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleSubmitMore}
-                          disabled={adjustmentAmount <= 0 || adjustMutation.isPending}
-                          className="flex-1"
-                        >
-                          {adjustMutation.isPending ? 'Adding...' : 'Add'}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleQuickAdd}
-                        disabled={adjustMutation.isPending}
-                        className="flex-1"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add 1
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={handleShowAddMore}
-                        className="flex-1"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add More
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Take Section */}
-              {!showAddInput && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Take from inventory</Label>
-                  {showSubtractInput ? (
-                    <div className="space-y-3">
-                      <Input
-                        type="number"
-                        min="1"
-                        value={adjustmentAmount}
-                        onChange={(e) => setAdjustmentAmount(Math.max(1, parseInt(e.target.value) || 1))}
-                        placeholder="Enter amount to take"
-                        autoFocus
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={handleCancelInput}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleSubmitMore}
-                          disabled={adjustmentAmount <= 0 || adjustMutation.isPending}
-                          className="flex-1"
-                        >
-                          {adjustMutation.isPending ? 'Taking...' : 'Take'}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleQuickTake}
-                        disabled={adjustMutation.isPending}
-                        variant="destructive"
-                        className="flex-1"
-                      >
-                        <Minus className="h-4 w-4 mr-2" />
-                        Take 1
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={handleShowTakeMore}
-                        className="flex-1"
-                      >
-                        <Minus className="h-4 w-4 mr-2" />
-                        Take More
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Reason Field - Always visible */}
-              <div>
-                <Label htmlFor="adjust-reason" className="text-sm font-medium">
-                  Reason <span className="text-muted-foreground font-normal">(optional)</span>
-                </Label>
-                <Textarea
-                  id="adjust-reason"
-                  value={adjustReason}
-                  onChange={(e) => setAdjustReason(e.target.value)}
-                  placeholder="Reason for adjustment..."
-                  rows={3}
-                  className="mt-1"
-                />
-              </div>
-
-              {/* Cancel Button - Only show when not in input mode */}
-              {!showAddInput && !showSubtractInput && (
-                <div className="flex justify-end">
-                  <Button variant="outline" onClick={() => setShowAdjustDialog(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Adjust Quantity: bottom sheet on mobile, centered dialog on desktop */}
+        {isMobile ? (
+          <Drawer open={showAdjustDialog} onOpenChange={handleAdjustOpenChange}>
+            <DrawerContent className="max-h-[92dvh] pb-safe-bottom">
+              <DrawerHeader className="text-left">
+                <DrawerTitle>Adjust Quantity</DrawerTitle>
+                <DrawerDescription className="sr-only">
+                  Add or remove inventory quantity. You can optionally record a reason.
+                </DrawerDescription>
+              </DrawerHeader>
+              {adjustQuantityInner}
+            </DrawerContent>
+          </Drawer>
+        ) : (
+          <Dialog open={showAdjustDialog} onOpenChange={handleAdjustOpenChange}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Adjust Quantity</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Add or remove inventory quantity. You can optionally record a reason.
+                </DialogDescription>
+              </DialogHeader>
+              {adjustQuantityInner}
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Add/Manage Equipment Compatibility Dialog */}
         <Dialog open={showAddEquipmentDialog} onOpenChange={setShowAddEquipmentDialog}>

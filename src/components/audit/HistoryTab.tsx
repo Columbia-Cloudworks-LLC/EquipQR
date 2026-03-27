@@ -30,6 +30,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { useEntityHistory } from '@/hooks/useAuditLog';
 import { ChangesDiff, ChangesSummary } from './ChangesDiff';
@@ -104,62 +105,94 @@ function HistoryEntry({ entry }: { entry: FormattedAuditEntry }) {
       {/* Content */}
       <Card className="ml-2">
         <CardContent className="p-4">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className={cn("font-medium", getActionColor(entry.action))}>
-                  {entry.actionLabel}
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  {entry.changeCount} field{entry.changeCount !== 1 ? 's' : ''} changed
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <User className="h-3.5 w-3.5" />
-                  <span>{entry.actor_name}</span>
+          {hasChanges ? (
+            <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className={cn("font-medium", getActionColor(entry.action))}>
+                      {entry.actionLabel}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {entry.changeCount} field{entry.changeCount !== 1 ? 's' : ''} changed
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <User className="h-3.5 w-3.5" />
+                      <span>{entry.actor_name}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span title={entry.relativeTime}>
+                        {entry.formattedDate}
+                        <span className="ml-1 text-xs text-muted-foreground/90">({entry.relativeTime})</span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span title={entry.relativeTime}>
-                    {entry.formattedDate}
-                    <span className="ml-1 text-xs text-muted-foreground/90">({entry.relativeTime})</span>
-                  </span>
-                </div>
+
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="shrink-0">
+                    {isExpanded ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                    <span className="ml-1">{isExpanded ? 'Hide' : 'Show'} Details</span>
+                  </Button>
+                </CollapsibleTrigger>
               </div>
-            </div>
-            
-            {hasChanges && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="shrink-0"
-              >
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
+
+              {!isExpanded && (
+                <div className="mt-3 text-sm text-muted-foreground">
+                  <ChangesSummary changes={entry.changes} />
+                </div>
+              )}
+
+              <CollapsibleContent
+                className={cn(
+                  'pm-collapsible-animate overflow-hidden border-t pt-4 mt-4',
+                  'data-[state=open]:animate-in data-[state=closed]:animate-out',
+                  'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
+                  'data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2',
+                  'data-[state=open]:duration-200 data-[state=closed]:duration-150'
                 )}
-                <span className="ml-1">{isExpanded ? 'Hide' : 'Show'} Details</span>
-              </Button>
-            )}
-          </div>
-          
-          {/* Collapsed summary */}
-          {!isExpanded && hasChanges && (
-            <div className="mt-3 text-sm text-muted-foreground">
-              <ChangesSummary changes={entry.changes} />
-            </div>
-          )}
-          
-          {/* Expanded changes */}
-          {isExpanded && hasChanges && (
-            <div className="mt-4 pt-4 border-t">
-              <ChangesDiff changes={entry.changes} expanded />
-            </div>
+              >
+                <ChangesDiff changes={entry.changes} expanded />
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className={cn("font-medium", getActionColor(entry.action))}>
+                      {entry.actionLabel}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {entry.changeCount} field{entry.changeCount !== 1 ? 's' : ''} changed
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <User className="h-3.5 w-3.5" />
+                      <span>{entry.actor_name}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span title={entry.relativeTime}>
+                        {entry.formattedDate}
+                        <span className="ml-1 text-xs text-muted-foreground/90">({entry.relativeTime})</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
