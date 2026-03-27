@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
   Wrench, 
   Server, 
@@ -8,6 +9,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import LandingReveal from './LandingReveal';
 
 interface UseCase {
   icon: LucideIcon;
@@ -63,7 +65,7 @@ const AboutSection = ({ id }: { id?: string }) => {
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
             Who Is EquipQR™ For?
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="mx-auto max-w-3xl text-left text-xl text-muted-foreground sm:text-center">
             Whether you're managing heavy equipment, IT assets, tools, facilities, or rental inventory, EquipQR™ helps you track, maintain, and organize your equipment with ease.
           </p>
         </div>
@@ -77,38 +79,45 @@ const AboutSection = ({ id }: { id?: string }) => {
             const isCtaCard = useCase.title === 'Have a Unique Workflow?';
 
             return (
-              <Card
-                key={useCase.title}
-                className={`relative border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-all duration-200 h-full flex flex-col hover:-translate-y-1 hover:shadow-lg overflow-hidden ${
-                  isCtaCard ? 'border-dashed bg-primary/5' : ''
-                }`}
-              >
-                {/* Subtle gradient stripe at top */}
-                <div
-                  className="h-1 w-full bg-gradient-to-r from-primary/20 via-primary/10 to-transparent"
-                  aria-hidden
-                />
-                <CardHeader className="pb-2 flex-shrink-0">
-                  <div className="mb-3 flex">
-                    <span
-                      className={`rounded-2xl bg-primary/10 p-3 ${getIconColor(index)}`}
-                      aria-hidden
-                    >
-                      <useCase.icon className="h-10 w-10 sm:h-11 sm:w-11" />
-                    </span>
-                  </div>
-                  <CardTitle className="text-xl">{useCase.title}</CardTitle>
-                  <div className="mt-3 pt-3 border-t border-border/50">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">The Win</p>
-                    <p className="text-sm font-medium text-foreground">{useCase.win}</p>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex flex-col flex-grow pb-6 pt-0">
-                  <CardDescription className="text-sm leading-relaxed">
-                    {useCase.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
+              <LandingReveal key={useCase.title} delayMs={index * 60} className="h-full">
+                <Card
+                  className={`relative flex h-full flex-col overflow-hidden border-border bg-card/50 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:bg-card hover:shadow-lg ${
+                    isCtaCard ? 'border-dashed bg-primary/5' : ''
+                  }`}
+                >
+                  {/* Subtle gradient stripe at top */}
+                  <div
+                    className="h-1 w-full bg-gradient-to-r from-primary/20 via-primary/10 to-transparent"
+                    aria-hidden
+                  />
+                  <CardHeader className="pb-2 flex-shrink-0">
+                    <div className="mb-3 flex">
+                      <span
+                        className={`rounded-2xl bg-primary/10 p-3 ${getIconColor(index)}`}
+                        aria-hidden
+                      >
+                        <useCase.icon className="h-10 w-10 sm:h-11 sm:w-11" />
+                      </span>
+                    </div>
+                    <CardTitle className="text-xl">{useCase.title}</CardTitle>
+                    <div className="mt-3 border-t border-border/50 pt-3">
+                      <Badge
+                        aria-label="The Win"
+                        variant="outline"
+                        className="w-fit border-primary/40 bg-primary/10 px-3 py-1 text-[0.65rem] uppercase tracking-[0.22em] text-primary/90"
+                      >
+                        The Win
+                      </Badge>
+                      <p className="mt-2 text-sm font-medium text-foreground">{useCase.win}</p>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex flex-col flex-grow pb-6 pt-0">
+                    <CardDescription className="text-sm leading-relaxed">
+                      {useCase.description}
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              </LandingReveal>
             );
           })}
         </div>

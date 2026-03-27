@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Landing mobile UX regression tests** — `LandingMobileUX.test.tsx` covers hero carousel accessibility, secondary CTA touch target, why-different headings, how-it-works ordered list, reveal markers, social-proof metric list, About “The Win” chips, and mobile footer accordion triggers.
+
+### Changed
+
+- **Public landing page mobile UX pass** — Hero: stronger early-access banner contrast, heavier mobile subhead with left-aligned long copy (`sm+` centering preserved), secondary “See How Shops” CTA with ≥44px tap zone and clearer in-page jump affordance (down chevron, subdued styling vs primary), and a keyboard-accessible 3-slide product preview carousel (Embla/shadcn) with dot pickers, prev/next controls, and swipe cue. Why EquipQR / How It Works: larger icon treatment, h3+body bullet structure, combined step number + icon marker (no floating double-icon), ordered list semantics, and staggered scroll-reveal via shared `LandingReveal` (IntersectionObserver, `prefers-reduced-motion` respected). Social proof: `100%` / `50%` metrics in tinted accent cards with large purple numerals and labels. Who Is EquipQR For: “The Win” as bordered pill chips. Footer: Radix accordion on small screens with 44px link rows; desktop four-column layout unchanged.
+
 ## [2.5.1] - 2026-03-22
 
 ### Fixed

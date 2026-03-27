@@ -1,4 +1,5 @@
 import { History, ScanLine, Receipt, UserCheck, KeyRound } from 'lucide-react';
+import LandingReveal from './LandingReveal';
 
 const bullets = [
   {
@@ -32,7 +33,7 @@ export default function WhyDifferentSection() {
   return (
     <section
       aria-labelledby="why-different-title"
-      className="py-10 sm:py-12 bg-background"
+      className="bg-background py-12 sm:py-14"
     >
       <div className="container px-4 mx-auto max-w-5xl">
         <h2
@@ -41,13 +42,24 @@ export default function WhyDifferentSection() {
         >
           Why EquipQR is Different
         </h2>
-        <ul className="space-y-4 max-w-4xl mx-auto" role="list">
-          {bullets.map(({ icon: Icon, title, text }) => (
-            <li key={title} className="flex min-w-0 items-start gap-3">
-              <Icon className="h-5 w-5 text-primary mt-0.5 shrink-0" aria-hidden />
-              <span className="min-w-0 text-sm leading-relaxed text-foreground break-words sm:text-base">
-                <strong>{title}</strong> &mdash; {text}
-              </span>
+        <ul className="mx-auto max-w-4xl space-y-4" role="list">
+          {bullets.map(({ icon: Icon, title, text }, index) => (
+            <li key={title} className="list-none">
+              <LandingReveal delayMs={index * 60}>
+                <div className="flex min-w-0 items-start gap-4 rounded-2xl border border-border/70 bg-background/60 px-4 py-4 text-left shadow-sm shadow-primary/5">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary shadow-sm shadow-primary/10">
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-base font-semibold text-foreground sm:text-lg">
+                      {title}
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground break-words sm:text-base">
+                      {text}
+                    </p>
+                  </div>
+                </div>
+              </LandingReveal>
             </li>
           ))}
         </ul>

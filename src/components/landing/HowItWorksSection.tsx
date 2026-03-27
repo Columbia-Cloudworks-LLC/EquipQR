@@ -1,5 +1,6 @@
 import { Printer, ScanLine, FileCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import LandingReveal from './LandingReveal';
 
 interface Step {
   number: number;
@@ -36,7 +37,7 @@ export default function HowItWorksSection() {
   return (
     <section
       aria-labelledby="how-it-works-title"
-      className="py-16 sm:py-20 bg-muted/20"
+      className="bg-muted/20 py-16 sm:py-20"
     >
       <div className="container px-4 mx-auto max-w-5xl">
         <h2
@@ -46,27 +47,31 @@ export default function HowItWorksSection() {
           How It Works
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6">
-          {steps.map(({ number, icon: Icon, title, description }) => (
-            <div key={number} className="flex flex-col items-center text-center">
-              <div className="relative mb-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground text-xl font-bold">
-                  {number}
+        <ol
+          aria-label="How EquipQR works"
+          className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-6"
+        >
+          {steps.map(({ number, icon: Icon, title, description }, index) => (
+            <li key={number} className="list-none">
+              <LandingReveal delayMs={index * 70}>
+                <div className="flex h-full flex-col items-center rounded-3xl border border-border/70 bg-background/70 px-5 py-6 text-center shadow-sm shadow-primary/5">
+                  <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-2 text-left shadow-sm shadow-primary/10">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground">
+                      {number}
+                    </span>
+                    <Icon className="h-4 w-4 text-primary" aria-hidden />
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-foreground">
+                    {title}
+                  </h3>
+                  <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
+                    {description}
+                  </p>
                 </div>
-                <Icon
-                  className="absolute -bottom-1 -right-1 h-5 w-5 text-primary bg-background rounded-full p-0.5"
-                  aria-hidden
-                />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                {title}
-              </h3>
-              <p className="text-sm leading-relaxed text-muted-foreground max-w-xs">
-                {description}
-              </p>
-            </div>
+              </LandingReveal>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </section>
   );

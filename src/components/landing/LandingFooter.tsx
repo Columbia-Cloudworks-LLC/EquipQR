@@ -1,14 +1,108 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from '@/components/ui/external-link';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 const CONTACT_EMAIL = 'mailto:nicholas.king@columbiacloudworks.com';
 const GITHUB_REPO_URL = 'https://github.com/Columbia-Cloudworks-LLC/EquipQR';
 const EQUIPQR_APP_URL = 'https://equipqr.app';
 const COLUMBIA_CLOUDWORKS_URL = 'https://columbiacloudworks.com';
 
+interface FooterLinkItem {
+  href: string;
+  label: string;
+  type: 'hash' | 'route' | 'external';
+  showIcon?: boolean;
+}
+
+interface FooterSection {
+  title: string;
+  links: FooterLinkItem[];
+}
+
+const footerSections: FooterSection[] = [
+  {
+    title: 'Product',
+    links: [
+      { href: '#features', label: 'Features', type: 'hash' },
+      { href: '#pricing', label: 'Pricing', type: 'hash' },
+    ],
+  },
+  {
+    title: 'Company',
+    links: [
+      { href: '#about', label: 'About', type: 'hash' },
+      {
+        href: COLUMBIA_CLOUDWORKS_URL,
+        label: 'Columbia Cloudworks',
+        type: 'external',
+      },
+      { href: CONTACT_EMAIL, label: 'Contact', type: 'hash' },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { href: '/terms-of-service', label: 'Terms', type: 'route' },
+      { href: '/privacy-policy', label: 'Privacy', type: 'route' },
+    ],
+  },
+  {
+    title: 'Connect',
+    links: [
+      {
+        href: 'https://calendly.com/nicholas-king-columbiacloudworks/30min',
+        label: 'Schedule a Demo',
+        type: 'external',
+      },
+      { href: EQUIPQR_APP_URL, label: 'EquipQR™.app', type: 'external' },
+      {
+        href: GITHUB_REPO_URL,
+        label: 'GitHub',
+        type: 'external',
+        showIcon: true,
+      },
+    ],
+  },
+];
+
+function renderFooterLink(item: FooterLinkItem, className: string) {
+  if (item.type === 'route') {
+    return (
+      <Link to={item.href} className={className}>
+        {item.label}
+      </Link>
+    );
+  }
+
+  if (item.type === 'external') {
+    return (
+      <ExternalLink
+        href={item.href}
+        className={className}
+        showIcon={item.showIcon ?? false}
+      >
+        {item.label}
+      </ExternalLink>
+    );
+  }
+
+  return (
+    <a href={item.href} className={className}>
+      {item.label}
+    </a>
+  );
+}
+
 const LandingFooter = () => {
   const currentYear = new Date().getFullYear();
+  const footerLinkClassName =
+    'block min-h-[44px] py-3 text-sm text-muted-foreground transition-colors hover:text-foreground';
 
   return (
     <footer className="border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
@@ -19,99 +113,43 @@ const LandingFooter = () => {
         <p className="text-sm text-muted-foreground max-w-xl mb-8">
           EquipQR helps teams track equipment, manage work orders, and run operations from one platform. Built for repair shops, rental ops, and field crews.
         </p>
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-          {/* Product */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3">Product</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <a href="#features" className="hover:text-foreground transition-colors">
-                  Features
-                </a>
-              </li>
-              <li>
-                <a href="#pricing" className="hover:text-foreground transition-colors">
-                  Pricing
-                </a>
-              </li>
-            </ul>
-          </div>
+        <div className="sm:hidden">
+          <Accordion
+            type="multiple"
+            className="rounded-2xl border border-border/60 bg-background/30 px-4"
+          >
+            {footerSections.map((section) => (
+              <AccordionItem key={section.title} value={section.title}>
+                <AccordionTrigger className="min-h-[52px] py-4 text-sm font-semibold text-foreground hover:no-underline">
+                  {section.title}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ul className="pb-2">
+                    {section.links.map((item) => (
+                      <li key={`${section.title}-${item.label}`}>
+                        {renderFooterLink(item, footerLinkClassName)}
+                      </li>
+                    ))}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
 
-          {/* Company */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3">Company</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <a href="#about" className="hover:text-foreground transition-colors">
-                  About
-                </a>
-              </li>
-              <li>
-                <ExternalLink
-                  href={COLUMBIA_CLOUDWORKS_URL}
-                  className="hover:text-foreground transition-colors"
-                  showIcon={false}
-                >
-                  Columbia Cloudworks
-                </ExternalLink>
-              </li>
-              <li>
-                <a
-                  href={CONTACT_EMAIL}
-                  className="hover:text-foreground transition-colors"
-                >
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3">Legal</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link to="/terms-of-service" className="hover:text-foreground transition-colors">
-                  Terms
-                </Link>
-              </li>
-              <li>
-                <Link to="/privacy-policy" className="hover:text-foreground transition-colors">
-                  Privacy
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Connect */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3">Connect</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <a href="https://calendly.com/nicholas-king-columbiacloudworks/30min" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-                  Schedule a Demo
-                </a>
-              </li>
-              <li>
-                <ExternalLink
-                  href={EQUIPQR_APP_URL}
-                  className="hover:text-foreground transition-colors"
-                  showIcon={false}
-                >
-                  EquipQR™.app
-                </ExternalLink>
-              </li>
-              <li>
-                <ExternalLink
-                  href={GITHUB_REPO_URL}
-                  className="hover:text-foreground transition-colors"
-                  showIcon={true}
-                >
-                  GitHub
-                </ExternalLink>
-              </li>
-            </ul>
-          </div>
+        <div className="hidden grid-cols-2 gap-8 sm:grid sm:grid-cols-4">
+          {footerSections.map((section) => (
+            <div key={section.title}>
+              <h3 className="mb-3 text-sm font-semibold text-foreground">{section.title}</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {section.links.map((item) => (
+                  <li key={`${section.title}-${item.label}`}>
+                    {renderFooterLink(item, 'hover:text-foreground transition-colors')}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
         <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3 text-sm text-muted-foreground">
