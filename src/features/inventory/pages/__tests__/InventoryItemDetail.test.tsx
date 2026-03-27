@@ -476,6 +476,31 @@ describe('InventoryItemDetail - Quantity Adjustment', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('resets the adjustment reason when closing with the cancel button', async () => {
+    const { user } = renderWithUser(<InventoryItemDetail />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Test Part' })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /adjust/i }));
+
+    const reasonInput = await screen.findByRole('textbox', { name: /reason/i });
+    await user.type(reasonInput, 'Cycle count follow-up');
+
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: /adjust quantity/i })).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /adjust/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: /reason/i })).toHaveValue('');
+    });
+  });
 });
 
 describe('InventoryItemDetail - Tab Navigation', () => {

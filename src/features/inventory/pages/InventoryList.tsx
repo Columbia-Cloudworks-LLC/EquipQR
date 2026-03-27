@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Package, Users, MoreVertical, AlertTriangle, Eye, QrCode, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Minus } from 'lucide-react';
+import { Plus, Package, Users, MoreVertical, Eye, QrCode, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Minus } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAdjustInventoryQuantity, useInventoryItems } from '@/features/inventory/hooks/useInventory';
 import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
@@ -25,14 +25,19 @@ import InventoryQRCodeDisplay from '@/features/inventory/components/InventoryQRC
 import InventoryToolbar from '@/features/inventory/components/InventoryToolbar';
 import MobileInventoryToolbar from '@/features/inventory/components/MobileInventoryToolbar';
 import MobileInventoryCard from '@/features/inventory/components/MobileInventoryCard';
+import { getStockHealthPresentation } from '@/features/inventory/utils/stockHealth';
 import { cn } from '@/lib/utils';
 
-/** Quantity display: out of stock (0) vs low-but-available use distinct semantic colors. */
+function isLowStockItem(item: InventoryItem): boolean {
+  return item.isLowStock ?? item.quantity_on_hand <= item.low_stock_threshold;
+}
+
+/** Quantity display: out of stock or negative stock vs low-but-available use distinct semantic colors. */
 function getQuantityClassName(item: InventoryItem): string {
-  if (item.quantity_on_hand === 0) {
+  if (item.quantity_on_hand <= 0) {
     return 'font-semibold text-destructive';
   }
-  if (item.isLowStock) {
+  if (isLowStockItem(item)) {
     return 'font-semibold text-warning';
   }
   return 'font-medium text-foreground';
@@ -83,7 +88,7 @@ const InventoryList = () => {
   }, [filters.search, filters.lowStockOnly, filters.location]);
 
   const lowStockOrgWide = useMemo(
-    () => allItems.filter((i) => i.isLowStock).length,
+    () => allItems.filter(isLowStockItem).length,
     [allItems]
   );
 
@@ -359,111 +364,117 @@ const InventoryList = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleViewItem(item.id)}
-                      onKeyDown={(e) => handleItemKeyDown(e, item.id)}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Open inventory item ${item.name}`}
-                    >
-                      <TableCell className="font-medium">
-                        <div className="min-w-0">
-                          <p className="truncate">{item.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            SKU: {item.sku || '-'}
-                            {item.location ? `  •  ${item.location}` : ''}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {item.sku || '-'}
-                      </TableCell>
-                      <TableCell className="hidden xl:table-cell font-mono text-sm text-muted-foreground">
-                        {item.external_id || '-'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className={cn('tabular-nums', getQuantityClassName(item))}>
-                            {item.quantity_on_hand}
-                          </span>
-                          {item.isLowStock && (
-                            <Badge variant="destructive" className="text-xs">
-                              Low
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {item.location || '-'}
-                      </TableCell>
-                      <TableCell>
-                        {item.isLowStock ? (
-                          <Badge variant="destructive">
-                            <AlertTriangle className="mr-1 h-3 w-3" />
-                            Low Stock
+                  {items.map((item) => {
+                    const stockHealth = getStockHealthPresentation(item);
+                    const stockStatusLabel = stockHealth.label === 'Healthy' ? 'In Stock' : stockHealth.label;
+
+                    return (
+                      <TableRow
+                        key={item.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleViewItem(item.id)}
+                        onKeyDown={(e) => handleItemKeyDown(e, item.id)}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Open inventory item ${item.name}`}
+                      >
+                        <TableCell className="font-medium">
+                          <div className="min-w-0">
+                            <p className="truncate">{item.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              SKU: {item.sku || '-'}
+                              {item.location ? `  •  ${item.location}` : ''}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {item.sku || '-'}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell font-mono text-sm text-muted-foreground">
+                          {item.external_id || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className={cn('tabular-nums', getQuantityClassName(item))}>
+                              {item.quantity_on_hand}
+                            </span>
+                            {stockHealth.label !== 'Healthy' && (
+                              <Badge
+                                variant="outline"
+                                className={cn('rounded-full px-2 py-0.5 text-xs font-medium', stockHealth.className)}
+                              >
+                                {stockHealth.label}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {item.location || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={cn('rounded-full px-2 py-0.5 text-xs font-medium', stockHealth.className)}
+                          >
+                            {stockStatusLabel}
                           </Badge>
-                        ) : (
-                          <Badge variant="outline">In Stock</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              aria-label={`Actions for ${item.name}`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                            <DropdownMenuItem onClick={() => handleViewItem(item.id)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            {canCreate && (
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  void handleQuickAdjust(item.id, 1);
-                                }}
-                                disabled={adjustMutation.isPending}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label={`Actions for ${item.name}`}
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add 1
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem onClick={() => handleViewItem(item.id)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
                               </DropdownMenuItem>
-                            )}
-                            {canCreate && (
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  void handleQuickAdjust(item.id, -1);
-                                }}
-                                disabled={adjustMutation.isPending}
-                              >
-                                <Minus className="mr-2 h-4 w-4" />
-                                Take 1
+                              {canCreate && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    void handleQuickAdjust(item.id, 1);
+                                  }}
+                                  disabled={adjustMutation.isPending}
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Add 1
+                                </DropdownMenuItem>
+                              )}
+                              {canCreate && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    void handleQuickAdjust(item.id, -1);
+                                  }}
+                                  disabled={adjustMutation.isPending}
+                                >
+                                  <Minus className="mr-2 h-4 w-4" />
+                                  Take 1
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => handleShowQRCode(item)}>
+                                <QrCode className="mr-2 h-4 w-4" />
+                                QR Code
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleShowQRCode(item)}>
-                              <QrCode className="mr-2 h-4 w-4" />
-                              QR Code
-                            </DropdownMenuItem>
-                            {canCreate && (
-                              <DropdownMenuItem onClick={() => handleEditItem(item)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                              {canCreate && (
+                                <DropdownMenuItem onClick={() => handleEditItem(item)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>

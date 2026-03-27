@@ -518,13 +518,13 @@ const InventoryItemDetail = () => {
           <Button
             variant="outline"
             className="w-full min-h-11 border-border/80 bg-transparent"
-            onClick={() => setShowAdjustDialog(false)}
+            onClick={() => handleAdjustOpenChange(false)}
           >
             Cancel
           </Button>
         ) : (
           <div className="flex justify-end">
-            <Button variant="outline" onClick={() => setShowAdjustDialog(false)}>
+            <Button variant="outline" onClick={() => handleAdjustOpenChange(false)}>
               Cancel
             </Button>
           </div>

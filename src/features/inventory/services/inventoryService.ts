@@ -69,7 +69,7 @@ export const getInventoryItems = async (
     // Calculate low stock status and apply low stock filter if needed
     let items = (data || []).map(item => ({
       ...item,
-      isLowStock: item.quantity_on_hand < item.low_stock_threshold
+      isLowStock: item.quantity_on_hand <= item.low_stock_threshold
     }));
 
     // Apply low stock filter client-side
@@ -117,7 +117,7 @@ export const getInventoryItemById = async (
 
     return {
       ...data,
-      isLowStock: data.quantity_on_hand < data.low_stock_threshold
+      isLowStock: data.quantity_on_hand <= data.low_stock_threshold
     };
   } catch (error) {
     logger.error('Error fetching inventory item:', error);
@@ -190,7 +190,7 @@ export const createInventoryItem = async (
 
     return {
       ...itemData,
-      isLowStock: itemData.quantity_on_hand < itemData.low_stock_threshold
+      isLowStock: itemData.quantity_on_hand <= itemData.low_stock_threshold
     };
   } catch (error) {
     logger.error('Error creating inventory item:', error);
@@ -252,7 +252,7 @@ export const updateInventoryItem = async (
 
     return {
       ...data,
-      isLowStock: data.quantity_on_hand < data.low_stock_threshold
+      isLowStock: data.quantity_on_hand <= data.low_stock_threshold
     };
   } catch (error) {
     logger.error('Error updating inventory item:', error);
@@ -486,7 +486,7 @@ export const getCompatibleInventoryItems = async (
           image_url: row.image_url,
           location: row.location,
           default_unit_cost: row.default_unit_cost,
-          isLowStock: row.quantity_on_hand < row.low_stock_threshold,
+          isLowStock: row.quantity_on_hand <= row.low_stock_threshold,
           hasAlternates: row.has_alternates ?? false
         });
       }

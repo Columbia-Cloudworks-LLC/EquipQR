@@ -23,10 +23,11 @@ import { cn } from '@/lib/utils';
 
 /** Quantity display: out of stock vs low-but-available vs healthy. */
 function getQuantityClassName(item: InventoryItem): string {
-  if (item.quantity_on_hand === 0) {
+  const isLowStock = item.isLowStock ?? item.quantity_on_hand <= item.low_stock_threshold;
+  if (item.quantity_on_hand <= 0) {
     return 'text-destructive';
   }
-  if (item.isLowStock) {
+  if (isLowStock) {
     return 'text-warning';
   }
   return 'text-foreground';
@@ -54,6 +55,7 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
   onEdit,
 }) => {
   const stockBadge = getStockHealthListBadgeClassName(item);
+  const shouldShowStockBadge = item.isLowStock ?? item.quantity_on_hand <= item.low_stock_threshold;
 
   return (
     <Card
@@ -161,7 +163,7 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            {item.isLowStock && (
+            {shouldShowStockBadge && (
               <Badge
                 variant="outline"
                 className={cn(

@@ -289,4 +289,30 @@ describe('InventoryList — desktop table', () => {
     expect(screen.queryByRole('button', { name: /sort and filter/i })).not.toBeInTheDocument();
     expect(screen.getByText('Healthy Part')).toBeInTheDocument();
   });
+
+  it('shows a negative stock label for negative quantities', async () => {
+    const negativeItem = baseItem({
+      id: 'item-negative',
+      name: 'Backordered Part',
+      quantity_on_hand: -2,
+      low_stock_threshold: 10,
+      isLowStock: true,
+    });
+
+    vi.mocked(useInventoryModule.useInventoryItems).mockImplementation(() => ({
+      data: [negativeItem],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useInventoryModule.useInventoryItems>));
+
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Backordered Part')).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByText('Negative stock')).toHaveLength(2);
+  });
 });
