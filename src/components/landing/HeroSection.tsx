@@ -48,9 +48,18 @@ const HeroSection = () => {
   const [scrollSnaps, setScrollSnaps] = useState(heroSlideIndices);
 
   const syncCarouselState = useCallback((api: CarouselApi) => {
-    setActiveSlideIndex(api.selectedScrollSnap());
-    const nextScrollSnaps = api.scrollSnapList();
-    setScrollSnaps(nextScrollSnaps.length > 0 ? nextScrollSnaps : heroSlideIndices);
+    const updateState = () => {
+      setActiveSlideIndex(api.selectedScrollSnap());
+      const nextScrollSnaps = api.scrollSnapList();
+      setScrollSnaps(nextScrollSnaps.length > 0 ? nextScrollSnaps : heroSlideIndices);
+    };
+
+    if (typeof window === 'undefined') {
+      updateState();
+      return;
+    }
+
+    window.requestAnimationFrame(updateState);
   }, []);
 
   useEffect(() => {
@@ -59,11 +68,11 @@ const HeroSection = () => {
     }
 
     syncCarouselState(carouselApi);
-    carouselApi.on('select', syncCarouselState);
+    carouselApi.on('settle', syncCarouselState);
     carouselApi.on('reInit', syncCarouselState);
 
     return () => {
-      carouselApi.off('select', syncCarouselState);
+      carouselApi.off('settle', syncCarouselState);
       carouselApi.off('reInit', syncCarouselState);
     };
   }, [carouselApi, syncCarouselState]);
