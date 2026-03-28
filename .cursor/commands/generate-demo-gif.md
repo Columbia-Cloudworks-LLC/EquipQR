@@ -12,7 +12,15 @@ dev app, `playwright-cli`, and the reusable scenario runner script.
 - If the command was invoked with an argument, treat it as the scenario name.
 - If no scenario argument was provided:
   - Read `scripts/demo-scenarios.json`.
-  - List available scenario names and descriptions.
+  - List available scenarios grouped by `category` and call out each scenario's `audience` (`tutorial`, `marketing`, `both`) and `viewport`.
+  - First show a curated shortlist for customer-facing demos:
+    - `dashboard-overview`
+    - `fleet-map-locate-equipment`
+    - `qr-scan-to-equipment-detail`
+    - `work-order-create-from-equipment`
+    - `inventory-low-stock-tour`
+    - `inventory-create-mobile`
+  - Then show the full grouped library.
   - Ask the user to choose one scenario before continuing.
 
 ### 2. Verify dev server is running on port 8080
@@ -38,6 +46,14 @@ node scripts/demo-gif.mjs <scenario>
 ```
 
 Replace `<scenario>` with the selected scenario name.
+
+Optional listing/filtering helpers for manual usage:
+
+```powershell
+node scripts/demo-gif.mjs --list
+node scripts/demo-gif.mjs --list --category=inventory
+node scripts/demo-gif.mjs --list --audience=marketing
+```
 
 ### 4. Report output path
 
