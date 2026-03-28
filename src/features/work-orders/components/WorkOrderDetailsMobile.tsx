@@ -75,6 +75,8 @@ interface WorkOrderDetailsMobileProps {
   effectiveLocation?: EffectiveLocation | null;
   /** Callback to scroll to the PM section */
   onScrollToPM?: () => void;
+  /** Open mobile actions focused on destructive actions */
+  onDeleteRequest?: () => void;
 }
 
 const getDueDateStatus = (dueDate: string, status: string): 'overdue' | 'due_soon' | 'normal' => {
@@ -92,6 +94,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
   assignee,
   effectiveLocation,
   onScrollToPM,
+  onDeleteRequest,
 }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   const [isEquipmentDetailsExpanded, setIsEquipmentDetailsExpanded] = useState(false);
@@ -257,7 +260,10 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
             <Collapsible open={isDescriptionExpanded} onOpenChange={setIsDescriptionExpanded}>
               <CollapsibleTrigger asChild>
                 <button className="flex items-center justify-between w-full text-left min-h-[44px] touch-manipulation">
-                  <span className="font-semibold text-base">Description</span>
+                  <span className="inline-flex items-center gap-2 font-semibold text-base">
+                    <Clipboard className="h-4 w-4 text-muted-foreground" />
+                    Description
+                  </span>
                   {isDescriptionExpanded ? (
                     <ChevronUp className="h-4 w-4 text-muted-foreground" />
                   ) : (
@@ -287,7 +293,10 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
             <Collapsible open={isEquipmentDetailsExpanded} onOpenChange={setIsEquipmentDetailsExpanded}>
               <CollapsibleTrigger asChild>
                 <button className="flex items-center justify-between w-full text-left min-h-[44px] touch-manipulation">
-                  <span className="font-semibold text-base">Equipment Details</span>
+                  <span className="inline-flex items-center gap-2 font-semibold text-base">
+                    <Wrench className="h-4 w-4 text-muted-foreground" />
+                    Equipment Details
+                  </span>
                   {isEquipmentDetailsExpanded ? (
                     <ChevronUp className="h-4 w-4 text-muted-foreground" />
                   ) : (
@@ -417,6 +426,25 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
                 )}
               </CollapsibleContent>
             </Collapsible>
+          </CardContent>
+        </Card>
+      )}
+
+      {onDeleteRequest && (
+        <Card className="border-destructive/80 bg-destructive/[0.06] shadow-elevation-2 dark:bg-destructive/10">
+          <CardContent className="p-4 space-y-3">
+            <p className="text-sm font-semibold text-destructive">Delete Work Order</p>
+            <p className="text-sm text-muted-foreground">
+              This action permanently removes the work order and related records.
+            </p>
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full min-h-[44px]"
+              onClick={onDeleteRequest}
+            >
+              Delete Work Order
+            </Button>
           </CardContent>
         </Card>
       )}

@@ -129,7 +129,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
             </div>
             {/* Status + PM indicator row */}
             <div className="flex items-center gap-2 min-w-0">
-              <Badge className={`${display.statusClassName} px-1.5 py-0 text-[10px] flex-shrink-0`} variant="outline">
+              <Badge className={`${display.statusClassName} rounded-full px-2 py-0.5 text-xs flex-shrink-0`} variant="outline">
                 {display.statusLabel}
               </Badge>
               <PMStatusIndicator status={pmStatus} size="sm" />
@@ -189,7 +189,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="truncate text-sm font-semibold">{equipment.name}</span>
-                <Badge className={`${display.statusClassName} px-1.5 py-0 text-[10px]`} variant="outline">
+                <Badge className={`${display.statusClassName} rounded-full px-2 py-0.5 text-xs`} variant="outline">
                   {display.statusLabel}
                 </Badge>
                 <PMStatusIndicator status={pmStatus} size="sm" />
@@ -249,7 +249,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
                   {equipment.team_name || `${equipment.manufacturer} ${equipment.model}`}
                 </CardDescription>
                 <div className="mt-1.5 flex items-center gap-2">
-                  <Badge className={`${display.statusClassName} text-xs`} variant="outline">
+                  <Badge className={`${display.statusClassName} rounded-full px-2 py-0.5 text-xs`} variant="outline">
                     {display.statusLabel}
                   </Badge>
                   <PMStatusIndicator status={pmStatus} size="sm" />

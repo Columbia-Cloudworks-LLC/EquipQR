@@ -6,6 +6,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, X, Edit2 } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import { cn } from '@/lib/utils';
+
+/** Empty inline field: em dash in body style, not monospace (overrides parent font-mono on SKU/external ID). */
+function EmptyFieldDisplay({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn('text-muted-foreground/50 not-italic font-sans', className)}
+      aria-label="No value set"
+    >
+      —
+    </span>
+  );
+}
 
 interface InlineEditFieldProps {
   value: string;
@@ -76,18 +89,18 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
   };
 
   // Format display value based on type
-  const getDisplayValue = () => {
-    if (!value) return 'Not set';
-    
+  const getDisplayContent = (): React.ReactNode => {
+    if (!value) {
+      return <EmptyFieldDisplay />;
+    }
+
     if (type === 'select' && selectOptions) {
-      // For select fields, find the label that matches the value
-      const option = selectOptions.find(opt => opt.value === value);
+      const option = selectOptions.find((opt) => opt.value === value);
       return option ? option.label : value;
     }
-    
+
     if (type === 'date' && value) {
       try {
-        // Try to format the date for display
         const date = new Date(value);
         if (!isNaN(date.getTime())) {
           return date.toLocaleDateString();
@@ -96,11 +109,11 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
         logger.error('Error formatting date for display', error);
       }
     }
-    
+
     return value;
   };
 
-  const resolvedDisplayNode = displayNode ?? getDisplayValue();
+  const resolvedDisplayNode = displayNode ?? getDisplayContent();
 
   if (!canEdit) {
     return <span className={className}>{resolvedDisplayNode}</span>;

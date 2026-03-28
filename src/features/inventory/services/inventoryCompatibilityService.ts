@@ -74,7 +74,7 @@ export const getCompatibleItemsForEquipment = async (
       const item = row.inventory_items as unknown as InventoryItem;
       return {
         ...item,
-        isLowStock: item.quantity_on_hand < item.low_stock_threshold
+        isLowStock: item.quantity_on_hand <= item.low_stock_threshold
       };
     });
   } catch (error) {

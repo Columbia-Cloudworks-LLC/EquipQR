@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-03-27
+
+### Added
+
+- **Landing mobile UX regression tests** — `LandingMobileUX.test.tsx` covers hero carousel accessibility, secondary CTA touch target, why-different headings, how-it-works ordered list, reveal markers, social-proof metric list, About “The Win” chips, and mobile footer accordion triggers.
+
+- **Inventory item detail manual mobile QA** — `docs/technical/inventory-detail-mobile-qa.md` checklist for tab rail overflow hints, adjust-quantity sheet, header/stock badge, change-history expansion, and empty inline fields.
+
+### Changed
+
+- **Mobile UI consistency (dashboard, lists, equipment / work orders / inventory detail)** — Shared `PageHeader` optional `backLink` (`←` + section label) and expanded mobile `TopBar` label suppression for `/dashboard/equipment/:id`, `/dashboard/work-orders/:id`, and `/dashboard/inventory/:id` so in-page titles and back affordances are not duplicated. **Inventory detail**: explicit `← Inventory` back on small viewports; mobile breadcrumbs for that row removed in favor of the back link; stock-health and action targets aligned with other detail pages (e.g. `min-h-[44px]` primary actions, QR icon sizing). **Equipment detail**: mobile header back labeled **Equipment** (ghost, 44px target), QR/delete icon buttons use outline/destructive with accessible names; delete removed from header/desktop `PageHeader` actions and moved to a bottom **Delete Equipment** danger card (admins). **Work orders (mobile)**: collapsible **Description** / **Equipment Details** triggers use icon + semibold title; equipment line uses equipment status badge presentation (e.g. **Under Maintenance**); optional bottom **Delete Work Order** danger card opens the existing mobile action sheet; `WorkOrderCard` shows **status** before **priority** with shared pill sizing. **Lists**: equipment, work-order, and inventory mobile cards use more consistent rounded pill badges where applicable. **Dashboard**: `StatsCard` KPI labels no longer force ALL CAPS (Title Case reads with existing label strings). **Empty values**: em dash (`—`) replaces mixed `Not recorded` / `Not set` in touched equipment and work-order equipment flows. **Custom attributes (equipment)**: read-only values humanize underscore/unit slugs via shared `humanizeAttributeValue` (non-URL values). Tests updated for `MobileEquipmentHeader`; added `WorkOrderDetailsMobileHeader.test.tsx`.
+
+- **Public landing page mobile UX pass** — Hero: stronger early-access banner contrast, heavier mobile subhead with left-aligned long copy (`sm+` centering preserved), secondary “See How Shops” CTA with ≥44px tap zone and clearer in-page jump affordance (down chevron, subdued styling vs primary), and a keyboard-accessible 3-slide product preview carousel (Embla/shadcn) with dot pickers, prev/next controls, and swipe cue. Why EquipQR / How It Works: larger icon treatment, h3+body bullet structure, combined step number + icon marker (no floating double-icon), ordered list semantics, and staggered scroll-reveal via shared `LandingReveal` (IntersectionObserver, `prefers-reduced-motion` respected). Social proof: `100%` / `50%` metrics in tinted accent cards with large purple numerals and labels. Who Is EquipQR For: “The Win” as bordered pill chips. Footer: Radix accordion on small screens with 44px link rows; desktop four-column layout unchanged.
+
+- **Inventory item detail mobile polish** — Stock health (`Healthy` / `Low stock` / `Out of stock`) in `PageHeader` meta and overview stock row via shared `getStockHealthPresentation`. QR action demoted on small screens (ghost/icon, preserved accessible name). Mobile tab rail uses `HorizontalChipRow` fade hints; tab panels get a light opacity/directional transition with reduced-motion safety. **Adjust quantity**: `Drawer` bottom sheet on mobile (tuned handle + top radius in `drawer.tsx`), `Dialog` on desktop with screen-reader description; mobile layout uses full-width outline **Cancel** and stronger borders on secondary add/take actions. Overview: larger section titles, more vertical rhythm between field groups, clearer separation between **Images** and **Delete** (spacing, separator, destructive-tinted delete card). **InlineEditField** empty values use an em dash and muted body styling instead of “Not set”. **HistoryTab** uses animated expand/collapse for change details. Vitest coverage extended for stock badge, mobile sheet, and empty-field display.
+
 ## [2.5.1] - 2026-03-22
 
 ### Fixed
@@ -1370,7 +1386,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.1...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.2...HEAD
+[2.5.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.3.10...v2.4.0

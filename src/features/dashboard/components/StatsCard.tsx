@@ -162,7 +162,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
           <>
             <div className="flex items-center gap-2 mb-2">
               <span className={cn("flex-shrink-0", styles.text)}>{icon}</span>
-              <span className="text-[13px] font-medium text-muted-foreground uppercase tracking-wide truncate">
+              <span className="text-[13px] font-medium text-muted-foreground tracking-wide truncate">
                 {label}
               </span>
             </div>

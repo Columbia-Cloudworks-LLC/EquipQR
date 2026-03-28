@@ -119,7 +119,7 @@ const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: (field: str
         </div>
       ) : (
         <div className="mt-1 text-sm text-muted-foreground">
-          Current: {currentHours ? `${currentHours} hours` : 'Not recorded'}
+          Current: {currentHours ? `${currentHours} hours` : '—'}
         </div>
       )}
     </div>

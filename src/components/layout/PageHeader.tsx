@@ -14,6 +14,11 @@ interface PageHeaderProps {
   description?: string;
   /** Optional meta content (badges, labels) displayed inline with title on desktop, below on mobile */
   meta?: React.ReactNode;
+  /** Optional mobile/desktop back link shown above breadcrumbs/title */
+  backLink?: {
+    label: string;
+    href: string;
+  };
   breadcrumbs?: BreadcrumbItem[];
   actions?: React.ReactNode;
   className?: string;
@@ -25,6 +30,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   title,
   description,
   meta,
+  backLink,
   breadcrumbs,
   actions,
   className,
@@ -34,6 +40,18 @@ const PageHeader: React.FC<PageHeaderProps> = ({
 
   return (
     <div className={cn('space-y-4', className)}>
+      {backLink && (
+        <div className="flex items-center">
+          <Link
+            to={backLink.href}
+            className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <span aria-hidden="true">←</span>
+            <span>{backLink.label}</span>
+          </Link>
+        </div>
+      )}
+
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav className="flex items-center gap-1.5 text-sm text-muted-foreground" aria-label="Breadcrumb">

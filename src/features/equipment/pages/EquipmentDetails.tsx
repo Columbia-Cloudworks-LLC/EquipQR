@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, MapPin, Forklift, QrCode, Trash2, Users } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, MapPin, Forklift, QrCode, Trash2, Users } from 'lucide-react';
 import { GoogleMap, MarkerF } from '@react-google-maps/api';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
@@ -275,8 +275,6 @@ const EquipmentDetails = () => {
           <MobileEquipmentHeader 
             equipment={equipment}
             onShowQRCode={handleShowQRCode}
-            canDelete={isAdmin}
-            onDelete={handleDeleteEquipment}
             onShowWorkingHours={handleShowWorkingHours}
           />
         ) : (
@@ -295,12 +293,6 @@ const EquipmentDetails = () => {
                   <QrCode className="h-4 w-4 mr-2" />
                   QR Code
                 </Button>
-                {isAdmin && (
-                  <Button size="sm" variant="destructive" onClick={handleDeleteEquipment}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                )}
               </div>
             }
           />
@@ -585,6 +577,32 @@ const EquipmentDetails = () => {
           />
         </TabsContent>
       </ResponsiveEquipmentTabs>
+
+      {isAdmin && (
+        <div className="mt-8 space-y-4">
+          <Card className="border-destructive/80 bg-destructive/[0.06] dark:bg-destructive/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                Delete Equipment
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Deleting equipment permanently removes it and cannot be undone.
+              </p>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteEquipment}
+                className="w-full sm:w-auto"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Equipment
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Work Order Form */}
       <WorkOrderForm

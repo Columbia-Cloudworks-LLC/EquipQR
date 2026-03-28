@@ -379,7 +379,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
 
   const lastMaintenanceDisplay = equipment.last_maintenance
     ? format(new Date(equipment.last_maintenance), 'PPP')
-    : 'Not set';
+    : '—';
 
   // Handle team assignment
   const handleTeamAssignment = async (teamId: string) => {
@@ -551,7 +551,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                     className="text-base"
                   />
                 ) : (
-                  <Badge className={getStatusColor(equipment.status || 'active')}>
+                  <Badge className={`${getStatusColor(equipment.status || 'active')} rounded-full px-2 py-0.5 text-xs`} variant="outline">
                     {EQUIPMENT_STATUS_OPTIONS.find(opt => opt.value === equipment.status)?.label || 'Active'}
                   </Badge>
                 )}
@@ -913,7 +913,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
             <div>
               <span className="text-sm font-medium text-muted-foreground">Created Date</span>
               <div className="mt-1 text-base text-foreground">
-                {equipment.created_at ? format(new Date(equipment.created_at), 'PPP') : 'Not set'}
+                {equipment.created_at ? format(new Date(equipment.created_at), 'PPP') : '—'}
               </div>
             </div>
           </div>

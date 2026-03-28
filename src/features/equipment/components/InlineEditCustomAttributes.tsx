@@ -10,6 +10,7 @@ import {
 import { Edit2, Check, X } from 'lucide-react';
 import CustomAttributesSection from './CustomAttributesSection';
 import type { CustomAttribute } from '@/hooks/useCustomAttributes';
+import { humanizeAttributeValue } from '@/features/work-orders/utils/workOrderHelpers';
 
 interface InlineEditCustomAttributesProps {
   attributes?: Record<string, string>;
@@ -100,7 +101,7 @@ const renderAttributeValue = (value: string): React.ReactNode => {
       </a>
     );
   }
-  return <div className="text-lg break-all">{value}</div>;
+  return <div className="text-lg break-all">{humanizeAttributeValue(value)}</div>;
 };
 
 const InlineEditCustomAttributes: React.FC<InlineEditCustomAttributesProps> = ({
