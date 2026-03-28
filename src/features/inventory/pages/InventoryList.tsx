@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Package, Users, MoreVertical, Eye, QrCode, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Minus } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useAdjustInventoryQuantity, useInventoryItems } from '@/features/inventory/hooks/useInventory';
+import { useAdjustInventoryQuantity, useInventoryItems, useInventoryListMetadata } from '@/features/inventory/hooks/useInventory';
 import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
@@ -67,17 +67,11 @@ const InventoryList = () => {
     filters
   );
 
-  const { data: allItems = [] } = useInventoryItems(
-    currentOrganization?.id,
-    { search: '', lowStockOnly: false }
+  const { data: inventoryListMetadata } = useInventoryListMetadata(
+    currentOrganization?.id
   );
 
-  const uniqueLocations = useMemo(() => {
-    const locs = allItems
-      .map((item) => item.location)
-      .filter((loc): loc is string => !!loc && loc.trim() !== '');
-    return [...new Set(locs)].sort();
-  }, [allItems]);
+  const uniqueLocations = inventoryListMetadata?.uniqueLocations ?? [];
 
   const activeFilterCount = useMemo(() => {
     let n = 0;
@@ -87,10 +81,7 @@ const InventoryList = () => {
     return n;
   }, [filters.search, filters.lowStockOnly, filters.location]);
 
-  const lowStockOrgWide = useMemo(
-    () => allItems.filter(isLowStockItem).length,
-    [allItems]
-  );
+  const lowStockOrgWide = inventoryListMetadata?.lowStockCount ?? 0;
 
   const handleAddItem = () => {
     setEditingItem(null);

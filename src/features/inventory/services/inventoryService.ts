@@ -96,6 +96,43 @@ export const getInventoryItems = async (
   }
 };
 
+export interface InventoryListMetadata {
+  uniqueLocations: string[];
+  lowStockCount: number;
+}
+
+export const getInventoryListMetadata = async (
+  organizationId: string
+): Promise<InventoryListMetadata> => {
+  try {
+    const { data, error } = await supabase
+      .from('inventory_items')
+      .select('location, quantity_on_hand, low_stock_threshold')
+      .eq('organization_id', organizationId);
+
+    if (error) throw error;
+
+    const rows = data || [];
+    const uniqueLocations = [...new Set(
+      rows
+        .map((item) => item.location)
+        .filter((location): location is string => !!location && location.trim() !== '')
+    )].sort();
+
+    const lowStockCount = rows.filter(
+      (item) => item.quantity_on_hand <= item.low_stock_threshold
+    ).length;
+
+    return {
+      uniqueLocations,
+      lowStockCount,
+    };
+  } catch (error) {
+    logger.error('Error fetching inventory list metadata:', error);
+    throw error;
+  }
+};
+
 export const getInventoryItemById = async (
   organizationId: string,
   itemId: string

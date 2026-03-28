@@ -11,7 +11,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 vi.mock('@/features/inventory/hooks/useInventory', () => ({
   useInventoryItems: vi.fn(),
   useAdjustInventoryQuantity: vi.fn(),
+  useInventoryListMetadata: vi.fn(),
 }));
+
+const inventoryHookMocks = useInventoryModule as typeof useInventoryModule & {
+  useInventoryListMetadata: ReturnType<typeof vi.fn>;
+};
 
 const mockNavigate = vi.fn();
 
@@ -118,6 +123,16 @@ describe('InventoryList — mobile', () => {
       mutateAsync: vi.fn().mockResolvedValue(0),
       isPending: false,
     } as unknown as ReturnType<typeof useInventoryModule.useAdjustInventoryQuantity>);
+    inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
+      data: {
+        uniqueLocations: ['Warehouse A', 'Yard'],
+        lowStockCount: 1,
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    });
 
     vi.mocked(useInventoryModule.useInventoryItems).mockImplementation((_orgId, filters) => ({
       data: filterItems(filters),
@@ -256,6 +271,45 @@ describe('InventoryList — mobile', () => {
 
     expect(screen.getByText('Low stock')).toBeInTheDocument();
   });
+
+  it('uses lightweight inventory metadata instead of a second full inventory query', async () => {
+    inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
+      data: {
+        uniqueLocations: ['Warehouse A', 'Yard'],
+        lowStockCount: 7,
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    vi.mocked(useInventoryModule.useInventoryItems).mockImplementation((_orgId, filters) => {
+      if (
+        filters?.search === '' &&
+        filters?.lowStockOnly === false &&
+        filters?.sortBy === undefined &&
+        filters?.sortOrder === undefined
+      ) {
+        throw new Error('InventoryList should not issue a second full inventory query for metadata');
+      }
+
+      return {
+        data: filterItems(filters),
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      } as unknown as ReturnType<typeof useInventoryModule.useInventoryItems>;
+    });
+
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /show 7 low stock items only/i })).toBeInTheDocument();
+    });
+
+    expect(inventoryHookMocks.useInventoryListMetadata).toHaveBeenCalledWith('org-1');
+  });
 });
 
 describe('InventoryList — desktop table', () => {
@@ -270,6 +324,16 @@ describe('InventoryList — desktop table', () => {
       mutateAsync: vi.fn().mockResolvedValue(0),
       isPending: false,
     } as unknown as ReturnType<typeof useInventoryModule.useAdjustInventoryQuantity>);
+    inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
+      data: {
+        uniqueLocations: ['Warehouse A', 'Yard'],
+        lowStockCount: 1,
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    });
 
     vi.mocked(useInventoryModule.useInventoryItems).mockImplementation((_orgId, filters) => ({
       data: filterItems(filters),

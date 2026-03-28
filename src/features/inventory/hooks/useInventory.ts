@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import {
   getInventoryItems,
+  getInventoryListMetadata,
   getInventoryItemById,
   createInventoryItem,
   updateInventoryItem,
@@ -61,6 +62,31 @@ export const useInventoryItems = (
     },
     enabled: !!organizationId,
     staleTime
+  });
+};
+
+export const useInventoryListMetadata = (
+  organizationId: string | undefined,
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+
+  return useQuery({
+    queryKey: ['inventory-list-metadata', organizationId],
+    queryFn: async () => {
+      if (!organizationId) {
+        return {
+          uniqueLocations: [],
+          lowStockCount: 0,
+        };
+      }
+
+      return await getInventoryListMetadata(organizationId);
+    },
+    enabled: !!organizationId,
+    staleTime,
   });
 };
 
@@ -187,6 +213,9 @@ export const useCreateInventoryItem = () => {
       queryClient.invalidateQueries({
         queryKey: ['inventory-items', variables.organizationId]
       });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-list-metadata', variables.organizationId]
+      });
       toast({
         title: 'Inventory item created',
         description: `${data.name} has been added to inventory.`
@@ -222,6 +251,9 @@ export const useUpdateInventoryItem = () => {
       // Invalidate related queries
       queryClient.invalidateQueries({
         queryKey: ['inventory-items', variables.organizationId]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-list-metadata', variables.organizationId]
       });
       queryClient.invalidateQueries({
         queryKey: ['inventory-item', variables.organizationId, variables.itemId]
@@ -260,6 +292,9 @@ export const useDeleteInventoryItem = () => {
       queryClient.invalidateQueries({
         queryKey: ['inventory-items', variables.organizationId]
       });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-list-metadata', variables.organizationId]
+      });
       toast({
         title: 'Inventory item deleted',
         description: 'The inventory item has been removed.'
@@ -295,6 +330,9 @@ export const useAdjustInventoryQuantity = () => {
       // Invalidate related queries
       queryClient.invalidateQueries({
         queryKey: ['inventory-items', variables.organizationId]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-list-metadata', variables.organizationId]
       });
       queryClient.invalidateQueries({
         queryKey: ['inventory-item', variables.organizationId, variables.adjustment.itemId]
