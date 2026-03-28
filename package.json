@@ -31,7 +31,8 @@
     "deploy:vercel": "vercel --prod",
     "deploy:netlify": "netlify deploy --prod",
     "generate:vapid-keys": "node scripts/generate-vapid-keys.mjs",
-    "generate:large-inventory": "npx tsx scripts/generate-large-inventory-seed.ts > supabase/seeds/26_large_inventory.sql"
+    "generate:large-inventory": "npx tsx scripts/generate-large-inventory-seed.ts > supabase/seeds/26_large_inventory.sql",
+    "demo:gif": "node scripts/demo-gif.mjs"
   },
   "dependencies": {
     "@hcaptcha/react-hcaptcha": "^1.12.0",

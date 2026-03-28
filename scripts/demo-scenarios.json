@@ -1,0 +1,99 @@
+{
+  "scenarios": [
+    {
+      "name": "equipment-list",
+      "description": "Navigate to equipment list, scroll list content, and hover an item to expose actions.",
+      "route": "/dashboard/equipment",
+      "steps": [
+        "playwright-cli snapshot",
+        "playwright-cli eval \"window.scrollBy({ top: 700, behavior: 'smooth' })\"",
+        "playwright-cli eval \"const target = document.querySelector('[data-testid=equipment-card], [role=listitem], a[href*=/dashboard/equipment/]'); if (!target) throw new Error('No equipment item found to hover'); const e = new MouseEvent('mouseover', { bubbles: true }); target.dispatchEvent(e);\"",
+        "playwright-cli snapshot"
+      ]
+    },
+    {
+      "name": "create-work-order-from-equipment",
+      "description": "Open an equipment record, create a work order, update equipment hours by +10, choose PM template, and submit.",
+      "route": "/dashboard/equipment",
+      "steps": [
+        "playwright-cli eval \"const rowLink = document.querySelector('a[href*=/dashboard/equipment/]'); if (!rowLink) throw new Error('No equipment detail link found'); rowLink.click();\"",
+        "playwright-cli snapshot",
+        "playwright-cli eval \"const woTab = Array.from(document.querySelectorAll('button,[role=tab]')).find(el => /work orders/i.test(el.textContent || '')); if (woTab) woTab.click();\"",
+        "playwright-cli eval \"const createBtn = Array.from(document.querySelectorAll('button')).find(el => /new work order|create work order|create/i.test(el.textContent || '')); if (!createBtn) throw new Error('Create work order button not found on equipment details'); createBtn.click();\"",
+        "playwright-cli eval \"const title = document.querySelector('input[name=title], input[id*=title], input[placeholder*=Title], input[placeholder*=title]'); if (!title) throw new Error('Work order title input not found'); title.focus(); title.value = 'Demo WO from equipment'; title.dispatchEvent(new Event('input', { bubbles: true }));\"",
+        "playwright-cli eval \"const desc = document.querySelector('textarea[name=description], textarea[id*=description], textarea[placeholder*=Description], textarea[placeholder*=description]'); if (!desc) throw new Error('Work order description input not found'); desc.focus(); desc.value = 'Created by automated demo scenario.'; desc.dispatchEvent(new Event('input', { bubbles: true }));\"",
+        "playwright-cli eval \"const due = document.querySelector('input[type=date], input[name*=due], input[id*=due]'); if (!due) throw new Error('Due date input not found'); const d = new Date(); d.setDate(d.getDate() + 7); const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; due.value = v; due.dispatchEvent(new Event('input', { bubbles: true })); due.dispatchEvent(new Event('change', { bubbles: true }));\"",
+        "playwright-cli eval \"const updateHours = Array.from(document.querySelectorAll('button')).find(el => /update/i.test(el.textContent || '') && /hour/i.test((el.closest('div')?.textContent || document.body.textContent || ''))); if (updateHours) updateHours.click();\"",
+        "playwright-cli eval \"const numberInput = document.querySelector('input[type=number]'); if (numberInput) { const current = Number(numberInput.value || '0'); numberInput.value = String(current + 10); numberInput.dispatchEvent(new Event('input', { bubbles: true })); const saveHoursBtn = Array.from(document.querySelectorAll('button')).find(el => /^save$/i.test((el.textContent || '').trim())); if (saveHoursBtn) saveHoursBtn.click(); }\"",
+        "playwright-cli eval \"const pmToggle = Array.from(document.querySelectorAll('button,[role=radio]')).find(el => /with pm checklist/i.test(el.textContent || '')); if (pmToggle) pmToggle.click();\"",
+        "playwright-cli eval \"const trigger = document.querySelector('[id=pmTemplate], [id*=pmTemplate], [aria-label*=template i]'); if (trigger) { trigger.click(); const option = document.querySelector('[role=option]'); if (option) option.click(); }\"",
+        "playwright-cli eval \"const submitBtn = document.querySelector('[data-testid=submit-button], button[type=submit]') || Array.from(document.querySelectorAll('button')).find(el => /create work order|save|submit/i.test(el.textContent || '')); if (!submitBtn) throw new Error('Work order submit button not found'); submitBtn.click();\""
+      ]
+    },
+    {
+      "name": "create-new-equipment-record",
+      "description": "Create a new equipment record from equipment list and add multiple custom attributes.",
+      "route": "/dashboard/equipment",
+      "steps": [
+        "playwright-cli eval \"const addBtn = Array.from(document.querySelectorAll('button')).find(el => /add equipment|create new equipment/i.test(el.textContent || '')); if (!addBtn) throw new Error('Add Equipment button not found'); addBtn.click();\"",
+        "playwright-cli eval \"const setValue = (selector, value) => { const el = document.querySelector(selector); if (el) { el.focus(); el.value = value; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } return !!el; }; if (!setValue('input[name=name], input[id*=name], input[placeholder*=name i]', `Demo Equipment ${Date.now()}`)) throw new Error('Equipment name input not found'); setValue('input[name=manufacturer], input[id*=manufacturer], input[placeholder*=manufacturer i]', 'Caterpillar'); setValue('input[name=model], input[id*=model], input[placeholder*=model i]', 'D6T'); setValue('input[name=serial_number], input[id*=serial], input[placeholder*=serial i]', `DEMO-${Date.now()}`);\"",
+        "playwright-cli eval \"const addAttr = () => Array.from(document.querySelectorAll('button')).find(el => /add attribute/i.test(el.textContent || '')); for (let i = 0; i < 3; i += 1) { const b = addAttr(); if (!b) throw new Error('Add Attribute button not found'); b.click(); }\"",
+        "playwright-cli eval \"const keys = Array.from(document.querySelectorAll('input[id^=attr-key-]')); const vals = Array.from(document.querySelectorAll('input[id^=attr-value-]')); if (keys.length < 3 || vals.length < 3) throw new Error('Custom attribute inputs not found'); ['Asset Tag', 'Service Zone', 'Fuel Type'].forEach((k, i) => { keys[i].value = k; keys[i].dispatchEvent(new Event('input', { bubbles: true })); }); ['EQ-482', 'North Yard', 'Diesel'].forEach((v, i) => { vals[i].value = v; vals[i].dispatchEvent(new Event('input', { bubbles: true })); });\"",
+        "playwright-cli eval \"const saveBtn = Array.from(document.querySelectorAll('button')).find(el => /create equipment|save/i.test(el.textContent || '')); if (!saveBtn) throw new Error('Create Equipment submit button not found'); saveBtn.click();\""
+      ]
+    },
+    {
+      "name": "create-new-work-order-and-equipment-record",
+      "description": "Create a work order from work orders page, create a new equipment record inline, and submit.",
+      "route": "/dashboard/work-orders",
+      "steps": [
+        "playwright-cli eval \"const createBtn = Array.from(document.querySelectorAll('button')).find(el => /create work order/i.test(el.textContent || '')) || document.querySelector('button[aria-label*=create work order i]'); if (!createBtn) throw new Error('Create Work Order button not found'); createBtn.click();\"",
+        "playwright-cli eval \"const title = document.querySelector('input[name=title], input[id*=title], input[placeholder*=Title], input[placeholder*=title]'); if (!title) throw new Error('Work order title input not found'); title.value = 'Demo WO with inline equipment'; title.dispatchEvent(new Event('input', { bubbles: true }));\"",
+        "playwright-cli eval \"const desc = document.querySelector('textarea[name=description], textarea[id*=description], textarea[placeholder*=description i]'); if (desc) { desc.value = 'Created with inline equipment creation for demo flow.'; desc.dispatchEvent(new Event('input', { bubbles: true })); }\"",
+        "playwright-cli eval \"const due = document.querySelector('input[type=date], input[name*=due], input[id*=due]'); if (due) { const d = new Date(); d.setDate(d.getDate() + 5); const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; due.value = v; due.dispatchEvent(new Event('input', { bubbles: true })); due.dispatchEvent(new Event('change', { bubbles: true })); }\"",
+        "playwright-cli eval \"const createNewTab = Array.from(document.querySelectorAll('button,[role=tab]')).find(el => /create new/i.test(el.textContent || '')); if (!createNewTab) throw new Error('Create New equipment tab not found'); createNewTab.click();\"",
+        "playwright-cli eval \"const setValue = (selector, value) => { const el = document.querySelector(selector); if (el) { el.value = value; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } return !!el; }; if (!setValue('input[id=manufacturer], input[name=manufacturer]', 'Komatsu')) throw new Error('Inline manufacturer input not found'); setValue('input[id=model], input[name=model]', 'PC210'); setValue('input[id=serial_number], input[name=serial_number]', `INLINE-${Date.now()}`); setValue('input[id=working_hours], input[name=working_hours]', '1200'); setValue('input[id=name], input[name=name]', `Inline Demo Equipment ${Date.now()}`);\"",
+        "playwright-cli eval \"const teamSelect = document.querySelector('#team_id, [id=team_id], [name=team_id]'); if (teamSelect) { teamSelect.click(); const firstOption = document.querySelector('[role=option]'); if (firstOption) firstOption.click(); }\"",
+        "playwright-cli eval \"const createEquipmentBtn = Array.from(document.querySelectorAll('button')).find(el => /create equipment/i.test(el.textContent || '')); if (!createEquipmentBtn) throw new Error('Inline Create Equipment button not found'); createEquipmentBtn.click();\"",
+        "playwright-cli eval \"const submitBtn = document.querySelector('[data-testid=submit-button], button[type=submit]') || Array.from(document.querySelectorAll('button')).find(el => /create work order|save|submit/i.test(el.textContent || '')); if (!submitBtn) throw new Error('Work order submit button not found'); submitBtn.click();\""
+      ]
+    },
+    {
+      "name": "scan-qr",
+      "description": "Open an equipment detail QR modal, copy/read URL, then navigate directly to simulate scan.",
+      "route": "/dashboard/equipment",
+      "steps": [
+        "playwright-cli eval \"const rowLink = document.querySelector('a[href*=/dashboard/equipment/]'); if (!rowLink) throw new Error('No equipment detail link found'); rowLink.click();\"",
+        "playwright-cli eval \"const qrBtn = Array.from(document.querySelectorAll('button')).find(el => /qr code/i.test(el.textContent || '')); if (!qrBtn) throw new Error('QR Code button not found on equipment details'); qrBtn.click();\"",
+        "playwright-cli eval \"const copyBtn = Array.from(document.querySelectorAll('button')).find(el => /^copy$/i.test((el.textContent || '').trim()) || /copy url/i.test(el.getAttribute('aria-label') || '')); if (!copyBtn) throw new Error('Copy URL button not found in QR dialog'); copyBtn.click();\"",
+        "playwright-cli eval \"const urlText = Array.from(document.querySelectorAll('div,span,p')).map(el => (el.textContent || '').trim()).find(text => /^https?:\\/\\/.+\\/qr\\/equipment\\//i.test(text)); if (!urlText) throw new Error('QR URL not found in modal'); window.location.href = urlText;\"",
+        "playwright-cli snapshot"
+      ]
+    },
+    {
+      "name": "fleet-map",
+      "description": "Load fleet map, pan slightly, open equipment panel, and select an equipment record to focus.",
+      "route": "/dashboard/fleet-map",
+      "steps": [
+        "playwright-cli snapshot",
+        "playwright-cli mousewheel 0 300",
+        "playwright-cli eval \"const panelBtn = Array.from(document.querySelectorAll('button')).find(el => /equipment|hide panel|show panel/i.test(el.textContent || '')); if (!panelBtn) throw new Error('Fleet panel toggle not found'); panelBtn.click();\"",
+        "playwright-cli eval \"const row = document.querySelector('[data-testid*=equipment], [role=button][data-equipment-id], button'); if (!row) throw new Error('No selectable equipment row found in fleet panel'); row.click();\"",
+        "playwright-cli snapshot"
+      ]
+    },
+    {
+      "name": "dashboard",
+      "description": "Show dashboard load state and scroll down gradually to capture full page context.",
+      "route": "/dashboard",
+      "steps": [
+        "playwright-cli snapshot",
+        "playwright-cli eval \"window.scrollBy({ top: 400, behavior: 'smooth' })\"",
+        "playwright-cli eval \"window.scrollBy({ top: 500, behavior: 'smooth' })\"",
+        "playwright-cli eval \"window.scrollBy({ top: 600, behavior: 'smooth' })\"",
+        "playwright-cli eval \"window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })\"",
+        "playwright-cli snapshot"
+      ]
+    }
+  ]
+}
