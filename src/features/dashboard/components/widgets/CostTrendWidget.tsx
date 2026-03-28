@@ -96,7 +96,8 @@ const CostTrendWidget: React.FC = () => {
             <Skeleton className="h-40 w-full" />
           </div>
         ) : chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={180}>
+          <div className="h-[180px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
               <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
               <XAxis
@@ -135,7 +136,8 @@ const CostTrendWidget: React.FC = () => {
                 activeDot={{ r: 5 }}
               />
             </LineChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+          </div>
         ) : (
           <EmptyState
             icon={DollarSign}

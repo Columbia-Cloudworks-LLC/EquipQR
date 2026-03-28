@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Settings2, RotateCcw, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedDashboardAccess, useTeamBasedDashboardStats } from '@/features/teams/hooks/useTeamBasedDashboard';
+import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import { useDashboardLayout } from '@/features/dashboard/hooks/useDashboardLayout';
 import { DashboardGrid } from '@/features/dashboard/components/DashboardGrid';
 import { WidgetCatalog } from '@/features/dashboard/components/WidgetCatalog';
@@ -36,6 +37,7 @@ const Dashboard = () => {
     resetToDefault,
   } = useDashboardLayout(organizationId);
   const { data: dashboardStats, dataUpdatedAt, refetch: refetchStats } = useTeamBasedDashboardStats(organizationId);
+  const { data: pmStatuses } = useOrgEquipmentPMStatuses(organizationId);
 
   const lastUpdatedText = useMemo(() => {
     if (!dataUpdatedAt) return null;
@@ -47,13 +49,21 @@ const Dashboard = () => {
 
   const alertInfo = useMemo(() => {
     const overdueCount = dashboardStats?.overdueWorkOrders ?? 0;
-    const needsAttentionCount = (dashboardStats?.maintenanceEquipment ?? 0) + (dashboardStats?.inactiveEquipment ?? 0);
+    const pmOverdueCount = pmStatuses?.filter((s) => s.is_overdue).length ?? 0;
+    const needsAttentionCount =
+      (dashboardStats?.maintenanceEquipment ?? 0) +
+      (dashboardStats?.inactiveEquipment ?? 0) +
+      pmOverdueCount;
     if (overdueCount === 0 && needsAttentionCount === 0) return null;
     const parts: string[] = [];
     if (overdueCount > 0) parts.push(`${overdueCount} overdue work order${overdueCount === 1 ? '' : 's'}`);
-    if (needsAttentionCount > 0) parts.push(`${needsAttentionCount} equipment need${needsAttentionCount === 1 ? 's' : ''} attention`);
+    if (needsAttentionCount > 0) {
+      parts.push(
+        `${needsAttentionCount} equipment need${needsAttentionCount === 1 ? 's' : ''} attention (maintenance, inactive, or PM overdue)`
+      );
+    }
     return parts.join(' · ');
-  }, [dashboardStats]);
+  }, [dashboardStats, pmStatuses]);
 
   const [managerOpen, setManagerOpen] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);

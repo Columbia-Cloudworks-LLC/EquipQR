@@ -292,7 +292,7 @@ const PartLookupAlternatesFeature = () => {
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
-                  <Link to="/landing#features">Explore More Features</Link>
+                  <Link to="/#features">Explore More Features</Link>
                 </Button>
               </div>
             </div>

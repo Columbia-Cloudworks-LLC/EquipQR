@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Marketing and app mobile nav sheet accessibility** — Radix `Dialog` (via shadcn `Sheet`) warned about missing title/description. `LandingHeader` mobile menu now includes `SheetTitle` / `SheetDescription` (screen-reader-only). The signed-in mobile sidebar sheet in `sidebar.tsx` adds matching sr-only `SheetTitle` / `SheetDescription`.
+
+- **Dashboard Recharts console noise** — Addressed `ResponsiveContainer` width/height warnings: `StatsCard` sparkline uses an explicit pixel height and `min-w` on the wrapper; `CostTrendWidget` wraps the chart in a fixed-height container with `height="100%"` on the container; `PMComplianceWidget` and `EquipmentByStatusWidget` use fixed-size `PieChart` with numeric `cx`/`cy` instead of `ResponsiveContainer` + percentage centers.
+
+### Changed
+
+- **Canonical public marketing URL** — `/landing` now redirects to `/` while preserving `search` and `hash` (campaign and deep links stay valid). `SmartLanding` owns home-page `PageSEO` for `/` with the richer title/description previously used on `/landing`. Logo, header anchors, and feature-page links target `/` and `/#features` instead of `/landing`.
+
+- **Landing first-load splitting** — `Landing` is lazy-loaded inside `SmartLanding` with a `Suspense` fallback. Below-the-fold sections on `Landing.tsx` (`WhyDifferent` through `CTA`) load via `React.lazy` inside a single `Suspense` boundary. Hero carousel images use `decoding="async"`, `fetchPriority` (high for first slide, low for others), and responsive `sizes`.
+
+- **Auth sign-in feedback** — `SignInForm` validates trimmed email and required password with inline errors and `aria-*`; API failures show under the password field. `DevQuickLogin` accepts `onAuthFailure` so failures also surface the main card error path. `Auth` uses `useAppToast` for a destructive toast on `handleError` (including Google sign-in errors).
+
+- **Marketing CTA hierarchy** — Hero primary CTA copy aligned to **Get Started Free**. `CTASection` keeps one primary button; demo is a secondary text link. `PricingSection` puts **Get Started Free** first and **Schedule a Demo** second; contact line shortened to **Email us**.
+
+- **Landing mobile menu structure** — Sheet content groups **On this page** vs **Account**, with clearer spacing, focus rings, active section styling, and **Get Started Free** on the account button.
+
+- **Dashboard stat cards and alert copy** — `DashboardStatsGrid` uses clearer sublabels for overdue work and renames the attention card to **Needs attention** with copy that mentions maintenance, inactive, and PM interval overdue. `Dashboard` alert banner counts equipment attention using the same PM-overdue inclusion as `StatsGridWidget` via `useOrgEquipmentPMStatuses`.
+
+### Added
+
+- **Integration test for `/landing` redirect** — `AppRoutes.test.tsx` asserts navigation from `/landing#pricing` to canonical `/#pricing` (mocked `Navigate` supports object `to`).
+
 ## [2.5.2] - 2026-03-27
 
 ### Added

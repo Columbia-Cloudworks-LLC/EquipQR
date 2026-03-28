@@ -18,19 +18,25 @@ const CTASection = () => {
             Built for teams of any size.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+          <div className="flex flex-col items-center gap-4 mb-6">
             <Button asChild size="lg" className="text-lg px-8 py-6">
               <Link to="/auth?tab=signup">
                 Get Started Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6 border-foreground/30 text-foreground hover:bg-foreground/10">
-              <a href={DEMO_CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-                <Calendar className="mr-2 h-5 w-5" aria-hidden />
-                Schedule a Demo
+            <p className="text-sm text-muted-foreground max-w-md">
+              Prefer a walkthrough first?{' '}
+              <a
+                href={DEMO_CALENDLY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+              >
+                <Calendar className="h-3.5 w-3.5" aria-hidden />
+                Schedule a demo
               </a>
-            </Button>
+            </p>
           </div>
 
           <p className="text-sm text-muted-foreground">

@@ -17,6 +17,16 @@ vi.mock('@/hooks/usePendingRedirectHandler', () => ({
   usePendingRedirectHandler: vi.fn()
 }));
 
+vi.mock('@/hooks/useAppToast', () => ({
+  useAppToast: () => ({
+    error: vi.fn(),
+    success: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    toast: vi.fn(),
+  }),
+}));
+
 vi.mock('@/hooks/useMFA', () => ({
   useMFA: () => ({
     factors: [],

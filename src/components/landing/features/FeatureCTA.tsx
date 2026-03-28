@@ -17,7 +17,7 @@ export const FeatureCTA = ({
   primaryCtaText,
   primaryCtaLink = '/auth?tab=signup',
   secondaryCtaText = 'Explore More Features',
-  secondaryCtaLink = '/landing#features',
+  secondaryCtaLink = '/#features',
 }: FeatureCTAProps) => {
   return (
     <section className="py-24 bg-muted/30">

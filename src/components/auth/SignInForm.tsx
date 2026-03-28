@@ -23,7 +23,11 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
     email: '',
     password: ''
   });
-  const [errors, setErrors] = useState<{ email?: string } | null>(null);
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    auth?: string;
+  } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,18 +38,36 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
     setIsLoading(true);
 
     try {
-      // Inline validation
-      const emailValid = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(formData.email);
-      if (!emailValid) {
-        setErrors({ email: 'Enter a valid email address' });
-        return;
-      } else {
-        setErrors(null);
+      const emailTrimmed = formData.email.trim();
+      const passwordTrimmed = formData.password.trim();
+      const emailValid = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(emailTrimmed);
+      const nextErrors: { email?: string; password?: string; auth?: string } = {};
+
+      if (!emailTrimmed) {
+        nextErrors.email = 'Email is required';
+      } else if (!emailValid) {
+        nextErrors.email = 'Enter a valid email address';
       }
-      const { error } = await signIn(formData.email, formData.password);
+
+      if (!passwordTrimmed) {
+        nextErrors.password = 'Password is required';
+      }
+
+      if (Object.keys(nextErrors).length > 0) {
+        setErrors(nextErrors);
+        return;
+      }
+
+      setErrors(null);
+
+      const { error } = await signIn(emailTrimmed, formData.password);
       
       if (error) {
-        onError(error.message);
+        const msg =
+          error.message?.trim() ||
+          'Sign in failed. Check your email and password.';
+        setErrors({ auth: msg });
+        onError(msg);
         return;
       }
 
@@ -69,7 +91,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Dev-only quick login - tree-shaken out of production builds */}
-      <DevQuickLogin />
+      <DevQuickLogin onAuthFailure={onError} />
       <div className="space-y-2">
         <Label htmlFor="signin-email">Email</Label>
         <Input
@@ -80,7 +102,13 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
           autoCorrect="off"
           autoCapitalize="none"
           value={formData.email}
-          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+          onChange={(e) => {
+            setFormData((prev) => ({ ...prev, email: e.target.value }));
+            setErrors((prev) => {
+              if (!prev?.email && !prev?.auth) return prev;
+              return { ...prev, email: undefined, auth: undefined };
+            });
+          }}
           required
           aria-invalid={errors?.email ? 'true' : 'false'}
           aria-describedby={errors?.email ? 'signin-email-error' : undefined}
@@ -96,9 +124,41 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
           type="password"
           autoComplete="current-password"
           value={formData.password}
-          onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+          onChange={(e) => {
+            setFormData((prev) => ({ ...prev, password: e.target.value }));
+            setErrors((prev) => {
+              if (!prev?.password && !prev?.auth) return prev;
+              return { ...prev, password: undefined, auth: undefined };
+            });
+          }}
           required
+          aria-invalid={errors?.password || errors?.auth ? 'true' : 'false'}
+          aria-describedby={
+            errors?.password
+              ? 'signin-password-error'
+              : errors?.auth
+                ? 'signin-auth-error'
+                : undefined
+          }
         />
+        {errors?.password && (
+          <p
+            id="signin-password-error"
+            className="text-sm text-destructive"
+            aria-live="polite"
+          >
+            {errors.password}
+          </p>
+        )}
+        {errors?.auth && (
+          <p
+            id="signin-auth-error"
+            className="text-sm text-destructive"
+            aria-live="polite"
+          >
+            {errors.auth}
+          </p>
+        )}
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading && (

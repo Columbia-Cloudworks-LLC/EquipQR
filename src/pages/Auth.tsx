@@ -16,6 +16,7 @@ import SignUpForm from '@/components/auth/SignUpForm';
 import SignInForm from '@/components/auth/SignInForm';
 import MFAVerification from '@/components/auth/MFAVerification';
 import LegalFooter from '@/components/layout/LegalFooter';
+import { useAppToast } from '@/hooks/useAppToast';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const Auth = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingQRScan, setPendingQRScan] = useState(false);
   const [showMFAVerification, setShowMFAVerification] = useState(false);
+  const { error: showErrorToast } = useAppToast();
 
   // Check if user came here from a QR scan (read-only check, doesn't clear)
   useEffect(() => {
@@ -62,19 +64,6 @@ const Auth = () => {
     }
   }, [user, authLoading, navigate, needsVerification, showMFAVerification]);
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    const { error } = await signInWithGoogle();
-    
-    if (error) {
-      setError(error.message);
-    }
-    
-    setIsLoading(false);
-  };
-
   const handleSuccess = (message: string) => {
     setSuccess(message);
     setError(null);
@@ -83,6 +72,24 @@ const Auth = () => {
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
     setSuccess(null);
+    showErrorToast({
+      title: 'Something went wrong',
+      description: errorMessage,
+      duration: 6000,
+    });
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    const { error } = await signInWithGoogle();
+    
+    if (error) {
+      handleError(error.message);
+    }
+    
+    setIsLoading(false);
   };
 
   // Called by SignInForm when MFA is required after password auth

@@ -90,8 +90,8 @@ interface SparklineChartProps {
 const SparklineChart: React.FC<SparklineChartProps> = ({ data, color, gradientId }) => {
   const chartData = data.map((v) => ({ v }));
   return (
-    <div aria-hidden title="Recent 7-day trend" className="mt-2 h-10">
-      <ResponsiveContainer width="100%" height="100%">
+    <div aria-hidden title="Recent 7-day trend" className="mt-2 h-10 w-full min-w-[4rem]">
+      <ResponsiveContainer width="100%" height={40}>
         <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">

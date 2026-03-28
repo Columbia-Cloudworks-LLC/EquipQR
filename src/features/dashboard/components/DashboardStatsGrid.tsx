@@ -48,7 +48,7 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
         icon={<AlertTriangle className="h-4 w-4" />}
         label="Overdue Work"
         value={overdueCount}
-        sublabel="Past due work orders"
+        sublabel="Past due — open list to reprioritize"
         to={isLoading ? undefined : "/dashboard/work-orders?date=overdue"}
         ariaDescription="View overdue work orders"
         variant={overdueCount > 0 ? 'danger' : 'default'}
@@ -67,11 +67,11 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
 
       <StatsCard
         icon={<Wrench className="h-4 w-4" />}
-        label="Out of Service"
+        label="Needs attention"
         value={needsAttentionCount}
-        sublabel="In maintenance or inactive"
+        sublabel="Maintenance, inactive, or PM interval overdue"
         to={isLoading ? undefined : "/dashboard/equipment?status=out_of_service"}
-        ariaDescription="View out-of-service equipment"
+        ariaDescription="View equipment that needs attention"
         variant={needsAttentionCount > 0 ? 'warning' : 'default'}
         loading={isLoading}
       />

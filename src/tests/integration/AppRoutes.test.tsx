@@ -137,7 +137,18 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    Navigate: ({ to }: { to: string }) => <div data-testid="navigate-to">Navigating to {to}</div>,
+    Navigate: ({
+      to,
+    }: {
+      to: string | { pathname: string; hash?: string; search?: string };
+    }) => (
+      <div data-testid="navigate-to">
+        Navigating to{' '}
+        {typeof to === 'string'
+          ? to
+          : `${to.pathname}${to.search ?? ''}${to.hash ?? ''}`}
+      </div>
+    ),
     useParams: () => ({ equipmentId: 'test-equipment', workOrderId: 'test-work-order' }),
     BrowserRouter: ({ children }: { children: React.ReactNode }) => <div data-testid="browser-router">{children}</div>
   };
@@ -166,6 +177,11 @@ describe('App', () => {
   it('renders landing page for root path', async () => {
     renderApp(['/']);
     expect(await screen.findByTestId('landing-page')).toBeInTheDocument();
+  });
+
+  it('redirects legacy /landing to canonical / with hash preserved', () => {
+    renderApp(['/landing#pricing']);
+    expect(screen.getByTestId('navigate-to')).toHaveTextContent('Navigating to /#pricing');
   });
 
   it('renders auth page for /auth path', async () => {

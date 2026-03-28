@@ -1,5 +1,5 @@
 
-import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { Suspense, lazy, type ReactNode } from 'react';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { TeamProvider } from '@/contexts/TeamContext';
@@ -20,7 +20,6 @@ import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';
 import LegalFooter from '@/components/layout/LegalFooter';
 const DebugAuth = import.meta.env.DEV ? lazy(() => import('@/pages/DebugAuth')) : null;
-import Landing from '@/pages/Landing';
 const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
 const PMTemplatesFeature = lazy(() => import('@/pages/features/PMTemplates'));
 const InventoryManagementFeature = lazy(() => import('@/pages/features/InventoryManagement'));
@@ -99,6 +98,12 @@ const RedirectToWorkOrder = () => {
   return <Navigate to={`/dashboard/work-orders/${workOrderId}`} replace />;
 };
 
+/** Legacy `/landing` URLs normalize to canonical `/` (hash and query preserved). */
+const LandingCanonicalRedirect = () => {
+  const { hash, search } = useLocation();
+  return <Navigate to={{ pathname: '/', search, hash }} replace />;
+};
+
 function App() {
   return (
     <AppProviders>
@@ -112,8 +117,7 @@ function App() {
       <Routes>
         {/* Public routes - no suspense needed, loaded eagerly */}
         <Route path="/" element={<SmartLanding />} />
-        {/* Direct landing page route - bypasses SmartLanding redirect for authenticated users */}
-        <Route path="/landing" element={<Suspense fallback={<div>Loading...</div>}><Landing /></Suspense>} />
+        <Route path="/landing" element={<LandingCanonicalRedirect />} />
         <Route path="/auth" element={<Auth />} />
         {import.meta.env.DEV && DebugAuth && (
           <Route path="/debug-auth" element={<Suspense fallback={<div>Loading...</div>}><DebugAuth /></Suspense>} />

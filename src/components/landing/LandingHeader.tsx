@@ -8,6 +8,9 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
 
@@ -29,31 +32,30 @@ const SECTION_IDS: string[] = ['features', 'about', 'customers', 'pricing'];
 const LandingHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const isOnLandingPage = location.pathname === '/' || location.pathname === '/landing';
+  const isOnMarketingHome = location.pathname === '/';
 
   const handleNavClick = (e: MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('#')) {
       e.preventDefault();
-      if (isOnLandingPage) {
-        // If on landing page, smooth scroll to section
+      if (isOnMarketingHome) {
         const element = document.querySelector(href);
         element?.scrollIntoView({ behavior: 'smooth' });
       } else {
-        // If on other pages, navigate to /landing with anchor (bypasses SmartLanding redirect)
-        navigate(`/landing${href}`);
+        const id = href.slice(1);
+        navigate({ pathname: '/', hash: id });
       }
     }
   };
 
-  const activeSection = useActiveSection(isOnLandingPage ? SECTION_IDS : []);
-  const activeSectionToUse = isOnLandingPage ? activeSection : null;
+  const activeSection = useActiveSection(isOnMarketingHome ? SECTION_IDS : []);
+  const activeSectionToUse = isOnMarketingHome ? activeSection : null;
   return (
     <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/landing" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2">
               <Logo size="sm" />
               <span className="font-bold text-xl text-foreground">EquipQR™</span>
             </Link>
@@ -65,7 +67,7 @@ const LandingHeader = () => {
               const isHash = item.href.startsWith('#');
               // Active logic only on landing page
               let isActive = false;
-              if (isOnLandingPage && isHash) {
+              if (isOnMarketingHome && isHash) {
                 isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
               }
               
@@ -105,44 +107,65 @@ const LandingHeader = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                <div className="flex flex-col space-y-4 mt-8">
-                  {navigation.map((item) => {
-                    const isHash = item.href.startsWith('#');
-                    let isActive = false;
-                    if (isOnLandingPage && isHash) {
-                      isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
-                    }
-                    
-                    // For hash links, prepend /landing when not on landing page
-                    const href = isHash && !isOnLandingPage ? `/landing${item.href}` : item.href;
-                    
-                    return (
-                      <SheetClose asChild key={item.name}>
-                        <a
-                          href={href}
-                          className={[
-                            'text-lg font-medium transition-colors',
-                            'text-muted-foreground hover:text-foreground',
-                            isActive ? 'text-foreground font-semibold' : ''
-                          ].join(' ')}
-                          onClick={(e) => handleNavClick(e, item.href)}
-                        >
-                          {item.name}
-                        </a>
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Site navigation</SheetTitle>
+                  <SheetDescription>
+                    Jump to a section, sign in, or create an account.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="flex flex-col gap-8 mt-6">
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                      On this page
+                    </p>
+                    <nav className="flex flex-col gap-1" aria-label="Marketing page sections">
+                      {navigation.map((item) => {
+                        const isHash = item.href.startsWith('#');
+                        let isActive = false;
+                        if (isOnMarketingHome && isHash) {
+                          isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
+                        }
+
+                        const href =
+                          isHash && !isOnMarketingHome ? `/${item.href}` : item.href;
+
+                        return (
+                          <SheetClose asChild key={item.name}>
+                            <a
+                              href={href}
+                              className={[
+                                'rounded-lg px-3 py-2.5 text-base font-medium transition-colors',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                                isActive
+                                  ? 'bg-primary/10 text-foreground ring-1 ring-primary/20'
+                                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                              ].join(' ')}
+                              aria-current={isActive ? 'location' : undefined}
+                              onClick={(e) => handleNavClick(e, item.href)}
+                            >
+                              {item.name}
+                            </a>
+                          </SheetClose>
+                        );
+                      })}
+                    </nav>
+                  </div>
+                  <div className="space-y-3 border-t border-border pt-6">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                      Account
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <SheetClose asChild>
+                        <Button asChild variant="outline" className="w-full justify-start h-11">
+                          <Link to="/auth?tab=signin">Sign In</Link>
+                        </Button>
                       </SheetClose>
-                    );
-                  })}
-                  <div className="pt-4 border-t border-border space-y-2">
-                    <SheetClose asChild>
-                      <Button asChild variant="ghost" className="w-full justify-start">
-                        <Link to="/auth?tab=signin">Sign In</Link>
-                      </Button>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Button asChild className="w-full">
-                        <Link to="/auth?tab=signup">Get Started</Link>
-                      </Button>
-                    </SheetClose>
+                      <SheetClose asChild>
+                        <Button asChild className="w-full h-11">
+                          <Link to="/auth?tab=signup">Get Started Free</Link>
+                        </Button>
+                      </SheetClose>
+                    </div>
                   </div>
                 </div>
               </SheetContent>
