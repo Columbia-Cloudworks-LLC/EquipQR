@@ -58,6 +58,7 @@ vi.mock('@/components/landing/SmartLanding', () => ({ default: () => <div data-t
 vi.mock('@/pages/Auth', () => ({ default: () => <div data-testid="auth-page">Auth</div> }));
 vi.mock('@/pages/TermsOfService', () => ({ default: () => <div data-testid="terms-page">Terms</div> }));
 vi.mock('@/pages/PrivacyPolicy', () => ({ default: () => <div data-testid="privacy-page">Privacy</div> }));
+vi.mock('@/pages/PrivacyRequest', () => ({ default: () => <div data-testid="privacy-request-page">Privacy Request</div> }));
 vi.mock('@/components/layout/AppSidebar', () => ({ default: () => <div data-testid="app-sidebar">Sidebar</div> }));
 
 // Mock contexts
@@ -202,6 +203,11 @@ describe('App', () => {
   it('renders privacy page for /privacy-policy path', async () => {
     renderApp(['/privacy-policy']);
     expect(await screen.findByTestId('privacy-page')).toBeInTheDocument();
+  });
+
+  it('renders privacy request page for /privacy-request path', async () => {
+    renderApp(['/privacy-request']);
+    expect(await screen.findByTestId('privacy-request-page')).toBeInTheDocument();
   });
 
   it('contains app providers', () => {

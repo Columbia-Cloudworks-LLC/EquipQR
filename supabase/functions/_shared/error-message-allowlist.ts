@@ -139,6 +139,35 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
 
   // QuickBooks integration errors
   /^QuickBooks returned a validation error for the customer query\. Please adjust your search and try again\.$/,
+
+  // Privacy request errors
+  /^CAPTCHA verification is required$/,
+  /^CAPTCHA verification failed$/,
+  /^A valid email address is required$/,
+  /^Name is required$/,
+  /^Invalid request type$/,
+  /^Failed to submit privacy request$/,
+  /^Rate limit exceeded\. Maximum \d+ privacy requests per \d+ hours$/,
+  /^A similar request was already submitted recently\. Please wait before submitting again$/,
+
+  // DSR management errors
+  /^Missing required field: dsrRequestId$/,
+  /^Invalid action$/,
+  /^Invalid verification method$/,
+  /^Request is not in a verifiable state$/,
+  /^Request is already closed$/,
+  /^Denial reason is required$/,
+  /^Extension reason is required$/,
+  /^Request must be verified before processing$/,
+  /^Request must be in processing state$/,
+  /^Fulfillment step summary is required$/,
+  /^Request must be in processing state to complete$/,
+  /^Note text is required$/,
+  /^Failed to (verify|deny|extend|start processing|complete|manage privacy) request$/,
+  /^Failed to (record fulfillment step|extend deadline|add note)$/,
+  /^Failed to execute deletion fulfillment$/,
+  /^Fulfillment engine only handles deletion requests$/,
+  /^Fulfillment succeeded but completion update failed$/,
 ];
 
 /**

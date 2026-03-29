@@ -33,6 +33,8 @@ import { useCreateScan } from '@/features/equipment/hooks/useEquipment';
 import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
 import { useTeams } from '@/features/teams/hooks/useTeamManagement';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const EquipmentDetails = () => {
@@ -52,6 +54,22 @@ const EquipmentDetails = () => {
   const [scanLogged, setScanLogged] = useState(false);
 
   const { user } = useAuth();
+
+  const { data: userPrivacyPrefs } = useQuery({
+    queryKey: ['profile-privacy', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('limit_sensitive_pi')
+        .eq('id', user.id)
+        .single();
+      return data as { limit_sensitive_pi?: boolean } | null;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: organizationMembers } = useOrganizationMembers(currentOrganization?.id || '');
   const { data: teams = [] } = useTeams(currentOrganization?.id);
   const { isLoaded: isMapsLoaded } = useGoogleMapsLoader();
@@ -69,11 +87,10 @@ const EquipmentDetails = () => {
     setScanLogged(true);
     
     try {
-      // Check if scan location collection is enabled for the organization
       const scanLocationEnabled = currentOrganization.scanLocationCollectionEnabled;
-      
-      // If scan location collection is disabled, log scan without location
-      if (scanLocationEnabled === false) {
+      const userLimitedSensitivePi = userPrivacyPrefs?.limit_sensitive_pi === true;
+
+      if (scanLocationEnabled === false || userLimitedSensitivePi) {
         try {
           await createScanMutation.mutateAsync({
             equipmentId,
@@ -141,7 +158,7 @@ const EquipmentDetails = () => {
       console.error('Unexpected error during scan logging:', error);
       toast.error('Failed to log scan');
     }
-  }, [equipmentId, currentOrganization, scanLogged, createScanMutation]);
+  }, [equipmentId, currentOrganization, scanLogged, createScanMutation, userPrivacyPrefs]);
 
   // Detect if this page was accessed via QR code scan
   useEffect(() => {

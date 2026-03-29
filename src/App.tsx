@@ -60,6 +60,7 @@ const Notifications = lazy(() => import('@/pages/Notifications'));
 const InvitationAccept = lazy(() => import('@/pages/InvitationAccept'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
+const PrivacyRequest = lazy(() => import('@/pages/PrivacyRequest'));
 const Security = lazy(() => import('@/pages/Security'));
 const WorkspaceOnboarding = lazy(() => import('@/pages/WorkspaceOnboarding'));
 // const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
@@ -146,6 +147,7 @@ function App() {
         <Route path="/qr/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><LegacyEquipmentQRRedirect /></Suspense>} />
         <Route path="/terms-of-service" element={<Suspense fallback={<div>Loading...</div>}><TermsOfService /></Suspense>} />
         <Route path="/privacy-policy" element={<Suspense fallback={<div>Loading...</div>}><PrivacyPolicy /></Suspense>} />
+        <Route path="/privacy-request" element={<Suspense fallback={<div>Loading...</div>}><PrivacyRequest /></Suspense>} />
         <Route path="/security" element={<Suspense fallback={<div>Loading...</div>}><Security /></Suspense>} />
 
           {/* Redirect routes for backward compatibility */}

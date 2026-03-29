@@ -392,6 +392,116 @@ export type Database = {
           },
         ]
       }
+      dsr_request_events: {
+        Row: {
+          id: string
+          dsr_request_id: string
+          event_type: string
+          actor_id: string | null
+          actor_email: string | null
+          summary: string
+          details: Record<string, unknown>
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          dsr_request_id: string
+          event_type: string
+          actor_id?: string | null
+          actor_email?: string | null
+          summary: string
+          details?: Record<string, unknown>
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          dsr_request_id?: string
+          event_type?: string
+          actor_id?: string | null
+          actor_email?: string | null
+          summary?: string
+          details?: Record<string, unknown>
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dsr_request_events_dsr_request_id_fkey"
+            columns: ["dsr_request_id"]
+            isOneToOne: false
+            referencedRelation: "dsr_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dsr_requests: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          denial_reason: string | null
+          details: string | null
+          due_at: string
+          extended_due_at: string | null
+          extension_reason: string | null
+          id: string
+          notes: string | null
+          received_at: string
+          request_type: string
+          requester_email: string
+          requester_name: string
+          status: string
+          updated_at: string
+          user_id: string | null
+          verification_method: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          denial_reason?: string | null
+          details?: string | null
+          due_at?: string
+          extended_due_at?: string | null
+          extension_reason?: string | null
+          id?: string
+          notes?: string | null
+          received_at?: string
+          request_type: string
+          requester_email: string
+          requester_name: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          verification_method?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          denial_reason?: string | null
+          details?: string | null
+          due_at?: string
+          extended_due_at?: string | null
+          extension_reason?: string | null
+          id?: string
+          notes?: string | null
+          received_at?: string
+          request_type?: string
+          requester_email?: string
+          requester_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          verification_method?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       equipment: {
         Row: {
           assigned_location_city: string | null
@@ -2632,6 +2742,7 @@ export type Database = {
           email: string | null
           email_private: boolean | null
           id: string
+          limit_sensitive_pi: boolean
           name: string
           updated_at: string
         }
@@ -2641,6 +2752,7 @@ export type Database = {
           email?: string | null
           email_private?: boolean | null
           id: string
+          limit_sensitive_pi?: boolean
           name: string
           updated_at?: string
         }
@@ -2650,6 +2762,7 @@ export type Database = {
           email?: string | null
           email_private?: boolean | null
           id?: string
+          limit_sensitive_pi?: boolean
           name?: string
           updated_at?: string
         }
@@ -4029,6 +4142,14 @@ export type Database = {
         }
         Returns: number
       }
+      anonymize_audit_changes: {
+        Args: { p_changes: Json; p_email: string }
+        Returns: Json
+      }
+      anonymize_audit_log_for_user: {
+        Args: { p_email: string }
+        Returns: number
+      }
       apply_pending_admin_grants_for_user: {
         Args: { p_user_id: string }
         Returns: number
@@ -4143,12 +4264,16 @@ export type Database = {
         Args: { required_role: string; team_uuid: string; user_uuid: string }
         Returns: boolean
       }
+      cleanup_expired_gws_oauth_sessions: { Args: never; Returns: number }
+      cleanup_expired_invitations: { Args: never; Returns: number }
       cleanup_expired_quickbooks_oauth_sessions: {
         Args: never
         Returns: number
       }
+      cleanup_old_departure_queue: { Args: never; Returns: number }
       cleanup_old_export_logs: { Args: never; Returns: number }
       cleanup_old_notifications: { Args: never; Returns: undefined }
+      cleanup_stale_gws_directory_users: { Args: never; Returns: number }
       clear_rls_context: { Args: never; Returns: undefined }
       count_equipment_matching_pm_rules: {
         Args: { p_organization_id: string; p_rules: Json }

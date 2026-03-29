@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CCPA/CPRA privacy policy (Section 10A)** — California-specific disclosures: categories of personal and sensitive information, sources, business purposes, retention summary, no-sale/no-share, consumer rights, submission via **`/privacy-request`** and **`privacy@equipqr.app`**, verification, authorized agents, and response timing. Policy **Last updated:** March 29, 2026.
+
+- **DSR intake** — Public **`/privacy-request`** form; **`submit-privacy-request`** Edge Function; **`dsr_requests`** table with RLS (`20260329000000_add_dsr_requests_table.sql`). Footers (**Do Not Sell or Share**), Settings **Privacy Rights** card, and route coverage in app integration tests.
+
+- **Limit use of sensitive personal information** — **`profiles.limit_sensitive_pi`** with Settings UI; equipment QR scan flow skips geolocation when limited; database trigger **`enforce_scan_location_privacy`** aligns with the flag.
+
+- **Retention and anonymization** — SQL helpers and optional **pg_cron** jobs when the extension exists: notification/export log cleanup, expired invitations, stale Google Workspace directory users, expired GWS OAuth sessions, old departure queue rows, and **`anonymize_audit_log_for_user`** for audit entries. pgTAP: **`supabase/tests/06_dsr_requests_and_privacy.sql`**.
+
+- **DSR abuse controls** — hCaptcha challenge on the privacy request form (when `HCAPTCHA_SECRET_KEY` / `VITE_HCAPTCHA_SITEKEY` are configured); per-email rate limiting (3 requests per 24 hours) and duplicate suppression (same email + type within 1 hour) in **`submit-privacy-request`**. Explicit **`[functions.submit-privacy-request]`** and **`[functions.verify-hcaptcha]`** entries in **`config.toml`**.
+
+- **DSR evidence model** — `dsr_requests` extended with `verification_method`, `verified_by`, `completed_by`, `denial_reason`, `extension_reason`, `extended_due_at`. New **append-only** `dsr_request_events` table with trigger-enforced immutability (update/delete blocked). Auto-logged `intake_received` on insert and status-change events on update. Migration: **`20260329000004_dsr_evidence_model.sql`**.
+
+- **DSR admin workflow** — **`manage-dsr-request`** Edge Function: verify identity, deny with lawful basis, invoke deadline extension (max 90 days per CPRA), record fulfillment steps, complete requests, add notes. Requires authenticated admin/owner.
+
+- **DSR fulfillment engine** — **`fulfill_dsr_deletion(uuid, uuid)`** SQL function orchestrates deletion/anonymization across 7 product data domains (audit log, scans, export logs, notifications, push subscriptions, invitations, profiles) with per-step execution receipts in the event ledger. Migration: **`20260329000005_dsr_fulfillment_engine.sql`**.
+
+- **Opt-out request type** — Added **Do Not Sell or Share My Personal Information** (`opt_out`) to the privacy request form, aligning the UI with the API/DB which already accepted it.
+
+- **DSR compliance runbook** — **`docs/ops/dsr-compliance-runbook.md`**: intake triage, identity verification (authenticated match, email challenge, authorized agent, manual review), processing procedures per request type, extension/denial rules, SLA monitoring queries, evidence packet generation, subprocessor obligations, and evidence retention policy.
+
+- **Integration test for `/landing` redirect** — `AppRoutes.test.tsx` asserts navigation from `/landing#pricing` to canonical `/#pricing` (mocked `Navigate` supports object `to`).
+
+### Changed
+
+- **Privacy policy SLA alignment** — Section 9 general response timing and Section 14 contact response timing updated from **30 days** to **45 calendar days** to match the California-specific Section 10A standard and avoid conflicting deadlines.
+
 ### Fixed
 
 - **Marketing and app mobile nav sheet accessibility** — Radix `Dialog` (via shadcn `Sheet`) warned about missing title/description. `LandingHeader` mobile menu now includes `SheetTitle` / `SheetDescription` (screen-reader-only). The signed-in mobile sidebar sheet in `sidebar.tsx` adds matching sr-only `SheetTitle` / `SheetDescription`.
@@ -28,10 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Landing mobile menu structure** — Sheet content groups **On this page** vs **Account**, with clearer spacing, focus rings, active section styling, and **Get Started Free** on the account button.
 
 - **Dashboard stat cards and alert copy** — `DashboardStatsGrid` uses clearer sublabels for overdue work and renames the attention card to **Needs attention** with copy that mentions maintenance, inactive, and PM interval overdue. `Dashboard` alert banner counts equipment attention using the same PM-overdue inclusion as `StatsGridWidget` via `useOrgEquipmentPMStatuses`.
-
-### Added
-
-- **Integration test for `/landing` redirect** — `AppRoutes.test.tsx` asserts navigation from `/landing#pricing` to canonical `/#pricing` (mocked `Navigate` supports object `to`).
 
 ## [2.5.2] - 2026-03-27
 
