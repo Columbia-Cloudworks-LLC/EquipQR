@@ -3,7 +3,7 @@
 - After substantive feature or compliance work, the user often asks to update `CHANGELOG.md` (commonly under `[Unreleased]` unless they name a version).
 - For privacy and compliance flows, ship obvious in-UI success and failure feedback; the user validates with the browser console and network responses, not only copy.
 - For planning work, use the superpowers `writing-plans` skill instead of the deprecated Cursor `/write-plan` command.
-- Gstack-related skills can exist in both user-global and repo-local installs; overlapping slash commands make the invoked copy ambiguous—note which scope you mean when recommending one.
+- AI infrastructure baseline is Cursor plugin-first; keep only the custom `reflect` command in this repository and avoid reintroducing gstack-driven workflows.
 
 ## Learned Workspace Facts
 

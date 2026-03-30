@@ -1,4 +1,4 @@
-# EquipQR Development Lifecycle (Cursor + gstack)
+# EquipQR Development Lifecycle (Cursor Plugin-First)
 
 ## Purpose
 
@@ -39,10 +39,7 @@ Plan in Cursor -> Implement on preview -> Push preview -> Validate preview env
 ### 1) Plan the change in Cursor
 
 - Use Cursor Ask/Plan mode to define scope and risks.
-- Use gstack plan-review skills when useful:
-  - `plan-eng-review` for architecture, test coverage, and edge cases.
-  - `plan-design-review` for UI/UX changes.
-  - `autoplan` when you want a full auto-review pipeline.
+- Use plugin-provided capabilities and repository docs for architecture, test coverage, and UI/UX reviews.
 - Keep plan docs under `docs/plans/` when the change is non-trivial.
 
 ### 2) Implement on `preview`
@@ -85,19 +82,20 @@ This environment is treated as a near-production proving ground.
 - Manually promote the validated deployment to production.
 - Treat this as the last line of defense against accidental regressions.
 
-## Cursor + gstack Usage Model
+## Cursor Usage Model
 
-Cursor modes and gstack are complementary:
+Cursor modes and plugins are the standard workflow in EquipQR:
 
 - Cursor modes (`Ask`, `Plan`, `Agent`) control interaction style.
-- gstack skills add structured, repeatable quality gates.
+- Cursor plugins provide external integrations and documentation assistance.
+- Keep custom command usage minimal (`reflect` only).
 
 Practical sequence used in EquipQR:
 
-1. Plan (`Ask`/`Plan` mode + optional plan reviews).
+1. Plan (`Ask`/`Plan` mode).
 2. Build (`Agent` mode).
-3. Pre-ship checks (`review`, optional `qa`/`qa-only`).
-4. Release ops (`ship` if needed for automation, then PR merge flow).
+3. Pre-ship checks (lint, typecheck, tests, targeted QA).
+4. Release ops (PR from `preview` to `main`, then merge flow).
 
 ## Definition of Release-Ready
 

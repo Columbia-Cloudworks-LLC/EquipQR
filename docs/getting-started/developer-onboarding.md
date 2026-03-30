@@ -197,7 +197,7 @@ EquipQR currently uses a solo-developer, preview-first flow:
    - Resolve conversations and verify release readiness.
    - Merge to `main`, then manually promote to production.
 
-For the complete planning-to-release lifecycle (including Cursor + gstack usage), see
+For the complete planning-to-release lifecycle (Cursor plugin-first workflow), see
 [Development Lifecycle](./development-lifecycle.md).
 
 ## Project Structure Deep Dive

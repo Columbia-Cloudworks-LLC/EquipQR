@@ -260,7 +260,7 @@ npm run build
 
 #### Git worktrees and Cursor
 
-A [git worktree](https://git-scm.com/docs/git-worktree) is a second checkout of the same repository. Cursor may create worktrees under a path like `%USERPROFILE%\.cursor\worktrees\...`. Those folders get **tracked** files only: ignored secrets (`.env`, `.env.local`, `supabase/functions/.env`) and `node_modules` are **not** copied. Cursor subagents also often cannot run the 1Password CLI.
+A [git worktree](https://git-scm.com/docs/git-worktree) is a second checkout of the same repository. Cursor may create worktrees under a path like `%USERPROFILE%\.cursor\worktrees\...`. Those folders get **tracked** files only: ignored secrets (`.env`, `.env.local`, `supabase/functions/.env`) and `node_modules` are **not** copied. Worktrees also often do not have your 1Password-authenticated environment available by default.
 
 **Workflow:** Keep one canonical clone (for example `C:\Users\viral\EquipQR`) where you run `.\dev-start.bat` so env files exist on disk. In any other worktree, bootstrap once:
 

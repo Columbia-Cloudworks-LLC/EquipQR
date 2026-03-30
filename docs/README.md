@@ -9,7 +9,7 @@ Welcome to the comprehensive documentation for EquipQR™, a modern fleet equipm
 Start here for new developers:
 
 - **[Developer Onboarding](./getting-started/developer-onboarding.md)** - Quick start guide (5-minute setup)
-- **[Development Lifecycle](./getting-started/development-lifecycle.md)** - Cursor + gstack + preview-first release workflow
+- **[Development Lifecycle](./getting-started/development-lifecycle.md)** - Cursor plugin-first + preview-first release workflow
 - **[Troubleshooting](./getting-started/troubleshooting.md)** - Comprehensive troubleshooting guide
 
 ### 🔧 Technical Documentation
