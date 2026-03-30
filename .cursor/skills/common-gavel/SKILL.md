@@ -1,15 +1,19 @@
 ---
 name: common-gavel
-description: Audits a codebase for incomplete, abandoned, or superfluous implementation and documentation drift, then runs an intent-confirmation interview and produces a structured cleanup plan with actionable checklist items. Use when the user asks for tech-debt review, architecture/design cleanup, stale docs detection, abandoned code audit, or invokes /common-gavel.
+description: Use when auditing a repository or scoped directory for dead code, abandoned work, stale TODOs, unused imports, or documentation drift that may require confirmation before cleanup and refinement.
 ---
 
 # Common Gavel
 
+## Symbolism
+
+The common gavel and chisel strike away superfluities and leave the stone fit for the builder's use.
+
 ## Purpose
 
-Run an idempotent, developer-in-the-loop refinement pass on a scoped codebase.
+Run an idempotent tech-debt purge and logic-refinement pass on a scoped codebase.
 
-This skill does **not** reduce scope arbitrarily and does **not** make destructive decisions without user confirmation. It identifies likely superfluities (abandoned, incomplete, inconsistent, stale) and turns them into a validated execution plan.
+This skill finds likely superfluities, confirms ambiguous intent with the user, removes only what is justified, updates or prunes stale docs, and then immediately polishes the surviving code in touched files without waiting for a second request.
 
 ## Invocation
 
@@ -21,10 +25,11 @@ If no scope is supplied, use the repository root.
 ## Operating Rules
 
 1. Always keep the developer in the loop for ambiguous intent.
-2. Never delete/refactor code based on guesswork.
-3. Always verify documentation freshness on every run.
+2. Never delete or prune code based on guesswork.
+3. Always verify markdown documentation freshness on every run.
 4. Prefer evidence from references, usage, tests, and current architecture patterns.
-5. If no actionable findings exist, explicitly say so.
+5. After confirmed deletions or doc pruning, immediately refactor the touched files for clarity, type safety, and reduced duplication.
+6. If no actionable issues are confirmed, output exactly `The stone is square.`
 
 ## Workflow
 
@@ -36,8 +41,9 @@ Common Gavel Progress
 - [ ] 2) Scan for superfluities and drift
 - [ ] 3) Build evidence for each finding
 - [ ] 4) Interview user on ambiguous intent
-- [ ] 5) Produce structured action blueprint
-- [ ] 6) Validate doc coverage and report result
+- [ ] 5) Strike confirmed dead code and stale docs
+- [ ] 6) Chisel touched files automatically
+- [ ] 7) Validate references, docs, and diagnostics
 ```
 
 ### 1) Confirm scope and constraints
@@ -53,6 +59,7 @@ Capture:
 Identify and group findings by type:
 
 - **Abandoned logic**: likely dead code, unreachable branches, orphan modules, placeholder stubs.
+- **Superfluous implementation**: unused imports, abandoned variables, commented-out code, stale flags.
 - **Incomplete work**: TODO/FIXME/HACK/XXX, temporary guards, unfinished fallbacks.
 - **Architectural drift**: local patterns that conflict with established project conventions.
 - **Documentation drift**: docs that do not match current behavior, APIs, env vars, scripts, or workflows.
@@ -80,9 +87,38 @@ Before proposing deletion or behavior-changing refactor, ask targeted questions:
 
 If multiple questions exist, batch them with concise multiple-choice options where possible.
 
-### 5) Produce structured action blueprint
+### 5) The Strike
 
-After user answers, output a markdown table:
+Delete or prune only confirmed dead code, stale docs, and confirmed superfluities. Keep the scope narrow and preserve unrelated behavior.
+
+### 6) The Chisel (Automatic)
+
+Immediately after the strike, refine the remaining code in every touched file:
+
+- tighten types and null handling
+- simplify control flow and complex boolean logic
+- remove duplication exposed by deletions
+- improve naming, extraction, and local structure
+- leave the file cleaner than it was found
+
+### 7) Validate references, docs, and diagnostics
+
+After editing, verify that imports, references, and nearby docs still align. Run focused diagnostics or tests when relevant to the touched scope.
+
+## Output Contract
+
+Use this shape in responses:
+
+1. **Findings** (grouped by type, with confidence)
+2. **Questions** (only ambiguous or high-impact items)
+3. **Strike Plan** or **Execution Summary**
+4. **Chisel Summary** (what was refined after cleanup)
+5. **Docs Verification Result** (explicit pass/fail with evidence)
+6. **Next Step** (what you need from the user, or execution start)
+
+## Blueprint Format
+
+When producing the strike plan before execution, use a markdown table:
 
 | Target | Issue | Action | Why | Checklist |
 |---|---|---|---|---|
@@ -94,37 +130,13 @@ Then provide:
 - `Needs Decision` (blocked by policy/product intent)
 - `Deferred` (lower-priority debt)
 
-### 6) Validate documentation coverage every run
-
-Always perform a full docs verification pass in the chosen scope:
-
-- markdown docs (`**/*.md`)
-- API usage docs and examples
-- setup/runbooks and env docs (`.env.example`, config references)
-- inline docs/JSDoc for changed or flagged modules
-
-Report one of:
-
-- `Docs verified: no drift found`
-- `Docs drift detected` with concrete mismatches and required updates
-
 ## Idempotent completion condition
 
 If there are no confirmed actionable recommendations and docs are aligned, output exactly:
 
-`The stone is square. No superfluities detected.`
+`The stone is square.`
 
 If recommendations require user intent before action, state that no further safe recommendations can be made until answers are provided.
-
-## Output contract
-
-Use this shape in responses:
-
-1. **Findings** (grouped by type, with confidence)
-2. **Questions** (only ambiguous/high-impact items)
-3. **Blueprint** (structured table + checklists)
-4. **Docs Verification Result** (explicit pass/fail with evidence)
-5. **Next Step** (what you need from the user, or execution start)
 
 ## Guardrails
 
@@ -132,4 +144,5 @@ Use this shape in responses:
 - Do not rewrite architecture without explicit approval.
 - Do not claim dead code unless evidence supports it.
 - Do not skip documentation verification.
+- Do not skip the automatic chisel pass after confirmed cleanup.
 - Prefer "no recommendation" over weak recommendation.
