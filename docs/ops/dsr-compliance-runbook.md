@@ -193,3 +193,38 @@ If personal data is shared with subprocessors (e.g., Stripe, Google), deletion r
 - DSR request records and event ledger entries should be retained for a minimum of **24 months** after closure.
 - The event ledger is append-only and cannot be modified or deleted by any role.
 - After the retention period, consider archiving rather than deleting for long-term compliance proof.
+
+## Cockpit v1 Operating Notes
+
+### Role Access
+
+- Cockpit routes (`/dashboard/dsr`, `/dashboard/dsr/:requestId`) are available only to org `owner` and `admin`.
+- Requests are tenant-scoped via `dsr_requests.organization_id`; cross-org reads and mutations are masked as not found.
+
+### Queue and Case Workflow
+
+1. Open queue and prioritize by SLA buckets (`overdue`, `due_soon`, `on_track`).
+2. Claim and progress checklist steps in-case (`verify_identity`, `search_systems`, `fulfill_request`).
+3. Use lifecycle actions (`deny`, `extend`, `complete`) with reason fields where required.
+4. For stale-tab conflicts, refresh the case and retry with the latest version.
+
+### Evidence Export Contract
+
+- Export metadata is stored on `dsr_requests.export_artifacts`.
+- Expected fields: `version`, `status`, `requested_by`, `requested_at`, `generated_at`, `checksum_sha256`, `retry_count`, `last_error`.
+- Status values: `pending`, `ready`, `failed`.
+- Retry ceiling is **3**; after ceiling is reached, escalate to Engineering Owner using incident path.
+
+### Notice Delivery Outcomes
+
+- Lifecycle notices log immutable events:
+  - `notice_sent`
+  - `notice_failed`
+- If notice send fails, lifecycle state remains authoritative; operator retries with `resend_notice`.
+
+### Rollout Blockers (Must Be Green)
+
+- Cross-org denial regression test remains passing.
+- Tenant-scoped auth checks remain enforced for all DSR case actions.
+- Export metadata integrity verified in test suite (`pending|ready|failed` contract).
+- Two unassisted operator observation sessions completed with findings documented.

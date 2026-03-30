@@ -45,7 +45,8 @@ import {
   Bug,
   Sun,
   Moon,
-  Monitor
+  Monitor,
+  ShieldCheck
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -60,12 +61,14 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import Logo from "@/components/ui/Logo";
 import { useBugReport } from "@/features/tickets/context/BugReportContext";
+import { DSR_COCKPIT_ENABLED } from "@/lib/flags";
 
 interface NavigationItem {
   title: string;
   url: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  featureEnabled?: boolean;
 }
 
 const mainNavigation: NavigationItem[] = [
@@ -83,6 +86,7 @@ const managementNavigation: NavigationItem[] = [
   { title: "Organization", url: "/dashboard/organization", icon: Building },
   { title: "PM Templates", url: "/dashboard/pm-templates", icon: ClipboardCheck, adminOnly: true },
   { title: "Reports", url: "/dashboard/reports", icon: FileText },
+  { title: "DSR Cockpit", url: "/dashboard/dsr", icon: ShieldCheck, adminOnly: true, featureEnabled: DSR_COCKPIT_ENABLED },
   { title: "Audit Log", url: "/dashboard/audit-log", icon: History, adminOnly: true },
 ];
 
@@ -203,6 +207,10 @@ const AppSidebar = () => {
                   const isAdmin = currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
                   
                   if (item.adminOnly && !isAdmin) {
+                    return null;
+                  }
+
+                  if (item.featureEnabled === false) {
                     return null;
                   }
                   

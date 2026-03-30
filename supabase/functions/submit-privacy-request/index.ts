@@ -90,6 +90,26 @@ async function checkDuplicate(
   return (count ?? 0) > 0;
 }
 
+async function getPrimaryOrganizationIdForUser(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  userId: string,
+): Promise<string | null> {
+  const { data, error } = await admin
+    .from("organization_members")
+    .select("organization_id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.organization_id) {
+    return null;
+  }
+
+  return data.organization_id as string;
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -169,6 +189,10 @@ Deno.serve(async (req) => {
       );
     }
 
+    const organizationId = userId
+      ? await getPrimaryOrganizationIdForUser(admin, userId)
+      : null;
+
     const { data, error } = await admin
       .from("dsr_requests")
       .insert({
@@ -177,6 +201,7 @@ Deno.serve(async (req) => {
         request_type: requestType,
         details: details?.trim() || null,
         user_id: userId,
+        organization_id: organizationId,
         status: userId ? "verifying" : "received",
       })
       .select("id, due_at")

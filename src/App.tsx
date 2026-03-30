@@ -12,7 +12,7 @@ import IdleSessionTimeoutGuard from '@/components/auth/IdleSessionTimeoutGuard';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 import { OfflineQueueProvider } from '@/contexts/OfflineQueueContext';
 import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
-import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
+import { DSR_COCKPIT_ENABLED, OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 // Critical components loaded eagerly to prevent loading issues for unauthenticated users
@@ -72,6 +72,8 @@ const PartLookup = lazy(() => import('@/features/inventory/pages/PartLookup'));
 const AlternateGroupsPage = lazy(() => import('@/features/inventory/pages/AlternateGroupsPage'));
 const AlternateGroupDetail = lazy(() => import('@/features/inventory/pages/AlternateGroupDetail'));
 const AuditLog = lazy(() => import('@/pages/AuditLog'));
+const DSRCockpitPage = lazy(() => import('@/pages/dsr/CockpitPage'));
+const DSRCasePage = lazy(() => import('@/pages/dsr/CasePage'));
 
 
 const BrandedTopBar = () => {
@@ -237,6 +239,12 @@ function App() {
                                 <Route path="/alternate-groups/:groupId" element={<AlternateGroupDetail />} />
                                 <Route path="/support" element={<DashboardSupport />} />
                                 <Route path="/audit-log" element={<AuditLog />} />
+                                {DSR_COCKPIT_ENABLED && (
+                                  <>
+                                    <Route path="/dsr" element={<DSRCockpitPage />} />
+                                    <Route path="/dsr/:requestId" element={<DSRCasePage />} />
+                                  </>
+                                )}
                                 {/* Billing debug routes removed */}
                                 {/* {import.meta.env.DEV && <Route path="/debug/billing" element={<DebugBilling />} />} */}
                                 {/* {import.meta.env.DEV && <Route path="/debug/exemptions-admin" element={<BillingExemptionsAdmin />} />} */}

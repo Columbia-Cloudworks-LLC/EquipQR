@@ -59,7 +59,17 @@ vi.mock('@/pages/Auth', () => ({ default: () => <div data-testid="auth-page">Aut
 vi.mock('@/pages/TermsOfService', () => ({ default: () => <div data-testid="terms-page">Terms</div> }));
 vi.mock('@/pages/PrivacyPolicy', () => ({ default: () => <div data-testid="privacy-page">Privacy</div> }));
 vi.mock('@/pages/PrivacyRequest', () => ({ default: () => <div data-testid="privacy-request-page">Privacy Request</div> }));
+vi.mock('@/pages/dsr/CockpitPage', () => ({ default: () => <div data-testid="dsr-cockpit-page">DSR Cockpit</div> }));
+vi.mock('@/pages/dsr/CasePage', () => ({ default: () => <div data-testid="dsr-case-page">DSR Case</div> }));
 vi.mock('@/components/layout/AppSidebar', () => ({ default: () => <div data-testid="app-sidebar">Sidebar</div> }));
+vi.mock('@/lib/flags', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/flags')>();
+  return {
+    ...actual,
+    OFFLINE_QUEUE_ENABLED: false,
+    DSR_COCKPIT_ENABLED: true,
+  };
+});
 
 // Mock contexts
 vi.mock('@/contexts/TeamContext', () => ({
@@ -232,5 +242,10 @@ describe('App', () => {
   it('renders TopBar component on dashboard route', async () => {
     renderApp(['/dashboard']);
     expect(await screen.findByTestId('top-bar')).toBeInTheDocument();
+  });
+
+  it('renders DSR cockpit route when feature is enabled', async () => {
+    renderApp(['/dashboard/dsr']);
+    expect(await screen.findByTestId('dsr-cockpit-page')).toBeInTheDocument();
   });
 });
