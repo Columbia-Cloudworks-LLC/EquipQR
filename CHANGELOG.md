@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`scripts/bootstrap-worktree-env.ps1`** — One-shot copy (or optional hard link) of `.env`, `.env.local`, and `supabase/functions/.env` from a canonical checkout into a git/Cursor worktree; optional `npm ci`. Documented under **Git worktrees and Cursor** in `docs/technical/setup.md`.
+
 - **CCPA/CPRA privacy policy (Section 10A)** — California-specific disclosures: categories of personal and sensitive information, sources, business purposes, retention summary, no-sale/no-share, consumer rights, submission via **`/privacy-request`** and **`privacy@equipqr.app`**, verification, authorized agents, and response timing. Policy **Last updated:** March 29, 2026.
 
 - **DSR intake** — Public **`/privacy-request`** form; **`submit-privacy-request`** Edge Function; **`dsr_requests`** table with RLS (`20260329000000_add_dsr_requests_table.sql`). Footers (**Do Not Sell or Share**), Settings **Privacy Rights** card, and route coverage in app integration tests.
