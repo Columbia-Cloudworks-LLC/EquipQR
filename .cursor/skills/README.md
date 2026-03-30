@@ -13,7 +13,7 @@ Every skill in this folder should be treated as:
 ## Command Map
 
 | Command | Primary use |
-|---|---|
+| --- | --- |
 | `/common-gavel` | Remove confirmed superfluities, repair doc drift, then automatically polish touched code |
 | `/trestle` | Align roadmap, architecture, and recent commit intent |
 | `/pencil` | Draft technical specifications, schemas, and file scaffolding before implementation |
@@ -24,6 +24,7 @@ Every skill in this folder should be treated as:
 | `/compasses` | Check boundary guards, permissions, tenancy, and runaway execution controls |
 | `/trowel` | Audit dependency health and integration seams |
 | `/chisel` | Polish existing code without deleting behavior |
+| `/raise` | Run PR pre-flight gates and prepare promotion PR to `main` |
 
 ## Shared Operating Rules
 
@@ -58,3 +59,4 @@ Use the skill whose primary question best matches the task:
 - "Are our boundaries and permissions tight enough?" -> `compasses`
 - "Are our dependencies and integrations healthy?" -> `trowel`
 - "Can this code be made cleaner without changing behavior?" -> `chisel`
+- "Is this branch ready to be raised to main?" -> `raise`
