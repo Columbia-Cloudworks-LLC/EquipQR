@@ -14,6 +14,7 @@ Raise the candidate on the Five Points of Fellowship with the Lion's Paw so the 
 Perform a strict pre-flight before creating a pull request from the current branch to `main`.
 
 This skill blocks promotion when CI/CD or release-readiness checks fail, and only proceeds to PR generation when all five audit points pass.
+When blocked or ambiguous, the agent must switch to Plan Mode and collaborate on a remediation plan instead of silently halting or guessing.
 
 ## Invocation
 
@@ -30,7 +31,9 @@ If no base branch is supplied, use `main`.
 3. Separate verified evidence from assumptions; include command outcomes.
 4. Do not auto-edit release artifacts unless the user asks for fixes.
 5. Keep pre-flight scope focused on the branch diff targeting the base branch.
-6. If any gate fails, halt raising and output a remediation list.
+6. If any gate fails or audit is ambiguous, switch to Plan Mode and output a remediation plan.
+7. If clarification is needed from the developer, ask explicit questions in chat (use Cursor question flow) before making assumptions.
+8. If raise is allowed and invocation is not `--audit-only`, execute push + PR creation without asking for extra confirmation.
 
 ## Workflow
 
@@ -66,9 +69,10 @@ If the repository defines an equivalent single pipeline command (for example `np
 
 If any command fails:
 
-- stop the process immediately
-- mark status as `raise halted`
-- list failing command(s) and first actionable fix hints
+- mark status as `raise blocked`
+- request a switch to Plan Mode
+- list failing command(s), first actionable fix hints, and a proposed remediation sequence
+- ask focused clarification questions in chat if any remediation decision depends on developer intent
 
 ### 3) The Five Points of Fellowship (The Audit)
 
@@ -87,13 +91,14 @@ Mark each point as:
 - `needs-user-decision`
 
 If any point is `fail` or `needs-user-decision`, do not raise.
+If any point is `fail` or `needs-user-decision`, request a switch to Plan Mode and present a remediation plan with explicit questions for required decisions.
 
 ### 4) Decide raise/no-raise
 
 - **Raise allowed**: Lion's Paw passes and all Five Points pass.
 - **Raise blocked**: any CI failure, audit failure, or unresolved decision.
 
-### 5) The Raising: PR preparation output
+### 5) The Raising: PR preparation and execution
 
 When raise is allowed, produce:
 
@@ -129,18 +134,28 @@ gh pr create --base main --head <current-branch> --title "<pr-title>" --body "<p
 
 For long PR bodies in PowerShell, prefer writing to a temporary file and pass `--body-file`.
 
+If invocation is not `--audit-only`, execute these commands after a successful raise decision:
+
+- `git push -u origin HEAD`
+- `gh pr create --base <base-branch> --head <current-branch> --title "<pr-title>" --body-file "<temp-file>"`
+
+Return the PR URL in output.
+
 ## Output Contract
 
 1. **Gate Results** (each CI command with pass/fail)
 2. **Five Points Audit Table** (point, status, evidence)
 3. **Raise Decision** (`allowed` or `blocked`)
 4. **If blocked:** remediation checklist
-5. **If allowed:** PR title, PR body draft, push/open commands
+5. **If allowed + --audit-only:** PR title, PR body draft, push/open commands
+6. **If allowed + standard `/raise`:** PR title, PR body, executed push/open commands, and PR URL
 
 ## Guardrails
 
 - Do not claim pass/fail without command or diff evidence.
 - Do not skip `lint` or TypeScript checks.
-- Do not open a PR automatically unless user explicitly asks to execute.
+- Do not skip Plan Mode when blocked; request it explicitly.
+- Do not proceed past ambiguity without asking the developer direct clarification questions in chat.
+- Do open the PR automatically for standard `/raise` once all gates pass (unless `--audit-only` was used).
 - Do not fabricate changelog/version rationale.
 - Do not treat roadmap speculation as trestle alignment evidence.
