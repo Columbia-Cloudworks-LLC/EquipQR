@@ -168,23 +168,37 @@ npm run type-check
 npm run build
 ```
 
-#### Git Workflow
+#### Git Workflow (Current Preview-First Model)
 
-1. **Create Feature Branch**
+EquipQR currently uses a solo-developer, preview-first flow:
+
+1. **Pull latest `preview`**
+
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout preview
+   git pull origin preview
    ```
 
-2. **Make Changes and Commit**
+2. **Implement and commit on `preview`**
+
    ```bash
    git add .
    git commit -m "feat: add new feature description"
    ```
 
-3. **Push and Create PR**
+3. **Push `preview` and validate `preview.equipqr.app`**
+
    ```bash
-   git push origin feature/your-feature-name
+   git push origin preview
    ```
+
+4. **Open PR from `preview` to `main` when unreleased changes are ready**
+   - Let CI/CD finish.
+   - Resolve conversations and verify release readiness.
+   - Merge to `main`, then manually promote to production.
+
+For the complete planning-to-release lifecycle (including Cursor + gstack usage), see
+[Development Lifecycle](./development-lifecycle.md).
 
 ## Project Structure Deep Dive
 
