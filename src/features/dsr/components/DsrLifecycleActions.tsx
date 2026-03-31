@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface DsrLifecycleActionsProps {
   canManageDsr: boolean;
+  canVerify: boolean;
   isProcessing: boolean;
-  onStartProcessing: () => void;
+  onVerify: (verificationMethod: string) => void;
   onComplete: () => void;
   onDeny: (reason: string) => void;
   onExtend: (reason: string) => void;
@@ -13,12 +15,14 @@ interface DsrLifecycleActionsProps {
 
 export function DsrLifecycleActions({
   canManageDsr,
+  canVerify,
   isProcessing,
-  onStartProcessing,
+  onVerify,
   onComplete,
   onDeny,
   onExtend,
 }: DsrLifecycleActionsProps) {
+  const [verificationMethod, setVerificationMethod] = useState('');
   const [denyReason, setDenyReason] = useState('');
   const [extendReason, setExtendReason] = useState('');
 
@@ -29,10 +33,28 @@ export function DsrLifecycleActions({
   return (
     <div className="space-y-3 rounded-md border p-3">
       <h3 className="text-sm font-medium">Lifecycle Actions</h3>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="secondary" onClick={onStartProcessing}>
-          Start Processing
+      <div className="space-y-2">
+        <Select value={verificationMethod} onValueChange={setVerificationMethod} disabled={!canVerify}>
+          <SelectTrigger aria-label="Verification method">
+            <SelectValue placeholder="Select verification method" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="authenticated_match">Authenticated Match</SelectItem>
+            <SelectItem value="email_challenge">Email Challenge</SelectItem>
+            <SelectItem value="manual_review">Manual Review</SelectItem>
+            <SelectItem value="authorized_agent">Authorized Agent</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => onVerify(verificationMethod)}
+          disabled={!canVerify || !verificationMethod}
+        >
+          Verify & Start Processing
         </Button>
+      </div>
+      <div className="flex flex-wrap gap-2">
         <Button size="sm" onClick={onComplete} disabled={!isProcessing}>
           Complete
         </Button>

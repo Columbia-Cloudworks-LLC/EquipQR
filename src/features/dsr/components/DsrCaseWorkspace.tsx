@@ -15,7 +15,6 @@ interface DsrCaseWorkspaceProps {
       | 'verify'
       | 'deny'
       | 'extend'
-      | 'start_processing'
       | 'record_fulfillment_step'
       | 'fulfill_deletion'
       | 'complete'
@@ -38,7 +37,6 @@ export function DsrCaseWorkspace({ request, events, canManageDsr, pending, onMut
       | 'verify'
       | 'deny'
       | 'extend'
-      | 'start_processing'
       | 'record_fulfillment_step'
       | 'fulfill_deletion'
       | 'complete'
@@ -73,8 +71,9 @@ export function DsrCaseWorkspace({ request, events, canManageDsr, pending, onMut
 
       <DsrLifecycleActions
         canManageDsr={canManageDsr}
+        canVerify={request.status === 'received' || request.status === 'verifying'}
         isProcessing={request.status === 'processing'}
-        onStartProcessing={() => runMutation('start_processing')}
+        onVerify={(verificationMethod) => runMutation('verify', { verificationMethod })}
         onComplete={() => runMutation('complete')}
         onDeny={(reason) => runMutation('deny', { reason })}
         onExtend={(reason) => runMutation('extend', { reason })}

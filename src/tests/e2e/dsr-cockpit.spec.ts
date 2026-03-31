@@ -61,4 +61,32 @@ describe('dsr cockpit api flow', () => {
       }),
     );
   });
+
+  it('submits verify mutation with verification method payload', async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: { request: { id: 'r1', status: 'processing' } },
+      error: null,
+    });
+
+    const updated = await mutateDsrRequest(
+      'org-1',
+      'r1',
+      'verify',
+      '2026-01-01T00:00:00.000Z',
+      { verificationMethod: 'manual_review' },
+    );
+    expect(updated.status).toBe('processing');
+    expect(invokeMock).toHaveBeenCalledWith(
+      'manage-dsr-request',
+      expect.objectContaining({
+        body: expect.objectContaining({
+          organizationId: 'org-1',
+          dsrRequestId: 'r1',
+          action: 'verify',
+          expected_updated_at: '2026-01-01T00:00:00.000Z',
+          verificationMethod: 'manual_review',
+        }),
+      }),
+    );
+  });
 });

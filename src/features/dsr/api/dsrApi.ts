@@ -79,7 +79,6 @@ export async function mutateDsrRequest(
     | 'verify'
     | 'deny'
     | 'extend'
-    | 'start_processing'
     | 'record_fulfillment_step'
     | 'fulfill_deletion'
     | 'complete'

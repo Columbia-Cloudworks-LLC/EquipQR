@@ -7,6 +7,11 @@ Deno.test("isMutatingAction flags read-only actions correctly", () => {
   assertEquals(__testables.isMutatingAction("verify"), true);
 });
 
+Deno.test("isValidAction rejects removed start_processing action", () => {
+  assertEquals(__testables.isValidAction("verify"), true);
+  assertEquals(__testables.isValidAction("start_processing"), false);
+});
+
 Deno.test("buildSlaBucket marks overdue requests", () => {
   const bucket = __testables.buildSlaBucket({
     id: "x",

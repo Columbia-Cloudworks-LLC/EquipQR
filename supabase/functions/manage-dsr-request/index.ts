@@ -21,7 +21,6 @@ type MutatingAction =
   | "verify"
   | "deny"
   | "extend"
-  | "start_processing"
   | "record_fulfillment_step"
   | "fulfill_deletion"
   | "complete"
@@ -52,7 +51,6 @@ const VALID_ACTIONS: Action[] = [
   "verify",
   "deny",
   "extend",
-  "start_processing",
   "record_fulfillment_step",
   "fulfill_deletion",
   "complete",
@@ -74,6 +72,10 @@ const CLOSED_STATUSES = ["completed", "denied"];
 
 function isMutatingAction(action: Action): action is MutatingAction {
   return action !== "list_queue" && action !== "get_case";
+}
+
+function isValidAction(action: string): action is Action {
+  return VALID_ACTIONS.includes(action as Action);
 }
 
 async function getOrgRole(
@@ -263,7 +265,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
       noticeShouldFail?: boolean;
     };
 
-    if (!action || !VALID_ACTIONS.includes(action as Action)) {
+    if (!action || !isValidAction(action)) {
       return createErrorResponse("Invalid action", 400);
     }
     const typedAction = action as Action;
@@ -444,19 +446,6 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
           { reason: reason.trim(), extended_due_at: maxExtension.toISOString() },
         );
         await sendLifecycleNotice(admin, dsr, user.id, user.email, "extend", Boolean(noticeShouldFail));
-        break;
-      }
-
-      case "start_processing": {
-        if (dsr.status !== "verifying" && dsr.status !== "received") {
-          return createErrorResponse("Request must be verified before processing", 400);
-        }
-
-        const result = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {
-          status: "processing",
-        });
-        if (result.conflict) return createErrorResponse("Conflict", 409);
-        if (!result.ok) return createErrorResponse("Failed to start processing", 500);
         break;
       }
 
@@ -702,6 +691,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
 
 export const __testables = {
   isMutatingAction,
+  isValidAction,
   areRequiredChecklistStepsComplete,
   buildSlaBucket,
 };
