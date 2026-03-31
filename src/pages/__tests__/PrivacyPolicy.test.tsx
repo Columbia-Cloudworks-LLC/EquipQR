@@ -35,8 +35,7 @@ describe('PrivacyPolicy', () => {
       render(<PrivacyPolicy />);
       
       expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
-      // Should show written date format: February 10, 2026
-      expect(screen.getByText(/February \d{1,2}, \d{4}/)).toBeInTheDocument();
+      expect(screen.getByText(/March \d{1,2}, \d{4}/)).toBeInTheDocument();
     });
 
     it('includes back to dashboard link', () => {
@@ -80,7 +79,7 @@ describe('PrivacyPolicy', () => {
       render(<PrivacyPolicy />);
       
       expect(screen.getByText('7. How We Share Your Information')).toBeInTheDocument();
-      expect(screen.getByText(/We do not sell your personal information/)).toBeInTheDocument();
+      expect(screen.getAllByText(/We do not sell your personal information/).length).toBeGreaterThanOrEqual(1);
     });
 
     it('displays data security section', () => {
@@ -94,7 +93,7 @@ describe('PrivacyPolicy', () => {
       render(<PrivacyPolicy />);
       
       expect(screen.getByText(/Data Retention/i)).toBeInTheDocument();
-      expect(screen.getByText(/We retain your information for as long as necessary/)).toBeInTheDocument();
+      expect(screen.getByText(/We retain your information for the specific periods/)).toBeInTheDocument();
     });
 
     it('displays your rights section', () => {
@@ -241,9 +240,9 @@ describe('PrivacyPolicy', () => {
     it('describes user rights', () => {
       render(<PrivacyPolicy />);
       
-      expect(screen.getByText(/Access:/)).toBeInTheDocument();
-      expect(screen.getByText(/Correction:/)).toBeInTheDocument();
-      expect(screen.getByText(/Deletion:/)).toBeInTheDocument();
+      expect(screen.getAllByText(/Access:/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Correction:/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Deletion:/).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/Data portability:/)).toBeInTheDocument();
     });
   });
@@ -308,7 +307,7 @@ describe('PrivacyPolicy', () => {
       // Should mention various aspects of data handling
       expect(screen.getByText(/fleet equipment management platform/)).toBeInTheDocument();
       expect(screen.getByText(/We use the information described above/)).toBeInTheDocument();
-      expect(screen.getByText(/We do not sell your personal information/)).toBeInTheDocument();
+      expect(screen.getAllByText(/We do not sell your personal information/).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/We share data only in the following circumstances/)).toBeInTheDocument();
     });
   });
@@ -330,6 +329,42 @@ describe('PrivacyPolicy', () => {
       
       expect(screen.getByText(/4\.7 QuickBooks Online.*Optional Integration/)).toBeInTheDocument();
       expect(screen.getByText(/4\.8 Google Workspace.*Optional Integration/)).toBeInTheDocument();
+    });
+  });
+
+  describe('California Privacy Rights Section', () => {
+    it('displays CCPA/CPRA section header', () => {
+      render(<PrivacyPolicy />);
+      expect(screen.getByText(/10A\. Your California Privacy Rights/)).toBeInTheDocument();
+    });
+
+    it('displays categories of PI collected table', () => {
+      render(<PrivacyPolicy />);
+      expect(screen.getByText('Categories of Personal Information Collected')).toBeInTheDocument();
+      expect(screen.getByText('Identifiers')).toBeInTheDocument();
+      expect(screen.getByText('Geolocation Data')).toBeInTheDocument();
+    });
+
+    it('displays no-sell/no-share statement', () => {
+      render(<PrivacyPolicy />);
+      expect(screen.getByText(/We do not sell your personal information\. We do not share your personal/)).toBeInTheDocument();
+    });
+
+    it('displays retention periods table', () => {
+      render(<PrivacyPolicy />);
+      expect(screen.getByText('Retention Periods')).toBeInTheDocument();
+      expect(screen.getAllByText(/30 days/).length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('links to privacy request page', () => {
+      render(<PrivacyPolicy />);
+      const privacyRequestLink = screen.getByText('equipqr.app/privacy-request');
+      expect(privacyRequestLink.closest('a')).toHaveAttribute('href', '/privacy-request');
+    });
+
+    it('displays updated date', () => {
+      render(<PrivacyPolicy />);
+      expect(screen.getByText(/March 29, 2026/)).toBeInTheDocument();
     });
   });
 });

@@ -136,3 +136,11 @@ Required client variables:
 - `docs/guides/workflows.md` - User workflows
 - `docs/ops/deployment.md` - Deployment procedures
 - `docs/ops/migrations.md` - Migration guide
+
+## AI Tooling Baseline
+
+This repository follows a Cursor plugin-first workflow. Prefer installed Cursor plugins and keep custom command usage minimal.
+
+Retained custom command:
+
+- `reflect` for retrospective process improvement when a conversation or workflow is not going well.

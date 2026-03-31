@@ -91,6 +91,19 @@ describe('SignInForm', () => {
     });
   });
 
+  it('should trim surrounding password whitespace before sign-in submission', async () => {
+    render(<SignInForm {...defaultProps} />);
+
+    fillFormFast('test@example.com', '  password123  ');
+
+    const submitButton = screen.getByRole('button', { name: 'Sign In' });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
+    });
+  });
+
   it('should prevent form submission if fields are empty', () => {
     render(<SignInForm {...defaultProps} />);
 

@@ -1,5 +1,5 @@
 
-import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { Suspense, lazy, type ReactNode } from 'react';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { TeamProvider } from '@/contexts/TeamContext';
@@ -12,7 +12,7 @@ import IdleSessionTimeoutGuard from '@/components/auth/IdleSessionTimeoutGuard';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 import { OfflineQueueProvider } from '@/contexts/OfflineQueueContext';
 import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
-import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
+import { DSR_COCKPIT_ENABLED, OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 // Critical components loaded eagerly to prevent loading issues for unauthenticated users
@@ -20,7 +20,6 @@ import Auth from '@/pages/Auth';
 import SmartLanding from '@/components/landing/SmartLanding';
 import LegalFooter from '@/components/layout/LegalFooter';
 const DebugAuth = import.meta.env.DEV ? lazy(() => import('@/pages/DebugAuth')) : null;
-import Landing from '@/pages/Landing';
 const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
 const PMTemplatesFeature = lazy(() => import('@/pages/features/PMTemplates'));
 const InventoryManagementFeature = lazy(() => import('@/pages/features/InventoryManagement'));
@@ -61,6 +60,7 @@ const Notifications = lazy(() => import('@/pages/Notifications'));
 const InvitationAccept = lazy(() => import('@/pages/InvitationAccept'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
+const PrivacyRequest = lazy(() => import('@/pages/PrivacyRequest'));
 const Security = lazy(() => import('@/pages/Security'));
 const WorkspaceOnboarding = lazy(() => import('@/pages/WorkspaceOnboarding'));
 // const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
@@ -72,6 +72,8 @@ const PartLookup = lazy(() => import('@/features/inventory/pages/PartLookup'));
 const AlternateGroupsPage = lazy(() => import('@/features/inventory/pages/AlternateGroupsPage'));
 const AlternateGroupDetail = lazy(() => import('@/features/inventory/pages/AlternateGroupDetail'));
 const AuditLog = lazy(() => import('@/pages/AuditLog'));
+const DSRCockpitPage = lazy(() => import('@/pages/dsr/CockpitPage'));
+const DSRCasePage = lazy(() => import('@/pages/dsr/CasePage'));
 
 
 const BrandedTopBar = () => {
@@ -99,6 +101,12 @@ const RedirectToWorkOrder = () => {
   return <Navigate to={`/dashboard/work-orders/${workOrderId}`} replace />;
 };
 
+/** Legacy `/landing` URLs normalize to canonical `/` (hash and query preserved). */
+const LandingCanonicalRedirect = () => {
+  const { hash, search } = useLocation();
+  return <Navigate to={{ pathname: '/', search, hash }} replace />;
+};
+
 function App() {
   return (
     <AppProviders>
@@ -112,8 +120,7 @@ function App() {
       <Routes>
         {/* Public routes - no suspense needed, loaded eagerly */}
         <Route path="/" element={<SmartLanding />} />
-        {/* Direct landing page route - bypasses SmartLanding redirect for authenticated users */}
-        <Route path="/landing" element={<Suspense fallback={<div>Loading...</div>}><Landing /></Suspense>} />
+        <Route path="/landing" element={<LandingCanonicalRedirect />} />
         <Route path="/auth" element={<Auth />} />
         {import.meta.env.DEV && DebugAuth && (
           <Route path="/debug-auth" element={<Suspense fallback={<div>Loading...</div>}><DebugAuth /></Suspense>} />
@@ -142,6 +149,7 @@ function App() {
         <Route path="/qr/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><LegacyEquipmentQRRedirect /></Suspense>} />
         <Route path="/terms-of-service" element={<Suspense fallback={<div>Loading...</div>}><TermsOfService /></Suspense>} />
         <Route path="/privacy-policy" element={<Suspense fallback={<div>Loading...</div>}><PrivacyPolicy /></Suspense>} />
+        <Route path="/privacy-request" element={<Suspense fallback={<div>Loading...</div>}><PrivacyRequest /></Suspense>} />
         <Route path="/security" element={<Suspense fallback={<div>Loading...</div>}><Security /></Suspense>} />
 
           {/* Redirect routes for backward compatibility */}
@@ -231,6 +239,12 @@ function App() {
                                 <Route path="/alternate-groups/:groupId" element={<AlternateGroupDetail />} />
                                 <Route path="/support" element={<DashboardSupport />} />
                                 <Route path="/audit-log" element={<AuditLog />} />
+                                {DSR_COCKPIT_ENABLED && (
+                                  <>
+                                    <Route path="/dsr" element={<DSRCockpitPage />} />
+                                    <Route path="/dsr/:requestId" element={<DSRCasePage />} />
+                                  </>
+                                )}
                                 {/* Billing debug routes removed */}
                                 {/* {import.meta.env.DEV && <Route path="/debug/billing" element={<DebugBilling />} />} */}
                                 {/* {import.meta.env.DEV && <Route path="/debug/exemptions-admin" element={<BillingExemptionsAdmin />} />} */}

@@ -105,14 +105,13 @@ When JSON mode is enabled, the script outputs a single JSON object with the foll
    ![Screenshot](https://ymxkzronkhwxzcdcbnwq.supabase.co/storage/v1/object/public/landing-page-images/features/qr-code-integration/hero.png)
 ```
 
-## Integration with Screenshot Capture Subagent
+## Integration with Manual Screenshot Workflows
 
-The `screenshot-capture` subagent **does not** upload screenshots automatically. Instead, use this script as part of a manual workflow:
+This script does not capture screenshots by itself. Use it after taking a screenshot with your preferred tool:
 
-1. The subagent takes a screenshot via Playwright MCP tools
-2. It saves the image to a temporary file (e.g., `tmp/screenshot-{timestamp}.png`)
-3. You manually run this script with that file path and desired storage path
-4. You then use the returned public URL or Markdown reference in your documentation
+1. Capture a screenshot and save it to a temporary file (for example, `tmp/screenshot-{timestamp}.png`)
+2. Run this script with that file path and your desired storage path
+3. Use the returned public URL or Markdown reference in your documentation
 
 ## Troubleshooting
 

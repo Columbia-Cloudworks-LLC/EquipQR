@@ -75,7 +75,12 @@ const USER_GROUPS = [
  * Allows selecting a test user from a dropdown to instantly sign in.
  * This component is tree-shaken out of production builds.
  */
-const DevQuickLogin: React.FC = () => {
+interface DevQuickLoginProps {
+  /** Surfaces failures in the main auth card (and toast via parent). */
+  onAuthFailure?: (message: string) => void;
+}
+
+const DevQuickLogin: React.FC<DevQuickLoginProps> = ({ onAuthFailure }) => {
   const { signIn } = useAuth();
   const [selectedEmail, setSelectedEmail] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -96,6 +101,7 @@ const DevQuickLogin: React.FC = () => {
       const { error: signInError } = await signIn(selectedEmail, DEV_PASSWORD);
       if (signInError) {
         setError(signInError.message);
+        onAuthFailure?.(signInError.message);
       }
     } catch (err) {
       // Log detailed error for developers in development only, show generic message in UI
@@ -105,7 +111,9 @@ const DevQuickLogin: React.FC = () => {
           err
         );
       }
-      setError('Authentication failed. Please try again.');
+      const msg = 'Authentication failed. Please try again.';
+      setError(msg);
+      onAuthFailure?.(msg);
     } finally {
       setIsLoading(false);
     }

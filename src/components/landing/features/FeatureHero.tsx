@@ -17,7 +17,7 @@ export const FeatureHero = ({ icon: Icon, title, description, ctaText, ctaLink =
     if (window.history.length > 1) {
       navigate(-1);
     } else {
-      navigate('/landing#features');
+      navigate({ pathname: '/', hash: 'features' });
     }
   };
 

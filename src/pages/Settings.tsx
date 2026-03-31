@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SettingsProvider } from '@/contexts/SettingsContext';
@@ -7,6 +8,7 @@ import { useSettings } from '@/contexts/useSettings';
 import PersonalizationSettings from '@/components/settings/PersonalizationSettings';
 import ProfileSettings from '@/components/settings/ProfileSettings';
 import { EmailPrivacySettings } from '@/components/settings/EmailPrivacySettings';
+import { SensitivePrivacySettings } from '@/components/settings/SensitivePrivacySettings';
 import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
 import NotificationSettings from '@/components/settings/NotificationSettings';
@@ -31,7 +33,7 @@ const SettingsContent = () => {
       if (!user) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('email_private')
+        .select('email_private, limit_sensitive_pi')
         .eq('id', user.id)
         .single();
       
@@ -65,6 +67,30 @@ const SettingsContent = () => {
         currentEmailPrivate={profile?.email_private || false}
         onUpdate={() => refetchProfile()}
       />
+
+      <SensitivePrivacySettings
+        currentLimitSensitivePi={(profile as Record<string, unknown>)?.limit_sensitive_pi === true}
+        onUpdate={() => refetchProfile()}
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Privacy Rights</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            You can exercise your privacy rights or learn more about our data practices.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/privacy-request">Submit Privacy Request</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/privacy-policy">View Privacy Policy</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Security & Status */}
       <div className="space-y-4">

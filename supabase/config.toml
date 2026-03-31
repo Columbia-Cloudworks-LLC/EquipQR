@@ -146,6 +146,21 @@ verify_jwt = false
 # Uses service role key passed in Authorization header for authentication.
 # Also handles cleanup of expired push subscriptions.
 
+[functions.submit-privacy-request]
+verify_jwt = false
+# Public CCPA/CPRA DSR intake endpoint. No JWT required for anonymous submitters.
+# Authenticated users may include a Bearer token to link the request to their account.
+# Abuse controls: hCaptcha verification + per-email rate limiting within the function.
+
+[functions.manage-dsr-request]
+verify_jwt = false
+# Internal admin endpoint for DSR lifecycle management. Requires authenticated admin/owner.
+# JWT verification handled inside the function via supabase.auth.getUser().
+
+[functions.verify-hcaptcha]
+verify_jwt = false
+# Public hCaptcha token verification endpoint. Called before privacy request submission.
+
 [db.seed]
 enabled = true
 sql_paths = ['./seeds/*.sql']

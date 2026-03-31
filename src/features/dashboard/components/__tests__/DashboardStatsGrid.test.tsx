@@ -48,7 +48,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByText('Total Equipment')).toBeInTheDocument();
       expect(screen.getByText('Overdue Work')).toBeInTheDocument();
       expect(screen.getByText('Total Work Orders')).toBeInTheDocument();
-      expect(screen.getByText('Out of Service')).toBeInTheDocument();
+      expect(screen.getByText('Needs attention')).toBeInTheDocument();
     });
 
     it('renders stat values correctly', async () => {
@@ -66,7 +66,7 @@ describe('DashboardStatsGrid', () => {
         expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('42');
         expect(screen.getByTestId('overdue-work-value')).toHaveTextContent('5');
         expect(screen.getByTestId('total-work-orders-value')).toHaveTextContent('120');
-        expect(screen.getByTestId('out-of-service-value')).toHaveTextContent('7');
+        expect(screen.getByTestId('needs-attention-value')).toHaveTextContent('7');
       });
     });
 
@@ -83,8 +83,8 @@ describe('DashboardStatsGrid', () => {
 
       expect(screen.getByText('35 active')).toBeInTheDocument();
       expect(screen.getByText('15 active')).toBeInTheDocument();
-      expect(screen.getByText('Past due work orders')).toBeInTheDocument();
-      expect(screen.getByText('In maintenance or inactive')).toBeInTheDocument();
+      expect(screen.getByText('Past due — open list to reprioritize')).toBeInTheDocument();
+      expect(screen.getByText('Maintenance, inactive, or PM interval overdue')).toBeInTheDocument();
     });
 
     it('renders links when not loading', () => {
@@ -154,7 +154,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.queryByText('Total Equipment')).not.toBeInTheDocument();
       expect(screen.queryByText('Overdue Work')).not.toBeInTheDocument();
       expect(screen.queryByText('Total Work Orders')).not.toBeInTheDocument();
-      expect(screen.queryByText('Out of Service')).not.toBeInTheDocument();
+      expect(screen.queryByText('Needs attention')).not.toBeInTheDocument();
       expect(screen.queryAllByTestId(/-value$/)).toHaveLength(0);
     });
   });
@@ -175,7 +175,7 @@ describe('DashboardStatsGrid', () => {
         expect(screen.getByTestId('total-equipment-value')).toHaveTextContent('0');
         expect(screen.getByTestId('overdue-work-value')).toHaveTextContent('0');
         expect(screen.getByTestId('total-work-orders-value')).toHaveTextContent('0');
-        expect(screen.getByTestId('out-of-service-value')).toHaveTextContent('5');
+        expect(screen.getByTestId('needs-attention-value')).toHaveTextContent('5');
       });
     });
 
@@ -230,7 +230,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByLabelText('View all equipment in the fleet')).toBeInTheDocument();
       expect(screen.getByLabelText('View overdue work orders')).toBeInTheDocument();
       expect(screen.getByLabelText('View all work orders')).toBeInTheDocument();
-      expect(screen.getByLabelText('View out-of-service equipment')).toBeInTheDocument();
+      expect(screen.getByLabelText('View equipment that needs attention')).toBeInTheDocument();
     });
   });
 });

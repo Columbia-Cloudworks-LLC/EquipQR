@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { PageSEO } from '@/components/seo/PageSEO';
-import Landing from '@/pages/Landing';
+import { Loader2 } from 'lucide-react';
+
+const Landing = lazy(() => import('@/pages/Landing'));
 
 /**
  * Smart landing page that conditionally renders based on authentication state.
@@ -35,12 +37,24 @@ const SmartLanding = () => {
     return (
       <>
         <PageSEO
-          title="EquipQR"
-          description="Streamline equipment operations with QR code tracking, intelligent work order management, and enterprise-grade team collaboration. Trusted by industry leaders. Start your free trial today."
+          title="EquipQR | Heavy Equipment Repair Work Order Software with QR Tracking"
+          description="Stop losing money to lost work orders. EquipQR gives heavy equipment repair shops secure QR code equipment tracking, team-based access, and one-click QuickBooks work order invoicing."
           path="/"
-          keywords="fleet management, equipment tracking, QR code, work orders, CMMS, maintenance management, team collaboration, mobile-first, enterprise"
+          keywords="heavy equipment repair work order software, QR code equipment tracking, QuickBooks work order integration, equipment maintenance software, shop work order management, fleet management, CMMS"
         />
-        <Landing skipSEO />
+        <Suspense
+          fallback={
+            <div
+              className="flex min-h-[50vh] items-center justify-center bg-background"
+              role="status"
+              aria-label="Loading page"
+            >
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          }
+        >
+          <Landing />
+        </Suspense>
       </>
     );
   }

@@ -1,0 +1,377 @@
+{
+  "scenarios": [
+    {
+      "name": "dashboard-overview",
+      "description": "Show the loaded dashboard and slowly scroll through the overview.",
+      "category": "fleet-visibility",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["overview", "marketing", "tutorial"],
+      "route": "/dashboard",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "action", "action": "pause", "ms": 1200 },
+        { "type": "action", "action": "scroll", "pixels": 450 },
+        { "type": "action", "action": "pause", "ms": 800 },
+        { "type": "action", "action": "scroll", "pixels": 550 },
+        { "type": "action", "action": "pause", "ms": 800 },
+        { "type": "action", "action": "scrollToBottom" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "dashboard",
+      "description": "Backward-compatible alias for dashboard-overview.",
+      "category": "fleet-visibility",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["alias"],
+      "route": "/dashboard",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "action", "action": "scroll", "pixels": 400 },
+        { "type": "action", "action": "scroll", "pixels": 500 },
+        { "type": "action", "action": "scroll", "pixels": 600 },
+        { "type": "action", "action": "scrollToBottom" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "fleet-map-locate-equipment",
+      "description": "Open fleet map, pan lightly, open equipment panel, and focus a record.",
+      "category": "fleet-visibility",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["map", "dispatch", "marketing"],
+      "route": "/dashboard/fleet-map",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "action", "action": "pause", "ms": 1500 },
+        { "type": "playwright", "command": "playwright-cli mousewheel 0 250" },
+        { "type": "action", "action": "clickByText", "text": "Equipment|Show Panel|Hide Panel", "selector": "button" },
+        { "type": "action", "action": "pause", "ms": 900 },
+        { "type": "action", "action": "clickSelector", "selector": "[data-testid*=equipment], [role=button][data-equipment-id], button[aria-label*='Open inventory item'], button" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "fleet-map",
+      "description": "Backward-compatible alias for fleet-map-locate-equipment.",
+      "category": "fleet-visibility",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["alias"],
+      "route": "/dashboard/fleet-map",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "playwright", "command": "playwright-cli mousewheel 0 300" },
+        { "type": "action", "action": "clickByText", "text": "Equipment|Show Panel|Hide Panel", "selector": "button" },
+        { "type": "action", "action": "clickSelector", "selector": "[data-testid*=equipment], [role=button][data-equipment-id], button" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "equipment-browse-filter-detail",
+      "description": "Browse equipment list, scroll, and open an equipment detail record.",
+      "category": "equipment",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["equipment", "tutorial", "ops"],
+      "route": "/dashboard/equipment",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "action", "action": "scroll", "pixels": 650 },
+        { "type": "action", "action": "pause", "ms": 700 },
+        { "type": "action", "action": "openFirst", "selector": "a[href*='/dashboard/equipment/'], tr[role=button], [aria-label*='Open equipment']" },
+        { "type": "action", "action": "pause", "ms": 900 },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "equipment-list",
+      "description": "Backward-compatible alias for equipment list browsing.",
+      "category": "equipment",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["alias"],
+      "route": "/dashboard/equipment",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "action", "action": "scroll", "pixels": 700 },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "create-new-equipment-record",
+      "description": "Create new equipment and add custom attributes.",
+      "category": "equipment",
+      "audience": "tutorial",
+      "viewport": "desktop",
+      "tags": ["create", "equipment", "form"],
+      "route": "/dashboard/equipment",
+      "steps": [
+        { "type": "action", "action": "clickByText", "text": "Add Equipment|Create New Equipment", "selector": "button" },
+        { "type": "action", "action": "fill", "selector": "input[name=name], input[id*=name], input[placeholder*=name i]", "value": "Demo Equipment" },
+        { "type": "action", "action": "fill", "selector": "input[name=manufacturer], input[id*=manufacturer], input[placeholder*=manufacturer i]", "value": "Caterpillar" },
+        { "type": "action", "action": "fill", "selector": "input[name=model], input[id*=model], input[placeholder*=model i]", "value": "D6T" },
+        { "type": "action", "action": "fill", "selector": "input[name=serial_number], input[id*=serial], input[placeholder*=serial i]", "value": "DEMO-EQ-100" },
+        { "type": "playwright", "command": "playwright-cli eval \"() => { const addAttr = () => Array.from(document.querySelectorAll('button')).find(el => /add attribute/i.test(el.textContent || '')); for (let i = 0; i < 3; i += 1) { const b = addAttr(); if (!b) throw new Error('Add Attribute button not found'); b.click(); } }\"" },
+        { "type": "playwright", "command": "playwright-cli eval \"() => { const keys = Array.from(document.querySelectorAll('input[id^=attr-key-]')); const vals = Array.from(document.querySelectorAll('input[id^=attr-value-]')); ['Asset Tag','Service Zone','Fuel Type'].forEach((k, i) => { if (keys[i]) { keys[i].value = k; keys[i].dispatchEvent(new Event('input', { bubbles: true })); } }); ['EQ-482','North Yard','Diesel'].forEach((v, i) => { if (vals[i]) { vals[i].value = v; vals[i].dispatchEvent(new Event('input', { bubbles: true })); } }); }\"" },
+        { "type": "action", "action": "clickByText", "text": "Create Equipment|Save", "selector": "button" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "work-order-create-from-equipment",
+      "description": "Open equipment detail and create a work order with PM checklist enabled.",
+      "category": "work-orders",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["work-order", "equipment-context", "pm"],
+      "route": "/dashboard/equipment",
+      "steps": [
+        { "type": "action", "action": "openFirst", "selector": "a[href*='/dashboard/equipment/']" },
+        { "type": "action", "action": "clickByText", "text": "Work Orders", "selector": "button,[role=tab]" },
+        { "type": "action", "action": "clickByText", "text": "New Work Order|Create Work Order|Create", "selector": "button" },
+        { "type": "action", "action": "fill", "selector": "input[name=title], input[id*=title], input[placeholder*=title i]", "value": "Demo WO from equipment" },
+        { "type": "action", "action": "fill", "selector": "textarea[name=description], textarea[id*=description], textarea[placeholder*=description i]", "value": "Created by customer-facing demo workflow." },
+        { "type": "playwright", "command": "playwright-cli eval \"() => { const due = document.querySelector('input[type=date], input[name*=due], input[id*=due]'); if (!due) return; const d = new Date(); d.setDate(d.getDate() + 7); const v = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; due.value = v; due.dispatchEvent(new Event('input', { bubbles: true })); due.dispatchEvent(new Event('change', { bubbles: true })); }\"" },
+        { "type": "action", "action": "clickByText", "text": "With PM Checklist", "selector": "button,[role=radio]" },
+        { "type": "action", "action": "clickByText", "text": "Create Work Order|Save|Submit", "selector": "button,[data-testid='submit-button']" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "create-work-order-from-equipment",
+      "description": "Backward-compatible alias for creating a work order from equipment details.",
+      "category": "work-orders",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["alias"],
+      "route": "/dashboard/equipment",
+      "steps": [
+        { "type": "action", "action": "openFirst", "selector": "a[href*='/dashboard/equipment/']" },
+        { "type": "action", "action": "clickByText", "text": "Create Work Order|New Work Order|Create", "selector": "button" },
+        { "type": "action", "action": "fill", "selector": "input[name=title], input[id*=title], input[placeholder*=title i]", "value": "Demo WO from equipment" },
+        { "type": "action", "action": "clickByText", "text": "Create Work Order|Save|Submit", "selector": "button,[data-testid='submit-button']" }
+      ]
+    },
+    {
+      "name": "work-order-lifecycle-basic",
+      "description": "Open work orders and show a lifecycle/status transition surface.",
+      "category": "work-orders",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["lifecycle", "status", "tutorial"],
+      "route": "/dashboard/work-orders",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "action", "action": "clickByText", "text": "Create Work Order", "selector": "button,[aria-label*='create work order' i]" },
+        { "type": "action", "action": "fill", "selector": "input[name=title], input[id*=title], input[placeholder*=title i]", "value": "Lifecycle Demo Work Order" },
+        { "type": "action", "action": "fill", "selector": "textarea[name=description], textarea[id*=description], textarea[placeholder*=description i]", "value": "Demonstrate baseline submitted work order flow." },
+        { "type": "action", "action": "clickByText", "text": "Create Work Order|Save|Submit", "selector": "button,[data-testid='submit-button']" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "pm-checklist-on-work-order",
+      "description": "Highlight PM checklist flow from work order creation with template selection.",
+      "category": "work-orders",
+      "audience": "tutorial",
+      "viewport": "desktop",
+      "tags": ["pm", "checklist", "maintenance"],
+      "route": "/dashboard/work-orders",
+      "steps": [
+        { "type": "action", "action": "clickByText", "text": "Create Work Order", "selector": "button,[aria-label*='create work order' i]" },
+        { "type": "action", "action": "fill", "selector": "input[name=title], input[id*=title], input[placeholder*=title i]", "value": "PM Checklist Demo WO" },
+        { "type": "action", "action": "clickByText", "text": "With PM Checklist", "selector": "button,[role=radio]" },
+        { "type": "playwright", "command": "playwright-cli eval \"() => { const trigger = document.querySelector('[id=pmTemplate], [id*=pmTemplate], [aria-label*=template i]'); if (trigger) { trigger.click(); const option = document.querySelector('[role=option]'); if (option) option.click(); } }\"" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "create-new-work-order-and-equipment-record",
+      "description": "Create work order and inline-create equipment from the work-order form.",
+      "category": "work-orders",
+      "audience": "tutorial",
+      "viewport": "desktop",
+      "tags": ["inline-create", "work-order", "equipment"],
+      "route": "/dashboard/work-orders",
+      "steps": [
+        { "type": "action", "action": "clickByText", "text": "Create Work Order", "selector": "button,[aria-label*='create work order' i]" },
+        { "type": "action", "action": "fill", "selector": "input[name=title], input[id*=title], input[placeholder*=title i]", "value": "Demo WO with inline equipment" },
+        { "type": "action", "action": "fill", "selector": "textarea[name=description], textarea[id*=description], textarea[placeholder*=description i]", "value": "Inline equipment creation demo." },
+        { "type": "action", "action": "clickByText", "text": "Create New", "selector": "button,[role=tab]" },
+        { "type": "action", "action": "fill", "selector": "input[id=manufacturer], input[name=manufacturer]", "value": "Komatsu" },
+        { "type": "action", "action": "fill", "selector": "input[id=model], input[name=model]", "value": "PC210" },
+        { "type": "action", "action": "fill", "selector": "input[id=serial_number], input[name=serial_number]", "value": "INLINE-DEMO-200" },
+        { "type": "action", "action": "clickByText", "text": "Create Equipment", "selector": "button" },
+        { "type": "action", "action": "clickByText", "text": "Create Work Order|Save|Submit", "selector": "button,[data-testid='submit-button']" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "qr-scan-to-equipment-detail",
+      "description": "Open equipment QR modal, capture URL, and navigate to public QR route.",
+      "category": "qr-flows",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["qr", "equipment", "field"],
+      "route": "/dashboard/equipment",
+      "steps": [
+        { "type": "action", "action": "clickSelector", "selector": "button[aria-label*='Show QR code'], button[title*='QR']" },
+        { "type": "action", "action": "copyQrAndNavigate", "pattern": "/qr/equipment/" },
+        { "type": "action", "action": "pause", "ms": 1300 },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "scan-qr",
+      "description": "Backward-compatible alias for equipment QR scan flow.",
+      "category": "qr-flows",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["alias"],
+      "route": "/dashboard/equipment",
+      "steps": [
+        { "type": "action", "action": "clickSelector", "selector": "button[aria-label*='Show QR code'], button[title*='QR']" },
+        { "type": "action", "action": "copyQrAndNavigate", "pattern": "/qr/equipment/" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "qr-scan-to-inventory-item",
+      "description": "Open inventory item QR modal and navigate to the public inventory QR URL.",
+      "category": "qr-flows",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["qr", "inventory", "field"],
+      "route": "/dashboard/inventory",
+      "prerequisites": ["Inventory items seeded"],
+      "steps": [
+        { "type": "action", "action": "openFirst", "selector": "tr[role=button], [aria-label*='Open inventory item'], a[href*='/dashboard/inventory/']" },
+        { "type": "action", "action": "clickByText", "text": "QR Code", "selector": "button,[role=menuitem]" },
+        { "type": "action", "action": "copyQrAndNavigate", "pattern": "/qr/inventory/" },
+        { "type": "action", "action": "pause", "ms": 1000 },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "inventory-low-stock-tour",
+      "description": "Show low-stock and out-of-stock inventory states for customer value demos.",
+      "category": "inventory",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["inventory", "low-stock", "marketing"],
+      "prerequisites": ["Seeded inventory edge cases"],
+      "route": "/dashboard/inventory",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "action", "action": "clickByText", "text": "Low Stock|low stock", "selector": "button,[role=button],label" },
+        { "type": "action", "action": "pause", "ms": 1100 },
+        { "type": "action", "action": "scroll", "pixels": 600 },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "inventory-create-desktop",
+      "description": "Create a new inventory item via desktop add flow.",
+      "category": "inventory",
+      "audience": "tutorial",
+      "viewport": "desktop",
+      "tags": ["inventory", "create", "desktop"],
+      "route": "/dashboard/inventory",
+      "steps": [
+        { "type": "action", "action": "clickByText", "text": "Add Item", "selector": "button" },
+        { "type": "action", "action": "fill", "selector": "input[name=name]", "value": "Demo Inventory Item" },
+        { "type": "action", "action": "fill", "selector": "input[name=sku]", "value": "INV-DEMO-001" },
+        { "type": "action", "action": "fill", "selector": "input[name=quantity_on_hand]", "value": "12" },
+        { "type": "action", "action": "fill", "selector": "input[name=low_stock_threshold]", "value": "3" },
+        { "type": "action", "action": "fill", "selector": "input[name=location]", "value": "Main Shelf A" },
+        { "type": "action", "action": "clickByText", "text": "Create Item", "selector": "button[type='submit'], button" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "inventory-create-mobile",
+      "description": "Create a new inventory item using the mobile FAB flow.",
+      "category": "inventory",
+      "audience": "both",
+      "viewport": "mobile",
+      "tags": ["inventory", "mobile", "field"],
+      "route": "/dashboard/inventory",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "action", "action": "clickSelector", "selector": "button[aria-label='Add inventory item']" },
+        { "type": "action", "action": "fill", "selector": "input[name=name]", "value": "Mobile Demo Inventory Item" },
+        { "type": "action", "action": "fill", "selector": "input[name=sku]", "value": "INV-MOBILE-001" },
+        { "type": "action", "action": "fill", "selector": "input[name=quantity_on_hand]", "value": "5" },
+        { "type": "action", "action": "fill", "selector": "input[name=low_stock_threshold]", "value": "2" },
+        { "type": "action", "action": "clickByText", "text": "Create Item", "selector": "button[type='submit'], button" },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "inventory-quick-adjust",
+      "description": "Use inventory quick actions (Add 1 / Take 1) from the list action menu.",
+      "category": "inventory",
+      "audience": "tutorial",
+      "viewport": "desktop",
+      "tags": ["inventory", "quantity", "adjust"],
+      "route": "/dashboard/inventory",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "action", "action": "clickSelector", "selector": "button[aria-label*='Actions for']" },
+        { "type": "action", "action": "clickByText", "text": "Add 1|Take 1", "selector": "[role=menuitem], button" },
+        { "type": "action", "action": "pause", "ms": 900 },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "part-lookup-alternates",
+      "description": "Search part lookup and show alternate/interchange value.",
+      "category": "inventory",
+      "audience": "both",
+      "viewport": "desktop",
+      "tags": ["parts", "alternates", "marketing"],
+      "prerequisites": ["Part alternate group seed data"],
+      "route": "/dashboard/part-lookup",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "action", "action": "fill", "selector": "input[placeholder*='Search' i], input[type='search'], input[name*='search' i]", "value": "CAT-1R-0750" },
+        { "type": "action", "action": "pause", "ms": 1300 },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "notes-photos-proof-of-work",
+      "description": "Tutorial-depth flow: open work order details and focus notes/proof sections.",
+      "category": "proof-and-reporting",
+      "audience": "tutorial",
+      "viewport": "desktop",
+      "tags": ["notes", "proof", "tutorial"],
+      "route": "/dashboard/work-orders",
+      "steps": [
+        { "type": "action", "action": "openFirst", "selector": "a[href*='/dashboard/work-orders/'], tr[role=button], [role=button][aria-label*='Open work order']" },
+        { "type": "action", "action": "pause", "ms": 1200 },
+        { "type": "action", "action": "scroll", "pixels": 700 },
+        { "type": "action", "action": "snapshot" }
+      ]
+    },
+    {
+      "name": "reports-export-tour",
+      "description": "Tutorial-depth flow: open reports page and preview available report exports.",
+      "category": "proof-and-reporting",
+      "audience": "tutorial",
+      "viewport": "desktop",
+      "tags": ["reports", "exports"],
+      "route": "/dashboard/reports",
+      "steps": [
+        { "type": "action", "action": "snapshot" },
+        { "type": "action", "action": "scroll", "pixels": 450 },
+        { "type": "action", "action": "pause", "ms": 900 },
+        { "type": "action", "action": "snapshot" }
+      ]
+    }
+  ]
+}

@@ -32,6 +32,8 @@
 * **🗺️ Fleet Map**: Interactive location tracking with Google Maps.
 * **👥 Team Management**: Role-based access and team organization.
 * **⚡ Real-time**: Live updates via Supabase Realtime.
+* **🛡️ Privacy Requests (CCPA/CPRA)**: Public `/privacy-request` intake, DSR case workflow, and retention-safe evidence tracking.
+* **🔒 Sensitive PI Controls**: User-level "Limit sensitive personal information" setting respected in scan/location flows.
 
 ## 📚 Documentation
 
@@ -40,7 +42,7 @@ Detailed documentation is located in the [`/docs`](./docs/README.md) directory:
 * **🚀 Getting Started**: [Setup Guide](./docs/technical/setup.md) & [Developer Onboarding](./docs/getting-started/developer-onboarding.md)
 * **🏗️ Architecture**: [System Architecture](./docs/technical/architecture.md) & [Database Schema](./docs/technical/architecture.md#database-schema)
 * **📘 Guides**: [Workflows](./docs/guides/workflows.md) & [Permissions](./docs/guides/permissions.md)
-* **⚙️ Operations**: [Deployment](./docs/ops/deployment.md), [Migrations](./docs/ops/migrations.md), [Local Supabase Development](./docs/ops/local-supabase-development.md) & [Disaster Recovery](./docs/ops/disaster-recovery.md)
+* **⚙️ Operations**: [Deployment](./docs/ops/deployment.md), [Migrations](./docs/ops/migrations.md), [Local Supabase Development](./docs/ops/local-supabase-development.md), [DSR Compliance Runbook](./docs/ops/dsr-compliance-runbook.md) & [Disaster Recovery](./docs/ops/disaster-recovery.md)
 
 ## ✅ Prerequisites (Accounts & Services)
 
@@ -58,6 +60,7 @@ EquipQR uses external services. For exact environment variables and where they�
 * **QuickBooks Online**: Intuit developer app + OAuth credentials (feature-flagged).
 * **Google Maps**: Fleet Map feature.
 * **hCaptcha**: Bot protection on signup.
+* **hCaptcha (privacy requests)**: Bot protection for `/privacy-request` when `VITE_HCAPTCHA_SITEKEY` and `HCAPTCHA_SECRET_KEY` are configured.
 * **Web Push**: VAPID keys for push notifications.
 
 ## 🛠️ Quick Start
@@ -92,6 +95,16 @@ EquipQR uses external services. For exact environment variables and where they�
     ```powershell
     .\dev-start.bat
     ```
+
+### Git Worktrees (Cursor-friendly)
+
+When working from a git worktree, copy env files from your canonical checkout:
+
+```powershell
+.\scripts\bootstrap-worktree-env.ps1 -SourcePath "<canonical-repo-path>"
+```
+
+Add `-InstallDependencies` to run `npm ci` as part of bootstrap.
 
 ## 🧪 Testing
 

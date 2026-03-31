@@ -297,3 +297,27 @@ If you encounter old tests that:
 - Assert on hook return shapes
 
 Consider whether they provide value. If the behavior is user-facing, rewrite as a journey. If it's a pure utility, keep as a unit test. Otherwise, remove.
+
+## DSR Cockpit Required Coverage
+
+The US compliance wedge introduces mandatory guardrail tests:
+
+- `supabase/functions/manage-dsr-request/manage-dsr-request.deno.test.ts`
+  - validates lifecycle helper behavior and mutation/read action boundaries
+- `supabase/tests/07_dsr_cockpit_behavior.sql`
+  - validates schema/policy/index contracts for tenant-scoped DSR operations
+- `src/tests/e2e/dsr-cockpit.spec.ts`
+  - validates queue/case/export API flow behavior from the web app boundary
+
+### Compliance Regression Gate
+
+Before promoting cockpit changes, run:
+
+```bash
+npm run test -- src/tests/integration/AppRoutes.test.tsx
+npm run test -- src/tests/e2e/dsr-cockpit.spec.ts
+deno test --allow-env --allow-net supabase/functions/manage-dsr-request/manage-dsr-request.deno.test.ts
+npm run test:db
+```
+
+The release gate fails if any DSR tenant-isolation, lifecycle-concurrency, or export-state contract test fails.

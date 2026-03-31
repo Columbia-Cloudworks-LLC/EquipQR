@@ -361,7 +361,7 @@ const PMTemplatesFeature = () => {
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
-                  <Link to="/landing#features">
+                  <Link to="/#features">
                     Explore More Features
                   </Link>
                 </Button>

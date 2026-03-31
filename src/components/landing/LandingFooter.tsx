@@ -50,6 +50,7 @@ const footerSections: FooterSection[] = [
     links: [
       { href: '/terms-of-service', label: 'Terms', type: 'route' },
       { href: '/privacy-policy', label: 'Privacy', type: 'route' },
+      { href: '/privacy-request', label: 'Do Not Sell or Share', type: 'route' },
     ],
   },
   {

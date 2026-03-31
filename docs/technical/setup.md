@@ -258,6 +258,28 @@ npm run build
    git push origin feature/your-feature-name
    ```
 
+#### Git worktrees and Cursor
+
+A [git worktree](https://git-scm.com/docs/git-worktree) is a second checkout of the same repository. Cursor may create worktrees under a path like `%USERPROFILE%\.cursor\worktrees\...`. Those folders get **tracked** files only: ignored secrets (`.env`, `.env.local`, `supabase/functions/.env`) and `node_modules` are **not** copied. Worktrees also often do not have your 1Password-authenticated environment available by default.
+
+**Workflow:** Keep one canonical clone (for example `C:\Users\viral\EquipQR`) where you run `.\dev-start.bat` so env files exist on disk. In any other worktree, bootstrap once:
+
+```powershell
+# From inside the worktree (any subfolder is fine if git sees the repo)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-worktree-env.ps1 -InstallDeps
+```
+
+The script picks a source checkout automatically: another worktree of this repo that already has `.env`, preferring a path **not** under `.cursor\worktrees`. You can pin the source explicitly:
+
+```powershell
+$env:EQUIPQR_MAIN_REPO = "C:\Users\viral\EquipQR"   # optional persistent default
+.\scripts\bootstrap-worktree-env.ps1 -SourceRoot "C:\Users\viral\EquipQR" -InstallDeps
+```
+
+Use `-UseHardLink` if you want the worktree to share the same files as the source (same drive; edits apply to both). Otherwise the default is **copy**.
+
+**Dev server:** `dev-start.bat` uses fixed ports (for example Vite on `8080`). Only one checkout should own the live stack at a time; stop the other with `.\dev-stop.bat` before starting in a different worktree.
+
 ## Project Structure Deep Dive
 
 ```

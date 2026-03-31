@@ -48,9 +48,18 @@ const HeroSection = () => {
   const [scrollSnaps, setScrollSnaps] = useState(heroSlideIndices);
 
   const syncCarouselState = useCallback((api: CarouselApi) => {
-    setActiveSlideIndex(api.selectedScrollSnap());
-    const nextScrollSnaps = api.scrollSnapList();
-    setScrollSnaps(nextScrollSnaps.length > 0 ? nextScrollSnaps : heroSlideIndices);
+    const updateState = () => {
+      setActiveSlideIndex(api.selectedScrollSnap());
+      const nextScrollSnaps = api.scrollSnapList();
+      setScrollSnaps(nextScrollSnaps.length > 0 ? nextScrollSnaps : heroSlideIndices);
+    };
+
+    if (typeof window === 'undefined') {
+      updateState();
+      return;
+    }
+
+    window.requestAnimationFrame(updateState);
   }, []);
 
   useEffect(() => {
@@ -59,11 +68,11 @@ const HeroSection = () => {
     }
 
     syncCarouselState(carouselApi);
-    carouselApi.on('select', syncCarouselState);
+    carouselApi.on('settle', syncCarouselState);
     carouselApi.on('reInit', syncCarouselState);
 
     return () => {
-      carouselApi.off('select', syncCarouselState);
+      carouselApi.off('settle', syncCarouselState);
       carouselApi.off('reInit', syncCarouselState);
     };
   }, [carouselApi, syncCarouselState]);
@@ -108,7 +117,7 @@ const HeroSection = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <Button asChild size="lg" className="w-full text-lg px-8 py-6 shadow-lg shadow-primary/20 sm:w-auto">
               <Link to="/auth?tab=signup" className="inline-flex w-full items-center justify-center gap-2 text-center break-words">
-                Start Tracking Free — No Credit Card
+                Get Started Free
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>
@@ -156,6 +165,9 @@ const HeroSection = () => {
                             alt={slide.imageAlt}
                             className="h-[34vh] w-full object-cover object-top sm:h-[38vh] md:h-[24rem]"
                             loading={index === 0 ? 'eager' : 'lazy'}
+                            decoding="async"
+                            fetchPriority={index === 0 ? 'high' : 'low'}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1024px"
                           />
                         </div>
                         <figcaption className="flex flex-col justify-between rounded-[1.25rem] border border-primary/15 bg-background/90 p-5 text-left">

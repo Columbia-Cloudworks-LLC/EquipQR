@@ -71,6 +71,13 @@ export default function LegalFooter() {
             >
               Privacy
             </Link>
+            <span className="text-muted-foreground/40">&middot;</span>
+            <Link
+              to="/privacy-request"
+              className="text-muted-foreground/70 hover:text-foreground transition-colors"
+            >
+              Do Not Sell
+            </Link>
             <span className="text-muted-foreground/40">·</span>
             <ExternalLink
               href="https://status.equipqr.app"

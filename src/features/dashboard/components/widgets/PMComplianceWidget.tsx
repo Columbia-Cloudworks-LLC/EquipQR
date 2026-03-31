@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from 'recharts';
 import { ClipboardCheck, AlertTriangle, CheckCircle, Clock, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import EmptyState from '@/components/ui/empty-state';
@@ -128,15 +128,14 @@ const PMComplianceWidget: React.FC = () => {
           <div aria-label="Preventive maintenance compliance distribution chart">
             <div className="flex items-center justify-center">
               <div className="flex items-center gap-6">
-                <div className="flex-shrink-0">
-                  <ResponsiveContainer width={160} height={160}>
-                    <PieChart>
+                <div className="h-40 w-40 flex-shrink-0">
+                    <PieChart width={160} height={160}>
                       <Pie
                         data={data}
                         dataKey="count"
                         nameKey="label"
-                        cx="50%"
-                        cy="50%"
+                        cx={80}
+                        cy={80}
                         innerRadius={48}
                         outerRadius={70}
                         paddingAngle={2}
@@ -156,7 +155,6 @@ const PMComplianceWidget: React.FC = () => {
                       </Pie>
                       <RechartsTooltip content={tooltipContent} />
                     </PieChart>
-                  </ResponsiveContainer>
                 </div>
                 <div className="min-w-0 w-44 space-y-1.5">
                   {data.map((entry) => {

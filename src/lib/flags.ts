@@ -77,6 +77,15 @@ export const OFFLINE_QUEUE_ENABLED = import.meta.env.VITE_ENABLE_OFFLINE_QUEUE =
 export const PM_INTERVALS_ENABLED = import.meta.env.VITE_ENABLE_PM_INTERVALS !== 'false';
 
 /**
+ * Controls whether the DSR cockpit workspace is enabled.
+ * When enabled, org admins/owners can access the compliance cockpit route.
+ *
+ * Set via environment variable: VITE_ENABLE_DSR_COCKPIT
+ * Defaults to false (disabled) unless explicitly set to 'true'.
+ */
+export const DSR_COCKPIT_ENABLED = import.meta.env.VITE_ENABLE_DSR_COCKPIT === 'true';
+
+/**
  * Feature flag accessor utility
  */
 export const FeatureFlags = {
@@ -107,6 +116,10 @@ export const FeatureFlags = {
   pmIntervals: {
     enabled: PM_INTERVALS_ENABLED,
     disabled: !PM_INTERVALS_ENABLED
+  },
+  dsrCockpit: {
+    enabled: DSR_COCKPIT_ENABLED,
+    disabled: !DSR_COCKPIT_ENABLED
   }
 } as const;
 
@@ -180,4 +193,12 @@ export function isOfflineQueueEnabled(): boolean {
  */
 export function isPMIntervalsEnabled(): boolean {
   return PM_INTERVALS_ENABLED;
+}
+
+/**
+ * Check if DSR cockpit is enabled
+ * @returns true if cockpit features should be active
+ */
+export function isDSRCockpitEnabled(): boolean {
+  return DSR_COCKPIT_ENABLED;
 }

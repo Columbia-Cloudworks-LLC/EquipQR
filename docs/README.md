@@ -9,6 +9,7 @@ Welcome to the comprehensive documentation for EquipQR™, a modern fleet equipm
 Start here for new developers:
 
 - **[Developer Onboarding](./getting-started/developer-onboarding.md)** - Quick start guide (5-minute setup)
+- **[Development Lifecycle](./getting-started/development-lifecycle.md)** - Cursor plugin-first + preview-first release workflow
 - **[Troubleshooting](./getting-started/troubleshooting.md)** - Comprehensive troubleshooting guide
 
 ### 🔧 Technical Documentation
@@ -44,10 +45,11 @@ Operational documentation for deployment and maintenance:
 ### For New Developers
 1. Start with **[Developer Onboarding](./getting-started/developer-onboarding.md)** - 5-minute quick start
    - Preferred setup path: use 1Password CLI + `.\dev-start.bat` to auto-sync env files
-2. Review [Architecture](./technical/architecture.md) - Understand system design
-3. Read [Standards](./technical/standards.md) - Learn coding standards and UI patterns
-4. See [Setup Guide](./technical/setup.md) for detailed configuration options
-5. Check [Troubleshooting](./getting-started/troubleshooting.md) if you encounter issues
+2. Read **[Development Lifecycle](./getting-started/development-lifecycle.md)** - Understand how work moves from plan to production
+3. Review [Architecture](./technical/architecture.md) - Understand system design
+4. Read [Standards](./technical/standards.md) - Learn coding standards and UI patterns
+5. See [Setup Guide](./technical/setup.md) for detailed configuration options
+6. Check [Troubleshooting](./getting-started/troubleshooting.md) if you encounter issues
 
 ### For System Administrators
 1. **READ FIRST**: [Migrations](./ops/migrations.md) - ⚠️ **CRITICAL** migration rules

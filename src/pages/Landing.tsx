@@ -1,23 +1,27 @@
-import React, { useEffect } from 'react';
-import { PageSEO } from '@/components/seo/PageSEO';
+import React, { Suspense, lazy, useEffect } from 'react';
 import LandingHeader from '@/components/landing/LandingHeader';
 import HeroSection from '@/components/landing/HeroSection';
-import WhyDifferentSection from '@/components/landing/WhyDifferentSection';
-import HowItWorksSection from '@/components/landing/HowItWorksSection';
-import FeaturesSection from '@/components/landing/FeaturesSection';
-import SocialProofSection from '@/components/landing/SocialProofSection';
-import AboutSection from '@/components/landing/AboutSection';
-import PricingSection from '@/components/landing/PricingSection';
-import RoadmapSection from '@/components/landing/RoadmapSection';
-import CTASection from '@/components/landing/CTASection';
 import LandingFooter from '@/components/landing/LandingFooter';
 
-interface LandingProps {
-  /** When true, skip rendering PageSEO (used when embedded in SmartLanding) */
-  skipSEO?: boolean;
+const WhyDifferentSection = lazy(() => import('@/components/landing/WhyDifferentSection'));
+const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
+const FeaturesSection = lazy(() => import('@/components/landing/FeaturesSection'));
+const SocialProofSection = lazy(() => import('@/components/landing/SocialProofSection'));
+const AboutSection = lazy(() => import('@/components/landing/AboutSection'));
+const PricingSection = lazy(() => import('@/components/landing/PricingSection'));
+const RoadmapSection = lazy(() => import('@/components/landing/RoadmapSection'));
+const CTASection = lazy(() => import('@/components/landing/CTASection'));
+
+function BelowFoldFallback() {
+  return (
+    <div
+      className="min-h-[12rem] w-full animate-pulse bg-muted/20"
+      aria-hidden
+    />
+  );
 }
 
-const Landing: React.FC<LandingProps> = ({ skipSEO = false }) => {
+const Landing: React.FC = () => {
   useEffect(() => {
     const rawHash = window.location.hash;
     if (!rawHash) return;
@@ -41,26 +45,20 @@ const Landing: React.FC<LandingProps> = ({ skipSEO = false }) => {
 
   return (
     <>
-      {!skipSEO && (
-        <PageSEO
-          title="EquipQR | Heavy Equipment Repair Work Order Software with QR Tracking"
-          description="Stop losing money to lost work orders. EquipQR gives heavy equipment repair shops secure QR code equipment tracking, team-based access, and one-click QuickBooks work order invoicing."
-          path="/landing"
-          keywords="heavy equipment repair work order software, QR code equipment tracking, QuickBooks work order integration, equipment maintenance software, shop work order management"
-        />
-      )}
       <div className="min-h-screen bg-background">
         <LandingHeader />
         <main id="main-content">
           <HeroSection />
-          <WhyDifferentSection />
-          <HowItWorksSection />
-          <FeaturesSection id="features" />
-          <AboutSection id="about" />
-          <SocialProofSection />
-          <PricingSection />
-          <RoadmapSection />
-          <CTASection />
+          <Suspense fallback={<BelowFoldFallback />}>
+            <WhyDifferentSection />
+            <HowItWorksSection />
+            <FeaturesSection id="features" />
+            <AboutSection id="about" />
+            <SocialProofSection />
+            <PricingSection />
+            <RoadmapSection />
+            <CTASection />
+          </Suspense>
         </main>
         <LandingFooter />
       </div>

@@ -55,6 +55,10 @@ vi.mock('@/components/settings/EmailPrivacySettings', () => ({
   EmailPrivacySettings: () => <div data-testid="email-privacy-settings">Email Privacy Settings</div>
 }));
 
+vi.mock('@/components/settings/SensitivePrivacySettings', () => ({
+  SensitivePrivacySettings: () => <div data-testid="sensitive-privacy-settings">Sensitive Privacy Settings</div>
+}));
+
 vi.mock('@/components/security/SecurityStatus', () => ({
   SecurityStatus: () => <div data-testid="security-status">Security Status</div>
 }));
@@ -114,6 +118,18 @@ describe('Settings Page', () => {
       render(<Settings />);
 
       expect(screen.getByTestId('session-status')).toBeInTheDocument();
+    });
+
+    it('renders sensitive privacy settings section', () => {
+      render(<Settings />);
+      expect(screen.getByTestId('sensitive-privacy-settings')).toBeInTheDocument();
+    });
+
+    it('renders privacy rights card with links', () => {
+      render(<Settings />);
+      expect(screen.getByText('Privacy Rights')).toBeInTheDocument();
+      expect(screen.getByText('Submit Privacy Request')).toBeInTheDocument();
+      expect(screen.getByText('View Privacy Policy')).toBeInTheDocument();
     });
   });
 

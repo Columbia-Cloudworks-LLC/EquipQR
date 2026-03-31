@@ -58,7 +58,18 @@ vi.mock('@/components/landing/SmartLanding', () => ({ default: () => <div data-t
 vi.mock('@/pages/Auth', () => ({ default: () => <div data-testid="auth-page">Auth</div> }));
 vi.mock('@/pages/TermsOfService', () => ({ default: () => <div data-testid="terms-page">Terms</div> }));
 vi.mock('@/pages/PrivacyPolicy', () => ({ default: () => <div data-testid="privacy-page">Privacy</div> }));
+vi.mock('@/pages/PrivacyRequest', () => ({ default: () => <div data-testid="privacy-request-page">Privacy Request</div> }));
+vi.mock('@/pages/dsr/CockpitPage', () => ({ default: () => <div data-testid="dsr-cockpit-page">DSR Cockpit</div> }));
+vi.mock('@/pages/dsr/CasePage', () => ({ default: () => <div data-testid="dsr-case-page">DSR Case</div> }));
 vi.mock('@/components/layout/AppSidebar', () => ({ default: () => <div data-testid="app-sidebar">Sidebar</div> }));
+vi.mock('@/lib/flags', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/flags')>();
+  return {
+    ...actual,
+    OFFLINE_QUEUE_ENABLED: false,
+    DSR_COCKPIT_ENABLED: true,
+  };
+});
 
 // Mock contexts
 vi.mock('@/contexts/TeamContext', () => ({
@@ -137,7 +148,18 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    Navigate: ({ to }: { to: string }) => <div data-testid="navigate-to">Navigating to {to}</div>,
+    Navigate: ({
+      to,
+    }: {
+      to: string | { pathname: string; hash?: string; search?: string };
+    }) => (
+      <div data-testid="navigate-to">
+        Navigating to{' '}
+        {typeof to === 'string'
+          ? to
+          : `${to.pathname}${to.search ?? ''}${to.hash ?? ''}`}
+      </div>
+    ),
     useParams: () => ({ equipmentId: 'test-equipment', workOrderId: 'test-work-order' }),
     BrowserRouter: ({ children }: { children: React.ReactNode }) => <div data-testid="browser-router">{children}</div>
   };
@@ -168,6 +190,11 @@ describe('App', () => {
     expect(await screen.findByTestId('landing-page')).toBeInTheDocument();
   });
 
+  it('redirects legacy /landing to canonical / with hash preserved', () => {
+    renderApp(['/landing#pricing']);
+    expect(screen.getByTestId('navigate-to')).toHaveTextContent('Navigating to /#pricing');
+  });
+
   it('renders auth page for /auth path', async () => {
     renderApp(['/auth']);
     expect(await screen.findByTestId('auth-page')).toBeInTheDocument();
@@ -186,6 +213,11 @@ describe('App', () => {
   it('renders privacy page for /privacy-policy path', async () => {
     renderApp(['/privacy-policy']);
     expect(await screen.findByTestId('privacy-page')).toBeInTheDocument();
+  });
+
+  it('renders privacy request page for /privacy-request path', async () => {
+    renderApp(['/privacy-request']);
+    expect(await screen.findByTestId('privacy-request-page')).toBeInTheDocument();
   });
 
   it('contains app providers', () => {
@@ -210,5 +242,10 @@ describe('App', () => {
   it('renders TopBar component on dashboard route', async () => {
     renderApp(['/dashboard']);
     expect(await screen.findByTestId('top-bar')).toBeInTheDocument();
+  });
+
+  it('renders DSR cockpit route when feature is enabled', async () => {
+    renderApp(['/dashboard/dsr']);
+    expect(await screen.findByTestId('dsr-cockpit-page')).toBeInTheDocument();
   });
 });

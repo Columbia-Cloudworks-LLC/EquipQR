@@ -375,3 +375,28 @@ FOR INSERT, UPDATE, DELETE USING (
 - Implement advanced audit logging
 
 This documentation serves as the foundation for implementing a robust, secure, and scalable permission system in EquipQR™.
+
+## DSR Cockpit Permissions (Phase One)
+
+### Route and Action Policy
+
+| Capability | Owner | Admin | Member |
+|------------|-------|-------|--------|
+| View DSR queue (`/dashboard/dsr`) | ✅ | ✅ | ❌ |
+| Open DSR case (`/dashboard/dsr/:requestId`) | ✅ | ✅ | ❌ |
+| Apply lifecycle actions (`verify`, `deny`, `extend`, `complete`) | ✅ | ✅ | ❌ |
+| Trigger evidence export (`request_export`, `retry_export`) | ✅ | ✅ | ❌ |
+| Resend consumer notices (`resend_notice`) | ✅ | ✅ | ❌ |
+
+### Tenant Isolation Rules
+
+- DSR cases are scoped by `dsr_requests.organization_id`.
+- Access checks are enforced at both edge-function and database-policy boundaries.
+- Requests outside actor org are returned as `404` (masked cross-org semantics).
+- Role denial inside the same org is returned as `403`.
+
+### Explicit Defaults
+
+- Members are denied by default in phase one.
+- No non-admin operator role is enabled in this release.
+- Any future role expansion must update this document and corresponding RLS + edge-function checks in the same PR.
