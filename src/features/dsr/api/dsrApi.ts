@@ -73,6 +73,7 @@ export async function fetchDsrCase(organizationId: string, dsrRequestId: string)
 }
 
 export async function mutateDsrRequest(
+  organizationId: string,
   dsrRequestId: string,
   action:
     | 'verify'
@@ -90,6 +91,7 @@ export async function mutateDsrRequest(
   payload: Record<string, unknown> = {},
 ): Promise<DsrRequest> {
   const data = await invokeManageDsr({
+    organizationId,
     dsrRequestId,
     action,
     expected_updated_at: expectedUpdatedAt,

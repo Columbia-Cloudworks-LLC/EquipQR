@@ -47,12 +47,13 @@ describe('dsr cockpit api flow', () => {
       error: null,
     });
 
-    const updated = await mutateDsrRequest('r1', 'complete', '2026-01-01T00:00:00.000Z');
+    const updated = await mutateDsrRequest('org-1', 'r1', 'complete', '2026-01-01T00:00:00.000Z');
     expect(updated.status).toBe('completed');
     expect(invokeMock).toHaveBeenCalledWith(
       'manage-dsr-request',
       expect.objectContaining({
         body: expect.objectContaining({
+          organizationId: 'org-1',
           dsrRequestId: 'r1',
           action: 'complete',
           expected_updated_at: '2026-01-01T00:00:00.000Z',

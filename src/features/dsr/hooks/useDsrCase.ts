@@ -32,7 +32,7 @@ export function useDsrMutation(organizationId: string | null, dsrRequestId: stri
         | 'resend_notice';
       expectedUpdatedAt: string;
       payload?: Record<string, unknown>;
-    }) => mutateDsrRequest(dsrRequestId as string, action, expectedUpdatedAt, payload),
+    }) => mutateDsrRequest(organizationId as string, dsrRequestId as string, action, expectedUpdatedAt, payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['dsr', 'queue', organizationId] });
       await queryClient.invalidateQueries({ queryKey: ['dsr', 'case', organizationId, dsrRequestId] });

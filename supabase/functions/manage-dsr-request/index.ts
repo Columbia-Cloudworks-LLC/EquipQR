@@ -114,6 +114,7 @@ async function logEvent(
 async function updateWithConcurrency(
   admin: ReturnType<typeof createAdminSupabaseClient>,
   dsrRequestId: string,
+  organizationId: string,
   expectedUpdatedAt: string,
   patch: Record<string, unknown>,
 ): Promise<{ ok: boolean; conflict: boolean; error: string | null }> {
@@ -125,6 +126,7 @@ async function updateWithConcurrency(
       updated_at: nextUpdatedAt,
     })
     .eq("id", dsrRequestId)
+    .eq("organization_id", organizationId)
     .eq("updated_at", expectedUpdatedAt)
     .select("id")
     .maybeSingle();
@@ -143,11 +145,13 @@ async function updateWithConcurrency(
 async function fetchRequest(
   admin: ReturnType<typeof createAdminSupabaseClient>,
   dsrRequestId: string,
+  organizationId: string,
 ): Promise<DsrRequestRow | null> {
   const { data, error } = await admin
     .from("dsr_requests")
     .select("*")
     .eq("id", dsrRequestId)
+    .eq("organization_id", organizationId)
     .maybeSingle();
 
   if (error || !data) {
@@ -303,8 +307,8 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
         return createErrorResponse("Missing required field: dsrRequestId", 400);
       }
 
-      const request = await fetchRequest(admin, dsrRequestId);
-      if (!request || request.organization_id !== organizationId) {
+      const request = await fetchRequest(admin, dsrRequestId, organizationId);
+      if (!request) {
         return createErrorResponse("Not found", 404);
       }
 
@@ -331,16 +335,19 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
     if (!dsrRequestId || typeof dsrRequestId !== "string") {
       return createErrorResponse("Missing required field: dsrRequestId", 400);
     }
+    if (!organizationId || typeof organizationId !== "string") {
+      return createErrorResponse("organizationId is required", 400);
+    }
     if (!expected_updated_at || typeof expected_updated_at !== "string") {
       return createErrorResponse("expected_updated_at is required", 400);
     }
 
-    const dsr = await fetchRequest(admin, dsrRequestId);
+    const dsr = await fetchRequest(admin, dsrRequestId, organizationId);
     if (!dsr || !dsr.organization_id) {
       return createErrorResponse("Not found", 404);
     }
 
-    const role = await getOrgRole(admin, user.id, dsr.organization_id);
+    const role = await getOrgRole(admin, user.id, organizationId);
     if (!role) {
       return createErrorResponse("Not found", 404);
     }
@@ -367,7 +374,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
           summary: "Identity verification completed",
         };
 
-        const result = await updateWithConcurrency(admin, dsrRequestId, expected_updated_at, {
+        const result = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {
           status: "processing",
           verification_method: verificationMethod,
           verified_at: new Date().toISOString(),
@@ -397,7 +404,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
           return createErrorResponse("Denial reason is required", 400);
         }
 
-        const result = await updateWithConcurrency(admin, dsrRequestId, expected_updated_at, {
+        const result = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {
           status: "denied",
           denial_reason: reason.trim(),
           completed_at: new Date().toISOString(),
@@ -420,7 +427,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
 
         const receivedAt = new Date(dsr.received_at);
         const maxExtension = new Date(receivedAt.getTime() + 90 * 24 * 60 * 60 * 1000);
-        const result = await updateWithConcurrency(admin, dsrRequestId, expected_updated_at, {
+        const result = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {
           extension_reason: reason.trim(),
           extended_due_at: maxExtension.toISOString(),
         });
@@ -445,7 +452,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
           return createErrorResponse("Request must be verified before processing", 400);
         }
 
-        const result = await updateWithConcurrency(admin, dsrRequestId, expected_updated_at, {
+        const result = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {
           status: "processing",
         });
         if (result.conflict) return createErrorResponse("Conflict", 409);
@@ -470,7 +477,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
           summary: summary.trim(),
         };
 
-        const touch = await updateWithConcurrency(admin, dsrRequestId, expected_updated_at, {
+        const touch = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {
           checklist_progress: progress,
         });
         if (touch.conflict) return createErrorResponse("Conflict", 409);
@@ -523,7 +530,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
           summary: "Deletion fulfillment executed",
         };
 
-        const complete = await updateWithConcurrency(admin, dsrRequestId, expected_updated_at, {
+        const complete = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {
           status: "completed",
           completed_at: new Date().toISOString(),
           completed_by: user.id,
@@ -532,7 +539,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
         if (complete.conflict) return createErrorResponse("Conflict", 409);
         if (!complete.ok) return createErrorResponse("Fulfillment succeeded but completion update failed", 500);
 
-        const finalState = await fetchRequest(admin, dsrRequestId);
+        const finalState = await fetchRequest(admin, dsrRequestId, organizationId);
         return createJsonResponse({
           success: true,
           action: typedAction,
@@ -549,7 +556,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
           return createErrorResponse("Required checklist steps are incomplete", 400);
         }
 
-        const result = await updateWithConcurrency(admin, dsrRequestId, expected_updated_at, {
+        const result = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {
           status: "completed",
           completed_at: new Date().toISOString(),
           completed_by: user.id,
@@ -566,7 +573,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
           return createErrorResponse("Note text is required", 400);
         }
 
-        const touch = await updateWithConcurrency(admin, dsrRequestId, expected_updated_at, {});
+        const touch = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {});
         if (touch.conflict) return createErrorResponse("Conflict", 409);
         if (!touch.ok) return createErrorResponse("Failed to add note", 500);
 
@@ -602,7 +609,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
           last_error: simulateFailure ? "Export generation failed" : null,
         };
 
-        const result = await updateWithConcurrency(admin, dsrRequestId, expected_updated_at, {
+        const result = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {
           export_artifacts: metadata,
         });
         if (result.conflict) return createErrorResponse("Conflict", 409);
@@ -649,7 +656,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
           last_error: null,
         };
 
-        const result = await updateWithConcurrency(admin, dsrRequestId, expected_updated_at, {
+        const result = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {
           export_artifacts: metadata,
         });
         if (result.conflict) return createErrorResponse("Conflict", 409);
@@ -672,7 +679,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
         if (!NOTICE_ACTIONS.includes(noticeAction)) {
           return createErrorResponse("Invalid notice action", 400);
         }
-        const result = await updateWithConcurrency(admin, dsrRequestId, expected_updated_at, {});
+        const result = await updateWithConcurrency(admin, dsrRequestId, organizationId, expected_updated_at, {});
         if (result.conflict) return createErrorResponse("Conflict", 409);
         if (!result.ok) return createErrorResponse("Failed to resend notice", 500);
 
@@ -681,7 +688,7 @@ export async function handleManageDsrRequest(req: Request): Promise<Response> {
       }
     }
 
-    const updated = await fetchRequest(admin, dsrRequestId);
+    const updated = await fetchRequest(admin, dsrRequestId, organizationId);
     return createJsonResponse({
       success: true,
       action: typedAction,
