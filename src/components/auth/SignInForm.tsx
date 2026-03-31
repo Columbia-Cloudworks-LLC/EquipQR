@@ -60,7 +60,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
 
       setErrors(null);
 
-      const { error } = await signIn(emailTrimmed, formData.password);
+      const { error } = await signIn(emailTrimmed, passwordTrimmed);
       
       if (error) {
         const msg =
