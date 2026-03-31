@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface DsrLifecycleActionsProps {
+  canManageDsr: boolean;
   isProcessing: boolean;
   onStartProcessing: () => void;
   onComplete: () => void;
@@ -11,6 +12,7 @@ interface DsrLifecycleActionsProps {
 }
 
 export function DsrLifecycleActions({
+  canManageDsr,
   isProcessing,
   onStartProcessing,
   onComplete,
@@ -19,6 +21,10 @@ export function DsrLifecycleActions({
 }: DsrLifecycleActionsProps) {
   const [denyReason, setDenyReason] = useState('');
   const [extendReason, setExtendReason] = useState('');
+
+  if (!canManageDsr) {
+    return null;
+  }
 
   return (
     <div className="space-y-3 rounded-md border p-3">

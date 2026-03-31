@@ -4,13 +4,16 @@ import Page from '@/components/layout/Page';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useDsrQueue } from '@/features/dsr/hooks/useDsrQueue';
 import { DsrQueueRail } from '@/features/dsr/components/DsrQueueRail';
 
 function DSRCockpitPage() {
   const { currentOrganization } = useOrganization();
-  const isAdmin = currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
-  const queueQuery = useDsrQueue(currentOrganization?.id ?? null);
+  const { canManageOrganization } = usePermissions();
+  const canManageDsr = canManageOrganization();
+  const organizationId = canManageDsr ? currentOrganization?.id ?? null : null;
+  const queueQuery = useDsrQueue(organizationId);
 
   if (!currentOrganization) {
     return (
@@ -24,7 +27,7 @@ function DSRCockpitPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canManageDsr) {
     return (
       <Page maxWidth="7xl" padding="responsive">
         <Alert>
