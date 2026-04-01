@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`scripts/bootstrap-worktree-env.ps1`** — One-shot copy (or optional hard link) of `.env`, `.env.local`, and `supabase/functions/.env` from a canonical checkout into a git/Cursor worktree; optional `npm ci`. Documented under **Git worktrees and Cursor** in `docs/technical/setup.md`.
 
+- **Cursor stop hook for changelog hygiene** — Added project-level `stop` hook wiring in `.cursor/hooks.json` plus `.cursor/hooks/changelog-stop.ps1` so completed agent sessions that change product code without touching `CHANGELOG.md` automatically get a follow-up prompt to add or justify the missing changelog entry. `.cursor/hooks/README.md` documents the new hook.
+
 - **CCPA/CPRA privacy policy (Section 10A)** — California-specific disclosures: categories of personal and sensitive information, sources, business purposes, retention summary, no-sale/no-share, consumer rights, submission via **`/privacy-request`** and **`privacy@equipqr.app`**, verification, authorized agents, and response timing. Policy **Last updated:** March 29, 2026.
 
 - **DSR intake** — Public **`/privacy-request`** form; **`submit-privacy-request`** Edge Function; **`dsr_requests`** table with RLS (`20260329000000_add_dsr_requests_table.sql`). Footers (**Do Not Sell or Share**), Settings **Privacy Rights** card, and route coverage in app integration tests.
@@ -40,6 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Privacy policy SLA alignment** — Section 9 general response timing and Section 14 contact response timing updated from **30 days** to **45 calendar days** to match the California-specific Section 10A standard and avoid conflicting deadlines.
 
 ### Fixed
+
+- **Supabase performance advisor WARN findings** — Eliminated all WARN-level findings for the targeted remediation pass on `equipqr-prod`: consolidated overlapping permissive RLS policies, replaced row-wise `auth.uid()` / `auth.role()` policy calls with `(select ...)` initPlan-safe forms across flagged policies, and removed the duplicate `work_orders` `(organization_id, status)` index. Added pgTAP coverage in `supabase/tests/08_advisor_warn_perf_remediation.sql`.
+
+- **Supabase foreign-key advisor coverage for active tables** — Added covering indexes for the active-table foreign keys flagged by the advisor (including DSR, inventory, parts, QuickBooks OAuth, teams, dashboard preferences, and workspace domains) while keeping cleanup conservative for deprecated billing and legacy part-picker tables.
 
 - **Marketing and app mobile nav sheet accessibility** — Radix `Dialog` (via shadcn `Sheet`) warned about missing title/description. `LandingHeader` mobile menu now includes `SheetTitle` / `SheetDescription` (screen-reader-only). The signed-in mobile sidebar sheet in `sidebar.tsx` adds matching sr-only `SheetTitle` / `SheetDescription`.
 

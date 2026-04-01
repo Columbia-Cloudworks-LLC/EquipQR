@@ -3,7 +3,7 @@
     "supabase": {
       "enabled": true
     },
-    "context7-plugin": {
+    "superpowers": {
       "enabled": true
     }
   }
