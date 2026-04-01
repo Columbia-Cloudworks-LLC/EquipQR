@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Supabase performance advisor INFO findings (unused index reduction)** — Dropped non-FK unused indexes that had zero scans and no remaining structural purpose, while preserving FK-covering indexes that still appear as unused until production traffic exercises them. Added a follow-up `dsr_requests.organization_id` index after the advisor correctly flagged lost FK coverage when the old composite partial index was removed.
 
+- **Retired legacy Stripe billing edge-function surface** — Removed deprecated Stripe billing endpoints and Supabase function config entries (`stripe-license-webhook`, `stripe-webhook`, `purchase-user-licenses`, `create-checkout`, `customer-portal`, and `manage-billing-exemptions`) so runtime behavior matches the dropped billing schema.
+
+- **Retired billing slot compatibility listeners/hooks** — Removed deprecated `organization_slots` realtime subscription and obsolete slot compatibility hooks/query keys so clients no longer subscribe to dropped billing tables.
+
 - **Marketing and app mobile nav sheet accessibility** — Radix `Dialog` (via shadcn `Sheet`) warned about missing title/description. `LandingHeader` mobile menu now includes `SheetTitle` / `SheetDescription` (screen-reader-only). The signed-in mobile sidebar sheet in `sidebar.tsx` adds matching sr-only `SheetTitle` / `SheetDescription`.
 
 - **Dashboard Recharts console noise** — Addressed `ResponsiveContainer` width/height warnings: `StatsCard` sparkline uses an explicit pixel height and `min-w` on the wrapper; `CostTrendWidget` wraps the chart in a fixed-height container with `height="100%"` on the container; `PMComplianceWidget` and `EquipmentByStatusWidget` use fixed-size `PieChart` with numeric `cx`/`cy` instead of `ResponsiveContainer` + percentage centers.

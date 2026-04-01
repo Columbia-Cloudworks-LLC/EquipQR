@@ -80,17 +80,9 @@ Expected: Success (200 OK with geocode data)
 
 ### Test 4: Webhook Signature Validation
 
-For Stripe webhooks, verify signature validation:
+For webhook endpoints, verify signature validation and rejection of invalid signatures.
 
-```bash
-# Invalid signature should fail
-curl -X POST https://<project>.supabase.co/functions/v1/stripe-license-webhook \
-  -H "Content-Type: application/json" \
-  -H "stripe-signature: invalid" \
-  -d '{"type": "test"}'
-```
-
-Expected: `400 Bad Request` or signature validation error
+Expected: `400 Bad Request` (or equivalent auth/signature failure)
 
 ## Automated Tests
 

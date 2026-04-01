@@ -4190,7 +4190,6 @@ export type Database = {
         Args: { user_id_val: string }
         Returns: Json
       }
-      billing_is_disabled: { Args: never; Returns: boolean }
       bulk_set_compatibility_rules: {
         Args: { p_item_id: string; p_organization_id: string; p_rules: Json }
         Returns: number
@@ -5111,16 +5110,6 @@ export type Database = {
           work_order_team_id: string
         }
         Returns: boolean
-      }
-      sync_stripe_subscription_slots: {
-        Args: {
-          org_id: string
-          period_end: string
-          period_start: string
-          quantity: number
-          subscription_id: string
-        }
-        Returns: undefined
       }
       trigger_departure_processing: { Args: never; Returns: Json }
       update_equipment_working_hours: {

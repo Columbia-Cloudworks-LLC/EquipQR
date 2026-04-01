@@ -1,10 +1,11 @@
 /**
- * @deprecated Billing system has been removed. These hooks are kept for backward compatibility
- * but return unlimited/free values since billing is permanently disabled.
+ * Legacy billing compatibility hooks.
+ *
+ * Billing is fully retired, but these exports remain to preserve import
+ * stability in older code paths and tests.
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { organizationBilling } from '@/lib/queryKeys';
 
 export interface OrganizationSlot {
   id: string;
@@ -46,52 +47,36 @@ export interface SlotAvailability {
   current_period_end: string;
 }
 
-/**
- * @deprecated Billing is disabled. Returns empty array.
- */
 export const useOrganizationSlots = (organizationId: string) => {
   return useQuery({
-    queryKey: organizationBilling.slots(organizationId),
-    queryFn: async (): Promise<OrganizationSlot[]> => {
-      return [];
-    },
+    queryKey: ['organization-slots', organizationId],
+    queryFn: async (): Promise<OrganizationSlot[]> => [],
     enabled: !!organizationId,
-    staleTime: Infinity, // Never refetch since billing is disabled
+    staleTime: Infinity,
   });
 };
 
-/**
- * @deprecated Billing is disabled. Returns unlimited slots.
- */
 export const useSlotAvailability = (organizationId: string) => {
   return useQuery({
-    queryKey: organizationBilling.slotAvailability(organizationId),
-    queryFn: async (): Promise<SlotAvailability> => {
-      // Billing is disabled - return unlimited slots
-      return {
-        total_purchased: Infinity,
-        used_slots: 0,
-        available_slots: Infinity,
-        exempted_slots: 0,
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date().toISOString()
-      };
-    },
+    queryKey: ['slot-availability', organizationId],
+    queryFn: async (): Promise<SlotAvailability> => ({
+      total_purchased: Infinity,
+      used_slots: 0,
+      available_slots: Infinity,
+      exempted_slots: 0,
+      current_period_start: new Date().toISOString(),
+      current_period_end: new Date().toISOString(),
+    }),
     enabled: !!organizationId,
-    staleTime: Infinity, // Never refetch since billing is disabled
+    staleTime: Infinity,
   });
 };
 
-/**
- * @deprecated Billing is disabled. Returns empty array.
- */
 export const useSlotPurchases = (organizationId: string) => {
   return useQuery({
-    queryKey: organizationBilling.slotPurchases(organizationId),
-    queryFn: async (): Promise<SlotPurchase[]> => {
-      return [];
-    },
+    queryKey: ['slot-purchases', organizationId],
+    queryFn: async (): Promise<SlotPurchase[]> => [],
     enabled: !!organizationId,
-    staleTime: Infinity, // Never refetch since billing is disabled
+    staleTime: Infinity,
   });
 };

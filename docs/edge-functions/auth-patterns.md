@@ -35,8 +35,6 @@ The following functions are explicitly authorized to use `createAdminSupabaseCli
 
 | Function | Reason | Config |
 |----------|--------|--------|
-| `stripe-license-webhook` | Stripe webhook signature-based auth; no user JWT available | `verify_jwt = false` |
-| `stripe-webhook` | Legacy redirect to stripe-license-webhook | `verify_jwt = false` |
 | `github-issue-webhook` | GitHub webhook HMAC-SHA256 signature auth; syncs issue status and comments to tickets table | `verify_jwt = false` |
 
 ### Cron / Background Jobs
@@ -50,7 +48,6 @@ The following functions are explicitly authorized to use `createAdminSupabaseCli
 | Function | Reason | Config |
 |----------|--------|--------|
 | `list-organizations-admin` | Cross-org admin access; validated via `verifySuperAdminAccess()` | `verify_jwt = true` |
-| `manage-billing-exemptions` | Cross-org billing admin; validated via `verifySuperAdminAccess()` | `verify_jwt = true` |
 
 ### Special Cases (Hybrid)
 
@@ -63,14 +60,11 @@ The following functions are explicitly authorized to use `createAdminSupabaseCli
 
 The following functions use `createUserSupabaseClient()` and rely on RLS:
 
-- `create-checkout` - Creates Stripe checkout sessions
-- `customer-portal` - Creates Stripe billing portal sessions
 - `export-report` - Exports data to CSV
 - `export-work-orders-excel` - Exports work orders to Excel
 - `geocode-location` - Geocodes addresses with caching
 - `import-equipment-csv` - Imports equipment from CSV
 - `part-detail` - Returns part details
-- `purchase-user-licenses` - Creates license checkout sessions
 - `quickbooks-export-invoice` - Exports work orders to QuickBooks
 - `quickbooks-oauth-callback` - Handles OAuth callbacks
 - `quickbooks-search-customers` - Searches QuickBooks customers

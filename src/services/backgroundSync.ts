@@ -100,16 +100,6 @@ export class BackgroundSyncService {
         {
           event: '*',
           schema: 'public',
-          table: 'organization_slots',
-          filter: `organization_id=eq.${organizationId}`
-        },
-        (payload) => this.handleOrganizationSlotChange(organizationId, payload)
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
           table: 'organization_invitations',
           filter: `organization_id=eq.${organizationId}`
         },
@@ -207,16 +197,6 @@ export class BackgroundSyncService {
 
     if (!this.isOnline) {
       this.queueForSync('organization_member', payload);
-    }
-  }
-
-  private handleOrganizationSlotChange(organizationId: string, payload: Record<string, unknown>) {
-    logger.debug('Organization slot change detected', payload);
-    
-    cacheManager.invalidateOrganizationSlotRelated(organizationId);
-
-    if (!this.isOnline) {
-      this.queueForSync('organization_slot', payload);
     }
   }
 

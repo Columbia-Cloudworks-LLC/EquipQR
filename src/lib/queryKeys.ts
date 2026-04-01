@@ -143,13 +143,6 @@ export const organizations = {
   byUser: (userId: string) => ['organizations', userId] as const,
 };
 
-// Billing-related organization keys
-export const organizationBilling = {
-  slots: (orgId: string) => ['organization-slots', orgId] as const,
-  slotAvailability: (orgId: string) => ['slot-availability', orgId] as const,
-  slotPurchases: (orgId: string) => ['slot-purchases', orgId] as const,
-};
-
 // Work-order equipment keys
 export const workOrderEquipment = {
   byWorkOrder: (workOrderId: string) => ['work-order-equipment', workOrderId] as const,
@@ -216,7 +209,6 @@ export const queryKeys = {
   quickBooks,
   googleWorkspace,
   organizations,
-  organizationBilling,
   workOrderEquipment,
   workOrderMetrics,
   equipmentWorkingHours,

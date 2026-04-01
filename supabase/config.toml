@@ -69,15 +69,6 @@ schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
-[functions.purchase-user-licenses]
-verify_jwt = true
-
-[functions.stripe-license-webhook]
-verify_jwt = false
-
-[functions.stripe-webhook]
-verify_jwt = false
-
 [functions.send-invitation-email]
 verify_jwt = true
 
@@ -85,9 +76,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.public-google-maps-key]
-verify_jwt = true
-
-[functions.manage-billing-exemptions]
 verify_jwt = true
 
 [functions.list-organizations-admin]

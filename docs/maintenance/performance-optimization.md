@@ -256,6 +256,6 @@ The `20260114000000_baseline.sql` file includes `CREATE TABLE IF NOT EXISTS` for
 
 ## Conclusion
 
-This optimization addresses all 280+ performance warnings from the Supabase analyzer, providing significant performance improvements while maintaining complete functional and security compatibility. The changes are designed to be safe, reversible, and provide immediate benefits at scale.
+This optimization pass addresses the targeted Supabase advisor findings documented above, with remediation applied in forward-only migrations and accompanying pgTAP checks. The changes are designed to be safe, auditable, and sustainable across future baseline refreshes.
 
 For questions or issues, refer to the troubleshooting section above or consult the database team.
