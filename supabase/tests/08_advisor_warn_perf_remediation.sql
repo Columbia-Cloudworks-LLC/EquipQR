@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(62);
+SELECT plan(57);
 
 -- ============================================================================
 -- 1. Duplicate index: idx_work_orders_org_status should be gone,

@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "🔧 Setting up Billing Exemptions Dashboard..." -ForegroundColor Cyan
+Write-Host "🔧 Billing Exemptions setup helper (legacy)..." -ForegroundColor Cyan
 Write-Host ""
 
 # Super Admin Organization ID (Columbia Cloudworks)
@@ -47,7 +47,6 @@ Write-Host "Option A - Using Supabase CLI (recommended if you have it linked):"
 Write-Host ""
 Write-Host "  npx supabase secrets set SUPER_ADMIN_ORG_ID=$SUPER_ADMIN_ORG_ID" -ForegroundColor Cyan
 Write-Host "  npx supabase functions deploy list-organizations-admin" -ForegroundColor Cyan
-Write-Host "  npx supabase functions deploy manage-billing-exemptions" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Option B - Using Supabase Dashboard:"
 Write-Host ""
@@ -68,7 +67,7 @@ Write-Host "  3. Click 'Add new secret'"
 Write-Host "  4. Name: SUPER_ADMIN_ORG_ID"
 Write-Host "  5. Value: $SUPER_ADMIN_ORG_ID"
 Write-Host "  6. Click 'Save'"
-Write-Host "  7. Redeploy both functions from the Edge Functions page"
+Write-Host "  7. Redeploy list-organizations-admin from the Edge Functions page"
 Write-Host ""
 Write-Host "Would you like to try setting the secret via CLI now? (Y/N): " -NoNewline -ForegroundColor Yellow
 $response = Read-Host
@@ -85,7 +84,6 @@ if ($response -eq 'Y' -or $response -eq 'y') {
         Write-Host "📦 Redeploying edge functions..." -ForegroundColor Cyan
         Set-Location "supabase\functions"
         npx supabase functions deploy list-organizations-admin
-        npx supabase functions deploy manage-billing-exemptions
         Set-Location "..\..\"
         
         Write-Host "✅ Supabase secrets configured and functions redeployed!" -ForegroundColor Green

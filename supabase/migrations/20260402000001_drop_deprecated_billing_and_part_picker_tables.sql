@@ -48,11 +48,6 @@ DROP TABLE IF EXISTS public.stripe_event_logs CASCADE;
 -- The baseline recreated these even though 20251210163000 already dropped them.
 -- =============================================================================
 
-DROP POLICY IF EXISTS distributor_listing_read_auth ON public.distributor_listing;
-DROP POLICY IF EXISTS distributor_read_auth ON public.distributor;
-DROP POLICY IF EXISTS part_identifier_read_auth ON public.part_identifier;
-DROP POLICY IF EXISTS part_read_auth ON public.part;
-
 DROP TABLE IF EXISTS public.distributor_listing CASCADE;
 DROP TABLE IF EXISTS public.distributor CASCADE;
 DROP TABLE IF EXISTS public.part_identifier CASCADE;

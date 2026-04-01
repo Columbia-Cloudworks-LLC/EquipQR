@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🔧 Setting up Billing Exemptions Dashboard..."
+echo "🔧 Billing Exemptions setup helper (legacy)..."
 echo ""
 
 # Super Admin Organization ID (Columbia Cloudworks)
@@ -47,7 +47,6 @@ echo "Option A - Using Supabase CLI (recommended if you have it linked):"
 echo ""
 echo "  npx supabase secrets set SUPER_ADMIN_ORG_ID=$SUPER_ADMIN_ORG_ID"
 echo "  npx supabase functions deploy list-organizations-admin"
-echo "  npx supabase functions deploy manage-billing-exemptions"
 echo ""
 echo "Option B - Using Supabase Dashboard:"
 echo ""
@@ -63,7 +62,7 @@ echo "  3. Click 'Add new secret'"
 echo "  4. Name: SUPER_ADMIN_ORG_ID"
 echo "  5. Value: $SUPER_ADMIN_ORG_ID"
 echo "  6. Click 'Save'"
-echo "  7. Redeploy both functions from the Edge Functions page"
+echo "  7. Redeploy list-organizations-admin from the Edge Functions page"
 echo ""
 echo "Would you like to try setting the secret via CLI now? (y/n)"
 read -r response
@@ -81,7 +80,6 @@ if [[ "$response" =~ ^[Yy]$ ]]; then
         echo "📦 Redeploying edge functions..."
         cd supabase/functions
         npx supabase functions deploy list-organizations-admin
-        npx supabase functions deploy manage-billing-exemptions
         cd ../..
         
         echo "✅ Supabase secrets configured and functions redeployed!"
