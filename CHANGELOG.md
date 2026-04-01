@@ -47,6 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Supabase foreign-key advisor coverage for active tables** — Added covering indexes for the active-table foreign keys flagged by the advisor (including DSR, inventory, parts, QuickBooks OAuth, teams, dashboard preferences, and workspace domains) while keeping cleanup conservative for deprecated billing and legacy part-picker tables.
 
+- **Supabase performance advisor INFO findings (deprecated schema cleanup)** — Removed deprecated billing tables and resurrected legacy global part-picker tables that were still generating advisor noise on `equipqr-prod`, including stale `slot_purchases` backreferences from `organization_invitations` and `organization_members`. Added forward-only cleanup migrations and baseline-squash guidance so future baselines do not recreate dropped schema.
+
+- **Supabase performance advisor INFO findings (unused index reduction)** — Dropped non-FK unused indexes that had zero scans and no remaining structural purpose, while preserving FK-covering indexes that still appear as unused until production traffic exercises them. Added a follow-up `dsr_requests.organization_id` index after the advisor correctly flagged lost FK coverage when the old composite partial index was removed.
+
 - **Marketing and app mobile nav sheet accessibility** — Radix `Dialog` (via shadcn `Sheet`) warned about missing title/description. `LandingHeader` mobile menu now includes `SheetTitle` / `SheetDescription` (screen-reader-only). The signed-in mobile sidebar sheet in `sidebar.tsx` adds matching sr-only `SheetTitle` / `SheetDescription`.
 
 - **Dashboard Recharts console noise** — Addressed `ResponsiveContainer` width/height warnings: `StatsCard` sparkline uses an explicit pixel height and `min-w` on the wrapper; `CostTrendWidget` wraps the chart in a fixed-height container with `height="100%"` on the container; `PMComplianceWidget` and `EquipmentByStatusWidget` use fixed-size `PieChart` with numeric `cx`/`cy` instead of `ResponsiveContainer` + percentage centers.

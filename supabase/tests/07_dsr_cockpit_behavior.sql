@@ -29,24 +29,24 @@ SELECT col_type_is(
 SELECT has_index(
   'public',
   'dsr_requests',
-  'idx_dsr_requests_org_status_due',
-  'queue index exists for organization + status + due date'
+  'idx_dsr_requests_user_id',
+  'FK covering index on dsr_requests.user_id exists'
 );
 
-SELECT policy_cmd_is(
-  'public',
-  'dsr_requests',
-  'org_admins_manage_dsr_requests',
-  'SELECT',
-  'org_admins_manage_dsr_requests is a SELECT policy'
+SELECT is(
+  (SELECT count(*)::int FROM pg_policies
+   WHERE schemaname = 'public' AND tablename = 'dsr_requests'
+     AND policyname = 'dsr_requests_select'),
+  1,
+  'Merged dsr_requests_select policy exists'
 );
 
-SELECT policy_cmd_is(
-  'public',
-  'dsr_request_events',
-  'org_admins_manage_dsr_events',
-  'SELECT',
-  'org_admins_manage_dsr_events is a SELECT policy'
+SELECT is(
+  (SELECT count(*)::int FROM pg_policies
+   WHERE schemaname = 'public' AND tablename = 'dsr_request_events'
+     AND policyname = 'dsr_request_events_select'),
+  1,
+  'Merged dsr_request_events_select policy exists'
 );
 
 SELECT has_function(

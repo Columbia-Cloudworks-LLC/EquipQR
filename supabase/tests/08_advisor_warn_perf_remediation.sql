@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(40);
+SELECT plan(62);
 
 -- ============================================================================
 -- 1. Duplicate index: idx_work_orders_org_status should be gone,
@@ -235,7 +235,7 @@ SELECT cmp_ok(
 );
 
 -- ============================================================================
--- 8. FK covering indexes exist (Section A of perf migration)
+-- 8. FK covering indexes on active tables exist
 -- ============================================================================
 
 SELECT has_index(
@@ -268,37 +268,190 @@ SELECT has_index(
   'FK index on user_dashboard_preferences.organization_id exists'
 );
 
--- ============================================================================
--- 9. Deprecated billing/part-picker indexes dropped
--- ============================================================================
-
-SELECT hasnt_index(
-  'public', 'billing_events', 'idx_billing_events_organization_id',
-  'Deprecated billing index idx_billing_events_organization_id dropped'
-);
-
-SELECT hasnt_index(
-  'public', 'slot_purchases', 'idx_slot_purchases_organization_id',
-  'Deprecated billing index idx_slot_purchases_organization_id dropped'
-);
-
-SELECT hasnt_index(
-  'public', 'distributor_listing', 'ix_listing_distributor',
-  'Deprecated part-picker index ix_listing_distributor dropped'
-);
-
-SELECT hasnt_index(
-  'public', 'part_identifier', 'ix_part_identifier_normalized',
-  'Deprecated part-picker index ix_part_identifier_normalized dropped'
+SELECT has_index(
+  'public', 'dsr_request_events', 'idx_dsr_request_events_request',
+  'Composite FK index on dsr_request_events(dsr_request_id, created_at) retained'
 );
 
 -- ============================================================================
--- 10. RLS still enabled on key tables touched by migration
+-- 9. Deprecated billing tables dropped
+-- ============================================================================
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'billing_events'
+  ),
+  'Deprecated table billing_events is dropped'
+);
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'billing_usage'
+  ),
+  'Deprecated table billing_usage is dropped'
+);
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'billing_exemptions'
+  ),
+  'Deprecated table billing_exemptions is dropped'
+);
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'slot_purchases'
+  ),
+  'Deprecated table slot_purchases is dropped'
+);
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'subscribers'
+  ),
+  'Deprecated table subscribers is dropped'
+);
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'stripe_event_logs'
+  ),
+  'Deprecated table stripe_event_logs is dropped'
+);
+
+-- ============================================================================
+-- 10. Resurrected part-picker tables dropped
+-- ============================================================================
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'distributor_listing'
+  ),
+  'Resurrected table distributor_listing is dropped'
+);
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'part_identifier'
+  ),
+  'Resurrected table part_identifier (old global picker) is dropped'
+);
+
+-- ============================================================================
+-- 11. Non-FK unused indexes dropped
+-- ============================================================================
+
+SELECT hasnt_index(
+  'public', 'dsr_requests', 'idx_dsr_requests_org_status_due',
+  'Non-FK partial index idx_dsr_requests_org_status_due dropped'
+);
+
+SELECT hasnt_index(
+  'public', 'dsr_requests', 'idx_dsr_requests_status',
+  'Non-FK partial index idx_dsr_requests_status dropped'
+);
+
+SELECT hasnt_index(
+  'public', 'dsr_requests', 'idx_dsr_requests_email',
+  'Non-FK index idx_dsr_requests_email dropped'
+);
+
+SELECT hasnt_index(
+  'public', 'audit_log', 'idx_audit_log_entity',
+  'Non-FK composite index idx_audit_log_entity dropped'
+);
+
+SELECT hasnt_index(
+  'public', 'inventory_items', 'idx_inventory_items_low_stock',
+  'Non-FK partial index idx_inventory_items_low_stock dropped'
+);
+
+SELECT hasnt_index(
+  'public', 'work_orders', 'idx_work_orders_created_date',
+  'Non-FK index idx_work_orders_created_date dropped'
+);
+
+SELECT hasnt_index(
+  'public', 'work_order_equipment', 'idx_work_order_equipment_wo',
+  'Redundant index idx_work_order_equipment_wo dropped (unique covers FK)'
+);
+
+SELECT hasnt_index(
+  'public', 'quickbooks_oauth_sessions', 'idx_quickbooks_oauth_sessions_token',
+  'Non-FK partial index idx_quickbooks_oauth_sessions_token dropped'
+);
+
+-- ============================================================================
+-- 12. Deprecated billing FK constraints removed from active tables
+-- ============================================================================
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'organization_invitations_slot_purchase_id_fkey'
+  ),
+  'FK organization_invitations_slot_purchase_id_fkey dropped'
+);
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'organization_members_slot_purchase_id_fkey'
+  ),
+  'FK organization_members_slot_purchase_id_fkey dropped'
+);
+
+-- ============================================================================
+-- 13. RLS still enabled on key tables touched by migration
 -- ============================================================================
 
 SELECT row_security_active('public.dsr_requests');
 
 SELECT row_security_active('public.work_order_equipment');
+
+-- ============================================================================
+-- 14. Core active tables still exist (sanity check)
+-- ============================================================================
+
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'work_orders'
+  ),
+  'Core table work_orders still exists'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'equipment'
+  ),
+  'Core table equipment still exists'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'inventory_items'
+  ),
+  'Core table inventory_items still exists'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'organizations'
+  ),
+  'Core table organizations still exists'
+);
 
 SELECT * FROM finish();
 ROLLBACK;

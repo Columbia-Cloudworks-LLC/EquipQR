@@ -226,6 +226,34 @@ Each consolidated policy maintains exact same logic as original policies using O
 - Implement connection pooling if not already enabled
 - Monitor for new auth function usage patterns
 
+## April 2026 Advisor Remediation
+
+### Scope
+
+Addressed 105 Info-level performance advisor findings on `equipqr-prod`:
+
+- **13 `unindexed_foreign_keys`** on deprecated billing and resurrected part-picker tables.
+- **91 `unused_index`** across 45 active tables.
+- **1 `auth_db_connections_absolute`** (Supabase Auth connection allocation).
+
+### Actions Taken
+
+| Category | Action | Migration |
+|---|---|---|
+| Deprecated billing tables | Dropped 9 tables, removed FK constraints from active tables | `20260402000001_drop_deprecated_billing_and_part_picker_tables` |
+| Resurrected part-picker tables | Dropped 4 tables the baseline inadvertently recreated | Same migration |
+| Non-FK unused indexes | Dropped 35 indexes with 0 scans and no FK coverage | `20260402000002_drop_unused_non_fk_indexes` |
+| FK-covering unused indexes | Retained 56 single-column + 1 composite FK-covering index | Documented, not dropped |
+| Auth connection allocation | Switched from absolute 10 to percentage-based in dashboard | Manual dashboard change |
+
+### FK-Covering Indexes: Why They Remain
+
+56 single-column indexes and 1 composite index (`idx_dsr_request_events_request`) are the sole btree covering their respective FK constraints. Dropping them would re-introduce `unindexed_foreign_keys` findings. They are expected to accumulate scans naturally as CRUD operations exercise CASCADE deletes and join paths. If any remain at 0 scans after 90 days, re-evaluate whether the FK constraint itself is still needed.
+
+### Baseline Hygiene
+
+The `20260114000000_baseline.sql` file includes `CREATE TABLE IF NOT EXISTS` for billing and part-picker tables that were already dropped by earlier migrations. Future baseline regeneration must exclude tables that have been explicitly removed. See the updated guidance in `docs/database/migration-squashing.md`.
+
 ## Conclusion
 
 This optimization addresses all 280+ performance warnings from the Supabase analyzer, providing significant performance improvements while maintaining complete functional and security compatibility. The changes are designed to be safe, reversible, and provide immediate benefits at scale.

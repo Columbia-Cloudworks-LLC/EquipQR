@@ -133,3 +133,30 @@ npx supabase db reset
 |------|---------|
 | `supabase/migrations/` | All migrations (baseline + historical + new) |
 | `supabase/seeds/*.sql` | Seed data for local development |
+
+## Baseline Exclusion Rules
+
+When regenerating a baseline from `supabase db dump`, the dump captures ALL objects
+currently in the schema, including tables that were explicitly dropped by later
+migrations. Because the baseline timestamp is earlier than the drop migrations,
+`supabase db reset` applies the baseline first (recreating the tables) and then
+the drop migration (removing them again). This is harmless for local resets but
+creates Supabase advisor noise on production if the advisor runs between the
+baseline application and the drop.
+
+**After generating a new baseline, manually remove:**
+
+- Tables marked as `DEPRECATED` in their `COMMENT ON TABLE` (e.g., billing tables).
+- Tables that have an explicit `DROP TABLE` migration later in the sequence.
+- Associated indexes, constraints, triggers, policies, and grants for those tables.
+
+**Tables removed in April 2026 remediation (must NOT reappear in future baselines):**
+
+| Dropped table | Reason |
+|---|---|
+| `billing_events`, `billing_usage`, `billing_exemptions` | Billing deprecated Jan 2025 |
+| `organization_subscriptions`, `organization_slots` | Billing deprecated Jan 2025 |
+| `slot_purchases`, `user_license_subscriptions` | Billing deprecated Jan 2025 |
+| `subscribers`, `stripe_event_logs` | Billing deprecated Jan 2025 |
+| `distributor`, `distributor_listing` | Global part picker removed Dec 2025 |
+| `part`, `part_identifier` | Global part picker removed Dec 2025 |

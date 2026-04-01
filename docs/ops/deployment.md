@@ -878,5 +878,20 @@ export const performHealthCheck = async () => {
 };
 ```
 
+## Supabase Auth Connection Allocation
+
+The Auth server's DB connection strategy should use **percentage-based allocation**
+rather than an absolute connection count. This allows the connection pool to scale
+automatically when the Supabase instance is resized.
+
+| Setting | Value | Where |
+|---|---|---|
+| Auth DB Connection Strategy | Percentage-based | Supabase Dashboard > Project Settings > Auth |
+
+**Changed April 2026**: switched from absolute `10` connections to percentage-based.
+The Supabase performance advisor flags absolute allocation because resizing the
+instance without updating the number manually leaves Auth underprovisioned. With
+percentage-based allocation the pool scales proportionally.
+
 This deployment guide provides comprehensive instructions for deploying EquipQR™ to various platforms while maintaining optimal performance, security, and reliability.
 
