@@ -413,9 +413,15 @@ SELECT ok(
 -- 13. RLS still enabled on key tables touched by migration
 -- ============================================================================
 
-SELECT row_security_active('public.dsr_requests');
+SELECT ok(
+  (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.dsr_requests'::regclass),
+  'RLS remains enabled on dsr_requests'
+);
 
-SELECT row_security_active('public.work_order_equipment');
+SELECT ok(
+  (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.work_order_equipment'::regclass),
+  'RLS remains enabled on work_order_equipment'
+);
 
 -- ============================================================================
 -- 14. Core active tables still exist (sanity check)
