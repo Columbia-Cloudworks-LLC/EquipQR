@@ -28,7 +28,7 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 |------------|--------------|---------------|-------|
 | `SUPABASE_URL` | All Edge Functions | `https://olsdirkvvfegvclbpgrg.supabase.co` | **Must be the preview branch URL** |
 | `SUPABASE_SERVICE_ROLE_KEY` | Most Edge Functions | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Service role key for preview branch |
-| `SUPABASE_ANON_KEY` | Some Edge Functions | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Anon key for preview branch (used by `create-checkout`) |
+| `SUPABASE_ANON_KEY` | Some Edge Functions | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Anon key for preview branch |
 
 ### Application Configuration
 
@@ -80,13 +80,6 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 | `GITHUB_PAT` | `create-ticket` | `github_pat_...` | GitHub Personal Access Token (fine-grained) with **Issues: Read and write** permission scoped to `Columbia-Cloudworks-LLC/EquipQR`. Generate at: [GitHub Settings > Fine-grained tokens](https://github.com/settings/tokens?type=beta) |
 | `GITHUB_WEBHOOK_SECRET` | `github-issue-webhook` | Random hex string | Shared secret for HMAC-SHA256 webhook signature verification. Must match the secret configured in GitHub repo Settings > Webhooks. Generate with: `openssl rand -hex 32` |
 
-### Stripe Integration (Deprecated - Kept for Rollback)
-
-| Secret Name | Required For | Example Value | Notes |
-|------------|--------------|---------------|-------|
-| `STRIPE_SECRET_KEY` | `purchase-user-licenses`, `customer-portal`, `check-subscription`, `stripe-license-webhook` | `sk_...` | Stripe secret key (deprecated but kept for compatibility) |
-| `STRIPE_WEBHOOK_SECRET` | `stripe-license-webhook` | `whsec_...` | Stripe webhook secret (deprecated but kept for compatibility) |
-
 ## Edge Functions and Their Required Secrets
 
 ### Core Functions
@@ -111,11 +104,6 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 ### Admin Functions
 
 #### `list-organizations-admin`
-- `SUPABASE_URL` ✅
-- `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `SUPER_ADMIN_ORG_ID` ✅
-
-#### `manage-billing-exemptions`
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 - `SUPER_ADMIN_ORG_ID` ✅
@@ -166,32 +154,6 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `GITHUB_WEBHOOK_SECRET` ✅
 
 ### Other Functions
-
-#### `create-checkout` (Stripe - Deprecated)
-- `SUPABASE_URL` ✅
-- `SUPABASE_ANON_KEY` ✅
-- `STRIPE_SECRET_KEY` ✅
-
-#### `purchase-user-licenses` (Stripe - Deprecated)
-- `SUPABASE_URL` ✅
-- `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `STRIPE_SECRET_KEY` ✅
-
-#### `customer-portal` (Stripe - Deprecated)
-- `SUPABASE_URL` ✅
-- `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `STRIPE_SECRET_KEY` ✅
-
-#### `check-subscription` (Stripe - Deprecated)
-- `SUPABASE_URL` ✅
-- `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `STRIPE_SECRET_KEY` ✅
-
-#### `stripe-license-webhook` (Stripe - Deprecated)
-- `SUPABASE_URL` ✅
-- `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `STRIPE_SECRET_KEY` ✅
-- `STRIPE_WEBHOOK_SECRET` ✅
 
 #### `resolve-inventory-scan`
 - `SUPABASE_URL` ✅

@@ -35,6 +35,12 @@
         {
           "command": "python .\\.cursor\\hooks\\secret-guardian.py"
         }
+      ],
+      "stop": [
+        {
+          "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\changelog-stop.ps1",
+          "loop_limit": 2
+        }
       ]
     }
   }

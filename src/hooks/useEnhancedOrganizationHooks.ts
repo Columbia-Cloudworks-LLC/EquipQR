@@ -29,16 +29,6 @@ export {
   type OrganizationAdmin
 } from './useEnhancedOrganizationAdmins';
 
-// Organization slot hooks
-export {
-  useEnhancedOrganizationSlots,
-  useEnhancedSlotAvailability,
-  useEnhancedSlotPurchases,
-  type OrganizationSlot,
-  type SlotAvailability,
-  type SlotPurchase
-} from './useEnhancedOrganizationSlots';
-
 // Organization invitation hooks
 export {
   useEnhancedOrganizationInvitations

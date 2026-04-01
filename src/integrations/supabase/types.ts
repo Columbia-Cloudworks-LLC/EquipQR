@@ -394,34 +394,34 @@ export type Database = {
       }
       dsr_request_events: {
         Row: {
-          id: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          details: Json | null
           dsr_request_id: string
           event_type: string
-          actor_id: string | null
-          actor_email: string | null
+          id: string
           summary: string
-          details: Record<string, unknown>
-          created_at: string
         }
         Insert: {
-          id?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
           dsr_request_id: string
           event_type: string
-          actor_id?: string | null
-          actor_email?: string | null
+          id?: string
           summary: string
-          details?: Record<string, unknown>
-          created_at?: string
         }
         Update: {
-          id?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
           dsr_request_id?: string
           event_type?: string
-          actor_id?: string | null
-          actor_email?: string | null
+          id?: string
           summary?: string
-          details?: Record<string, unknown>
-          created_at?: string
         }
         Relationships: [
           {
@@ -435,20 +435,24 @@ export type Database = {
       }
       dsr_requests: {
         Row: {
+          checklist_progress: Json
           completed_at: string | null
           completed_by: string | null
           created_at: string
           denial_reason: string | null
           details: string | null
           due_at: string
+          export_artifacts: Json
           extended_due_at: string | null
           extension_reason: string | null
           id: string
           notes: string | null
+          organization_id: string | null
           received_at: string
           request_type: string
           requester_email: string
           requester_name: string
+          required_checklist_steps: string[]
           status: string
           updated_at: string
           user_id: string | null
@@ -457,20 +461,24 @@ export type Database = {
           verified_by: string | null
         }
         Insert: {
+          checklist_progress?: Json
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
           denial_reason?: string | null
           details?: string | null
           due_at?: string
+          export_artifacts?: Json
           extended_due_at?: string | null
           extension_reason?: string | null
           id?: string
           notes?: string | null
+          organization_id?: string | null
           received_at?: string
           request_type: string
           requester_email: string
           requester_name: string
+          required_checklist_steps?: string[]
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -479,20 +487,24 @@ export type Database = {
           verified_by?: string | null
         }
         Update: {
+          checklist_progress?: Json
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
           denial_reason?: string | null
           details?: string | null
           due_at?: string
+          export_artifacts?: Json
           extended_due_at?: string | null
           extension_reason?: string | null
           id?: string
           notes?: string | null
+          organization_id?: string | null
           received_at?: string
           request_type?: string
           requester_email?: string
           requester_name?: string
+          required_checklist_steps?: string[]
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -500,7 +512,15 @@ export type Database = {
           verified_at?: string | null
           verified_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dsr_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       equipment: {
         Row: {
@@ -4170,7 +4190,6 @@ export type Database = {
         Args: { user_id_val: string }
         Returns: Json
       }
-      billing_is_disabled: { Args: never; Returns: boolean }
       bulk_set_compatibility_rules: {
         Args: { p_item_id: string; p_organization_id: string; p_rules: Json }
         Returns: number
@@ -4402,6 +4421,10 @@ export type Database = {
           message: string
           success: boolean
         }[]
+      }
+      fulfill_dsr_deletion: {
+        Args: { p_admin_user_id: string; p_dsr_request_id: string }
+        Returns: Json
       }
       get_alternates_for_inventory_item: {
         Args: { p_inventory_item_id: string; p_organization_id: string }
@@ -5087,16 +5110,6 @@ export type Database = {
           work_order_team_id: string
         }
         Returns: boolean
-      }
-      sync_stripe_subscription_slots: {
-        Args: {
-          org_id: string
-          period_end: string
-          period_start: string
-          quantity: number
-          subscription_id: string
-        }
-        Returns: undefined
       }
       trigger_departure_processing: { Args: never; Returns: Json }
       update_equipment_working_hours: {

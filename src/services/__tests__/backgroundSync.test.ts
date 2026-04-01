@@ -129,7 +129,7 @@ describe('BackgroundSyncService', () => {
       service.subscribeToOrganization(organizationId);
 
       expect(mockSupabase.channel).toHaveBeenCalledWith(`organization-${organizationId}`);
-      expect(mockChannel.on).toHaveBeenCalledTimes(7); // 7 different table subscriptions
+      expect(mockChannel.on).toHaveBeenCalledTimes(6); // 6 different table subscriptions
       expect(mockChannel.subscribe).toHaveBeenCalledWith(expect.any(Function));
     });
 

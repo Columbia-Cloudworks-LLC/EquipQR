@@ -70,3 +70,4 @@ skills-lock.json
 
 # Cursor hook runtime state (generated during chat sessions)
 .cursor/hooks/state/continual-learning.json
+.vercel

@@ -9,6 +9,7 @@ These hooks are Windows-specific and require PowerShell. They will not work on U
 - `sync-types.ps1` - Syncs TypeScript types after file edits
 - `run-tests.ps1` - Runs tests after file edits
 - `guard-migrations.ps1` - Guards against reading migration files incorrectly
+- `changelog-stop.ps1` - At the end of completed agent sessions, asks the agent to update `CHANGELOG.md` when relevant repo changes were made without a changelog entry
 - `component-check.py` - Fuzzy-searches existing components before the agent creates a new one
 - `strict-type-check.ps1` - Blocks edits that introduce explicit `: any` types in `.ts`/`.tsx` files and runs `tsc --noEmit`
 - `secret-guardian.py` - Scans prompts and shell commands for hardcoded secrets (Stripe keys, Supabase service-role keys, QBO refresh tokens) and blocks the action if detected
