@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(22);
+SELECT plan(24);
 
 -- ============================================
 -- Test: dsr_requests table exists with RLS
@@ -84,6 +84,16 @@ SELECT has_function(
   'anonymize_audit_log_for_user(text) function exists'
 );
 
+SELECT ok(
+  EXISTS (
+    SELECT 1
+    FROM pg_proc
+    WHERE oid = to_regprocedure('public.anonymize_audit_changes(jsonb,text)')
+      AND pg_get_functiondef(oid) ~* $$search_path\s+(=|to)\s+''$$
+  ),
+  'anonymize_audit_changes sets an empty search_path'
+);
+
 -- ============================================
 -- Test: dsr_request_events table exists with immutability
 -- ============================================
@@ -113,6 +123,16 @@ SELECT has_trigger(
 SELECT has_trigger(
   'public', 'dsr_request_events', 'trg_prevent_dsr_event_delete',
   'dsr_request_events has delete prevention trigger'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1
+    FROM pg_proc
+    WHERE oid = to_regprocedure('public.prevent_dsr_event_mutation()')
+      AND pg_get_functiondef(oid) ~* $$search_path\s+(=|to)\s+''$$
+  ),
+  'prevent_dsr_event_mutation sets an empty search_path'
 );
 
 -- ============================================

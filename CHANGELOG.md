@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Supabase function search-path security warnings** — Added a forward-only migration to recreate `public.anonymize_audit_changes` and `public.prevent_dsr_event_mutation` with `SET search_path = ''`, clearing the advisor's `function_search_path_mutable` findings without changing function behavior. Added focused pgTAP regression checks in `supabase/tests/06_dsr_requests_and_privacy.sql` so the warnings do not silently return.
+
 - **Supabase performance advisor WARN findings** — Eliminated all WARN-level findings for the targeted remediation pass on `equipqr-prod`: consolidated overlapping permissive RLS policies, replaced row-wise `auth.uid()` / `auth.role()` policy calls with `(select ...)` initPlan-safe forms across flagged policies, and removed the duplicate `work_orders` `(organization_id, status)` index. Added pgTAP coverage in `supabase/tests/08_advisor_warn_perf_remediation.sql`.
 
 - **Supabase foreign-key advisor coverage for active tables** — Added covering indexes for the active-table foreign keys flagged by the advisor (including DSR, inventory, parts, QuickBooks OAuth, teams, dashboard preferences, and workspace domains) while keeping cleanup conservative for deprecated billing and legacy part-picker tables.
