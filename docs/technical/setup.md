@@ -211,24 +211,19 @@ Two batch files in the project root let you bring the entire local stack up or t
 
 | Script | What it does |
 |--------|-------------|
-| **`dev-start.bat`** | Idempotent startup with explicit **modes**. Default **`--mode full`**: Supabase + Edge Functions + Vite must all pass health checks before exit `0`. **`--mode backend`**: Supabase + Edge Functions only. **`--mode core`**: Supabase only. **`-Force`** runs matching **`dev-stop --mode …`**, then **`--reset-db`** and **`--gen-types`**. **`--gen-types`** alone regenerates TypeScript types when passed (not on every run). **`--no-pause`** skips the final pause for automation. Docker Desktop stays running unless you use **`dev-stop.bat -Force`**. |
-| **`dev-stop.bat`** | Shutdown with the same **mode** grouping: default **`--mode full`** stops Vite, Edge Functions serve, Supabase Docker stack, and sweeps dev ports. **`--mode backend`** skips Vite. **`--mode core`** stops Supabase and Supabase-related ports only. Exits **`1`** if any attempted stop step reports failure. **`--no-pause`** for scripts/CI. |
+| **`dev-start.bat`** | Thin launcher for **`dev-start.ps1`**. Starts the **full** stack: Supabase + Edge Functions serve + Vite. Exits **`0`** only when all three pass health checks. Optional **`-Force`**: after Supabase is up, runs **`supabase db reset`**, seeds equipment images, regenerates **`src/integrations/supabase/types.ts`**, then ensures Edge + Vite are running. **`-Force`** does **not** call **`dev-stop`**; if Vite or Edge Functions serve is already running, the script exits with an error and tells you to run **`dev-stop`** first. |
+| **`dev-stop.bat`** | Thin launcher for **`dev-stop.ps1`**. Stops Vite (port 8080), Edge Functions serve, the Supabase Docker stack, and sweeps dev ports. Exits **`1`** if any attempted stop step fails. Optional **`-Force`** (or **`/Force`**) also quits Docker Desktop. |
 
 ```powershell
 # From the project root — or double-click in Explorer
-.\dev-start.bat                              # full stack (default), strict health
-.\dev-start.bat --mode backend               # API + functions, no Vite
-.\dev-start.bat --mode core                  # Docker Supabase only
-.\dev-start.bat -Force                       # dev-stop (same mode) + reset DB + gen types + full start
-.\dev-start.bat --gen-types                  # Regenerate types only when you pass this flag
-.\dev-start.bat --no-pause                   # No pause at end (E2E / automation)
+.\dev-start.bat                              # full stack, strict health
+.\dev-start.bat -Force                       # DB reset + types + seed images, then full stack (stop stack first if already running)
 
-.\dev-stop.bat                               # Stop everything (full mode)
-.\dev-stop.bat --mode core                   # Stop Supabase stack only
-.\dev-stop.bat -Force                        # Also quit Docker Desktop
+.\dev-stop.bat                               # Stop full dev stack (Docker Desktop keeps running)
+.\dev-stop.bat -Force                        # Same + quit Docker Desktop
 ```
 
-> **Tip**: In **`full`** mode, `dev-start.bat` exits **`0`** only when Supabase API, Edge Functions serve, and Vite are all healthy — suitable as a Playwright / E2E pre-test step. Use **`--no-pause`** so a non-zero exit is not blocked by `pause`. 1Password prompts run early when `op` is on PATH.
+> **Tip**: `dev-start.bat` exits **`0`** only when Supabase API, Edge Functions serve, and Vite are all healthy — suitable as a Playwright / E2E pre-test step. There is no final `pause`; failures return a non-zero exit code. 1Password sync runs early when `op` is on PATH. Logic lives in **`dev-start.ps1`** / **`dev-stop.ps1`** so batch stays double-click friendly without parser quirks.
 
 #### Daily Development Commands
 

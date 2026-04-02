@@ -98,7 +98,7 @@ npx supabase functions pull quickbooks-oauth-callback
 
 ### Step 5: Start Local Supabase Instance
 
-> **Preferred workflow**: Run `.\dev-start.bat` from the project root (default **`--mode full`**). It front-loads 1Password sync when `op` is available, then starts Docker, Supabase, Edge Functions serve, and Vite. Exit code **`0`** means every service required by the mode passed health checks. Use **`.\dev-start.bat --mode backend`** or **`--mode core`** for narrower stacks. **`-Force`** runs **`.\dev-stop.bat --no-pause --mode …`** for the same mode, then **`--reset-db`** and **`--gen-types`**, then starts again. **`--no-pause`** avoids blocking automation on failure. See **`.\dev-stop.bat [--mode …]`** for teardown.
+> **Preferred workflow**: Run `.\dev-start.bat` from the project root. It launches **`dev-start.ps1`**, front-loads 1Password sync when `op` is available, then starts Docker, Supabase, Edge Functions serve, and Vite. Exit code **`0`** means all three passed health checks. **`-Force`** resets the local DB, regenerates TypeScript types, and re-seeds equipment images after Supabase is up — run **`.\dev-stop.bat`** first if the dev stack is already running. **`.\dev-stop.bat`** launches **`dev-stop.ps1`** for teardown; **`-Force`** there also quits Docker Desktop.
 
 Start a local Supabase instance (PostgreSQL, PostgREST, Auth, Storage, Edge Functions):
 
@@ -509,13 +509,10 @@ npx supabase stop
 
 ```bash
 # ---- One-click dev environment (Windows) ----
-.\dev-start.bat                      # full: Supabase + Edge Functions + Vite (strict health)
-.\dev-start.bat --mode backend       # Supabase + Edge Functions only
-.\dev-start.bat --mode core          # Supabase Docker stack only
-.\dev-start.bat -Force               # dev-stop (same mode) + DB reset + gen types + full start
-.\dev-start.bat --no-pause           # No final pause (CI / E2E)
-.\dev-stop.bat                       # Stop full stack (default --mode full)
-.\dev-stop.bat --mode core           # Stop Supabase stack only
+.\dev-start.bat                      # Supabase + Edge Functions + Vite (strict health)
+.\dev-start.bat -Force               # DB reset + types + seed images, then full stack (stop first if running)
+.\dev-stop.bat                       # Stop Vite, Edge serve, Supabase Docker; sweep ports
+.\dev-stop.bat -Force                # Same + quit Docker Desktop
 
 # ---- Supabase CLI commands (always use npx) ----
 npx supabase --version              # Check version

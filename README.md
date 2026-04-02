@@ -80,8 +80,7 @@ EquipQR uses external services. For exact environment variables and where theyâ€
 
     ```powershell
     op --version
-    .\dev-start.bat                    # default: full stack (Supabase + functions + Vite)
-    # Narrower: .\dev-start.bat --mode backend | --mode core
+    .\dev-start.bat                    # full stack (Supabase + functions + Vite)
     ```
 
     Manual fallback:
@@ -96,7 +95,6 @@ EquipQR uses external services. For exact environment variables and where theyâ€
 
     ```powershell
     .\dev-start.bat
-    # Use .\dev-start.bat --no-pause for automation (no blocking pause on errors)
     ```
 
 ### Git Worktrees (Cursor-friendly)

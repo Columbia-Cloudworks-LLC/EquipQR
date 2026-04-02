@@ -23,8 +23,8 @@ EquipQR is a multi-tenant fleet equipment management SaaS with QR-code-based equ
 
 ```bash
 # One-click dev environment (Windows)
-.\dev-start.bat
-.\dev-stop.bat
+.\dev-start.bat   # launches dev-start.ps1
+.\dev-stop.bat    # launches dev-stop.ps1
 
 # Install
 npm ci
