@@ -175,16 +175,25 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `TOKEN_ENCRYPTION_KEY` ✅
 - `KDF_SALT` ⚠️ (Optional but recommended for defense-in-depth)
 - `GW_OAUTH_REDIRECT_BASE_URL` ✅
-- `GOOGLE_OAUTH_CLIENT_ID` ✅
-- `GOOGLE_OAUTH_CLIENT_SECRET` ✅
+- `GOOGLE_WORKSPACE_CLIENT_ID` ✅
+- `GOOGLE_WORKSPACE_CLIENT_SECRET` ✅
 
 #### `google-workspace-sync-users`
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 - `TOKEN_ENCRYPTION_KEY` ✅
 - `KDF_SALT` ⚠️ (Optional but recommended for defense-in-depth)
-- `GOOGLE_OAUTH_CLIENT_ID` ✅
-- `GOOGLE_OAUTH_CLIENT_SECRET` ✅
+- `GOOGLE_WORKSPACE_CLIENT_ID` ✅
+- `GOOGLE_WORKSPACE_CLIENT_SECRET` ✅
+
+### Google Picker Configuration (Client-Side, Not Supabase Secrets)
+
+Google Picker values are browser/client configuration and should be stored as client env vars (for example in Vercel and local `.env` files):
+
+- `VITE_GOOGLE_PICKER_API_KEY`
+- `VITE_GOOGLE_PICKER_APP_ID` (Google Cloud project number)
+
+Do **not** add Picker values to Supabase Edge Function secrets.
 
 ## Configuration Steps for Preview Branch
 
@@ -239,8 +248,8 @@ QUICKBOOKS_SANDBOX=true
 ENABLE_QB_PDF_ATTACHMENT=false
 
 # Google Workspace Integration (if enabled)
-GOOGLE_OAUTH_CLIENT_ID=<your-google-oauth-client-id>
-GOOGLE_OAUTH_CLIENT_SECRET=<your-google-oauth-client-secret>
+GOOGLE_WORKSPACE_CLIENT_ID=<your-google-workspace-client-id>
+GOOGLE_WORKSPACE_CLIENT_SECRET=<your-google-workspace-client-secret>
 GW_OAUTH_REDIRECT_BASE_URL=https://supabase.preview.equipqr.app
 TOKEN_ENCRYPTION_KEY=<generate-with-openssl-rand-base64-32>
 KDF_SALT=<generate-unique-salt-with-openssl-rand-base64-32>

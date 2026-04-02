@@ -38,6 +38,7 @@ import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMa
 import { toast } from 'sonner';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
+import { useGoogleWorkspaceExportDestination } from '@/features/organization/hooks/useGoogleWorkspaceExportDestination';
 import { HistoryTab } from '@/components/audit';
 import { cn } from '@/lib/utils';
 
@@ -234,7 +235,7 @@ const WorkOrderDetails = () => {
   const [showMobilePDFDialog, setShowMobilePDFDialog] = useState(false);
 
   // Excel export hook for mobile action sheet
-  const { exportSingle, isExportingSingle } = useWorkOrderExcelExport(
+  const { exportSingle, isExportingSingle, exportSingleToDocs, isExportingSingleToDocs } = useWorkOrderExcelExport(
     currentOrganization?.id || '',
     currentOrganization?.name || ''
   );
@@ -324,6 +325,7 @@ const WorkOrderDetails = () => {
   const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
     organizationId: currentOrganization?.id,
   });
+  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(currentOrganization?.id);
 
   // Handle mobile PDF export with options from dialog
   const handleMobilePDFExport = async (options: { includeCosts: boolean }) => {
@@ -825,6 +827,8 @@ const WorkOrderDetails = () => {
           onDownloadPDF={() => setShowMobilePDFDialog(true)}
           onExportExcel={() => exportSingle(workOrder.id)}
           isExportingExcel={isExportingSingle}
+          onExportGoogleDoc={isGoogleWorkspaceConnected && googleDocsDestination ? () => exportSingleToDocs(workOrder.id) : undefined}
+          isExportingGoogleDoc={isExportingSingleToDocs}
         />
       )}
 

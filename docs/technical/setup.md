@@ -90,6 +90,10 @@ VITE_ENABLE_QB_PDF_ATTACHMENT=false
 
 # Google Maps (for equipment location features)
 VITE_GOOGLE_MAPS_API_KEY=your-maps-key
+
+# Google Picker (for Google Workspace export destination selection)
+VITE_GOOGLE_PICKER_API_KEY=your-picker-browser-api-key
+VITE_GOOGLE_PICKER_APP_ID=your-google-cloud-project-number
 ```
 
 ### Edge Function Secrets (Production/Preview)
@@ -105,6 +109,7 @@ Key secrets include:
 - `TOKEN_ENCRYPTION_KEY` - OAuth token encryption (Google Workspace)
 - `KDF_SALT` - Deployment-specific encryption salt
 - Integration-specific secrets (QuickBooks, Google Workspace, etc.)
+- Client-side integration values (for example Google Picker API key and app id) belong in `.env` / Vercel `VITE_*` vars, not Supabase Edge Function secrets.
 
 ### Local Edge Function Development
 
@@ -206,17 +211,24 @@ Two batch files in the project root let you bring the entire local stack up or t
 
 | Script | What it does |
 |--------|-------------|
-| **`dev-start.bat`** | Idempotent startup — verifies prerequisites (Node, Docker), and with `-Force` performs a full fresh reset (app-stack hard stop, DB reset, and type regeneration) before starting Supabase + Edge Functions + Vite. Docker Desktop is kept running. It health-checks every service and prints a readiness report. Safe to run repeatedly; already-running services are skipped. |
-| **`dev-stop.bat`** | Graceful shutdown — stops the Vite dev server, any `supabase functions serve` process, the Supabase Docker stack, and cleans up orphan processes on dev ports. Safe to run when nothing is running. |
+| **`dev-start.bat`** | Idempotent startup with explicit **modes**. Default **`--mode full`**: Supabase + Edge Functions + Vite must all pass health checks before exit `0`. **`--mode backend`**: Supabase + Edge Functions only. **`--mode core`**: Supabase only. **`-Force`** runs matching **`dev-stop --mode …`**, then **`--reset-db`** and **`--gen-types`**. **`--gen-types`** alone regenerates TypeScript types when passed (not on every run). **`--no-pause`** skips the final pause for automation. Docker Desktop stays running unless you use **`dev-stop.bat -Force`**. |
+| **`dev-stop.bat`** | Shutdown with the same **mode** grouping: default **`--mode full`** stops Vite, Edge Functions serve, Supabase Docker stack, and sweeps dev ports. **`--mode backend`** skips Vite. **`--mode core`** stops Supabase and Supabase-related ports only. Exits **`1`** if any attempted stop step reports failure. **`--no-pause`** for scripts/CI. |
 
-```bash
-# From the project root — or just double-click in Explorer
-.\dev-start.bat      # Spin up everything
-.\dev-start.bat -Force --reset-db --gen-types  # Full reset, rebuild DB/types, then start all services
-.\dev-stop.bat       # Tear down everything
+```powershell
+# From the project root — or double-click in Explorer
+.\dev-start.bat                              # full stack (default), strict health
+.\dev-start.bat --mode backend               # API + functions, no Vite
+.\dev-start.bat --mode core                  # Docker Supabase only
+.\dev-start.bat -Force                       # dev-stop (same mode) + reset DB + gen types + full start
+.\dev-start.bat --gen-types                  # Regenerate types only when you pass this flag
+.\dev-start.bat --no-pause                   # No pause at end (E2E / automation)
+
+.\dev-stop.bat                               # Stop everything (full mode)
+.\dev-stop.bat --mode core                   # Stop Supabase stack only
+.\dev-stop.bat -Force                        # Also quit Docker Desktop
 ```
 
-> **Tip**: `dev-start.bat` exits with code 0 when all services are healthy, making it suitable as a Playwright / E2E pre-test step. It also front-loads 1Password prompts early so auth does not interrupt later migration/startup steps.
+> **Tip**: In **`full`** mode, `dev-start.bat` exits **`0`** only when Supabase API, Edge Functions serve, and Vite are all healthy — suitable as a Playwright / E2E pre-test step. Use **`--no-pause`** so a non-zero exit is not blocked by `pause`. 1Password prompts run early when `op` is on PATH.
 
 #### Daily Development Commands
 

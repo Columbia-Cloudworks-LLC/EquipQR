@@ -137,6 +137,8 @@ Configure these environment variables in your Vercel project dashboard:
 - `VITE_APP_VERSION`: Application version (defaults to 'dev')
 - `VITE_STRIPE_PUBLISHABLE_KEY`: Stripe integration key
 - `VITE_GOOGLE_MAPS_API_KEY`: Google Maps API key
+- `VITE_GOOGLE_PICKER_API_KEY`: Google Picker browser key
+- `VITE_GOOGLE_PICKER_APP_ID`: Google Cloud project number (Picker App ID)
 
 > **Important**: Vercel env vars are build-time only (`VITE_*` prefix). Edge Function runtime secrets (e.g., `GOOGLE_MAPS_BROWSER_KEY`, OAuth secrets) must be set in the **Supabase Dashboard**, not Vercel. See [Secrets Checklist](#secrets-checklist) below.
 
@@ -158,6 +160,8 @@ When rotating keys or deploying a new environment, verify secrets in **both** da
 | `VITE_SUPABASE_ANON_KEY` | Supabase anonymous/public key |
 | `VITE_HCAPTCHA_SITEKEY` | hCaptcha public site key |
 | `VITE_GOOGLE_MAPS_API_KEY` | Google Maps API key (build-time fallback) |
+| `VITE_GOOGLE_PICKER_API_KEY` | Google Picker browser API key (referrer-restricted) |
+| `VITE_GOOGLE_PICKER_APP_ID` | Google Cloud project number for Picker |
 | `VITE_ENABLE_QUICKBOOKS` | Feature flag: QuickBooks integration |
 | `VITE_ENABLE_GEOLOCATION_HIERARCHY` | Feature flag: geolocation hierarchy |
 
@@ -174,6 +178,33 @@ When rotating keys or deploying a new environment, verify secrets in **both** da
 | `GITHUB_PAT` / `GITHUB_WEBHOOK_SECRET` | `create-ticket`, `github-issue-webhook` | Bug reporting |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | `send-push-notification` | Web Push |
 | `PRODUCTION_URL` | `send-invitation-email` | Invite link base URL |
+
+### Google Picker Setup (Google Cloud Console)
+
+For the Google Docs destination chooser in Organization Settings:
+
+1. Open the same Google Cloud project used by Google Workspace OAuth.
+2. Confirm these APIs are enabled:
+   - Google Drive API
+   - Google Sheets API (existing packet-to-sheets export)
+   - Admin SDK API (existing directory sync)
+3. Create a browser API key:
+   - Google Cloud Console -> APIs & Services -> Credentials -> Create Credentials -> API key
+   - Restrict to HTTP referrers (for example localhost dev URL, preview.equipqr.app, equipqr.app)
+   - Restrict API usage to Google Drive API
+4. Set the browser key as `VITE_GOOGLE_PICKER_API_KEY` in Vercel/local `.env`.
+5. Copy the project number from Project Settings and set it as `VITE_GOOGLE_PICKER_APP_ID`.
+
+### Google Workspace Scope Matrix
+
+EquipQR uses these scopes for Google Workspace features:
+
+| Scope | Used for | Source |
+|---|---|---|
+| `https://www.googleapis.com/auth/admin.directory.user.readonly` | Workspace user directory sync/import | `src/services/google-workspace/auth.ts` |
+| `https://www.googleapis.com/auth/spreadsheets` | Internal packet export to Google Sheets | `src/services/google-workspace/auth.ts` |
+| `https://www.googleapis.com/auth/drive.file` | Save PDFs and create Google Docs artifacts in Drive | `src/services/google-workspace/auth.ts` |
+| `https://www.googleapis.com/auth/drive.readonly` | Picker browsing/selection in browser UI | `src/services/google-workspace/auth.ts` |
 
 > **Common mistake**: Setting a secret in Vercel when it should be in Supabase (or vice versa). The `GOOGLE_MAPS_BROWSER_KEY` is a frequent offender — it is served by a Supabase Edge Function at runtime, not baked into the Vercel build.
 

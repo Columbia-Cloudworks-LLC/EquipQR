@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+export const GOOGLE_PICKER_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 
 /**
  * Default OAuth scopes for Google Workspace integration.
@@ -147,5 +148,32 @@ export function isGoogleWorkspaceConfigured(): boolean {
   const clientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   return Boolean(clientId && supabaseUrl);
+}
+
+export interface GooglePickerConfig {
+  apiKey: string;
+  appId: string;
+  scope: string;
+}
+
+export function getGooglePickerConfig(): GooglePickerConfig {
+  const apiKey = import.meta.env.VITE_GOOGLE_PICKER_API_KEY;
+  const appId = import.meta.env.VITE_GOOGLE_PICKER_APP_ID;
+
+  if (!apiKey || !appId) {
+    throw new Error(
+      'Google Picker is not configured. Missing VITE_GOOGLE_PICKER_API_KEY or VITE_GOOGLE_PICKER_APP_ID.'
+    );
+  }
+
+  return {
+    apiKey,
+    appId,
+    scope: GOOGLE_PICKER_SCOPE,
+  };
+}
+
+export function isGooglePickerConfigured(): boolean {
+  return Boolean(import.meta.env.VITE_GOOGLE_PICKER_API_KEY && import.meta.env.VITE_GOOGLE_PICKER_APP_ID);
 }
 

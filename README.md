@@ -57,6 +57,7 @@ EquipQR uses external services. For exact environment variables and where theyâ€
 * **Resend**: Invitation emails (`RESEND_API_KEY`).
 * **Google sign-in (Supabase Auth provider)**: Google OAuth app + provider config in Supabase.
 * **Google Workspace integration**: Google Cloud OAuth client + Admin SDK API enabled (directory sync).
+* **Google Picker (for Google Docs destination selection)**: Browser API key + Google Cloud project number (`VITE_GOOGLE_PICKER_API_KEY`, `VITE_GOOGLE_PICKER_APP_ID`) in the same Google Cloud project.
 * **QuickBooks Online**: Intuit developer app + OAuth credentials (feature-flagged).
 * **Google Maps**: Fleet Map feature.
 * **hCaptcha**: Bot protection on signup.
@@ -79,7 +80,8 @@ EquipQR uses external services. For exact environment variables and where theyâ€
 
     ```powershell
     op --version
-    .\dev-start.bat
+    .\dev-start.bat                    # default: full stack (Supabase + functions + Vite)
+    # Narrower: .\dev-start.bat --mode backend | --mode core
     ```
 
     Manual fallback:
@@ -94,6 +96,7 @@ EquipQR uses external services. For exact environment variables and where theyâ€
 
     ```powershell
     .\dev-start.bat
+    # Use .\dev-start.bat --no-pause for automation (no blocking pause on errors)
     ```
 
 ### Git Worktrees (Cursor-friendly)

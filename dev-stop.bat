@@ -1,29 +1,40 @@
 @echo off
 REM ============================================================================
-REM  dev-stop.bat — Gracefully shut down the EquipQR local development stack
+REM  dev-stop.bat — Shut down the EquipQR local development stack
 REM
 REM  Usage:
-REM    dev-stop.bat            Stop dev processes, leave Docker Desktop running
-REM    dev-stop.bat -Force     Stop dev processes AND shut down Docker Desktop
-REM    dev-stop.bat --no-pause Suppress final pause (for automation)
+REM    dev-stop.bat [--mode full|backend|core]   Default: full (stop all dev services)
+REM    dev-stop.bat -Force                       Also shut down Docker Desktop
+REM    dev-stop.bat --no-pause                   Suppress final pause (automation)
 REM
-REM  Stops (in order):
-REM    1. Vite dev server          (port 8080)
-REM    2. Supabase functions serve (if running)
-REM    3. Supabase local stack     (npx supabase stop)
-REM    4. Orphan processes on dev ports (safety net)
-REM    5. Docker Desktop           (only with -Force)
+REM  Modes (what gets stopped):
+REM    full    — Vite, Edge Functions serve, Supabase Docker stack, dev ports
+REM    backend — Edge Functions serve, Supabase Docker stack, Supabase-related ports
+REM    core    — Supabase Docker stack and Supabase-related ports only
 REM
-REM  Safe to run even when nothing is running.
+REM  Exit code 0 = all attempted stop steps succeeded; 1 = one or more failures.
+REM  Safe to run when nothing is running.
 REM ============================================================================
 
 setlocal EnableDelayedExpansion
 
-REM ---------- Parse arguments -------------------------------------------------
 set "STOP_DOCKER=0"
 set "NO_PAUSE=0"
+set "STOP_MODE=full"
+set "STOP_FAIL=0"
+
 :parse_args
 if "%~1"=="" goto :args_done
+if /i "%~1"=="--mode" (
+    if "%~2"=="" (
+        echo        FAIL: --mode requires: core, backend, or full.
+        endlocal & exit /b 1
+    )
+    set "STOP_MODE=%~2"
+    shift
+    shift
+    goto :parse_args
+)
 if /i "%~1"=="-Force" set "STOP_DOCKER=1"
 if /i "%~1"=="/Force" set "STOP_DOCKER=1"
 if /i "%~1"=="--force" set "STOP_DOCKER=1"
@@ -32,85 +43,130 @@ shift
 goto :parse_args
 :args_done
 
+set "STOP_VITE=0"
+set "STOP_EDGE=0"
+set "STOP_SUPABASE=1"
+if /i "!STOP_MODE!"=="core" goto :stop_mode_ok
+if /i "!STOP_MODE!"=="backend" (
+    set "STOP_EDGE=1"
+    goto :stop_mode_ok
+)
+if /i "!STOP_MODE!"=="full" (
+    set "STOP_VITE=1"
+    set "STOP_EDGE=1"
+    goto :stop_mode_ok
+)
+echo        FAIL: Unknown mode "!STOP_MODE!". Use: core, backend, or full.
+endlocal & exit /b 1
+:stop_mode_ok
+
 echo.
 echo  ============================================
 echo   EquipQR Dev Environment — Shutdown
+echo   Mode: !STOP_MODE!
 if %STOP_DOCKER% equ 1 (
-    echo   Mode: FULL  (including Docker Desktop^)
+    echo   Docker: stop Desktop ^(-Force^)
 ) else (
-    echo   Mode: Normal (Docker Desktop kept running^)
+    echo   Docker: keep Desktop running
 )
 echo  ============================================
 echo.
 
-REM ---------- 1. Kill Vite dev server (port 8080) ----------------------------
-echo  [1/4] Stopping Vite dev server (port 8080)...
+REM ---------- 1. Vite (full only) --------------------------------------------
+if %STOP_VITE% equ 0 goto :after_vite
+echo  [Vite] Stopping dev server (port 8080)...
 powershell -NoProfile -Command ^
+  "$failed = $false; " ^
   "$pids = (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue).OwningProcess | Sort-Object -Unique; " ^
-  "if ($pids) { foreach ($p in $pids) { try { Stop-Process -Id $p -Force -ErrorAction Stop; Write-Host \"       Killed PID $p\" } catch { Write-Host \"       Could not kill PID $p — $($_.Exception.Message)\" } } } " ^
-  "else { Write-Host '       Nothing listening on port 8080 — skipped.' }"
+  "if (-not $pids) { Write-Host '       Nothing listening on port 8080 — skipped.'; exit 0 }; " ^
+  "foreach ($p in $pids) { try { Stop-Process -Id $p -Force -ErrorAction Stop; Write-Host ('       Killed PID ' + $p) } catch { Write-Host ('       Could not kill PID ' + $p); $failed = $true } }; " ^
+  "if ($failed) { exit 1 } else { exit 0 }"
+if !errorlevel! neq 0 set "STOP_FAIL=1"
+:after_vite
 
-REM ---------- 2. Kill Supabase functions serve -------------------------------
+REM ---------- 2. Edge Functions serve (backend / full) -----------------------
+if %STOP_EDGE% equ 0 goto :after_edge
 echo.
-echo  [2/4] Stopping Supabase Edge Functions serve...
+echo  [Edge] Stopping Supabase Edge Functions serve...
 powershell -NoProfile -Command ^
+  "$failed = $false; " ^
   "$procs = Get-Process -Name 'node','deno' -ErrorAction SilentlyContinue | Where-Object { " ^
-  "  try { $cmd = (Get-CimInstance Win32_Process -Filter \"ProcessId=$($_.Id)\").CommandLine; " ^
+  "  try { $cmd = (Get-CimInstance Win32_Process -Filter ('ProcessId=' + $_.Id)).CommandLine; " ^
   "    $cmd -and ($cmd -match 'supabase' -and $cmd -match 'functions' -and $cmd -match 'serve') " ^
   "  } catch { $false } " ^
   "}; " ^
-  "if ($procs) { $procs | ForEach-Object { Stop-Process -Id $_.Id -Force; Write-Host \"       Killed PID $($_.Id)\" } } " ^
-  "else { Write-Host '       Edge Functions serve not detected — skipped.' }"
+  "if (-not $procs) { Write-Host '       Edge Functions serve not detected — skipped.'; exit 0 }; " ^
+  "foreach ($proc in $procs) { try { Stop-Process -Id $proc.Id -Force -ErrorAction Stop; Write-Host ('       Killed PID ' + $proc.Id) } catch { Write-Host ('       Could not kill PID ' + $proc.Id); $failed = $true } }; " ^
+  "if ($failed) { exit 1 } else { exit 0 }"
+if !errorlevel! neq 0 set "STOP_FAIL=1"
+:after_edge
 
-REM ---------- 3. Supabase stop (graceful Docker teardown) --------------------
+REM ---------- 3. Supabase Docker stack -----------------------------------------
 echo.
-echo  [3/4] Stopping Supabase local stack (Docker containers)...
+echo  [Supabase] Stopping local stack (Docker containers)...
 where npx >nul 2>&1
 if %errorlevel% neq 0 (
-    echo        npx not found on PATH — skipping supabase stop.
-    goto :port_cleanup
+    echo        npx not found on PATH — cannot run supabase stop.
+    set "STOP_FAIL=1"
+    goto :supabase_container_cleanup
 )
 
-REM Check if supabase is actually running before trying to stop
 call npx supabase status >nul 2>&1
 if %errorlevel% neq 0 (
-    echo        Supabase is not running — skipped.
+    echo        Supabase is not running — skipped supabase stop.
     goto :supabase_container_cleanup
 )
 
 call npx supabase stop
-if %errorlevel% equ 0 (
-    echo        Supabase stopped successfully.
-) else (
+if %errorlevel% neq 0 (
     echo        supabase stop returned an error — attempting container cleanup.
+    set "STOP_FAIL=1"
+) else (
+    echo        Supabase stopped successfully.
 )
 
-REM Remove any stopped/zombie Supabase containers that survive 'supabase stop'.
-REM On Docker Desktop for Windows, the vector/analytics containers frequently
-REM persist in Exited state, blocking the next 'supabase start'.
 :supabase_container_cleanup
 for /f "tokens=*" %%c in ('docker ps -aq --filter "name=supabase_" 2^>nul') do (
     docker rm -f %%c >nul 2>&1
     echo        Removed lingering container %%c
 )
 
-REM ---------- 4. Safety-net: kill anything still on dev ports -----------------
-:port_cleanup
+REM ---------- 4. Orphan port cleanup (mode-scoped) ----------------------------
 echo.
-echo  [4/4] Cleaning up orphan processes on dev ports...
+echo  [Ports] Cleaning up orphan listeners...
+if /i "!STOP_MODE!"=="full" (
+    powershell -NoProfile -Command ^
+      "$failed = $false; " ^
+      "$ports = @(8080, 54321, 54322, 54323, 54324, 54325, 54326, 54327, 58220, 58221, 58222, 58223, 58224, 58225, 58226, 58227); " ^
+      "foreach ($port in $ports) { " ^
+      "  $pids = (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue).OwningProcess | Sort-Object -Unique; " ^
+      "  foreach ($p in $pids) { " ^
+      "    try { Stop-Process -Id $p -Force -ErrorAction Stop; Write-Host ('       Killed orphan PID ' + $p + ' on port ' + $port) } " ^
+      "    catch { Write-Host ('       Could not kill PID ' + $p + ' on port ' + $port); $failed = $true } " ^
+      "  } " ^
+      "}; " ^
+      "Write-Host '       Port sweep complete.'; " ^
+      "if ($failed) { exit 1 } else { exit 0 }"
+    if !errorlevel! neq 0 set "STOP_FAIL=1"
+    goto :after_ports
+)
+REM backend / core: Supabase-related ports only (no Vite 8080)
 powershell -NoProfile -Command ^
-  "$ports = @(8080, 54321, 54322, 54323, 54324, 54325, 54326, 54327, 58220, 58221, 58222, 58223, 58224, 58225, 58226, 58227); " ^
-  "$killed = 0; " ^
+  "$failed = $false; " ^
+  "$ports = @(54321, 54322, 54323, 54324, 54325, 54326, 54327, 58220, 58221, 58222, 58223, 58224, 58225, 58226, 58227); " ^
   "foreach ($port in $ports) { " ^
   "  $pids = (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue).OwningProcess | Sort-Object -Unique; " ^
   "  foreach ($p in $pids) { " ^
-  "    try { Stop-Process -Id $p -Force -ErrorAction Stop; Write-Host \"       Killed orphan PID $p on port $port\"; $killed++ } " ^
-  "    catch { Write-Host \"       Could not kill PID $p on port $port — $($_.Exception.Message)\" } " ^
+  "    try { Stop-Process -Id $p -Force -ErrorAction Stop; Write-Host ('       Killed orphan PID ' + $p + ' on port ' + $port) } " ^
+  "    catch { Write-Host ('       Could not kill PID ' + $p + ' on port ' + $port); $failed = $true } " ^
   "  } " ^
   "}; " ^
-  "if ($killed -eq 0) { Write-Host '       No orphan processes found — all clean.' }"
+  "Write-Host '       Port sweep complete.'; " ^
+  "if ($failed) { exit 1 } else { exit 0 }"
+if !errorlevel! neq 0 set "STOP_FAIL=1"
+:after_ports
 
-REM ---------- 5. Optionally stop Docker Desktop ------------------------------
+REM ---------- 5. Docker Desktop (optional) -----------------------------------
 if %STOP_DOCKER% equ 0 goto :done
 
 echo.
@@ -118,7 +174,7 @@ echo  [5/5] Stopping Docker Desktop...
 powershell -NoProfile -Command ^
   "$dockerProc = Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue; " ^
   "if (-not $dockerProc) { Write-Host '       Docker Desktop is not running — skipped.'; exit 0 }; " ^
-  "Write-Host '       Shutting down Docker Desktop (this may take a moment)...'; " ^
+  "Write-Host '       Shutting down Docker Desktop...'; " ^
   "Stop-Process -Name 'Docker Desktop' -Force -ErrorAction SilentlyContinue; " ^
   "Stop-Process -Name 'com.docker.backend' -Force -ErrorAction SilentlyContinue; " ^
   "Stop-Process -Name 'com.docker.proxy' -Force -ErrorAction SilentlyContinue; " ^
@@ -128,21 +184,27 @@ powershell -NoProfile -Command ^
   "  if (-not $still) { Write-Host '       Docker Desktop stopped.'; exit 0 }; " ^
   "  Start-Sleep -Seconds 2; $elapsed += 2 " ^
   "}; " ^
-  "Write-Host '       Docker Desktop processes may still be shutting down.'"
+  "Write-Host '       Docker Desktop may still be shutting down.'; exit 1"
+if !errorlevel! neq 0 set "STOP_FAIL=1"
 
-REM ---------- Done -----------------------------------------------------------
 :done
 echo.
 echo  ============================================
-echo   All dev processes stopped.
+if %STOP_FAIL% equ 0 (
+    echo   Shutdown complete ^(mode: !STOP_MODE!^).
+) else (
+    echo   Shutdown finished with one or more errors ^(mode: !STOP_MODE!^).
+    echo   Review messages above.
+)
 echo  ============================================
 if %STOP_DOCKER% equ 0 (
     echo.
-    echo   Docker Desktop was left running. To also
-    echo   stop Docker, re-run with -Force:
+    echo   Docker Desktop was left running. To stop it:
     echo     dev-stop.bat -Force
 )
 echo.
 
+set "EC=0"
+if %STOP_FAIL% neq 0 set "EC=1"
 if %NO_PAUSE% equ 0 pause
-endlocal
+endlocal & exit /b %EC%

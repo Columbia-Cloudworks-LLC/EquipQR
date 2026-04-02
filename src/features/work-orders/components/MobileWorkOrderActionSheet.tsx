@@ -23,6 +23,7 @@ import {
 import { 
   Download, 
   FileSpreadsheet, 
+  FileText,
   Loader2,
   MoreHorizontal,
   Trash2,
@@ -45,6 +46,8 @@ interface MobileWorkOrderActionSheetProps {
   onDownloadPDF: () => void;
   onExportExcel: () => void;
   isExportingExcel: boolean;
+  onExportGoogleDoc?: () => void;
+  isExportingGoogleDoc?: boolean;
 }
 
 export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProps> = ({
@@ -57,6 +60,8 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   onDownloadPDF,
   onExportExcel,
   isExportingExcel,
+  onExportGoogleDoc,
+  isExportingGoogleDoc = false,
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const navigate = useNavigate();
@@ -129,6 +134,21 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                       )}
                       <span className="text-xs">Internal Work Order Packet</span>
                     </Button>
+                    {onExportGoogleDoc && (
+                      <Button
+                        variant="outline"
+                        className="h-14 flex-col gap-1"
+                        onClick={() => handleAction(onExportGoogleDoc)}
+                        disabled={isExportingGoogleDoc}
+                      >
+                        {isExportingGoogleDoc ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <FileText className="h-5 w-5" />
+                        )}
+                        <span className="text-xs">Google Doc Packet</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

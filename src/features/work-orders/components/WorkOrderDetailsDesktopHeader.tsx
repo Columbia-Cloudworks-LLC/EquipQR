@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { ChevronRight, Edit, Info, Download, FileSpreadsheet, Loader2, MoreHorizontal, Trash2 } from 'lucide-react';
+import { ChevronRight, Edit, Info, Download, FileSpreadsheet, Loader2, MoreHorizontal, Trash2, FileText } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
@@ -24,6 +24,7 @@ import { WorkOrderPDFExportDialog } from './WorkOrderPDFExportDialog';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
 import { useWorkOrderExcelExport } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
+import { useGoogleWorkspaceExportDestination } from '@/features/organization/hooks/useGoogleWorkspaceExportDestination';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useDeleteWorkOrder } from '@/features/work-orders/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/features/work-orders/hooks/useWorkOrderImageCount';
@@ -100,7 +101,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   });
 
   // Excel export hook
-  const { exportSingle, isExportingSingle } = useWorkOrderExcelExport(
+  const { exportSingle, isExportingSingle, exportSingleToDocs, isExportingSingleToDocs } = useWorkOrderExcelExport(
     organizationId,
     organizationName ?? ''
   );
@@ -109,6 +110,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
     organizationId,
   });
+  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(organizationId);
 
   // Handle PDF export with options from dialog
   const handlePDFExport = async (options: { includeCosts: boolean }) => {
@@ -194,7 +196,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => exportSingle(workOrder.id)}
-                    disabled={isExportingSingle || !organizationId}
+                    disabled={isExportingSingle || isExportingSingleToDocs || !organizationId}
                   >
                     {isExportingSingle ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -203,6 +205,19 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                     )}
                     Internal Work Order Packet
                   </DropdownMenuItem>
+                  {isGoogleWorkspaceConnected && (
+                    <DropdownMenuItem
+                      onClick={() => exportSingleToDocs(workOrder.id)}
+                      disabled={isExportingSingle || isExportingSingleToDocs || !organizationId || !googleDocsDestination}
+                    >
+                      {isExportingSingleToDocs ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileText className="h-4 w-4 mr-2" />
+                      )}
+                      Internal Work Order Packet (Google Doc)
+                    </DropdownMenuItem>
+                  )}
                   {canDelete && (
                     <>
                       <DropdownMenuSeparator />

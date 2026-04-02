@@ -135,6 +135,8 @@ export const quickBooks = {
 export const googleWorkspace = {
   root: ['google-workspace'] as const,
   connection: (orgId: string) => ['google-workspace', 'connection', orgId] as const,
+  destination: (orgId: string, documentType: string) =>
+    ['google-workspace', 'destination', orgId, documentType] as const,
 };
 
 // User organization list keys
@@ -156,6 +158,11 @@ export const workOrderEquipment = {
 export const workOrderMetrics = {
   imageCount: (workOrderId: string) => ['workOrderImageCount', workOrderId] as const,
   costsSubtotal: (workOrderId: string) => ['work-order-costs-subtotal', workOrderId] as const,
+};
+
+export const workOrderExports = {
+  excelCount: (orgId: string, filters: unknown) =>
+    ['work-order-excel-count', orgId, filters] as const,
 };
 
 // Equipment working-hours keys

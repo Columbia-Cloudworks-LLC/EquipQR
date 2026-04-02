@@ -98,7 +98,7 @@ npx supabase functions pull quickbooks-oauth-callback
 
 ### Step 5: Start Local Supabase Instance
 
-> **Preferred workflow**: Run `.\dev-start.bat` from the project root. It now front-loads 1Password sync/auth early, then starts Docker, Supabase, Edge Functions, and the Vite dev server in one step. It is idempotent and skips services that are already running. Use `.\dev-start.bat -Force` for a full fresh reset (equivalent to `dev-stop`, plus DB reset and type regeneration), then clean startup. Docker Desktop stays running. See also `.\dev-stop.bat` to tear everything down.
+> **Preferred workflow**: Run `.\dev-start.bat` from the project root (default **`--mode full`**). It front-loads 1Password sync when `op` is available, then starts Docker, Supabase, Edge Functions serve, and Vite. Exit code **`0`** means every service required by the mode passed health checks. Use **`.\dev-start.bat --mode backend`** or **`--mode core`** for narrower stacks. **`-Force`** runs **`.\dev-stop.bat --no-pause --mode …`** for the same mode, then **`--reset-db`** and **`--gen-types`**, then starts again. **`--no-pause`** avoids blocking automation on failure. See **`.\dev-stop.bat [--mode …]`** for teardown.
 
 Start a local Supabase instance (PostgreSQL, PostgREST, Auth, Storage, Edge Functions):
 
@@ -154,11 +154,15 @@ PRODUCTION_URL=http://localhost:8080
 QB_OAUTH_REDIRECT_BASE_URL=http://localhost:58221
 
 # Google Workspace Integration (if testing locally)
-GOOGLE_OAUTH_CLIENT_ID=<your-google-oauth-client-id>
-GOOGLE_OAUTH_CLIENT_SECRET=<your-google-oauth-client-secret>
+GOOGLE_WORKSPACE_CLIENT_ID=<your-google-workspace-client-id>
+GOOGLE_WORKSPACE_CLIENT_SECRET=<your-google-workspace-client-secret>
 GW_OAUTH_REDIRECT_BASE_URL=http://localhost:58221
 TOKEN_ENCRYPTION_KEY=<generate-with-openssl-rand-base64-32>
 KDF_SALT=<generate-unique-salt-with-openssl-rand-base64-32>
+
+# Google Picker (client-side)
+VITE_GOOGLE_PICKER_API_KEY=<your-google-picker-browser-api-key>
+VITE_GOOGLE_PICKER_APP_ID=<your-google-cloud-project-number>
 
 # Other required secrets
 RESEND_API_KEY=<your-resend-key>
@@ -505,9 +509,13 @@ npx supabase stop
 
 ```bash
 # ---- One-click dev environment (Windows) ----
-.\dev-start.bat                      # Start Docker + Supabase + Vite (idempotent)
-.\dev-start.bat -Force --reset-db --gen-types  # Full app-stack reset + DB reset/types + start all components
-.\dev-stop.bat                       # Stop all dev processes gracefully
+.\dev-start.bat                      # full: Supabase + Edge Functions + Vite (strict health)
+.\dev-start.bat --mode backend       # Supabase + Edge Functions only
+.\dev-start.bat --mode core          # Supabase Docker stack only
+.\dev-start.bat -Force               # dev-stop (same mode) + DB reset + gen types + full start
+.\dev-start.bat --no-pause           # No final pause (CI / E2E)
+.\dev-stop.bat                       # Stop full stack (default --mode full)
+.\dev-stop.bat --mode core           # Stop Supabase stack only
 
 # ---- Supabase CLI commands (always use npx) ----
 npx supabase --version              # Check version

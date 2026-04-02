@@ -34,6 +34,7 @@ import { WorkOrderExcelExportDialog } from '@/features/work-orders/components/Wo
 import { useReportRecordCount, useReportExportDialog } from '@/features/reports/hooks/useReportExport';
 import { useWorkOrderExcelExport, useWorkOrderExcelCount } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
+import { useGoogleWorkspaceExportDestination } from '@/features/organization/hooks/useGoogleWorkspaceExportDestination';
 import { REPORT_CARDS, getDefaultColumns } from '@/features/reports/constants/reportColumns';
 import type { ReportType, ExportFilters } from '@/features/reports/types/reports';
 import type { WorkOrderExcelFilters } from '@/features/work-orders/types/workOrderExcel';
@@ -243,12 +244,15 @@ const Reports: React.FC = () => {
     bulkExportError,
     exportToSheetsAsync,
     isExportingToSheets,
+    exportToDocsAsync,
+    isExportingToDocs,
   } = useWorkOrderExcelExport(currentOrganization?.id, currentOrganization?.name ?? '');
   
   // Google Workspace connection status (for showing "Export to Google Sheets" option)
   const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
     organizationId: currentOrganization?.id,
   });
+  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(currentOrganization?.id);
   
   // CSV Export dialog handler
   const { handleExport } = useReportExportDialog(
@@ -341,6 +345,17 @@ const Reports: React.FC = () => {
       // Error toast is already handled by the export hook.
     }
   }, [exportToSheetsAsync]);
+
+  const handleExportToDocs = useCallback(async (newFilters: WorkOrderExcelFilters) => {
+    setExcelFilters(newFilters);
+    try {
+      await exportToDocsAsync(newFilters);
+      setExcelExportDialogOpen(false);
+    } catch {
+      // Keep dialog open on error so user can retry.
+      // Error toast is already handled by the export hook.
+    }
+  }, [exportToDocsAsync]);
   
   // Get title for selected report type
   const getReportTitle = (type: ReportType) => {
@@ -441,7 +456,7 @@ const Reports: React.FC = () => {
                   <p>
                     CSV reports export standard datasets. The work order export is an
                     <strong> Internal Work Order Packet</strong> for shop and office workflows,
-                    available as Excel or Google Sheets.
+                    available as Excel, Google Sheets, or Google Docs.
                   </p>
                 </div>
                 <div className="flex gap-3">
@@ -491,6 +506,9 @@ const Reports: React.FC = () => {
         isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
         onExportToSheets={handleExportToSheets}
         isExportingToSheets={isExportingToSheets}
+        isGoogleDocsDestinationConfigured={Boolean(googleDocsDestination)}
+        onExportToDocs={handleExportToDocs}
+        isExportingToDocs={isExportingToDocs}
       />
     </Page>
   );
