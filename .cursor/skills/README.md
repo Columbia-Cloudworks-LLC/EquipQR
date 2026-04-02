@@ -25,6 +25,8 @@ Every skill in this folder should be treated as:
 | `/trowel` | Audit dependency health and integration seams |
 | `/chisel` | Polish existing code without deleting behavior |
 | `/raise` | Run PR pre-flight gates and prepare promotion PR to `main` |
+| `/auditor` | Generate jurisdiction-specific audit questions and pass-fail matrix |
+| `/evidence-producer` | Produce production-backed audit evidence and executive reports |
 
 ## Shared Operating Rules
 
@@ -60,3 +62,5 @@ Use the skill whose primary question best matches the task:
 - "Are our dependencies and integrations healthy?" -> `trowel`
 - "Can this code be made cleaner without changing behavior?" -> `chisel`
 - "Is this branch ready to be raised to main?" -> `raise`
+- "Generate audit questions and a pass-fail matrix for a regulatory space" -> `auditor`
+- "Produce production audit evidence and executive reports" -> `evidence-producer`
