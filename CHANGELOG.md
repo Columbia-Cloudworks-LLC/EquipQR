@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Windows dev scripts** — `dev-start.bat` and `dev-stop.bat` are thin launchers that call **`dev-start.ps1`** and **`dev-stop.ps1`**. Removed **`--mode`**, **`--no-pause`**, **`--reset-db`**, and **`--gen-types`** flags from the batch surface. **`dev-start -Force`** no longer invokes **`dev-stop`**; it resets the DB, regenerates types, and re-seeds images after Supabase is up, but exits with guidance to run **`dev-stop`** first if Vite or Edge Functions serve is already running. Scripts no longer end with **`pause`**.
+
 ### Added
 
 - **`scripts/bootstrap-worktree-env.ps1`** — One-shot copy (or optional hard link) of `.env`, `.env.local`, and `supabase/functions/.env` from a canonical checkout into a git/Cursor worktree; optional `npm ci`. Documented under **Git worktrees and Cursor** in `docs/technical/setup.md`.
@@ -56,6 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Privacy policy SLA alignment** — Section 9 general response timing and Section 14 contact response timing updated from **30 days** to **45 calendar days** to match the California-specific Section 10A standard and avoid conflicting deadlines.
 
 ### Fixed
+
+- **Google Docs destination picker blocked by CSP** — Updated app CSP headers to allow Google Picker and Google Identity script/origin requirements (`apis.google.com`, `accounts.google.com`) and Supabase Realtime websocket connections (`wss://*.supabase.co`) so **Organization -> Choose Destination** can load the picker flow in preview and local environments.
 
 - **Supabase function search-path security warnings** — Added a forward-only migration to recreate `public.anonymize_audit_changes` and `public.prevent_dsr_event_mutation` with `SET search_path = ''`, clearing the advisor's `function_search_path_mutable` findings without changing function behavior. Added focused pgTAP regression checks in `supabase/tests/06_dsr_requests_and_privacy.sql` so the warnings do not silently return.
 
