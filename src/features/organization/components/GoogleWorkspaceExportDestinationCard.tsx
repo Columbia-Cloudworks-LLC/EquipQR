@@ -130,30 +130,21 @@ export function GoogleWorkspaceExportDestinationCard({
     if (!isGooglePickerConfigured()) {
       toast({
         title: 'Google Picker Not Configured',
-        description: 'Missing VITE_GOOGLE_PICKER_API_KEY or VITE_GOOGLE_PICKER_APP_ID.',
+        description:
+          'Missing VITE_GOOGLE_PICKER_API_KEY, VITE_GOOGLE_PICKER_APP_ID, or OAuth client ID (VITE_GOOGLE_PICKER_CLIENT_ID).',
         variant: 'error',
       });
       return;
     }
 
     const pickerConfig = getGooglePickerConfig();
-    const workspaceClientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
-
-    if (!workspaceClientId) {
-      toast({
-        title: 'Google Workspace Not Configured',
-        description: 'Missing VITE_GOOGLE_WORKSPACE_CLIENT_ID.',
-        variant: 'error',
-      });
-      return;
-    }
 
     try {
       await loadScript(GOOGLE_API_SCRIPT);
       await loadScript(GOOGLE_GSI_SCRIPT);
 
       const tokenClient = window.google?.accounts?.oauth2?.initTokenClient({
-        client_id: workspaceClientId,
+        client_id: pickerConfig.clientId,
         scope: GOOGLE_PICKER_SCOPE,
         callback: async (tokenResponse) => {
           if (tokenResponse.error || !tokenResponse.access_token) {

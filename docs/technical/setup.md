@@ -94,6 +94,7 @@ VITE_GOOGLE_MAPS_API_KEY=your-maps-key
 # Google Picker (for Google Workspace export destination selection)
 VITE_GOOGLE_PICKER_API_KEY=your-picker-browser-api-key
 VITE_GOOGLE_PICKER_APP_ID=your-google-cloud-project-number
+VITE_GOOGLE_PICKER_CLIENT_ID=your-picker-oauth-client-id
 ```
 
 ### Edge Function Secrets (Production/Preview)

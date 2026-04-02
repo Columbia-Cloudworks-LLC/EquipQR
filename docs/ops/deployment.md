@@ -139,6 +139,7 @@ Configure these environment variables in your Vercel project dashboard:
 - `VITE_GOOGLE_MAPS_API_KEY`: Google Maps API key
 - `VITE_GOOGLE_PICKER_API_KEY`: Google Picker browser key
 - `VITE_GOOGLE_PICKER_APP_ID`: Google Cloud project number (Picker App ID)
+- `VITE_GOOGLE_PICKER_CLIENT_ID`: Google Picker OAuth client ID (Web app)
 
 > **Important**: Vercel env vars are build-time only (`VITE_*` prefix). Edge Function runtime secrets (e.g., `GOOGLE_MAPS_BROWSER_KEY`, OAuth secrets) must be set in the **Supabase Dashboard**, not Vercel. See [Secrets Checklist](#secrets-checklist) below.
 
@@ -162,6 +163,7 @@ When rotating keys or deploying a new environment, verify secrets in **both** da
 | `VITE_GOOGLE_MAPS_API_KEY` | Google Maps API key (build-time fallback) |
 | `VITE_GOOGLE_PICKER_API_KEY` | Google Picker browser API key (referrer-restricted) |
 | `VITE_GOOGLE_PICKER_APP_ID` | Google Cloud project number for Picker |
+| `VITE_GOOGLE_PICKER_CLIENT_ID` | Google OAuth client ID used by browser Picker token flow |
 | `VITE_ENABLE_QUICKBOOKS` | Feature flag: QuickBooks integration |
 | `VITE_ENABLE_GEOLOCATION_HIERARCHY` | Feature flag: geolocation hierarchy |
 
@@ -192,8 +194,12 @@ For the Google Docs destination chooser in Organization Settings:
    - Google Cloud Console -> APIs & Services -> Credentials -> Create Credentials -> API key
    - Restrict to HTTP referrers (for example localhost dev URL, preview.equipqr.app, equipqr.app)
    - Restrict API usage to Google Drive API
-4. Set the browser key as `VITE_GOOGLE_PICKER_API_KEY` in Vercel/local `.env`.
-5. Copy the project number from Project Settings and set it as `VITE_GOOGLE_PICKER_APP_ID`.
+4. Create or reuse a **Web application** OAuth client ID for browser token flow:
+   - Add Authorized JavaScript origins: localhost dev URL, `https://preview.equipqr.app`, `https://equipqr.app`
+   - Ensure Google Cloud OAuth settings include the redirect URI required by your browser flow
+5. Set the browser key as `VITE_GOOGLE_PICKER_API_KEY` in Vercel/local `.env`.
+6. Copy the project number from Project Settings and set it as `VITE_GOOGLE_PICKER_APP_ID`.
+7. Set OAuth client ID as `VITE_GOOGLE_PICKER_CLIENT_ID` (preferred for picker-specific auth).
 
 ### Google Workspace Scope Matrix
 
