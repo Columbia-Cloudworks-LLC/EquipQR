@@ -92,7 +92,8 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
       model: equipment.model,
       serial_number: equipment.serial_number,
       status: equipment.status,
-      location: equipment.location
+      location: equipment.location,
+      customerId: (equipment as { customer_id?: string | null }).customer_id ?? null,
     } : null,
     pmData: pmData as PreventativeMaintenance | null,
     organizationName
@@ -189,7 +190,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                     disabled={isGenerating}
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Download PDF
+                    Service Report PDF
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => exportSingle(workOrder.id)}
@@ -200,7 +201,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                     ) : (
                       <FileSpreadsheet className="h-4 w-4 mr-2" />
                     )}
-                    Export Excel
+                    Internal Work Order Packet
                   </DropdownMenuItem>
                   {canDelete && (
                     <>

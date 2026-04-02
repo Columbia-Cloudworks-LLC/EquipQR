@@ -3,7 +3,7 @@
  * 
  * A bottom sheet that consolidates all work order actions for mobile users.
  * Sections are role-gated:
- * - Office tools: Download PDF, Export Excel (visible to managers/admins)
+ * - Office tools: Service Report PDF, Internal Work Order Packet (visible to managers/admins)
  * - QuickBooks: Export (visible only to users with can_manage_quickbooks)
  */
 
@@ -105,7 +105,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
               <div className="space-y-2">
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Office Tools
+                    Exports
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     <Button
@@ -114,7 +114,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                       onClick={() => handleAction(onDownloadPDF)}
                     >
                       <Download className="h-5 w-5" />
-                      <span className="text-xs">Download PDF</span>
+                      <span className="text-xs">Service Report PDF</span>
                     </Button>
                     <Button
                       variant="outline"
@@ -127,7 +127,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                       ) : (
                         <FileSpreadsheet className="h-5 w-5" />
                       )}
-                      <span className="text-xs">Export Excel</span>
+                      <span className="text-xs">Internal Work Order Packet</span>
                     </Button>
                   </div>
                 </div>

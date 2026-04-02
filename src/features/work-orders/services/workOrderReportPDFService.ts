@@ -37,6 +37,8 @@ export interface EquipmentForPDF {
   serial_number?: string | null;
   status: string;
   location?: string | null;
+  customerId?: string | null;
+  customerName?: string | null;
 }
 
 export interface WorkOrderPDFData {
@@ -287,6 +289,9 @@ export class WorkOrderReportPDFGenerator {
 
     if (equipment.location) {
       this.addText(`Location: ${equipment.location}`, this.margin, 10);
+    }
+    if (equipment.customerName) {
+      this.addText(`Customer: ${equipment.customerName}`, this.margin, 10);
     }
 
     this.addSeparator();

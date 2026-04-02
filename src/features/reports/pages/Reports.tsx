@@ -439,8 +439,9 @@ const Reports: React.FC = () => {
                 <div className="flex gap-3">
                   <div className="flex-shrink-0 w-1 rounded-full bg-primary/30" />
                   <p>
-                    Reports are exported as CSV or Excel files that can be opened in Excel, 
-                    Google Sheets, or any spreadsheet application.
+                    CSV reports export standard datasets. The work order export is an
+                    <strong> Internal Work Order Packet</strong> for shop and office workflows,
+                    available as Excel or Google Sheets.
                   </p>
                 </div>
                 <div className="flex gap-3">

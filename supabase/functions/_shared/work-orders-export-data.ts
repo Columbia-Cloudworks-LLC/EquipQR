@@ -22,6 +22,7 @@ export const MAX_WORK_ORDERS = 5000;
 // ============================================
 
 export interface WorkOrderExcelFilters {
+  workOrderId?: string;
   status?: string;
   teamId?: string;
   priority?: string;
@@ -42,6 +43,7 @@ export interface WorkOrderSummaryRow {
   workOrderId: string;
   title: string;
   description: string;
+  customerName: string;
   equipmentName: string;
   equipmentSerialNumber: string;
   equipmentLocation: string;
@@ -110,6 +112,7 @@ export interface TimelineRow {
 export interface EquipmentRow {
   equipmentId: string;
   name: string;
+  customerName: string;
   manufacturer: string;
   model: string;
   serialNumber: string;
@@ -144,7 +147,7 @@ export const WORKSHEET_NAMES = {
 
 export const WORKSHEET_HEADERS = {
   SUMMARY: [
-    'Work Order ID', 'Title', 'Description', 'Equipment', 'Serial Number',
+    'Work Order ID', 'Title', 'Description', 'Customer', 'Equipment', 'Serial Number',
     'Location', 'Status', 'Priority', 'Created Date', 'Due Date',
     'Completed Date', 'Days Open', 'Total Labor Hours', 'Total Material Cost',
     'PM Status', 'Assignee', 'Team',
@@ -167,7 +170,7 @@ export const WORKSHEET_HEADERS = {
     'Changed At', 'Changed By', 'Reason',
   ],
   EQUIPMENT: [
-    'Equipment ID', 'Name', 'Manufacturer', 'Model', 'Serial Number',
+    'Equipment ID', 'Name', 'Customer', 'Manufacturer', 'Model', 'Serial Number',
     'Location', 'Status', 'Work Order Count', 'Total Labor Hours', 'Total Materials Cost',
   ],
 } as const;
@@ -325,6 +328,8 @@ export interface WorkOrdersWithData {
   equipmentMap: Map<string, {
     id: string;
     name: string;
+    customer_id: string | null;
+    customer_name: string;
     manufacturer: string | null;
     model: string | null;
     serial_number: string | null;
@@ -364,6 +369,9 @@ export async function fetchWorkOrdersWithData(
   // Apply filters
   if (filters.status) {
     query = query.eq('status', filters.status);
+  }
+  if (filters.workOrderId) {
+    query = query.eq('id', filters.workOrderId);
   }
   if (filters.teamId) {
     query = query.eq('team_id', filters.teamId);
@@ -405,14 +413,32 @@ export async function fetchWorkOrdersWithData(
 
   // Fetch equipment data separately
   const equipmentIds = [...new Set(workOrders.map(wo => wo.equipment_id).filter(Boolean))];
-  let equipmentMap = new Map<string, { id: string; name: string; manufacturer: string | null; model: string | null; serial_number: string | null; location: string | null; status: string }>();
+  let equipmentMap = new Map<string, { id: string; name: string; customer_id: string | null; customer_name: string; manufacturer: string | null; model: string | null; serial_number: string | null; location: string | null; status: string }>();
   if (equipmentIds.length > 0) {
     const { data: equipmentData } = await supabase
       .from('equipment')
-      .select('id, name, manufacturer, model, serial_number, location, status')
+      .select('id, name, customer_id, manufacturer, model, serial_number, location, status')
       .in('id', equipmentIds)
       .eq('organization_id', organizationId);
-    equipmentMap = new Map((equipmentData || []).map(e => [e.id, e]));
+
+    const customerIds = [...new Set((equipmentData || []).map(e => e.customer_id).filter(Boolean))];
+    let customerNameMap = new Map<string, string>();
+    if (customerIds.length > 0) {
+      const { data: customerData } = await supabase
+        .from('customers')
+        .select('id, name')
+        .eq('organization_id', organizationId)
+        .in('id', customerIds);
+      customerNameMap = new Map((customerData || []).map(c => [c.id, c.name]));
+    }
+
+    equipmentMap = new Map((equipmentData || []).map(e => [
+      e.id,
+      {
+        ...e,
+        customer_name: e.customer_id ? (customerNameMap.get(e.customer_id) || '') : '',
+      },
+    ]));
   }
 
   // Fetch teams data separately
@@ -591,6 +617,7 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
       workOrderId: truncateId(wo.id),
       title: wo.title,
       description: wo.description,
+      customerName: equipment?.customer_name || '',
       equipmentName: equipment?.name || '',
       equipmentSerialNumber: equipment?.serial_number || '',
       equipmentLocation: equipment?.location || '',
@@ -733,6 +760,7 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
         equipmentAggMap.set(equipment.id, {
           equipmentId: truncateId(equipment.id),
           name: equipment.name,
+          customerName: equipment.customer_name || '',
           manufacturer: equipment.manufacturer || '',
           model: equipment.model || '',
           serialNumber: equipment.serial_number || '',
@@ -765,7 +793,7 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
  */
 export function summaryRowToArray(row: WorkOrderSummaryRow): (string | number | null)[] {
   return [
-    row.workOrderId, row.title, row.description, row.equipmentName,
+    row.workOrderId, row.title, row.description, row.customerName, row.equipmentName,
     row.equipmentSerialNumber, row.equipmentLocation, row.status, row.priority,
     row.createdDate, row.dueDate, row.completedDate, row.daysOpen,
     row.totalLaborHours, row.totalMaterialCost, row.pmStatus, row.assignee, row.team,
@@ -804,7 +832,7 @@ export function timelineRowToArray(row: TimelineRow): string[] {
 
 export function equipmentRowToArray(row: EquipmentRow): (string | number)[] {
   return [
-    row.equipmentId, row.name, row.manufacturer, row.model, row.serialNumber,
+    row.equipmentId, row.name, row.customerName, row.manufacturer, row.model, row.serialNumber,
     row.location, row.status, row.workOrderCount, row.totalLaborHours, row.totalMaterialsCost,
   ];
 }

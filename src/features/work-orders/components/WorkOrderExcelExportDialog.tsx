@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { useTeams } from '@/features/teams/hooks/useTeams';
 import type { WorkOrderExcelFilters } from '@/features/work-orders/types/workOrderExcel';
 import { WORKSHEET_NAMES } from '@/features/work-orders/types/workOrderExcel';
+import { INTERNAL_WORK_ORDER_PACKET_POLICY } from '@/features/work-orders/constants/workOrderExportPolicy';
 
 interface WorkOrderExcelExportDialogProps {
   open: boolean;
@@ -183,10 +184,10 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
-            Export Work Orders (Detailed)
+            {INTERNAL_WORK_ORDER_PACKET_POLICY.title}
           </DialogTitle>
           <DialogDescription>
-            Export work orders with all related data as a multi-worksheet Excel file.
+            {INTERNAL_WORK_ORDER_PACKET_POLICY.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -415,7 +416,7 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
               ) : (
                 <>
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  Export to Google Sheets
+                  Export Internal Work Order Packet to Sheets
                 </>
               )}
             </Button>
@@ -434,7 +435,7 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
             ) : (
               <>
                 <Download className="mr-2 h-4 w-4" />
-                Export Excel
+                Export Internal Work Order Packet
               </>
             )}
           </Button>

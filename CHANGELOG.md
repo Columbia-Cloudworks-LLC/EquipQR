@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Unified work-order export model (Service Report + Internal Packet)** — Work-order exports now follow two first-class deliverables instead of mixed piecemeal actions. The single-work-order PDF flow is explicitly framed as a customer-safe **Service Report PDF** (including customer context when linked through equipment), while single-work-order Excel export now produces the same internal multi-sheet **Internal Work Order Packet** concept used by detailed work-order reporting. UI labels and export copy were updated across work-order detail actions, mobile action sheet, quick actions, and reports so users can clearly distinguish external-shareable vs internal-operational exports.
+
 - **Privacy policy SLA alignment** — Section 9 general response timing and Section 14 contact response timing updated from **30 days** to **45 calendar days** to match the California-specific Section 10A standard and avoid conflicting deadlines.
 
 ### Fixed

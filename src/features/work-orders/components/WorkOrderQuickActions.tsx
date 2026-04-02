@@ -68,7 +68,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleDownloadPDF}>
           <Download className="h-4 w-4 mr-2" />
-          Download PDF
+          Service Report PDF
         </DropdownMenuItem>
         {showQuickBooks && (
           <>

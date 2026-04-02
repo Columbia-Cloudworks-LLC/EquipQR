@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Download, Loader2, CloudUpload } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { SERVICE_REPORT_EXPORT_POLICY } from '@/features/work-orders/constants/workOrderExportPolicy';
 
 interface WorkOrderPDFExportDialogProps {
   open: boolean;
@@ -28,7 +29,7 @@ interface WorkOrderPDFExportDialogProps {
 }
 
 /**
- * Dialog for exporting a Work Order as a customer-facing PDF.
+ * Dialog for exporting a work order as a service report PDF.
  * Allows the user to optionally include cost items (off by default).
  */
 export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> = ({
@@ -79,16 +80,16 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="sm">
         <DialogHeader>
-          <DialogTitle>Export Work Order PDF</DialogTitle>
+          <DialogTitle>{SERVICE_REPORT_EXPORT_POLICY.title}</DialogTitle>
           <DialogDescription>
-            Generate a customer-facing PDF document for this work order.
+            {SERVICE_REPORT_EXPORT_POLICY.description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4 space-y-4">
           <p className="text-sm text-muted-foreground">
             The PDF will include work order details, equipment information, 
-            the PM checklist (if applicable), and public notes with photos.
+            customer context (when available), the PM checklist (if applicable), and public notes with photos.
           </p>
 
           {showCostsOption && (
@@ -102,7 +103,7 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
                 htmlFor="include-costs" 
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Include cost items
+                Include itemized costs
               </Label>
             </div>
           )}
@@ -132,7 +133,7 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
               ) : (
                 <>
                   <CloudUpload className="h-4 w-4 mr-2" />
-                  Save to Google Drive
+                  Save Service Report PDF to Drive
                 </>
               )}
             </Button>
@@ -150,7 +151,7 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
             ) : (
               <>
                 <Download className="h-4 w-4 mr-2" />
-                Download PDF
+                Download Service Report PDF
               </>
             )}
           </Button>

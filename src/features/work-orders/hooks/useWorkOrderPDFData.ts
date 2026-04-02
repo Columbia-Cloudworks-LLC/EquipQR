@@ -13,6 +13,7 @@ import {
   type EquipmentForPDF
 } from '@/features/work-orders/services/workOrderReportPDFService';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { SERVICE_REPORT_EXPORT_POLICY } from '@/features/work-orders/constants/workOrderExportPolicy';
 
 /** Response from the upload-to-google-drive edge function */
 interface GoogleDriveUploadResponse {
@@ -83,6 +84,70 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
   const isGeneratingRef = useRef(false);
   const isSavingToDriveRef = useRef(false);
 
+  const fetchCustomerName = useCallback(async (): Promise<string | null> => {
+    if (!equipment?.customerId || !organizationId) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('customers')
+      .select('name')
+      .eq('id', equipment.customerId)
+      .eq('organization_id', organizationId)
+      .maybeSingle();
+
+    if (error) {
+      logger.warn('Failed to fetch customer name for service report PDF', {
+        equipmentId: equipment.id,
+        customerId: equipment.customerId,
+        error,
+      });
+      return null;
+    }
+
+    return data?.name ?? null;
+  }, [equipment?.customerId, equipment?.id, organizationId]);
+
+  const buildPdfData = useCallback(async (includeCosts: boolean): Promise<WorkOrderPDFData> => {
+    // Always fetch notes; generator enforces public-only notes for external reports.
+    const notesPromise = getWorkOrderNotesWithImages(workOrder.id, organizationId).catch(err => {
+      logger.warn('Failed to fetch notes for PDF:', err);
+      return [];
+    });
+
+    const costsPromise = includeCosts
+      ? getWorkOrderCosts(workOrder.id, organizationId).catch(err => {
+          logger.warn('Failed to fetch costs for PDF:', err);
+          return [];
+        })
+      : Promise.resolve([]);
+
+    const customerNamePromise = fetchCustomerName();
+
+    const [notes, costs, customerName] = await Promise.all([
+      notesPromise,
+      costsPromise,
+      customerNamePromise,
+    ]);
+
+    const equipmentWithCustomer = equipment
+      ? {
+          ...equipment,
+          customerName: equipment.customerName ?? customerName ?? undefined,
+        }
+      : null;
+
+    return {
+      workOrder,
+      equipment: equipmentWithCustomer,
+      organizationName,
+      notes,
+      costs,
+      pmData,
+      includeCosts,
+    };
+  }, [equipment, fetchCustomerName, organizationName, organizationId, pmData, workOrder]);
+
   const downloadPDF = useCallback(async (downloadOptions?: DownloadPDFOptions) => {
     // Use ref for guard check to prevent race conditions from rapid clicks.
     // This blocks re-entry until the finally block resets the ref.
@@ -95,40 +160,12 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     setIsGenerating(true);
     
     try {
-      // Always fetch notes (PDF generator filters to public only).
-      // Multi-tenancy: Explicit organization_id filtering is provided as a failsafe
-      // (per coding guidelines). RLS policies on work_order_notes table also enforce multi-tenancy.
-      const notesPromise = getWorkOrderNotesWithImages(workOrder.id, organizationId).catch(err => {
-        logger.warn('Failed to fetch notes for PDF:', err);
-        return [];
-      });
-      
-      // Only fetch costs if explicitly requested
-      // Multi-tenancy: Explicit organization_id filtering is provided as a failsafe
-      const costsPromise = includeCosts 
-        ? getWorkOrderCosts(workOrder.id, organizationId).catch(err => {
-            logger.warn('Failed to fetch costs for PDF:', err);
-            return [];
-          })
-        : Promise.resolve([]);
-
-      const [notes, costs] = await Promise.all([notesPromise, costsPromise]);
-
-      // Prepare PDF data (customer-facing: public notes only, costs optional)
-      const pdfData: WorkOrderPDFData = {
-        workOrder,
-        equipment,
-        organizationName,
-        notes,
-        costs,
-        pmData,
-        includeCosts
-      };
+      const pdfData = await buildPdfData(includeCosts);
 
       // Generate and download the PDF
       await generateWorkOrderPDF(pdfData);
       
-      toast.success('PDF downloaded successfully');
+      toast.success(`${SERVICE_REPORT_EXPORT_POLICY.exportName} downloaded successfully`);
     } catch (error) {
       logger.error('Error generating work order PDF:', error);
       toast.error('Failed to generate PDF. Please try again.');
@@ -138,7 +175,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       isGeneratingRef.current = false;
       setIsGenerating(false);
     }
-  }, [workOrder, equipment, pmData, organizationName, organizationId]);
+  }, [buildPdfData]);
 
   const saveToDrive = useCallback(async (downloadOptions?: DownloadPDFOptions) => {
     // Use ref for guard check to prevent race conditions from rapid clicks.
@@ -151,31 +188,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     setIsSavingToDrive(true);
     
     try {
-      // Fetch notes and costs (same as downloadPDF)
-      const notesPromise = getWorkOrderNotesWithImages(workOrder.id, organizationId).catch(err => {
-        logger.warn('Failed to fetch notes for PDF:', err);
-        return [];
-      });
-      
-      const costsPromise = includeCosts 
-        ? getWorkOrderCosts(workOrder.id, organizationId).catch(err => {
-            logger.warn('Failed to fetch costs for PDF:', err);
-            return [];
-          })
-        : Promise.resolve([]);
-
-      const [notes, costs] = await Promise.all([notesPromise, costsPromise]);
-
-      // Prepare PDF data
-      const pdfData: WorkOrderPDFData = {
-        workOrder,
-        equipment,
-        organizationName,
-        notes,
-        costs,
-        pmData,
-        includeCosts
-      };
+      const pdfData = await buildPdfData(includeCosts);
 
       // Generate the PDF as a blob
       const { blob, filename } = await generateWorkOrderPDFBlob(pdfData);
@@ -248,7 +261,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       const result: GoogleDriveUploadResponse = await response.json();
       
       // Show success toast with link to open the file
-      toast.success('PDF saved to Google Drive', {
+      toast.success(`${SERVICE_REPORT_EXPORT_POLICY.exportName} saved to Google Drive`, {
         description: 'Click to open in Drive',
         action: result.webViewLink ? {
           label: 'Open',
@@ -266,7 +279,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       isSavingToDriveRef.current = false;
       setIsSavingToDrive(false);
     }
-  }, [workOrder, equipment, pmData, organizationName, organizationId]);
+  }, [buildPdfData, organizationId]);
 
   return {
     downloadPDF,

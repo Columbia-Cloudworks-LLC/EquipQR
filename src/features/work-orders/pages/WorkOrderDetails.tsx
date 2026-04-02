@@ -313,7 +313,8 @@ const WorkOrderDetails = () => {
       model: equipment.model,
       serial_number: equipment.serial_number,
       status: equipment.status,
-      location: equipment.location
+      location: equipment.location,
+      customerId: (equipment as { customer_id?: string | null }).customer_id ?? null,
     } : null,
     pmData,
     organizationName: currentOrganization?.name

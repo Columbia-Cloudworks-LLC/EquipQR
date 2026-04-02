@@ -10,8 +10,8 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { useAppToast } from '@/hooks/useAppToast';
-import { generateSingleWorkOrderExcel } from '@/features/work-orders/services/workOrderExcelService';
 import type { WorkOrderExcelFilters } from '@/features/work-orders/types/workOrderExcel';
+import { INTERNAL_WORK_ORDER_PACKET_POLICY } from '@/features/work-orders/constants/workOrderExportPolicy';
 
 /** Response from the export-work-orders-to-google-sheets function */
 interface GoogleSheetsExportResponse {
@@ -130,7 +130,12 @@ function downloadBlob(blob: Blob, filename: string): void {
 function generateExportFilename(organizationName: string): string {
   const sanitizedOrgName = organizationName.replace(/[^a-zA-Z0-9_-]/g, '_');
   const timestamp = new Date().toISOString().split('T')[0];
-  return `${sanitizedOrgName}_work_orders_detailed_${timestamp}.xlsx`;
+  return `${sanitizedOrgName}_internal_work_order_packet_${timestamp}.xlsx`;
+}
+
+function generateSinglePacketFilename(workOrderId: string): string {
+  const timestamp = new Date().toISOString().split('T')[0];
+  return `work_order_${workOrderId.slice(0, 8)}_internal_packet_${timestamp}.xlsx`;
 }
 
 /**
@@ -147,6 +152,9 @@ async function getWorkOrderCount(
 
   if (filters.status) {
     query = query.eq('status', filters.status);
+  }
+  if (filters.workOrderId) {
+    query = query.eq('id', filters.workOrderId);
   }
   if (filters.teamId) {
     query = query.eq('team_id', filters.teamId);
@@ -208,14 +216,14 @@ export function useWorkOrderExcelExport(
       downloadBlob(blob, filename);
       toast({
         title: 'Export Complete',
-        description: 'Your work orders Excel file has been downloaded.',
+        description: `${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName} has been downloaded.`,
       });
     },
     onError: (error) => {
       logger.error('Bulk export error', error);
       toast({
         title: 'Export Failed',
-        description: error instanceof Error ? error.message : 'Failed to export work orders',
+        description: error instanceof Error ? error.message : `Failed to export ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName.toLowerCase()}.`,
         variant: 'error',
       });
     },
@@ -234,7 +242,7 @@ export function useWorkOrderExcelExport(
       window.open(result.spreadsheetUrl, '_blank', 'noopener,noreferrer');
       toast({
         title: 'Export Complete',
-        description: `Created Google Sheet with ${result.workOrderCount} work orders.`,
+        description: `Created Google Sheet for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName} (${result.workOrderCount} work orders).`,
       });
     },
     onError: (error: Error & { code?: string }) => {
@@ -250,17 +258,17 @@ export function useWorkOrderExcelExport(
       } else {
         toast({
           title: 'Export Failed',
-          description: error.message || 'Failed to export to Google Sheets',
+          description: error.message || `Failed to export ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName.toLowerCase()} to Google Sheets.`,
           variant: 'error',
         });
       }
     },
   });
 
-  // Function for single work order export (client-side)
+  // Function for single work order export (internal packet via edge function)
   const exportSingle = useCallback(
     async (workOrderId: string) => {
-      logger.info('Export Excel button clicked', { workOrderId, organizationId, organizationName });
+      logger.info('Internal packet export button clicked', { workOrderId, organizationId, organizationName });
       
       if (!organizationId) {
         logger.error('Export failed: Organization ID missing', { workOrderId });
@@ -284,19 +292,23 @@ export function useWorkOrderExcelExport(
 
       setIsExportingSingle(true);
       try {
-        logger.info('Starting Excel export', { workOrderId, organizationId });
-        await generateSingleWorkOrderExcel(workOrderId, organizationId);
-        logger.info('Excel export succeeded', { workOrderId });
+        logger.info('Starting internal packet export for single work order', { workOrderId, organizationId });
+        const blob = await exportWorkOrdersExcel(organizationId, {
+          workOrderId,
+          dateField: 'created_date',
+        });
+        downloadBlob(blob, generateSinglePacketFilename(workOrderId));
+        logger.info('Internal packet export succeeded', { workOrderId });
         toast({
           title: 'Export Complete',
-          description: 'Your work order Excel file has been downloaded.',
+          description: `${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName} has been downloaded.`,
         });
       } catch (error) {
         logger.error('Single WO export error', { error, workOrderId, organizationId });
         const errorMessage = error instanceof Error ? error.message : 'Failed to export work order';
         toast({
           title: 'Export Failed',
-          description: errorMessage,
+          description: errorMessage || `Failed to export ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName.toLowerCase()}.`,
           variant: 'error',
         });
       } finally {
