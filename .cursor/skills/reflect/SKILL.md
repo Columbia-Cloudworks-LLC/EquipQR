@@ -1,3 +1,9 @@
+---
+name: reflect
+description: Reflect
+disable-model-invocation: true
+---
+
 # Reflect
 
 Reflect on this conversation.
