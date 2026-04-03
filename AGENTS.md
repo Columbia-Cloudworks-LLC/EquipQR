@@ -7,6 +7,7 @@
 - For attached implementation plans, execute the provided plan exactly: do not edit the plan file, reuse existing plan to-dos, and move them through `in_progress` while executing.
 - AI infrastructure baseline is Cursor plugin-first; keep only the custom `reflect` command in this repository and avoid reintroducing gstack-driven workflows.
 - For release promotion (`/raise` and similar): switch to Plan Mode when gates fail or the audit is ambiguous; ask the developer clarification questions in chat instead of assuming; when raise is allowed and the run is not `--audit-only`, execute push and open the PR without asking for extra confirmation.
+- For Google Workspace-related work (directory sync, Drive/Picker, exports), reuse the existing Google OAuth web client and Cloud Console app configuration as the single source; avoid introducing or requiring a separate OAuth client per Google feature unless a platform constraint makes it unavoidable.
 
 ## Learned Workspace Facts
 
