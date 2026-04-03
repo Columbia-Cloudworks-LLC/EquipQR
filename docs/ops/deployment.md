@@ -140,6 +140,7 @@ Configure these environment variables in your Vercel project dashboard:
 - `VITE_GOOGLE_WORKSPACE_CLIENT_ID`: Shared Google OAuth web client ID (Workspace sync + Picker token flow)
 - `VITE_GOOGLE_PICKER_API_KEY`: Google Picker browser key
 - `VITE_GOOGLE_PICKER_APP_ID`: Google Cloud project number (Picker App ID)
+- `VITE_GOOGLE_PICKER_CLIENT_ID`: Not used (do not set; Picker reuses `VITE_GOOGLE_WORKSPACE_CLIENT_ID`)
 
 > **Important**: Vercel env vars are build-time only (`VITE_*` prefix). Edge Function runtime secrets (e.g., `GOOGLE_MAPS_BROWSER_KEY`, OAuth secrets) must be set in the **Supabase Dashboard**, not Vercel. See [Secrets Checklist](#secrets-checklist) below.
 
@@ -185,6 +186,8 @@ When rotating keys or deploying a new environment, verify secrets in **both** da
 
 For the Google Docs destination chooser in Organization Settings:
 
+Policy: use one shared Google OAuth Web client for both Workspace callback and Picker browser token flow. Do not provision a dedicated Picker OAuth client ID.
+
 1. Open the same Google Cloud project used by Google Workspace OAuth.
 2. Confirm these APIs are enabled:
    - Google Drive API
@@ -200,6 +203,7 @@ For the Google Docs destination chooser in Organization Settings:
 5. Set the browser key as `VITE_GOOGLE_PICKER_API_KEY` in Vercel/local `.env`.
 6. Copy the project number from Project Settings and set it as `VITE_GOOGLE_PICKER_APP_ID`.
 7. Set OAuth client ID as `VITE_GOOGLE_WORKSPACE_CLIENT_ID` (single shared client path).
+8. If present, remove `VITE_GOOGLE_PICKER_CLIENT_ID` from Vercel and any setup docs/scripts.
 
 ### Google Workspace Scope Matrix
 

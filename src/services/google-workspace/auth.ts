@@ -153,6 +153,7 @@ export function isGoogleWorkspaceConfigured(): boolean {
 export interface GooglePickerConfig {
   apiKey: string;
   appId: string;
+  /** Shared OAuth web client ID used by Workspace and Picker token flow. */
   clientId: string;
   scope: string;
 }
@@ -164,7 +165,7 @@ export function getGooglePickerConfig(): GooglePickerConfig {
 
   if (!apiKey || !appId || !clientId) {
     throw new Error(
-      'Google Picker is not configured. Missing VITE_GOOGLE_PICKER_API_KEY, VITE_GOOGLE_PICKER_APP_ID, or VITE_GOOGLE_WORKSPACE_CLIENT_ID.'
+      'Google Picker is not configured. Missing VITE_GOOGLE_PICKER_API_KEY, VITE_GOOGLE_PICKER_APP_ID, or VITE_GOOGLE_WORKSPACE_CLIENT_ID (shared OAuth client; VITE_GOOGLE_PICKER_CLIENT_ID is not used).'
     );
   }
 

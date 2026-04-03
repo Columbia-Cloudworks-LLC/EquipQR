@@ -97,6 +97,8 @@ VITE_GOOGLE_WORKSPACE_CLIENT_ID=your-google-workspace-oauth-client-id
 # Google Picker (for Google Workspace export destination selection)
 VITE_GOOGLE_PICKER_API_KEY=your-picker-browser-api-key
 VITE_GOOGLE_PICKER_APP_ID=your-google-cloud-project-number
+
+# Policy: Picker reuses VITE_GOOGLE_WORKSPACE_CLIENT_ID. Do not create VITE_GOOGLE_PICKER_CLIENT_ID (not used).
 ```
 
 ### Edge Function Secrets (Production/Preview)

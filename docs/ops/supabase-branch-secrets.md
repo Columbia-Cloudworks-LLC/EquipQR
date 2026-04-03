@@ -193,6 +193,7 @@ Google Picker values are browser/client configuration and should be stored as cl
 - `VITE_GOOGLE_WORKSPACE_CLIENT_ID` (shared OAuth web client used by Workspace callback flow and browser Picker token flow)
 - `VITE_GOOGLE_PICKER_API_KEY`
 - `VITE_GOOGLE_PICKER_APP_ID` (Google Cloud project number)
+- `VITE_GOOGLE_PICKER_CLIENT_ID` is not used and should not be configured.
 
 Do **not** add Picker values to Supabase Edge Function secrets.
 

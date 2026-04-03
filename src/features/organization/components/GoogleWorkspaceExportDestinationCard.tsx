@@ -131,7 +131,7 @@ export function GoogleWorkspaceExportDestinationCard({
       toast({
         title: 'Google Picker Not Configured',
         description:
-          'Missing VITE_GOOGLE_PICKER_API_KEY, VITE_GOOGLE_PICKER_APP_ID, or VITE_GOOGLE_WORKSPACE_CLIENT_ID.',
+          'Missing VITE_GOOGLE_PICKER_API_KEY, VITE_GOOGLE_PICKER_APP_ID, or VITE_GOOGLE_WORKSPACE_CLIENT_ID (shared OAuth client; VITE_GOOGLE_PICKER_CLIENT_ID is not used).',
         variant: 'error',
       });
       return;
