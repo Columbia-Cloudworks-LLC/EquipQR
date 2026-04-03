@@ -185,9 +185,13 @@ export function GoogleWorkspaceExportDestinationCard({
                     });
                   } catch (error) {
                     const err = error as Error & { code?: string };
+                    const needsReconnect =
+                      err.code === 'insufficient_scopes' || err.code === 'not_connected';
                     toast({
                       title: 'Failed To Save Destination',
-                      description: err.message || 'Could not save destination.',
+                      description: needsReconnect
+                        ? 'Google Workspace needs updated permissions. Reconnect Google Workspace in Organization Settings, then try again.'
+                        : (err.message || 'Could not save destination.'),
                       variant: 'error',
                     });
                   }

@@ -9,6 +9,7 @@ export const GOOGLE_PICKER_SCOPE = 'https://www.googleapis.com/auth/drive.readon
  * - admin.directory.user.readonly: Read user directory for member import
  * - spreadsheets: Create and write to Google Sheets (for work order exports)
  * - drive.file: Create/update files in Google Drive (for PDF uploads)
+ * - drive.readonly: Validate and read selected Drive destination metadata
  * 
  * **Re-authentication for existing organizations:**
  * Organizations that connected before these scopes were added will only have
@@ -21,6 +22,7 @@ const DEFAULT_SCOPES = [
   'https://www.googleapis.com/auth/admin.directory.user.readonly',
   'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/drive.readonly',
 ].join(' ');
 
 export interface GoogleWorkspaceAuthConfig {

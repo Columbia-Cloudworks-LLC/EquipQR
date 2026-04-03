@@ -155,6 +155,19 @@ export async function setGoogleExportDestination(input: {
   });
 
   if (error) {
+    const httpError = error as Error & { context?: unknown };
+    const response = httpError.context instanceof Response ? httpError.context : null;
+    if (response) {
+      const errorPayload = await response
+        .clone()
+        .json()
+        .catch(() => null) as { error?: string; code?: string } | null;
+      if (errorPayload?.error) {
+        const typedError = new Error(errorPayload.error) as Error & { code?: string };
+        typedError.code = errorPayload.code;
+        throw typedError;
+      }
+    }
     throw new Error(error.message);
   }
 
