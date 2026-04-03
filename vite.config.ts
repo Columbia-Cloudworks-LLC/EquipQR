@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => ({
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://hcaptcha.com https://*.hcaptcha.com https://cdn.gpteng.co https://js.sentry-cdn.com https://maps.googleapis.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",
         "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com https://cdn.gpteng.co https://*.googleapis.com https://*.gstatic.com",
-        "frame-src 'self' https://hcaptcha.com https://*.hcaptcha.com https://accounts.google.com",
+        "frame-src 'self' https://hcaptcha.com https://*.hcaptcha.com https://accounts.google.com https://docs.google.com https://drive.google.com",
         "connect-src 'self' https://hcaptcha.com https://*.hcaptcha.com https://lovable-api.com https://*.sentry.io https://*.supabase.co https://*.equipqr.app https://*.vercel.app https://maps.googleapis.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com wss://*.supabase.co wss://*.equipqr.app wss://*.vercel.app wss://localhost:* ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:*",
         "img-src 'self' data: blob: https: http://localhost:* http://127.0.0.1:* https://*.googleapis.com https://*.gstatic.com",
         "font-src 'self' data: https://cdn.gpteng.co https://fonts.gstatic.com https://fonts.googleapis.com",
