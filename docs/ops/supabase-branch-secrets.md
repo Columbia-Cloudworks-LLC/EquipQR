@@ -190,6 +190,7 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 
 Google Picker values are browser/client configuration and should be stored as client env vars (for example in Vercel and local `.env` files):
 
+- `VITE_GOOGLE_WORKSPACE_CLIENT_ID` (shared OAuth web client used by Workspace callback flow and browser Picker token flow)
 - `VITE_GOOGLE_PICKER_API_KEY`
 - `VITE_GOOGLE_PICKER_APP_ID` (Google Cloud project number)
 

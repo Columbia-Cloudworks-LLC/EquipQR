@@ -57,7 +57,7 @@ EquipQR uses external services. For exact environment variables and where theyâ€
 * **Resend**: Invitation emails (`RESEND_API_KEY`).
 * **Google sign-in (Supabase Auth provider)**: Google OAuth app + provider config in Supabase.
 * **Google Workspace integration**: Google Cloud OAuth client + Admin SDK API enabled (directory sync).
-* **Google Picker (for Google Docs destination selection)**: Browser API key + Google Cloud project number + browser OAuth client ID (`VITE_GOOGLE_PICKER_API_KEY`, `VITE_GOOGLE_PICKER_APP_ID`, `VITE_GOOGLE_PICKER_CLIENT_ID`) in the same Google Cloud project.
+* **Google Picker (for Google Docs destination selection)**: Browser API key + Google Cloud project number, using the same OAuth web client as Google Workspace (`VITE_GOOGLE_PICKER_API_KEY`, `VITE_GOOGLE_PICKER_APP_ID`, `VITE_GOOGLE_WORKSPACE_CLIENT_ID`) in the same Google Cloud project.
 * **QuickBooks Online**: Intuit developer app + OAuth credentials (feature-flagged).
 * **Google Maps**: Fleet Map feature.
 * **hCaptcha**: Bot protection on signup.

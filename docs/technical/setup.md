@@ -91,10 +91,12 @@ VITE_ENABLE_QB_PDF_ATTACHMENT=false
 # Google Maps (for equipment location features)
 VITE_GOOGLE_MAPS_API_KEY=your-maps-key
 
+# Google Workspace OAuth (shared client for Workspace sync + Picker token flow)
+VITE_GOOGLE_WORKSPACE_CLIENT_ID=your-google-workspace-oauth-client-id
+
 # Google Picker (for Google Workspace export destination selection)
 VITE_GOOGLE_PICKER_API_KEY=your-picker-browser-api-key
 VITE_GOOGLE_PICKER_APP_ID=your-google-cloud-project-number
-VITE_GOOGLE_PICKER_CLIENT_ID=your-picker-oauth-client-id
 ```
 
 ### Edge Function Secrets (Production/Preview)

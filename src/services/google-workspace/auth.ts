@@ -160,13 +160,11 @@ export interface GooglePickerConfig {
 export function getGooglePickerConfig(): GooglePickerConfig {
   const apiKey = import.meta.env.VITE_GOOGLE_PICKER_API_KEY;
   const appId = import.meta.env.VITE_GOOGLE_PICKER_APP_ID;
-  const pickerClientId = import.meta.env.VITE_GOOGLE_PICKER_CLIENT_ID;
-  const workspaceClientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
-  const clientId = pickerClientId || workspaceClientId;
+  const clientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
 
   if (!apiKey || !appId || !clientId) {
     throw new Error(
-      'Google Picker is not configured. Missing VITE_GOOGLE_PICKER_API_KEY, VITE_GOOGLE_PICKER_APP_ID, or OAuth client ID (VITE_GOOGLE_PICKER_CLIENT_ID / VITE_GOOGLE_WORKSPACE_CLIENT_ID).'
+      'Google Picker is not configured. Missing VITE_GOOGLE_PICKER_API_KEY, VITE_GOOGLE_PICKER_APP_ID, or VITE_GOOGLE_WORKSPACE_CLIENT_ID.'
     );
   }
 
@@ -182,7 +180,7 @@ export function isGooglePickerConfigured(): boolean {
   return Boolean(
     import.meta.env.VITE_GOOGLE_PICKER_API_KEY &&
     import.meta.env.VITE_GOOGLE_PICKER_APP_ID &&
-    (import.meta.env.VITE_GOOGLE_PICKER_CLIENT_ID || import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID)
+    import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID
   );
 }
 
