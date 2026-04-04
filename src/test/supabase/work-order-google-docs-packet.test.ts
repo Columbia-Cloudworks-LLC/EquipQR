@@ -52,11 +52,10 @@ describe('buildExecutivePacketRequests', () => {
     });
 
     const pageBreakRequests = result.requests.filter((request) =>
-      'insertPageBreak' in request || 'insertPageBreakRequest' in request
+      'insertPageBreak' in request
     );
 
     expect(pageBreakRequests.length).toBeGreaterThan(0);
-    expect(pageBreakRequests.every((request) => 'insertPageBreakRequest' in request)).toBe(true);
-    expect(pageBreakRequests.some((request) => 'insertPageBreak' in request)).toBe(false);
+    expect(pageBreakRequests.every((r) => 'insertPageBreak' in r && !('insertPageBreakRequest' in r))).toBe(true);
   });
 });

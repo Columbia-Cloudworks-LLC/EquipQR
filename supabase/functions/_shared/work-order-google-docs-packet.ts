@@ -57,7 +57,7 @@ export function buildExecutivePacketRequests(
 
   function insertPageBreak() {
     contentRequests.push({
-      insertPageBreakRequest: {
+      insertPageBreak: {
         endOfSegmentLocation: { segmentId: "" },
       },
     });
