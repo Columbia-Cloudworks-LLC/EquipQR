@@ -29,6 +29,7 @@ import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useDeleteWorkOrder } from '@/features/work-orders/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/features/work-orders/hooks/useWorkOrderImageCount';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
 
 interface WorkOrderDetailsDesktopHeaderProps {
   workOrder: WorkOrderData;
@@ -107,10 +108,15 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   );
   
   // Google Workspace connection status (for showing "Save to Google Drive" option)
-  const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
+  const { isConnected: isGoogleWorkspaceConnected, connectionStatus } = useGoogleWorkspaceConnectionStatus({
     organizationId,
   });
   const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(organizationId, permissions.hasRole(['owner', 'admin']));
+  const canExportGoogleDoc = canExportWorkOrderGoogleDoc({
+    isConnected: isGoogleWorkspaceConnected,
+    scopes: connectionStatus?.scopes,
+    hasDestination: Boolean(googleDocsDestination),
+  });
 
   // Handle PDF export with options from dialog
   const handlePDFExport = async (options: { includeCosts: boolean }) => {
@@ -205,10 +211,10 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                     )}
                     Internal Work Order Packet
                   </DropdownMenuItem>
-                  {isGoogleWorkspaceConnected && (
+                  {canExportGoogleDoc && (
                     <DropdownMenuItem
                       onClick={() => exportSingleToDocs(workOrder.id)}
-                      disabled={isExportingSingle || isExportingSingleToDocs || !organizationId || !googleDocsDestination}
+                      disabled={isExportingSingle || isExportingSingleToDocs || !organizationId}
                     >
                       {isExportingSingleToDocs ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

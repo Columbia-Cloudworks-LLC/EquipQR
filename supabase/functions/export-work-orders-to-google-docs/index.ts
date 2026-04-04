@@ -42,6 +42,13 @@ function validateDocsExportRequest(body: ExportRequest): { code: string; error: 
   return null;
 }
 
+function hasRequiredDocsExportScopes(scopes: string | null | undefined): boolean {
+  return (
+    hasScope(scopes, GOOGLE_SCOPES.DRIVE_FILE)
+    && hasScope(scopes, GOOGLE_SCOPES.DOCUMENTS)
+  );
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -135,10 +142,10 @@ Deno.serve(async (req) => {
       throw tokenError;
     }
 
-    if (!hasScope(tokenResult.scopes, GOOGLE_SCOPES.DRIVE_FILE)) {
+    if (!hasRequiredDocsExportScopes(tokenResult.scopes)) {
       return new Response(
         JSON.stringify({
-          error: "Google Workspace is connected but does not have permission to create Drive documents. Please reconnect Google Workspace in Organization Settings.",
+          error: "Google Workspace is connected but does not have permission to create and edit Google Docs. Please reconnect Google Workspace in Organization Settings.",
           code: "insufficient_scopes",
         }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -239,4 +246,4 @@ Deno.serve(async (req) => {
   }
 });
 
-export const __testables = { validateDocsExportRequest };
+export const __testables = { validateDocsExportRequest, hasRequiredDocsExportScopes };
