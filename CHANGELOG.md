@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Better Stack uptime monitoring and status page** — Added public `healthcheck` Supabase Edge Function (`supabase/functions/healthcheck/index.ts`) backed by a dedicated `public.monitoring_healthcheck()` SQL RPC (migration `20260404120000`). The endpoint returns a stable JSON health contract (`ok`, `service`, `environment`, `checked_at`, `checks.db`) with `200` when healthy and `503` on database failure or timeout. Registered as `verify_jwt = false` in `config.toml`. Deno tests cover healthy, unhealthy, and wrong-method paths. Ops runbook at `docs/ops/better-stack-monitoring.md` documents monitor configuration, alert policy, and DNS/CNAME steps for `status.equipqr.app`.
+
 - **`scripts/bootstrap-worktree-env.ps1`** — One-shot copy (or optional hard link) of `.env`, `.env.local`, and `supabase/functions/.env` from a canonical checkout into a git/Cursor worktree; optional `npm ci`. Documented under **Git worktrees and Cursor** in `docs/technical/setup.md`.
 
 - **Cursor stop hook for changelog hygiene** — Added project-level `stop` hook wiring in `.cursor/hooks.json` plus `.cursor/hooks/changelog-stop.ps1` so completed agent sessions that change product code without touching `CHANGELOG.md` automatically get a follow-up prompt to add or justify the missing changelog entry. `.cursor/hooks/README.md` documents the new hook.

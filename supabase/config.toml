@@ -161,6 +161,11 @@ verify_jwt = false
 verify_jwt = false
 # Public hCaptcha token verification endpoint. Called before privacy request submission.
 
+[functions.healthcheck]
+verify_jwt = false
+# Public monitoring endpoint for Better Stack uptime checks.
+# No authentication required -- returns non-sensitive health status only.
+
 [db.seed]
 enabled = true
 sql_paths = ['./seeds/*.sql']
