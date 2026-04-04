@@ -331,7 +331,8 @@ async function fetchWorkOrdersWithData(
     const { data: equipmentData } = await supabase
       .from('equipment')
       .select('id, name, customer_id, manufacturer, model, serial_number, location, status')
-      .in('id', equipmentIds);
+      .in('id', equipmentIds)
+      .eq('organization_id', organizationId);
 
     const customerIds = [...new Set((equipmentData || []).map(e => e.customer_id).filter(Boolean))];
     let customerNameMap = new Map<string, string>();

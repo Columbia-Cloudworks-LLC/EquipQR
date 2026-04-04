@@ -47,7 +47,12 @@ interface DocsViewInstance {
 declare global {
   interface Window {
     gapi?: {
-      load: (library: string, options: { callback: () => void }) => void;
+      load: (library: string, options: {
+        callback: () => void;
+        onerror?: () => void;
+        timeout?: number;
+        ontimeout?: () => void;
+      }) => void;
     };
     google?: {
       accounts: {
@@ -198,7 +203,16 @@ export function GoogleWorkspaceExportDestinationCard({
       await loadScript(GOOGLE_API_SCRIPT);
       await loadScript(GOOGLE_GSI_SCRIPT);
 
-      const tokenClient = window.google?.accounts?.oauth2?.initTokenClient({
+      if (!window.google?.accounts?.oauth2?.initTokenClient) {
+        toast({
+          title: 'Google Sign-In Failed To Load',
+          description: 'The Google Identity script did not initialize. Please reload and try again.',
+          variant: 'error',
+        });
+        return;
+      }
+
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: pickerConfig.clientId,
         scope: GOOGLE_PICKER_SCOPE,
         callback: async (tokenResponse) => {
@@ -211,20 +225,38 @@ export function GoogleWorkspaceExportDestinationCard({
             return;
           }
 
-          window.gapi?.load('picker', {
+          if (!window.gapi?.load) {
+            toast({
+              title: 'Google API Failed To Load',
+              description: 'The Google API script did not initialize. Please reload and try again.',
+              variant: 'error',
+            });
+            return;
+          }
+
+          window.gapi.load('picker', {
             callback: () => {
-              const docsView = new window.google!.picker.DocsView()
+              if (!window.google?.picker?.DocsView || !window.google?.picker?.PickerBuilder) {
+                toast({
+                  title: 'Google Picker Failed To Load',
+                  description: 'The Picker library did not initialize. Please reload and try again.',
+                  variant: 'error',
+                });
+                return;
+              }
+
+              const docsView = new window.google.picker.DocsView()
                 .setIncludeFolders(true)
                 .setSelectFolderEnabled(true);
 
-              const picker = new window.google!.picker.PickerBuilder()
+              const picker = new window.google.picker.PickerBuilder()
                 .addView(docsView)
                 .setOAuthToken(tokenResponse.access_token)
                 .setDeveloperKey(pickerConfig.apiKey)
                 .setAppId(pickerConfig.appId)
                 .setTitle('Select Google Docs export destination')
                 .setCallback(async (pickerData: PickerCallbackData) => {
-                  if (pickerData.action !== window.google!.picker.Action.PICKED) return;
+                  if (pickerData.action !== window.google?.picker?.Action?.PICKED) return;
                   const doc = pickerData.docs?.[0];
                   if (!doc?.id) return;
 
@@ -246,6 +278,21 @@ export function GoogleWorkspaceExportDestinationCard({
                 .build();
 
               picker.setVisible(true);
+            },
+            onerror: () => {
+              toast({
+                title: 'Google Picker Failed To Load',
+                description: 'Could not load the Picker library. Please reload and try again.',
+                variant: 'error',
+              });
+            },
+            timeout: 10_000,
+            ontimeout: () => {
+              toast({
+                title: 'Google Picker Timed Out',
+                description: 'The Picker library took too long to load. Please check your connection and try again.',
+                variant: 'error',
+              });
             },
           });
         },
