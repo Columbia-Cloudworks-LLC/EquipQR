@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Google Docs executive packet composer** — Rewrote the Google Docs export path to build polished, branded documents using the Docs API `batchUpdate` directly instead of HTML upload. The executive packet includes a branded header band, quick-facts block, opening summary with equipment context, photo highlights, labor activity with per-note photo counts, materials & costs table, PM checklist, status timeline, and a consolidated photo-evidence appendix at the end (one page per photo with the related activity note for standalone evidence review).
+
+- **Single work order Docs packet data builder** — Added `work-order-google-docs-single-data.ts` shared module that assembles all data needed for a single-work-order Google Doc packet from seven Supabase queries (work order, org, team, equipment/customer, notes, images, costs, timeline, PM checklist). Pure helper functions (`buildPhotoEvidenceFromNotesAndImages`, `buildQuickFacts`) are exported for unit testing.
+
+- **Google Docs export scope enforcement** — The `export-work-orders-to-google-docs` Edge Function now requires both `drive.file` and `documents` scopes and returns a typed `insufficient_scopes` response instead of a generic 500 when the grant is stale. Frontend export surfaces (`WorkOrderDetailsDesktopHeader`, `WorkOrderDetails` mobile action sheet) use a shared `canExportWorkOrderGoogleDoc()` availability check that gates on connection status, destination presence, and full scope coverage.
+
+- **Desktop header Google Doc export regression test** — Added `WorkOrderDetailsDesktopHeader.test.tsx` verifying the Google Doc export action is hidden when the org's Workspace grant is missing the Docs scope.
+
+- **Google Docs packet request builder test** — Added `src/test/supabase/work-order-google-docs-packet.test.ts` covering the `buildExecutivePacketRequests` page-break request shape to prevent future Docs API field-name regressions.
+
+- **Docs scope added to Deno edge function testables** — `hasRequiredDocsExportScopes` exported via `__testables` with a Deno test covering both the missing-scope and present-scope cases.
+
+### Changed
+
+- **Internal Work Order Packet policy description** — Updated `INTERNAL_WORK_ORDER_PACKET_POLICY` description and `includeByDefault` list to reflect the single-work-order executive packet layout (branded header, photo evidence appendix) instead of the prior multi-worksheet Excel framing.
+
+- **Bulk Docs export removed from Reports dialog** — The Reports page `WorkOrderExcelExportDialog` no longer offers a Google Docs export button for bulk work orders, since the Docs packet is single-work-order only. Google Sheets remains available for bulk exports.
+
+- **Reconnect guidance mentions Docs scope** — `GoogleWorkspaceExportDestinationCard` reconnect text now says "Google Docs and Drive permissions" instead of only "Drive permissions," and tests include a case where Drive scopes are present but the Docs scope is missing.
+
+- **Google Workspace scope matrix includes `documents`** — `GOOGLE_WORKSPACE_REQUIRED_SCOPES` and `GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES` in `auth.ts` now include `https://www.googleapis.com/auth/documents`. Default OAuth consent requests the expanded set on new connections. Deployment docs and scope matrix table updated.
+
+- **Edge function auth-patterns doc updated** — Added `export-work-orders-to-google-docs`, `export-work-orders-to-google-sheets`, `get-google-export-destination`, and `set-google-export-destination` to the user-scoped-client function list.
+
+### Fixed
+
+- **Google Docs API not enabled on GCP project** — The Google Docs API (`docs.googleapis.com`) was never enabled in Google Cloud Console, so `batchUpdate` calls from the Edge Function failed with a 403/500 after the empty doc was created via the Drive API. Enabled via `gcloud services enable docs.googleapis.com`.
+
+- **Docs export Edge Function swallowed error details** — The inner catch block re-threw the Google API error into the outer generic catch, losing the specific message. Now logs the actual error via `console.error` and returns it in the 500 response body for frontend visibility. Also removed references to nonexistent `file_url` and `error_message` columns in `export_request_log` updates.
+
+- **README version badge** — Updated from `2.5.2` to `2.6.0` to match the current release.
+
 ## [2.6.0] - 2026-04-04
 
 ### Added
