@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { toast as sonnerToast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -322,20 +323,31 @@ export function GoogleWorkspaceExportDestinationCard({
     async (flag: 'folderByTeam' | 'folderByEquipment', checked: boolean) => {
       if (!destination) return;
       setIsSavingFlags(true);
+
+      const label = flag === 'folderByTeam' ? 'team' : 'equipment';
+      const action = checked ? 'enabled' : 'disabled';
+
       try {
-        await setDestination({
-          selectionKind: destination.selection_kind,
-          parentId: destination.parent_id,
-          [flag]: checked,
-        });
-      } catch (error) {
-        const err = error as Error & { code?: string };
-        toast(getDestinationSaveErrorToast(err));
+        await sonnerToast.promise(
+          setDestination({
+            selectionKind: destination.selection_kind,
+            parentId: destination.parent_id,
+            [flag]: checked,
+          }),
+          {
+            loading: `Saving folder settings...`,
+            success: `Organize by ${label} ${action}`,
+            error: (err: Error & { code?: string }) => {
+              const errToast = getDestinationSaveErrorToast(err);
+              return errToast.description;
+            },
+          },
+        );
       } finally {
         setIsSavingFlags(false);
       }
     },
-    [destination, setDestination, toast],
+    [destination, setDestination],
   );
 
   if (!canManage) {
