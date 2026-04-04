@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -24,6 +24,28 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const previewUrls = useRef<Map<File, string>>(new Map());
+
+  const getPreviewUrl = (file: File): string | undefined => {
+    let url = previewUrls.current.get(file);
+    if (!url) {
+      url = URL.createObjectURL(file);
+      if (url.startsWith('blob:')) {
+        previewUrls.current.set(file, url);
+      } else {
+        return undefined;
+      }
+    }
+    return url;
+  };
+
+  useEffect(() => {
+    const urls = previewUrls.current;
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.clear();
+    };
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -56,7 +78,17 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
   };
 
   const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles(prev => {
+      const removed = prev[index];
+      if (removed) {
+        const url = previewUrls.current.get(removed);
+        if (url) {
+          URL.revokeObjectURL(url);
+          previewUrls.current.delete(removed);
+        }
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -155,12 +187,18 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
               {selectedFiles.map((file, index) => (
                 <div key={`${file.name}-${index}`} className="relative group">
                   <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={file.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => console.error('Image preview failed:', file.name, e)}
-                    />
+                    {getPreviewUrl(file) ? (
+                      <img
+                        src={getPreviewUrl(file)}
+                        alt={file.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => console.error('Image preview failed:', file.name, e)}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
                   </div>
                   <Button
                     type="button"

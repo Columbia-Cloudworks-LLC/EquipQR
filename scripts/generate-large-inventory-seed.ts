@@ -623,7 +623,6 @@ function generateSQL(): string {
   
   // Generate data for each org
   for (const [orgKey, itemCount] of Object.entries(CONFIG.itemsPerOrg)) {
-    const org = ORGS[orgKey as keyof typeof ORGS];
     const groupCount = CONFIG.groupsPerOrg[orgKey as keyof typeof CONFIG.groupsPerOrg];
     
     // Generate inventory items

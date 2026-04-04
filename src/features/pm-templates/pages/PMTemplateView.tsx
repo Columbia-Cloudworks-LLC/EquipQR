@@ -281,7 +281,7 @@ const PMTemplateView: React.FC = () => {
                       <Wrench className="mr-2 h-4 w-4" />
                       Apply to Equipment
                     </Button>
-                    <Button variant="outline" onClick={handleClone} disabled={!template || !canCreateCustomTemplates} title={!canCreateCustomTemplates ? 'Custom PM templates require user licenses' : ''}>
+                    <Button variant="outline" onClick={handleClone} disabled={!canCreateCustomTemplates} title={!canCreateCustomTemplates ? 'Custom PM templates require user licenses' : ''}>
                       <Copy className="mr-2 h-4 w-4" />
                       Clone Template
                     </Button>

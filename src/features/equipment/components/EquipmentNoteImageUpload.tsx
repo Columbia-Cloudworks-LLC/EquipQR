@@ -42,9 +42,13 @@ const EquipmentNoteImageUpload: React.FC<EquipmentNoteImageUploadProps> = ({
 
       setSelectedFile(file);
       
-      // Create preview URL
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
       const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+      if (url.startsWith('blob:')) {
+        setPreviewUrl(url);
+      }
     }
   };
 

@@ -206,12 +206,6 @@ function fixMainBranchMigrations() {
     const filename = `${version}_${name}.sql`;
     const filepath = path.join(MIGRATIONS_DIR, filename);
     
-    if (fs.existsSync(filepath)) {
-      console.log(`⚠️  ${filename} already exists (unexpected)`);
-      return;
-    }
-
-    // Create placeholder migration
     const content = `-- Migration: ${name}
 -- This migration was already applied to production
 -- This is a placeholder file to sync local migrations with remote database
@@ -222,7 +216,15 @@ BEGIN;
 COMMIT;
 `;
 
-    fs.writeFileSync(filepath, content, 'utf8');
+    try {
+      fs.writeFileSync(filepath, content, { encoding: 'utf8', flag: 'wx' });
+    } catch (err) {
+      if (err.code === 'EEXIST') {
+        console.log(`⚠️  ${filename} already exists (unexpected)`);
+        return;
+      }
+      throw err;
+    }
     console.log(`✅ Created: ${filename}`);
     created++;
   });

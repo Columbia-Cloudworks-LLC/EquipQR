@@ -10,6 +10,7 @@
 - For Google Workspace-related work (directory sync, Drive/Picker, exports), reuse the existing Google OAuth web client and Cloud Console app configuration as the single source; avoid introducing or requiring a separate OAuth client per Google feature unless a platform constraint makes it unavoidable.
 - For single-work-order Google Docs executive packets, keep photos in the document body; place a consolidated photo-evidence section at the very end so it can be omitted from prints.
 - When automated PR reviewers (e.g. Copilot) leave feedback, triage each comment for validity, address valid items in code, explain deferred items with rationale, then commit, push, and post a structured summary comment on the PR.
+- When code changes are ready to push (after a commit or before deployment validation), push to the remote proactively without waiting for explicit confirmation unless a blocking issue requires user intervention first.
 
 ## Learned Workspace Facts
 
@@ -18,7 +19,7 @@
 - Privacy posture work in this codebase includes CCPA/CPRA-oriented gaps: California-specific policy language, a `/privacy-request` intake path backed by the `submit-privacy-request` edge function, and user-level limits on sensitive personal information enforced in scan UX and the database layer.
 - Solo-developer release flow: day-to-day work on `preview` only; cut a PR to `main` when releasing (CI/CD runs Supabase migrations and near-prod validation for select users at preview.equipqr.app); pushes to `preview` update that environment; after merging `main`, Vercel refreshes preview and production is promoted manually as a final gate.
 - `PROJECT_ROADMAP.md` is the in-repo planning surface alongside GitHub issues and the EquipQR organization project; viewing the org project via `gh` typically needs `read:project`, and mutating project items (status, fields) needs `project` scope.
-- External uptime monitoring (e.g. Better Stack) is intended to use the `status.equipqr.app` hostname as the public endpoint to probe for availability and alerting.
+- External uptime monitoring (Better Stack) is operational at `status.equipqr.app`, monitoring both the web frontend and the Supabase Edge Function healthcheck endpoint; alert notifications go to the sole proprietor via email on incident confirmation.
 - The Supabase GitHub integration auto-deploys changes to existing edge functions on push but does not auto-create new functions or auto-run migrations on the production project; new functions and pending migrations require manual CLI or MCP-based promotion to production.
 - Google Docs work-order export requires both Drive file access and the Google Docs API scope; organizations that connected Google Workspace before Docs export shipped may retain Drive-only grants and see export failures until they reconnect with the expanded scopes.
 - On Windows dev machines, Deno is often not on `PATH` until installed; the standard install script typically places `deno.exe` under `%USERPROFILE%\.deno\bin`—prepend that directory in the shell when running `deno test` for `supabase/functions`.

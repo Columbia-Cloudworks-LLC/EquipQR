@@ -99,7 +99,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
       return option ? option.label : value;
     }
 
-    if (type === 'date' && value) {
+    if (type === 'date') {
       try {
         const date = new Date(value);
         if (!isNaN(date.getTime())) {
