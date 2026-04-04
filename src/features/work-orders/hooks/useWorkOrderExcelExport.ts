@@ -27,6 +27,7 @@ interface GoogleDocsExportResponse {
   mimeType: string;
   webViewLink: string;
   workOrderCount: number;
+  warnings?: string[];
 }
 
 /** Error response with optional code for handling insufficient scopes */
@@ -322,8 +323,15 @@ export function useWorkOrderExcelExport(
       window.open(result.webViewLink, '_blank', 'noopener,noreferrer');
       toast({
         title: 'Export Complete',
-        description: `Created Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName} (${result.workOrderCount} work orders).`,
+        description: `Created Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`,
       });
+      if (result.warnings?.length) {
+        toast({
+          title: 'Some Photo Pages Need Review',
+          description: result.warnings.join(' '),
+          variant: 'warning',
+        });
+      }
     },
     onError: (error: Error & { code?: string }) => {
       logger.error('Google Docs export error', error);
@@ -341,6 +349,15 @@ export function useWorkOrderExcelExport(
         toast({
           title: 'Destination Required',
           description: 'Set a Google Docs export destination in Organization Settings before exporting.',
+          variant: 'error',
+        });
+        return;
+      }
+
+      if (error.code === 'single_work_order_required') {
+        toast({
+          title: 'Single Work Order Only',
+          description: 'Google Docs export supports a single work order. Use Google Sheets for bulk exports.',
           variant: 'error',
         });
         return;
@@ -438,6 +455,13 @@ export function useWorkOrderExcelExport(
           title: 'Export Complete',
           description: `Created Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`,
         });
+        if (result.warnings?.length) {
+          toast({
+            title: 'Some Photo Pages Need Review',
+            description: result.warnings.join(' '),
+            variant: 'warning',
+          });
+        }
       } catch (error) {
         const typedError = error as Error & { code?: string };
         if (typedError.code === 'missing_destination') {
