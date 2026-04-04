@@ -13,17 +13,14 @@ import {
   GOOGLE_SCOPES,
   hasScope,
 } from "../_shared/google-workspace-token.ts";
-import { googleApiFetch } from "../_shared/google-api-retry.ts";
 import {
-  fetchWorkOrdersWithData,
-  buildAllRows,
   checkRateLimit,
   type ExportRequest,
 } from "../_shared/work-orders-export-data.ts";
-import { buildInternalPacketHtml } from "../_shared/work-order-google-docs.ts";
+import { buildSingleWorkOrderGoogleDocData } from "../_shared/work-order-google-docs-single-data.ts";
+import { createGoogleDocInFolder, batchUpdateGoogleDoc } from "../_shared/google-docs-api.ts";
+import { buildExecutivePacketRequests } from "../_shared/work-order-google-docs-packet.ts";
 
-const GOOGLE_DOC_MIME_TYPE = "application/vnd.google-apps.document";
-const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
 const DOCUMENT_TYPE = "work-orders-internal-packet";
 
 interface ExportToDocsResponse {
@@ -32,70 +29,17 @@ interface ExportToDocsResponse {
   mimeType: string;
   webViewLink: string;
   workOrderCount: number;
+  warnings?: string[];
 }
 
-interface GoogleDriveCreateResponse {
-  id: string;
-  name: string;
-  mimeType: string;
-  webViewLink?: string;
-}
-
-async function createGoogleDocFromHtml(
-  accessToken: string,
-  title: string,
-  html: string,
-  parentId: string,
-): Promise<GoogleDriveCreateResponse> {
-  const boundary = `----EquipQRGoogleDocBoundary${Date.now()}`;
-  const encoder = new TextEncoder();
-
-  const metadata = {
-    name: title,
-    mimeType: GOOGLE_DOC_MIME_TYPE,
-    parents: [parentId],
-  };
-
-  const multipartBody =
-    `--${boundary}\r\n` +
-    `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
-    `${JSON.stringify(metadata)}\r\n` +
-    `--${boundary}\r\n` +
-    `Content-Type: text/html\r\n\r\n` +
-    `${html}\r\n` +
-    `--${boundary}--`;
-
-  const response = await googleApiFetch(
-    `${DRIVE_UPLOAD_URL}?uploadType=multipart&supportsAllDrives=true&fields=id,name,mimeType,webViewLink`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
-      },
-      body: encoder.encode(multipartBody),
-    },
-    { label: "drive-create-google-doc" },
-  );
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Drive create failed", {
-      status: response.status,
-      errorBody,
-    });
-
-    if (response.status === 403) {
-      throw new GoogleWorkspaceTokenError(
-        "Google Workspace does not have permission to create files in the selected destination.",
-        "insufficient_scopes",
-      );
-    }
-
-    throw new Error("Failed to create Google Doc.");
+function validateDocsExportRequest(body: ExportRequest): { code: string; error: string } | null {
+  if (!body.filters?.workOrderId) {
+    return {
+      code: "single_work_order_required",
+      error: "Google Docs export only supports a single work order. Use Google Sheets for bulk exports.",
+    };
   }
-
-  return await response.json();
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -127,8 +71,13 @@ Deno.serve(async (req) => {
     if (!filters || typeof filters !== "object") {
       return createErrorResponse("Missing required field: filters", 400);
     }
-    if (filters.dateField && !["created_date", "completed_date"].includes(filters.dateField)) {
-      return createErrorResponse("Invalid filters.dateField: must be 'created_date' or 'completed_date'", 400);
+
+    const validationError = validateDocsExportRequest(body);
+    if (validationError) {
+      return new Response(
+        JSON.stringify(validationError),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const isAdmin = await verifyOrgAdmin(supabase, auth.user.id, organizationId);
@@ -210,63 +159,53 @@ Deno.serve(async (req) => {
     const exportLogId = exportLog?.id;
 
     try {
-      const data = await fetchWorkOrdersWithData(supabase, organizationId, filters);
-      if (data.workOrders.length === 0) {
-        if (exportLogId) {
-          await supabase
-            .from("export_request_log")
-            .update({ status: "completed", row_count: 0, completed_at: new Date().toISOString() })
-            .eq("id", exportLogId);
-        }
-        return new Response(
-          JSON.stringify({ error: "No work orders found matching the filters" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      const packetData = await buildSingleWorkOrderGoogleDocData(
+        supabase,
+        organizationId,
+        filters.workOrderId!,
+      );
+
+      const dateStr = new Date().toISOString().split("T")[0];
+      const title = `${packetData.workOrder.title} — Internal Packet ${dateStr}`;
+
+      const doc = await createGoogleDocInFolder(
+        tokenResult.accessToken,
+        title,
+        destination.parent_id,
+      );
+
+      const packet = buildExecutivePacketRequests(packetData);
+
+      if (packet.requests.length > 0) {
+        await batchUpdateGoogleDoc(
+          tokenResult.accessToken,
+          doc.id,
+          packet.requests,
         );
       }
 
-      const allRows = buildAllRows(data);
-      const { data: orgRow } = await supabase
-        .from("organizations")
-        .select("name")
-        .eq("id", organizationId)
-        .maybeSingle();
-
-      const html = buildInternalPacketHtml({
-        allRows,
-        organizationName: orgRow?.name ?? "Organization",
-        workOrderCount: data.workOrders.length,
-      });
-
-      const dateStr = new Date().toISOString().split("T")[0];
-      const title = `Internal Work Order Packet ${dateStr}`;
-      const doc = await createGoogleDocFromHtml(
-        tokenResult.accessToken,
-        title,
-        html,
-        destination.parent_id,
-      );
+      const webViewLink = doc.webViewLink
+        ?? `https://docs.google.com/document/d/${doc.id}/edit`;
 
       if (exportLogId) {
         await supabase
           .from("export_request_log")
           .update({
             status: "completed",
-            row_count: data.workOrders.length,
-            file_url: doc.webViewLink ?? null,
+            row_count: 1,
+            file_url: webViewLink,
             completed_at: new Date().toISOString(),
           })
           .eq("id", exportLogId);
       }
-
-      const webViewLink = doc.webViewLink
-        ?? `https://docs.google.com/document/d/${doc.id}/edit`;
 
       const response: ExportToDocsResponse = {
         id: doc.id,
         name: doc.name,
         mimeType: doc.mimeType,
         webViewLink,
-        workOrderCount: data.workOrders.length,
+        workOrderCount: 1,
+        warnings: packet.warnings.length > 0 ? packet.warnings : undefined,
       };
 
       return new Response(
@@ -299,3 +238,5 @@ Deno.serve(async (req) => {
     return createErrorResponse("An unexpected error occurred", 500);
   }
 });
+
+export const __testables = { validateDocsExportRequest };
