@@ -181,7 +181,7 @@ export function GoogleWorkspaceExportDestinationCard({
       toast({
         title: 'Reconnect Google Workspace',
         description:
-          'Reconnect Google Workspace to refresh Drive permissions before choosing a destination.',
+          'Reconnect Google Workspace to refresh Google Docs and Drive permissions before choosing a destination.',
         variant: 'error',
       });
       return;
@@ -358,7 +358,7 @@ export function GoogleWorkspaceExportDestinationCard({
         {needsReconnectForDestination && (
           <Alert>
             <AlertDescription>
-              Reconnect Google Workspace to refresh Drive permissions before choosing a destination.
+              Reconnect Google Workspace to refresh Google Docs and Drive permissions before choosing a destination.
             </AlertDescription>
           </Alert>
         )}

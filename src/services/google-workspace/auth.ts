@@ -7,10 +7,12 @@ export const GOOGLE_WORKSPACE_REQUIRED_SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/drive.readonly',
+  'https://www.googleapis.com/auth/documents',
 ] as const;
 export const GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES = [
   'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/drive.readonly',
+  'https://www.googleapis.com/auth/documents',
 ] as const;
 
 /**
@@ -20,6 +22,7 @@ export const GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES = [
  * - spreadsheets: Create and write to Google Sheets (for work order exports)
  * - drive.file: Create/update files in Google Drive (for PDF uploads)
  * - drive.readonly: Validate and read selected Drive destination metadata
+ * - documents: Create and format Google Docs (for polished work order packets)
  * 
  * **Re-authentication for existing organizations:**
  * Organizations that connected before these scopes were added will only have

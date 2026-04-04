@@ -39,6 +39,7 @@ vi.mock('@/services/google-workspace/auth', () => ({
   GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES: [
     'https://www.googleapis.com/auth/drive.file',
     'https://www.googleapis.com/auth/drive.readonly',
+    'https://www.googleapis.com/auth/documents',
   ],
   GOOGLE_PICKER_SCOPE: 'https://www.googleapis.com/auth/drive.readonly',
   getGooglePickerConfig: (...args: unknown[]) => mockGetGooglePickerConfig(...args),
@@ -182,11 +183,36 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
     });
   });
 
-  it('blocks destination selection and shows reconnect guidance when required drive scopes are missing', () => {
+  it('blocks destination selection and shows reconnect guidance when required scopes are missing', () => {
     customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
 
     expect(
-      screen.getByText(/reconnect google workspace to refresh drive permissions before choosing a destination/i)
+      screen.getByText(/reconnect google workspace to refresh google docs and drive permissions before choosing a destination/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /choose destination/i })).toBeDisabled();
+  });
+
+  it('requires reconnect when the Docs scope is missing but drive scopes are present', () => {
+    mockConnectionStatus.mockReturnValue({
+      isConnected: true,
+      domain: 'example.com',
+      connectionStatus: {
+        is_connected: true,
+        domain: 'example.com',
+        connected_at: null,
+        access_token_expires_at: null,
+        scopes:
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+      },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
+
+    expect(
+      screen.getByText(/reconnect google workspace to refresh google docs and drive permissions before choosing a destination/i)
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /choose destination/i })).toBeDisabled();
   });
@@ -208,7 +234,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         connected_at: null,
         access_token_expires_at: null,
         scopes:
-          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents',
       },
       isLoading: false,
       error: null,
@@ -253,7 +279,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         connected_at: null,
         access_token_expires_at: null,
         scopes:
-          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents',
       },
       isLoading: false,
       error: null,
@@ -298,7 +324,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         connected_at: null,
         access_token_expires_at: null,
         scopes:
-          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents',
       },
       isLoading: false,
       error: null,
@@ -353,7 +379,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         connected_at: null,
         access_token_expires_at: null,
         scopes:
-          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents',
       },
       isLoading: false,
       error: null,
