@@ -252,7 +252,7 @@ const Reports: React.FC = () => {
   const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
     organizationId: currentOrganization?.id,
   });
-  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(currentOrganization?.id);
+  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(currentOrganization?.id, canExport);
   
   // CSV Export dialog handler
   const { handleExport } = useReportExportDialog(

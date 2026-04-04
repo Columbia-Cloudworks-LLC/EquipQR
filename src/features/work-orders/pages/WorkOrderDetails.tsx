@@ -325,7 +325,7 @@ const WorkOrderDetails = () => {
   const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
     organizationId: currentOrganization?.id,
   });
-  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(currentOrganization?.id);
+  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(currentOrganization?.id, permissionLevels.isManager);
 
   // Handle mobile PDF export with options from dialog
   const handleMobilePDFExport = async (options: { includeCosts: boolean }) => {

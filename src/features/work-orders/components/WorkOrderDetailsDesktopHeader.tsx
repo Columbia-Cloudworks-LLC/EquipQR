@@ -110,7 +110,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
     organizationId,
   });
-  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(organizationId);
+  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(organizationId, permissions.hasRole(['owner', 'admin']));
 
   // Handle PDF export with options from dialog
   const handlePDFExport = async (options: { includeCosts: boolean }) => {

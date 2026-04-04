@@ -9,7 +9,7 @@ import {
 
 const INTERNAL_PACKET_DOC_TYPE = 'work-orders-internal-packet' as const;
 
-export function useGoogleWorkspaceExportDestination(organizationId?: string) {
+export function useGoogleWorkspaceExportDestination(organizationId?: string, enabled = true) {
   const queryClient = useQueryClient();
 
   const destinationQuery = useQuery<GoogleExportDestination | null, Error>({
@@ -18,7 +18,7 @@ export function useGoogleWorkspaceExportDestination(organizationId?: string) {
       if (!organizationId) throw new Error('Organization ID is required');
       return getGoogleExportDestination(organizationId, INTERNAL_PACKET_DOC_TYPE);
     },
-    enabled: Boolean(organizationId),
+    enabled: Boolean(organizationId) && enabled,
     staleTime: 60 * 1000,
   });
 

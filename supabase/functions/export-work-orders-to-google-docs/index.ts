@@ -258,11 +258,14 @@ Deno.serve(async (req) => {
           .eq("id", exportLogId);
       }
 
+      const webViewLink = doc.webViewLink
+        ?? `https://docs.google.com/document/d/${doc.id}/edit`;
+
       const response: ExportToDocsResponse = {
         id: doc.id,
         name: doc.name,
         mimeType: doc.mimeType,
-        webViewLink: doc.webViewLink ?? "",
+        webViewLink,
         workOrderCount: data.workOrders.length,
       };
 
