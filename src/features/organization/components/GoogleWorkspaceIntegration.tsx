@@ -133,6 +133,14 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
                 )}
                 Sync Directory
               </Button>
+              <Button variant="outline" onClick={handleConnect} disabled={isConnecting}>
+                {isConnecting ? (
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Link2 className="h-4 w-4 mr-2" />
+                )}
+                Reconnect Google Workspace
+              </Button>
               <Button variant="outline" asChild>
                 <Link to="/dashboard/organization">
                   View Members

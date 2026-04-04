@@ -97,6 +97,37 @@ describe('GoogleWorkspaceIntegration', () => {
     expect(screen.getByRole('button', { name: /sync directory/i })).toBeInTheDocument();
   });
 
+  it('shows reconnect action when connected and starts OAuth flow from it', async () => {
+    mockGetConnectionStatus.mockReturnValue({
+      is_connected: true,
+      domain: 'example.com',
+    });
+    mockGenerateAuthUrl.mockResolvedValue('https://accounts.google.com/oauth/authorize?...');
+
+    const originalLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      value: { href: '' },
+      writable: true,
+    });
+
+    customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
+
+    const reconnectButton = screen.getByRole('button', { name: /reconnect google workspace/i });
+    fireEvent.click(reconnectButton);
+
+    await waitFor(() => {
+      expect(mockGenerateAuthUrl).toHaveBeenCalledWith({
+        organizationId: 'org-123',
+        redirectUrl: '/dashboard/organization',
+      });
+    });
+
+    Object.defineProperty(window, 'location', {
+      value: originalLocation,
+      writable: true,
+    });
+  });
+
   it('initiates OAuth flow when connect button is clicked', async () => {
     mockGetConnectionStatus.mockReturnValue({
       is_connected: false,

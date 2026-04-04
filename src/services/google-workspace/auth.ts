@@ -2,6 +2,16 @@ import { supabase } from '@/integrations/supabase/client';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 export const GOOGLE_PICKER_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+export const GOOGLE_WORKSPACE_REQUIRED_SCOPES = [
+  'https://www.googleapis.com/auth/admin.directory.user.readonly',
+  'https://www.googleapis.com/auth/spreadsheets',
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/drive.readonly',
+] as const;
+export const GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES = [
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/drive.readonly',
+] as const;
 
 /**
  * Default OAuth scopes for Google Workspace integration.
@@ -18,12 +28,23 @@ export const GOOGLE_PICKER_SCOPE = 'https://www.googleapis.com/auth/drive.readon
  * should prompt them to reconnect Google Workspace in Organization Settings
  * to grant the new permissions.
  */
-const DEFAULT_SCOPES = [
-  'https://www.googleapis.com/auth/admin.directory.user.readonly',
-  'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/drive.file',
-  'https://www.googleapis.com/auth/drive.readonly',
-].join(' ');
+const DEFAULT_SCOPES = GOOGLE_WORKSPACE_REQUIRED_SCOPES.join(' ');
+
+export function hasAllGoogleScopes(
+  currentScopes: string | null | undefined,
+  requiredScopes: readonly string[]
+): boolean {
+  if (!currentScopes) return false;
+
+  const grantedScopes = new Set(
+    currentScopes
+      .split(' ')
+      .map((scope) => scope.trim())
+      .filter(Boolean)
+  );
+
+  return requiredScopes.every((scope) => grantedScopes.has(scope));
+}
 
 export interface GoogleWorkspaceAuthConfig {
   /** Organization ID - optional for first-time setup, required for reconnecting existing orgs */

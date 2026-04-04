@@ -9,8 +9,10 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
 import { useGoogleWorkspaceExportDestination } from '@/features/organization/hooks/useGoogleWorkspaceExportDestination';
 import {
+  GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES,
   getGooglePickerConfig,
   GOOGLE_PICKER_SCOPE,
+  hasAllGoogleScopes,
   isGooglePickerConfigured,
 } from '@/services/google-workspace/auth';
 
@@ -71,6 +73,39 @@ declare global {
 const GOOGLE_API_SCRIPT = 'https://apis.google.com/js/api.js';
 const GOOGLE_GSI_SCRIPT = 'https://accounts.google.com/gsi/client';
 
+function getDestinationSaveErrorToast(error: Error & { code?: string }) {
+  switch (error.code) {
+    case 'insufficient_scopes':
+      return {
+        title: 'Reconnect Google Workspace',
+        description:
+          'Google Workspace needs updated Drive permissions. Reconnect Google Workspace in Organization Settings, then try again.',
+        variant: 'error' as const,
+      };
+    case 'token_revoked':
+    case 'token_refresh_failed':
+      return {
+        title: 'Google Workspace Connection Expired',
+        description:
+          'Your Google Workspace connection expired or was revoked. Reconnect Google Workspace in Organization Settings, then try again.',
+        variant: 'error' as const,
+      };
+    case 'not_connected':
+      return {
+        title: 'Google Workspace Not Connected',
+        description:
+          'Google Workspace is no longer connected for this organization. Reconnect Google Workspace in Organization Settings, then try again.',
+        variant: 'error' as const,
+      };
+    default:
+      return {
+        title: 'Failed To Save Destination',
+        description: error.message || 'Could not save destination.',
+        variant: 'error' as const,
+      };
+  }
+}
+
 async function loadScript(src: string): Promise<void> {
   const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
   if (existing) {
@@ -103,10 +138,20 @@ export function GoogleWorkspaceExportDestinationCard({
   const { toast } = useAppToast();
   const canManage = currentUserRole === 'owner' || currentUserRole === 'admin';
 
-  const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
+  const {
+    isConnected: isGoogleWorkspaceConnected,
+    connectionStatus,
+  } = useGoogleWorkspaceConnectionStatus({
     organizationId: currentOrganization?.id,
     enabled: canManage,
   });
+
+  const needsReconnectForDestination =
+    isGoogleWorkspaceConnected &&
+    !hasAllGoogleScopes(
+      connectionStatus?.scopes,
+      GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES
+    );
 
   const {
     destination,
@@ -122,6 +167,16 @@ export function GoogleWorkspaceExportDestinationCard({
       toast({
         title: 'Google Workspace Not Connected',
         description: 'Connect Google Workspace first, then choose an export destination.',
+        variant: 'error',
+      });
+      return;
+    }
+
+    if (needsReconnectForDestination) {
+      toast({
+        title: 'Reconnect Google Workspace',
+        description:
+          'Reconnect Google Workspace to refresh Drive permissions before choosing a destination.',
         variant: 'error',
       });
       return;
@@ -185,15 +240,7 @@ export function GoogleWorkspaceExportDestinationCard({
                     });
                   } catch (error) {
                     const err = error as Error & { code?: string };
-                    const needsReconnect =
-                      err.code === 'insufficient_scopes' || err.code === 'not_connected';
-                    toast({
-                      title: 'Failed To Save Destination',
-                      description: needsReconnect
-                        ? 'Google Workspace needs updated permissions. Reconnect Google Workspace in Organization Settings, then try again.'
-                        : (err.message || 'Could not save destination.'),
-                      variant: 'error',
-                    });
+                    toast(getDestinationSaveErrorToast(err));
                   }
                 })
                 .build();
@@ -212,7 +259,13 @@ export function GoogleWorkspaceExportDestinationCard({
         variant: 'error',
       });
     }
-  }, [currentOrganization?.id, isGoogleWorkspaceConnected, setDestination, toast]);
+  }, [
+    currentOrganization?.id,
+    isGoogleWorkspaceConnected,
+    needsReconnectForDestination,
+    setDestination,
+    toast,
+  ]);
 
   if (!canManage) {
     return null;
@@ -255,10 +308,18 @@ export function GoogleWorkspaceExportDestinationCard({
           </Alert>
         )}
 
+        {needsReconnectForDestination && (
+          <Alert>
+            <AlertDescription>
+              Reconnect Google Workspace to refresh Drive permissions before choosing a destination.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Button
           variant="outline"
           onClick={handlePickDestination}
-          disabled={!isGoogleWorkspaceConnected || isSettingDestination}
+          disabled={!isGoogleWorkspaceConnected || isSettingDestination || needsReconnectForDestination}
         >
           {isSettingDestination ? (
             <>
