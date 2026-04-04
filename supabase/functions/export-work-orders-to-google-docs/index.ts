@@ -200,7 +200,6 @@ Deno.serve(async (req) => {
           .update({
             status: "completed",
             row_count: 1,
-            file_url: webViewLink,
             completed_at: new Date().toISOString(),
           })
           .eq("id", exportLogId);
@@ -220,12 +219,14 @@ Deno.serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     } catch (exportError) {
+      const errMsg = exportError instanceof Error ? exportError.message : String(exportError);
+      console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Inner export error:", errMsg);
+
       if (exportLogId) {
         await supabase
           .from("export_request_log")
           .update({
             status: "failed",
-            error_message: exportError instanceof Error ? exportError.message : "Export failed",
             completed_at: new Date().toISOString(),
           })
           .eq("id", exportLogId);
@@ -238,10 +239,14 @@ Deno.serve(async (req) => {
         );
       }
 
-      throw exportError;
+      return new Response(
+        JSON.stringify({ error: errMsg }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
   } catch (error) {
-    console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Export error:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Outer error:", errMsg);
     return createErrorResponse("An unexpected error occurred", 500);
   }
 });
