@@ -15,6 +15,8 @@ interface SetDestinationRequest {
   documentType?: "work-orders-internal-packet";
   selectionKind: "folder" | "shared_drive";
   parentId: string;
+  folderByTeam?: boolean;
+  folderByEquipment?: boolean;
 }
 
 Deno.serve(async (req) => {
@@ -97,21 +99,29 @@ Deno.serve(async (req) => {
       );
     }
 
+    const upsertPayload: Record<string, unknown> = {
+      organization_id: organizationId,
+      document_type: documentType,
+      selection_kind: selectionKind,
+      drive_id: destination.driveId,
+      parent_id: destination.parentId,
+      display_name: destination.displayName,
+      web_view_link: destination.webViewLink,
+      configured_by: auth.user.id,
+    };
+    if (typeof body.folderByTeam === "boolean") {
+      upsertPayload.folder_by_team = body.folderByTeam;
+    }
+    if (typeof body.folderByEquipment === "boolean") {
+      upsertPayload.folder_by_equipment = body.folderByEquipment;
+    }
+
     const { data, error } = await supabase
       .from("organization_google_export_destinations")
-      .upsert({
-        organization_id: organizationId,
-        document_type: documentType,
-        selection_kind: selectionKind,
-        drive_id: destination.driveId,
-        parent_id: destination.parentId,
-        display_name: destination.displayName,
-        web_view_link: destination.webViewLink,
-        configured_by: auth.user.id,
-      }, {
+      .upsert(upsertPayload, {
         onConflict: "organization_id,document_type",
       })
-      .select("id, organization_id, document_type, selection_kind, drive_id, parent_id, display_name, web_view_link, configured_by, created_at, updated_at")
+      .select("id, organization_id, document_type, selection_kind, drive_id, parent_id, display_name, web_view_link, configured_by, folder_by_team, folder_by_equipment, created_at, updated_at")
       .single();
 
     if (error) {

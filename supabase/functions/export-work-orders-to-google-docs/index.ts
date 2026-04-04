@@ -18,10 +18,18 @@ import {
   type ExportRequest,
 } from "../_shared/work-orders-export-data.ts";
 import { buildSingleWorkOrderGoogleDocData } from "../_shared/work-order-google-docs-single-data.ts";
-import { createGoogleDocInFolder, batchUpdateGoogleDoc } from "../_shared/google-docs-api.ts";
+import {
+  createGoogleDocInFolder,
+  batchUpdateGoogleDoc,
+  deleteGoogleDriveFile,
+} from "../_shared/google-docs-api.ts";
 import { buildExecutivePacketRequests } from "../_shared/work-order-google-docs-packet.ts";
+import { resolveExportFolderPath } from "../_shared/google-drive-folder-routing.ts";
 
 const DOCUMENT_TYPE = "work-orders-internal-packet";
+const RECORD_TYPE = "work_order";
+const EXPORT_CHANNEL = "google_docs";
+const ARTIFACT_KIND = "internal_packet";
 
 interface ExportToDocsResponse {
   id: string;
@@ -29,6 +37,7 @@ interface ExportToDocsResponse {
   mimeType: string;
   webViewLink: string;
   workOrderCount: number;
+  replacedPrevious?: boolean;
   warnings?: string[];
 }
 
@@ -108,7 +117,7 @@ Deno.serve(async (req) => {
 
     const { data: destination, error: destinationError } = await supabase
       .from("organization_google_export_destinations")
-      .select("parent_id, display_name")
+      .select("parent_id, display_name, folder_by_team, folder_by_equipment")
       .eq("organization_id", organizationId)
       .eq("document_type", DOCUMENT_TYPE)
       .maybeSingle();
@@ -166,19 +175,69 @@ Deno.serve(async (req) => {
     const exportLogId = exportLog?.id;
 
     try {
+      const workOrderId = filters.workOrderId!;
+      const warnings: string[] = [];
+
       const packetData = await buildSingleWorkOrderGoogleDocData(
         supabase,
         organizationId,
-        filters.workOrderId!,
+        workOrderId,
       );
 
+      // --- Resolve subfolder path: Team / Equipment (respects org toggles) ---
+      const folderByTeam = destination.folder_by_team !== false;
+      const folderByEquipment = destination.folder_by_equipment !== false;
+
+      let targetParentId = destination.parent_id;
+      try {
+        targetParentId = await resolveExportFolderPath(
+          tokenResult.accessToken,
+          destination.parent_id,
+          [
+            { name: folderByTeam ? packetData.team.name : null },
+            { name: folderByEquipment ? packetData.equipment.name : null },
+          ],
+        );
+      } catch (folderError) {
+        const msg = folderError instanceof Error ? folderError.message : String(folderError);
+        console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Subfolder resolution failed, using root:", msg);
+        warnings.push("Could not create team/equipment subfolders; document saved to root destination.");
+      }
+
+      // --- Try to delete previous artifact ---
+      let replacedPrevious = false;
+      const { data: prevArtifact } = await adminClient
+        .from("record_export_artifacts")
+        .select("id, provider_file_id")
+        .eq("organization_id", organizationId)
+        .eq("record_type", RECORD_TYPE)
+        .eq("record_id", workOrderId)
+        .eq("export_channel", EXPORT_CHANNEL)
+        .eq("artifact_kind", ARTIFACT_KIND)
+        .eq("status", "current")
+        .maybeSingle();
+
+      if (prevArtifact?.provider_file_id) {
+        const deleteResult = await deleteGoogleDriveFile(
+          tokenResult.accessToken,
+          prevArtifact.provider_file_id,
+        );
+
+        if (deleteResult.outcome === "deleted" || deleteResult.outcome === "not_found") {
+          replacedPrevious = deleteResult.outcome === "deleted";
+        } else {
+          warnings.push("Previous export could not be deleted; a new document was created alongside it.");
+        }
+      }
+
+      // --- Create new Google Doc ---
       const dateStr = new Date().toISOString().split("T")[0];
       const title = `${packetData.workOrder.title} — Internal Packet ${dateStr}`;
 
       const doc = await createGoogleDocInFolder(
         tokenResult.accessToken,
         title,
-        destination.parent_id,
+        targetParentId,
       );
 
       const packet = buildExecutivePacketRequests(packetData);
@@ -194,6 +253,26 @@ Deno.serve(async (req) => {
       const webViewLink = doc.webViewLink
         ?? `https://docs.google.com/document/d/${doc.id}/edit`;
 
+      // --- Upsert artifact record ---
+      await adminClient
+        .from("record_export_artifacts")
+        .upsert({
+          organization_id: organizationId,
+          record_type: RECORD_TYPE,
+          record_id: workOrderId,
+          export_channel: EXPORT_CHANNEL,
+          artifact_kind: ARTIFACT_KIND,
+          provider: "google_drive",
+          provider_file_id: doc.id,
+          web_view_link: webViewLink,
+          provider_parent_id: targetParentId,
+          last_exported_at: new Date().toISOString(),
+          last_exported_by: auth.user.id,
+          status: "current",
+        }, {
+          onConflict: "organization_id,record_type,record_id,export_channel,artifact_kind",
+        });
+
       if (exportLogId) {
         await supabase
           .from("export_request_log")
@@ -205,13 +284,16 @@ Deno.serve(async (req) => {
           .eq("id", exportLogId);
       }
 
+      const allWarnings = [...warnings, ...packet.warnings];
+
       const response: ExportToDocsResponse = {
         id: doc.id,
         name: doc.name,
         mimeType: doc.mimeType,
         webViewLink,
         workOrderCount: 1,
-        warnings: packet.warnings.length > 0 ? packet.warnings : undefined,
+        replacedPrevious: replacedPrevious || undefined,
+        warnings: allWarnings.length > 0 ? allWarnings : undefined,
       };
 
       return new Response(

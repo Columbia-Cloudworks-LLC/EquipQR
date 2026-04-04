@@ -6,13 +6,14 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast as sonnerToast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { useAppToast } from '@/hooks/useAppToast';
 import type { WorkOrderExcelFilters } from '@/features/work-orders/types/workOrderExcel';
 import { INTERNAL_WORK_ORDER_PACKET_POLICY } from '@/features/work-orders/constants/workOrderExportPolicy';
-import { workOrderExports } from '@/lib/queryKeys';
+import { workOrderExports, exportArtifacts } from '@/lib/queryKeys';
 
 /** Response from the export-work-orders-to-google-sheets function */
 interface GoogleSheetsExportResponse {
@@ -27,6 +28,7 @@ interface GoogleDocsExportResponse {
   mimeType: string;
   webViewLink: string;
   workOrderCount: number;
+  replacedPrevious?: boolean;
   warnings?: string[];
 }
 
@@ -247,6 +249,7 @@ export function useWorkOrderExcelExport(
   organizationName: string
 ) {
   const { toast } = useAppToast();
+  const queryClient = useQueryClient();
   const [isExportingSingle, setIsExportingSingle] = useState(false);
   const [isExportingSingleToDocs, setIsExportingSingleToDocs] = useState(false);
 
@@ -319,11 +322,21 @@ export function useWorkOrderExcelExport(
       }
       return exportWorkOrdersToGoogleDocs(organizationId, filters);
     },
-    onSuccess: (result) => {
-      window.open(result.webViewLink, '_blank', 'noopener,noreferrer');
-      toast({
-        title: 'Export Complete',
-        description: `Created Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`,
+    onSuccess: (result, filters) => {
+      if (organizationId && filters.workOrderId) {
+        void queryClient.invalidateQueries({
+          queryKey: exportArtifacts.latest(organizationId, 'work_order', filters.workOrderId),
+        });
+      }
+      const desc = result.replacedPrevious
+        ? `Updated Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`
+        : `Created Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`;
+      sonnerToast.success('Export Complete', {
+        description: desc,
+        action: {
+          label: 'Open',
+          onClick: () => window.open(result.webViewLink, '_blank', 'noopener,noreferrer'),
+        },
       });
       if (result.warnings?.length) {
         toast({
@@ -450,10 +463,18 @@ export function useWorkOrderExcelExport(
           workOrderId,
           dateField: 'created_date',
         });
-        window.open(result.webViewLink, '_blank', 'noopener,noreferrer');
-        toast({
-          title: 'Export Complete',
-          description: `Created Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`,
+        void queryClient.invalidateQueries({
+          queryKey: exportArtifacts.latest(organizationId, 'work_order', workOrderId),
+        });
+        const desc = result.replacedPrevious
+          ? `Updated Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`
+          : `Created Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`;
+        sonnerToast.success('Export Complete', {
+          description: desc,
+          action: {
+            label: 'Open',
+            onClick: () => window.open(result.webViewLink, '_blank', 'noopener,noreferrer'),
+          },
         });
         if (result.warnings?.length) {
           toast({
@@ -487,7 +508,7 @@ export function useWorkOrderExcelExport(
         setIsExportingSingleToDocs(false);
       }
     },
-    [organizationId, toast]
+    [organizationId, toast, queryClient]
   );
 
   return {

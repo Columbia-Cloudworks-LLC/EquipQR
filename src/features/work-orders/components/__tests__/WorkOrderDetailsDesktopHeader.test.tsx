@@ -11,6 +11,7 @@ const mockUseGoogleWorkspaceExportDestination = vi.fn();
 const mockUseUnifiedPermissions = vi.fn();
 const mockUseDeleteWorkOrder = vi.fn();
 const mockUseWorkOrderImageCount = vi.fn();
+const mockUseLatestExportArtifact = vi.fn();
 
 vi.mock('../QuickBooksExportButton', () => ({
   QuickBooksExportButton: () => null,
@@ -46,6 +47,10 @@ vi.mock('@/features/work-orders/hooks/useDeleteWorkOrder', () => ({
 
 vi.mock('@/features/work-orders/hooks/useWorkOrderImageCount', () => ({
   useWorkOrderImageCount: (...args: unknown[]) => mockUseWorkOrderImageCount(...args),
+}));
+
+vi.mock('@/features/work-orders/hooks/useLatestExportArtifact', () => ({
+  useLatestExportArtifact: (...args: unknown[]) => mockUseLatestExportArtifact(...args),
 }));
 
 describe('WorkOrderDetailsDesktopHeader', () => {
@@ -129,6 +134,10 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     mockUseWorkOrderImageCount.mockReturnValue({
       data: { count: 0 },
     });
+
+    mockUseLatestExportArtifact.mockReturnValue({
+      data: null,
+    });
   });
 
   it('hides the Google Doc export action when the Workspace grant is missing Docs scope', async () => {
@@ -139,5 +148,38 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     await user.click(screen.getByRole('button', { name: /more actions/i }));
 
     expect(screen.queryByText('Internal Work Order Packet (Google Doc)')).not.toBeInTheDocument();
+  });
+
+  it('shows "Open Last Google Doc" when an artifact exists', async () => {
+    const user = userEvent.setup();
+
+    mockUseLatestExportArtifact.mockReturnValue({
+      data: {
+        id: 'art-1',
+        provider_file_id: 'doc-abc',
+        web_view_link: 'https://docs.google.com/document/d/doc-abc/edit',
+        last_exported_at: '2026-04-04T12:00:00Z',
+        export_channel: 'google_docs',
+        artifact_kind: 'internal_packet',
+      },
+    });
+
+    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+
+    await user.click(screen.getByRole('button', { name: /more actions/i }));
+
+    expect(screen.getByText('Open Last Google Doc')).toBeInTheDocument();
+  });
+
+  it('hides "Open Last Google Doc" when no artifact exists', async () => {
+    const user = userEvent.setup();
+
+    mockUseLatestExportArtifact.mockReturnValue({ data: null });
+
+    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+
+    await user.click(screen.getByRole('button', { name: /more actions/i }));
+
+    expect(screen.queryByText('Open Last Google Doc')).not.toBeInTheDocument();
   });
 });

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Export artifact lineage and replace-on-re-export** — New `record_export_artifacts` table (migration `20260405000000`) tracks the last-exported Google Doc per work order with a future-ready schema supporting any record type and export channel. Re-exporting the same work order now deletes the previous Google Doc (if it still exists) before creating a fresh one, and upserts the artifact row with the latest link. The "Open Last Google Doc" action appears in the work order actions menu when a previous export exists.
+
+- **Team/equipment subfolder routing for Google Docs exports** — Exports are now organized into readable subfolders under the configured destination using the pattern `TeamName/EquipmentName`. Folder names are human-readable (no IDs), sanitized for safe Drive usage, and reused on subsequent exports. New shared module `google-drive-folder-routing.ts` handles resolve-or-create logic with `supportsAllDrives=true` for Shared Drive compatibility.
+
+- **Subfolder routing organization toggles** — Organization admins can independently enable or disable team and equipment subfolder routing via two checkboxes ("Organize by team", "Organize by equipment") in the Google Docs Export Destination card. Both default to enabled. Settings are stored as `folder_by_team` and `folder_by_equipment` columns on `organization_google_export_destinations` (migration `20260405010000`).
+
+- **Google Docs export toast with Open action** — Docs export success toast now includes an "Open" action button linking directly to the newly created Google Doc (using sonner toast, matching the PDF-to-Drive pattern). Toast message distinguishes "Created" vs "Updated" when a previous export was replaced.
+
+- **Drive file lifecycle helpers** — Added `deleteGoogleDriveFile()` (discriminated union result: deleted/not_found/permission_denied/error) and `getGoogleDriveFileMetadata()` to `google-docs-api.ts` for safe artifact cleanup and verification.
+
+- **Export artifact query key factory and hook** — Added `exportArtifacts` query key factory to `queryKeys.ts` and `useLatestExportArtifact` hook for lightweight artifact fetching with automatic invalidation after each Docs export.
+
 - **Google Docs executive packet composer** — Rewrote the Google Docs export path to build polished, branded documents using the Docs API `batchUpdate` directly instead of HTML upload. The executive packet includes a branded header band, quick-facts block, opening summary with equipment context, photo highlights, labor activity with per-note photo counts, materials & costs table, PM checklist, status timeline, and a consolidated photo-evidence appendix at the end (one page per photo with the related activity note for standalone evidence review).
 
 - **Single work order Docs packet data builder** — Added `work-order-google-docs-single-data.ts` shared module that assembles all data needed for a single-work-order Google Doc packet from seven Supabase queries (work order, org, team, equipment/customer, notes, images, costs, timeline, PM checklist). Pure helper functions (`buildPhotoEvidenceFromNotesAndImages`, `buildQuickFacts`) are exported for unit testing.

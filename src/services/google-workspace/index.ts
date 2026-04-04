@@ -31,6 +31,8 @@ export interface GoogleExportDestination {
   display_name: string;
   web_view_link: string | null;
   configured_by: string | null;
+  folder_by_team: boolean;
+  folder_by_equipment: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -144,14 +146,24 @@ export async function setGoogleExportDestination(input: {
   documentType?: GoogleExportDocumentType;
   selectionKind: GoogleExportSelectionKind;
   parentId: string;
+  folderByTeam?: boolean;
+  folderByEquipment?: boolean;
 }): Promise<GoogleExportDestination> {
+  const bodyPayload: Record<string, unknown> = {
+    organizationId: input.organizationId,
+    documentType: input.documentType ?? 'work-orders-internal-packet',
+    selectionKind: input.selectionKind,
+    parentId: input.parentId,
+  };
+  if (typeof input.folderByTeam === 'boolean') {
+    bodyPayload.folderByTeam = input.folderByTeam;
+  }
+  if (typeof input.folderByEquipment === 'boolean') {
+    bodyPayload.folderByEquipment = input.folderByEquipment;
+  }
+
   const { data, error } = await supabase.functions.invoke('set-google-export-destination', {
-    body: {
-      organizationId: input.organizationId,
-      documentType: input.documentType ?? 'work-orders-internal-packet',
-      selectionKind: input.selectionKind,
-      parentId: input.parentId,
-    },
+    body: bodyPayload,
   });
 
   if (error) {
