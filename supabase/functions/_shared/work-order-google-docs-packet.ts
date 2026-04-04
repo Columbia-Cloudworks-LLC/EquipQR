@@ -67,17 +67,14 @@ export function buildExecutivePacketRequests(
   // --- HEADER BAND ---
   sectionOrder.push("Header");
 
-  insertText(`${data.organization.name}\n`, true, 20);
-  insertText("Internal Work Order Packet\n", false, 14);
-  insertText(`${data.workOrder.title}\n`, true, 16);
-  insertText(`Generated: ${data.generatedAt.split("T")[0]}\n\n`, false, 10);
-
+  // Logo is inserted first so it appears at the top and doesn't shift
+  // text indices that formatRequests depend on.
   if (data.organization.logoUrl) {
     try {
       contentRequests.push({
         insertInlineImage: {
           uri: data.organization.logoUrl,
-          location: { index: 1 },
+          endOfSegmentLocation: { segmentId: "" },
           objectSize: {
             height: { magnitude: 50, unit: "PT" },
             width: { magnitude: 150, unit: "PT" },
@@ -85,10 +82,16 @@ export function buildExecutivePacketRequests(
         },
       });
       cursor += 1;
+      insertText("\n");
     } catch {
       warnings.push("Organization logo could not be inserted.");
     }
   }
+
+  insertText(`${data.organization.name}\n`, true, 20);
+  insertText("Internal Work Order Packet\n", false, 14);
+  insertText(`${data.workOrder.title}\n`, true, 16);
+  insertText(`Generated: ${data.generatedAt.split("T")[0]}\n\n`, false, 10);
 
   // --- QUICK FACTS ---
   sectionOrder.push("QuickFacts");

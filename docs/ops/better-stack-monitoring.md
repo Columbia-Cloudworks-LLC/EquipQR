@@ -90,7 +90,7 @@ When the database check fails or times out, the endpoint returns HTTP 503 with `
 
 | Setting | Value |
 |---|---|
-| Alert recipients | nicholas.king@columbiacloudworks.com |
+| Alert recipients | Managed in Better Stack (on-call team member email) |
 | Escalation policy | Email immediately on incident confirmation |
 | Incident confirmation | Confirmed after 2 consecutive failures |
 | Recovery notification | Enabled |

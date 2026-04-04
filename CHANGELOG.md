@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Docs export Edge Function swallowed error details** — The inner catch block re-threw the Google API error into the outer generic catch, losing the specific message. Now logs the actual error via `console.error` and returns it in the 500 response body for frontend visibility. Also removed references to nonexistent `file_url` and `error_message` columns in `export_request_log` updates.
 
-- **README version badge** — Updated from `2.5.2` to `2.6.0` to match the current release.
+- **README version badge** — Updated from `2.5.2` to `2.7.0` to match the current release.
 
 ## [2.6.0] - 2026-04-04
 
