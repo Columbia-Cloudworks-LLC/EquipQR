@@ -32,10 +32,7 @@ export async function validateGoogleDriveDestination(
   input: GoogleDriveDestinationValidationInput,
 ): Promise<GoogleDriveDestinationValidationResult> {
   if (!input.parentId) {
-    throw new GoogleWorkspaceTokenError(
-      "Missing destination folder id.",
-      "token_refresh_failed",
-    );
+    throw new Error("Missing destination folder id.");
   }
 
   const url = `${DRIVE_FILES_API_BASE}/${encodeURIComponent(input.parentId)}?supportsAllDrives=true&fields=id,name,mimeType,trashed,driveId,webViewLink,capabilities(canAddChildren)`;

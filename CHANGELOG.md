@@ -11,10 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.6.0] - 2026-04-04
 
-### Changed
-
-- **Windows dev scripts** — `dev-start.bat` and `dev-stop.bat` are thin launchers that call **`dev-start.ps1`** and **`dev-stop.ps1`**. Removed **`--mode`**, **`--no-pause`**, **`--reset-db`**, and **`--gen-types`** flags from the batch surface. **`dev-start -Force`** no longer invokes **`dev-stop`**; it resets the DB, regenerates types, and re-seeds images after Supabase is up, but exits with guidance to run **`dev-stop`** first if Vite or Edge Functions serve is already running. Scripts no longer end with **`pause`**.
-
 ### Added
 
 - **Better Stack uptime monitoring and status page** — Added public `healthcheck` Supabase Edge Function (`supabase/functions/healthcheck/index.ts`) backed by a dedicated `public.monitoring_healthcheck()` SQL RPC (migration `20260404120000`). The endpoint returns a stable JSON health contract (`ok`, `service`, `environment`, `checked_at`, `checks.db`) with `200` when healthy and `503` on database failure or timeout. Registered as `verify_jwt = false` in `config.toml`. Deno tests cover healthy, unhealthy, and wrong-method paths. Ops runbook at `docs/ops/better-stack-monitoring.md` documents monitor configuration, alert policy, and DNS/CNAME steps for `status.equipqr.app`.
@@ -53,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`dev-start.bat` / `dev-stop.bat` mode redesign** — Added **`--mode full|backend|core`**: default **full** requires Supabase API, Edge Functions serve, and Vite to pass health checks before exit **`0`**. **Backend** omits Vite; **core** is Supabase only. **`-Force`** on start runs **`dev-stop --mode …`** (matching mode), then **`--reset-db`** and **`--gen-types`**. Type generation runs only when **`--gen-types`** is set (including via **`-Force`**), not on every start. **`--no-pause`** on start skips the final pause for automation. **dev-stop** mirrors modes, reports partial failures, and exits **`1`** when any stop step fails. Removed temporary debug logging to `debug-520e57.log`.
+- **Windows dev scripts redesign** — `.bat` files are now thin launchers that delegate to **`dev-start.ps1`** / **`dev-stop.ps1`**; the batch surface no longer accepts **`--mode`**, **`--no-pause`**, **`--reset-db`**, or **`--gen-types`** (pass them to the `.ps1` scripts directly). The PowerShell scripts add **`--mode full|backend|core`** (default **full** health-checks Supabase API, Edge Functions serve, and Vite before exit **`0`**; **backend** omits Vite; **core** is Supabase only). **`-Force`** runs **`dev-stop --mode …`** (matching mode), then **`--reset-db`** and **`--gen-types`**. Type generation runs only when **`--gen-types`** is set (including via **`-Force`**), not on every start. **`--no-pause`** skips the final pause for automation. **dev-stop** mirrors modes, reports partial failures, and exits **`1`** when any stop step fails. Removed temporary debug logging to `debug-520e57.log`.
 
 - **Unified work-order export model (Service Report + Internal Packet)** — Work-order exports now follow two first-class deliverables instead of mixed piecemeal actions. The single-work-order PDF flow is explicitly framed as a customer-safe **Service Report PDF** (including customer context when linked through equipment), while single-work-order Excel export now produces the same internal multi-sheet **Internal Work Order Packet** concept used by detailed work-order reporting. UI labels and export copy were updated across work-order detail actions, mobile action sheet, quick actions, and reports so users can clearly distinguish external-shareable vs internal-operational exports.
 

@@ -52,6 +52,11 @@ Deno.serve(async (req) => {
       return createErrorResponse("Invalid selectionKind value", 400);
     }
 
+    const SUPPORTED_DOCUMENT_TYPES = ["work-orders-internal-packet"];
+    if (!SUPPORTED_DOCUMENT_TYPES.includes(documentType)) {
+      return createErrorResponse("Unsupported format", 400);
+    }
+
     const isAdmin = await verifyOrgAdmin(supabase, auth.user.id, organizationId);
     if (!isAdmin) {
       return createErrorResponse("Forbidden: Only owners and admins can manage export destinations", 403);
