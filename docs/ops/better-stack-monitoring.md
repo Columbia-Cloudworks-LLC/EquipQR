@@ -62,7 +62,7 @@ When the database check fails or times out, the endpoint returns HTTP 503 with `
 |---|---|
 | Status page title | EquipQR Status |
 | Status page URL | `https://status.equipqr.app` |
-| Better Stack subdomain | *(fill after creation, e.g. `equipqr.betteruptime.com`)* |
+| Better Stack subdomain | `equipqr.betteruptime.com` |
 | Components shown | EquipQR Web, EquipQR API Health |
 | History / uptime chart | Enabled (90-day history) |
 
@@ -72,26 +72,26 @@ When the database check fails or times out, the endpoint returns HTTP 503 with `
 
 ### Steps
 
-1. In the Better Stack status page settings, enable the custom domain and note the **CNAME target** provided (e.g., `statuspage.betteruptime.com`).
+1. In the Better Stack status page settings, enable the custom domain and note the **CNAME target** provided.
 2. In the **Vercel dashboard** (where `equipqr.app` DNS is managed):
    - Navigate to the domain `equipqr.app` > DNS Records.
    - Add a CNAME record:
      - **Name:** `status`
-     - **Value:** *(the CNAME target from step 1)*
+     - **Value:** `statuspage.betteruptime.com`
      - **TTL:** Auto / 300
 3. Wait for DNS propagation (typically < 5 minutes on Vercel).
 4. Verify: `https://status.equipqr.app` should load the Better Stack status page.
 
 | DNS Record | Type | Name | Value |
 |---|---|---|---|
-| Status page CNAME | CNAME | `status` | *(fill from Better Stack dashboard)* |
+| Status page CNAME | CNAME | `status` | `statuspage.betteruptime.com` |
 
 ## Alert Policy
 
 | Setting | Value |
 |---|---|
-| Alert recipients | *(fill with on-call email / phone)* |
-| Escalation policy | *(fill: e.g., email immediately, SMS after 5 min)* |
+| Alert recipients | nicholas.king@columbiacloudworks.com |
+| Escalation policy | Email immediately on incident confirmation |
 | Incident confirmation | Confirmed after 2 consecutive failures |
 | Recovery notification | Enabled |
 

@@ -339,8 +339,11 @@ After a successful restoration, complete these verification steps:
 ### Application Verification
 
 ```bash
-# Run the application health check (if implemented)
-curl https://equipqr.app/api/health
+# Verify the deep health endpoint (Supabase Edge Function, no auth required)
+curl https://supabase.equipqr.app/functions/v1/healthcheck
+
+# Check the public status page for aggregate service health
+# https://status.equipqr.app
 ```
 
 - [ ] **Test critical workflows**:

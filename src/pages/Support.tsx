@@ -7,7 +7,9 @@ import {
   Clock, 
   ArrowRight,
   Bug,
+  Activity,
 } from "lucide-react";
+import { ExternalLink } from '@/components/ui/external-link';
 import LandingHeader from '@/components/landing/LandingHeader';
 import LegalFooter from '@/components/layout/LegalFooter';
 import SupportTabs from '@/components/support/SupportTabs';
@@ -30,6 +32,17 @@ const ContactSection: React.FC = () => (
     </CardHeader>
     <CardContent>
       <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-muted-foreground" />
+          <span>Check our </span>
+          <ExternalLink
+            href="https://status.equipqr.app"
+            className="text-primary"
+          >
+            system status page
+          </ExternalLink>
+          <span> for real-time service availability</span>
+        </div>
         <div className="flex items-center gap-2">
           <MessageSquare className="h-4 w-4 text-muted-foreground" />
           <span>Email support: </span>
@@ -72,6 +85,17 @@ export const DashboardSupport: React.FC = () => {
           <CardContent>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                  <span>Check our </span>
+                  <ExternalLink
+                    href="https://status.equipqr.app"
+                    className="text-primary"
+                  >
+                    system status page
+                  </ExternalLink>
+                  <span> for real-time service availability</span>
+                </div>
                 <div className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-muted-foreground" />
                   <span>Email support: </span>
