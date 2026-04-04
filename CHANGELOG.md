@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-04-04
+
 ### Changed
 
 - **Windows dev scripts** — `dev-start.bat` and `dev-stop.bat` are thin launchers that call **`dev-start.ps1`** and **`dev-stop.ps1`**. Removed **`--mode`**, **`--no-pause`**, **`--reset-db`**, and **`--gen-types`** flags from the batch surface. **`dev-start -Force`** no longer invokes **`dev-stop`**; it resets the DB, regenerates types, and re-seeds images after Supabase is up, but exits with guidance to run **`dev-stop`** first if Vite or Edge Functions serve is already running. Scripts no longer end with **`pause`**.
