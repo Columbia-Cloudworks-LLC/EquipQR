@@ -47,6 +47,7 @@ interface UploadRequest {
   filename: string;
   contentBase64: string;
   mimeType?: string;
+  parentId?: string;
 }
 
 interface DriveFileResponse {
@@ -102,15 +103,20 @@ async function uploadToDrive(
   accessToken: string,
   filename: string,
   fileBytes: Uint8Array,
-  mimeType: string
+  mimeType: string,
+  parentId?: string,
 ): Promise<DriveFileResponse> {
   // Build multipart body
   const boundary = "----EquipQRUploadBoundary" + Date.now();
   
-  const metadata = {
+  const metadata: { name: string; mimeType: string; parents?: string[] } = {
     name: filename,
     mimeType,
   };
+
+  if (parentId) {
+    metadata.parents = [parentId];
+  }
   
   // Create the multipart body
   const metadataPart = JSON.stringify(metadata);
@@ -152,7 +158,7 @@ async function uploadToDrive(
     offset += part.length;
   }
   
-  const url = `${DRIVE_UPLOAD_URL}?uploadType=multipart&fields=id,name,mimeType,webViewLink,webContentLink`;
+  const url = `${DRIVE_UPLOAD_URL}?uploadType=multipart&supportsAllDrives=true&fields=id,name,mimeType,webViewLink,webContentLink`;
   
   const response = await googleApiFetch(url, {
     method: "POST",
@@ -223,7 +229,7 @@ Deno.serve(async (req) => {
       return createErrorResponse("Invalid JSON body", 400);
     }
     
-    const { organizationId, filename, contentBase64, mimeType = "application/pdf" } = body;
+    const { organizationId, filename, contentBase64, mimeType = "application/pdf", parentId } = body;
     
     // Validate mimeType against allowlist to prevent abuse
     const ALLOWED_MIME_TYPES = [
@@ -340,7 +346,8 @@ Deno.serve(async (req) => {
         tokenResult.accessToken,
         sanitizedFilename,
         fileBytes,
-        mimeType
+        mimeType,
+        parentId,
       );
     } catch (uploadError) {
       if (uploadError instanceof GoogleWorkspaceTokenError) {

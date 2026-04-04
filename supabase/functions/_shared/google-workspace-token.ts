@@ -260,4 +260,5 @@ export const GOOGLE_SCOPES = {
   DIRECTORY_READONLY: "https://www.googleapis.com/auth/admin.directory.user.readonly",
   SPREADSHEETS: "https://www.googleapis.com/auth/spreadsheets",
   DRIVE_FILE: "https://www.googleapis.com/auth/drive.file",
+  DRIVE_READONLY: "https://www.googleapis.com/auth/drive.readonly",
 } as const;

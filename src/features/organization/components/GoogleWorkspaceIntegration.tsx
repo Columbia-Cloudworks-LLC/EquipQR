@@ -12,6 +12,7 @@ import {
   syncGoogleWorkspaceUsers,
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
+import { googleWorkspace } from '@/lib/queryKeys';
 
 interface GoogleWorkspaceIntegrationProps {
   currentUserRole: 'owner' | 'admin' | 'member';
@@ -28,7 +29,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
   const isConfigured = isGoogleWorkspaceConfigured();
 
   const { data: connectionStatus, isLoading } = useQuery({
-    queryKey: ['google-workspace', 'connection', currentOrganization?.id],
+    queryKey: googleWorkspace.connection(currentOrganization?.id ?? ''),
     queryFn: () => getGoogleWorkspaceConnectionStatus(currentOrganization!.id),
     enabled: !!currentOrganization?.id && canManage,
     staleTime: 60 * 1000,
@@ -62,7 +63,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
         title: 'Directory synced',
         description: `${result.usersSynced} users loaded.`,
       });
-      await queryClient.invalidateQueries({ queryKey: ['google-workspace', 'directory-users', currentOrganization.id] });
+      await queryClient.invalidateQueries({ queryKey: googleWorkspace.root });
     } catch (error) {
       toast({
         title: 'Failed to sync users',
@@ -131,6 +132,14 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
                 Sync Directory
+              </Button>
+              <Button variant="outline" onClick={handleConnect} disabled={isConnecting}>
+                {isConnecting ? (
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Link2 className="h-4 w-4 mr-2" />
+                )}
+                Reconnect Google Workspace
               </Button>
               <Button variant="outline" asChild>
                 <Link to="/dashboard/organization">

@@ -90,6 +90,15 @@ VITE_ENABLE_QB_PDF_ATTACHMENT=false
 
 # Google Maps (for equipment location features)
 VITE_GOOGLE_MAPS_API_KEY=your-maps-key
+
+# Google Workspace OAuth (shared client for Workspace sync + Picker token flow)
+VITE_GOOGLE_WORKSPACE_CLIENT_ID=your-google-workspace-oauth-client-id
+
+# Google Picker (for Google Workspace export destination selection)
+VITE_GOOGLE_PICKER_API_KEY=your-picker-browser-api-key
+VITE_GOOGLE_PICKER_APP_ID=your-google-cloud-project-number
+
+# Policy: Picker reuses VITE_GOOGLE_WORKSPACE_CLIENT_ID. Do not create VITE_GOOGLE_PICKER_CLIENT_ID (not used).
 ```
 
 ### Edge Function Secrets (Production/Preview)
@@ -105,6 +114,7 @@ Key secrets include:
 - `TOKEN_ENCRYPTION_KEY` - OAuth token encryption (Google Workspace)
 - `KDF_SALT` - Deployment-specific encryption salt
 - Integration-specific secrets (QuickBooks, Google Workspace, etc.)
+- Client-side integration values (for example Google Picker API key and app id) belong in `.env` / Vercel `VITE_*` vars, not Supabase Edge Function secrets.
 
 ### Local Edge Function Development
 
@@ -206,17 +216,19 @@ Two batch files in the project root let you bring the entire local stack up or t
 
 | Script | What it does |
 |--------|-------------|
-| **`dev-start.bat`** | Idempotent startup — verifies prerequisites (Node, Docker), and with `-Force` performs a full fresh reset (app-stack hard stop, DB reset, and type regeneration) before starting Supabase + Edge Functions + Vite. Docker Desktop is kept running. It health-checks every service and prints a readiness report. Safe to run repeatedly; already-running services are skipped. |
-| **`dev-stop.bat`** | Graceful shutdown — stops the Vite dev server, any `supabase functions serve` process, the Supabase Docker stack, and cleans up orphan processes on dev ports. Safe to run when nothing is running. |
+| **`dev-start.bat`** | Thin launcher for **`dev-start.ps1`**. Starts the **full** stack: Supabase + Edge Functions serve + Vite. Exits **`0`** only when all three pass health checks. Optional **`-Force`**: after Supabase is up, runs **`supabase db reset`**, seeds equipment images, regenerates **`src/integrations/supabase/types.ts`**, then ensures Edge + Vite are running. **`-Force`** does **not** call **`dev-stop`**; if Vite or Edge Functions serve is already running, the script exits with an error and tells you to run **`dev-stop`** first. |
+| **`dev-stop.bat`** | Thin launcher for **`dev-stop.ps1`**. Stops Vite (port 8080), Edge Functions serve, the Supabase Docker stack, and sweeps dev ports. Exits **`1`** if any attempted stop step fails. Optional **`-Force`** (or **`/Force`**) also quits Docker Desktop. |
 
-```bash
-# From the project root — or just double-click in Explorer
-.\dev-start.bat      # Spin up everything
-.\dev-start.bat -Force --reset-db --gen-types  # Full reset, rebuild DB/types, then start all services
-.\dev-stop.bat       # Tear down everything
+```powershell
+# From the project root — or double-click in Explorer
+.\dev-start.bat                              # full stack, strict health
+.\dev-start.bat -Force                       # DB reset + types + seed images, then full stack (stop stack first if already running)
+
+.\dev-stop.bat                               # Stop full dev stack (Docker Desktop keeps running)
+.\dev-stop.bat -Force                        # Same + quit Docker Desktop
 ```
 
-> **Tip**: `dev-start.bat` exits with code 0 when all services are healthy, making it suitable as a Playwright / E2E pre-test step. It also front-loads 1Password prompts early so auth does not interrupt later migration/startup steps.
+> **Tip**: `dev-start.bat` exits **`0`** only when Supabase API, Edge Functions serve, and Vite are all healthy — suitable as a Playwright / E2E pre-test step. There is no final `pause`; failures return a non-zero exit code. 1Password sync runs early when `op` is on PATH. Logic lives in **`dev-start.ps1`** / **`dev-stop.ps1`** so batch stays double-click friendly without parser quirks.
 
 #### Daily Development Commands
 

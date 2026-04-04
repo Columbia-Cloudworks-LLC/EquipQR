@@ -18,6 +18,23 @@ export interface WorkspaceConnectionStatus {
   scopes: string | null;
 }
 
+export type GoogleExportDocumentType = 'work-orders-internal-packet';
+export type GoogleExportSelectionKind = 'folder' | 'shared_drive';
+
+export interface GoogleExportDestination {
+  id: string;
+  organization_id: string;
+  document_type: GoogleExportDocumentType;
+  selection_kind: GoogleExportSelectionKind;
+  drive_id: string | null;
+  parent_id: string;
+  display_name: string;
+  web_view_link: string | null;
+  configured_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface WorkspaceDirectoryUser {
   id: string;
   organization_id: string;
@@ -105,6 +122,62 @@ export async function syncGoogleWorkspaceUsers(organizationId: string): Promise<
   }
 
   return { usersSynced: data.usersSynced || 0 };
+}
+
+export async function getGoogleExportDestination(
+  organizationId: string,
+  documentType: GoogleExportDocumentType = 'work-orders-internal-packet',
+): Promise<GoogleExportDestination | null> {
+  const { data, error } = await supabase.functions.invoke('get-google-export-destination', {
+    body: { organizationId, documentType },
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data?.destination ?? null) as GoogleExportDestination | null;
+}
+
+export async function setGoogleExportDestination(input: {
+  organizationId: string;
+  documentType?: GoogleExportDocumentType;
+  selectionKind: GoogleExportSelectionKind;
+  parentId: string;
+}): Promise<GoogleExportDestination> {
+  const { data, error } = await supabase.functions.invoke('set-google-export-destination', {
+    body: {
+      organizationId: input.organizationId,
+      documentType: input.documentType ?? 'work-orders-internal-packet',
+      selectionKind: input.selectionKind,
+      parentId: input.parentId,
+    },
+  });
+
+  if (error) {
+    const httpError = error as Error & { context?: unknown };
+    const response = httpError.context instanceof Response ? httpError.context : null;
+    if (response) {
+      const errorPayload = await response
+        .clone()
+        .json()
+        .catch(() => null) as { error?: string; code?: string } | null;
+      if (errorPayload?.error) {
+        const typedError = new Error(errorPayload.error) as Error & { code?: string };
+        typedError.code = errorPayload.code;
+        throw typedError;
+      }
+    }
+    throw new Error(error.message);
+  }
+
+  if (data?.error) {
+    const typedError = new Error(data.error) as Error & { code?: string };
+    typedError.code = data.code;
+    throw typedError;
+  }
+
+  return data.destination as GoogleExportDestination;
 }
 
 /**

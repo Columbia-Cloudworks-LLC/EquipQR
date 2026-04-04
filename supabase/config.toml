@@ -118,6 +118,18 @@ verify_jwt = false
 # JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
 # This works around a jose library compatibility issue with ES256 keys in local development
 
+[functions.get-google-export-destination]
+verify_jwt = false
+# JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
+
+[functions.set-google-export-destination]
+verify_jwt = false
+# JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
+
+[functions.export-work-orders-to-google-docs]
+verify_jwt = false
+# JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
+
 [functions.create-ticket]
 verify_jwt = false
 # JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
@@ -148,6 +160,11 @@ verify_jwt = false
 [functions.verify-hcaptcha]
 verify_jwt = false
 # Public hCaptcha token verification endpoint. Called before privacy request submission.
+
+[functions.healthcheck]
+verify_jwt = false
+# Public monitoring endpoint for Better Stack uptime checks.
+# No authentication required -- returns non-sensitive health status only.
 
 [db.seed]
 enabled = true

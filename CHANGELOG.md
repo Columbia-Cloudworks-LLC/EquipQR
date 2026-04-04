@@ -9,11 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-04-04
+
 ### Added
+
+- **Better Stack uptime monitoring and status page** — Added public `healthcheck` Supabase Edge Function (`supabase/functions/healthcheck/index.ts`) backed by a dedicated `public.monitoring_healthcheck()` SQL RPC (migration `20260404120000`). The endpoint returns a stable JSON health contract (`ok`, `service`, `environment`, `checked_at`, `checks.db`) with `200` when healthy and `503` on database failure or timeout. Registered as `verify_jwt = false` in `config.toml`. Deno tests cover healthy, unhealthy, and wrong-method paths. Ops runbook at `docs/ops/better-stack-monitoring.md` documents monitor configuration, alert policy, and DNS/CNAME steps for `status.equipqr.app`.
 
 - **`scripts/bootstrap-worktree-env.ps1`** — One-shot copy (or optional hard link) of `.env`, `.env.local`, and `supabase/functions/.env` from a canonical checkout into a git/Cursor worktree; optional `npm ci`. Documented under **Git worktrees and Cursor** in `docs/technical/setup.md`.
 
 - **Cursor stop hook for changelog hygiene** — Added project-level `stop` hook wiring in `.cursor/hooks.json` plus `.cursor/hooks/changelog-stop.ps1` so completed agent sessions that change product code without touching `CHANGELOG.md` automatically get a follow-up prompt to add or justify the missing changelog entry. `.cursor/hooks/README.md` documents the new hook.
+
+- **Google Docs internal packet export (v1)** — Added `export-work-orders-to-google-docs` Edge Function to create editable Google Docs for the Internal Work Order Packet. The function reuses existing work-order export data builders, enforces owner/admin authorization, applies export rate limiting, logs to `export_request_log`, and creates Docs in Drive with Shared Drive compatibility (`supportsAllDrives=true`).
+
+- **Org-managed Google Docs destination settings** — Added destination persistence for Google exports via `organization_google_export_destinations` (migration `20260402120000_add_google_export_destinations.sql`) plus new Edge Functions (`get-google-export-destination`, `set-google-export-destination`) and shared destination validation against Google Drive access.
+
+- **Google Picker destination UI** — Added `GoogleWorkspaceExportDestinationCard` in Organization Settings so owners/admins can select and save a folder or Shared Drive destination for Google Docs exports. Added frontend service/hook support (`setGoogleExportDestination`, `getGoogleExportDestination`, `useGoogleWorkspaceExportDestination`) and query-key factories.
 
 - **CCPA/CPRA privacy policy (Section 10A)** — California-specific disclosures: categories of personal and sensitive information, sources, business purposes, retention summary, no-sale/no-share, consumer rights, submission via **`/privacy-request`** and **`privacy@equipqr.app`**, verification, authorized agents, and response timing. Policy **Last updated:** March 29, 2026.
 
@@ -39,9 +49,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Windows dev scripts redesign** — `.bat` files are now thin launchers that delegate to **`dev-start.ps1`** / **`dev-stop.ps1`**. **`dev-start.ps1`** starts the full stack (Supabase, Edge Functions serve, Vite) with pre-flight checks, 1Password env sync, and a final health report; **`-Force`** additionally resets the local database, regenerates TypeScript types, and seeds equipment images. **`dev-stop.ps1`** tears down Vite, Edge Functions serve, and Supabase containers with a port sweep; **`-Force`** also stops Docker Desktop. Both scripts report partial failures and exit **`1`** when any step fails. Removed temporary debug logging to `debug-520e57.log`.
+
+- **Unified work-order export model (Service Report + Internal Packet)** — Work-order exports now follow two first-class deliverables instead of mixed piecemeal actions. The single-work-order PDF flow is explicitly framed as a customer-safe **Service Report PDF** (including customer context when linked through equipment), while single-work-order Excel export now produces the same internal multi-sheet **Internal Work Order Packet** concept used by detailed work-order reporting. UI labels and export copy were updated across work-order detail actions, mobile action sheet, quick actions, and reports so users can clearly distinguish external-shareable vs internal-operational exports.
+
+- **Internal packet export surfaces now include Google Docs** — Reports dialog and work-order detail actions now support creating Google Docs versions of the Internal Work Order Packet when Google Workspace is connected and a destination is configured.
+
+- **Google integration environment/setup documentation hardened** — Added explicit Google Picker API key + App ID setup, scope matrix, deployment-surface ownership (Vercel/client vs Supabase secrets), and corrected Google Workspace secret naming drift in docs (`docs/ops/deployment.md`, `docs/ops/supabase-branch-secrets.md`, `docs/ops/local-supabase-development.md`, `docs/technical/setup.md`, `.env.example`, `README.md`).
+
 - **Privacy policy SLA alignment** — Section 9 general response timing and Section 14 contact response timing updated from **30 days** to **45 calendar days** to match the California-specific Section 10A standard and avoid conflicting deadlines.
 
 ### Fixed
+
+- **Google Docs export destination after folder pick (stale Workspace scopes)** — Organization Settings now **preflights** required Drive scopes (`drive.file`, `drive.readonly`) before opening the picker; when the stored org connection is missing them, **Choose/Change Destination** is disabled with an inline **reconnect** path instead of failing only after selection. Save errors from `set-google-export-destination` are mapped to distinct user guidance for **insufficient scopes**, **revoked/expired tokens**, and **not connected**. Returning from OAuth with **`gw_connected=true`** shows a success toast, refreshes Workspace queries, and strips the param from the URL. Added **Reconnect Google Workspace** on the integration card when already connected. Shared scope helpers live in `google-workspace` auth; regression tests cover reconnect, destination preflight, org return handling, and service error codes.
+
+- **Google Docs destination picker blocked by CSP** — Updated app CSP headers to allow Google Picker and Google Identity script/origin requirements (`apis.google.com`, `accounts.google.com`) and Supabase Realtime websocket connections (`wss://*.supabase.co`) so **Organization -> Choose Destination** can load the picker flow in preview and local environments.
 
 - **Supabase function search-path security warnings** — Added a forward-only migration to recreate `public.anonymize_audit_changes` and `public.prevent_dsr_event_mutation` with `SET search_path = ''`, clearing the advisor's `function_search_path_mutable` findings without changing function behavior. Added focused pgTAP regression checks in `supabase/tests/06_dsr_requests_and_privacy.sql` so the warnings do not silently return.
 

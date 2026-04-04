@@ -13,6 +13,8 @@
  * Filters for bulk work order Excel export
  */
 export interface WorkOrderExcelFilters {
+  /** Optional direct export by work order ID (used for single work order internal packet exports) */
+  workOrderId?: string;
   status?: string;
   teamId?: string;
   priority?: string;
@@ -45,6 +47,7 @@ export interface WorkOrderSummaryRow {
   workOrderId: string;
   title: string;
   description: string;
+  customerName: string;
   equipmentName: string;
   equipmentSerialNumber: string;
   equipmentLocation: string;
@@ -158,6 +161,7 @@ export interface TimelineRow {
 export interface EquipmentRow {
   equipmentId: string;
   name: string;
+  customerName: string;
   manufacturer: string;
   model: string;
   serialNumber: string;
@@ -224,6 +228,7 @@ export const WORKSHEET_HEADERS = {
     'Work Order ID',
     'Title',
     'Description',
+    'Customer',
     'Equipment',
     'Serial Number',
     'Location',
@@ -287,6 +292,7 @@ export const WORKSHEET_HEADERS = {
   EQUIPMENT: [
     'Equipment ID',
     'Name',
+    'Customer',
     'Manufacturer',
     'Model',
     'Serial Number',

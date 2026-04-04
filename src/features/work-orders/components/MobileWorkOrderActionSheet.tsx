@@ -3,7 +3,7 @@
  * 
  * A bottom sheet that consolidates all work order actions for mobile users.
  * Sections are role-gated:
- * - Office tools: Download PDF, Export Excel (visible to managers/admins)
+ * - Office tools: Service Report PDF, Internal Work Order Packet (visible to managers/admins)
  * - QuickBooks: Export (visible only to users with can_manage_quickbooks)
  */
 
@@ -23,6 +23,7 @@ import {
 import { 
   Download, 
   FileSpreadsheet, 
+  FileText,
   Loader2,
   MoreHorizontal,
   Trash2,
@@ -45,6 +46,8 @@ interface MobileWorkOrderActionSheetProps {
   onDownloadPDF: () => void;
   onExportExcel: () => void;
   isExportingExcel: boolean;
+  onExportGoogleDoc?: () => void;
+  isExportingGoogleDoc?: boolean;
 }
 
 export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProps> = ({
@@ -57,6 +60,8 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   onDownloadPDF,
   onExportExcel,
   isExportingExcel,
+  onExportGoogleDoc,
+  isExportingGoogleDoc = false,
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const navigate = useNavigate();
@@ -105,7 +110,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
               <div className="space-y-2">
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Office Tools
+                    Exports
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     <Button
@@ -114,7 +119,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                       onClick={() => handleAction(onDownloadPDF)}
                     >
                       <Download className="h-5 w-5" />
-                      <span className="text-xs">Download PDF</span>
+                      <span className="text-xs">Service Report PDF</span>
                     </Button>
                     <Button
                       variant="outline"
@@ -127,8 +132,23 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                       ) : (
                         <FileSpreadsheet className="h-5 w-5" />
                       )}
-                      <span className="text-xs">Export Excel</span>
+                      <span className="text-xs">Internal Work Order Packet</span>
                     </Button>
+                    {onExportGoogleDoc && (
+                      <Button
+                        variant="outline"
+                        className="h-14 flex-col gap-1"
+                        onClick={() => handleAction(onExportGoogleDoc)}
+                        disabled={isExportingGoogleDoc}
+                      >
+                        {isExportingGoogleDoc ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <FileText className="h-5 w-5" />
+                        )}
+                        <span className="text-xs">Google Doc Packet</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

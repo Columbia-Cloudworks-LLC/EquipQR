@@ -1,9 +1,15 @@
 {
   "plugins": {
+    "1password": {
+      "enabled": true
+    },
     "supabase": {
       "enabled": true
     },
     "superpowers": {
+      "enabled": true
+    },
+    "continual-learning": {
       "enabled": true
     }
   }

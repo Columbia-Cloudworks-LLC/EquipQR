@@ -129,8 +129,8 @@ export const REPORT_CARDS: ReportCardConfig[] = [
   },
   {
     type: 'work-orders-detailed',
-    title: 'Work Orders Report',
-    description: 'Multi-sheet Excel with notes, costs, PM checklists, and timeline',
+    title: 'Internal Work Order Packet',
+    description: 'Operational multi-sheet workbook with labor, costs, PM checklists, and timeline',
     icon: 'ClipboardList',
     format: 'excel',
     columnCount: WORK_ORDER_COLUMNS.length,

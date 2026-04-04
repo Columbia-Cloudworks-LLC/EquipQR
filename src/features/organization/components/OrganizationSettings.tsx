@@ -17,6 +17,7 @@ import type { OrganizationUpdatePayload } from '@/features/organization/types/or
 import { organizationFormSchema, OrganizationFormData } from './organizationSettingsSchema';
 import { QuickBooksIntegration } from './QuickBooksIntegration';
 import { GoogleWorkspaceIntegration } from './GoogleWorkspaceIntegration';
+import { GoogleWorkspaceExportDestinationCard } from './GoogleWorkspaceExportDestinationCard';
 import { DangerZoneSection } from './DangerZoneSection';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
@@ -311,6 +312,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
         </div>
         <QuickBooksIntegration currentUserRole={currentUserRole} />
         <GoogleWorkspaceIntegration currentUserRole={currentUserRole} />
+        <GoogleWorkspaceExportDestinationCard currentUserRole={currentUserRole} />
       </div>
 
       {/* Danger Zone Section */}

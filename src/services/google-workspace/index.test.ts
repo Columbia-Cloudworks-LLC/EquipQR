@@ -3,6 +3,8 @@ import {
   getWorkspaceOnboardingState,
   createWorkspaceOrganizationForDomain,
   getGoogleWorkspaceConnectionStatus,
+  getGoogleExportDestination,
+  setGoogleExportDestination,
   syncGoogleWorkspaceUsers,
   listWorkspaceDirectoryUsers,
   listWorkspaceDirectoryUsersLight,
@@ -155,6 +157,143 @@ describe('Google Workspace Service Functions', () => {
       await expect(syncGoogleWorkspaceUsers('org-123')).rejects.toThrow(
         'Failed to sync Google Workspace users'
       );
+    });
+  });
+
+  describe('Google export destination functions', () => {
+    it('loads the configured Google export destination', async () => {
+      const mockDestination = {
+        id: 'destination-1',
+        organization_id: 'org-123',
+        document_type: 'work-orders-internal-packet',
+        selection_kind: 'folder',
+        drive_id: null,
+        parent_id: 'folder-123',
+        display_name: 'Ops Exports',
+        web_view_link: null,
+        configured_by: 'user-123',
+        created_at: '2026-01-18T00:00:00Z',
+        updated_at: '2026-01-18T00:00:00Z',
+      };
+
+      invokeMock.mockResolvedValue({
+        data: { destination: mockDestination },
+        error: null,
+      });
+
+      const result = await getGoogleExportDestination('org-123');
+
+      expect(invokeMock).toHaveBeenCalledWith('get-google-export-destination', {
+        body: {
+          organizationId: 'org-123',
+          documentType: 'work-orders-internal-packet',
+        },
+      });
+      expect(result).toEqual(mockDestination);
+    });
+
+    it('returns typed insufficient_scopes errors from edge function responses', async () => {
+      const response = new Response(
+        JSON.stringify({
+          error: 'Google Workspace needs updated Drive permissions.',
+          code: 'insufficient_scopes',
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+
+      invokeMock.mockResolvedValue({
+        data: null,
+        error: Object.assign(new Error('Function invocation failed'), {
+          context: response,
+        }),
+      });
+
+      await expect(
+        setGoogleExportDestination({
+          organizationId: 'org-123',
+          selectionKind: 'folder',
+          parentId: 'folder-123',
+        })
+      ).rejects.toMatchObject({
+        message: 'Google Workspace needs updated Drive permissions.',
+        code: 'insufficient_scopes',
+      });
+    });
+
+    it('returns typed token_revoked errors from edge function payloads', async () => {
+      invokeMock.mockResolvedValue({
+        data: {
+          error: 'Your Google Workspace connection expired or was revoked.',
+          code: 'token_revoked',
+        },
+        error: null,
+      });
+
+      await expect(
+        setGoogleExportDestination({
+          organizationId: 'org-123',
+          selectionKind: 'folder',
+          parentId: 'folder-123',
+        })
+      ).rejects.toMatchObject({
+        message: 'Your Google Workspace connection expired or was revoked.',
+        code: 'token_revoked',
+      });
+    });
+
+    it('returns typed not_connected errors from edge function responses', async () => {
+      const response = new Response(
+        JSON.stringify({
+          error: 'Google Workspace is not connected for this organization.',
+          code: 'not_connected',
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+
+      invokeMock.mockResolvedValue({
+        data: null,
+        error: Object.assign(new Error('Function invocation failed'), {
+          context: response,
+        }),
+      });
+
+      await expect(
+        setGoogleExportDestination({
+          organizationId: 'org-123',
+          selectionKind: 'folder',
+          parentId: 'folder-123',
+        })
+      ).rejects.toMatchObject({
+        message: 'Google Workspace is not connected for this organization.',
+        code: 'not_connected',
+      });
+    });
+
+    it('returns typed token_refresh_failed errors from edge function payloads', async () => {
+      invokeMock.mockResolvedValue({
+        data: {
+          error: 'Failed to refresh Google access token',
+          code: 'token_refresh_failed',
+        },
+        error: null,
+      });
+
+      await expect(
+        setGoogleExportDestination({
+          organizationId: 'org-123',
+          selectionKind: 'folder',
+          parentId: 'folder-123',
+        })
+      ).rejects.toMatchObject({
+        message: 'Failed to refresh Google access token',
+        code: 'token_refresh_failed',
+      });
     });
   });
 

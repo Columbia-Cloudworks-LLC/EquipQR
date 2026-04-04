@@ -1,6 +1,17 @@
 import { supabase } from '@/integrations/supabase/client';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+export const GOOGLE_PICKER_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+export const GOOGLE_WORKSPACE_REQUIRED_SCOPES = [
+  'https://www.googleapis.com/auth/admin.directory.user.readonly',
+  'https://www.googleapis.com/auth/spreadsheets',
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/drive.readonly',
+] as const;
+export const GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES = [
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/drive.readonly',
+] as const;
 
 /**
  * Default OAuth scopes for Google Workspace integration.
@@ -8,6 +19,7 @@ const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
  * - admin.directory.user.readonly: Read user directory for member import
  * - spreadsheets: Create and write to Google Sheets (for work order exports)
  * - drive.file: Create/update files in Google Drive (for PDF uploads)
+ * - drive.readonly: Validate and read selected Drive destination metadata
  * 
  * **Re-authentication for existing organizations:**
  * Organizations that connected before these scopes were added will only have
@@ -16,11 +28,23 @@ const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
  * should prompt them to reconnect Google Workspace in Organization Settings
  * to grant the new permissions.
  */
-const DEFAULT_SCOPES = [
-  'https://www.googleapis.com/auth/admin.directory.user.readonly',
-  'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/drive.file',
-].join(' ');
+const DEFAULT_SCOPES = GOOGLE_WORKSPACE_REQUIRED_SCOPES.join(' ');
+
+export function hasAllGoogleScopes(
+  currentScopes: string | null | undefined,
+  requiredScopes: readonly string[]
+): boolean {
+  if (!currentScopes) return false;
+
+  const grantedScopes = new Set(
+    currentScopes
+      .split(' ')
+      .map((scope) => scope.trim())
+      .filter(Boolean)
+  );
+
+  return requiredScopes.every((scope) => grantedScopes.has(scope));
+}
 
 export interface GoogleWorkspaceAuthConfig {
   /** Organization ID - optional for first-time setup, required for reconnecting existing orgs */
@@ -147,5 +171,40 @@ export function isGoogleWorkspaceConfigured(): boolean {
   const clientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   return Boolean(clientId && supabaseUrl);
+}
+
+export interface GooglePickerConfig {
+  apiKey: string;
+  appId: string;
+  /** Shared OAuth web client ID used by Workspace and Picker token flow. */
+  clientId: string;
+  scope: string;
+}
+
+export function getGooglePickerConfig(): GooglePickerConfig {
+  const apiKey = import.meta.env.VITE_GOOGLE_PICKER_API_KEY;
+  const appId = import.meta.env.VITE_GOOGLE_PICKER_APP_ID;
+  const clientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
+
+  if (!apiKey || !appId || !clientId) {
+    throw new Error(
+      'Google Picker is not configured. Missing VITE_GOOGLE_PICKER_API_KEY, VITE_GOOGLE_PICKER_APP_ID, or VITE_GOOGLE_WORKSPACE_CLIENT_ID (shared OAuth client; VITE_GOOGLE_PICKER_CLIENT_ID is not used).'
+    );
+  }
+
+  return {
+    apiKey,
+    appId,
+    clientId,
+    scope: GOOGLE_PICKER_SCOPE,
+  };
+}
+
+export function isGooglePickerConfigured(): boolean {
+  return Boolean(
+    import.meta.env.VITE_GOOGLE_PICKER_API_KEY &&
+    import.meta.env.VITE_GOOGLE_PICKER_APP_ID &&
+    import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID
+  );
 }
 

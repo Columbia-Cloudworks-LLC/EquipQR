@@ -6,6 +6,7 @@ import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { googleWorkspace } from '@/lib/queryKeys';
 
 import OrganizationHeader from '@/features/organization/components/OrganizationHeader';
 import OrganizationTabs from '@/features/organization/components/OrganizationTabs';
@@ -40,6 +41,19 @@ const Organization = () => {
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('qb_connected');
       newParams.delete('realm_id');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, queryClient]);
+
+  useEffect(() => {
+    const success = searchParams.get('gw_connected');
+
+    if (success === 'true') {
+      toast.success('Google Workspace reconnected successfully!');
+      queryClient.invalidateQueries({ queryKey: googleWorkspace.root });
+
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('gw_connected');
       setSearchParams(newParams, { replace: true });
     }
   }, [searchParams, setSearchParams, queryClient]);
