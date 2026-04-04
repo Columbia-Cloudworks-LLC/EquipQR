@@ -28,6 +28,7 @@ dist-ssr
 .vs/VSWorkspaceState.json
 tmp/*
 tmpclaude-*-cwd
+*superpowers*
 
 # Environment files (secrets)
 .env
