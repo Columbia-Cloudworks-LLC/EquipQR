@@ -27,15 +27,21 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
   const previewUrls = useRef<Map<File, string>>(new Map());
 
   const getPreviewUrl = (file: File): string | undefined => {
-    let url = previewUrls.current.get(file);
-    if (!url) {
-      url = URL.createObjectURL(file);
-      if (url.startsWith('blob:')) {
-        previewUrls.current.set(file, url);
-      } else {
+    const cached = previewUrls.current.get(file);
+    if (cached) return cached;
+
+    const url = URL.createObjectURL(file);
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'blob:') {
+        URL.revokeObjectURL(url);
         return undefined;
       }
+    } catch {
+      URL.revokeObjectURL(url);
+      return undefined;
     }
+    previewUrls.current.set(file, url);
     return url;
   };
 
@@ -184,15 +190,17 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium">Selected Images ({selectedFiles.length})</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {selectedFiles.map((file, index) => (
+              {selectedFiles.map((file, index) => {
+                const previewUrl = getPreviewUrl(file);
+                return (
                 <div key={`${file.name}-${index}`} className="relative group">
                   <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                    {getPreviewUrl(file) ? (
+                    {previewUrl ? (
                       <img
-                        src={getPreviewUrl(file)}
+                        src={previewUrl}
                         alt={file.name}
                         className="w-full h-full object-cover"
-                        onError={(e) => console.error('Image preview failed:', file.name, e)}
+                        onError={() => console.error('Image preview failed:', file.name)}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
@@ -212,7 +220,8 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
                   </Button>
                   <p className="text-xs text-muted-foreground mt-1 truncate">{file.name}</p>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
