@@ -199,12 +199,12 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
                 return (
                 <div key={`${displayName}-${index}`} className="relative group">
                   <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                    {previewUrl ? (
+                    {previewUrl?.startsWith('blob:') ? (
                       <img
                         src={previewUrl}
                         alt={displayName}
                         className="w-full h-full object-cover"
-                        onError={() => console.error('Image preview failed:', displayName)}
+                        onError={() => console.error('Image preview failed')}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
