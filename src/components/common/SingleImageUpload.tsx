@@ -1,6 +1,7 @@
 import React, { useState, useRef, useId, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useAppToast } from '@/hooks/useAppToast';
 import { sanitizeBlobUrl } from '@/utils/sanitizeBlobUrl';
@@ -24,8 +25,10 @@ interface SingleImageUploadProps {
   helpText?: string;
   /** CSS class for the image preview container */
   previewClassName?: string;
-  /** Layout variant: 'default' for full-width drop zone, 'compact' for square thumbnail */
-  variant?: 'default' | 'compact';
+  /** Layout variant: 'default' for full-width drop zone, 'compact' for square thumbnail, 'avatar' for inline circular avatar */
+  variant?: 'default' | 'compact' | 'avatar';
+  /** Fallback initials for avatar variant (e.g. "AA") */
+  avatarFallback?: string;
 }
 
 const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
@@ -39,6 +42,7 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
   helpText,
   previewClassName = 'max-w-full max-h-32 object-contain',
   variant = 'default',
+  avatarFallback,
 }) => {
   const appToast = useAppToast();
   const [isUploading, setIsUploading] = useState(false);
@@ -163,7 +167,87 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
         </Label>
       )}
 
-      {variant === 'compact' ? (
+      {variant === 'avatar' ? (
+        <div className="flex items-center gap-4">
+          <Avatar className="h-16 w-16 shrink-0">
+            {(previewFile && previewUrl) ? (
+              <AvatarImage src={previewUrl} alt="Preview" />
+            ) : hasCurrentImage ? (
+              <AvatarImage
+                src={currentImageUrl}
+                alt={label || 'Avatar'}
+                onLoadingStatusChange={(status) => {
+                  if (status === 'error') setImageError(true);
+                }}
+              />
+            ) : null}
+            <AvatarFallback className="text-lg">{avatarFallback || '?'}</AvatarFallback>
+          </Avatar>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {previewFile ? (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={disabled || isProcessing}
+                    onClick={handleUpload}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    {isUploading ? 'Uploading...' : 'Upload'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={isProcessing}
+                    onClick={handleCancelPreview}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={disabled || isProcessing}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    {hasCurrentImage ? 'Replace' : 'Upload photo'}
+                  </Button>
+                  {hasCurrentImage && onDelete && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={disabled || isProcessing}
+                      onClick={handleDelete}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      ) : (
+                        <X className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      Remove
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {formatLabel} up to {maxSizeMB} MB
+            </p>
+          </div>
+        </div>
+      ) : variant === 'compact' ? (
         <>
           {/* Compact: square thumbnail with hover overlay */}
           {(hasCurrentImage || (previewFile && previewUrl)) && (

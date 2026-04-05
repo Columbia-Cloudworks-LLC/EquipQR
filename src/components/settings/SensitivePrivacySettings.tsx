@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { MapPin, ShieldAlert } from 'lucide-react';
+import { MapPin } from 'lucide-react';
+import { SettingsToggleRow } from './SettingsToggleRow';
 
 interface SensitivePrivacySettingsProps {
   currentLimitSensitivePi?: boolean;
@@ -49,41 +47,14 @@ export const SensitivePrivacySettings: React.FC<SensitivePrivacySettingsProps> =
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center space-y-0 pb-2">
-        <div className="flex items-center space-x-2">
-          <ShieldAlert className="h-4 w-4 text-primary" />
-          <CardTitle className="text-base">Sensitive Personal Information</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <CardDescription>
-          Control how your sensitive personal information is used. Under the California
-          Privacy Rights Act (CPRA), you have the right to limit the use of sensitive
-          personal information, including precise geolocation.
-        </CardDescription>
-
-        <div className="flex items-center justify-between space-x-2">
-          <div className="flex items-center space-x-2">
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <Label htmlFor="limit-sensitive-pi" className="text-sm font-medium">
-                Disable GPS collection for my scans
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                When enabled, your QR code scans will not capture GPS coordinates
-                even if your organization has location collection turned on
-              </p>
-            </div>
-          </div>
-          <Switch
-            id="limit-sensitive-pi"
-            checked={limitSensitivePi}
-            onCheckedChange={handleUpdate}
-            disabled={isLoading}
-          />
-        </div>
-      </CardContent>
-    </Card>
+    <SettingsToggleRow
+      id="limit-sensitive-pi"
+      label="Disable GPS collection for my scans"
+      description="When enabled, your QR code scans will not capture GPS coordinates even if your organization has location collection turned on"
+      checked={limitSensitivePi}
+      onCheckedChange={handleUpdate}
+      loading={isLoading}
+      icon={<MapPin className="h-4 w-4" />}
+    />
   );
 };

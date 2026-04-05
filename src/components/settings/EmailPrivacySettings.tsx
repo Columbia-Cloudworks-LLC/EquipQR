@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Shield, Mail, Users } from 'lucide-react';
+import { Mail, ChevronRight } from 'lucide-react';
+import { SettingsToggleRow } from './SettingsToggleRow';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 interface EmailPrivacySettingsProps {
   currentEmailPrivate?: boolean;
@@ -34,9 +33,9 @@ export const EmailPrivacySettings: React.FC<EmailPrivacySettingsProps> = ({
 
       setEmailPrivate(newEmailPrivate);
       onUpdate?.(newEmailPrivate);
-      
+
       toast.success(
-        newEmailPrivate 
+        newEmailPrivate
           ? 'Email address is now private from organization members'
           : 'Email address is now visible to organization members'
       );
@@ -49,52 +48,34 @@ export const EmailPrivacySettings: React.FC<EmailPrivacySettingsProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center space-y-0 pb-2">
-        <div className="flex items-center space-x-2">
-          <Shield className="h-4 w-4 text-primary" />
-          <CardTitle className="text-base">Email Privacy</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <CardDescription>
-          Control who can see your email address within your organizations.
-        </CardDescription>
-        
-        <div className="flex items-center justify-between space-x-2">
-          <div className="flex items-center space-x-2">
-            <Mail className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <Label htmlFor="email-private" className="text-sm font-medium">
-                Hide email from organization members
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Organization owners and admins can still see your email
-              </p>
-            </div>
-          </div>
-          <Switch
-            id="email-private"
-            checked={emailPrivate}
-            onCheckedChange={handleUpdatePrivacy}
-            disabled={isLoading}
-          />
-        </div>
+    <div className="space-y-3">
+      <SettingsToggleRow
+        id="email-private"
+        label="Hide email from organization members"
+        description="Organization owners and admins can still see your email"
+        checked={emailPrivate}
+        onCheckedChange={handleUpdatePrivacy}
+        loading={isLoading}
+        icon={<Mail className="h-4 w-4" />}
+      />
 
-        <div className="p-3 rounded-lg bg-muted/50 border">
-          <div className="flex items-center space-x-2 mb-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Visibility Settings</span>
+      <Collapsible>
+        <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+          <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
+          Visibility settings
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-2 pl-6 border-l-2 border-muted text-xs text-muted-foreground space-y-1">
+            <p>You can always see your own email</p>
+            <p>Organization owners/admins can always see your email</p>
+            <p>
+              {emailPrivate
+                ? 'Regular organization members cannot see your email'
+                : 'Organization members can see your email'}
+            </p>
           </div>
-          <div className="text-xs text-muted-foreground space-y-1">
-            <div>• You can always see your own email</div>
-            <div>• Organization owners/admins can always see your email</div>
-            <div>
-              • {emailPrivate ? 'Regular organization members cannot see your email' : 'Organization members can see your email'}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 };

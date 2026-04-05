@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useUser } from '@/contexts/useUser';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAppToast } from '@/hooks/useAppToast';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { uploadAvatar, deleteAvatar } from '@/services/profileService';
+import { Save, Loader2 } from 'lucide-react';
 
 const ProfileSettings = () => {
   const { currentUser, setCurrentUser } = useUser();
@@ -17,7 +17,7 @@ const ProfileSettings = () => {
 
   const handleSave = async () => {
     if (!currentUser) return;
-    
+
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -27,7 +27,6 @@ const ProfileSettings = () => {
 
       if (error) throw error;
 
-      // Update the user context
       setCurrentUser({
         ...currentUser,
         name
@@ -56,57 +55,67 @@ const ProfileSettings = () => {
 
   if (!currentUser) return null;
 
+  const initials = currentUser.name
+    ? currentUser.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : '?';
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Profile Information</CardTitle>
-        <CardDescription>
-          Update your display name, avatar, and other profile details.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <SingleImageUpload
-          currentImageUrl={currentUser.avatar_url}
-          onUpload={handleAvatarUpload}
-          onDelete={handleAvatarDelete}
-          maxSizeMB={5}
-          disabled={isLoading}
-          label="Profile Avatar"
-          helpText="Upload a profile photo. It will be displayed next to your name."
-          previewClassName="w-24 h-24 rounded-full object-cover"
+    <>
+      <SingleImageUpload
+        currentImageUrl={currentUser.avatar_url}
+        onUpload={handleAvatarUpload}
+        onDelete={handleAvatarDelete}
+        maxSizeMB={5}
+        disabled={isLoading}
+        variant="avatar"
+        avatarFallback={initials}
+      />
+
+      <div className="space-y-2">
+        <Label htmlFor="name" className="text-sm font-medium">Display Name</Label>
+        <Input
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter your display name"
+          className="max-w-md"
         />
+      </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="name">Display Name</Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter your display name"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            value={currentUser.email}
-            disabled
-            className="bg-muted"
-          />
-          <p className="text-sm text-muted-foreground">
-            Your email address cannot be changed here. Contact support if you need to update it.
-          </p>
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+        <Input
+          id="email"
+          value={currentUser.email}
+          disabled
+          className="bg-muted max-w-md"
+        />
+        <p className="text-xs text-muted-foreground">
+          Your email address cannot be changed here. Contact support if you need to update it.
+        </p>
+      </div>
 
-        <Button 
-          onClick={handleSave} 
+      <div className="border-t pt-4 flex justify-end">
+        <Button
+          onClick={handleSave}
+          size="sm"
           disabled={isLoading || name === currentUser.name}
+          className="w-full sm:w-auto"
         >
+          {isLoading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
           {isLoading ? 'Saving...' : 'Save Changes'}
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </>
   );
 };
 

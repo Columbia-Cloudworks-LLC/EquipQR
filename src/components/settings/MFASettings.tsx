@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -60,125 +59,113 @@ const MFASettings: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Two-Factor Authentication</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-4" role="status" aria-label="Loading MFA status">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center py-4" role="status" aria-label="Loading MFA status">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
-  // Show enrollment flow inline
   if (showEnrollment) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <MFAEnrollment
-            onComplete={handleEnrollmentComplete}
-            onSkip={() => setShowEnrollment(false)}
-            isRequired={false}
-          />
-        </CardContent>
-      </Card>
+      <div className="rounded-lg border p-4">
+        <MFAEnrollment
+          onComplete={handleEnrollmentComplete}
+          onSkip={() => setShowEnrollment(false)}
+          isRequired={false}
+        />
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {isEnrolled ? (
-              <ShieldCheck className="h-5 w-5 text-primary" />
-            ) : (
-              <ShieldOff className="h-5 w-5 text-muted-foreground" />
-            )}
-            <CardTitle className="text-base">Two-Factor Authentication</CardTitle>
-          </div>
-          <Badge variant={isEnrolled ? 'default' : 'secondary'}>
-            {isEnrolled ? 'Enabled' : 'Disabled'}
-          </Badge>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {isEnrolled ? (
+            <ShieldCheck className="h-5 w-5 text-primary" />
+          ) : (
+            <ShieldOff className="h-5 w-5 text-muted-foreground" />
+          )}
+          <span className="text-sm font-medium">Two-Factor Authentication</span>
         </div>
-        <CardDescription>
-          Add an extra layer of security to your account with a time-based one-time password (TOTP).
-          {isMFARequired ? (
-            <span className="block mt-1 text-primary font-medium">
-              Required for your role ({userRole}).
-            </span>
-          ) : null}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isEnrolled ? (
-          <div className="space-y-3">
-            {verifiedFactors.map((factor) => (
-              <div
-                key={factor.id}
-                className="flex items-center justify-between rounded-md border p-3"
-              >
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">
-                    {factor.friendly_name || 'Authenticator App'}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Added {new Date(factor.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      disabled={removingFactorId === factor.id || isMFARequired}
-                      aria-label="Remove authenticator"
-                    >
-                      {removingFactorId === factor.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remove Authenticator?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will disable two-factor authentication on your account.
-                        You will need to set it up again if you want to re-enable it.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleRemoveFactor(factor.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Remove
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+        <Badge variant={isEnrolled ? 'default' : 'secondary'}>
+          {isEnrolled ? 'Enabled' : 'Disabled'}
+        </Badge>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Add an extra layer of security to your account with a time-based one-time password (TOTP).
+        {isMFARequired ? (
+          <span className="block mt-1 text-primary font-medium">
+            Required for your role ({userRole}).
+          </span>
+        ) : null}
+      </p>
+
+      {isEnrolled ? (
+        <div className="space-y-3">
+          {verifiedFactors.map((factor) => (
+            <div
+              key={factor.id}
+              className="flex items-center justify-between rounded-md border p-3"
+            >
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">
+                  {factor.friendly_name || 'Authenticator App'}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Added {new Date(factor.created_at).toLocaleDateString()}
+                </span>
               </div>
-            ))}
-            {isMFARequired ? (
-              <p className="text-xs text-muted-foreground">
-                Two-factor authentication cannot be removed for admin and owner accounts.
-              </p>
-            ) : null}
-          </div>
-        ) : (
-          <Button onClick={() => setShowEnrollment(true)}>
-            Set Up Two-Factor Authentication
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    disabled={removingFactorId === factor.id || isMFARequired}
+                    aria-label="Remove authenticator"
+                  >
+                    {removingFactorId === factor.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remove Authenticator?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will disable two-factor authentication on your account.
+                      You will need to set it up again if you want to re-enable it.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => handleRemoveFactor(factor.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Remove
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          ))}
+          {isMFARequired ? (
+            <p className="text-xs text-muted-foreground">
+              Two-factor authentication cannot be removed for admin and owner accounts.
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <Button onClick={() => setShowEnrollment(true)} size="sm">
+          Set Up Two-Factor Authentication
+        </Button>
+      )}
+    </div>
   );
 };
 

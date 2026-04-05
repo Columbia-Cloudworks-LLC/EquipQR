@@ -3,14 +3,19 @@ import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Settings from '../Settings';
 
-// Mock hooks
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-1', email: 'test@test.com' }
   }))
 }));
 
-// Mock contexts
+vi.mock('@/contexts/useUser', () => ({
+  useUser: vi.fn(() => ({
+    currentUser: { id: 'user-1', name: 'Test User', email: 'test@test.com', avatar_url: null },
+    setCurrentUser: vi.fn()
+  }))
+}));
+
 vi.mock('@/contexts/SettingsContext', () => ({
   SettingsProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
@@ -21,7 +26,6 @@ vi.mock('@/contexts/useSettings', () => ({
   }))
 }));
 
-// Mock supabase
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: () => ({
@@ -34,7 +38,6 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
-// Mock toast
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
@@ -42,7 +45,10 @@ vi.mock('sonner', () => ({
   }
 }));
 
-// Mock sub-components
+vi.mock('@/components/settings/SettingsNav', () => ({
+  SettingsNav: () => <nav data-testid="settings-nav">Settings Nav</nav>
+}));
+
 vi.mock('@/components/settings/PersonalizationSettings', () => ({
   default: () => <div data-testid="personalization-settings">Personalization Settings</div>
 }));
@@ -82,6 +88,19 @@ describe('Settings Page', () => {
 
       expect(screen.getByText('Settings')).toBeInTheDocument();
       expect(screen.getByText(/Manage your account preferences and application settings/)).toBeInTheDocument();
+    });
+
+    it('renders user identity strip', () => {
+      render(<Settings />);
+
+      expect(screen.getByText('Test User')).toBeInTheDocument();
+      expect(screen.getByText('test@test.com')).toBeInTheDocument();
+    });
+
+    it('renders settings navigation', () => {
+      render(<Settings />);
+
+      expect(screen.getByTestId('settings-nav')).toBeInTheDocument();
     });
 
     it('renders profile settings section', () => {
@@ -125,27 +144,35 @@ describe('Settings Page', () => {
       expect(screen.getByTestId('sensitive-privacy-settings')).toBeInTheDocument();
     });
 
-    it('renders privacy rights card with links', () => {
+    it('renders privacy rights links', () => {
       render(<Settings />);
-      expect(screen.getByText('Privacy Rights')).toBeInTheDocument();
       expect(screen.getByText('Submit Privacy Request')).toBeInTheDocument();
       expect(screen.getByText('View Privacy Policy')).toBeInTheDocument();
     });
+
+    it('renders section headings in sidebar layout', () => {
+      render(<Settings />);
+      expect(screen.getByText('Profile')).toBeInTheDocument();
+      expect(screen.getByText('Personalization')).toBeInTheDocument();
+      expect(screen.getByText('Notifications')).toBeInTheDocument();
+      expect(screen.getByText('Privacy')).toBeInTheDocument();
+      expect(screen.getByText('Security')).toBeInTheDocument();
+    });
   });
 
-  describe('Reset Settings', () => {
-    it('renders reset settings card', () => {
+  describe('Danger Zone', () => {
+    it('renders danger zone with reset button', () => {
       render(<Settings />);
 
-      expect(screen.getByText('Reset Settings')).toBeInTheDocument();
+      expect(screen.getByText('Danger Zone')).toBeInTheDocument();
+      expect(screen.getByText('Reset All Settings')).toBeInTheDocument();
       expect(screen.getByText(/Reset all settings to their default values/)).toBeInTheDocument();
     });
 
-    it('renders reset all settings button', () => {
+    it('renders reset button', () => {
       render(<Settings />);
 
-      expect(screen.getByRole('button', { name: /reset all settings/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /reset/i })).toBeInTheDocument();
     });
   });
 });
-

@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **User Settings page redesign** — Reworked the user settings page to match the organization settings pattern: sticky sidebar navigation (vertical on desktop, horizontal scrollable chips on mobile) with IntersectionObserver-based active section tracking, `divide-y` section separators with 3-column grid layout (label + description in col-1, controls spanning cols 2-3) replacing stacked Card boxes, compact inline avatar uploader (`variant="avatar"` on `SingleImageUpload`), standardized `SettingsToggleRow` component for all privacy toggles, collapsible disclosure info boxes replacing dense bullet-point panels, user identity strip below the page heading, inline key/value stat rows in session/security status, tooltip-labeled refresh buttons, and a GitHub-style Danger Zone container for reset settings.
+
 - **Organization Settings page redesign** — Reworked the Settings tab toward a GitHub/Linear-style admin aesthetic: two-column grid layout (label + description in col-1, controls in col-2), underline-style tab bar (local override, shared tabs primitive unchanged), per-section save with auto-saving Privacy toggle, compact inline color picker (swatch + hex input + picker in one row), and `divide-y` section separators instead of stacked cards.
 
 - **Integration cards horizontal layout** — QuickBooks, Google Workspace, and Google Docs Export cards converted from vertical Card/CardHeader stacks to compact horizontal rows with inline status badges and right-aligned action buttons. Long body-copy paragraphs replaced with single-line descriptions.
