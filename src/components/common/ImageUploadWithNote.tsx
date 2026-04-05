@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -7,6 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { sanitizeBlobUrl } from '@/utils/sanitizeBlobUrl';
+
+const sanitizeForDisplay = (text: string): string =>
+  text.replace(/[^\w\s.\-()[\]]/g, '_') || 'unnamed';
 
 interface ImageUploadWithNoteProps {
   onUpload: (files: File[]) => Promise<void>;
@@ -24,6 +28,33 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const previewUrls = useRef<Map<File, string>>(new Map());
+  const clearPreviewUrls = () => {
+    previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    previewUrls.current.clear();
+  };
+
+  const getPreviewUrl = (file: File): string | null => {
+    const cached = previewUrls.current.get(file);
+    if (cached) return sanitizeBlobUrl(cached);
+
+    const url = URL.createObjectURL(file);
+    const safe = sanitizeBlobUrl(url);
+    if (!safe) {
+      URL.revokeObjectURL(url);
+      return null;
+    }
+    previewUrls.current.set(file, url);
+    return safe;
+  };
+
+  useEffect(() => {
+    const urls = previewUrls.current;
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.clear();
+    };
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -33,11 +64,11 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
   const addFiles = (files: File[]) => {
     const validFiles = files.filter(file => {
       if (!acceptedTypes.includes(file.type)) {
-        toast.error(`${file.name} is not a supported image format`);
+        toast.error(`${sanitizeForDisplay(file.name)} is not a supported image format`);
         return false;
       }
       if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error(`${file.name} is too large. Maximum size is 10MB`);
+        toast.error(`${sanitizeForDisplay(file.name)} is too large. Maximum size is 10MB`);
         return false;
       }
       return true;
@@ -56,7 +87,17 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
   };
 
   const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles(prev => {
+      const removed = prev[index];
+      if (removed) {
+        const url = previewUrls.current.get(removed);
+        if (url) {
+          URL.revokeObjectURL(url);
+          previewUrls.current.delete(removed);
+        }
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -93,6 +134,7 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
     
     try {
       await onUpload(selectedFiles);
+      clearPreviewUrls();
       setSelectedFiles([]);
       toast.success('Images uploaded successfully!');
     } catch (error) {
@@ -152,15 +194,24 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium">Selected Images ({selectedFiles.length})</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {selectedFiles.map((file, index) => (
-                <div key={`${file.name}-${index}`} className="relative group">
+              {selectedFiles.map((file, index) => {
+                const safePreviewUrl = getPreviewUrl(file);
+                const displayName = sanitizeForDisplay(file.name);
+                return (
+                <div key={`${displayName}-${index}`} className="relative group">
                   <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={file.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => console.error('Image preview failed:', file.name, e)}
-                    />
+                    {safePreviewUrl ? (
+                      <img
+                        src={safePreviewUrl}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                        onError={() => console.error('Image preview failed')}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
                   </div>
                   <Button
                     type="button"
@@ -168,13 +219,14 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
                     size="sm"
                     className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => removeFile(index)}
-                    aria-label={`Remove selected image ${file.name}`}
+                    aria-label={`Remove selected image ${displayName}`}
                   >
                     <X className="h-3 w-3" />
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-1 truncate">{file.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">{displayName}</p>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

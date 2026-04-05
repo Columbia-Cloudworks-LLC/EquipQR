@@ -7,49 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const MIGRATIONS_DIR = path.join(__dirname, '..', 'supabase', 'migrations');
 
-// Migrations from preview branch database (from mcp_supabase_list_migrations for sivuhswysydgrdtfdmsk)
-// Note: This list was truncated in the API response, so we need to get the full list
-const previewBranchMigrations = [
-  { version: '20250103000000', name: 'fix_function_search_path' },
-  { version: '20250901235558', name: 'remote_schema' },
-  { version: '20250902123800', name: 'performance_optimization' },
-  { version: '20250902124500', name: 'complete_performance_fix' },
-  { version: '20250903190521', name: 'fix_organization_members_security' },
-  { version: '20251021', name: 'part_picker' },
-  { version: '20251024125429', name: 'fix_invitation_update_policy' },
-  { version: '20251025063611', name: 'fix_invitation_unauthenticated_access' },
-  { version: '20251025065141', name: 'prevent_duplicate_org_names_on_invite' },
-  { version: '20251025235828', name: 'test_work_order_images_query' },
-  { version: '20251027234258', name: 'inspect_current_state' },
-  { version: '20251027234423', name: 'rls_performance_indexes' },
-  { version: '20251027234430', name: 'safe_unused_index_cleanup' },
-  { version: '20251028012503', name: 'deprecate_billing' },
-  { version: '20251028012532', name: 'fix_billing_view_security' },
-  { version: '20251028012544', name: 'remove_entitlements_view' },
-  { version: '20251028012959', name: 'add_storage_quota_enforcement' },
-  { version: '20251028015448', name: 'add_multi_equipment_work_orders' },
-  { version: '20251028022133', name: 'deprecate_existing_billing_tables' },
-  { version: '20251029193629', name: 'check_pm_records_debug' },
-  { version: '20251029202223', name: 'fix_pm_select_policy' },
-  { version: '20251029203659', name: 'consolidate_pm_select_policy' },
-  { version: '20251030012347', name: 'fix_pm_select_policy' },
-  { version: '20251030012550', name: 'fix_pm_select_policy_correct' },
-  { version: '20251030013102', name: 'check_pm_policies' },
-  { version: '20251030013110', name: 'test_is_org_member_function' },
-  { version: '20251030013117', name: 'check_pm_records' },
-  { version: '20251030013128', name: 'test_rls_directly' },
-  { version: '20251030013153', name: 'fix_pm_select_policy_final' },
-  { version: '20251030013214', name: 'debug_pm_query_issue' },
-  { version: '20251030013224', name: 'check_pm_constraints_and_fix' },
-  { version: '20251030013237', name: 'cleanup_duplicate_pm_records' },
-  { version: '20251030013247', name: 'test_pm_query_after_cleanup' },
-  { version: '20251030013327', name: 'debug_rls_policy_issue' },
-  { version: '20251030013341', name: 'check_pm_constraints_and_fix_final' }
-];
-
-// Since the preview branch was created from main, it should have all main migrations
-// Let's use the main branch migrations list (which we got earlier) as the source of truth
-// The preview branch inherits all migrations from main when created
+// Main branch migrations as the source of truth
 const mainBranchMigrations = [
   { version: '20250103000000', name: 'fix_function_search_path' },
   { version: '20250901235558', name: 'remote_schema' },
@@ -166,13 +124,6 @@ function createMissingMigrations() {
     const filename = `${m.version}_${m.name}.sql`;
     const filepath = path.join(MIGRATIONS_DIR, filename);
     
-    // Check if file already exists (might be a different name)
-    if (fs.existsSync(filepath)) {
-      console.log(`⚠️  ${filename} already exists`);
-      return;
-    }
-
-    // Create placeholder migration
     const content = `-- Migration: ${m.name}
 -- This migration was already applied to production
 -- This is a placeholder file to sync local migrations with remote database
@@ -183,7 +134,15 @@ BEGIN;
 COMMIT;
 `;
 
-    fs.writeFileSync(filepath, content, 'utf8');
+    try {
+      fs.writeFileSync(filepath, content, { encoding: 'utf8', flag: 'wx' });
+    } catch (err) {
+      if (err.code === 'EEXIST') {
+        console.log(`⚠️  ${filename} already exists`);
+        return;
+      }
+      throw err;
+    }
     console.log(`✅ Created: ${filename}`);
     created++;
   });

@@ -62,7 +62,11 @@ The following functions use `createUserSupabaseClient()` and rely on RLS:
 
 - `export-report` - Exports data to CSV
 - `export-work-orders-excel` - Exports work orders to Excel
+- `export-work-orders-to-google-docs` - Creates Google Docs executive packets (also uses admin client for Google token refresh)
+- `export-work-orders-to-google-sheets` - Exports work orders to Google Sheets
 - `geocode-location` - Geocodes addresses with caching
+- `get-google-export-destination` - Returns configured Google Docs export destination
+- `set-google-export-destination` - Saves Google Docs export destination
 - `import-equipment-csv` - Imports equipment from CSV
 - `part-detail` - Returns part details
 - `quickbooks-export-invoice` - Exports work orders to QuickBooks

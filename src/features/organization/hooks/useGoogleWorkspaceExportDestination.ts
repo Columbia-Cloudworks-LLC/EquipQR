@@ -23,13 +23,20 @@ export function useGoogleWorkspaceExportDestination(organizationId?: string, ena
   });
 
   const setDestinationMutation = useMutation({
-    mutationFn: async (input: { selectionKind: GoogleExportSelectionKind; parentId: string }) => {
+    mutationFn: async (input: {
+      selectionKind: GoogleExportSelectionKind;
+      parentId: string;
+      folderByTeam?: boolean;
+      folderByEquipment?: boolean;
+    }) => {
       if (!organizationId) throw new Error('Organization ID is required');
       return setGoogleExportDestination({
         organizationId,
         documentType: INTERNAL_PACKET_DOC_TYPE,
         selectionKind: input.selectionKind,
         parentId: input.parentId,
+        folderByTeam: input.folderByTeam,
+        folderByEquipment: input.folderByEquipment,
       });
     },
     onSuccess: async () => {

@@ -191,6 +191,7 @@ Policy: use one shared Google OAuth Web client for both Workspace callback and P
 1. Open the same Google Cloud project used by Google Workspace OAuth.
 2. Confirm these APIs are enabled:
    - Google Drive API
+   - Google Docs API (executive packet `batchUpdate` calls)
    - Google Sheets API (existing packet-to-sheets export)
    - Admin SDK API (existing directory sync)
 3. Create a browser API key:
@@ -215,6 +216,7 @@ EquipQR uses these scopes for Google Workspace features:
 | `https://www.googleapis.com/auth/spreadsheets` | Internal packet export to Google Sheets | `src/services/google-workspace/auth.ts` |
 | `https://www.googleapis.com/auth/drive.file` | Save PDFs and create Google Docs artifacts in Drive | `src/services/google-workspace/auth.ts` |
 | `https://www.googleapis.com/auth/drive.readonly` | Picker browsing/selection in browser UI | `src/services/google-workspace/auth.ts` |
+| `https://www.googleapis.com/auth/documents` | Format Google Docs executive packets via `batchUpdate` | `src/services/google-workspace/auth.ts` |
 
 > **Common mistake**: Setting a secret in Vercel when it should be in Supabase (or vice versa). The `GOOGLE_MAPS_BROWSER_KEY` is a frequent offender — it is served by a Supabase Edge Function at runtime, not baked into the Vercel build.
 

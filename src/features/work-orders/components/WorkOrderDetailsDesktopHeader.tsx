@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { ChevronRight, Edit, Info, Download, FileSpreadsheet, Loader2, MoreHorizontal, Trash2, FileText } from 'lucide-react';
+import { ChevronRight, Edit, Info, Download, FileSpreadsheet, Loader2, MoreHorizontal, Trash2, FileText, ExternalLink } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
@@ -29,6 +29,8 @@ import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useDeleteWorkOrder } from '@/features/work-orders/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/features/work-orders/hooks/useWorkOrderImageCount';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
+import { useLatestExportArtifact } from '@/features/work-orders/hooks/useLatestExportArtifact';
 
 interface WorkOrderDetailsDesktopHeaderProps {
   workOrder: WorkOrderData;
@@ -107,10 +109,23 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   );
   
   // Google Workspace connection status (for showing "Save to Google Drive" option)
-  const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
+  const { isConnected: isGoogleWorkspaceConnected, connectionStatus } = useGoogleWorkspaceConnectionStatus({
     organizationId,
   });
   const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(organizationId, permissions.hasRole(['owner', 'admin']));
+  const canExportGoogleDoc = canExportWorkOrderGoogleDoc({
+    isConnected: isGoogleWorkspaceConnected,
+    scopes: connectionStatus?.scopes,
+    hasDestination: Boolean(googleDocsDestination),
+  });
+
+  const { data: lastDocArtifact } = useLatestExportArtifact(
+    organizationId,
+    'work_order',
+    workOrder?.id,
+    'google_docs',
+    'internal_packet',
+  );
 
   // Handle PDF export with options from dialog
   const handlePDFExport = async (options: { includeCosts: boolean }) => {
@@ -205,10 +220,10 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                     )}
                     Internal Work Order Packet
                   </DropdownMenuItem>
-                  {isGoogleWorkspaceConnected && (
+                  {canExportGoogleDoc && (
                     <DropdownMenuItem
                       onClick={() => exportSingleToDocs(workOrder.id)}
-                      disabled={isExportingSingle || isExportingSingleToDocs || !organizationId || !googleDocsDestination}
+                      disabled={isExportingSingle || isExportingSingleToDocs || !organizationId}
                     >
                       {isExportingSingleToDocs ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -216,6 +231,14 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                         <FileText className="h-4 w-4 mr-2" />
                       )}
                       Internal Work Order Packet (Google Doc)
+                    </DropdownMenuItem>
+                  )}
+                  {lastDocArtifact?.web_view_link && (
+                    <DropdownMenuItem
+                      onClick={() => window.open(lastDocArtifact.web_view_link, '_blank', 'noopener,noreferrer')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open Last Google Doc
                     </DropdownMenuItem>
                   )}
                   {canDelete && (

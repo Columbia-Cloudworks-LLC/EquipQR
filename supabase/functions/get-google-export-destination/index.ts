@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     const { data, error } = await supabase
       .from("organization_google_export_destinations")
-      .select("id, organization_id, document_type, selection_kind, drive_id, parent_id, display_name, web_view_link, configured_by, created_at, updated_at")
+      .select("id, organization_id, document_type, selection_kind, drive_id, parent_id, display_name, web_view_link, configured_by, folder_by_team, folder_by_equipment, created_at, updated_at")
       .eq("organization_id", organizationId)
       .eq("document_type", documentType)
       .maybeSingle();

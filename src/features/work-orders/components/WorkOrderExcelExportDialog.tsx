@@ -55,12 +55,6 @@ interface WorkOrderExcelExportDialogProps {
   onExportToSheets?: (filters: WorkOrderExcelFilters) => Promise<void>;
   /** Whether a Google Sheets export is in progress */
   isExportingToSheets?: boolean;
-  /** Whether a destination is configured for Google Docs export */
-  isGoogleDocsDestinationConfigured?: boolean;
-  /** Handler for exporting to Google Docs */
-  onExportToDocs?: (filters: WorkOrderExcelFilters) => Promise<void>;
-  /** Whether Google Docs export is in progress */
-  isExportingToDocs?: boolean;
 }
 
 // Note: Using '_all' sentinel value because Radix Select doesn't allow empty strings
@@ -113,9 +107,6 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
   isGoogleWorkspaceConnected = false,
   onExportToSheets,
   isExportingToSheets = false,
-  isGoogleDocsDestinationConfigured = false,
-  onExportToDocs,
-  isExportingToDocs = false,
 }) => {
   // Filter state (using ALL_VALUE sentinel for "all" options)
   const [dateField, setDateField] = useState<'created_date' | 'completed_date'>('created_date');
@@ -155,16 +146,7 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
     }
   };
 
-  const handleExportToDocs = async () => {
-    if (!onExportToDocs) return;
-    try {
-      await onExportToDocs(buildFilters());
-      onOpenChange(false);
-    } catch {
-      // Keep dialog open on error so user can retry.
-      // Error toast is already handled by the export hook.
-    }
-  };
+
 
   const handleClearFilters = () => {
     setDateField('created_date');
@@ -442,28 +424,6 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
             </Button>
           )}
 
-          {isGoogleWorkspaceConnected && onExportToDocs && (
-            <Button
-              variant="outline"
-              onClick={handleExportToDocs}
-              disabled={!canExport || !isGoogleDocsDestinationConfigured}
-              className="min-w-[180px]"
-              title={isGoogleDocsDestinationConfigured ? undefined : 'Set a Google Docs destination in Organization Settings first.'}
-            >
-              {isExportingToDocs ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Doc...
-                </>
-              ) : (
-                <>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Export Internal Work Order Packet to Docs
-                </>
-              )}
-            </Button>
-          )}
-          
           <Button
             onClick={handleExport}
             disabled={!canExport}

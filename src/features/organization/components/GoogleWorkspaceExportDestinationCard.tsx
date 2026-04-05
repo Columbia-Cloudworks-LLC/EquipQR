@@ -1,7 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { toast as sonnerToast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FolderOpen, Loader2 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -181,7 +184,7 @@ export function GoogleWorkspaceExportDestinationCard({
       toast({
         title: 'Reconnect Google Workspace',
         description:
-          'Reconnect Google Workspace to refresh Drive permissions before choosing a destination.',
+          'Reconnect Google Workspace to refresh Google Docs and Drive permissions before choosing a destination.',
         variant: 'error',
       });
       return;
@@ -314,6 +317,39 @@ export function GoogleWorkspaceExportDestinationCard({
     toast,
   ]);
 
+  const [isSavingFlags, setIsSavingFlags] = useState(false);
+
+  const handleToggleFolderFlag = useCallback(
+    async (flag: 'folderByTeam' | 'folderByEquipment', checked: boolean) => {
+      if (!destination) return;
+      setIsSavingFlags(true);
+
+      const label = flag === 'folderByTeam' ? 'team' : 'equipment';
+      const action = checked ? 'enabled' : 'disabled';
+
+      try {
+        await sonnerToast.promise(
+          setDestination({
+            selectionKind: destination.selection_kind,
+            parentId: destination.parent_id,
+            [flag]: checked,
+          }),
+          {
+            loading: `Saving folder settings...`,
+            success: `Organize by ${label} ${action}`,
+            error: (err: Error & { code?: string }) => {
+              const errToast = getDestinationSaveErrorToast(err);
+              return errToast.description;
+            },
+          },
+        );
+      } finally {
+        setIsSavingFlags(false);
+      }
+    },
+    [destination, setDestination],
+  );
+
   if (!canManage) {
     return null;
   }
@@ -358,7 +394,7 @@ export function GoogleWorkspaceExportDestinationCard({
         {needsReconnectForDestination && (
           <Alert>
             <AlertDescription>
-              Reconnect Google Workspace to refresh Drive permissions before choosing a destination.
+              Reconnect Google Workspace to refresh Google Docs and Drive permissions before choosing a destination.
             </AlertDescription>
           </Alert>
         )}
@@ -380,6 +416,41 @@ export function GoogleWorkspaceExportDestinationCard({
             </>
           )}
         </Button>
+
+        {destination && (
+          <div className="rounded-md border p-3 space-y-3">
+            <p className="text-sm font-medium">Folder Organization</p>
+            <p className="text-xs text-muted-foreground">
+              Choose how exported documents are organized into subfolders within the destination.
+            </p>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="folder-by-team"
+                checked={destination.folder_by_team}
+                disabled={isSettingDestination || isSavingFlags}
+                onCheckedChange={(checked) =>
+                  handleToggleFolderFlag('folderByTeam', Boolean(checked))
+                }
+              />
+              <Label htmlFor="folder-by-team" className="text-sm leading-none cursor-pointer">
+                Organize by team
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="folder-by-equipment"
+                checked={destination.folder_by_equipment}
+                disabled={isSettingDestination || isSavingFlags}
+                onCheckedChange={(checked) =>
+                  handleToggleFolderFlag('folderByEquipment', Boolean(checked))
+                }
+              />
+              <Label htmlFor="folder-by-equipment" className="text-sm leading-none cursor-pointer">
+                Organize by equipment
+              </Label>
+            </div>
+          </div>
+        )}
 
         {!isGoogleWorkspaceConnected && (
           <p className="text-xs text-muted-foreground">

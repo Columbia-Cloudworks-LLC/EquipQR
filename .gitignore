@@ -28,6 +28,7 @@ dist-ssr
 .vs/VSWorkspaceState.json
 tmp/*
 tmpclaude-*-cwd
+*superpowers*
 
 # Environment files (secrets)
 .env
@@ -69,5 +70,12 @@ deno.lock
 skills-lock.json
 
 # Cursor hook runtime state (generated during chat sessions)
-.cursor/hooks/state/continual-learning.json
+.cursor/hooks/state/
+
+# Cursor agent session plans (ephemeral)
+.cursor/plans/
+
+# Python bytecode from local hook runs
+.cursor/hooks/__pycache__/
+
 .vercel

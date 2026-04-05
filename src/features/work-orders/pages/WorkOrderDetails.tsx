@@ -41,6 +41,7 @@ import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hook
 import { useGoogleWorkspaceExportDestination } from '@/features/organization/hooks/useGoogleWorkspaceExportDestination';
 import { HistoryTab } from '@/components/audit';
 import { cn } from '@/lib/utils';
+import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -322,10 +323,15 @@ const WorkOrderDetails = () => {
   });
   
   // Google Workspace connection status (for showing "Save to Google Drive" option)
-  const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
+  const { isConnected: isGoogleWorkspaceConnected, connectionStatus } = useGoogleWorkspaceConnectionStatus({
     organizationId: currentOrganization?.id,
   });
   const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(currentOrganization?.id, permissionLevels.isManager);
+  const canExportGoogleDoc = canExportWorkOrderGoogleDoc({
+    isConnected: isGoogleWorkspaceConnected,
+    scopes: connectionStatus?.scopes,
+    hasDestination: Boolean(googleDocsDestination),
+  });
 
   // Handle mobile PDF export with options from dialog
   const handleMobilePDFExport = async (options: { includeCosts: boolean }) => {
@@ -827,7 +833,7 @@ const WorkOrderDetails = () => {
           onDownloadPDF={() => setShowMobilePDFDialog(true)}
           onExportExcel={() => exportSingle(workOrder.id)}
           isExportingExcel={isExportingSingle}
-          onExportGoogleDoc={isGoogleWorkspaceConnected && googleDocsDestination ? () => exportSingleToDocs(workOrder.id) : undefined}
+          onExportGoogleDoc={canExportGoogleDoc ? () => exportSingleToDocs(workOrder.id) : undefined}
           isExportingGoogleDoc={isExportingSingleToDocs}
         />
       )}

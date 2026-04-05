@@ -13,18 +13,23 @@ import {
   GOOGLE_SCOPES,
   hasScope,
 } from "../_shared/google-workspace-token.ts";
-import { googleApiFetch } from "../_shared/google-api-retry.ts";
 import {
-  fetchWorkOrdersWithData,
-  buildAllRows,
   checkRateLimit,
   type ExportRequest,
 } from "../_shared/work-orders-export-data.ts";
-import { buildInternalPacketHtml } from "../_shared/work-order-google-docs.ts";
+import { buildSingleWorkOrderGoogleDocData } from "../_shared/work-order-google-docs-single-data.ts";
+import {
+  createGoogleDocInFolder,
+  batchUpdateGoogleDoc,
+  deleteGoogleDriveFile,
+} from "../_shared/google-docs-api.ts";
+import { buildExecutivePacketRequests } from "../_shared/work-order-google-docs-packet.ts";
+import { resolveExportFolderPath } from "../_shared/google-drive-folder-routing.ts";
 
-const GOOGLE_DOC_MIME_TYPE = "application/vnd.google-apps.document";
-const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
 const DOCUMENT_TYPE = "work-orders-internal-packet";
+const RECORD_TYPE = "work_order";
+const EXPORT_CHANNEL = "google_docs";
+const ARTIFACT_KIND = "internal_packet";
 
 interface ExportToDocsResponse {
   id: string;
@@ -32,70 +37,25 @@ interface ExportToDocsResponse {
   mimeType: string;
   webViewLink: string;
   workOrderCount: number;
+  replacedPrevious?: boolean;
+  warnings?: string[];
 }
 
-interface GoogleDriveCreateResponse {
-  id: string;
-  name: string;
-  mimeType: string;
-  webViewLink?: string;
-}
-
-async function createGoogleDocFromHtml(
-  accessToken: string,
-  title: string,
-  html: string,
-  parentId: string,
-): Promise<GoogleDriveCreateResponse> {
-  const boundary = `----EquipQRGoogleDocBoundary${Date.now()}`;
-  const encoder = new TextEncoder();
-
-  const metadata = {
-    name: title,
-    mimeType: GOOGLE_DOC_MIME_TYPE,
-    parents: [parentId],
-  };
-
-  const multipartBody =
-    `--${boundary}\r\n` +
-    `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
-    `${JSON.stringify(metadata)}\r\n` +
-    `--${boundary}\r\n` +
-    `Content-Type: text/html\r\n\r\n` +
-    `${html}\r\n` +
-    `--${boundary}--`;
-
-  const response = await googleApiFetch(
-    `${DRIVE_UPLOAD_URL}?uploadType=multipart&supportsAllDrives=true&fields=id,name,mimeType,webViewLink`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
-      },
-      body: encoder.encode(multipartBody),
-    },
-    { label: "drive-create-google-doc" },
-  );
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Drive create failed", {
-      status: response.status,
-      errorBody,
-    });
-
-    if (response.status === 403) {
-      throw new GoogleWorkspaceTokenError(
-        "Google Workspace does not have permission to create files in the selected destination.",
-        "insufficient_scopes",
-      );
-    }
-
-    throw new Error("Failed to create Google Doc.");
+function validateDocsExportRequest(body: ExportRequest): { code: string; error: string } | null {
+  if (!body.filters?.workOrderId) {
+    return {
+      code: "single_work_order_required",
+      error: "Google Docs export only supports a single work order. Use Google Sheets for bulk exports.",
+    };
   }
+  return null;
+}
 
-  return await response.json();
+function hasRequiredDocsExportScopes(scopes: string | null | undefined): boolean {
+  return (
+    hasScope(scopes, GOOGLE_SCOPES.DRIVE_FILE)
+    && hasScope(scopes, GOOGLE_SCOPES.DOCUMENTS)
+  );
 }
 
 Deno.serve(async (req) => {
@@ -127,8 +87,13 @@ Deno.serve(async (req) => {
     if (!filters || typeof filters !== "object") {
       return createErrorResponse("Missing required field: filters", 400);
     }
-    if (filters.dateField && !["created_date", "completed_date"].includes(filters.dateField)) {
-      return createErrorResponse("Invalid filters.dateField: must be 'created_date' or 'completed_date'", 400);
+
+    const validationError = validateDocsExportRequest(body);
+    if (validationError) {
+      return new Response(
+        JSON.stringify(validationError),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const isAdmin = await verifyOrgAdmin(supabase, auth.user.id, organizationId);
@@ -152,7 +117,7 @@ Deno.serve(async (req) => {
 
     const { data: destination, error: destinationError } = await supabase
       .from("organization_google_export_destinations")
-      .select("parent_id, display_name")
+      .select("parent_id, display_name, folder_by_team, folder_by_equipment")
       .eq("organization_id", organizationId)
       .eq("document_type", DOCUMENT_TYPE)
       .maybeSingle();
@@ -186,17 +151,17 @@ Deno.serve(async (req) => {
       throw tokenError;
     }
 
-    if (!hasScope(tokenResult.scopes, GOOGLE_SCOPES.DRIVE_FILE)) {
+    if (!hasRequiredDocsExportScopes(tokenResult.scopes)) {
       return new Response(
         JSON.stringify({
-          error: "Google Workspace is connected but does not have permission to create Drive documents. Please reconnect Google Workspace in Organization Settings.",
+          error: "Google Workspace is connected but does not have permission to create and edit Google Docs. Please reconnect Google Workspace in Organization Settings.",
           code: "insufficient_scopes",
         }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const { data: exportLog } = await supabase
+    const { data: exportLog, error: exportLogInsertError } = await adminClient
       .from("export_request_log")
       .insert({
         user_id: auth.user.id,
@@ -207,66 +172,145 @@ Deno.serve(async (req) => {
       })
       .select("id")
       .single();
+    if (exportLogInsertError) {
+      console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to create export log:", exportLogInsertError.message);
+    }
     const exportLogId = exportLog?.id;
+    let createdDocId: string | undefined;
 
     try {
-      const data = await fetchWorkOrdersWithData(supabase, organizationId, filters);
-      if (data.workOrders.length === 0) {
-        if (exportLogId) {
-          await supabase
-            .from("export_request_log")
-            .update({ status: "completed", row_count: 0, completed_at: new Date().toISOString() })
-            .eq("id", exportLogId);
-        }
-        return new Response(
-          JSON.stringify({ error: "No work orders found matching the filters" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
+      const workOrderId = filters.workOrderId!;
+      const warnings: string[] = [];
 
-      const allRows = buildAllRows(data);
-      const { data: orgRow } = await supabase
-        .from("organizations")
-        .select("name")
-        .eq("id", organizationId)
-        .maybeSingle();
-
-      const html = buildInternalPacketHtml({
-        allRows,
-        organizationName: orgRow?.name ?? "Organization",
-        workOrderCount: data.workOrders.length,
-      });
-
-      const dateStr = new Date().toISOString().split("T")[0];
-      const title = `Internal Work Order Packet ${dateStr}`;
-      const doc = await createGoogleDocFromHtml(
-        tokenResult.accessToken,
-        title,
-        html,
-        destination.parent_id,
+      const packetData = await buildSingleWorkOrderGoogleDocData(
+        supabase,
+        organizationId,
+        workOrderId,
       );
 
-      if (exportLogId) {
-        await supabase
-          .from("export_request_log")
-          .update({
-            status: "completed",
-            row_count: data.workOrders.length,
-            file_url: doc.webViewLink ?? null,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", exportLogId);
+      // --- Resolve subfolder path: Team / Equipment (respects org toggles) ---
+      const folderByTeam = destination.folder_by_team !== false;
+      const folderByEquipment = destination.folder_by_equipment !== false;
+
+      let targetParentId = destination.parent_id;
+      try {
+        targetParentId = await resolveExportFolderPath(
+          tokenResult.accessToken,
+          destination.parent_id,
+          [
+            { name: folderByTeam ? packetData.team.name : null },
+            { name: folderByEquipment ? packetData.equipment.name : null },
+          ],
+        );
+      } catch (folderError) {
+        const msg = folderError instanceof Error ? folderError.message : String(folderError);
+        console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Subfolder resolution failed, using root:", msg);
+        warnings.push("Could not create team/equipment subfolders; document saved to root destination.");
+      }
+
+      // --- Lookup previous artifact (needed for cleanup after successful creation) ---
+      let replacedPrevious = false;
+      const { data: prevArtifact, error: prevArtifactError } = await adminClient
+        .from("record_export_artifacts")
+        .select("id, provider_file_id")
+        .eq("organization_id", organizationId)
+        .eq("record_type", RECORD_TYPE)
+        .eq("record_id", workOrderId)
+        .eq("export_channel", EXPORT_CHANNEL)
+        .eq("artifact_kind", ARTIFACT_KIND)
+        .eq("status", "current")
+        .maybeSingle();
+      if (prevArtifactError) {
+        console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Previous artifact lookup failed:", prevArtifactError.message);
+        warnings.push("Could not check for a previous export; a new document will be created without replacing the old one.");
+      }
+
+      // --- Create new Google Doc first (safe: old doc stays intact on failure) ---
+      const dateStr = new Date().toISOString().split("T")[0];
+      const title = `${packetData.workOrder.title} — Internal Packet ${dateStr}`;
+
+      const doc = await createGoogleDocInFolder(
+        tokenResult.accessToken,
+        title,
+        targetParentId,
+      );
+      createdDocId = doc.id;
+
+      const packet = buildExecutivePacketRequests(packetData);
+
+      if (packet.requests.length > 0) {
+        await batchUpdateGoogleDoc(
+          tokenResult.accessToken,
+          doc.id,
+          packet.requests,
+        );
       }
 
       const webViewLink = doc.webViewLink
         ?? `https://docs.google.com/document/d/${doc.id}/edit`;
+
+      // --- Upsert artifact record (points to new doc before old is removed) ---
+      const { error: artifactUpsertError } = await adminClient
+        .from("record_export_artifacts")
+        .upsert({
+          organization_id: organizationId,
+          record_type: RECORD_TYPE,
+          record_id: workOrderId,
+          export_channel: EXPORT_CHANNEL,
+          artifact_kind: ARTIFACT_KIND,
+          provider: "google_drive",
+          provider_file_id: doc.id,
+          web_view_link: webViewLink,
+          provider_parent_id: targetParentId,
+          last_exported_at: new Date().toISOString(),
+          last_exported_by: auth.user.id,
+          status: "current",
+        }, {
+          onConflict: "organization_id,record_type,record_id,export_channel,artifact_kind",
+        });
+      if (artifactUpsertError) {
+        console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Artifact upsert failed:", artifactUpsertError.message);
+        warnings.push("Export succeeded but lineage tracking could not be saved. The 'Open Last Export' shortcut may not reflect this export.");
+      }
+
+      // --- Best-effort cleanup of previous Drive file ---
+      if (prevArtifact?.provider_file_id) {
+        const deleteResult = await deleteGoogleDriveFile(
+          tokenResult.accessToken,
+          prevArtifact.provider_file_id,
+        );
+
+        if (deleteResult.outcome === "deleted" || deleteResult.outcome === "not_found") {
+          replacedPrevious = deleteResult.outcome === "deleted";
+        } else {
+          warnings.push("Previous export could not be deleted; a new document was created alongside it.");
+        }
+      }
+
+      if (exportLogId) {
+        const { error: logUpdateError } = await adminClient
+          .from("export_request_log")
+          .update({
+            status: "completed",
+            row_count: 1,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", exportLogId);
+        if (logUpdateError) {
+          console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to update export log:", logUpdateError.message);
+        }
+      }
+
+      const allWarnings = [...warnings, ...packet.warnings];
 
       const response: ExportToDocsResponse = {
         id: doc.id,
         name: doc.name,
         mimeType: doc.mimeType,
         webViewLink,
-        workOrderCount: data.workOrders.length,
+        workOrderCount: 1,
+        replacedPrevious: replacedPrevious || undefined,
+        warnings: allWarnings.length > 0 ? allWarnings : undefined,
       };
 
       return new Response(
@@ -274,15 +318,29 @@ Deno.serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     } catch (exportError) {
+      const errMsg = exportError instanceof Error ? exportError.message : String(exportError);
+      console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Inner export error:", errMsg);
+
+      if (createdDocId && tokenResult?.accessToken) {
+        try {
+          await deleteGoogleDriveFile(tokenResult.accessToken, createdDocId);
+          console.info("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Cleaned up orphaned doc:", createdDocId);
+        } catch (cleanupErr) {
+          console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to clean up orphaned doc:", createdDocId, cleanupErr);
+        }
+      }
+
       if (exportLogId) {
-        await supabase
+        const { error: failLogError } = await adminClient
           .from("export_request_log")
           .update({
             status: "failed",
-            error_message: exportError instanceof Error ? exportError.message : "Export failed",
             completed_at: new Date().toISOString(),
           })
           .eq("id", exportLogId);
+        if (failLogError) {
+          console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to update export log on failure:", failLogError.message);
+        }
       }
 
       if (exportError instanceof GoogleWorkspaceTokenError) {
@@ -292,10 +350,19 @@ Deno.serve(async (req) => {
         );
       }
 
-      throw exportError;
+      return new Response(
+        JSON.stringify({
+          error: "An unexpected error occurred during export",
+          code: "export_failed",
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
   } catch (error) {
-    console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Export error:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Outer error:", errMsg);
     return createErrorResponse("An unexpected error occurred", 500);
   }
 });
+
+export const __testables = { validateDocsExportRequest, hasRequiredDocsExportScopes };

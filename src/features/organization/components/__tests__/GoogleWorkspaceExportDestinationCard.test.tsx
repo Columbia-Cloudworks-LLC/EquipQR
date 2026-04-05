@@ -39,6 +39,7 @@ vi.mock('@/services/google-workspace/auth', () => ({
   GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES: [
     'https://www.googleapis.com/auth/drive.file',
     'https://www.googleapis.com/auth/drive.readonly',
+    'https://www.googleapis.com/auth/documents',
   ],
   GOOGLE_PICKER_SCOPE: 'https://www.googleapis.com/auth/drive.readonly',
   getGooglePickerConfig: (...args: unknown[]) => mockGetGooglePickerConfig(...args),
@@ -182,11 +183,36 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
     });
   });
 
-  it('blocks destination selection and shows reconnect guidance when required drive scopes are missing', () => {
+  it('blocks destination selection and shows reconnect guidance when required scopes are missing', () => {
     customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
 
     expect(
-      screen.getByText(/reconnect google workspace to refresh drive permissions before choosing a destination/i)
+      screen.getByText(/reconnect google workspace to refresh google docs and drive permissions before choosing a destination/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /choose destination/i })).toBeDisabled();
+  });
+
+  it('requires reconnect when the Docs scope is missing but drive scopes are present', () => {
+    mockConnectionStatus.mockReturnValue({
+      isConnected: true,
+      domain: 'example.com',
+      connectionStatus: {
+        is_connected: true,
+        domain: 'example.com',
+        connected_at: null,
+        access_token_expires_at: null,
+        scopes:
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+      },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
+
+    expect(
+      screen.getByText(/reconnect google workspace to refresh google docs and drive permissions before choosing a destination/i)
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /choose destination/i })).toBeDisabled();
   });
@@ -208,7 +234,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         connected_at: null,
         access_token_expires_at: null,
         scopes:
-          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents',
       },
       isLoading: false,
       error: null,
@@ -253,7 +279,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         connected_at: null,
         access_token_expires_at: null,
         scopes:
-          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents',
       },
       isLoading: false,
       error: null,
@@ -298,7 +324,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         connected_at: null,
         access_token_expires_at: null,
         scopes:
-          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents',
       },
       isLoading: false,
       error: null,
@@ -340,6 +366,8 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
       display_name: 'Ops Exports',
       web_view_link: null,
       configured_by: 'user-123',
+      folder_by_team: true,
+      folder_by_equipment: true,
       created_at: '2026-01-01T00:00:00Z',
       updated_at: '2026-01-01T00:00:00Z',
     });
@@ -353,7 +381,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         connected_at: null,
         access_token_expires_at: null,
         scopes:
-          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents',
       },
       isLoading: false,
       error: null,
@@ -398,6 +426,8 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         display_name: 'Ops Exports',
         web_view_link: null,
         configured_by: 'user-123',
+        folder_by_team: true,
+        folder_by_equipment: true,
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
       },
@@ -410,5 +440,116 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
 
     expect(screen.getByText('Ops Exports')).toBeInTheDocument();
     expect(screen.getByText(/my drive folder/i)).toBeInTheDocument();
+  });
+
+  it('shows folder organization checkboxes when a destination is configured', () => {
+    mockConnectionStatus.mockReturnValue({
+      isConnected: true,
+      connectionStatus: {
+        scopes:
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents',
+      },
+      isLoading: false,
+    });
+
+    mockExportDestination.mockReturnValue({
+      destination: {
+        id: 'dest-1',
+        organization_id: 'org-123',
+        document_type: 'work-orders-internal-packet',
+        selection_kind: 'folder',
+        drive_id: null,
+        parent_id: 'folder-123',
+        display_name: 'Ops Exports',
+        web_view_link: null,
+        configured_by: 'user-1',
+        folder_by_team: true,
+        folder_by_equipment: false,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+      isLoadingDestination: false,
+      setDestination: vi.fn(),
+      isSettingDestination: false,
+    });
+
+    customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
+
+    expect(screen.getByText('Folder Organization')).toBeInTheDocument();
+
+    const teamCheckbox = screen.getByRole('checkbox', { name: /organize by team/i });
+    const equipmentCheckbox = screen.getByRole('checkbox', { name: /organize by equipment/i });
+
+    expect(teamCheckbox).toBeChecked();
+    expect(equipmentCheckbox).not.toBeChecked();
+  });
+
+  it('hides folder organization checkboxes when no destination is configured', () => {
+    mockConnectionStatus.mockReturnValue({
+      isConnected: true,
+      connectionStatus: {
+        scopes:
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents',
+      },
+      isLoading: false,
+    });
+
+    mockExportDestination.mockReturnValue({
+      destination: null,
+      isLoadingDestination: false,
+      setDestination: vi.fn(),
+      isSettingDestination: false,
+    });
+
+    customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
+
+    expect(screen.queryByText('Folder Organization')).not.toBeInTheDocument();
+  });
+
+  it('calls setDestination with folder flag when a checkbox is toggled', async () => {
+    const setDestination = vi.fn().mockResolvedValue({});
+
+    mockConnectionStatus.mockReturnValue({
+      isConnected: true,
+      connectionStatus: {
+        scopes:
+          'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents',
+      },
+      isLoading: false,
+    });
+
+    mockExportDestination.mockReturnValue({
+      destination: {
+        id: 'dest-1',
+        organization_id: 'org-123',
+        document_type: 'work-orders-internal-packet',
+        selection_kind: 'folder',
+        drive_id: null,
+        parent_id: 'folder-123',
+        display_name: 'Ops Exports',
+        web_view_link: null,
+        configured_by: 'user-1',
+        folder_by_team: true,
+        folder_by_equipment: true,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+      isLoadingDestination: false,
+      setDestination,
+      isSettingDestination: false,
+    });
+
+    customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
+
+    const equipmentCheckbox = screen.getByRole('checkbox', { name: /organize by equipment/i });
+    equipmentCheckbox.click();
+
+    await waitFor(() => {
+      expect(setDestination).toHaveBeenCalledWith({
+        selectionKind: 'folder',
+        parentId: 'folder-123',
+        folderByEquipment: false,
+      });
+    });
   });
 });

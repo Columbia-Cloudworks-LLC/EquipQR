@@ -165,6 +165,14 @@ export const workOrderExports = {
     ['work-order-excel-count', orgId, filters] as const,
 };
 
+export const exportArtifacts = {
+  root: ['export-artifacts'] as const,
+  byRecord: (orgId: string, recordType: string, recordId: string) =>
+    ['export-artifacts', orgId, recordType, recordId] as const,
+  latest: (orgId: string, recordType: string, recordId: string, exportChannel: string, artifactKind: string) =>
+    ['export-artifacts', orgId, recordType, recordId, exportChannel, artifactKind, 'latest'] as const,
+};
+
 // Equipment working-hours keys
 export const equipmentWorkingHours = {
   historyRoot: (equipmentId: string) =>
@@ -224,4 +232,5 @@ export const queryKeys = {
   dashboardPreferences,
   offlineQueue,
   pmStatus,
+  exportArtifacts,
 };
