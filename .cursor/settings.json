@@ -6,9 +6,6 @@
     "supabase": {
       "enabled": true
     },
-    "superpowers": {
-      "enabled": true
-    },
     "continual-learning": {
       "enabled": true
     }
