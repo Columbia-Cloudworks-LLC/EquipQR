@@ -9,7 +9,7 @@ import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 const sanitizeForDisplay = (text: string): string =>
-  text.replace(/[<>&"']/g, '');
+  text.replace(/[^\w\s.\-()[\]]/g, '_') || 'unnamed';
 
 interface ImageUploadWithNoteProps {
   onUpload: (files: File[]) => Promise<void>;
