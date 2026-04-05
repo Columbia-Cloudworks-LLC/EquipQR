@@ -1,22 +1,17 @@
 /**
- * DangerZoneSection - Container for dangerous organization operations
- * 
- * Provides access to:
- * - Transfer Ownership (owner only)
- * - Leave Organization (non-owners)
- * - Delete Organization (owner only)
+ * DangerZoneSection - Red-bordered card with horizontal action rows
+ * for dangerous organization operations (transfer, leave, delete).
  */
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  AlertTriangle, 
-  UserMinus, 
-  Trash2, 
+import {
+  AlertTriangle,
+  UserMinus,
+  Trash2,
   ArrowRightLeft,
-  Shield
+  Info,
 } from 'lucide-react';
 import { TransferOwnershipDialog } from './TransferOwnershipDialog';
 import { LeaveOrganizationDialog } from './LeaveOrganizationDialog';
@@ -41,129 +36,116 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const isOwner = currentUserRole === 'owner';
-  
-  // Check for pending transfer requests for the current user
+
   const { data: pendingTransfer, isLoading: transferLoading } = usePendingTransferForUser();
 
-  // Filter admins for transfer (exclude current owner)
-  const transferableAdmins = admins.filter(admin => admin.userId !== organization.id);
+  const transferableAdmins = admins;
 
   return (
-    <div className="space-y-6">
-      {/* Section Header */}
-      <div className="flex items-center gap-2 text-destructive">
-        <AlertTriangle className="h-5 w-5" />
-        <h3 className="text-lg font-semibold">Danger Zone</h3>
-      </div>
-
+    <div className="space-y-4">
       {/* Pending Transfer Alert */}
       {!transferLoading && pendingTransfer && pendingTransfer.is_incoming && (
         <PendingTransferCard transfer={pendingTransfer} />
       )}
 
-      {/* Outgoing Transfer Alert */}
       {!transferLoading && pendingTransfer && !pendingTransfer.is_incoming && isOwner && (
         <Alert className="border-warning/50 bg-warning/10">
           <AlertTriangle className="h-4 w-4 text-warning" />
           <AlertDescription className="text-warning dark:text-warning">
             You have a pending ownership transfer request to{' '}
-            <strong>{pendingTransfer.to_user_name}</strong>. 
+            <strong>{pendingTransfer.to_user_name}</strong>.
             Waiting for their response.
           </AlertDescription>
         </Alert>
       )}
 
-      <div className="grid gap-4">
-        {/* Transfer Ownership - Owner Only */}
-        {isOwner && (
-          <Card className="border-destructive/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <ArrowRightLeft className="h-4 w-4" />
-                Transfer Ownership
-              </CardTitle>
-              <CardDescription>
-                Transfer ownership of this organization to another admin. 
-                A new personal organization will be created for you.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {transferableAdmins.length === 0 ? (
-                <Alert>
-                  <Shield className="h-4 w-4" />
-                  <AlertDescription>
-                    You need at least one admin in your organization before you can transfer ownership.
-                    Invite someone and promote them to admin first.
-                  </AlertDescription>
-                </Alert>
-              ) : (
+      {/* Danger Zone Card */}
+      <div className="rounded-lg border border-destructive/50 overflow-hidden">
+        {/* Header */}
+        <div className="bg-destructive/5 border-b border-destructive/30 px-4 py-3">
+          <h3 className="text-sm font-semibold text-destructive flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Danger Zone
+          </h3>
+        </div>
+
+        <div className="divide-y divide-destructive/20">
+          {/* Transfer Ownership — Owner Only */}
+          {isOwner && (
+            <div className="px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Transfer Ownership</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Transfer to another admin. A new personal organization will be created for you.
+                </p>
+              </div>
+              <div className="shrink-0">
+                {transferableAdmins.length === 0 ? (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Info className="h-3.5 w-3.5" />
+                    Promote an admin first
+                  </p>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => setShowTransferDialog(true)}
+                    disabled={!!pendingTransfer}
+                  >
+                    <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
+                    Transfer
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Leave Organization — Non-owners */}
+          {!isOwner && (
+            <div className="px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Leave Organization</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Leave this organization and lose access to all data.
+                </p>
+              </div>
+              <div className="shrink-0">
                 <Button
                   variant="outline"
-                  className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={() => setShowTransferDialog(true)}
-                  disabled={!!pendingTransfer}
+                  size="sm"
+                  className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={() => setShowLeaveDialog(true)}
                 >
-                  <ArrowRightLeft className="h-4 w-4 mr-2" />
-                  Transfer Ownership
+                  <UserMinus className="h-3.5 w-3.5 mr-1.5" />
+                  Leave
                 </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
+              </div>
+            </div>
+          )}
 
-        {/* Leave Organization - Non-owners Only */}
-        {!isOwner && (
-          <Card className="border-destructive/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <UserMinus className="h-4 w-4" />
-                Leave Organization
-              </CardTitle>
-              <CardDescription>
-                Leave this organization. You will lose access to all organization data.
-                This action cannot be undone.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                variant="outline"
-                className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                onClick={() => setShowLeaveDialog(true)}
-              >
-                <UserMinus className="h-4 w-4 mr-2" />
-                Leave Organization
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Delete Organization - Owner Only */}
-        {isOwner && (
-          <Card className="border-destructive">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2 text-destructive">
-                <Trash2 className="h-4 w-4" />
-                Delete Organization
-              </CardTitle>
-              <CardDescription>
-                Permanently delete this organization and all its data.
-                This includes all equipment, work orders, teams, and inventory.
-                <strong className="block mt-1 text-destructive">
-                  This action is irreversible.
-                </strong>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteDialog(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Organization
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+          {/* Delete Organization — Owner Only */}
+          {isOwner && (
+            <div className="px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Delete Organization</p>
+                <p className="text-sm text-destructive/80 mt-0.5">
+                  Permanently deletes all data. This action is irreversible.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Dialogs */}
@@ -190,4 +172,3 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
 };
 
 export default DangerZoneSection;
-

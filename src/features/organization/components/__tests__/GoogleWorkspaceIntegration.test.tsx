@@ -68,9 +68,9 @@ describe('GoogleWorkspaceIntegration', () => {
       <GoogleWorkspaceIntegration currentUserRole="member" />
     );
 
-    // Component returns null for non-admin users, so no Card/content should be present
-    expect(screen.queryByRole('heading', { name: /google workspace integration/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /connect google workspace/i })).not.toBeInTheDocument();
+    // Component returns null for non-admin users, so no content should be present
+    expect(screen.queryByText('Google Workspace')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Connect$/ })).not.toBeInTheDocument();
   });
 
   it('renders connect button when not connected', () => {
@@ -81,8 +81,8 @@ describe('GoogleWorkspaceIntegration', () => {
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="admin" />);
 
-    expect(screen.getByRole('heading', { name: /google workspace integration/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /connect google workspace/i })).toBeInTheDocument();
+    expect(screen.getByText('Google Workspace')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Connect$/ })).toBeInTheDocument();
   });
 
   it('renders sync button when connected', () => {
@@ -93,7 +93,7 @@ describe('GoogleWorkspaceIntegration', () => {
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
 
-    expect(screen.getByText(/connected domain: example.com/i)).toBeInTheDocument();
+    expect(screen.getByText(/Domain: example.com/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sync directory/i })).toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe('GoogleWorkspaceIntegration', () => {
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
 
-    const reconnectButton = screen.getByRole('button', { name: /reconnect google workspace/i });
+    const reconnectButton = screen.getByRole('button', { name: /^Reconnect$/ });
     fireEvent.click(reconnectButton);
 
     await waitFor(() => {
@@ -144,7 +144,7 @@ describe('GoogleWorkspaceIntegration', () => {
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="admin" />);
 
-    const connectButton = screen.getByRole('button', { name: /connect google workspace/i });
+    const connectButton = screen.getByRole('button', { name: /^Connect$/ });
     fireEvent.click(connectButton);
 
     await waitFor(() => {
@@ -215,7 +215,7 @@ describe('GoogleWorkspaceIntegration', () => {
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="admin" />);
 
-    const connectButton = screen.getByRole('button', { name: /connect google workspace/i });
+    const connectButton = screen.getByRole('button', { name: /^Connect$/ });
     fireEvent.click(connectButton);
 
     await waitFor(() => {

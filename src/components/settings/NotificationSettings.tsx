@@ -3,10 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Settings, Users } from 'lucide-react';
-import { 
-  useUserTeamsForNotifications, 
-  useNotificationSettings, 
+import { Users, ChevronRight } from 'lucide-react';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import {
+  useUserTeamsForNotifications,
+  useNotificationSettings,
   useUpdateNotificationSettings,
   type UserTeamForNotifications,
   type NotificationSetting
@@ -42,10 +43,10 @@ const TeamNotificationSetting: React.FC<TeamNotificationSettingProps> = ({
   };
 
   const handleStatusChange = (status: string, checked: boolean) => {
-    const newStatuses = checked 
+    const newStatuses = checked
       ? [...selectedStatuses, status]
       : selectedStatuses.filter(s => s !== status);
-    
+
     setSelectedStatuses(newStatuses);
     onUpdate(team.organization_id, team.team_id, isEnabled, newStatuses);
   };
@@ -59,7 +60,7 @@ const TeamNotificationSetting: React.FC<TeamNotificationSettingProps> = ({
             <div>
               <CardTitle className="text-sm font-medium">{team.team_name}</CardTitle>
               <CardDescription className="text-xs">
-                {team.organization_name} • {team.user_role}
+                {team.organization_name} &bull; {team.user_role}
               </CardDescription>
             </div>
           </div>
@@ -72,7 +73,7 @@ const TeamNotificationSetting: React.FC<TeamNotificationSettingProps> = ({
           </div>
         </div>
       </CardHeader>
-      
+
       {isEnabled && (
         <CardContent className="pt-0">
           <div className="space-y-2">
@@ -85,11 +86,11 @@ const TeamNotificationSetting: React.FC<TeamNotificationSettingProps> = ({
                   <Checkbox
                     id={`${team.team_id}-${status.value}`}
                     checked={selectedStatuses.includes(status.value)}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       handleStatusChange(status.value, checked as boolean)
                     }
                   />
-                  <label 
+                  <label
                     htmlFor={`${team.team_id}-${status.value}`}
                     className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
@@ -110,7 +111,6 @@ const NotificationSettings: React.FC = () => {
   const { data: notificationSettings = [], isLoading: settingsLoading } = useNotificationSettings();
   const updateSettingsMutation = useUpdateNotificationSettings();
 
-  // Group teams by organization for better display
   const teamsByOrganization = useMemo(() => {
     const groups: Record<string, UserTeamForNotifications[]> = {};
     userTeams.forEach(team => {
@@ -122,7 +122,6 @@ const NotificationSettings: React.FC = () => {
     return groups;
   }, [userTeams]);
 
-  // Create a map of settings for quick lookup
   const settingsMap = useMemo(() => {
     const map: Record<string, NotificationSetting> = {};
     notificationSettings.forEach(setting => {
@@ -132,9 +131,9 @@ const NotificationSettings: React.FC = () => {
   }, [notificationSettings]);
 
   const handleUpdateSetting = async (
-    organizationId: string, 
-    teamId: string, 
-    enabled: boolean, 
+    organizationId: string,
+    teamId: string,
+    enabled: boolean,
     statuses: string[]
   ) => {
     try {
@@ -152,92 +151,60 @@ const NotificationSettings: React.FC = () => {
   const enabledTeamsCount = notificationSettings.filter(s => s.enabled).length;
 
   if (teamsLoading || settingsLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="h-32 bg-muted animate-pulse rounded" />
-        </CardContent>
-      </Card>
-    );
+    return <div className="h-32 bg-muted animate-pulse rounded" />;
   }
 
   if (userTeams.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Notification Settings
-          </CardTitle>
-          <CardDescription>
-            Configure when you want to receive notifications for work orders
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>You're not a member of any teams yet</p>
-            <p className="text-sm mt-2">
-              Join teams to configure notification preferences
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="text-center py-8 text-muted-foreground">
+        <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>You&apos;re not a member of any teams yet</p>
+        <p className="text-sm mt-2">
+          Join teams to configure notification preferences
+        </p>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bell className="h-5 w-5" />
-          Notification Settings
-          {enabledTeamsCount > 0 && (
-            <Badge variant="secondary">{enabledTeamsCount} teams enabled</Badge>
-          )}
-        </CardTitle>
-        <CardDescription>
-          Configure when you want to receive notifications for work orders. 
-          You can enable notifications for specific teams and choose which status changes to be notified about.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          {Object.entries(teamsByOrganization).map(([orgId, teams]) => (
-            <div key={orgId}>
-              <h3 className="font-medium text-sm text-muted-foreground mb-3 uppercase tracking-wide">
-                {teams[0]?.organization_name}
-              </h3>
-              <div className="space-y-3">
-                {teams.map((team) => (
-                  <TeamNotificationSetting
-                    key={team.team_id}
-                    team={team}
-                    setting={settingsMap[`${team.organization_id}-${team.team_id}`]}
-                    onUpdate={handleUpdateSetting}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-          
-          <div className="pt-4 border-t">
-            <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
-              <Settings className="h-5 w-5 mt-0.5 text-muted-foreground" />
-              <div className="flex-1 text-sm">
-                <p className="font-medium">How notifications work</p>
-                <ul className="mt-2 space-y-1 text-muted-foreground">
-                  <li>• You'll only receive notifications for teams you enable</li>
-                  <li>• Choose which work order status changes trigger notifications</li>
-                  <li>• Organization admins and owners can see all teams but can still customize preferences</li>
-                  <li>• Notifications appear in real-time and are kept for 30 days</li>
-                </ul>
-              </div>
-            </div>
+    <div className="space-y-6">
+      {enabledTeamsCount > 0 && (
+        <Badge variant="secondary">{enabledTeamsCount} team{enabledTeamsCount !== 1 ? 's' : ''} enabled</Badge>
+      )}
+
+      {Object.entries(teamsByOrganization).map(([orgId, teams]) => (
+        <div key={orgId}>
+          <h3 className="font-medium text-xs text-muted-foreground mb-3 uppercase tracking-wide">
+            {teams[0]?.organization_name}
+          </h3>
+          <div className="space-y-3">
+            {teams.map((team) => (
+              <TeamNotificationSetting
+                key={team.team_id}
+                team={team}
+                setting={settingsMap[`${team.organization_id}-${team.team_id}`]}
+                onUpdate={handleUpdateSetting}
+              />
+            ))}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      ))}
+
+      <Collapsible>
+        <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+          <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
+          How notifications work
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-2 pl-6 border-l-2 border-muted text-xs text-muted-foreground space-y-1">
+            <p>You&apos;ll only receive notifications for teams you enable</p>
+            <p>Choose which work order status changes trigger notifications</p>
+            <p>Organization admins and owners can see all teams but can still customize preferences</p>
+            <p>Notifications appear in real-time and are kept for 30 days</p>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 };
 

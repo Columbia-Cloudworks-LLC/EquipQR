@@ -1,12 +1,11 @@
 import { useCallback, useState } from 'react';
 import { toast as sonnerToast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FolderOpen, Loader2 } from 'lucide-react';
+import { FolderOpen, Loader2, Copy, Check } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
@@ -145,6 +144,7 @@ export function GoogleWorkspaceExportDestinationCard({
   const { currentOrganization } = useOrganization();
   const { toast } = useAppToast();
   const canManage = currentUserRole === 'owner' || currentUserRole === 'admin';
+  const [copiedId, setCopiedId] = useState(false);
 
   const {
     isConnected: isGoogleWorkspaceConnected,
@@ -167,6 +167,13 @@ export function GoogleWorkspaceExportDestinationCard({
     setDestination,
     isSettingDestination,
   } = useGoogleWorkspaceExportDestination(currentOrganization?.id);
+
+  const handleCopyParentId = useCallback(async () => {
+    if (!destination?.parent_id) return;
+    await navigator.clipboard.writeText(destination.parent_id);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  }, [destination?.parent_id]);
 
   const handlePickDestination = useCallback(async () => {
     if (!currentOrganization?.id) return;
@@ -354,75 +361,83 @@ export function GoogleWorkspaceExportDestinationCard({
     return null;
   }
 
+  const kindLabel = destination?.selection_kind === 'shared_drive' ? 'Shared Drive' : 'My Drive';
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FolderOpen className="h-5 w-5" />
-          Google Docs Export Destination
-        </CardTitle>
-        <CardDescription>
-          Choose where internal work order packet Google Docs are created.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isLoadingDestination ? (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading destination...
-          </div>
-        ) : destination ? (
-          <div className="rounded-md border p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">
-                {destination.selection_kind === 'shared_drive' ? 'Shared Drive' : 'My Drive Folder'}
+    <div className="rounded-lg border p-4 space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium">Google Docs Export</p>
+            {destination && (
+              <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-xs">
+                Configured
               </Badge>
-            </div>
-            <p className="text-sm font-medium">{destination.display_name}</p>
-            <p className="text-xs text-muted-foreground break-all">
-              Parent ID: {destination.parent_id}
-            </p>
+            )}
           </div>
-        ) : (
-          <Alert>
-            <AlertDescription>
-              No destination configured yet. Pick a folder or Shared Drive destination to enable Google Docs exports.
-            </AlertDescription>
-          </Alert>
-        )}
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Destination for internal work order packet exports
+          </p>
+        </div>
 
-        {needsReconnectForDestination && (
-          <Alert>
-            <AlertDescription>
-              Reconnect Google Workspace to refresh Google Docs and Drive permissions before choosing a destination.
-            </AlertDescription>
-          </Alert>
-        )}
+        <div className="shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handlePickDestination}
+            disabled={!isGoogleWorkspaceConnected || isSettingDestination || needsReconnectForDestination}
+          >
+            {isSettingDestination ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+            ) : (
+              <FolderOpen className="h-3.5 w-3.5 mr-1.5" />
+            )}
+            {destination ? 'Change Destination' : 'Choose Destination'}
+          </Button>
+        </div>
+      </div>
 
-        <Button
-          variant="outline"
-          onClick={handlePickDestination}
-          disabled={!isGoogleWorkspaceConnected || isSettingDestination || needsReconnectForDestination}
-        >
-          {isSettingDestination ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Saving Destination...
-            </>
-          ) : (
-            <>
-              <FolderOpen className="h-4 w-4 mr-2" />
-              {destination ? 'Change Destination' : 'Choose Destination'}
-            </>
-          )}
-        </Button>
+      {isLoadingDestination && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Loading destination...
+        </div>
+      )}
 
-        {destination && (
-          <div className="rounded-md border p-3 space-y-3">
-            <p className="text-sm font-medium">Folder Organization</p>
-            <p className="text-xs text-muted-foreground">
-              Choose how exported documents are organized into subfolders within the destination.
-            </p>
+      {destination && (
+        <div className="space-y-3">
+          {/* Breadcrumb-style path */}
+          <div className="flex items-center gap-1.5 text-sm">
+            <FolderOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-muted-foreground">{kindLabel}</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="font-medium truncate">{destination.display_name}</span>
+          </div>
+
+          {/* Parent ID with copy button */}
+          <div className="flex items-center gap-2">
+            <code className="text-xs font-mono text-muted-foreground truncate max-w-[200px]">
+              {destination.parent_id}
+            </code>
+            <button
+              type="button"
+              onClick={handleCopyParentId}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Copy parent ID"
+            >
+              {copiedId ? (
+                <Check className="h-3.5 w-3.5 text-success" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
+
+          {/* Folder organization options */}
+          <fieldset className="space-y-2" role="group" aria-label="Folder organization">
+            <legend className="text-xs font-medium text-muted-foreground mb-1.5">
+              Folder Organization
+            </legend>
             <div className="flex items-center gap-2">
               <Checkbox
                 id="folder-by-team"
@@ -449,16 +464,30 @@ export function GoogleWorkspaceExportDestinationCard({
                 Organize by equipment
               </Label>
             </div>
-          </div>
-        )}
+          </fieldset>
+        </div>
+      )}
 
-        {!isGoogleWorkspaceConnected && (
-          <p className="text-xs text-muted-foreground">
-            Connect Google Workspace first to configure a destination.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      {!destination && !isLoadingDestination && (
+        <p className="text-xs text-muted-foreground">
+          Pick a folder or Shared Drive to enable Google Docs exports.
+        </p>
+      )}
+
+      {needsReconnectForDestination && (
+        <Alert>
+          <AlertDescription className="text-sm">
+            Reconnect Google Workspace to refresh Drive permissions before choosing a destination.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!isGoogleWorkspaceConnected && !isLoadingDestination && (
+        <p className="text-xs text-muted-foreground">
+          Connect Google Workspace first to configure a destination.
+        </p>
+      )}
+    </div>
   );
 }
 

@@ -11,6 +11,7 @@
 - For single-work-order Google Docs executive packets, keep photos in the document body; place a consolidated photo-evidence section at the very end so it can be omitted from prints.
 - When automated PR reviewers (e.g. Copilot) leave feedback, triage each comment for validity, address valid items in code, explain deferred items with rationale, then commit, push, and post a structured summary comment on the PR.
 - When code changes are ready to push (after a commit or before deployment validation), push to the remote proactively without waiting for explicit confirmation unless a blocking issue requires user intervention first.
+- For persistent security scanner or linting alerts that have survived multiple fix attempts, the user wants root-cause analysis of the underlying detection model (e.g., CodeQL taint-flow chains, sanitizer recognition patterns) before attempting another code patch.
 
 ## Learned Workspace Facts
 

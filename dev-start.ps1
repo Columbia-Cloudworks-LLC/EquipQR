@@ -212,15 +212,54 @@ foreach ($status in @('exited', 'dead', 'created')) {
         }
     }
 }
+
+$oldStaleEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+    $staleCheck = & npx supabase status 2>&1
+    $staleExit = $LASTEXITCODE
+    $hasContainerError = ($staleCheck | Out-String) -match 'No such container'
+} catch {
+    $staleExit = 1
+    $hasContainerError = "$_" -match 'No such container'
+} finally {
+    $ErrorActionPreference = $oldStaleEap
+}
+if ($hasContainerError) {
+    Write-Host "        Detected stale Supabase CLI state (phantom container). Resetting..."
+    $ErrorActionPreference = 'Continue'
+    try { $null = & npx supabase stop 2>&1 } catch { }
+    $ErrorActionPreference = $oldStaleEap
+    $staleIds = docker ps -aq --filter "name=supabase_" 2>$null
+    if ($staleIds) {
+        foreach ($line in ($staleIds -split "`r?`n")) {
+            $c = $line.Trim()
+            if ($c) { $null = docker rm -f $c 2>&1 }
+        }
+    }
+    $cleaned = $true
+    Write-Host "        Stale CLI state cleared."
+}
+
 if (-not $cleaned) { Write-Host "        No stale containers found." }
 
 # ---------- 4. Supabase start ----------
 Write-Host ""
 Write-Host " [4/10] Starting Supabase local stack..."
 
-$null = & npx supabase status 2>&1
 $needStart = $true
-if ($LASTEXITCODE -eq 0) {
+$oldSupaEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+    $null = & npx supabase status 2>&1
+    $statusExit = $LASTEXITCODE
+} catch {
+    $statusExit = 1
+} finally {
+    $ErrorActionPreference = $oldSupaEap
+}
+
+if ($statusExit -eq 0) {
     Write-Host "        Supabase CLI reports stack is up - verifying API..."
     try {
         $r = Invoke-WebRequest -Uri "http://127.0.0.1:$SUPABASE_API_PORT/rest/v1/" -Method HEAD -TimeoutSec 3 -UseBasicParsing -ErrorAction Stop
@@ -236,11 +275,17 @@ if ($LASTEXITCODE -eq 0) {
 
 if ($needStart) {
     Write-Host "        Starting Supabase (this may take a few minutes on first run)..."
+    $oldStartEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     & npx supabase start
-    if ($LASTEXITCODE -ne 0) {
+    $startExit = $LASTEXITCODE
+    $ErrorActionPreference = $oldStartEap
+    if ($startExit -ne 0) {
         Write-Host ""
         Write-Host "        First attempt failed. Running full cleanup and retrying..."
-        $null = & npx supabase stop 2>&1
+        $ErrorActionPreference = 'Continue'
+        try { $null = & npx supabase stop 2>&1 } catch { }
+        $ErrorActionPreference = $oldStartEap
         $retryIds = docker ps -aq --filter "name=supabase_" 2>$null
         if ($retryIds) {
             foreach ($line in ($retryIds -split "`r?`n")) {
@@ -249,8 +294,11 @@ if ($needStart) {
             }
         }
         Write-Host "        Retrying supabase start..."
+        $ErrorActionPreference = 'Continue'
         & npx supabase start
-        if ($LASTEXITCODE -ne 0) {
+        $retryExit = $LASTEXITCODE
+        $ErrorActionPreference = $oldStartEap
+        if ($retryExit -ne 0) {
             Write-Host ""
             Write-Host "        FAIL: supabase start failed after retry."
             Write-Host "        Try: dev-stop.bat then dev-start.bat, or check port $SUPABASE_API_PORT"
@@ -283,7 +331,10 @@ if (-not $apiReady) {
 
 Write-Host ""
 Write-Host "        --- Supabase Status ---"
-& npx supabase status 2>$null
+$oldStatusDispEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try { & npx supabase status 2>$null } catch { }
+$ErrorActionPreference = $oldStatusDispEap
 Write-Host "        -----------------------"
 
 # ---------- 5. DB reset (Force only) ----------
@@ -292,8 +343,12 @@ if (-not $Force) {
     Write-Host ' [5/10] DB Reset - skipped (use -Force to reset).'
 } else {
     Write-Host ' [5/10] Resetting local database (-Force)...'
+    $oldResetEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     & npx supabase db reset
-    if ($LASTEXITCODE -ne 0) {
+    $resetExit = $LASTEXITCODE
+    $ErrorActionPreference = $oldResetEap
+    if ($resetExit -ne 0) {
         Write-Host "        FAIL: supabase db reset failed."
         exit 1
     }

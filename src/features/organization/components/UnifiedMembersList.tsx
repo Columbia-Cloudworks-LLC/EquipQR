@@ -8,7 +8,7 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Mail, UserMinus, UserPlus, Users, Clock, CheckCircle, XCircle, Database, CloudCog } from 'lucide-react';
@@ -258,20 +258,93 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
     );
   }
 
+  const renderMemberActions = (member: UnifiedMember) => {
+    if (!canManageMembers || member.organizationRole === 'owner') return null;
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Member options">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {member.type === 'invitation' && (
+            <>
+              <DropdownMenuItem
+                onClick={() => handleResendInvitation(member.id)}
+                disabled={resendInvitation.isPending}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Resend Invitation
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleCancelInvitation(member.id)}
+                disabled={cancelInvitation.isPending}
+                className="text-destructive"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Cancel Invitation
+              </DropdownMenuItem>
+            </>
+          )}
+          {member.type === 'gws_claim' && (
+            <DropdownMenuItem
+              onClick={() => handleRevokeGwsClaim(member.id)}
+              disabled={revokeGwsClaim.isPending}
+              className="text-destructive"
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Remove Pending Member
+            </DropdownMenuItem>
+          )}
+          {member.type === 'member' && (
+            <>
+              <DropdownMenuItem
+                onClick={() => handleRequestDataMerge(member)}
+                disabled={requestWorkspaceMerge.isPending || member.userId === user?.id}
+              >
+                <Database className="mr-2 h-4 w-4" />
+                Request Data Merge
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => handleRemoveMember(member.id, member.name)}
+                disabled={removeMember.isPending}
+              >
+                <UserMinus className="mr-2 h-4 w-4" />
+                Remove Member
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
+  const renderMemberAvatar = (member: UnifiedMember) => (
+    <Avatar className="h-8 w-8">
+      <AvatarFallback className="text-xs">
+        {member.name === 'Pending Invite' || member.name === 'Pending (Google Workspace)'
+          ? '?'
+          : member.name.split(' ').map(n => n[0]).join('').slice(0, 2)
+        }
+      </AvatarFallback>
+    </Avatar>
+  );
+
+  const thClass = "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Organization Members ({unifiedMembers.length})
-            </CardTitle>
-          </div>
+          <CardTitle className="text-base">
+            Members ({unifiedMembers.length})
+          </CardTitle>
           {canInviteMembers && (
             <div className="flex items-center gap-2">
               {isGwsConnected && (
-                <Button onClick={() => setImportSheetOpen(true)} size="sm" variant="outline">
+                <Button onClick={() => setImportSheetOpen(true)} size="sm" variant="ghost">
                   <Users className="mr-2 h-4 w-4" />
                   Import from Google
                 </Button>
@@ -287,74 +360,172 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
       <CardContent>
         {unifiedMembers.length === 0 ? (
           <div className="text-center py-8">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No members yet</h3>
-            <p className="text-muted-foreground">
-              {canInviteMembers 
-                ? "Start building your team by inviting members to your organization."
+            <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <h3 className="text-sm font-semibold mb-1">No members yet</h3>
+            <p className="text-sm text-muted-foreground">
+              {canInviteMembers
+                ? "Invite members to start building your team."
                 : "No members in this organization yet."
               }
             </p>
           </div>
         ) : (
           <TooltipProvider>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Member</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                {isOwner && quickBooksEnabled && (
-                  <TableHead>
-                    <Tooltip>
-                      <TooltipTrigger className="cursor-help">QuickBooks</TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">Allow admin to manage QuickBooks integration (connect, disconnect, export invoices)</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TableHead>
-                )}
-                {canManageMembers && <TableHead className="text-right">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+            {/* Desktop table — hidden on mobile */}
+            <div className="hidden sm:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className={thClass}>Member</TableHead>
+                    <TableHead className={thClass}>Email</TableHead>
+                    <TableHead className={thClass}>Role</TableHead>
+                    <TableHead className={thClass}>Status</TableHead>
+                    {isOwner && quickBooksEnabled && (
+                      <TableHead className={thClass}>
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-help uppercase">QuickBooks</TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">Allow admin to manage QuickBooks integration (connect, disconnect, export invoices)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
+                    )}
+                    {canManageMembers && <TableHead className={`${thClass} text-right`}>Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {unifiedMembers.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-3">
+                          {renderMemberAvatar(member)}
+                          <div>
+                            <div className="text-sm font-medium">{member.name}</div>
+                            {member.joinedDate && (
+                              <div className="text-xs text-muted-foreground">
+                                Joined {new Date(member.joinedDate).toLocaleDateString()}
+                              </div>
+                            )}
+                            {member.invitedDate && (
+                              <div className="text-xs text-muted-foreground">
+                                {member.type === 'gws_claim' ? 'Added' : 'Invited'} {new Date(member.invitedDate).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3 font-mono text-sm">{member.email}</TableCell>
+                      <TableCell className="py-3">
+                        {canManageMembers && member.organizationRole !== 'owner' && member.type === 'member' ? (
+                          <Select
+                            value={member.organizationRole}
+                            onValueChange={(value) => handleRoleChange(member.id, value as 'admin' | 'member')}
+                          >
+                            <SelectTrigger className="w-24 h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="member">Member</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant={getRoleBadgeVariant(member.organizationRole)} className="capitalize">
+                            {member.organizationRole}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-3">
+                        {member.status === 'pending_gws' ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize cursor-help">
+                                <div className="flex items-center gap-1">
+                                  {getStatusIcon(member.status)}
+                                  {getStatusLabel(member.status)}
+                                </div>
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">Selected from Google Workspace. They will be automatically added when they sign up with their Google account.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize">
+                            <div className="flex items-center gap-1">
+                              {getStatusIcon(member.status)}
+                              {getStatusLabel(member.status)}
+                            </div>
+                          </Badge>
+                        )}
+                      </TableCell>
+                      {isOwner && quickBooksEnabled && (
+                        <TableCell className="py-3">
+                          {member.type === 'member' && member.organizationRole === 'admin' ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div>
+                                  <Switch
+                                    checked={member.canManageQuickBooks ?? false}
+                                    onCheckedChange={(checked) => {
+                                      if (!member.userId) return;
+                                      handleQuickBooksToggle(member.userId, checked);
+                                    }}
+                                    disabled={updateQuickBooksPermission.isPending}
+                                    aria-label="Toggle QuickBooks management permission"
+                                  />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{member.canManageQuickBooks ? 'Revoke QuickBooks access' : 'Grant QuickBooks access'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : member.organizationRole === 'owner' ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="text-xs text-muted-foreground italic">Always</div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Owners always have QuickBooks management permission</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {canManageMembers && (
+                        <TableCell className="py-3 text-right">
+                          {renderMemberActions(member)}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile card list — visible only on small screens */}
+            <div className="sm:hidden space-y-3">
               {unifiedMembers.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        {member.avatar && <AvatarImage src={member.avatar} alt={member.name} />}
-                        <AvatarFallback className="text-xs">
-                          {member.name === 'Pending Invite' || member.name === 'Pending (Google Workspace)'
-                            ? '?' 
-                            : member.name.split(' ').map(n => n[0]).join('').slice(0, 2)
-                          }
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{member.name}</div>
-                        {member.joinedDate && (
-                          <div className="text-xs text-muted-foreground">
-                            Joined {new Date(member.joinedDate).toLocaleDateString()}
-                          </div>
-                        )}
-                        {member.invitedDate && (
-                          <div className="text-xs text-muted-foreground">
-                            {member.type === 'gws_claim' ? 'Added' : 'Invited'} {new Date(member.invitedDate).toLocaleDateString()}
-                          </div>
-                        )}
+                <div key={member.id} className="rounded-lg border p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {renderMemberAvatar(member)}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{member.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">{member.email}</TableCell>
-                  <TableCell>
+                    {renderMemberActions(member)}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
                     {canManageMembers && member.organizationRole !== 'owner' && member.type === 'member' ? (
                       <Select
                         value={member.organizationRole}
                         onValueChange={(value) => handleRoleChange(member.id, value as 'admin' | 'member')}
                       >
-                        <SelectTrigger className="w-24">
+                        <SelectTrigger className="w-24 h-7 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -363,139 +534,20 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
                         </SelectContent>
                       </Select>
                     ) : (
-                      <Badge variant={getRoleBadgeVariant(member.organizationRole)} className="capitalize">
+                      <Badge variant={getRoleBadgeVariant(member.organizationRole)} className="capitalize text-xs">
                         {member.organizationRole}
                       </Badge>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    {member.status === 'pending_gws' ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize cursor-help">
-                            <div className="flex items-center gap-1">
-                              {getStatusIcon(member.status)}
-                              {getStatusLabel(member.status)}
-                            </div>
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">Selected from Google Workspace. They will be automatically added when they sign up with their Google account.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize">
-                        <div className="flex items-center gap-1">
-                          {getStatusIcon(member.status)}
-                          {getStatusLabel(member.status)}
-                        </div>
-                      </Badge>
-                    )}
-                  </TableCell>
-                  {isOwner && quickBooksEnabled && (
-                    <TableCell>
-                      {member.type === 'member' && member.organizationRole === 'admin' ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div>
-                              <Switch
-                                checked={member.canManageQuickBooks ?? false}
-                                onCheckedChange={(checked) => {
-                                  if (!member.userId) {
-                                    return;
-                                  }
-                                  handleQuickBooksToggle(member.userId, checked);
-                                }}
-                                disabled={updateQuickBooksPermission.isPending}
-                                aria-label="Toggle QuickBooks management permission"
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{member.canManageQuickBooks ? 'Revoke QuickBooks access' : 'Grant QuickBooks access'}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : member.organizationRole === 'owner' ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="text-xs text-muted-foreground italic">Always</div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Owners always have QuickBooks management permission</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  )}
-                  {canManageMembers && (
-                    <TableCell className="text-right">
-                      {member.organizationRole !== 'owner' && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {member.type === 'invitation' && (
-                              <>
-                                <DropdownMenuItem
-                                  onClick={() => handleResendInvitation(member.id)}
-                                  disabled={resendInvitation.isPending}
-                                >
-                                  <Mail className="h-4 w-4 mr-2" />
-                                  Resend Invitation
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleCancelInvitation(member.id)}
-                                  disabled={cancelInvitation.isPending}
-                                  className="text-destructive"
-                                >
-                                  <XCircle className="h-4 w-4 mr-2" />
-                                  Cancel Invitation
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {member.type === 'gws_claim' && (
-                              <DropdownMenuItem
-                                onClick={() => handleRevokeGwsClaim(member.id)}
-                                disabled={revokeGwsClaim.isPending}
-                                className="text-destructive"
-                              >
-                                <XCircle className="h-4 w-4 mr-2" />
-                                Remove Pending Member
-                              </DropdownMenuItem>
-                            )}
-                            {member.type === 'member' && (
-                              <>
-                                <DropdownMenuItem
-                                  onClick={() => handleRequestDataMerge(member)}
-                                  disabled={requestWorkspaceMerge.isPending || member.userId === user?.id}
-                                >
-                                  <Database className="mr-2 h-4 w-4" />
-                                  Request Data Merge
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => handleRemoveMember(member.id, member.name)}
-                                  disabled={removeMember.isPending}
-                                >
-                                  <UserMinus className="mr-2 h-4 w-4" />
-                                  Remove Member
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </TableCell>
-                  )}
-                </TableRow>
+                    <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize text-xs">
+                      <div className="flex items-center gap-1">
+                        {getStatusIcon(member.status)}
+                        {getStatusLabel(member.status)}
+                      </div>
+                    </Badge>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
           </TooltipProvider>
         )}
 

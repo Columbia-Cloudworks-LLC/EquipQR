@@ -125,10 +125,7 @@ const Organization = () => {
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-4 sm:space-y-6">
-        <OrganizationHeader 
-          organizationName={currentOrganization.name}
-          currentUserRole={currentUserRole}
-        />
+        <OrganizationHeader />
 
         {incomingMergeRequests.length > 0 && currentOrganizationId && (
           <WorkspaceMergeRequestsCard
