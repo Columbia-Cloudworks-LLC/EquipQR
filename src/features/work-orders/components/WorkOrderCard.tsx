@@ -20,7 +20,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Clock, User, Users, UserX, AlertTriangle, Cog, MapPin } from 'lucide-react';
+import {
+  Calendar,
+  ChevronRight,
+  Clock,
+  User,
+  Users,
+  UserX,
+  AlertTriangle,
+  Cog,
+  MapPin,
+  Shovel,
+  Truck,
+  Zap,
+  Lightbulb,
+  Mountain,
+  Construction,
+  type LucideIcon,
+} from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import ClickableAddress from '@/components/ui/ClickableAddress';
@@ -29,13 +46,16 @@ import {
   getStatusColor, 
   formatStatus, 
   formatDate,
-  isOverdue 
+  formatRelativeDate,
+  isOverdue,
+  isTerminalStatus,
 } from '@/features/work-orders/utils/workOrderHelpers';
-import { getPriorityBadgeClass, getWorkOrderStatusBorderWithOverdue } from '@/lib/status-colors';
+import { getPriorityBadgeClass, getWorkOrderStatusBorderWithOverdue, getStatusBackgroundTint } from '@/lib/status-colors';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import PMProgressIndicator from './PMProgressIndicator';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
+import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 import type { WorkOrder, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import type { AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
@@ -123,6 +143,28 @@ const formatPriorityLabel = (priority?: string): string => {
   return priority.replace('_', ' ');
 };
 
+const getEquipmentFallbackIcon = (equipmentName?: string): LucideIcon => {
+  const name = equipmentName?.toLowerCase() ?? '';
+  if (name.includes('excavator')) return Shovel;
+  if (name.includes('dozer') || name.includes('bulldozer')) return Mountain;
+  if (name.includes('generator')) return Zap;
+  if (name.includes('light tower') || name.includes('light plant')) return Lightbulb;
+  if (name.includes('loader') || name.includes('truck') || name.includes('hauler')) return Truck;
+  if (name.includes('crane') || name.includes('boom') || name.includes('forklift')) return Construction;
+  return Cog;
+};
+
+const getEquipmentFallbackTint = (equipmentName?: string): string => {
+  const name = equipmentName?.toLowerCase() ?? '';
+  if (name.includes('excavator')) return 'bg-amber-500/10';
+  if (name.includes('dozer') || name.includes('bulldozer')) return 'bg-orange-500/10';
+  if (name.includes('generator')) return 'bg-yellow-500/10';
+  if (name.includes('light tower') || name.includes('light plant')) return 'bg-sky-500/10';
+  if (name.includes('loader') || name.includes('truck') || name.includes('hauler')) return 'bg-emerald-500/10';
+  if (name.includes('crane') || name.includes('boom') || name.includes('forklift')) return 'bg-violet-500/10';
+  return 'bg-muted';
+};
+
 const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
   imageUrl,
   equipmentName,
@@ -133,9 +175,11 @@ const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
   const [hasImageError, setHasImageError] = useState(false);
 
   if (!imageUrl || hasImageError) {
+    const FallbackIcon = getEquipmentFallbackIcon(equipmentName ?? equipmentAltContext);
+    const tintClass = getEquipmentFallbackTint(equipmentName ?? equipmentAltContext);
     return (
-      <div className={cn('rounded-md bg-muted flex items-center justify-center', className)}>
-        <Cog className={cn('text-muted-foreground', iconClassName)} />
+      <div className={cn('rounded-xl flex items-center justify-center ring-1 ring-border', tintClass, className)}>
+        <FallbackIcon className={cn('text-muted-foreground', iconClassName)} />
       </div>
     );
   }
@@ -150,7 +194,7 @@ const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
             ? `${equipmentAltContext} equipment image`
             : 'Work order equipment image'
       }
-      className={cn('rounded-md object-cover bg-muted', className)}
+      className={cn('rounded-xl object-cover bg-muted ring-1 ring-border', className)}
       loading="lazy"
       onError={() => setHasImageError(true)}
     />
@@ -172,26 +216,29 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
 
   const equipmentTeamName = workOrder.equipmentTeamName ?? workOrder.teamName;
   const machineHours = formatMachineHours(workOrder.equipmentWorkingHours);
-  const equipmentMeta = [
-    { key: 'manufacturer', label: `Manufacturer: ${workOrder.equipmentManufacturer ?? 'Unavailable'}` },
-    { key: 'model', label: `Model: ${workOrder.equipmentModel ?? 'Unavailable'}` },
-    { key: 'serial', label: `S/N: ${workOrder.equipmentSerialNumber ?? 'Unavailable'}` },
-    { key: 'hours', label: machineHours ? machineHours : 'Hours unavailable' },
-  ];
   const createdDateValue = workOrder.created_date ?? workOrder.createdDate;
   const dueDateValue = workOrder.due_date ?? workOrder.dueDate;
   const estimatedHoursValue = workOrder.estimated_hours ?? workOrder.estimatedHours;
   const completedDateValue = workOrder.completed_date ?? workOrder.completedDate;
+  const isTerminal = isTerminalStatus(workOrder.status);
+  const showDescription = workOrder.description && workOrder.description !== workOrder.title;
+
+  const equipmentLine = [
+    workOrder.equipmentModel,
+    machineHours,
+  ].filter(Boolean).join(' \u2022 ');
   
-  // Get status border with overdue check
   const isWorkOrderOverdue = isOverdue(dueDateValue, workOrder.status);
   const statusBorderClass = getWorkOrderStatusBorderWithOverdue(workOrder.status, isWorkOrderOverdue);
+  const statusTintClass = getStatusBackgroundTint(workOrder.status, isWorkOrderOverdue);
 
   return (
     <Card
       className={cn(
         "transition-all duration-normal",
         statusBorderClass,
+        statusTintClass,
+        isTerminal && "opacity-70",
         onNavigate && "hover:shadow-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       )}
       role={onNavigate ? "button" : undefined}
@@ -204,15 +251,41 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
         }
       } : undefined}
     >
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">{workOrder.title}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              {workOrder.description}
-            </p>
+      <CardContent className="p-4">
+        {/* Identity strip: photo + title/equipment + actions/badges */}
+        <div className="flex items-start gap-4">
+          <EquipmentThumbnail
+            imageUrl={workOrder.equipmentImageUrl}
+            equipmentName={workOrder.equipmentName}
+            equipmentAltContext={workOrder.title}
+            className="h-24 w-24 rounded-xl flex-shrink-0"
+            iconClassName="h-10 w-10"
+          />
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-lg font-semibold leading-tight">
+              {workOrder.title}
+            </CardTitle>
+            {showDescription && (
+              <p className="text-sm text-muted-foreground mt-0.5 truncate">
+                {workOrder.description}
+              </p>
+            )}
+            {workOrder.equipmentName && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {workOrder.equipmentName}
+                {equipmentLine && <span className="ml-1.5 text-xs">{equipmentLine}</span>}
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+            <div onClick={(e) => e.stopPropagation()}>
+              <WorkOrderQuickActions
+                workOrderId={workOrder.id}
+                workOrderStatus={workOrder.status}
+                equipmentTeamId={workOrder.equipmentTeamId ?? workOrder.team_id}
+              />
+            </div>
             <Badge className={getStatusColor(workOrder.status)}>
               {formatStatus(workOrder.status)}
             </Badge>
@@ -225,161 +298,126 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
             {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge />}
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        {(workOrder.equipmentName || workOrder.equipmentImageUrl || equipmentMeta.length > 0) && (
-          <div className="flex items-start gap-3 mb-4 pb-4 border-b">
-            <EquipmentThumbnail
-              imageUrl={workOrder.equipmentImageUrl}
-              equipmentName={workOrder.equipmentName}
-              equipmentAltContext={workOrder.title}
-              className="h-14 w-14 flex-shrink-0"
-              iconClassName="h-6 w-6"
-            />
-            <div className="min-w-0">
-              <div className="font-medium truncate">
-                {workOrder.equipmentName ?? 'Equipment'}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-1">
-                {equipmentMeta.map((meta, index) => (
-                  <span key={`${meta.key}-${index}`}>{meta.label}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <div className="font-medium">Created</div>
-              <div className="text-muted-foreground">
-                {formatDate(createdDateValue)}
-              </div>
-            </div>
-          </div>
+        {/* Metadata token strip */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-3 pt-3 border-t">
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+            {formatDate(createdDateValue)}
+          </span>
 
           {dueDateValue && (
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Due Date</div>
-                <div className={`text-muted-foreground ${isOverdue(dueDateValue, workOrder.status) ? 'text-destructive' : ''}`}>
-                  {formatDate(dueDateValue)}
-                  {isOverdue(dueDateValue, workOrder.status) && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <AlertTriangle className="h-3.5 w-3.5 inline ml-1" />
-                      </TooltipTrigger>
-                      <TooltipContent>Overdue &mdash; due date has passed</TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-              </div>
-            </div>
+            <span className={cn(
+              "inline-flex items-center gap-1",
+              isWorkOrderOverdue && "text-destructive font-medium"
+            )}>
+              <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+              Due {formatDate(dueDateValue)}
+              {isWorkOrderOverdue && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertTriangle className="h-3 w-3" />
+                  </TooltipTrigger>
+                  <TooltipContent>Overdue &mdash; due date has passed</TooltipContent>
+                </Tooltip>
+              )}
+            </span>
           )}
 
           {equipmentTeamName && (
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Equipment Team</div>
-                <div className="text-muted-foreground">{equipmentTeamName}</div>
-              </div>
-            </div>
+            <span className="inline-flex items-center gap-1">
+              <Users className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate max-w-[12rem]">{equipmentTeamName}</span>
+            </span>
           )}
 
           <WorkOrderAssignmentHover 
             workOrder={assignmentContext}
             disabled={!detailedPermissions.canEditAssignment}
           >
-            <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 transition-colors">
+            <span className="inline-flex items-center gap-1 cursor-pointer hover:text-foreground rounded px-1 -mx-1 transition-colors">
               {workOrder.assigneeName ? (
                 <>
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">Assigned to</div>
-                    <div className="text-muted-foreground">{workOrder.assigneeName}</div>
-                  </div>
+                  <User className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="truncate max-w-[10rem]">{workOrder.assigneeName}</span>
                 </>
               ) : (
                 <>
-                  <UserX className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">Assigned to</div>
-                    <div className="text-muted-foreground">Unassigned</div>
-                  </div>
+                  <UserX className="h-3.5 w-3.5 flex-shrink-0" />
+                  Unassigned
                 </>
               )}
-            </div>
+            </span>
           </WorkOrderAssignmentHover>
 
           {workOrder.effectiveLocation && (
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <div className="min-w-0">
-                <div className="font-medium">Location</div>
-                <ClickableAddress
-                  address={workOrder.effectiveLocation.formattedAddress}
-                  lat={workOrder.effectiveLocation.lat}
-                  lng={workOrder.effectiveLocation.lng}
-                  className="text-sm truncate"
-                  showIcon={false}
-                  compact
-                />
-              </div>
-            </div>
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+              <ClickableAddress
+                address={workOrder.effectiveLocation.formattedAddress}
+                lat={workOrder.effectiveLocation.lat}
+                lng={workOrder.effectiveLocation.lng}
+                className="text-sm truncate"
+                showIcon={false}
+                compact
+              />
+            </span>
+          )}
+
+          {estimatedHoursValue && (
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+              Est. {estimatedHoursValue}h
+            </span>
+          )}
+
+          {completedDateValue && (
+            <span className="inline-flex items-center gap-1 text-success">
+              Completed {formatDate(completedDateValue)}
+            </span>
+          )}
+
+          {detailedPermissions.canEdit && (
+            <WorkOrderCostSubtotal 
+              workOrderId={workOrder.id}
+              className="text-sm"
+              hideWhenEmpty
+            />
           )}
         </div>
 
-        {workOrder.has_pm && (
-          <div className="mt-4 pt-4 border-t">
+        {/* PM progress -- hidden for terminal cards */}
+        {workOrder.has_pm && !isTerminal && (
+          <div className="mt-3">
             <PMProgressIndicator 
               workOrderId={workOrder.id} 
-              hasPM={workOrder.has_pm} 
+              hasPM={workOrder.has_pm}
+              showCount
             />
           </div>
         )}
 
-        {estimatedHoursValue && (
-          <div className={`mt-4 ${workOrder.has_pm ? '' : 'pt-4 border-t'}`}>
-            <div className="text-sm">
-              <span className="font-medium">Estimated time:</span> {estimatedHoursValue} hours
-              {completedDateValue && (
-                <span className="ml-4">
-                  <span className="font-medium">Completed:</span> {formatDate(completedDateValue)}
-                </span>
-              )}
-            </div>
+        {/* Primary action for active work orders */}
+        {!isTerminal && (
+          <div
+            className="flex items-center justify-end mt-3 pt-3 border-t"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="group"
+            aria-label="Work order actions"
+          >
+            <WorkOrderPrimaryActionButton
+              workOrder={{
+                id: workOrder.id,
+                status: workOrder.status,
+                has_pm: workOrder.has_pm,
+                assignee_id: workOrder.assignee_id ?? workOrder.assigneeId,
+                created_by: workOrder.created_by,
+              }}
+              organizationId={workOrder.organization_id ?? workOrder.organizationId}
+            />
           </div>
         )}
-
-        <div className="flex items-center justify-between mt-4 pt-4 border-t">
-          <div className="flex items-center gap-4">
-            {detailedPermissions.canEdit && (
-              <WorkOrderCostSubtotal 
-                workOrderId={workOrder.id}
-                className="text-sm"
-              />
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <WorkOrderQuickActions
-              workOrderId={workOrder.id}
-              workOrderStatus={workOrder.status}
-              equipmentTeamId={workOrder.equipmentTeamId ?? workOrder.team_id}
-            />
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => onNavigate?.(workOrder.id)}
-            >
-              View Details
-            </Button>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
@@ -400,12 +438,8 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
   const dueDateValue = workOrder.dueDate ?? workOrder.due_date;
   const createdDateValue = workOrder.createdDate ?? workOrder.created_date;
   const machineHours = formatMachineHours(workOrder.equipmentWorkingHours);
-  const equipmentMeta = [
-    { key: 'manufacturer', label: `Manufacturer: ${workOrder.equipmentManufacturer ?? 'Unavailable'}` },
-    { key: 'model', label: `Model: ${workOrder.equipmentModel ?? 'Unavailable'}` },
-    { key: 'serial', label: `S/N: ${workOrder.equipmentSerialNumber ?? 'Unavailable'}` },
-    { key: 'hours', label: machineHours ? machineHours : 'Hours unavailable' },
-  ];
+  const isTerminal = isTerminalStatus(workOrder.status);
+
   const assigneeName =
     workOrder.assigneeName ??
     workOrder.assignee_name ??
@@ -425,16 +459,21 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
   }, [assigneeName]);
 
   const isInteractive = Boolean(onNavigate);
-  
-  // Get status border with overdue check
   const isWorkOrderOverdue = isOverdue(dueDateValue, workOrder.status);
   const statusBorderClass = getWorkOrderStatusBorderWithOverdue(workOrder.status, isWorkOrderOverdue);
+  const statusTintClass = getStatusBackgroundTint(workOrder.status, isWorkOrderOverdue);
+
+  const dateLabel = dueDateValue
+    ? (isWorkOrderOverdue ? `Overdue ${formatRelativeDate(dueDateValue)}` : `Due ${formatRelativeDate(dueDateValue)}`)
+    : formatRelativeDate(createdDateValue);
 
   return (
     <Card
       className={cn(
         "transition-all duration-normal",
         statusBorderClass,
+        statusTintClass,
+        isTerminal && "opacity-70",
         isInteractive && "hover:shadow-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       )}
       role={isInteractive ? "button" : undefined}
@@ -448,84 +487,64 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
         }
       } : undefined}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
+      <CardContent className="p-3">
+        {/* Row 1: thumbnail + title/equipment (badges removed from this row) */}
+        <div className="flex items-start gap-2.5">
+          <EquipmentThumbnail
+            imageUrl={workOrder.equipmentImageUrl}
+            equipmentName={workOrder.equipmentName}
+            equipmentAltContext={workOrder.title}
+            className="h-12 w-12 rounded-lg flex-shrink-0"
+            iconClassName="h-6 w-6"
+          />
           <div className="min-w-0 flex-1">
-            <CardTitle className="text-base leading-tight truncate">
+            <CardTitle className="text-[15px] font-semibold leading-snug line-clamp-2">
               {workOrder.title}
             </CardTitle>
-          </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
-            <Badge
-              className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs")}
-              variant="outline"
-            >
-              {formatStatus(workOrder.status)}
-            </Badge>
-            <Badge
-              variant="outline"
-              className={cn(
-                'rounded-full px-2 py-0.5 text-xs capitalize',
-                getPriorityBadgeClass(workOrder.priority)
-              )}
-            >
-              {formatPriorityLabel(workOrder.priority)}
-            </Badge>
+            {workOrder.equipmentName && (
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                {workOrder.equipmentName}
+                {machineHours && <span className="ml-1">&bull; {machineHours}</span>}
+              </p>
+            )}
           </div>
         </div>
-      </CardHeader>
 
-      <CardContent className="pt-0 space-y-3">
-        {(workOrder.equipmentName || workOrder.equipmentImageUrl || equipmentMeta.length > 0) && (
-          <div className="rounded-md bg-muted/50 p-2.5 flex items-start gap-2.5">
-            <EquipmentThumbnail
-              imageUrl={workOrder.equipmentImageUrl}
-              equipmentName={workOrder.equipmentName}
-              equipmentAltContext={workOrder.title}
-              className="h-11 w-11 flex-shrink-0"
-              iconClassName="h-4 w-4"
-            />
-            <div className="min-w-0 flex-1">
-              <span className="font-semibold text-sm truncate block">
-                {workOrder.equipmentName ?? 'Equipment'}
-              </span>
-              <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
-                {equipmentMeta.map((meta, index) => (
-                  <span key={`${meta.key}-${index}`}>{meta.label}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Row 2: badges + sync indicator on their own line */}
+        <div className="flex items-center gap-1.5 mt-2">
+          <Badge
+            className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs")}
+            variant="outline"
+          >
+            {formatStatus(workOrder.status)}
+          </Badge>
+          <Badge
+            variant="outline"
+            className={cn(
+              'rounded-full px-2 py-0.5 text-xs capitalize',
+              getPriorityBadgeClass(workOrder.priority)
+            )}
+          >
+            {formatPriorityLabel(workOrder.priority)}
+          </Badge>
+          {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
+        </div>
 
-        {workOrder.effectiveLocation && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-0.5">
-            <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-            <ClickableAddress
-              address={workOrder.effectiveLocation.formattedAddress}
-              lat={workOrder.effectiveLocation.lat}
-              lng={workOrder.effectiveLocation.lng}
-              className="text-xs truncate"
-              showIcon={false}
-              compact
-            />
-          </div>
-        )}
-
-        {/* PM indicator: add top padding when no equipment section above to prevent flush layout */}
-        {workOrder.has_pm && (
-          <div className={workOrder.equipmentName ? "" : "pt-1"}>
+        {/* PM progress -- hidden for terminal cards */}
+        {workOrder.has_pm && !isTerminal && (
+          <div className="mt-2">
             <PMProgressIndicator
               workOrderId={workOrder.id}
               hasPM={workOrder.has_pm}
+              showCount
             />
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-3 pt-3 border-t">
-          <div className="flex items-center gap-2 min-w-0">
-            <Avatar className="h-6 w-6">
+        {/* Footer: assignee + date/cost + chevron */}
+        <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Avatar className="h-6 w-6 flex-shrink-0">
               <AvatarFallback className="text-[10px]">
                 {initials}
               </AvatarFallback>
@@ -535,15 +554,18 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
-            <div className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              <span className={dueDateValue && isOverdue(dueDateValue, workOrder.status) ? 'text-destructive' : ''}>
-                {dueDateValue ? `Due: ${formatDate(dueDateValue)}` : `Created: ${formatDate(createdDateValue)}`}
-              </span>
-            </div>
-            <span>•</span>
-            <WorkOrderCostSubtotal workOrderId={workOrder.id} className="flex-shrink-0" />
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className={cn(
+              "text-xs text-muted-foreground inline-flex items-center gap-1",
+              isWorkOrderOverdue && 'text-destructive font-medium'
+            )}>
+              <Calendar className="h-3 w-3" />
+              {dateLabel}
+            </span>
+            <WorkOrderCostSubtotal workOrderId={workOrder.id} className="text-xs flex-shrink-0" hideWhenEmpty />
+            {isInteractive && (
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            )}
           </div>
         </div>
       </CardContent>
@@ -570,6 +592,8 @@ const CompactCard: React.FC<WorkOrderCardProps> = memo(({
       statusBorderClass: getWorkOrderStatusBorderWithOverdue(workOrder.status, overdueStatus)
     };
   }, [workOrder.status, workOrder.dueDate, workOrder.due_date, workOrder.createdDate, workOrder.created_date]);
+
+  const isTerminal = isTerminalStatus(workOrder.status);
 
   return (
     <Card
@@ -609,8 +633,8 @@ const CompactCard: React.FC<WorkOrderCardProps> = memo(({
           {workOrder.description}
         </p>
 
-        {/* PM Progress Indicator */}
-        {workOrder.has_pm && (
+        {/* PM Progress Indicator -- hidden for terminal cards */}
+        {workOrder.has_pm && !isTerminal && (
           <div className="py-2 border-y">
             <PMProgressIndicator 
               workOrderId={workOrder.id} 
@@ -721,6 +745,3 @@ const WorkOrderCard: React.FC<WorkOrderCardProps> = (props) => {
 };
 
 export default memo(WorkOrderCard);
-
-
-

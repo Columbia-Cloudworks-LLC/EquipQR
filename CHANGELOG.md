@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Work order card refresh** — Redesigned work order list cards with a reorganized action hierarchy: primary status actions (Accept, Start Work, Complete, Resume) now surface directly on active list cards, the quick-actions menu moved from the footer to the identity strip next to badges, the redundant "View Details" button was removed (entire card is clickable), and the 5-column metadata grid was replaced with a compact flex-wrap inline token strip that wraps gracefully on narrow screens. Equipment thumbnails enlarged to 96px on desktop with equipment-type-aware fallback icons (excavator, dozer, generator, light tower, loader, crane) and tinted backgrounds replacing the generic Cog placeholder. Active work orders now carry subtle status-tinted card backgrounds while completed and cancelled cards collapse to a shorter form with hidden PM progress bars. Terminal cards (completed/cancelled) use opacity reduction for clear visual weight differentiation.
+
+- **Mobile work order card layout fix** — Restructured the mobile card identity strip so status and priority badges render on their own row below the title instead of competing for horizontal space beside it. Thumbnail reduced from 64px to 48px, title gets the full remaining width with 2-line clamp, and equipment name gets a dedicated line. Fixes severe title truncation on narrow phone screens (e.g. "250-Hour PM" rendering as "25( H...") that made cards unreadable in the field.
+
 ## [2.7.1] - 2026-04-05
 
 ### Changed

@@ -9,9 +9,10 @@ import type { PMChecklistItem } from '@/features/pm-templates/services/preventat
 interface PMProgressIndicatorProps {
   workOrderId: string;
   hasPM: boolean;
+  showCount?: boolean;
 }
 
-const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, hasPM }) => {
+const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, hasPM, showCount = false }) => {
   const { data: pmData } = usePMByWorkOrderId(workOrderId);
 
   // Parse checklist data and create segments for all items
@@ -41,6 +42,9 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
 
   const isCompleted = pmData?.status === 'completed';
 
+  const completedCount = segments.filter(s => s.status === 'pass').length;
+  const totalCount = segments.length;
+
   return (
     <div className="flex items-center gap-2">
       {/* PM label */}
@@ -55,11 +59,17 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
         </TooltipContent>
       </Tooltip>
 
-      {/* Segment bar — colors always reflect actual condition severity */}
+      {/* Segment bar */}
       {segments.length > 0 && (
         <div className="min-w-0 flex-1">
           <SegmentedProgress segments={segments} className="h-2" />
         </div>
+      )}
+
+      {showCount && totalCount > 0 && (
+        <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
+          {completedCount}/{totalCount}
+        </span>
       )}
 
       {/* Right-side completion icon */}
