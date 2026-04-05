@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
         warnings.push("Could not create team/equipment subfolders; document saved to root destination.");
       }
 
-      // --- Try to delete previous artifact ---
+      // --- Lookup previous artifact (needed for cleanup after successful creation) ---
       let replacedPrevious = false;
       const { data: prevArtifact } = await adminClient
         .from("record_export_artifacts")
@@ -217,20 +217,7 @@ Deno.serve(async (req) => {
         .eq("status", "current")
         .maybeSingle();
 
-      if (prevArtifact?.provider_file_id) {
-        const deleteResult = await deleteGoogleDriveFile(
-          tokenResult.accessToken,
-          prevArtifact.provider_file_id,
-        );
-
-        if (deleteResult.outcome === "deleted" || deleteResult.outcome === "not_found") {
-          replacedPrevious = deleteResult.outcome === "deleted";
-        } else {
-          warnings.push("Previous export could not be deleted; a new document was created alongside it.");
-        }
-      }
-
-      // --- Create new Google Doc ---
+      // --- Create new Google Doc first (safe: old doc stays intact on failure) ---
       const dateStr = new Date().toISOString().split("T")[0];
       const title = `${packetData.workOrder.title} — Internal Packet ${dateStr}`;
 
@@ -253,7 +240,7 @@ Deno.serve(async (req) => {
       const webViewLink = doc.webViewLink
         ?? `https://docs.google.com/document/d/${doc.id}/edit`;
 
-      // --- Upsert artifact record ---
+      // --- Upsert artifact record (points to new doc before old is removed) ---
       await adminClient
         .from("record_export_artifacts")
         .upsert({
@@ -272,6 +259,20 @@ Deno.serve(async (req) => {
         }, {
           onConflict: "organization_id,record_type,record_id,export_channel,artifact_kind",
         });
+
+      // --- Best-effort cleanup of previous Drive file ---
+      if (prevArtifact?.provider_file_id) {
+        const deleteResult = await deleteGoogleDriveFile(
+          tokenResult.accessToken,
+          prevArtifact.provider_file_id,
+        );
+
+        if (deleteResult.outcome === "deleted" || deleteResult.outcome === "not_found") {
+          replacedPrevious = deleteResult.outcome === "deleted";
+        } else {
+          warnings.push("Previous export could not be deleted; a new document was created alongside it.");
+        }
+      }
 
       if (exportLogId) {
         await supabase

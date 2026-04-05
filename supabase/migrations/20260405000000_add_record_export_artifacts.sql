@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS public.record_export_artifacts (
   -- Lifecycle
   last_exported_at timestamptz NOT NULL DEFAULT timezone('utc', now()),
   last_exported_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  status text NOT NULL DEFAULT 'current' CHECK (status IN ('current', 'replaced', 'deleted')),
+  -- 'current' = active artifact; 'deleted' = provider file removed without replacement.
+  -- The UNIQUE constraint enforces one row per record/channel/kind (latest-only).
+  status text NOT NULL DEFAULT 'current' CHECK (status IN ('current', 'deleted')),
   metadata jsonb,
 
   created_at timestamptz NOT NULL DEFAULT timezone('utc', now()),
