@@ -38,13 +38,19 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
   organization
 }) => {
   return (
-    <Tabs defaultValue="members" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="members" className="flex items-center gap-2">
+    <Tabs defaultValue="members" className="space-y-6">
+      <TabsList className="h-auto bg-transparent p-0 rounded-none border-b w-full justify-start gap-4">
+        <TabsTrigger
+          value="members"
+          className="flex items-center gap-2 rounded-none bg-transparent px-1 pb-2.5 pt-1.5 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=inactive]:border-b-2 data-[state=inactive]:border-transparent text-muted-foreground data-[state=active]:text-foreground"
+        >
           <Users className="h-4 w-4" />
           Members
         </TabsTrigger>
-        <TabsTrigger value="settings" className="flex items-center gap-2">
+        <TabsTrigger
+          value="settings"
+          className="flex items-center gap-2 rounded-none bg-transparent px-1 pb-2.5 pt-1.5 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=inactive]:border-b-2 data-[state=inactive]:border-transparent text-muted-foreground data-[state=active]:text-foreground"
+        >
           <Settings className="h-4 w-4" />
           Settings
         </TabsTrigger>

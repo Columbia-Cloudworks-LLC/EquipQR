@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import { customRender } from '@/test/utils/renderUtils';
 import type { OrganizationMember } from '@/features/organization/types/organization';
@@ -159,12 +159,13 @@ describe('UnifiedMembersList', () => {
       />
     );
 
-    // Active member
-    expect(await screen.findByText('Alice Admin')).toBeInTheDocument();
+    // Active member (appears in both desktop table and mobile card views)
+    const aliceElements = await screen.findAllByText('Alice Admin');
+    expect(aliceElements[0]).toBeInTheDocument();
     // Pending invitation row - "Pending Invite" appears in both name and status columns
     const pendingInviteElements = screen.getAllByText('Pending Invite');
     expect(pendingInviteElements.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('invitee@example.com')).toBeInTheDocument();
+    expect(screen.getAllByText('invitee@example.com')[0]).toBeInTheDocument();
   });
 
   it('does not disable Invite button when billing is disabled (billing disabled by default)', async () => {
@@ -195,12 +196,12 @@ describe('UnifiedMembersList', () => {
     );
 
     // Wait for the component to render
-    await screen.findByText('Alice Admin');
-    await screen.findByText('Bob Member');
+    await screen.findAllByText('Alice Admin');
+    await screen.findAllByText('Bob Member');
 
-    // Look for the role select trigger specifically for Bob Member (the member role)
-    // The select should be in the same row as Bob Member
-    const bobRow = screen.getByText('Bob Member').closest('tr');
+    // Scope to the desktop table to avoid mobile card duplicates
+    const table = screen.getByRole('table');
+    const bobRow = within(table).getByText('Bob Member').closest('tr');
     expect(bobRow).toBeInTheDocument();
     
     if (bobRow) {
@@ -318,9 +319,9 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      // Should show the GWS claim with full name
-      expect(await screen.findByText('Pending User')).toBeInTheDocument();
-      expect(screen.getByText('pending.user@workspace.example.com')).toBeInTheDocument();
+      // Should show the GWS claim with full name (appears in both desktop and mobile views)
+      expect((await screen.findAllByText('Pending User'))[0]).toBeInTheDocument();
+      expect(screen.getAllByText('pending.user@workspace.example.com')[0]).toBeInTheDocument();
       
       // Should show "Awaiting Sign-up" status
       const awaitingSignupBadges = screen.getAllByText('Awaiting Sign-up');
@@ -339,8 +340,8 @@ describe('UnifiedMembersList', () => {
       );
 
       // Should show the fallback name for claim without fullName
-      expect(await screen.findByText('Pending (Google Workspace)')).toBeInTheDocument();
-      expect(screen.getByText('noname@workspace.example.com')).toBeInTheDocument();
+      expect((await screen.findAllByText('Pending (Google Workspace)'))[0]).toBeInTheDocument();
+      expect(screen.getAllByText('noname@workspace.example.com')[0]).toBeInTheDocument();
     });
 
     it('shows actions dropdown for GWS claims with remove action available', async () => {
@@ -355,10 +356,11 @@ describe('UnifiedMembersList', () => {
       );
 
       // Wait for GWS claim to render
-      await screen.findByText('Pending User');
+      await screen.findAllByText('Pending User');
       
-      // Find the row for the GWS claim
-      const gwsRow = screen.getByText('Pending User').closest('tr');
+      // Find the row for the GWS claim (scope to desktop table)
+      const table = screen.getByRole('table');
+      const gwsRow = within(table).getByText('Pending User').closest('tr');
       expect(gwsRow).toBeInTheDocument();
       
       // Verify the actions dropdown button exists for GWS claims
@@ -427,7 +429,7 @@ describe('UnifiedMembersList', () => {
       );
 
       // Alice Admin should appear (the active member)
-      expect(await screen.findByText('Alice Admin')).toBeInTheDocument();
+      expect((await screen.findAllByText('Alice Admin'))[0]).toBeInTheDocument();
       
       // But "Alice Duplicate" should NOT appear (filtered out as duplicate)
       expect(screen.queryByText('Alice Duplicate')).not.toBeInTheDocument();
@@ -488,7 +490,7 @@ describe('UnifiedMembersList', () => {
       );
 
       // The pending invitation should appear
-      expect(await screen.findByText('invitee@example.com')).toBeInTheDocument();
+      expect((await screen.findAllByText('invitee@example.com'))[0]).toBeInTheDocument();
       
       // But "Invitee Duplicate" GWS claim should NOT appear (filtered out as duplicate of pending invitation)
       expect(screen.queryByText('Invitee Duplicate')).not.toBeInTheDocument();
@@ -519,7 +521,7 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      await screen.findByText('Alice Admin');
+      await screen.findAllByText('Alice Admin');
       
       // Should show Invite Member button
       expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument();
@@ -548,7 +550,7 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      await screen.findByText('Alice Admin');
+      await screen.findAllByText('Alice Admin');
       
       // Should show both buttons
       expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument();
@@ -575,7 +577,7 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      await screen.findByText('Alice Admin');
+      await screen.findAllByText('Alice Admin');
       
       // Should NOT show either button when user cannot invite
       expect(screen.queryByRole('button', { name: /invite member/i })).not.toBeInTheDocument();
@@ -602,7 +604,7 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      await screen.findByText('Alice Admin');
+      await screen.findAllByText('Alice Admin');
       
       // Sheet should not be visible initially
       expect(screen.queryByTestId('gws-import-sheet')).not.toBeInTheDocument();

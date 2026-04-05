@@ -105,7 +105,7 @@ describe('QuickBooksIntegration Component', () => {
       renderComponent();
       
       await waitFor(() => {
-        expect(screen.getByText('QuickBooks Online Integration')).toBeInTheDocument();
+        expect(screen.getByText('QuickBooks Online')).toBeInTheDocument();
       });
     });
   });
@@ -133,7 +133,7 @@ describe('QuickBooksIntegration Component', () => {
       renderComponent({ currentUserRole: 'admin' });
       
       await waitFor(() => {
-        expect(screen.getByText('QuickBooks Online Integration')).toBeInTheDocument();
+        expect(screen.getByText('QuickBooks Online')).toBeInTheDocument();
       });
     });
 
@@ -147,7 +147,7 @@ describe('QuickBooksIntegration Component', () => {
       renderComponent({ currentUserRole: 'owner' });
       
       await waitFor(() => {
-        expect(screen.getByText('QuickBooks Online Integration')).toBeInTheDocument();
+        expect(screen.getByText('QuickBooks Online')).toBeInTheDocument();
       });
     });
   });
@@ -159,7 +159,7 @@ describe('QuickBooksIntegration Component', () => {
       renderComponent();
       
       await waitFor(() => {
-        expect(screen.getByText(/QuickBooks integration is not configured/i)).toBeInTheDocument();
+        expect(screen.getByText('Not configured')).toBeInTheDocument();
       });
     });
   });
@@ -173,7 +173,7 @@ describe('QuickBooksIntegration Component', () => {
       renderComponent();
       
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Connect to QuickBooks Online/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^Connect$/ })).toBeInTheDocument();
       });
     });
 
@@ -193,10 +193,10 @@ describe('QuickBooksIntegration Component', () => {
       renderComponent();
       
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Connect to QuickBooks Online/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^Connect$/ })).toBeInTheDocument();
       });
       
-      const connectButton = screen.getByRole('button', { name: /Connect to QuickBooks Online/i });
+      const connectButton = screen.getByRole('button', { name: /^Connect$/ });
       fireEvent.click(connectButton);
       
       await waitFor(() => {
@@ -238,11 +238,11 @@ describe('QuickBooksIntegration Component', () => {
       });
     });
 
-    it('should show realm ID when connected', async () => {
+    it('should show management link when connected', async () => {
       renderComponent();
       
       await waitFor(() => {
-        expect(screen.getByText(/Company ID: realm-123/i)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /manage quickbooks connections/i })).toBeInTheDocument();
       });
     });
   });
@@ -259,8 +259,8 @@ describe('QuickBooksIntegration Component', () => {
       renderComponent();
       
       await waitFor(() => {
-        expect(screen.getByText(/authorization has expired/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Reconnect QuickBooks/i })).toBeInTheDocument();
+        expect(screen.getByText(/authorization expired/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Reconnect/i })).toBeInTheDocument();
       });
     });
   });

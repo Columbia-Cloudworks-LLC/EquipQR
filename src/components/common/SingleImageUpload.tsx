@@ -24,6 +24,8 @@ interface SingleImageUploadProps {
   helpText?: string;
   /** CSS class for the image preview container */
   previewClassName?: string;
+  /** Layout variant: 'default' for full-width drop zone, 'compact' for square thumbnail */
+  variant?: 'default' | 'compact';
 }
 
 const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
@@ -36,6 +38,7 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
   label,
   helpText,
   previewClassName = 'max-w-full max-h-32 object-contain',
+  variant = 'default',
 }) => {
   const appToast = useAppToast();
   const [isUploading, setIsUploading] = useState(false);
@@ -160,117 +163,199 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
         </Label>
       )}
 
-      {/* Current image display */}
-      {hasCurrentImage && !previewFile && (
-        <div className="space-y-2">
-          <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
-            <img
-              src={currentImageUrl}
-              alt={label || 'Current image'}
-              className={previewClassName}
-              onError={() => setImageError(true)}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={disabled || isProcessing}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Replace
-            </Button>
-            {onDelete && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={disabled || isProcessing}
-                onClick={handleDelete}
-              >
-                {isDeleting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <X className="h-4 w-4 mr-2" />
+      {variant === 'compact' ? (
+        <>
+          {/* Compact: square thumbnail with hover overlay */}
+          {(hasCurrentImage || (previewFile && previewUrl)) && (
+            <div className="space-y-1.5">
+              <div className="group relative w-24 h-24 rounded-lg border bg-muted/50 overflow-hidden">
+                <img
+                  src={previewFile && previewUrl ? previewUrl : currentImageUrl!}
+                  alt={previewFile ? 'Preview' : (label || 'Current image')}
+                  className="w-full h-full object-contain"
+                  onError={!previewFile ? () => setImageError(true) : undefined}
+                />
+                {!previewFile && (
+                  <button
+                    type="button"
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                    disabled={disabled || isProcessing}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <span className="text-xs font-medium text-white">Replace</span>
+                  </button>
                 )}
-                Remove
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* File preview (selected but not yet uploaded) */}
-      {previewFile && previewUrl && (
-        <div className="space-y-2">
-          <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
-            <img
-              src={previewUrl}
-              alt="Preview"
-              className={previewClassName}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground truncate">{previewFile.name}</p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              size="sm"
-              disabled={disabled || isProcessing}
-              onClick={handleUpload}
+              </div>
+              {previewFile ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={disabled || isProcessing}
+                    onClick={handleUpload}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    {isUploading ? 'Uploading...' : 'Upload'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={isProcessing}
+                    onClick={handleCancelPreview}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : onDelete ? (
+                <button
+                  type="button"
+                  className="text-xs text-destructive hover:underline disabled:opacity-50"
+                  disabled={disabled || isProcessing}
+                  onClick={handleDelete}
+                >
+                  {isDeleting ? 'Removing...' : 'Remove'}
+                </button>
+              ) : null}
+            </div>
+          )}
+          {/* Compact drop zone */}
+          {showDropZone && (
+            <label
+              htmlFor={inputId}
+              className={`w-24 h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center transition-colors ${
+                disabled || isProcessing ? 'opacity-50' : 'cursor-pointer'
+              } ${
+                dragActive
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+              }`}
+              aria-disabled={disabled || isProcessing || undefined}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
             >
-              {isUploading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4 mr-2" />
-              )}
-              {isUploading ? 'Uploading...' : 'Upload'}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isProcessing}
-              onClick={handleCancelPreview}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
+              <Upload className="h-5 w-5 text-muted-foreground mb-1" />
+              <span className="text-xs text-muted-foreground">Upload</span>
+            </label>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Default: full-width layout */}
+          {hasCurrentImage && !previewFile && (
+            <div className="space-y-2">
+              <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
+                <img
+                  src={currentImageUrl}
+                  alt={label || 'Current image'}
+                  className={previewClassName}
+                  onError={() => setImageError(true)}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={disabled || isProcessing}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Replace
+                </Button>
+                {onDelete && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={disabled || isProcessing}
+                    onClick={handleDelete}
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <X className="h-4 w-4 mr-2" />
+                    )}
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
 
-      {/* Drop zone (no current image and no preview) — uses a <label> linked to
-          the file input so clicking anywhere opens the file dialog without nesting
-          interactive elements. The input uses sr-only so it stays keyboard-focusable. */}
-      {showDropZone && (
-        <label
-          htmlFor={inputId}
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors block ${
-            disabled || isProcessing ? 'opacity-50' : 'cursor-pointer'
-          } ${
-            dragActive
-              ? 'border-primary bg-primary/5'
-              : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-          }`}
-          aria-disabled={disabled || isProcessing || undefined}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-        >
-          <ImageIcon className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Drop an image here or click to browse</p>
-            <p className="text-xs text-muted-foreground">
-              {formatLabel} up to {maxSizeMB} MB
-            </p>
-            <span className="inline-flex items-center gap-2 mt-2 text-sm text-primary font-medium">
-              <Upload className="h-4 w-4" />
-              Choose File
-            </span>
-          </div>
-        </label>
+          {previewFile && previewUrl && (
+            <div className="space-y-2">
+              <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className={previewClassName}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground truncate">{previewFile.name}</p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={disabled || isProcessing}
+                  onClick={handleUpload}
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  {isUploading ? 'Uploading...' : 'Upload'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isProcessing}
+                  onClick={handleCancelPreview}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {showDropZone && (
+            <label
+              htmlFor={inputId}
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors block ${
+                disabled || isProcessing ? 'opacity-50' : 'cursor-pointer'
+              } ${
+                dragActive
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+              }`}
+              aria-disabled={disabled || isProcessing || undefined}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              <ImageIcon className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Drop an image here or click to browse</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatLabel} up to {maxSizeMB} MB
+                </p>
+                <span className="inline-flex items-center gap-2 mt-2 text-sm text-primary font-medium">
+                  <Upload className="h-4 w-4" />
+                  Choose File
+                </span>
+              </div>
+            </label>
+          )}
+        </>
       )}
 
       {/* Visually-hidden file input — sr-only keeps it in the tab order so
