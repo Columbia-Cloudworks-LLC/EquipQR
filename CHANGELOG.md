@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.1] - 2026-04-05
+
 ### Changed
 
 - **User Settings page redesign** — Reworked the user settings page to match the organization settings pattern: sticky sidebar navigation (vertical on desktop, horizontal scrollable chips on mobile) with IntersectionObserver-based active section tracking, `divide-y` section separators with 3-column grid layout (label + description in col-1, controls spanning cols 2-3) replacing stacked Card boxes, compact inline avatar uploader (`variant="avatar"` on `SingleImageUpload`), standardized `SettingsToggleRow` component for all privacy toggles, collapsible disclosure info boxes replacing dense bullet-point panels, user identity strip below the page heading, inline key/value stat rows in session/security status, tooltip-labeled refresh buttons, and a GitHub-style Danger Zone container for reset settings.
