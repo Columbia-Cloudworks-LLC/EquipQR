@@ -28,6 +28,10 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const previewUrls = useRef<Map<File, string>>(new Map());
+  const clearPreviewUrls = () => {
+    previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    previewUrls.current.clear();
+  };
 
   const getPreviewUrl = (file: File): string | undefined => {
     const cached = previewUrls.current.get(file);
@@ -134,6 +138,7 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
     
     try {
       await onUpload(selectedFiles);
+      clearPreviewUrls();
       setSelectedFiles([]);
       toast.success('Images uploaded successfully!');
     } catch (error) {

@@ -352,7 +352,8 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({
-          error: "An unexpected error occurred during export",
+          error: errMsg || "An unexpected error occurred during export",
+          code: "export_failed",
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
