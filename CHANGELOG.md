@@ -7,6 +7,26 @@ All notable changes to EquipQR will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Organization Settings page redesign** — Reworked the Settings tab toward a GitHub/Linear-style admin aesthetic: two-column grid layout (label + description in col-1, controls in col-2), underline-style tab bar (local override, shared tabs primitive unchanged), per-section save with auto-saving Privacy toggle, compact inline color picker (swatch + hex input + picker in one row), and `divide-y` section separators instead of stacked cards.
+
+- **Integration cards horizontal layout** — QuickBooks, Google Workspace, and Google Docs Export cards converted from vertical Card/CardHeader stacks to compact horizontal rows with inline status badges and right-aligned action buttons. Long body-copy paragraphs replaced with single-line descriptions.
+
+- **Danger Zone red-border card** — Consolidated transfer ownership, leave organization, and delete organization into a single `border-destructive/50` card with a red-tinted header and horizontal action rows separated by dividers. Disabled transfer state uses a subtle inline hint instead of a large Alert block.
+
+- **Members table tightened** — Row padding reduced to `py-3`, table headers styled as `text-xs font-semibold uppercase tracking-wide`, Import from Google button switched to ghost variant, and `aria-label="Member options"` added to the actions dropdown for accessibility.
+
+- **Responsive mobile members list** — Members table now hides on small screens (`hidden sm:block`) in favor of a card list (`sm:hidden`) showing avatar, name, email, role badge, status, and actions per member.
+
+- **Organization logo upload compact variant** — Added `variant="compact"` to `SingleImageUpload` for a `w-24 h-24` square thumbnail with hover-overlay replace button and destructive text-link remove, used in organization branding settings. Default variant unchanged for other consumers.
+
+- **Page header reduced** — Organization Management heading reduced from `text-2xl/3xl font-bold` display style to `text-xl font-semibold` with a `border-b` divider, matching an administrative settings pattern.
+
+- **Google Docs export destination display** — Destination folder shown as a breadcrumb-style path (`My Drive / folder-name`) with a monospace truncated parent ID and copy-to-clipboard button. Folder organization checkboxes wrapped in a proper `<fieldset>` with `role="group"` for accessibility.
+
 ## [2.7.0] - 2026-04-04
 
 ### Added

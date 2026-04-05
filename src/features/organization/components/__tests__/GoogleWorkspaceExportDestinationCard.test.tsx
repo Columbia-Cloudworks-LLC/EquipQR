@@ -187,7 +187,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
     customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
 
     expect(
-      screen.getByText(/reconnect google workspace to refresh google docs and drive permissions before choosing a destination/i)
+      screen.getByText(/reconnect google workspace to refresh drive permissions before choosing a destination/i)
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /choose destination/i })).toBeDisabled();
   });
@@ -212,7 +212,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
     customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
 
     expect(
-      screen.getByText(/reconnect google workspace to refresh google docs and drive permissions before choosing a destination/i)
+      screen.getByText(/reconnect google workspace to refresh drive permissions before choosing a destination/i)
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /choose destination/i })).toBeDisabled();
   });
@@ -439,7 +439,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
     rerender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
 
     expect(screen.getByText('Ops Exports')).toBeInTheDocument();
-    expect(screen.getByText(/my drive folder/i)).toBeInTheDocument();
+    expect(screen.getByText('My Drive')).toBeInTheDocument();
   });
 
   it('shows folder organization checkboxes when a destination is configured', () => {
