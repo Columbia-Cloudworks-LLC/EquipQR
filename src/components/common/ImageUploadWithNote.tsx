@@ -8,6 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
+const sanitizeForDisplay = (text: string): string =>
+  text.replace(/[<>&"']/g, '');
+
 interface ImageUploadWithNoteProps {
   onUpload: (files: File[]) => Promise<void>;
   maxFiles?: number;
@@ -61,11 +64,11 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
   const addFiles = (files: File[]) => {
     const validFiles = files.filter(file => {
       if (!acceptedTypes.includes(file.type)) {
-        toast.error(`${file.name} is not a supported image format`);
+        toast.error(`${sanitizeForDisplay(file.name)} is not a supported image format`);
         return false;
       }
       if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error(`${file.name} is too large. Maximum size is 10MB`);
+        toast.error(`${sanitizeForDisplay(file.name)} is too large. Maximum size is 10MB`);
         return false;
       }
       return true;
@@ -192,15 +195,16 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {selectedFiles.map((file, index) => {
                 const previewUrl = getPreviewUrl(file);
+                const displayName = sanitizeForDisplay(file.name);
                 return (
-                <div key={`${file.name}-${index}`} className="relative group">
+                <div key={`${displayName}-${index}`} className="relative group">
                   <div className="aspect-square bg-muted rounded-lg overflow-hidden">
                     {previewUrl ? (
                       <img
                         src={previewUrl}
-                        alt={file.name}
+                        alt={displayName}
                         className="w-full h-full object-cover"
-                        onError={() => console.error('Image preview failed:', file.name)}
+                        onError={() => console.error('Image preview failed:', displayName)}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
@@ -214,11 +218,11 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
                     size="sm"
                     className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => removeFile(index)}
-                    aria-label={`Remove selected image ${file.name}`}
+                    aria-label={`Remove selected image ${displayName}`}
                   >
                     <X className="h-3 w-3" />
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-1 truncate">{file.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">{displayName}</p>
                 </div>
                 );
               })}
