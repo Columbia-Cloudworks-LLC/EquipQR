@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, X } from 'lucide-react';
 import { useUploadEquipmentNoteImage } from '@/features/equipment/hooks/useEquipmentNotesWithImages';
+import { sanitizeBlobUrl } from '@/utils/sanitizeBlobUrl';
 
 interface EquipmentNoteImageUploadProps {
   open: boolean;
@@ -46,8 +47,9 @@ const EquipmentNoteImageUpload: React.FC<EquipmentNoteImageUploadProps> = ({
         URL.revokeObjectURL(previewUrl);
       }
       const url = URL.createObjectURL(file);
-      if (url.startsWith('blob:')) {
-        setPreviewUrl(url);
+      const safe = sanitizeBlobUrl(url);
+      if (safe) {
+        setPreviewUrl(safe);
       }
     }
   };
@@ -112,10 +114,10 @@ const EquipmentNoteImageUpload: React.FC<EquipmentNoteImageUploadProps> = ({
           </div>
 
           {/* File Preview */}
-          {selectedFile && previewUrl && (
+          {selectedFile && sanitizeBlobUrl(previewUrl) && (
             <div className="relative">
               <img
-                src={previewUrl}
+                src={sanitizeBlobUrl(previewUrl)!}
                 alt="Preview"
                 className="w-full h-48 object-cover rounded-md border"
               />

@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { sanitizeBlobUrl } from '@/utils/sanitizeBlobUrl';
 
 const sanitizeForDisplay = (text: string): string =>
   text.replace(/[^\w\s.\-()[\]]/g, '_') || 'unnamed';
@@ -33,23 +34,18 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
     previewUrls.current.clear();
   };
 
-  const getPreviewUrl = (file: File): string | undefined => {
+  const getPreviewUrl = (file: File): string | null => {
     const cached = previewUrls.current.get(file);
-    if (cached) return cached;
+    if (cached) return sanitizeBlobUrl(cached);
 
     const url = URL.createObjectURL(file);
-    try {
-      const parsed = new URL(url);
-      if (parsed.protocol !== 'blob:') {
-        URL.revokeObjectURL(url);
-        return undefined;
-      }
-    } catch {
+    const safe = sanitizeBlobUrl(url);
+    if (!safe) {
       URL.revokeObjectURL(url);
-      return undefined;
+      return null;
     }
     previewUrls.current.set(file, url);
-    return url;
+    return safe;
   };
 
   useEffect(() => {
@@ -199,14 +195,14 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
             <Label className="text-sm font-medium">Selected Images ({selectedFiles.length})</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {selectedFiles.map((file, index) => {
-                const previewUrl = getPreviewUrl(file);
+                const safePreviewUrl = getPreviewUrl(file);
                 const displayName = sanitizeForDisplay(file.name);
                 return (
                 <div key={`${displayName}-${index}`} className="relative group">
                   <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                    {previewUrl?.startsWith('blob:') ? (
+                    {safePreviewUrl ? (
                       <img
-                        src={previewUrl}
+                        src={safePreviewUrl}
                         alt={displayName}
                         className="w-full h-full object-cover"
                         onError={() => console.error('Image preview failed')}

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useAppToast } from '@/hooks/useAppToast';
+import { sanitizeBlobUrl } from '@/utils/sanitizeBlobUrl';
 
 interface SingleImageUploadProps {
   /** Current image URL (if any) */
@@ -59,18 +60,7 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
     return () => URL.revokeObjectURL(url);
   }, [previewFile]);
 
-  // Sanitize blob URL through URL parser to satisfy CodeQL taint analysis (js/xss-through-dom).
-  // Parsing via `new URL()` and re-reading `.href` produces a newly-constructed string,
-  // which breaks the taint chain that CodeQL tracks from DOM text to HTML attribute.
-  const previewUrl = useMemo(() => {
-    if (!rawPreviewUrl) return null;
-    try {
-      const parsed = new URL(rawPreviewUrl);
-      return parsed.protocol === 'blob:' ? parsed.href : null;
-    } catch {
-      return null;
-    }
-  }, [rawPreviewUrl]);
+  const previewUrl = useMemo(() => sanitizeBlobUrl(rawPreviewUrl), [rawPreviewUrl]);
 
   // Build a human-readable label from the configured accepted MIME types
   const formatLabel = useMemo(
@@ -216,7 +206,6 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
       {previewFile && previewUrl && (
         <div className="space-y-2">
           <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
-            {/* previewUrl is sanitized via URL parser (useMemo above) — guaranteed blob: or null */}
             <img
               src={previewUrl}
               alt="Preview"
