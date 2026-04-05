@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Export artifact lineage and replace-on-re-export** — New `record_export_artifacts` table (migration `20260405000000`) tracks the last-exported Google Doc per work order with a future-ready schema supporting any record type and export channel. Re-exporting the same work order now deletes the previous Google Doc (if it still exists) before creating a fresh one, and upserts the artifact row with the latest link. The "Open Last Google Doc" action appears in the work order actions menu when a previous export exists.
+- **Export artifact lineage and replace-on-re-export** — New `record_export_artifacts` table (migration `20260405000000`) tracks the last-exported Google Doc per work order with a future-ready schema supporting any record type and export channel. Re-exporting the same work order creates a fresh Google Doc first, upserts the artifact row with the latest link, then best-effort deletes the previous Google Doc (if it still exists). The "Open Last Google Doc" action appears in the work order actions menu when a previous export exists.
 
 - **Team/equipment subfolder routing for Google Docs exports** — Exports are now organized into readable subfolders under the configured destination using the pattern `TeamName/EquipmentName`. Folder names are human-readable (no IDs), sanitized for safe Drive usage, and reused on subsequent exports. New shared module `google-drive-folder-routing.ts` handles resolve-or-create logic with `supportsAllDrives=true` for Shared Drive compatibility.
 
@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Google Docs API not enabled on GCP project** — The Google Docs API (`docs.googleapis.com`) was never enabled in Google Cloud Console, so `batchUpdate` calls from the Edge Function failed with a 403/500 after the empty doc was created via the Drive API. Enabled via `gcloud services enable docs.googleapis.com`.
 
-- **Docs export Edge Function swallowed error details** — The inner catch block re-threw the Google API error into the outer generic catch, losing the specific message. Now logs the actual error via `console.error` and returns it in the 500 response body for frontend visibility. Also removed references to nonexistent `file_url` and `error_message` columns in `export_request_log` updates.
+- **Docs export Edge Function swallowed error details** — The inner catch block re-threw the Google API error into the outer generic catch, losing the specific message. Now logs the actual error via `console.error` for server-side debugging while returning a generic `{ error, code: "export_failed" }` 500 response to avoid leaking internal details. Also removed references to nonexistent `file_url` and `error_message` columns in `export_request_log` updates.
 
 - **README version badge** — Updated from `2.5.2` to `2.7.0` to match the current release.
 

@@ -123,6 +123,8 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     organizationId,
     'work_order',
     workOrder?.id,
+    'google_docs',
+    'internal_packet',
   );
 
   // Handle PDF export with options from dialog

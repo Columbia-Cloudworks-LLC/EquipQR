@@ -167,8 +167,10 @@ export const workOrderExports = {
 
 export const exportArtifacts = {
   root: ['export-artifacts'] as const,
-  latest: (orgId: string, recordType: string, recordId: string) =>
-    ['export-artifacts', orgId, recordType, recordId, 'latest'] as const,
+  byRecord: (orgId: string, recordType: string, recordId: string) =>
+    ['export-artifacts', orgId, recordType, recordId] as const,
+  latest: (orgId: string, recordType: string, recordId: string, exportChannel: string, artifactKind: string) =>
+    ['export-artifacts', orgId, recordType, recordId, exportChannel, artifactKind, 'latest'] as const,
 };
 
 // Equipment working-hours keys

@@ -325,7 +325,7 @@ export function useWorkOrderExcelExport(
     onSuccess: (result, filters) => {
       if (organizationId && filters.workOrderId) {
         void queryClient.invalidateQueries({
-          queryKey: exportArtifacts.latest(organizationId, 'work_order', filters.workOrderId),
+          queryKey: exportArtifacts.byRecord(organizationId, 'work_order', filters.workOrderId),
         });
       }
       const desc = result.replacedPrevious
@@ -464,7 +464,7 @@ export function useWorkOrderExcelExport(
           dateField: 'created_date',
         });
         void queryClient.invalidateQueries({
-          queryKey: exportArtifacts.latest(organizationId, 'work_order', workOrderId),
+          queryKey: exportArtifacts.byRecord(organizationId, 'work_order', workOrderId),
         });
         const desc = result.replacedPrevious
           ? `Updated Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`
