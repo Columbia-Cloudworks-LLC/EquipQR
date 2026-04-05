@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: exportLog } = await supabase
+    const { data: exportLog, error: exportLogInsertError } = await adminClient
       .from("export_request_log")
       .insert({
         user_id: auth.user.id,
@@ -172,7 +172,11 @@ Deno.serve(async (req) => {
       })
       .select("id")
       .single();
+    if (exportLogInsertError) {
+      console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to create export log:", exportLogInsertError.message);
+    }
     const exportLogId = exportLog?.id;
+    let createdDocId: string | undefined;
 
     try {
       const workOrderId = filters.workOrderId!;
@@ -206,7 +210,7 @@ Deno.serve(async (req) => {
 
       // --- Lookup previous artifact (needed for cleanup after successful creation) ---
       let replacedPrevious = false;
-      const { data: prevArtifact } = await adminClient
+      const { data: prevArtifact, error: prevArtifactError } = await adminClient
         .from("record_export_artifacts")
         .select("id, provider_file_id")
         .eq("organization_id", organizationId)
@@ -216,6 +220,10 @@ Deno.serve(async (req) => {
         .eq("artifact_kind", ARTIFACT_KIND)
         .eq("status", "current")
         .maybeSingle();
+      if (prevArtifactError) {
+        console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Previous artifact lookup failed:", prevArtifactError.message);
+        warnings.push("Could not check for a previous export; a new document will be created without replacing the old one.");
+      }
 
       // --- Create new Google Doc first (safe: old doc stays intact on failure) ---
       const dateStr = new Date().toISOString().split("T")[0];
@@ -226,6 +234,7 @@ Deno.serve(async (req) => {
         title,
         targetParentId,
       );
+      createdDocId = doc.id;
 
       const packet = buildExecutivePacketRequests(packetData);
 
@@ -241,7 +250,7 @@ Deno.serve(async (req) => {
         ?? `https://docs.google.com/document/d/${doc.id}/edit`;
 
       // --- Upsert artifact record (points to new doc before old is removed) ---
-      await adminClient
+      const { error: artifactUpsertError } = await adminClient
         .from("record_export_artifacts")
         .upsert({
           organization_id: organizationId,
@@ -259,6 +268,10 @@ Deno.serve(async (req) => {
         }, {
           onConflict: "organization_id,record_type,record_id,export_channel,artifact_kind",
         });
+      if (artifactUpsertError) {
+        console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Artifact upsert failed:", artifactUpsertError.message);
+        warnings.push("Export succeeded but lineage tracking could not be saved. The 'Open Last Export' shortcut may not reflect this export.");
+      }
 
       // --- Best-effort cleanup of previous Drive file ---
       if (prevArtifact?.provider_file_id) {
@@ -275,7 +288,7 @@ Deno.serve(async (req) => {
       }
 
       if (exportLogId) {
-        await supabase
+        const { error: logUpdateError } = await adminClient
           .from("export_request_log")
           .update({
             status: "completed",
@@ -283,6 +296,9 @@ Deno.serve(async (req) => {
             completed_at: new Date().toISOString(),
           })
           .eq("id", exportLogId);
+        if (logUpdateError) {
+          console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to update export log:", logUpdateError.message);
+        }
       }
 
       const allWarnings = [...warnings, ...packet.warnings];
@@ -305,14 +321,26 @@ Deno.serve(async (req) => {
       const errMsg = exportError instanceof Error ? exportError.message : String(exportError);
       console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Inner export error:", errMsg);
 
+      if (createdDocId && tokenResult?.accessToken) {
+        try {
+          await deleteGoogleDriveFile(tokenResult.accessToken, createdDocId);
+          console.info("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Cleaned up orphaned doc:", createdDocId);
+        } catch (cleanupErr) {
+          console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to clean up orphaned doc:", createdDocId, cleanupErr);
+        }
+      }
+
       if (exportLogId) {
-        await supabase
+        const { error: failLogError } = await adminClient
           .from("export_request_log")
           .update({
             status: "failed",
             completed_at: new Date().toISOString(),
           })
           .eq("id", exportLogId);
+        if (failLogError) {
+          console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to update export log on failure:", failLogError.message);
+        }
       }
 
       if (exportError instanceof GoogleWorkspaceTokenError) {
@@ -323,7 +351,10 @@ Deno.serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ error: "An unexpected error occurred during export" }),
+        JSON.stringify({
+          error: "An unexpected error occurred during export",
+          detail: errMsg.substring(0, 200),
+        }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
