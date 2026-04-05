@@ -262,7 +262,7 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
                 {!previewFile && (
                   <button
                     type="button"
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 focus:opacity-100 group-focus-within:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     disabled={disabled || isProcessing}
                     onClick={() => fileInputRef.current?.click()}
                   >

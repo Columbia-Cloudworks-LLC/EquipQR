@@ -39,7 +39,7 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
 
   const { data: pendingTransfer, isLoading: transferLoading } = usePendingTransferForUser();
 
-  const transferableAdmins = admins.filter(admin => admin.userId !== organization.id);
+  const transferableAdmins = admins;
 
   return (
     <div className="space-y-4">
