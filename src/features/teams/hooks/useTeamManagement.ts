@@ -5,15 +5,53 @@ import {
   removeTeamMember,
   getAvailableUsersForTeam
 } from '@/features/teams/services/teamService';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAccessSnapshot } from '@/hooks/useAccessSnapshot';
+import { useTeam as useTeamContext } from '@/features/teams/hooks/useTeam';
 
-// Hook for managing teams in an organization
-export const useTeams = (organizationId: string | undefined) => {
-  return useQuery({
-    queryKey: ['teams', organizationId],
-    queryFn: () => TeamRepository.getTeamsByOrg(organizationId!),
-    enabled: !!organizationId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+/**
+ * Primary hook for the Teams list — repository-backed with access-snapshot filtering.
+ * Replaces the legacy raw-Supabase useTeams from useTeams.ts.
+ * Accepts an optional organizationId; if omitted, uses context.
+ */
+export const useTeams = (organizationId?: string | undefined) => {
+  const { currentOrganization } = useOrganization();
+  const { teamMemberships } = useTeamContext();
+  const { data: accessSnapshot, isLoading: isAccessLoading } = useAccessSnapshot();
+
+  const orgId = organizationId ?? currentOrganization?.id;
+  const role = currentOrganization?.userRole;
+  const isElevated = role === 'owner' || role === 'admin';
+
+  const query = useQuery({
+    queryKey: ['teams', orgId],
+    queryFn: async () => {
+      const allTeams = await TeamRepository.getTeamsByOrg(orgId!);
+
+      if (!isElevated) {
+        if (!accessSnapshot) return [];
+        const accessibleIds = new Set(accessSnapshot.accessibleTeamIds);
+        return allTeams.filter(t => accessibleIds.has(t.id));
+      }
+
+      return allTeams;
+    },
+    enabled: !!orgId && !isAccessLoading,
+    staleTime: 1000 * 60 * 2,
   });
+
+  const teams = query.data ?? [];
+  const managedTeams = teams.filter(team =>
+    teamMemberships.some(m => m.team_id === team.id && m.role === 'manager')
+  );
+
+  return {
+    teams,
+    managedTeams,
+    isLoading: query.isLoading,
+    error: query.error,
+    ...query,
+  };
 };
 
 // Hook for managing a single team

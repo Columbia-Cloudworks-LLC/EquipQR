@@ -303,6 +303,22 @@
   }
 }
 
+@layer components {
+  [data-slot="card-content"] {
+    padding: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    [data-slot="card-content"] {
+      padding: 1.25rem;
+    }
+  }
+
+  [data-slot="card-content"]:not(:first-child):not([data-standalone]) {
+    padding-top: 0;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

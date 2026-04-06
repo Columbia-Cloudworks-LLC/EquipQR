@@ -589,12 +589,13 @@ export class WorkOrderFieldWorksheetPDFGenerator {
   // ===================== NOTES + SIGNATURE PAGE =====================
 
   /**
-   * Dedicated full-page notes area with a signature block anchored at the
-   * bottom. The signature section includes a line above the printed name
-   * (for handwritten signature), the technician's printed name, and the date.
+   * Dedicated full-page notes area with a signature and certification block
+   * anchored at the bottom. Layout order: half-width signature line with
+   * date signed on the same row, technician printed name, certification
+   * attestation, then a divider followed by re-entry fields for office use.
    *
    * When a technician is assigned to the work order their display name is
-   * prefilled on the "Printed Name" line; otherwise the line is left blank
+   * prefilled on the printed name line; otherwise the line is left blank
    * for manual entry.
    */
   private generateNotesPage(workOrder: WorkOrderForPDF): void {
@@ -603,58 +604,71 @@ export class WorkOrderFieldWorksheetPDFGenerator {
 
     this.addSectionHeader('Notes');
 
-    // Reserve space at the bottom for the signature block + re-entry footer.
-    const signatureBlockHeight = 52;
+    // Reserve space at the bottom for the certification/signature block + re-entry footer.
+    const signatureBlockHeight = 58;
     const availableForLines = this.pageHeight - this.yPosition - signatureBlockHeight;
     const lineCount = Math.floor(availableForLines / this.writeLineHeight);
 
     this.addWriteLines(lineCount, this.margin + 2, this.contentWidth - 4);
 
-    // ── Signature block ──
+    // ── Signature line + Date ──
     this.yPosition += 4;
+    const sigLineEnd = this.margin + this.contentWidth * 0.5;
     this.doc.setDrawColor(60, 60, 60);
     this.doc.setLineWidth(0.5);
-    this.doc.line(this.margin + 2, this.yPosition, this.pageWidth - this.margin, this.yPosition);
+    this.doc.line(this.margin + 2, this.yPosition, sigLineEnd, this.yPosition);
+
+    const dateStartX = sigLineEnd + 12;
+    this.addLabeledField('Date Signed:', dateStartX, this.pageWidth - this.margin, this.yPosition);
 
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(100, 100, 100);
     this.doc.text('Technician Signature', this.margin + 2, this.yPosition + 4);
     this.doc.setTextColor(0, 0, 0);
-    this.yPosition += 10;
+    this.yPosition += 8;
 
-    const nameY = this.yPosition;
-    const dateStartX = this.margin + this.contentWidth / 2 + 10;
-
+    // ── Printed Name ──
     const assigneeName = workOrder.assigneeName ?? workOrder.assignee_name ?? null;
 
     if (assigneeName) {
       this.doc.setFontSize(8);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('Printed Name:', this.margin + 2, nameY);
-      const labelWidth = this.doc.getTextWidth('Printed Name:') + 2;
+      this.doc.text('Technician Printed Name:', this.margin + 2, this.yPosition);
+      const labelWidth = this.doc.getTextWidth('Technician Printed Name:') + 2;
       this.doc.setFont('helvetica', 'normal');
-      this.doc.text(assigneeName, this.margin + 2 + labelWidth, nameY);
+      this.doc.text(assigneeName, this.margin + 2 + labelWidth, this.yPosition);
     } else {
-      this.addLabeledField('Printed Name:', this.margin + 2, dateStartX - 15, nameY);
+      this.addLabeledField('Technician Printed Name:', this.margin + 2, sigLineEnd, this.yPosition);
     }
+    this.yPosition += 6;
 
-    this.addLabeledField('Date:', dateStartX, this.pageWidth - this.margin, nameY);
-    this.yPosition = nameY + 10;
+    // ── Certification attestation ──
+    this.doc.setFontSize(6.5);
+    this.doc.setFont('helvetica', 'italic');
+    this.doc.setTextColor(80, 80, 80);
+    this.doc.text(
+      'I certify that the foregoing work and observations are accurate to the best of my knowledge.',
+      this.margin + 2,
+      this.yPosition,
+    );
+    this.doc.setTextColor(0, 0, 0);
+    this.yPosition += 6;
 
-    // Re-entry reminder
+    // ── Divider before re-entry section ──
     this.doc.setDrawColor(180, 180, 180);
-    this.doc.setLineWidth(0.2);
+    this.doc.setLineWidth(0.3);
     this.doc.line(this.margin, this.yPosition, this.pageWidth - this.margin, this.yPosition);
-    this.yPosition += 5;
+    this.yPosition += 12;
 
+    // ── Re-entry fields (same line, wider split for more writing room) ──
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'italic');
     this.doc.setTextColor(120, 120, 120);
 
-    const reentryY = this.yPosition;
-    this.addLabeledField('Entered into EquipQR by', this.margin + 2, this.margin + 82, reentryY);
-    this.addLabeledField('on', this.margin + 86, this.margin + 130, reentryY);
+    const reentryNameEnd = this.margin + this.contentWidth * 0.6;
+    this.addLabeledField('Entered into EquipQR By:', this.margin + 2, reentryNameEnd, this.yPosition);
+    this.addLabeledField('Entry Date:', reentryNameEnd + 4, this.pageWidth - this.margin, this.yPosition);
 
     this.doc.setTextColor(0, 0, 0);
   }
@@ -744,12 +758,12 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(150, 150, 150);
-    const genText = `Generated: ${new Date().toLocaleString()}`;
+    const genText = `Document generated: ${new Date().toLocaleString()}`;
     const genWidth = this.doc.getTextWidth(genText);
     this.doc.text(genText, (this.pageWidth - genWidth) / 2, qrY + this.qrSize / 2 - 3);
     this.doc.setFont('helvetica', 'italic');
     this.doc.setFontSize(6);
-    const disclaimer = 'Field aid only \u2014 enter results into EquipQR';
+    const disclaimer = 'Field worksheet only \u2014 all results must be entered into EquipQR as the official record';
     const disclaimerWidth = this.doc.getTextWidth(disclaimer);
     this.doc.text(disclaimer, (this.pageWidth - disclaimerWidth) / 2, qrY + this.qrSize / 2 + 3);
 

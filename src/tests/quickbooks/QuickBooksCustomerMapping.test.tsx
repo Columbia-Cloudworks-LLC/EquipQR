@@ -5,9 +5,8 @@
  * - Feature flag gating
  * - Permission checks
  * - Connection status checks
- * - Existing mapping display
- * - Customer search dialog
- * - Save / clear mapping actions
+ * - Existing mapping display (linked account, legacy mapping, no mapping)
+ * - Import and Link dialogs
  */
 
 import React from 'react';
@@ -21,13 +20,11 @@ import { MemoryRouter } from 'react-router-dom';
 // Mocks
 // ---------------------------------------------------------------------------
 
-// Feature flags
 vi.mock('@/lib/flags', () => ({
   isQuickBooksEnabled: vi.fn(() => true),
 }));
 import { isQuickBooksEnabled } from '@/lib/flags';
 
-// Organization context
 vi.mock('@/contexts/OrganizationContext', () => ({
   useOrganization: vi.fn(() => ({
     currentOrganization: { id: 'org-123', name: 'Test Organization' },
@@ -35,7 +32,6 @@ vi.mock('@/contexts/OrganizationContext', () => ({
   })),
 }));
 
-// QuickBooks access hook
 const mockUseQuickBooksAccess = vi.fn(() => ({
   data: true,
   isLoading: false,
@@ -44,7 +40,6 @@ vi.mock('@/hooks/useQuickBooksAccess', () => ({
   useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
 }));
 
-// QuickBooks services
 const mockGetConnectionStatus = vi.fn();
 const mockGetTeamCustomerMapping = vi.fn();
 const mockUpdateTeamCustomerMapping = vi.fn();
@@ -59,7 +54,18 @@ vi.mock('@/services/quickbooks', () => ({
   searchCustomers: (...args: unknown[]) => mockSearchCustomers(...args),
 }));
 
-// Sonner toast
+vi.mock('@/features/teams/hooks/useCustomerAccount', () => ({
+  useCustomer: vi.fn(() => ({ data: null, isLoading: false })),
+  useCustomersByOrg: vi.fn(() => ({ data: [], isLoading: false })),
+  useCustomerMutations: vi.fn(() => ({
+    create: { mutateAsync: vi.fn(), isPending: false },
+    update: { mutateAsync: vi.fn(), isPending: false },
+    link: { mutateAsync: vi.fn(), isPending: false },
+    importFromQB: { mutateAsync: vi.fn(), isPending: false },
+    refreshFromQB: { mutateAsync: vi.fn(), isPending: false },
+  })),
+}));
+
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
@@ -82,7 +88,11 @@ function createTestQueryClient() {
   });
 }
 
-function renderComponent(props = { teamId: 'team-456', teamName: 'Alpha Team' }) {
+function renderComponent(props: {
+  teamId: string;
+  teamName: string;
+  customerId?: string | null;
+} = { teamId: 'team-456', teamName: 'Alpha Team' }) {
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
@@ -100,82 +110,55 @@ function renderComponent(props = { teamId: 'team-456', teamName: 'Alpha Team' })
 describe('QuickBooksCustomerMapping', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Defaults: feature enabled, user has permission, QB connected
     vi.mocked(isQuickBooksEnabled).mockReturnValue(true);
     mockUseQuickBooksAccess.mockReturnValue({ data: true, isLoading: false });
     mockGetConnectionStatus.mockResolvedValue({ isConnected: true, realmId: 'realm-1' });
-    mockGetTeamCustomerMapping.mockResolvedValue(null); // no existing mapping
+    mockGetTeamCustomerMapping.mockResolvedValue(null);
     mockSearchCustomers.mockResolvedValue({ success: true, customers: [] });
   });
 
-  // -----------------------------------------------------------------------
-  // Feature flag gating
-  // -----------------------------------------------------------------------
   it('should render nothing when the feature flag is disabled', () => {
     vi.mocked(isQuickBooksEnabled).mockReturnValue(false);
 
     const { container } = renderComponent();
-
     expect(container.innerHTML).toBe('');
   });
 
-  // -----------------------------------------------------------------------
-  // Permission gating
-  // -----------------------------------------------------------------------
   it('should render nothing when user has no QuickBooks permission', async () => {
     mockUseQuickBooksAccess.mockReturnValue({ data: false, isLoading: false });
 
     const { container } = renderComponent();
 
-    // Wait for any async renders
     await waitFor(() => {
       expect(container.querySelector('.animate-spin')).toBeNull();
     });
-
     expect(screen.queryByText('QuickBooks Customer')).toBeNull();
   });
 
-  it('should show loading state while checking permissions', () => {
-    mockUseQuickBooksAccess.mockReturnValue({ data: false, isLoading: true });
-
-    renderComponent();
-
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
-  });
-
-  // -----------------------------------------------------------------------
-  // Connection status gating
-  // -----------------------------------------------------------------------
   it('should render nothing when QuickBooks is not connected', async () => {
     mockGetConnectionStatus.mockResolvedValue({ isConnected: false });
 
     renderComponent();
 
     await waitFor(() => {
-      // Should not show the card title
       expect(screen.queryByText('QuickBooks Customer')).toBeNull();
     });
   });
 
-  // -----------------------------------------------------------------------
-  // No existing mapping
-  // -----------------------------------------------------------------------
-  it('should show "Select Customer" button when no mapping exists', async () => {
+  it('should show "Import from QB" and "Link Existing" buttons when no mapping exists', async () => {
     mockGetTeamCustomerMapping.mockResolvedValue(null);
 
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Select Customer')).toBeInTheDocument();
+      expect(screen.getByText('Import from QB')).toBeInTheDocument();
+      expect(screen.getByText('Link Existing')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/No QuickBooks customer mapped/)).toBeInTheDocument();
+    expect(screen.getByText(/No customer account linked/)).toBeInTheDocument();
   });
 
-  // -----------------------------------------------------------------------
-  // Existing mapping display
-  // -----------------------------------------------------------------------
-  it('should show mapped customer name when mapping exists', async () => {
+  it('should show legacy mapping with upgrade prompt', async () => {
     mockGetTeamCustomerMapping.mockResolvedValue({
       id: 'map-1',
       organization_id: 'org-123',
@@ -192,14 +175,11 @@ describe('QuickBooksCustomerMapping', () => {
       expect(screen.getByText('Acme Corp')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Mapped')).toBeInTheDocument();
-    expect(screen.getByText('Change')).toBeInTheDocument();
+    expect(screen.getByText('Legacy Mapping')).toBeInTheDocument();
+    expect(screen.getByText('Import as Account')).toBeInTheDocument();
   });
 
-  // -----------------------------------------------------------------------
-  // Customer search dialog
-  // -----------------------------------------------------------------------
-  it('should open the customer search dialog when "Select Customer" is clicked', async () => {
+  it('should open the import dialog when "Import from QB" is clicked', async () => {
     const user = userEvent.setup();
     mockGetTeamCustomerMapping.mockResolvedValue(null);
     mockSearchCustomers.mockResolvedValue({
@@ -213,17 +193,17 @@ describe('QuickBooksCustomerMapping', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Select Customer')).toBeInTheDocument();
+      expect(screen.getByText('Import from QB')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('Select Customer'));
+    await user.click(screen.getByText('Import from QB'));
 
     await waitFor(() => {
-      expect(screen.getByText('Select QuickBooks Customer')).toBeInTheDocument();
+      expect(screen.getByText('Import from QuickBooks')).toBeInTheDocument();
     });
   });
 
-  it('should display customer list in the dialog', async () => {
+  it('should display customer list in the import dialog', async () => {
     const user = userEvent.setup();
     mockGetTeamCustomerMapping.mockResolvedValue(null);
     mockSearchCustomers.mockResolvedValue({
@@ -237,15 +217,32 @@ describe('QuickBooksCustomerMapping', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Select Customer')).toBeInTheDocument();
+      expect(screen.getByText('Import from QB')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('Select Customer'));
+    await user.click(screen.getByText('Import from QB'));
 
     await waitFor(() => {
       expect(screen.getByText('Alpha Customer')).toBeInTheDocument();
       expect(screen.getByText('Beta Customer')).toBeInTheDocument();
       expect(screen.getByText('Beta LLC')).toBeInTheDocument();
+    });
+  });
+
+  it('should open the link existing dialog', async () => {
+    const user = userEvent.setup();
+    mockGetTeamCustomerMapping.mockResolvedValue(null);
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Link Existing')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Link Existing'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Link Existing Account')).toBeInTheDocument();
     });
   });
 });

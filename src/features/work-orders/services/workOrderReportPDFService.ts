@@ -821,7 +821,7 @@ export class WorkOrderReportPDFGenerator {
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(150, 150, 150);
-    const genText = `Generated: ${new Date().toLocaleString()}`;
+    const genText = `Document generated: ${new Date().toLocaleString()}`;
     const genWidth = this.doc.getTextWidth(genText);
     this.doc.text(genText, (this.pageWidth - genWidth) / 2, qrY + this.qrSize / 2);
 

@@ -26,6 +26,8 @@ import { toast } from '@/hooks/use-toast';
 import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useCustomersByOrg } from '@/features/teams/hooks/useCustomerAccount';
 
 interface TeamMetadataEditorProps {
   open: boolean;
@@ -63,8 +65,13 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
   const [currentTeamImage, setCurrentTeamImage] = useState<string | null>(
     (team as { image_url?: string | null }).image_url ?? null
   );
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
+    team.customer_id ?? null
+  );
   const queryClient = useQueryClient();
   const { isLoaded } = useGoogleMapsLoader();
+  const { currentOrganization } = useOrganization();
+  const { data: orgCustomers } = useCustomersByOrg(open ? currentOrganization?.id : undefined);
 
   const handleTeamImageUpload = async (file: File) => {
     const publicUrl = await uploadTeamImage(team.id, team.organization_id, file);
@@ -101,6 +108,7 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
       name: formData.get('name') as string,
       description: formData.get('description') as string,
       override_equipment_location: overrideEquipmentLocation,
+      customer_id: selectedCustomerId,
     };
 
     // If user selected a new place, use that data
@@ -194,6 +202,24 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                 label="Team Image"
                 helpText="Upload a logo or photo to identify this team"
               />
+
+              {/* Customer Account */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-customer-account-select">Customer Account</Label>
+                <select
+                  id="edit-customer-account-select"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={selectedCustomerId ?? ''}
+                  onChange={(e) => setSelectedCustomerId(e.target.value || null)}
+                >
+                  <option value="">None (no account)</option>
+                  {(orgCustomers ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div className="space-y-2">
                 <Label>Location</Label>

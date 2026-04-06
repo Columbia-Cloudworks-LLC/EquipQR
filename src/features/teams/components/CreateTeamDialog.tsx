@@ -12,13 +12,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Info } from 'lucide-react';
+import { Info, Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/useAuth';
 import { useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
 import { useQueryClient } from '@tanstack/react-query';
 import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
+import { useCustomersByOrg, useCustomerMutations } from '@/features/teams/hooks/useCustomerAccount';
 
 interface CreateTeamDialogProps {
   open: boolean;
@@ -34,11 +35,16 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
   const [nameError, setNameError] = useState('');
   const [locationData, setLocationData] = useState<PlaceLocationData | null>(null);
   const [overrideEquipmentLocation, setOverrideEquipmentLocation] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [showNewAccount, setShowNewAccount] = useState(false);
+  const [newAccountName, setNewAccountName] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
   const { createTeamWithCreator } = useTeamMutations();
   const queryClient = useQueryClient();
   const { isLoaded } = useGoogleMapsLoader();
+  const { data: orgCustomers } = useCustomersByOrg(open ? organizationId : undefined);
+  const customerMutations = useCustomerMutations(organizationId);
 
   const handlePlaceSelect = useCallback((data: PlaceLocationData) => {
     setLocationData(data);
@@ -54,6 +60,9 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
     setNameError('');
     setLocationData(null);
     setOverrideEquipmentLocation(false);
+    setSelectedCustomerId(null);
+    setShowNewAccount(false);
+    setNewAccountName('');
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,11 +83,23 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
     }
 
     try {
+      // Resolve customer ID: create new account if user chose that option
+      let customerId = selectedCustomerId;
+      if (showNewAccount && newAccountName.trim()) {
+        const created = await customerMutations.create.mutateAsync({
+          organization_id: organizationId,
+          name: newAccountName.trim(),
+          status: 'active',
+        });
+        customerId = created.id;
+      }
+
       await createTeamWithCreator.mutateAsync({
         teamData: {
           name: name.trim(),
           description: description.trim() || null,
           organization_id: organizationId,
+          customer_id: customerId,
           ...(locationData && {
             location_address: locationData.street || null,
             location_city: locationData.city || null,
@@ -146,6 +167,59 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
             <p className="text-xs text-muted-foreground text-right">
               {description.length} / {DESCRIPTION_MAX_LENGTH}
             </p>
+          </div>
+
+          {/* Customer Account */}
+          <div className="space-y-2">
+            <Label htmlFor="customer-account-select">Customer Account</Label>
+            {showNewAccount ? (
+              <div className="space-y-2">
+                <Input
+                  value={newAccountName}
+                  onChange={(e) => setNewAccountName(e.target.value)}
+                  placeholder="New account name"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => { setShowNewAccount(false); setNewAccountName(''); }}
+                >
+                  Cancel new account
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <select
+                  id="customer-account-select"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={selectedCustomerId ?? ''}
+                  onChange={(e) => setSelectedCustomerId(e.target.value || null)}
+                >
+                  <option value="">None (no account)</option>
+                  {(orgCustomers ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs gap-1"
+                  onClick={() => {
+                    setShowNewAccount(true);
+                    setNewAccountName(name.trim());
+                    setSelectedCustomerId(null);
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                  Create new account
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

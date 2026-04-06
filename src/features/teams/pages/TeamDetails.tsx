@@ -25,6 +25,8 @@ import DeleteTeamDialog from '@/features/teams/components/DeleteTeamDialog';
 import TeamRecentEquipment from '@/features/teams/components/TeamRecentEquipment';
 import TeamRecentWorkOrders from '@/features/teams/components/TeamRecentWorkOrders';
 import TeamLocationCard from '@/features/teams/components/TeamLocationCard';
+import CustomerAccountCard from '@/features/teams/components/CustomerAccountCard';
+import ExternalContactsList from '@/features/teams/components/ExternalContactsList';
 
 const TeamDetails = () => {
   const { teamId } = useParams<{ teamId: string }>();
@@ -279,8 +281,25 @@ const TeamDetails = () => {
         isLoading={isLoadingRecentWorkOrders}
       />
 
+      {/* Customer Account */}
+      {team.customer_id && (
+        <CustomerAccountCard customerId={team.customer_id} />
+      )}
+
       {/* QuickBooks Customer Mapping */}
-      <QuickBooksCustomerMapping teamId={team.id} teamName={team.name} />
+      <QuickBooksCustomerMapping
+        teamId={team.id}
+        teamName={team.name}
+        customerId={team.customer_id}
+      />
+
+      {/* External Customer Contacts */}
+      {team.customer_id && (
+        <ExternalContactsList
+          customerId={team.customer_id}
+          canManage={permissions.isOrganizationAdmin()}
+        />
+      )}
 
       {/* Team Members */}
       <Card className="shadow-elevation-2">

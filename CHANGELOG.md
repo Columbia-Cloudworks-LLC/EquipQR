@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-04-06
+
+### Added
+
+- **Customer account model behind Teams** — Extended the dormant `customers` table with CRM columns (email, phone, billing/shipping address as JSONB, account owner, notes, QuickBooks identifiers, sync timestamps) and linked it to Teams via a new `teams.customer_id` FK. Existing QuickBooks-mapped teams are backfilled automatically. A Postgres trigger propagates `teams.customer_id` changes to `equipment.customer_id`, keeping the work-order PDF customer-name resolution path intact without application-level sync code.
+
+- **External customer contacts** — New `external_customer_contacts` table for contacts who are not registered EquipQR users (site managers, billing contacts, dispatchers). RLS grants org-member SELECT and org-admin mutate via join to the parent customer's organization. Full CRUD exposed through `ExternalContactsList` on the team detail page, gated by `canManageTeam`.
+
+- **Customer Account card on team detail** — Team detail page now shows a Customer Account card (name, status badge, email, phone, QuickBooks sync metadata, notes) when a team is linked to a customer account. External contacts section appears below it.
+
+- **QuickBooks Import, Refresh, and Link flows** — Reworked `QuickBooksCustomerMapping` component with three distinct actions: Import from QuickBooks (creates a local `customers` row from the QB payload and links it to the team), Refresh from QuickBooks (updates only QB-sourced fields without overwriting EquipQR-only edits like name, notes, or status), and Link Existing Account (attaches an existing local customer account). Legacy `quickbooks_team_customers` mapping is kept populated in parallel for rollback safety.
+
+- **Customer account selector in team creation and editing** — `CreateTeamDialog` now includes an optional customer account field with a dropdown of existing accounts and a "Create new account" inline option. `TeamMetadataEditor` allows changing or unlinking the customer account.
+
+- **Customer resolution chain for invoice export** — Updated the `quickbooks-export-invoice` edge function to resolve the QuickBooks customer ID through the new chain (team → customer account → `quickbooks_customer_id`) with automatic fallback to the legacy `quickbooks_team_customers` mapping table when `teams.customer_id` is NULL.
+
+- **QuickBooks import and resolution tests** — Added unit tests covering QB payload → customer field mapping, refresh-only-QB-fields merge logic, and the `resolveQuickBooksCustomerId` chain with primary, fallback, and null paths.
+
+### Changed
+
+- **Teams list cards show CRM data** — Each team card now displays the linked customer account name (with Building2 icon), a dynamic lifecycle status badge (active/prospect/inactive) replacing the hardcoded "Active" badge, and a QuickBooks sync indicator tooltip showing the last sync date.
+
+- **Consolidated team data hooks** — Merged the raw-Supabase `useTeams` hook into the repository-backed `useTeamManagement.ts` implementation. The canonical `useTeams` now includes access-snapshot filtering (members see only their teams, admins see all), `managedTeams`, and left-joined customer data (`customer_name`, `customer_status`, `quickbooks_synced_at`). The old `useTeams.ts` file is now a thin re-export shim.
+
+- **Team service queries join customer data** — `getOrganizationTeamsOptimized` and `getTeamByIdOptimized` now left-join the `customers` table to return `customer_name`, `customer_status`, and `quickbooks_synced_at` alongside team fields. No additional queries needed for CRM data on list or detail pages.
+
+- **RLS widened for customer visibility** — Added `customers_members_select` policy granting SELECT to `is_org_member` so all org members can see customer names on team cards and detail pages. INSERT/UPDATE remain admin-only.
+
+- **Formalized PDF signature and re-entry sections** — Restructured the field worksheet signature block with a half-width signature line (no longer mistaken for a divider), Date Signed on the same row, printed name below, and a certification attestation statement. The office re-entry section now sits below a clear divider with wider fields and breathing room for legible handwriting. Footer disclaimer and generated-timestamp copy formalized across both the Field Worksheet and Service Report PDFs for consistent document tone.
+
 ## [2.8.0] - 2026-04-06
 
 ### Added

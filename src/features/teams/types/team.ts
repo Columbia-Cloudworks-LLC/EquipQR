@@ -83,6 +83,32 @@ export interface Team {
   location_lat?: number;
   location_lng?: number;
   override_equipment_location?: boolean;
+  customer_id?: string | null;
+  customer_name?: string | null;
+  customer_status?: string | null;
+  quickbooks_synced_at?: string | null;
+}
+
+// ============================================
+// Customer Account Types
+// ============================================
+
+export type CustomerRow = Database['public']['Tables']['customers']['Row'];
+export type CustomerInsert = Database['public']['Tables']['customers']['Insert'];
+export type CustomerUpdate = Database['public']['Tables']['customers']['Update'];
+
+export type ExternalContactRow = Database['public']['Tables']['external_customer_contacts']['Row'];
+export type ExternalContactInsert = Database['public']['Tables']['external_customer_contacts']['Insert'];
+export type ExternalContactUpdate = Database['public']['Tables']['external_customer_contacts']['Update'];
+
+export interface CustomerAccountSummary {
+  id: string;
+  name: string;
+  status: string;
+  email?: string | null;
+  phone?: string | null;
+  quickbooks_customer_id?: string | null;
+  quickbooks_synced_at?: string | null;
 }
 
 /**

@@ -359,7 +359,7 @@ export const getTeamMembersOptimized = async (teamId: string): Promise<TeamMembe
 };
 
 /**
- * Get teams by organization with member counts using optimized query
+ * Get teams by organization with member counts and customer data using optimized query
  */
 export const getOrganizationTeamsOptimized = async (organizationId: string): Promise<Team[]> => {
   try {
@@ -367,30 +367,39 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
       .from('teams')
       .select(`
         *,
-        team_members(count)
+        team_members(count),
+        customers(id, name, status, quickbooks_synced_at)
       `)
       .eq('organization_id', organizationId)
       .order('name', { ascending: true });
 
     if (error) throw error;
 
-    return (data || []).map(team => ({
-      id: team.id,
-      name: team.name,
-      description: team.description,
-      organization_id: team.organization_id,
-      member_count: team.team_members?.[0]?.count || 0,
-      created_at: team.created_at,
-      updated_at: team.updated_at,
-      image_url: (team as TeamRow).image_url,
-      location_address: team.location_address,
-      location_city: team.location_city,
-      location_state: team.location_state,
-      location_country: team.location_country,
-      location_lat: team.location_lat,
-      location_lng: team.location_lng,
-      override_equipment_location: team.override_equipment_location,
-    }));
+    return (data || []).map(team => {
+      const customer = (team as Record<string, unknown>).customers as
+        { id: string; name: string; status: string; quickbooks_synced_at: string | null } | null;
+      return {
+        id: team.id,
+        name: team.name,
+        description: team.description,
+        organization_id: team.organization_id,
+        member_count: team.team_members?.[0]?.count || 0,
+        created_at: team.created_at,
+        updated_at: team.updated_at,
+        image_url: (team as TeamRow).image_url,
+        location_address: team.location_address,
+        location_city: team.location_city,
+        location_state: team.location_state,
+        location_country: team.location_country,
+        location_lat: team.location_lat,
+        location_lng: team.location_lng,
+        override_equipment_location: team.override_equipment_location,
+        customer_id: team.customer_id,
+        customer_name: customer?.name ?? null,
+        customer_status: customer?.status ?? null,
+        quickbooks_synced_at: customer?.quickbooks_synced_at ?? null,
+      };
+    });
   } catch (error) {
     logger.error('Error fetching organization teams:', error);
     return [];
@@ -398,7 +407,7 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
 };
 
 /**
- * Get a single team by ID with member count using optimized query
+ * Get a single team by ID with member count and customer data using optimized query
  */
 export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null> => {
   try {
@@ -406,15 +415,19 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null>
       .from('teams')
       .select(`
         *,
-        team_members(count)
+        team_members(count),
+        customers(id, name, status, quickbooks_synced_at)
       `)
       .eq('id', teamId)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // No rows returned
+      if (error.code === 'PGRST116') return null;
       throw error;
     }
+
+    const customer = (data as Record<string, unknown>).customers as
+      { id: string; name: string; status: string; quickbooks_synced_at: string | null } | null;
 
     return {
       id: data.id,
@@ -432,6 +445,10 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null>
       location_lat: data.location_lat,
       location_lng: data.location_lng,
       override_equipment_location: data.override_equipment_location,
+      customer_id: data.customer_id,
+      customer_name: customer?.name ?? null,
+      customer_status: customer?.status ?? null,
+      quickbooks_synced_at: customer?.quickbooks_synced_at ?? null,
     };
   } catch (error) {
     logger.error('Error fetching team by ID:', error);

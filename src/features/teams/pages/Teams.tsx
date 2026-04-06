@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Search, Settings, UserCheck, Eye, Wrench, Forklift, ClipboardList, AlertTriangle, ArrowUpDown, MoreVertical } from 'lucide-react';
+import { Users, Plus, Search, Settings, UserCheck, Eye, Wrench, Forklift, ClipboardList, AlertTriangle, ArrowUpDown, MoreVertical, Building2, Link2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeams } from '@/features/teams/hooks/useTeams';
 import { useTeamsListStats } from '@/features/teams/hooks/useTeamsListStats';
@@ -214,10 +215,45 @@ const Teams = () => {
                       <CardTitle className="text-lg group-hover:text-primary transition-colors truncate">
                         {team.name}
                       </CardTitle>
-                      <Badge variant="outline" className="bg-success/20 text-success border-success/30 text-xs shrink-0">
-                        Active
-                      </Badge>
+                      {team.customer_status ? (
+                        <Badge
+                          variant="outline"
+                          className={`text-xs shrink-0 ${
+                            team.customer_status === 'active'
+                              ? 'bg-success/20 text-success border-success/30'
+                              : team.customer_status === 'prospect'
+                                ? 'bg-info/20 text-info border-info/30'
+                                : 'bg-muted text-muted-foreground border-border'
+                          }`}
+                        >
+                          {team.customer_status.charAt(0).toUpperCase() + team.customer_status.slice(1)}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-success/20 text-success border-success/30 text-xs shrink-0">
+                          Active
+                        </Badge>
+                      )}
+                      {team.quickbooks_synced_at && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span tabIndex={0} className="inline-flex" aria-label={`QuickBooks synced ${new Date(team.quickbooks_synced_at).toLocaleDateString()}`}>
+                                <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              QB synced {new Date(team.quickbooks_synced_at).toLocaleDateString()}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
+                    {team.customer_name && (
+                      <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
+                        <Building2 className="h-3 w-3 shrink-0" />
+                        {team.customer_name}
+                      </p>
+                    )}
                     <CardDescription className="mt-1 line-clamp-2">
                       {team.description || 'No description provided'}
                     </CardDescription>
