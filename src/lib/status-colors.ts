@@ -101,6 +101,27 @@ export const getStatusBadgeClass = (status: string): string => {
   }
 };
 
+// Work Order Status Background Tints (subtle card fills for active states)
+export const getStatusBackgroundTint = (status: string, isOverdue: boolean): string => {
+  if (isOverdue && status?.toLowerCase() !== 'completed') {
+    return 'bg-destructive/[0.03]';
+  }
+  switch (status?.toLowerCase()) {
+    case 'in_progress':
+    case 'in-progress':
+      return 'bg-status-in-progress/[0.03]';
+    case 'on_hold':
+      return 'bg-warning/[0.03]';
+    case 'submitted':
+      return 'bg-info/[0.03]';
+    case 'accepted':
+    case 'assigned':
+      return 'bg-primary/[0.03]';
+    default:
+      return '';
+  }
+};
+
 // Priority Badge Colors
 export const getPriorityBadgeClass = (priority: string): string => {
   const priorityLower = priority?.toLowerCase() ?? '';

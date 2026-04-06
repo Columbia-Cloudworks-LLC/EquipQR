@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { ChevronRight, Edit, Info, Download, FileSpreadsheet, Loader2, MoreHorizontal, Trash2, FileText, ExternalLink } from 'lucide-react';
+import { Edit, Info, Download, FileSpreadsheet, Loader2, MoreHorizontal, Trash2, FileText, ExternalLink, ClipboardList } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
@@ -15,10 +15,13 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import PageHeader from '@/components/layout/PageHeader';
 import { QuickBooksExportButton } from './QuickBooksExportButton';
 import { WorkOrderPDFExportDialog } from './WorkOrderPDFExportDialog';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
@@ -28,6 +31,8 @@ import { useGoogleWorkspaceExportDestination } from '@/features/organization/hoo
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useDeleteWorkOrder } from '@/features/work-orders/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/features/work-orders/hooks/useWorkOrderImageCount';
+import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
+import { isQuickBooksEnabled } from '@/lib/flags';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
 import { useLatestExportArtifact } from '@/features/work-orders/hooks/useLatestExportArtifact';
@@ -50,7 +55,6 @@ interface WorkOrderDetailsDesktopHeaderProps {
   organizationId?: string;
 }
 
-/** Format priority for display */
 const formatPriority = (priority: string) => {
   return priority.charAt(0).toUpperCase() + priority.slice(1);
 };
@@ -75,6 +79,9 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   const { data: imageData } = useWorkOrderImageCount(workOrder?.id);
   const canDelete = permissions.hasRole(['owner', 'admin']);
 
+  const { data: canManageQuickBooks = false } = useQuickBooksAccess();
+  const showQuickBooks = isQuickBooksEnabled() && canManageQuickBooks;
+
   const handleDeleteConfirm = async () => {
     try {
       await deleteWorkOrderMutation.mutateAsync(workOrder.id);
@@ -85,8 +92,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     }
   };
 
-  // PDF generation hook
-  const { downloadPDF, isGenerating, saveToDrive, isSavingToDrive } = useWorkOrderPDF({
+  const { downloadPDF, isGenerating, saveToDrive, isSavingToDrive, downloadFieldWorksheet, isGeneratingWorksheet } = useWorkOrderPDF({
     workOrder,
     equipment: equipment ? {
       id: equipment.id,
@@ -99,20 +105,19 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
       customerId: (equipment as { customer_id?: string | null }).customer_id ?? null,
     } : null,
     pmData: pmData as PreventativeMaintenance | null,
-    organizationName
+    organizationName,
+    teamId: equipmentTeamId,
   });
 
-  // Excel export hook
   const { exportSingle, isExportingSingle, exportSingleToDocs, isExportingSingleToDocs } = useWorkOrderExcelExport(
     organizationId,
     organizationName ?? ''
   );
-  
-  // Google Workspace connection status (for showing "Save to Google Drive" option)
+
   const { isConnected: isGoogleWorkspaceConnected, connectionStatus } = useGoogleWorkspaceConnectionStatus({
     organizationId,
   });
-  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(organizationId, permissions.hasRole(['owner', 'admin']));
+  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(organizationId, permissionLevels.isManager);
   const canExportGoogleDoc = canExportWorkOrderGoogleDoc({
     isConnected: isGoogleWorkspaceConnected,
     scopes: connectionStatus?.scopes,
@@ -127,140 +132,163 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     'internal_packet',
   );
 
-  // Handle PDF export with options from dialog
   const handlePDFExport = async (options: { includeCosts: boolean }) => {
-    // Let errors propagate so the dialog can detect failures and stay open for retry.
-    // The useWorkOrderPDF hook already logs and shows a toast on error.
     await downloadPDF(options);
   };
 
-  // Handle save to Drive with options from dialog
   const handleSaveToDrive = async (options: { includeCosts: boolean }) => {
     await saveToDrive(options);
   };
 
-  // Truncate work order UUID to first 8 characters for display (matches invoice format WO-XXXXXXXX)
+  const handleDownloadWorksheet = async () => {
+    try {
+      await downloadFieldWorksheet();
+    } catch {
+      // Error toast is shown by the hook
+    }
+  };
+
   const truncatedId = workOrder.id.substring(0, 8).toUpperCase();
+  const showExports = permissionLevels.isManager;
+  const showActionsMenu = showExports || showQuickBooks || canDelete;
 
   return (
     <TooltipProvider>
-      <div className="hidden lg:block">
-        <header className="gradient-primary rounded-b-xl -mb-6 p-6 relative z-10">
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-sm text-secondary/80 mb-2">
-            <Link to="/dashboard/work-orders" className="hover:underline hover:text-secondary transition-colors">
-              Work Orders
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-secondary font-medium cursor-help">WO-{truncatedId}</span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="font-mono text-xs">{workOrder.id}</p>
-              </TooltipContent>
-            </Tooltip>
-          </nav>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="text-3xl font-bold tracking-tight break-words">{workOrder.title}</h1>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <span className="capitalize">{formatPriority(workOrder.priority)} priority</span>
-                {formMode === 'requestor' && !permissionLevels.isManager && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>You have limited access to this work order</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap justify-end shrink-0">
+      <div className="hidden lg:block px-4 lg:px-6">
+        <PageHeader
+          density="compact"
+          title={workOrder.title}
+          breadcrumbs={[
+            { label: 'Work Orders', href: '/dashboard/work-orders' },
+            { label: `WO-${truncatedId}` },
+          ]}
+          meta={
+            <>
               <Badge className={getStatusColor(workOrder.status)}>
                 {formatStatus(workOrder.status)}
               </Badge>
-              <QuickBooksExportButton
-                workOrderId={workOrder.id}
-                teamId={equipmentTeamId ?? null}
-                workOrderStatus={workOrder.status}
-                showStatusDetails
-              />
+              <span className="text-sm text-muted-foreground capitalize">
+                {formatPriority(workOrder.priority)} Priority
+              </span>
+              {formMode === 'requestor' && !permissionLevels.isManager && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>You have limited access to this work order</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </>
+          }
+          actions={
+            <>
               {canEdit && (
                 <Button variant="outline" onClick={onEditClick}>
                   <Edit className="h-4 w-4 mr-2" />
                   {formMode === 'requestor' ? 'Edit Request' : 'Edit'}
                 </Button>
               )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" aria-label="More actions">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => setShowPDFDialog(true)}
-                    disabled={isGenerating}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Service Report PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => exportSingle(workOrder.id)}
-                    disabled={isExportingSingle || isExportingSingleToDocs || !organizationId}
-                  >
-                    {isExportingSingle ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+              {showActionsMenu && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" aria-label="Actions">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {showExports && (
+                      <>
+                        <DropdownMenuLabel>Exports</DropdownMenuLabel>
+                        <DropdownMenuGroup>
+                          <DropdownMenuItem
+                            onClick={() => setShowPDFDialog(true)}
+                            disabled={isGenerating}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Service Report PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={handleDownloadWorksheet}
+                            disabled={isGeneratingWorksheet}
+                          >
+                            {isGeneratingWorksheet ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <ClipboardList className="h-4 w-4 mr-2" />
+                            )}
+                            Printable Field Worksheet
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => exportSingle(workOrder.id)}
+                            disabled={isExportingSingle || isExportingSingleToDocs || !organizationId}
+                          >
+                            {isExportingSingle ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <FileSpreadsheet className="h-4 w-4 mr-2" />
+                            )}
+                            Internal Work Order Packet
+                          </DropdownMenuItem>
+                          {canExportGoogleDoc && (
+                            <DropdownMenuItem
+                              onClick={() => exportSingleToDocs(workOrder.id)}
+                              disabled={isExportingSingle || isExportingSingleToDocs || !organizationId}
+                            >
+                              {isExportingSingleToDocs ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <FileText className="h-4 w-4 mr-2" />
+                              )}
+                              Internal Work Order Packet (Google Doc)
+                            </DropdownMenuItem>
+                          )}
+                          {lastDocArtifact?.web_view_link && (
+                            <DropdownMenuItem
+                              onClick={() => window.open(lastDocArtifact.web_view_link, '_blank', 'noopener,noreferrer')}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Open Last Google Doc
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuGroup>
+                      </>
                     )}
-                    Internal Work Order Packet
-                  </DropdownMenuItem>
-                  {canExportGoogleDoc && (
-                    <DropdownMenuItem
-                      onClick={() => exportSingleToDocs(workOrder.id)}
-                      disabled={isExportingSingle || isExportingSingleToDocs || !organizationId}
-                    >
-                      {isExportingSingleToDocs ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <FileText className="h-4 w-4 mr-2" />
-                      )}
-                      Internal Work Order Packet (Google Doc)
-                    </DropdownMenuItem>
-                  )}
-                  {lastDocArtifact?.web_view_link && (
-                    <DropdownMenuItem
-                      onClick={() => window.open(lastDocArtifact.web_view_link, '_blank', 'noopener,noreferrer')}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Open Last Google Doc
-                    </DropdownMenuItem>
-                  )}
-                  {canDelete && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setShowDeleteDialog(true)}
-                        disabled={deleteWorkOrderMutation.isPending}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Work Order
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </header>
+                    {showQuickBooks && (
+                      <>
+                        {showExports && <DropdownMenuSeparator />}
+                        <DropdownMenuLabel>Integrations</DropdownMenuLabel>
+                        <DropdownMenuGroup>
+                          <QuickBooksExportButton
+                            workOrderId={workOrder.id}
+                            teamId={equipmentTeamId ?? null}
+                            workOrderStatus={workOrder.status}
+                            asMenuItem
+                          />
+                        </DropdownMenuGroup>
+                      </>
+                    )}
+                    {canDelete && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setShowDeleteDialog(true)}
+                          disabled={deleteWorkOrderMutation.isPending}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Work Order
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </>
+          }
+        />
 
-        {/* PDF Export Dialog */}
         <WorkOrderPDFExportDialog
           open={showPDFDialog}
           onOpenChange={setShowPDFDialog}
@@ -272,7 +300,6 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           isSavingToDrive={isSavingToDrive}
         />
 
-        {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -314,4 +341,3 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     </TooltipProvider>
   );
 };
-

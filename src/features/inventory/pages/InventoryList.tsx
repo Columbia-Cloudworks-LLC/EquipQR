@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Package, Users, MoreVertical, Eye, QrCode, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Minus } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAdjustInventoryQuantity, useInventoryItems, useInventoryListMetadata } from '@/features/inventory/hooks/useInventory';
@@ -45,6 +45,7 @@ function getQuantityClassName(item: InventoryItem): string {
 
 const InventoryList = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentOrganization } = useOrganization();
   const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
   const { canManageInventory, canManagePartsManagers } = usePermissions();
@@ -61,6 +62,15 @@ const InventoryList = () => {
     sortOrder: 'asc',
   });
   const adjustMutation = useAdjustInventoryQuantity();
+  const initializedFromUrl = useRef(false);
+
+  useEffect(() => {
+    if (initializedFromUrl.current) return;
+    if (searchParams.get('create') === 'true') {
+      setShowForm(true);
+      initializedFromUrl.current = true;
+    }
+  }, [searchParams]);
 
   const { data: items = [], isLoading } = useInventoryItems(
     currentOrganization?.id,

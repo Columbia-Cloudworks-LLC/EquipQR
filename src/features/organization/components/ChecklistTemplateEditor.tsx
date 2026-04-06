@@ -678,7 +678,7 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
         {/* TOC -- hidden on mobile */}
         <div className="hidden lg:block lg:col-span-3">
           <Card>
-            <CardContent className="p-4">
+            <CardContent standalone>
               <div className="flex items-center justify-between mb-3">
                 <div className="text-sm font-medium">Table of Contents</div>
                 {expanded.length < sections.length ? (

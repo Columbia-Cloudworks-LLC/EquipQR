@@ -130,6 +130,48 @@ export const formatDateTime = (dateString: string | null | undefined): string =>
   }
 };
 
+const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ['day', 86_400_000],
+  ['hour', 3_600_000],
+  ['minute', 60_000],
+];
+
+/**
+ * Format a date as a compact relative string ("2d ago", "in 5d", "3mo ago").
+ * Falls back to `formatDate()` for dates older than ~11 months.
+ */
+export const formatRelativeDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return '—';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+
+    const diffMs = date.getTime() - Date.now();
+    const absDiffMs = Math.abs(diffMs);
+
+    if (absDiffMs > 330 * 86_400_000) return formatDate(dateString);
+
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto', style: 'narrow' });
+
+    if (absDiffMs >= 30 * 86_400_000) {
+      const months = Math.round(diffMs / (30 * 86_400_000));
+      return rtf.format(months, 'month');
+    }
+    if (absDiffMs >= 7 * 86_400_000) {
+      const weeks = Math.round(diffMs / (7 * 86_400_000));
+      return rtf.format(weeks, 'week');
+    }
+    for (const [unit, ms] of RELATIVE_UNITS) {
+      if (absDiffMs >= ms) {
+        return rtf.format(Math.round(diffMs / ms), unit);
+      }
+    }
+    return rtf.format(0, 'second');
+  } catch {
+    return formatDate(dateString);
+  }
+};
+
 // ============================================
 // Status Logic Utilities
 // ============================================

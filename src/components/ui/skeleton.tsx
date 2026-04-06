@@ -40,28 +40,39 @@ function SkeletonCard({ className }: { className?: string }) {
   )
 }
 
-// Work order card skeleton matching WorkOrderCard structure
+// Work order card skeleton matching WorkOrderCard identity-strip layout
 function SkeletonWorkOrderCard({ className }: { className?: string }) {
   return (
     <div className={cn("rounded-lg border-l-4 border-l-muted border bg-card", className)}>
       <div className="p-4 space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-2 flex-1">
+        {/* Identity strip: photo + title/equipment + badges */}
+        <div className="flex items-start gap-4">
+          <Skeleton className="h-20 w-20 rounded-xl flex-shrink-0" />
+          <div className="space-y-2 flex-1 min-w-0">
             <Skeleton className="h-5 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-3.5 w-2/5" />
           </div>
-          <Skeleton className="h-6 w-20 rounded-full" />
+          <div className="flex gap-2 flex-shrink-0">
+            <Skeleton className="h-6 w-16 rounded-full" />
+            <Skeleton className="h-6 w-14 rounded-full" />
+          </div>
         </div>
-        <div className="rounded-md bg-muted/50 p-2.5 flex items-center gap-2.5">
-          <Skeleton className="h-5 w-5 rounded" />
-          <Skeleton className="h-4 w-32" />
+        {/* Metadata row */}
+        <div className="flex items-center gap-6 pt-3 border-t">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-4 w-24" />
         </div>
+        {/* PM bar */}
+        <Skeleton className="h-2 w-full rounded-full" />
+        {/* Footer */}
         <div className="flex items-center justify-between gap-3 pt-3 border-t">
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-6 w-6 rounded-full" />
-            <Skeleton className="h-4 w-24" />
-          </div>
           <Skeleton className="h-4 w-20" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded" />
+            <Skeleton className="h-8 w-24 rounded" />
+          </div>
         </div>
       </div>
     </div>

@@ -147,7 +147,7 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
 
   return (
     <Card>
-      <CardContent className="p-4 space-y-4">
+      <CardContent standalone className="space-y-4">
         {/* File Drop Area */}
         <div
           className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${

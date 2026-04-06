@@ -6,6 +6,7 @@ import { formatStatus, formatPriority, formatDate, formatDateTime } from '@/feat
 import type { WorkOrderNote } from '@/features/work-orders/services/workOrderNotesService';
 import type { WorkOrderCost } from '@/features/work-orders/types/workOrderCosts';
 import type { PMChecklistItem, PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import type { QRAsset } from '@/utils/qr';
 
 /**
  * Flexible work order type that works with both WorkOrder and WorkOrderData
@@ -41,6 +42,18 @@ export interface EquipmentForPDF {
   customerName?: string | null;
 }
 
+/** Pre-rendered QR assets for embedding in PDF page chrome */
+export interface WorkOrderPDFQRCodes {
+  workOrder: QRAsset;
+  equipment?: QRAsset;
+}
+
+/** Repeated per-page identity strings derived once by the hook */
+export interface WorkOrderPDFPageIdentity {
+  workOrderLabel: string;
+  equipmentLabel?: string;
+}
+
 export interface WorkOrderPDFData {
   workOrder: WorkOrderForPDF;
   equipment?: EquipmentForPDF | null;
@@ -50,6 +63,14 @@ export interface WorkOrderPDFData {
   pmData?: PreventativeMaintenance | null;
   /** Include cost items in the PDF (default: false for customer-facing docs) */
   includeCosts?: boolean;
+  /** Organization logo URL for printed worksheet branding */
+  organizationLogoUrl?: string | null;
+  /** Team image URL for printed worksheet branding */
+  teamImageUrl?: string | null;
+  /** Pre-rendered QR code assets for repeated page footers */
+  qrCodes?: WorkOrderPDFQRCodes;
+  /** Identifying labels for repeated page headers */
+  pageIdentity?: WorkOrderPDFPageIdentity;
 }
 
 /** Milliseconds in one day - used for date delta calculations */
@@ -64,9 +85,11 @@ export class WorkOrderReportPDFGenerator {
   private doc!: jsPDF;
   private yPosition: number = 20;
   private readonly lineHeight = 6;
-  private readonly pageHeight = 280;
+  private readonly pageHeight = 252;
   private readonly margin = 20;
   private readonly pageWidth = 210; // A4 width in mm
+  private readonly footerY = 255;
+  private readonly qrSize = 20;
 
   /**
    * Use the static create() method instead of calling the constructor directly.
@@ -706,22 +729,103 @@ export class WorkOrderReportPDFGenerator {
   }
 
   /**
-   * Generate footer with timestamp
-   */
-  private generateFooter(): void {
-    // Move to bottom of page
-    this.yPosition = this.pageHeight + 5;
-    this.doc.setFontSize(8);
-    this.doc.setFont('helvetica', 'normal');
-    this.doc.text(`Generated: ${new Date().toLocaleString()}`, this.margin, this.yPosition);
-  }
-
-  /**
    * Force a new page
    */
   private addNewPage(): void {
     this.doc.addPage();
     this.yPosition = 20;
+  }
+
+  // ── Repeated page chrome (header + footer QR strip) ──
+
+  private applyPageChrome(data: WorkOrderPDFData): void {
+    const totalPages = this.doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      this.doc.setPage(i);
+      this.renderPageHeader(data, i, totalPages);
+      this.renderFooterQRStrip(data);
+    }
+  }
+
+  private renderPageHeader(data: WorkOrderPDFData, pageNum: number, totalPages: number): void {
+    const { pageIdentity } = data;
+    const headerY = 8;
+
+    this.doc.setFontSize(8);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.setTextColor(120, 120, 120);
+    const pageText = `Page ${pageNum} of ${totalPages}`;
+    const pageTextWidth = this.doc.getTextWidth(pageText);
+    this.doc.text(pageText, this.pageWidth - this.margin - pageTextWidth, headerY);
+
+    if (pageNum > 1 && pageIdentity) {
+      const maxLabelWidth = this.pageWidth - 2 * this.margin - pageTextWidth - 10;
+
+      this.doc.setFontSize(8);
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(80, 80, 80);
+      const woLabel = this.doc.splitTextToSize(pageIdentity.workOrderLabel, maxLabelWidth)[0] ?? pageIdentity.workOrderLabel;
+      this.doc.text(woLabel, this.margin, headerY);
+
+      if (pageIdentity.equipmentLabel) {
+        this.doc.setFont('helvetica', 'normal');
+        const eqLabel = this.doc.splitTextToSize(pageIdentity.equipmentLabel, maxLabelWidth)[0] ?? pageIdentity.equipmentLabel;
+        this.doc.text(eqLabel, this.margin, headerY + 5);
+      }
+
+      this.doc.setDrawColor(200, 200, 200);
+      this.doc.setLineWidth(0.3);
+      const separatorY = pageIdentity.equipmentLabel ? headerY + 8 : headerY + 4;
+      this.doc.line(this.margin, separatorY, this.pageWidth - this.margin, separatorY);
+    }
+
+    this.doc.setTextColor(0, 0, 0);
+  }
+
+  private renderFooterQRStrip(data: WorkOrderPDFData): void {
+    const { qrCodes } = data;
+
+    this.doc.setDrawColor(200, 200, 200);
+    this.doc.setLineWidth(0.3);
+    this.doc.line(this.margin, this.footerY, this.pageWidth - this.margin, this.footerY);
+
+    const qrY = this.footerY + 3;
+    const labelY = qrY + this.qrSize + 3;
+
+    if (qrCodes?.workOrder) {
+      try {
+        this.doc.addImage(qrCodes.workOrder.dataUrl, 'PNG', this.margin, qrY, this.qrSize, this.qrSize);
+      } catch { /* QR embed failed */ }
+      this.doc.setFontSize(7);
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(80, 80, 80);
+      this.doc.text('Work Order', this.margin, labelY);
+    }
+
+    const eqX = this.pageWidth - this.margin - this.qrSize;
+    if (qrCodes?.equipment) {
+      try {
+        this.doc.addImage(qrCodes.equipment.dataUrl, 'PNG', eqX, qrY, this.qrSize, this.qrSize);
+      } catch { /* QR embed failed */ }
+      this.doc.setFontSize(7);
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(80, 80, 80);
+      this.doc.text('Equipment', eqX, labelY);
+    } else if (qrCodes) {
+      this.doc.setFontSize(7);
+      this.doc.setFont('helvetica', 'italic');
+      this.doc.setTextColor(160, 160, 160);
+      this.doc.text('No equipment assigned', eqX, qrY + this.qrSize / 2);
+    }
+
+    this.doc.setFontSize(7);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.setTextColor(150, 150, 150);
+    const genText = `Generated: ${new Date().toLocaleString()}`;
+    const genWidth = this.doc.getTextWidth(genText);
+    this.doc.text(genText, (this.pageWidth - genWidth) / 2, qrY + this.qrSize / 2);
+
+    this.doc.setTextColor(0, 0, 0);
   }
 
   /**
@@ -778,7 +882,7 @@ export class WorkOrderReportPDFGenerator {
       this.generateCostsSection(costs);
     }
     
-    this.generateFooter();
+    this.applyPageChrome(data);
 
     return this.doc;
   }

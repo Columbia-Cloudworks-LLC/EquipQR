@@ -21,7 +21,6 @@ import WorkOrderCostsSection from '@/features/work-orders/components/WorkOrderCo
 import { WorkOrderEquipmentSelector } from '@/features/work-orders/components/WorkOrderEquipmentSelector';
 import { WorkOrderDetailsMobileHeader } from '@/features/work-orders/components/WorkOrderDetailsMobileHeader';
 import { WorkOrderDetailsDesktopHeader } from '@/features/work-orders/components/WorkOrderDetailsDesktopHeader';
-import { WorkOrderDetailsStatusLockWarning } from '@/features/work-orders/components/WorkOrderDetailsStatusLockWarning';
 import { WorkOrderDetailsPMInfo } from '@/features/work-orders/components/WorkOrderDetailsPMInfo';
 import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 import { WorkOrderDetailsSidebar } from '@/features/work-orders/components/WorkOrderDetailsSidebar';
@@ -286,6 +285,8 @@ const WorkOrderDetails = () => {
     isGenerating: isMobilePDFGenerating,
     saveToDrive: saveMobilePDFToDrive,
     isSavingToDrive: isMobileSavingToDrive,
+    downloadFieldWorksheet: downloadMobileWorksheet,
+    isGeneratingWorksheet: isMobileWorksheetGenerating,
   } = useWorkOrderPDF({
     workOrder: workOrder ? {
       id: workOrder.id,
@@ -319,7 +320,8 @@ const WorkOrderDetails = () => {
       customerId: (equipment as { customer_id?: string | null }).customer_id ?? null,
     } : null,
     pmData,
-    organizationName: currentOrganization?.name
+    organizationName: currentOrganization?.name,
+    teamId: equipment?.team_id,
   });
   
   // Google Workspace connection status (for showing "Save to Google Drive" option)
@@ -343,6 +345,14 @@ const WorkOrderDetails = () => {
   // Handle mobile PDF save to Drive with options from dialog
   const handleMobileSaveToDrive = async (options: { includeCosts: boolean }) => {
     await saveMobilePDFToDrive(options);
+  };
+
+  const handleMobileDownloadWorksheet = async () => {
+    try {
+      await downloadMobileWorksheet();
+    } catch {
+      // Error toast is shown by the hook
+    }
   };
 
   // Only redirect if we definitely don't have the required data and aren't loading
@@ -440,15 +450,6 @@ const WorkOrderDetails = () => {
         pmData={pmData}
         organizationName={currentOrganization.name}
         organizationId={currentOrganization.id}
-      />
-
-      {/* Status Lock Warning */}
-      <WorkOrderDetailsStatusLockWarning
-        workOrder={workOrder}
-        isWorkOrderLocked={isWorkOrderLocked}
-        baseCanAddNotes={baseCanAddNotes}
-        isAdmin={permissionLevels.isManager}
-        onStatusUpdate={handleStatusUpdate}
       />
 
       <div className={cn('p-4 lg:p-6', isMobile ? 'block' : 'grid grid-cols-1 lg:grid-cols-3 gap-6')}>
@@ -771,6 +772,9 @@ const WorkOrderDetails = () => {
           showMobileSidebar={showMobileSidebar}
           onCloseMobileSidebar={() => setShowMobileSidebar(false)}
           team={workOrder.team}
+          isWorkOrderLocked={isWorkOrderLocked}
+          baseCanAddNotes={baseCanAddNotes}
+          onStatusUpdate={handleStatusUpdate}
         />
       </div>
 
@@ -831,6 +835,8 @@ const WorkOrderDetails = () => {
           equipmentTeamId={equipment?.team_id}
           isManager={permissionLevels.isManager}
           onDownloadPDF={() => setShowMobilePDFDialog(true)}
+          onDownloadWorksheet={handleMobileDownloadWorksheet}
+          isGeneratingWorksheet={isMobileWorksheetGenerating}
           onExportExcel={() => exportSingle(workOrder.id)}
           isExportingExcel={isExportingSingle}
           onExportGoogleDoc={canExportGoogleDoc ? () => exportSingleToDocs(workOrder.id) : undefined}

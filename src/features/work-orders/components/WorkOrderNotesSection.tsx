@@ -294,7 +294,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
             <div className="space-y-4">
               {visibleNotes.map((note) => (
                 <Card key={note.id}>
-                  <CardContent className="p-4">
+                  <CardContent standalone>
                     <div className="space-y-3">
                       {/* Note Header */}
                       <div className="flex items-start justify-between">

@@ -151,7 +151,7 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
 
         <div className="space-y-4">
           <Card>
-            <CardContent className="p-4">
+            <CardContent standalone>
               <div className="space-y-2">
                 <h4 className="font-medium">{workOrder?.title}</h4>
                 <p className="text-sm text-muted-foreground line-clamp-2">

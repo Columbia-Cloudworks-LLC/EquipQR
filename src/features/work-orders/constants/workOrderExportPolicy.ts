@@ -51,3 +51,27 @@ export const INTERNAL_WORK_ORDER_PACKET_POLICY: WorkOrderExportPolicy = {
     'private notes',
   ],
 };
+
+export const FIELD_WORKSHEET_EXPORT_POLICY: WorkOrderExportPolicy = {
+  audience: 'internal',
+  exportName: 'Printable Field Worksheet',
+  title: 'Printable Field Worksheet',
+  description: 'Handwriting-friendly worksheet for technicians to complete PM checklists and log notes on paper. Results must be re-entered into EquipQR.',
+  includeByDefault: [
+    'work order summary and dates',
+    'equipment details',
+    'pm checklist items with blank condition boxes',
+    'blank labor summary rows',
+    'blank parts and materials rows',
+    'follow-up issues area',
+    'technician signature line',
+    're-entry reminder footer',
+  ],
+  excludeAlways: [
+    'private notes',
+    'existing note content',
+    'cost data',
+    'photos and images',
+    'internal metadata and integration logs',
+  ],
+};

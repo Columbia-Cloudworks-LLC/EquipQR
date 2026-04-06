@@ -10,10 +10,14 @@ import {
   generateWorkOrderPDFBlob,
   type WorkOrderPDFData,
   type WorkOrderForPDF,
-  type EquipmentForPDF
+  type EquipmentForPDF,
+  type WorkOrderPDFQRCodes,
+  type WorkOrderPDFPageIdentity,
 } from '@/features/work-orders/services/workOrderReportPDFService';
+import { generateFieldWorksheetPDF } from '@/features/work-orders/services/workOrderFieldWorksheetPDFService';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
-import { SERVICE_REPORT_EXPORT_POLICY } from '@/features/work-orders/constants/workOrderExportPolicy';
+import { SERVICE_REPORT_EXPORT_POLICY, FIELD_WORKSHEET_EXPORT_POLICY } from '@/features/work-orders/constants/workOrderExportPolicy';
+import { equipmentQRPath, workOrderQRPath, qrFullUrl, buildQRAsset } from '@/utils/qr';
 
 /** Response from the upload-to-google-drive edge function */
 interface GoogleDriveUploadResponse {
@@ -35,6 +39,8 @@ export interface UseWorkOrderPDFOptions {
   equipment?: EquipmentForPDF | null;
   pmData?: PreventativeMaintenance | null;
   organizationName?: string;
+  /** Team ID for fetching team branding on printed worksheets */
+  teamId?: string | null;
 }
 
 /** Options passed to downloadPDF function */
@@ -48,10 +54,14 @@ export interface UseWorkOrderPDFReturn {
   downloadPDF: (options?: DownloadPDFOptions) => Promise<void>;
   /** Generate the PDF and upload it to Google Drive. Requires Google Workspace connection. */
   saveToDrive: (options?: DownloadPDFOptions) => Promise<void>;
+  /** Generate and download a printable field worksheet for technicians. */
+  downloadFieldWorksheet: () => Promise<void>;
   /** Whether PDF generation/download is in progress */
   isGenerating: boolean;
   /** Whether Google Drive upload is in progress */
   isSavingToDrive: boolean;
+  /** Whether field worksheet generation is in progress */
+  isGeneratingWorksheet: boolean;
 }
 
 /**
@@ -69,7 +79,8 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     workOrder, 
     equipment, 
     pmData, 
-    organizationName
+    organizationName,
+    teamId,
   } = options;
   
   const { organization } = useOrganization();
@@ -77,12 +88,14 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingToDrive, setIsSavingToDrive] = useState(false);
+  const [isGeneratingWorksheet, setIsGeneratingWorksheet] = useState(false);
   
   // Use refs for the re-entry guards to avoid stale closure issues.
   // The refs always have the current value, unlike state captured in callback closure.
   // Note: The refs are reset in the finally blocks after operations complete/fail.
   const isGeneratingRef = useRef(false);
   const isSavingToDriveRef = useRef(false);
+  const isGeneratingWorksheetRef = useRef(false);
 
   const fetchCustomerName = useCallback(async (): Promise<string | null> => {
     if (!equipment?.customerId || !organizationId) {
@@ -108,8 +121,45 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     return data?.name ?? null;
   }, [equipment?.customerId, equipment?.id, organizationId]);
 
+  const buildQRCodes = useCallback(async (): Promise<WorkOrderPDFQRCodes | undefined> => {
+    try {
+      const woUrl = qrFullUrl(workOrderQRPath(workOrder.id));
+      const woAssetPromise = buildQRAsset(woUrl);
+
+      const eqAssetPromise = equipment?.id
+        ? buildQRAsset(qrFullUrl(equipmentQRPath(equipment.id)))
+        : Promise.resolve(undefined);
+
+      const [woAsset, eqAsset] = await Promise.all([woAssetPromise, eqAssetPromise]);
+      return { workOrder: woAsset, equipment: eqAsset };
+    } catch (err) {
+      logger.warn('Failed to generate QR codes for PDF:', err);
+      return undefined;
+    }
+  }, [workOrder.id, equipment?.id]);
+
+  const buildPageIdentity = useCallback((): WorkOrderPDFPageIdentity => {
+    const shortId = workOrder.id.length <= 8
+      ? workOrder.id.toUpperCase()
+      : `${workOrder.id.slice(0, 4)}...${workOrder.id.slice(-4)}`.toUpperCase();
+
+    const titleSnippet = workOrder.title.length > 40
+      ? `${workOrder.title.slice(0, 37)}...`
+      : workOrder.title;
+
+    const workOrderLabel = `WO-${shortId}: ${titleSnippet}`;
+
+    let equipmentLabel: string | undefined;
+    if (equipment) {
+      const parts = [equipment.name];
+      if (equipment.serial_number) parts.push(`S/N: ${equipment.serial_number}`);
+      equipmentLabel = parts.join(' - ');
+    }
+
+    return { workOrderLabel, equipmentLabel };
+  }, [workOrder.id, workOrder.title, equipment]);
+
   const buildPdfData = useCallback(async (includeCosts: boolean): Promise<WorkOrderPDFData> => {
-    // Always fetch notes; generator enforces public-only notes for external reports.
     const notesPromise = getWorkOrderNotesWithImages(workOrder.id, organizationId).catch(err => {
       logger.warn('Failed to fetch notes for PDF:', err);
       return [];
@@ -123,11 +173,13 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       : Promise.resolve([]);
 
     const customerNamePromise = fetchCustomerName();
+    const qrCodesPromise = buildQRCodes();
 
-    const [notes, costs, customerName] = await Promise.all([
+    const [notes, costs, customerName, qrCodes] = await Promise.all([
       notesPromise,
       costsPromise,
       customerNamePromise,
+      qrCodesPromise,
     ]);
 
     const equipmentWithCustomer = equipment
@@ -137,6 +189,8 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
         }
       : null;
 
+    const pageIdentity = buildPageIdentity();
+
     return {
       workOrder,
       equipment: equipmentWithCustomer,
@@ -145,8 +199,10 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       costs,
       pmData,
       includeCosts,
+      qrCodes,
+      pageIdentity,
     };
-  }, [equipment, fetchCustomerName, organizationName, organizationId, pmData, workOrder]);
+  }, [equipment, fetchCustomerName, organizationName, organizationId, pmData, workOrder, buildQRCodes, buildPageIdentity]);
 
   const downloadPDF = useCallback(async (downloadOptions?: DownloadPDFOptions) => {
     // Use ref for guard check to prevent race conditions from rapid clicks.
@@ -281,10 +337,59 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     }
   }, [buildPdfData, organizationId]);
 
+  const downloadFieldWorksheet = useCallback(async () => {
+    if (isGeneratingWorksheetRef.current) return;
+
+    isGeneratingWorksheetRef.current = true;
+    setIsGeneratingWorksheet(true);
+
+    try {
+      const orgLogoUrl = (organization as Record<string, unknown> | null)?.logo as string | null ?? null;
+
+      let teamImgUrl: string | null = null;
+      if (teamId && organizationId) {
+        const { data } = await supabase
+          .from('teams')
+          .select('image_url')
+          .eq('id', teamId)
+          .eq('organization_id', organizationId)
+          .maybeSingle();
+        teamImgUrl = data?.image_url ?? null;
+      }
+
+      const qrCodes = await buildQRCodes();
+      const pageIdentity = buildPageIdentity();
+
+      const worksheetData: WorkOrderPDFData = {
+        workOrder,
+        equipment: equipment ? { ...equipment } : null,
+        organizationName,
+        pmData,
+        organizationLogoUrl: orgLogoUrl,
+        teamImageUrl: teamImgUrl,
+        qrCodes,
+        pageIdentity,
+      };
+
+      await generateFieldWorksheetPDF(worksheetData);
+
+      toast.success(`${FIELD_WORKSHEET_EXPORT_POLICY.exportName} downloaded successfully`);
+    } catch (error) {
+      logger.error('Error generating field worksheet PDF:', error);
+      toast.error('Failed to generate field worksheet. Please try again.');
+      throw error;
+    } finally {
+      isGeneratingWorksheetRef.current = false;
+      setIsGeneratingWorksheet(false);
+    }
+  }, [equipment, organizationName, pmData, workOrder, organization, teamId, organizationId, buildQRCodes, buildPageIdentity]);
+
   return {
     downloadPDF,
     saveToDrive,
+    downloadFieldWorksheet,
     isGenerating,
     isSavingToDrive,
+    isGeneratingWorksheet,
   };
 };

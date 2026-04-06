@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, ClipboardList, QrCode, X } from 'lucide-react';
+import { Plus, ClipboardList, Cog, Package, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -33,11 +33,19 @@ const DashboardFAB: React.FC = () => {
       },
     },
     {
-      icon: <QrCode className="h-5 w-5" />,
-      label: 'Scan QR Code',
+      icon: <Cog className="h-5 w-5" />,
+      label: 'New Equipment',
       onClick: () => {
         setOpen(false);
-        navigate('/dashboard/equipment?scan=true');
+        navigate('/dashboard/equipment?create=true');
+      },
+    },
+    {
+      icon: <Package className="h-5 w-5" />,
+      label: 'New Inventory Item',
+      onClick: () => {
+        setOpen(false);
+        navigate('/dashboard/inventory?create=true');
       },
     },
   ];

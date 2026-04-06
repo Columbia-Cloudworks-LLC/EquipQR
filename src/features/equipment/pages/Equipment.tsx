@@ -8,6 +8,7 @@ import { useEquipmentFiltering } from '@/features/equipment/hooks/useEquipmentFi
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
@@ -100,6 +101,10 @@ const Equipment = () => {
         didApply = true;
       }
     }
+    if (searchParams.get('create') === 'true') {
+      setShowForm(true);
+      didApply = true;
+    }
     if (didApply) {
       initializedFromUrl.current = true;
     }
@@ -140,7 +145,7 @@ const Equipment = () => {
 
   return (
     <Page maxWidth="7xl" padding="responsive">
-      <div className="space-y-4 md:space-y-6">
+      <div className={cn('space-y-4 md:space-y-6', isMobile && canCreate && 'pb-28')}>
         <PageHeader 
           title="Equipment" 
           description={`Manage equipment for ${currentOrganization.name}`}
@@ -149,7 +154,7 @@ const Equipment = () => {
             canCreate && (
               <Button 
                 onClick={handleAddEquipment}
-                className="w-full min-h-11 sm:w-auto"
+                className="hidden sm:inline-flex"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Equipment
@@ -323,6 +328,23 @@ const Equipment = () => {
         organizationId={currentOrganization.id}
         organizationName={currentOrganization.name}
       />
+
+      {isMobile && canCreate && (
+        <Button
+          type="button"
+          size="icon"
+          onClick={handleAddEquipment}
+          aria-label="Add equipment"
+          className={cn(
+            'fixed bottom-[78px] right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3',
+            'touch-manipulation transition-transform duration-100 active:scale-[0.97]',
+            'motion-reduce:active:scale-100',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+          )}
+        >
+          <Plus className="h-6 w-6" aria-hidden />
+        </Button>
+      )}
       </div>
     </Page>
   );

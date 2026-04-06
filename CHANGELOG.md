@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-04-06
+
+### Added
+
+- **QR codes on work order PDF printouts** — Both the Service Report and Field Worksheet PDFs now include a repeating footer on every page with scannable Work Order and Equipment QR codes, plus a repeating page header with work order title, shortened ID, equipment identifier (when present), and page numbering. Separated pages are now self-identifying. QR code generation and route construction centralised in a shared `src/utils/qr.ts` utility.
+
+- **Work order QR scan entry route** — New public route `/qr/work-order/:workOrderId` enables scanning printed work order QR codes with any QR reader. The flow mirrors the existing equipment and inventory scan paths: prompts for sign-in when needed, verifies org membership, supports org switching for multi-org users, and redirects to the work order detail page with `?qr=true`.
+
+### Changed
+
+- **Desktop work order header standardized** — Replaced the custom gradient hero header on the work order details page with the shared `PageHeader` component used by equipment, inventory, and team detail pages. Status badge and priority now render inline with the title in the meta slot. Edit remains a primary action; exports, QuickBooks, and delete are grouped into a single "Actions" dropdown with labeled sections (Exports, Integrations, Destructive) matching the mobile action sheet structure. Export visibility is now gated on `isManager` on both desktop and mobile, and the Google Docs destination permission check was aligned to use `permissionLevels.isManager` on both surfaces.
+
+- **Work order card refresh** — Redesigned work order list cards with a reorganized action hierarchy: primary status actions (Accept, Start Work, Complete, Resume) now surface directly on active list cards, the quick-actions menu moved from the footer to the identity strip next to badges, the redundant "View Details" button was removed (entire card is clickable), and the 5-column metadata grid was replaced with a compact flex-wrap inline token strip that wraps gracefully on narrow screens. Equipment thumbnails enlarged to 96px on desktop with equipment-type-aware fallback icons (excavator, dozer, generator, light tower, loader, crane) and tinted backgrounds replacing the generic Cog placeholder. Active work orders now carry subtle status-tinted card backgrounds while completed and cancelled cards collapse to a shorter form with hidden PM progress bars. Terminal cards (completed/cancelled) use opacity reduction for clear visual weight differentiation.
+
+- **Mobile work order card layout fix** — Restructured the mobile card identity strip so status and priority badges render on their own row below the title instead of competing for horizontal space beside it. Thumbnail reduced from 64px to 48px, title gets the full remaining width with 2-line clamp, and equipment name gets a dedicated line. Fixes severe title truncation on narrow phone screens (e.g. "250-Hour PM" rendering as "25( H...") that made cards unreadable in the field.
+
 ## [2.7.1] - 2026-04-05
 
 ### Changed
@@ -1544,7 +1560,11 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.2...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.8.0...HEAD
+[2.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.7.1...v2.8.0
+[2.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.7.0...v2.7.1
+[2.7.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.6.0...v2.7.0
+[2.6.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.2...v2.6.0
 [2.5.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.4.0...v2.5.0

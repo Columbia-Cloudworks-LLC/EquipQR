@@ -69,6 +69,8 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderPDFData', () => ({
     isGenerating: false,
     saveToDrive: vi.fn(),
     isSavingToDrive: false,
+    downloadFieldWorksheet: vi.fn(),
+    isGeneratingWorksheet: false,
   })),
 }));
 

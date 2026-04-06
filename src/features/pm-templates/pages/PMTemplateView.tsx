@@ -145,6 +145,7 @@ const PMTemplateView: React.FC = () => {
       )}
       {(!currentOrganization || !isAdmin) && null}
       <PageHeader
+        density="compact"
         title={template?.name || 'PM Template'}
         description={template?.description || undefined}
         breadcrumbs={[
@@ -190,7 +191,7 @@ const PMTemplateView: React.FC = () => {
           {/* TOC */}
           <div className="lg:col-span-3">
             <Card>
-              <CardContent className="p-4">
+              <CardContent standalone>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <ListTree className="h-4 w-4" />
@@ -246,7 +247,7 @@ const PMTemplateView: React.FC = () => {
 
             {/* PDF Download Options */}
             <Card>
-              <CardContent className="p-4">
+              <CardContent standalone>
                 <div className="flex flex-col sm:flex-row sm:items-end gap-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox 

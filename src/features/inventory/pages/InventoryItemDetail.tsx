@@ -537,6 +537,7 @@ const InventoryItemDetail = () => {
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-4 md:space-y-6">
         <PageHeader
+          density="compact"
           title={item.name}
           backLink={isMobile ? { label: 'Inventory', href: '/dashboard/inventory' } : undefined}
           meta={

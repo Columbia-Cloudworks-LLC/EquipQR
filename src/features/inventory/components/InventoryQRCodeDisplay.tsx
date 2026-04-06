@@ -4,10 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Copy, CheckCircle } from 'lucide-react';
-// QRCode is loaded dynamically to reduce initial bundle size (~100KB)
-// It's only needed when the QR code dialog is opened
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { inventoryQRPath, qrFullUrl, generateQRDataUrl } from '@/utils/qr';
 
 interface InventoryQRCodeDisplayProps {
   open: boolean;
@@ -22,21 +21,11 @@ const InventoryQRCodeDisplay: React.FC<InventoryQRCodeDisplayProps> = ({ open, o
   const [selectedFormat, setSelectedFormat] = React.useState<'png' | 'jpg'>('png');
   const isMobile = useIsMobile();
 
-  // Generate QR code URL - using the /qr/inventory/ route for inventory items
-  const qrCodeUrl = `${window.location.origin}/qr/inventory/${itemId}`;
+  const qrCodeUrl = qrFullUrl(inventoryQRPath(itemId));
 
   const generateQRCode = React.useCallback(async () => {
     try {
-      // Dynamically load QRCode only when QR generation is triggered
-      const QRCode = (await import('qrcode')).default;
-      const dataUrl = await QRCode.toDataURL(qrCodeUrl, {
-        width: 256,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
+      const dataUrl = await generateQRDataUrl(qrCodeUrl);
       setQrCodeDataUrl(dataUrl);
     } catch (error) {
       console.error('Error generating QR code:', error);
@@ -59,18 +48,13 @@ const InventoryQRCodeDisplay: React.FC<InventoryQRCodeDisplayProps> = ({ open, o
     if (!qrCodeDataUrl) return;
 
     try {
-      // Generate QR code in the selected format
-      const formatOptions = {
+      const QRCode = (await import('qrcode')).default;
+      const dataUrl = await QRCode.toDataURL(qrCodeUrl, {
         width: 256,
         margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        },
-        type: selectedFormat === 'jpg' ? 'image/jpeg' : 'image/png'
-      };
-
-      const dataUrl = await QRCode.toDataURL(qrCodeUrl, formatOptions);
+        color: { dark: '#000000', light: '#FFFFFF' },
+        type: selectedFormat === 'jpg' ? 'image/jpeg' : 'image/png',
+      });
       
       const link = document.createElement('a');
       const baseFilename = itemName ? sanitizeFilename(itemName) : `inventory-${itemId}`;
