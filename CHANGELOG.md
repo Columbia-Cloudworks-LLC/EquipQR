@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-04-06
+
 ### Added
 
 - **QR codes on work order PDF printouts** — Both the Service Report and Field Worksheet PDFs now include a repeating footer on every page with scannable Work Order and Equipment QR codes, plus a repeating page header with work order title, shortened ID, equipment identifier (when present), and page numbering. Separated pages are now self-identifying. QR code generation and route construction centralised in a shared `src/utils/qr.ts` utility.
@@ -1558,7 +1560,11 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.2...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.8.0...HEAD
+[2.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.7.1...v2.8.0
+[2.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.7.0...v2.7.1
+[2.7.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.6.0...v2.7.0
+[2.6.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.2...v2.6.0
 [2.5.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.4.0...v2.5.0
