@@ -62,27 +62,25 @@ export const WorkOrderDetailsStatusLockWarning: React.FC<WorkOrderDetailsStatusL
   const canRevert = isAdmin && (workOrder.status === 'completed' || workOrder.status === 'cancelled');
 
   return (
-    <div className="px-4 lg:px-6">
-      <div className="flex items-center justify-between rounded-lg border border-warning/30 bg-warning/10 dark:bg-warning/10 dark:border-warning/50 py-2 px-3">
-        <div className="flex items-center gap-2 text-warning dark:text-warning">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <p className="text-sm font-medium">
-            This work order is {workOrder.status}. Notes, images, and costs cannot be modified.
-          </p>
-        </div>
-        {canRevert && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRevert}
-            disabled={isReverting}
-            className="border-warning/40 text-warning hover:bg-warning/20 dark:border-warning/50 dark:text-warning dark:hover:bg-warning/20 ml-3 shrink-0"
-          >
-            <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-            {isReverting ? 'Reverting...' : 'Revert to Accepted'}
-          </Button>
-        )}
+    <div className="rounded-lg border border-warning/30 bg-warning/10 dark:bg-warning/10 dark:border-warning/50 py-2.5 px-3 space-y-2">
+      <div className="flex items-start gap-2 text-warning dark:text-warning">
+        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+        <p className="text-sm font-medium">
+          This work order is {workOrder.status}. Notes, images, and costs cannot be modified.
+        </p>
       </div>
+      {canRevert && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRevert}
+          disabled={isReverting}
+          className="w-full border-warning/40 text-warning hover:bg-warning/20 dark:border-warning/50 dark:text-warning dark:hover:bg-warning/20"
+        >
+          <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+          {isReverting ? 'Reverting...' : 'Revert to Accepted'}
+        </Button>
+      )}
     </div>
   );
 };

@@ -21,7 +21,6 @@ import WorkOrderCostsSection from '@/features/work-orders/components/WorkOrderCo
 import { WorkOrderEquipmentSelector } from '@/features/work-orders/components/WorkOrderEquipmentSelector';
 import { WorkOrderDetailsMobileHeader } from '@/features/work-orders/components/WorkOrderDetailsMobileHeader';
 import { WorkOrderDetailsDesktopHeader } from '@/features/work-orders/components/WorkOrderDetailsDesktopHeader';
-import { WorkOrderDetailsStatusLockWarning } from '@/features/work-orders/components/WorkOrderDetailsStatusLockWarning';
 import { WorkOrderDetailsPMInfo } from '@/features/work-orders/components/WorkOrderDetailsPMInfo';
 import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 import { WorkOrderDetailsSidebar } from '@/features/work-orders/components/WorkOrderDetailsSidebar';
@@ -453,15 +452,6 @@ const WorkOrderDetails = () => {
         organizationId={currentOrganization.id}
       />
 
-      {/* Status Lock Warning */}
-      <WorkOrderDetailsStatusLockWarning
-        workOrder={workOrder}
-        isWorkOrderLocked={isWorkOrderLocked}
-        baseCanAddNotes={baseCanAddNotes}
-        isAdmin={permissionLevels.isManager}
-        onStatusUpdate={handleStatusUpdate}
-      />
-
       <div className={cn('p-4 lg:p-6', isMobile ? 'block' : 'grid grid-cols-1 lg:grid-cols-3 gap-6')}>
         {/* Main Content */}
         <div
@@ -782,6 +772,9 @@ const WorkOrderDetails = () => {
           showMobileSidebar={showMobileSidebar}
           onCloseMobileSidebar={() => setShowMobileSidebar(false)}
           team={workOrder.team}
+          isWorkOrderLocked={isWorkOrderLocked}
+          baseCanAddNotes={baseCanAddNotes}
+          onStatusUpdate={handleStatusUpdate}
         />
       </div>
 

@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import WorkOrderStatusManager from '@/features/work-orders/components/WorkOrderStatusManager';
 import { WorkOrderDetailsRequestorStatus } from './WorkOrderDetailsRequestorStatus';
+import { WorkOrderDetailsStatusLockWarning } from './WorkOrderDetailsStatusLockWarning';
 import { WorkOrderData, EquipmentData, PMData, PermissionLevels, OrganizationData } from '@/features/work-orders/types/workOrderDetails';
+import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
 
 interface WorkOrderDetailsSidebarProps {
   workOrder: WorkOrderData;
@@ -24,6 +26,9 @@ interface WorkOrderDetailsSidebarProps {
     location_lat?: number | null;
     location_lng?: number | null;
   } | null;
+  isWorkOrderLocked?: boolean;
+  baseCanAddNotes?: boolean;
+  onStatusUpdate?: (newStatus: WorkOrderLike['status']) => void;
 }
 
 export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = ({
@@ -35,7 +40,10 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
   currentOrganization,
   showMobileSidebar,
   onCloseMobileSidebar,
-  team
+  team,
+  isWorkOrderLocked = false,
+  baseCanAddNotes = false,
+  onStatusUpdate,
 }) => {
   const isMobile = useIsMobile();
 
@@ -63,23 +71,32 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
       <div className="space-y-4 lg:space-y-6">
         {/* Status Management with Assignment - Only managers can change status */}
         {permissionLevels.isManager && (
-          <WorkOrderStatusManager 
-            workOrder={{
-              ...workOrder,
-              // Pass equipment team_id for contextual assignment
-              equipmentTeamId: equipment?.team_id
-            }} 
-            organizationId={currentOrganization.id}
-            contextData={{
-              dueDate: workOrder.due_date,
-              estimatedHours: workOrder.estimated_hours,
-              equipmentId: equipment?.id,
-              equipmentName: equipment?.name,
-              pmStatus: workOrder.has_pm && pmData ? pmData.status : undefined,
-              formMode,
-              team: team || null,
-            }}
-          />
+          <>
+            <WorkOrderStatusManager 
+              workOrder={{
+                ...workOrder,
+                // Pass equipment team_id for contextual assignment
+                equipmentTeamId: equipment?.team_id
+              }} 
+              organizationId={currentOrganization.id}
+              contextData={{
+                dueDate: workOrder.due_date,
+                estimatedHours: workOrder.estimated_hours,
+                equipmentId: equipment?.id,
+                equipmentName: equipment?.name,
+                pmStatus: workOrder.has_pm && pmData ? pmData.status : undefined,
+                formMode,
+                team: team || null,
+              }}
+            />
+            <WorkOrderDetailsStatusLockWarning
+              workOrder={workOrder}
+              isWorkOrderLocked={isWorkOrderLocked}
+              baseCanAddNotes={baseCanAddNotes}
+              isAdmin={permissionLevels.isManager}
+              onStatusUpdate={onStatusUpdate}
+            />
+          </>
         )}
 
         {/* Status Info for Requestors - now includes context data */}
