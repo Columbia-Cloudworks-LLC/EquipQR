@@ -27,8 +27,7 @@ import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/u
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useCustomersByOrg, useCustomerMutations } from '@/features/teams/hooks/useCustomerAccount';
-import { linkTeamToCustomer } from '@/features/teams/services/customerAccountService';
+import { useCustomersByOrg } from '@/features/teams/hooks/useCustomerAccount';
 
 interface TeamMetadataEditorProps {
   open: boolean;

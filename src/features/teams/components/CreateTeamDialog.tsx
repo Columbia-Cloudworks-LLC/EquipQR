@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Info, Building2, Plus } from 'lucide-react';
+import { Info, Plus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/useAuth';
 import { useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
@@ -20,7 +20,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useCustomersByOrg, useCustomerMutations } from '@/features/teams/hooks/useCustomerAccount';
-import { linkTeamToCustomer } from '@/features/teams/services/customerAccountService';
 
 interface CreateTeamDialogProps {
   open: boolean;
@@ -95,7 +94,7 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
         customerId = created.id;
       }
 
-      const result = await createTeamWithCreator.mutateAsync({
+      await createTeamWithCreator.mutateAsync({
         teamData: {
           name: name.trim(),
           description: description.trim() || null,
