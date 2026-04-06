@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Formalized PDF signature and re-entry sections** — Restructured the field worksheet signature block with a half-width signature line (no longer mistaken for a divider), Date Signed on the same row, printed name below, and a certification attestation statement. The office re-entry section now sits below a clear divider with wider fields and breathing room for legible handwriting. Footer disclaimer and generated-timestamp copy formalized across both the Field Worksheet and Service Report PDFs for consistent document tone.
+
 ## [2.8.0] - 2026-04-06
 
 ### Added

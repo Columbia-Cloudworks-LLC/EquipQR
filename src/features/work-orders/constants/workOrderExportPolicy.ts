@@ -64,8 +64,8 @@ export const FIELD_WORKSHEET_EXPORT_POLICY: WorkOrderExportPolicy = {
     'blank labor summary rows',
     'blank parts and materials rows',
     'follow-up issues area',
-    'technician signature line',
-    're-entry reminder footer',
+    'technician certification and signature',
+    're-entry attestation footer',
   ],
   excludeAlways: [
     'private notes',
