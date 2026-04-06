@@ -78,7 +78,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
       onClick={handleNavigate}
       onKeyDown={handleKeyDown}
     >
-      <CardContent className="p-4">
+      <CardContent standalone>
         <div className="space-y-3">
           {/* Header */}
           <div className="space-y-2">

@@ -378,6 +378,7 @@ const AlternateGroupDetail: React.FC = () => {
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
+          density="compact"
           title={group.name}
           description={group.description || undefined}
           breadcrumbs={[

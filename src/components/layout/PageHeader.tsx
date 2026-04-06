@@ -24,7 +24,16 @@ interface PageHeaderProps {
   className?: string;
   /** Hide the description on mobile to save vertical space */
   hideDescriptionOnMobile?: boolean;
+  /** Vertical gap between breadcrumbs and title row.
+   *  'default' = space-y-4 everywhere.
+   *  'compact' = space-y-4 on mobile, space-y-2 on lg+. Ideal for detail pages with breadcrumbs. */
+  density?: 'default' | 'compact';
 }
+
+const densityClasses = {
+  default: 'space-y-4',
+  compact: 'space-y-4 lg:space-y-2',
+} as const;
 
 const PageHeader: React.FC<PageHeaderProps> = ({
   title,
@@ -35,11 +44,12 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   actions,
   className,
   hideDescriptionOnMobile = false,
+  density = 'default',
 }) => {
   useDocumentTitle(title);
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn(densityClasses[density], className)}>
       {backLink && (
         <div className="flex items-center">
           <Link

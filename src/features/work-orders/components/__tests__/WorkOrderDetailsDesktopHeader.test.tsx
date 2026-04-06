@@ -294,4 +294,11 @@ describe('WorkOrderDetailsDesktopHeader', () => {
 
     expect(screen.queryByRole('button', { name: 'Actions' })).not.toBeInTheDocument();
   });
+
+  it('aligns wrapper with page shell horizontal padding', () => {
+    const { container } = render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+    const wrapper = container.querySelector('.lg\\:block');
+    expect(wrapper?.className).toContain('px-4');
+    expect(wrapper?.className).toContain('lg:px-6');
+  });
 });

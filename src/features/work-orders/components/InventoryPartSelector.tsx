@@ -164,7 +164,7 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
-                  <CardContent className="p-4">
+                  <CardContent standalone>
                     <div className="h-4 bg-muted rounded w-3/4 mb-2" />
                     <div className="h-3 bg-muted rounded w-1/2" />
                   </CardContent>
@@ -195,7 +195,7 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
                     }`}
                     onClick={() => setSelectedItemId(item.id)}
                   >
-                    <CardContent className="p-4">
+                    <CardContent standalone>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">

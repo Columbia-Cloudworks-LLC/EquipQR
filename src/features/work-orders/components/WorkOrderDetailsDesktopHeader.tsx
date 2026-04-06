@@ -154,8 +154,9 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
 
   return (
     <TooltipProvider>
-      <div className="hidden lg:block">
+      <div className="hidden lg:block px-4 lg:px-6">
         <PageHeader
+          density="compact"
           title={workOrder.title}
           breadcrumbs={[
             { label: 'Work Orders', href: '/dashboard/work-orders' },

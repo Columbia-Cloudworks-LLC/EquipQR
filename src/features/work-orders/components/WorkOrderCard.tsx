@@ -251,7 +251,7 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
         }
       } : undefined}
     >
-      <CardContent className="p-4">
+      <CardContent standalone>
         {/* Identity strip: photo + title/equipment + actions/badges */}
         <div className="flex items-start gap-4">
           <EquipmentThumbnail
@@ -487,7 +487,7 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
         }
       } : undefined}
     >
-      <CardContent className="p-3">
+      <CardContent standalone className="p-3">
         {/* Row 1: thumbnail + title/equipment (badges removed from this row) */}
         <div className="flex items-start gap-2.5">
           <EquipmentThumbnail

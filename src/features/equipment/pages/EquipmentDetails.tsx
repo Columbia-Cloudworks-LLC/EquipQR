@@ -298,6 +298,7 @@ const EquipmentDetails = () => {
         <>
           {/* Desktop Header */}
           <PageHeader
+            density="compact"
             title={equipment.name}
             description={`${equipment.manufacturer} ${equipment.model} • ${equipment.serial_number}`}
             breadcrumbs={[

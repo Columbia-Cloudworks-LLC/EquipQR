@@ -104,7 +104,7 @@ function HistoryEntry({ entry }: { entry: FormattedAuditEntry }) {
       
       {/* Content */}
       <Card className="ml-2">
-        <CardContent className="p-4">
+        <CardContent standalone>
           {hasChanges ? (
             <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
               {/* Header */}
@@ -210,7 +210,7 @@ function HistoryEntrySkeleton() {
         <Skeleton className="w-6 h-6 rounded-full" />
       </div>
       <Card className="ml-2">
-        <CardContent className="p-4">
+        <CardContent standalone>
           <div className="flex items-center gap-2">
             <Skeleton className="h-5 w-20" />
             <Skeleton className="h-4 w-32" />

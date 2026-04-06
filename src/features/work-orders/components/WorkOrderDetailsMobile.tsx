@@ -226,7 +226,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
           )}
           onClick={onScrollToPM ? () => onScrollToPM() : undefined}
         >
-          <CardContent className="p-4">
+          <CardContent standalone>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Clipboard className="h-4 w-4 text-muted-foreground" />
@@ -256,7 +256,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
       {/* Description - Collapsible */}
       {workOrder.description && (
         <Card className="shadow-elevation-2">
-          <CardContent className="p-4">
+          <CardContent standalone>
             <Collapsible open={isDescriptionExpanded} onOpenChange={setIsDescriptionExpanded}>
               <CollapsibleTrigger asChild>
                 <button className="flex items-center justify-between w-full text-left min-h-[44px] touch-manipulation">
@@ -289,7 +289,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
       {/* Equipment Details - Collapsible */}
       {equipment && (
         <Card className="shadow-elevation-2">
-          <CardContent className="p-4">
+          <CardContent standalone>
             <Collapsible open={isEquipmentDetailsExpanded} onOpenChange={setIsEquipmentDetailsExpanded}>
               <CollapsibleTrigger asChild>
                 <button className="flex items-center justify-between w-full text-left min-h-[44px] touch-manipulation">
