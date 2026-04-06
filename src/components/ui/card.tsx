@@ -61,16 +61,15 @@ CardDescription.displayName = "CardDescription"
 const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    /** Use symmetric padding when the card has no CardHeader. */
+    /** When true, always use symmetric padding regardless of sibling position. */
     standalone?: boolean;
   }
 >(({ className, standalone, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn(
-      standalone ? "p-4 sm:p-5" : "p-4 pt-0 sm:p-5 sm:pt-0",
-      className
-    )}
+    data-slot="card-content"
+    {...(standalone && { 'data-standalone': '' })}
+    className={cn(className)}
     {...props}
   />
 ))

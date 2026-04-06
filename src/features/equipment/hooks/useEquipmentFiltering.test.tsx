@@ -11,6 +11,10 @@ vi.mock('@/services/syncDataService', () => ({
   useSyncTeamsByOrganization: vi.fn(),
 }));
 
+vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
+  useTeams: vi.fn(() => ({ teams: [], managedTeams: [], isLoading: false, error: null })),
+}));
+
 vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: () => ({ canManageOrganization: () => true }),
 }));

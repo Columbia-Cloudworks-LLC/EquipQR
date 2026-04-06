@@ -956,14 +956,45 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: customerMapping, error: mappingError } = await supabaseClient
-      .from('quickbooks_team_customers')
-      .select('quickbooks_customer_id, display_name')
-      .eq('organization_id', workOrder.organization_id)
-      .eq('team_id', equipmentTeamId)
+    // Resolve QB customer ID: prefer team → customer account, fall back to legacy mapping
+    let resolvedQBCustomerId: string | null = null;
+    let resolvedDisplayName: string | null = null;
+
+    const { data: teamRow } = await supabaseClient
+      .from('teams')
+      .select('customer_id')
+      .eq('id', equipmentTeamId)
       .single();
 
-    if (mappingError || !customerMapping) {
+    if (teamRow?.customer_id) {
+      const { data: customerAccount } = await supabaseClient
+        .from('customers')
+        .select('quickbooks_customer_id, name')
+        .eq('id', teamRow.customer_id)
+        .single();
+
+      if (customerAccount?.quickbooks_customer_id) {
+        resolvedQBCustomerId = customerAccount.quickbooks_customer_id;
+        resolvedDisplayName = customerAccount.name;
+      }
+    }
+
+    // Fallback to legacy mapping table
+    if (!resolvedQBCustomerId) {
+      const { data: legacyMapping } = await supabaseClient
+        .from('quickbooks_team_customers')
+        .select('quickbooks_customer_id, display_name')
+        .eq('organization_id', workOrder.organization_id)
+        .eq('team_id', equipmentTeamId)
+        .single();
+
+      if (legacyMapping) {
+        resolvedQBCustomerId = legacyMapping.quickbooks_customer_id;
+        resolvedDisplayName = legacyMapping.display_name;
+      }
+    }
+
+    if (!resolvedQBCustomerId) {
       return new Response(JSON.stringify({ 
         success: false, 
         error: "Team does not have a QuickBooks customer mapping. Please map the team to a QuickBooks customer first." 
@@ -972,6 +1003,11 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const customerMapping: TeamCustomerMapping = {
+      quickbooks_customer_id: resolvedQBCustomerId,
+      display_name: resolvedDisplayName ?? 'Unknown',
+    };
 
     logStep("Customer mapping found", { 
       customerId: customerMapping.quickbooks_customer_id,

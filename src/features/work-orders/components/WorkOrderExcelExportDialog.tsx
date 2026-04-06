@@ -157,7 +157,7 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
     setTeamId(ALL_VALUE);
   };
 
-  const isAnyExporting = isExporting || isExportingToSheets || isExportingToDocs;
+  const isAnyExporting = isExporting || isExportingToSheets;
   const canExport = recordCount > 0 && !isAnyExporting;
 
   // Build filter summary for display

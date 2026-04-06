@@ -1,3 +1,4 @@
+﻿Connecting to db 5432
 export type Json =
   | string
   | number
@@ -87,138 +88,6 @@ export type Database = {
           },
         ]
       }
-      billing_events: {
-        Row: {
-          amount_change: number | null
-          created_at: string
-          effective_date: string
-          event_data: Json | null
-          event_type: string
-          id: string
-          organization_id: string
-          processed: boolean | null
-          user_id: string | null
-        }
-        Insert: {
-          amount_change?: number | null
-          created_at?: string
-          effective_date?: string
-          event_data?: Json | null
-          event_type: string
-          id?: string
-          organization_id: string
-          processed?: boolean | null
-          user_id?: string | null
-        }
-        Update: {
-          amount_change?: number | null
-          created_at?: string
-          effective_date?: string
-          event_data?: Json | null
-          event_type?: string
-          id?: string
-          organization_id?: string
-          processed?: boolean | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "billing_events_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      billing_exemptions: {
-        Row: {
-          created_at: string
-          exemption_type: string
-          exemption_value: number
-          expires_at: string | null
-          granted_at: string
-          granted_by: string | null
-          id: string
-          is_active: boolean
-          organization_id: string
-          reason: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          exemption_type?: string
-          exemption_value?: number
-          expires_at?: string | null
-          granted_at?: string
-          granted_by?: string | null
-          id?: string
-          is_active?: boolean
-          organization_id: string
-          reason?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          exemption_type?: string
-          exemption_value?: number
-          expires_at?: string | null
-          granted_at?: string
-          granted_by?: string | null
-          id?: string
-          is_active?: boolean
-          organization_id?: string
-          reason?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "billing_exemptions_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      billing_usage: {
-        Row: {
-          billing_period_end: string
-          billing_period_start: string
-          created_at: string
-          id: string
-          organization_id: string | null
-          usage_type: string
-          usage_value: number
-        }
-        Insert: {
-          billing_period_end: string
-          billing_period_start: string
-          created_at?: string
-          id?: string
-          organization_id?: string | null
-          usage_type: string
-          usage_value: number
-        }
-        Update: {
-          billing_period_end?: string
-          billing_period_start?: string
-          created_at?: string
-          id?: string
-          organization_id?: string | null
-          usage_type?: string
-          usage_value?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "billing_usage_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       customer_contacts: {
         Row: {
           created_at: string
@@ -296,98 +165,76 @@ export type Database = {
       }
       customers: {
         Row: {
+          account_owner_id: string | null
+          billing_address: Json | null
           created_at: string
+          email: string | null
           id: string
           name: string
+          notes: string | null
           organization_id: string
+          phone: string | null
+          quickbooks_customer_id: string | null
+          quickbooks_display_name: string | null
+          quickbooks_synced_at: string | null
+          shipping_address: Json | null
           status: string
+          updated_at: string | null
         }
         Insert: {
+          account_owner_id?: string | null
+          billing_address?: Json | null
           created_at?: string
+          email?: string | null
           id?: string
           name: string
+          notes?: string | null
           organization_id: string
+          phone?: string | null
+          quickbooks_customer_id?: string | null
+          quickbooks_display_name?: string | null
+          quickbooks_synced_at?: string | null
+          shipping_address?: Json | null
           status?: string
+          updated_at?: string | null
         }
         Update: {
+          account_owner_id?: string | null
+          billing_address?: Json | null
           created_at?: string
+          email?: string | null
           id?: string
           name?: string
+          notes?: string | null
           organization_id?: string
+          phone?: string | null
+          quickbooks_customer_id?: string | null
+          quickbooks_display_name?: string | null
+          quickbooks_synced_at?: string | null
+          shipping_address?: Json | null
           status?: string
+          updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_account_owner_id_fkey"
+            columns: ["account_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_account_owner_id_fkey"
+            columns: ["account_owner_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "customers_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      distributor: {
-        Row: {
-          email: string | null
-          id: string
-          name: string
-          notes: string | null
-          phone: string | null
-          regions: string[] | null
-          website: string | null
-        }
-        Insert: {
-          email?: string | null
-          id?: string
-          name: string
-          notes?: string | null
-          phone?: string | null
-          regions?: string[] | null
-          website?: string | null
-        }
-        Update: {
-          email?: string | null
-          id?: string
-          name?: string
-          notes?: string | null
-          phone?: string | null
-          regions?: string[] | null
-          website?: string | null
-        }
-        Relationships: []
-      }
-      distributor_listing: {
-        Row: {
-          distributor_id: string
-          id: string
-          part_id: string
-          sku: string | null
-        }
-        Insert: {
-          distributor_id: string
-          id?: string
-          part_id: string
-          sku?: string | null
-        }
-        Update: {
-          distributor_id?: string
-          id?: string
-          part_id?: string
-          sku?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "distributor_listing_distributor_id_fkey"
-            columns: ["distributor_id"]
-            isOneToOne: false
-            referencedRelation: "distributor"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "distributor_listing_part_id_fkey"
-            columns: ["part_id"]
-            isOneToOne: false
-            referencedRelation: "part"
             referencedColumns: ["id"]
           },
         ]
@@ -968,6 +815,50 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_customer_contacts: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_customer_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
@@ -1604,6 +1495,62 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_google_export_destinations: {
+        Row: {
+          configured_by: string | null
+          created_at: string
+          display_name: string
+          document_type: string
+          drive_id: string | null
+          folder_by_equipment: boolean
+          folder_by_team: boolean
+          id: string
+          organization_id: string
+          parent_id: string
+          selection_kind: string
+          updated_at: string
+          web_view_link: string | null
+        }
+        Insert: {
+          configured_by?: string | null
+          created_at?: string
+          display_name: string
+          document_type: string
+          drive_id?: string | null
+          folder_by_equipment?: boolean
+          folder_by_team?: boolean
+          id?: string
+          organization_id: string
+          parent_id: string
+          selection_kind: string
+          updated_at?: string
+          web_view_link?: string | null
+        }
+        Update: {
+          configured_by?: string | null
+          created_at?: string
+          display_name?: string
+          document_type?: string
+          drive_id?: string | null
+          folder_by_equipment?: boolean
+          folder_by_team?: boolean
+          id?: string
+          organization_id?: string
+          parent_id?: string
+          selection_kind?: string
+          updated_at?: string
+          web_view_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_google_export_destinations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invitations: {
         Row: {
           accepted_at: string | null
@@ -1701,13 +1648,6 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "organization_invitations_slot_purchase_id_fkey"
-            columns: ["slot_purchase_id"]
-            isOneToOne: false
-            referencedRelation: "slot_purchases"
-            referencedColumns: ["id"]
-          },
         ]
       }
       organization_member_claims: {
@@ -1797,13 +1737,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "organization_members_slot_purchase_id_fkey"
-            columns: ["slot_purchase_id"]
-            isOneToOne: false
-            referencedRelation: "slot_purchases"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "organization_members_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -1859,121 +1792,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "organization_role_grants_pending_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      organization_slots: {
-        Row: {
-          amount_paid_cents: number
-          auto_renew: boolean | null
-          billing_period_end: string
-          billing_period_start: string
-          created_at: string
-          id: string
-          organization_id: string
-          purchased_slots: number
-          slot_type: string
-          stripe_payment_intent_id: string | null
-          stripe_price_id: string | null
-          stripe_subscription_id: string | null
-          updated_at: string
-          used_slots: number
-        }
-        Insert: {
-          amount_paid_cents?: number
-          auto_renew?: boolean | null
-          billing_period_end: string
-          billing_period_start: string
-          created_at?: string
-          id?: string
-          organization_id: string
-          purchased_slots?: number
-          slot_type?: string
-          stripe_payment_intent_id?: string | null
-          stripe_price_id?: string | null
-          stripe_subscription_id?: string | null
-          updated_at?: string
-          used_slots?: number
-        }
-        Update: {
-          amount_paid_cents?: number
-          auto_renew?: boolean | null
-          billing_period_end?: string
-          billing_period_start?: string
-          created_at?: string
-          id?: string
-          organization_id?: string
-          purchased_slots?: number
-          slot_type?: string
-          stripe_payment_intent_id?: string | null
-          stripe_price_id?: string | null
-          stripe_subscription_id?: string | null
-          updated_at?: string
-          used_slots?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "organization_slots_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      organization_subscriptions: {
-        Row: {
-          billing_cycle: string
-          cancel_at_period_end: boolean | null
-          created_at: string
-          current_period_end: string | null
-          current_period_start: string | null
-          feature_type: string
-          id: string
-          organization_id: string | null
-          quantity: number | null
-          status: string
-          stripe_subscription_id: string | null
-          unit_price_cents: number
-          updated_at: string
-        }
-        Insert: {
-          billing_cycle?: string
-          cancel_at_period_end?: boolean | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          feature_type: string
-          id?: string
-          organization_id?: string | null
-          quantity?: number | null
-          status?: string
-          stripe_subscription_id?: string | null
-          unit_price_cents: number
-          updated_at?: string
-        }
-        Update: {
-          billing_cycle?: string
-          cancel_at_period_end?: boolean | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          feature_type?: string
-          id?: string
-          organization_id?: string | null
-          quantity?: number | null
-          status?: string
-          stripe_subscription_id?: string | null
-          unit_price_cents?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "organization_subscriptions_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2102,48 +1920,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      part: {
-        Row: {
-          attributes: Json | null
-          brand: string | null
-          canonical_mpn: string
-          category: string | null
-          created_at: string | null
-          description: string | null
-          fitment: Json | null
-          id: string
-          synonyms: string[] | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          attributes?: Json | null
-          brand?: string | null
-          canonical_mpn: string
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          fitment?: Json | null
-          id?: string
-          synonyms?: string[] | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          attributes?: Json | null
-          brand?: string | null
-          canonical_mpn?: string
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          fitment?: Json | null
-          id?: string
-          synonyms?: string[] | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: []
       }
       part_alternate_group_members: {
         Row: {
@@ -2314,38 +2090,6 @@ export type Database = {
             columns: ["inventory_item_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      part_identifier: {
-        Row: {
-          id: string
-          id_type: string | null
-          normalized_value: string
-          part_id: string
-          value: string
-        }
-        Insert: {
-          id?: string
-          id_type?: string | null
-          normalized_value: string
-          part_id: string
-          value: string
-        }
-        Update: {
-          id?: string
-          id_type?: string | null
-          normalized_value?: string
-          part_id?: string
-          value?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "part_identifier_part_id_fkey"
-            columns: ["part_id"]
-            isOneToOne: false
-            referencedRelation: "part"
             referencedColumns: ["id"]
           },
         ]
@@ -3035,6 +2779,71 @@ export type Database = {
           },
         ]
       }
+      record_export_artifacts: {
+        Row: {
+          artifact_kind: string
+          created_at: string
+          export_channel: string
+          id: string
+          last_exported_at: string
+          last_exported_by: string | null
+          metadata: Json | null
+          organization_id: string
+          provider: string
+          provider_file_id: string
+          provider_parent_id: string | null
+          record_id: string
+          record_type: string
+          status: string
+          updated_at: string
+          web_view_link: string
+        }
+        Insert: {
+          artifact_kind: string
+          created_at?: string
+          export_channel: string
+          id?: string
+          last_exported_at?: string
+          last_exported_by?: string | null
+          metadata?: Json | null
+          organization_id: string
+          provider?: string
+          provider_file_id: string
+          provider_parent_id?: string | null
+          record_id: string
+          record_type: string
+          status?: string
+          updated_at?: string
+          web_view_link: string
+        }
+        Update: {
+          artifact_kind?: string
+          created_at?: string
+          export_channel?: string
+          id?: string
+          last_exported_at?: string
+          last_exported_by?: string | null
+          metadata?: Json | null
+          organization_id?: string
+          provider?: string
+          provider_file_id?: string
+          provider_parent_id?: string | null
+          record_id?: string
+          record_type?: string
+          status?: string
+          updated_at?: string
+          web_view_link?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "record_export_artifacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scans: {
         Row: {
           equipment_id: string
@@ -3087,142 +2896,6 @@ export type Database = {
           },
         ]
       }
-      slot_purchases: {
-        Row: {
-          billing_period_end: string
-          billing_period_start: string
-          created_at: string
-          id: string
-          organization_id: string
-          purchased_by: string
-          quantity: number
-          slot_type: string
-          status: string
-          stripe_payment_intent_id: string | null
-          stripe_session_id: string | null
-          total_amount_cents: number
-          unit_price_cents: number
-          updated_at: string
-        }
-        Insert: {
-          billing_period_end: string
-          billing_period_start: string
-          created_at?: string
-          id?: string
-          organization_id: string
-          purchased_by: string
-          quantity: number
-          slot_type?: string
-          status?: string
-          stripe_payment_intent_id?: string | null
-          stripe_session_id?: string | null
-          total_amount_cents: number
-          unit_price_cents?: number
-          updated_at?: string
-        }
-        Update: {
-          billing_period_end?: string
-          billing_period_start?: string
-          created_at?: string
-          id?: string
-          organization_id?: string
-          purchased_by?: string
-          quantity?: number
-          slot_type?: string
-          status?: string
-          stripe_payment_intent_id?: string | null
-          stripe_session_id?: string | null
-          total_amount_cents?: number
-          unit_price_cents?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "slot_purchases_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "slot_purchases_purchased_by_fkey"
-            columns: ["purchased_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "slot_purchases_purchased_by_fkey"
-            columns: ["purchased_by"]
-            isOneToOne: false
-            referencedRelation: "user_entitlements"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      stripe_event_logs: {
-        Row: {
-          created_at: string
-          event_id: string
-          id: string
-          payload: Json | null
-          subscription_id: string | null
-          type: string
-        }
-        Insert: {
-          created_at?: string
-          event_id: string
-          id?: string
-          payload?: Json | null
-          subscription_id?: string | null
-          type: string
-        }
-        Update: {
-          created_at?: string
-          event_id?: string
-          id?: string
-          payload?: Json | null
-          subscription_id?: string | null
-          type?: string
-        }
-        Relationships: []
-      }
-      subscribers: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          stripe_customer_id: string | null
-          subscribed: boolean
-          subscription_end: string | null
-          subscription_tier: string | null
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          stripe_customer_id?: string | null
-          subscribed?: boolean
-          subscription_end?: string | null
-          subscription_tier?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          stripe_customer_id?: string | null
-          subscribed?: boolean
-          subscription_end?: string | null
-          subscription_tier?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       team_members: {
         Row: {
           id: string
@@ -3272,6 +2945,7 @@ export type Database = {
       teams: {
         Row: {
           created_at: string
+          customer_id: string | null
           description: string | null
           id: string
           image_url: string | null
@@ -3289,6 +2963,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_id?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -3306,6 +2981,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_id?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -3322,6 +2998,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "teams_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "teams_organization_id_fkey"
             columns: ["organization_id"]
@@ -3512,56 +3195,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_departure_queue_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_license_subscriptions: {
-        Row: {
-          created_at: string
-          current_period_end: string
-          current_period_start: string
-          id: string
-          organization_id: string
-          quantity: number
-          status: string
-          stripe_customer_id: string
-          stripe_price_id: string
-          stripe_subscription_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          current_period_end: string
-          current_period_start: string
-          id?: string
-          organization_id: string
-          quantity?: number
-          status?: string
-          stripe_customer_id: string
-          stripe_price_id: string
-          stripe_subscription_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          current_period_end?: string
-          current_period_start?: string
-          id?: string
-          organization_id?: string
-          quantity?: number
-          status?: string
-          stripe_customer_id?: string
-          stripe_price_id?: string
-          stripe_subscription_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_license_subscriptions_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -5003,6 +4636,13 @@ export type Database = {
         Args: { p_domain: string; p_workspace_org_id: string }
         Returns: Json
       }
+      monitoring_healthcheck: {
+        Args: never
+        Returns: {
+          checked_at: string
+          ok: boolean
+        }[]
+      }
       normalize_compatibility_pattern: {
         Args: {
           p_match_type: Database["public"]["Enums"]["model_match_type"]
@@ -5376,3 +5016,5 @@ export const Constants = {
   },
 } as const
 
+A new version of Supabase CLI is available: v2.84.2 (currently installed v2.77.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
