@@ -3,7 +3,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSession } from '@/hooks/useSession';
 import { getEquipmentOrganization, checkUserHasMultipleOrganizations, EquipmentOrganizationInfo } from '@/features/equipment/services/equipmentOrganizationService';
 import { getInventoryItemOrganization, InventoryOrganizationInfo } from '@/features/inventory/services/inventoryOrganizationService';
+import { getWorkOrderOrganization, WorkOrderOrganizationInfo } from '@/features/work-orders/services/workOrderOrganizationService';
 import { toast } from 'sonner';
+
+type QRItemType = 'equipment' | 'inventory' | 'work-order';
+
+const ITEM_LABELS: Record<QRItemType, string> = {
+  'equipment': 'Equipment',
+  'inventory': 'Inventory item',
+  'work-order': 'Work order',
+};
 
 export interface QRRedirectState {
   isLoading: boolean;
@@ -13,18 +22,21 @@ export interface QRRedirectState {
   error: string | null;
   equipmentInfo: EquipmentOrganizationInfo | null;
   inventoryInfo: InventoryOrganizationInfo | null;
+  workOrderInfo: WorkOrderOrganizationInfo | null;
   targetPath: string | null;
 }
 
 interface UseQRRedirectWithOrgSwitchProps {
   equipmentId?: string | undefined;
   inventoryItemId?: string | undefined;
+  workOrderId?: string | undefined;
   onComplete?: (targetPath: string) => void;
 }
 
 export const useQRRedirectWithOrgSwitch = ({
   equipmentId,
   inventoryItemId,
+  workOrderId,
   onComplete
 }: UseQRRedirectWithOrgSwitchProps) => {
   const { user, isLoading: authLoading } = useAuth();
@@ -38,6 +50,7 @@ export const useQRRedirectWithOrgSwitch = ({
     error: null,
     equipmentInfo: null,
     inventoryInfo: null,
+    workOrderInfo: null,
     targetPath: null
   });
 
@@ -49,14 +62,16 @@ export const useQRRedirectWithOrgSwitch = ({
    * Returns an object with the updated state properties to ensure type safety
    */
   const verifyOrganizationAccess = useCallback(async (
-    orgInfo: EquipmentOrganizationInfo | InventoryOrganizationInfo | null,
+    orgInfo: EquipmentOrganizationInfo | InventoryOrganizationInfo | WorkOrderOrganizationInfo | null,
     targetPath: string,
-    itemType: 'equipment' | 'inventory'
+    itemType: QRItemType
   ): Promise<Partial<QRRedirectState>> => {
+    const label = ITEM_LABELS[itemType];
+
     if (!orgInfo) {
       return {
         isLoading: false,
-        error: `${itemType === 'equipment' ? 'Equipment' : 'Inventory item'} not found or access denied`,
+        error: `${label} not found or access denied`,
         targetPath: '/dashboard'
       };
     }
@@ -64,54 +79,30 @@ export const useQRRedirectWithOrgSwitch = ({
     if (!orgInfo.userHasAccess) {
       return {
         isLoading: false,
-        error: `You don't have access to ${itemType} in ${orgInfo.organizationName}`,
+        error: `You don't have access to this ${label.toLowerCase()} in ${orgInfo.organizationName}`,
         targetPath: '/dashboard'
       };
     }
 
+    const infoField: Partial<QRRedirectState> =
+      itemType === 'equipment' ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
+      : itemType === 'inventory' ? { inventoryInfo: orgInfo as InventoryOrganizationInfo }
+      : { workOrderInfo: orgInfo as WorkOrderOrganizationInfo };
+
     const currentOrg = getCurrentOrganization();
 
-    // Check if we need to switch organizations
     if (!currentOrg || currentOrg.id !== orgInfo.organizationId) {
-      // Need to switch organization
       const hasMultipleOrgs = await checkUserHasMultipleOrganizations();
       
       if (hasMultipleOrgs) {
-        return {
-          isLoading: false,
-          needsOrgSwitch: true,
-          targetPath,
-          ...(itemType === 'equipment' 
-            ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
-            : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
-          )
-        };
+        return { isLoading: false, needsOrgSwitch: true, targetPath, ...infoField };
       } else {
-        // Only one org, refresh session to ensure context is current
         await refreshSession();
-        return {
-          isLoading: false,
-          canProceed: true,
-          targetPath,
-          ...(itemType === 'equipment' 
-            ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
-            : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
-          )
-        };
+        return { isLoading: false, canProceed: true, targetPath, ...infoField };
       }
-    } else {
-      // Already in correct organization
-      return {
-        isLoading: false,
-        canProceed: true,
-        targetPath,
-        ...(itemType === 'equipment' 
-          ? { equipmentInfo: orgInfo as EquipmentOrganizationInfo }
-          : { inventoryInfo: orgInfo as InventoryOrganizationInfo }
-        )
-      };
     }
-    // checkUserHasMultipleOrganizations is a stable imported function, not a dependency
+
+    return { isLoading: false, canProceed: true, targetPath, ...infoField };
   }, [getCurrentOrganization, refreshSession]);
 
   const checkInventoryItemOrganization = useCallback(async () => {
@@ -168,48 +159,67 @@ export const useQRRedirectWithOrgSwitch = ({
     }
   }, [equipmentId, user, verifyOrganizationAccess]);
 
-  useEffect(() => {
-    // Handle inventory item
-    if (inventoryItemId) {
-      const targetPath = `/dashboard/inventory/${inventoryItemId}?qr=true`;
-      sessionStorage.setItem('pendingRedirect', targetPath);
+  const checkWorkOrderOrganization = useCallback(async () => {
+    if (!workOrderId || !user) return;
 
-      if (authLoading) {
-        return;
-      }
+    try {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      if (!user) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          needsAuth: true,
-          targetPath: '/auth'
-        }));
-        return;
-      }
+      const woInfo = await getWorkOrderOrganization(workOrderId);
+      const targetPath = `/dashboard/work-orders/${workOrderId}?qr=true`;
 
-      checkInventoryItemOrganization();
-      return;
-    }
-
-    // Handle equipment (existing logic)
-    if (!equipmentId) {
+      const stateUpdate = await verifyOrganizationAccess(woInfo, targetPath, 'work-order');
+      setState(prev => ({ ...prev, ...stateUpdate }));
+    } catch (error) {
+      console.error('❌ Error checking work order organization:', error);
       setState(prev => ({
         ...prev,
         isLoading: false,
-         error: 'No equipment ID or inventory item ID provided',
-         targetPath: '/dashboard'
+        error: 'Failed to verify work order access',
+        targetPath: '/dashboard'
+      }));
+    }
+  }, [workOrderId, user, verifyOrganizationAccess]);
+
+  useEffect(() => {
+    // Determine which item type we're handling and set up auth redirect
+    const resolveTarget = (): { targetPath: string; check: () => void } | null => {
+      if (workOrderId) {
+        return {
+          targetPath: `/dashboard/work-orders/${workOrderId}?qr=true`,
+          check: checkWorkOrderOrganization,
+        };
+      }
+      if (inventoryItemId) {
+        return {
+          targetPath: `/dashboard/inventory/${inventoryItemId}?qr=true`,
+          check: checkInventoryItemOrganization,
+        };
+      }
+      if (equipmentId) {
+        return {
+          targetPath: `/dashboard/equipment/${equipmentId}?qr=true`,
+          check: checkEquipmentOrganization,
+        };
+      }
+      return null;
+    };
+
+    const target = resolveTarget();
+
+    if (!target) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'No item ID provided',
+        targetPath: '/dashboard'
       }));
       return;
     }
 
-    // Store the intended destination for post-auth redirect
-    const targetPath = `/dashboard/equipment/${equipmentId}?qr=true`;
-    sessionStorage.setItem('pendingRedirect', targetPath);
+    sessionStorage.setItem('pendingRedirect', target.targetPath);
 
-    if (authLoading) {
-      return; // Wait for auth to complete
-    }
+    if (authLoading) return;
 
     if (!user) {
       setState(prev => ({
@@ -221,9 +231,8 @@ export const useQRRedirectWithOrgSwitch = ({
       return;
     }
 
-    // User is authenticated, proceed with organization check
-    checkEquipmentOrganization();
-  }, [equipmentId, inventoryItemId, user, authLoading, checkEquipmentOrganization, checkInventoryItemOrganization]);
+    target.check();
+  }, [equipmentId, inventoryItemId, workOrderId, user, authLoading, checkEquipmentOrganization, checkInventoryItemOrganization, checkWorkOrderOrganization]);
 
   // Auto-call onComplete when ready to proceed
   useEffect(() => {
@@ -234,14 +243,14 @@ export const useQRRedirectWithOrgSwitch = ({
   }, [state.canProceed, state.targetPath, state.isLoading, hasCalledComplete, onComplete]);
 
   const handleOrgSwitch = async () => {
-    const orgInfo = state.equipmentInfo || state.inventoryInfo;
+    const orgInfo = state.equipmentInfo || state.inventoryInfo || state.workOrderInfo;
     if (!orgInfo || isSwitchingOrg) return;
 
     try {
       setIsSwitchingOrg(true);
       
-      const orgId = state.equipmentInfo?.organizationId || state.inventoryInfo?.organizationId;
-      const orgName = state.equipmentInfo?.organizationName || state.inventoryInfo?.organizationName;
+      const orgId = orgInfo.organizationId;
+      const orgName = orgInfo.organizationName;
       
       if (!orgId) {
         throw new Error('Organization ID not found');
@@ -269,7 +278,11 @@ export const useQRRedirectWithOrgSwitch = ({
     }
   };
 
-  const retry = inventoryItemId ? checkInventoryItemOrganization : checkEquipmentOrganization;
+  const retry = workOrderId
+    ? checkWorkOrderOrganization
+    : inventoryItemId
+      ? checkInventoryItemOrganization
+      : checkEquipmentOrganization;
 
   return {
     state,

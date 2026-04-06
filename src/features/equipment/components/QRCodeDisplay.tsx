@@ -4,10 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Copy, CheckCircle } from 'lucide-react';
-// QRCode is loaded dynamically to reduce initial bundle size (~100KB)
-// It's only needed when the QR code dialog is opened
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { equipmentQRPath, qrFullUrl, generateQRDataUrl } from '@/utils/qr';
 
 interface QRCodeDisplayProps {
   open: boolean;
@@ -23,21 +22,11 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
   const formatSelectId = 'qr-code-download-format';
   const isMobile = useIsMobile();
 
-  // Generate QR code URL - use explicit route to avoid collisions with other QR types
-  const qrCodeUrl = `${window.location.origin}/qr/equipment/${equipmentId}`;
+  const qrCodeUrl = qrFullUrl(equipmentQRPath(equipmentId));
 
   const generateQRCode = React.useCallback(async () => {
     try {
-      // Dynamically load QRCode only when QR generation is triggered
-      const QRCode = (await import('qrcode')).default;
-      const dataUrl = await QRCode.toDataURL(qrCodeUrl, {
-        width: 256,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
+      const dataUrl = await generateQRDataUrl(qrCodeUrl);
       setQrCodeDataUrl(dataUrl);
     } catch (error) {
       console.error('Error generating QR code:', error);
@@ -60,19 +49,13 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentI
     if (!qrCodeDataUrl) return;
 
     try {
-      // Dynamically load QRCode for download (same pattern as generateQRCode)
       const QRCode = (await import('qrcode')).default;
-      const formatOptions = {
+      const dataUrl = await QRCode.toDataURL(qrCodeUrl, {
         width: 256,
         margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        },
-        type: selectedFormat === 'jpg' ? 'image/jpeg' : 'image/png'
-      };
-
-      const dataUrl = await QRCode.toDataURL(qrCodeUrl, formatOptions);
+        color: { dark: '#000000', light: '#FFFFFF' },
+        type: selectedFormat === 'jpg' ? 'image/jpeg' : 'image/png',
+      });
       
       const link = document.createElement('a');
       const baseFilename = equipmentName ? sanitizeFilename(equipmentName) : `equipment-${equipmentId}`;

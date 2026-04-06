@@ -48,6 +48,7 @@ const FleetMap = lazy(() => import('@/features/fleet-map/pages/FleetMap'));
 const Organization = lazy(() => import('@/features/organization/pages/Organization'));
 const QRRedirect = lazy(() => import('@/pages/QRRedirect'));
 const InventoryQRRedirect = lazy(() => import('@/pages/InventoryQRRedirect'));
+const WorkOrderQRRedirect = lazy(() => import('@/pages/WorkOrderQRRedirect'));
 const LegacyEquipmentQRRedirect = lazy(() => import('@/pages/LegacyEquipmentQRRedirect'));
 // Billing and monetization features removed
 // const Billing = lazy(() => import('@/pages/Billing'));
@@ -143,9 +144,10 @@ function App() {
         <Route path="/invitation/:token" element={<Suspense fallback={<div>Loading...</div>}><InvitationAccept /></Suspense>} />
         <Route path="/qr/inventory/:itemId" element={<Suspense fallback={<div>Loading...</div>}><InventoryQRRedirect /></Suspense>} />
         <Route path="/qr/equipment/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><QRRedirect /></Suspense>} />
-        {/* Legacy QR route: must remain after the more specific /qr/inventory/:itemId and /qr/equipment/:equipmentId
-           routes so they are matched first. React Router v6 prioritizes static segments, but this ordering is
-           documented here to prevent accidental reordering. */}
+        <Route path="/qr/work-order/:workOrderId" element={<Suspense fallback={<div>Loading...</div>}><WorkOrderQRRedirect /></Suspense>} />
+        {/* Legacy QR route: must remain after the more specific /qr/* routes so they are matched first.
+           React Router v6 prioritises static segments, but this ordering is documented to prevent
+           accidental reordering. */}
         <Route path="/qr/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><LegacyEquipmentQRRedirect /></Suspense>} />
         <Route path="/terms-of-service" element={<Suspense fallback={<div>Loading...</div>}><TermsOfService /></Suspense>} />
         <Route path="/privacy-policy" element={<Suspense fallback={<div>Loading...</div>}><PrivacyPolicy /></Suspense>} />

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **QR codes on work order PDF printouts** — Both the Service Report and Field Worksheet PDFs now include a repeating footer on every page with scannable Work Order and Equipment QR codes, plus a repeating page header with work order title, shortened ID, equipment identifier (when present), and page numbering. Separated pages are now self-identifying. QR code generation and route construction centralised in a shared `src/utils/qr.ts` utility.
+
+- **Work order QR scan entry route** — New public route `/qr/work-order/:workOrderId` enables scanning printed work order QR codes with any QR reader. The flow mirrors the existing equipment and inventory scan paths: prompts for sign-in when needed, verifies org membership, supports org switching for multi-org users, and redirects to the work order detail page with `?qr=true`.
+
 ### Changed
 
 - **Desktop work order header standardized** — Replaced the custom gradient hero header on the work order details page with the shared `PageHeader` component used by equipment, inventory, and team detail pages. Status badge and priority now render inline with the title in the meta slot. Edit remains a primary action; exports, QuickBooks, and delete are grouped into a single "Actions" dropdown with labeled sections (Exports, Integrations, Destructive) matching the mobile action sheet structure. Export visibility is now gated on `isManager` on both desktop and mobile, and the Google Docs destination permission check was aligned to use `permissionLevels.isManager` on both surfaces.

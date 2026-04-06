@@ -35,10 +35,12 @@ export class WorkOrderFieldWorksheetPDFGenerator {
   private yPosition: number = 20;
   private readonly lineHeight = 6;
   private readonly writeLineHeight = 8;
-  private readonly pageHeight = 280;
+  private readonly pageHeight = 252;
   private readonly margin = 15;
   private readonly pageWidth = 210;
   private readonly contentWidth: number;
+  private readonly footerY = 255;
+  private readonly qrSize = 20;
 
   private constructor() {
     this.contentWidth = this.pageWidth - 2 * this.margin;
@@ -657,15 +659,100 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     this.doc.setTextColor(0, 0, 0);
   }
 
-  private generatePageFooter(): void {
+  // ── Repeated page chrome (header + footer QR strip) ──
+
+  private applyPageChrome(data: WorkOrderPDFData): void {
+    const totalPages = this.doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      this.doc.setPage(i);
+      this.renderPageHeader(data, i, totalPages);
+      this.renderFooterQRStrip(data);
+    }
+  }
+
+  private renderPageHeader(data: WorkOrderPDFData, pageNum: number, totalPages: number): void {
+    const { pageIdentity } = data;
+    const headerY = 8;
+
+    this.doc.setFontSize(8);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.setTextColor(120, 120, 120);
+    const pageText = `Page ${pageNum} of ${totalPages}`;
+    const pageTextWidth = this.doc.getTextWidth(pageText);
+    this.doc.text(pageText, this.pageWidth - this.margin - pageTextWidth, headerY);
+
+    if (pageNum > 1 && pageIdentity) {
+      const maxLabelWidth = this.pageWidth - 2 * this.margin - pageTextWidth - 10;
+
+      this.doc.setFontSize(8);
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(80, 80, 80);
+      const woLabel = this.doc.splitTextToSize(pageIdentity.workOrderLabel, maxLabelWidth)[0] ?? pageIdentity.workOrderLabel;
+      this.doc.text(woLabel, this.margin, headerY);
+
+      if (pageIdentity.equipmentLabel) {
+        this.doc.setFont('helvetica', 'normal');
+        const eqLabel = this.doc.splitTextToSize(pageIdentity.equipmentLabel, maxLabelWidth)[0] ?? pageIdentity.equipmentLabel;
+        this.doc.text(eqLabel, this.margin, headerY + 5);
+      }
+
+      this.doc.setDrawColor(200, 200, 200);
+      this.doc.setLineWidth(0.3);
+      const separatorY = pageIdentity.equipmentLabel ? headerY + 8 : headerY + 4;
+      this.doc.line(this.margin, separatorY, this.pageWidth - this.margin, separatorY);
+    }
+
+    this.doc.setTextColor(0, 0, 0);
+  }
+
+  private renderFooterQRStrip(data: WorkOrderPDFData): void {
+    const { qrCodes } = data;
+
+    this.doc.setDrawColor(200, 200, 200);
+    this.doc.setLineWidth(0.3);
+    this.doc.line(this.margin, this.footerY, this.pageWidth - this.margin, this.footerY);
+
+    const qrY = this.footerY + 3;
+    const labelY = qrY + this.qrSize + 3;
+
+    if (qrCodes?.workOrder) {
+      try {
+        this.doc.addImage(qrCodes.workOrder.dataUrl, 'PNG', this.margin, qrY, this.qrSize, this.qrSize);
+      } catch { /* QR embed failed */ }
+      this.doc.setFontSize(7);
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(80, 80, 80);
+      this.doc.text('Work Order', this.margin, labelY);
+    }
+
+    const eqX = this.pageWidth - this.margin - this.qrSize;
+    if (qrCodes?.equipment) {
+      try {
+        this.doc.addImage(qrCodes.equipment.dataUrl, 'PNG', eqX, qrY, this.qrSize, this.qrSize);
+      } catch { /* QR embed failed */ }
+      this.doc.setFontSize(7);
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(80, 80, 80);
+      this.doc.text('Equipment', eqX, labelY);
+    } else if (qrCodes) {
+      this.doc.setFontSize(7);
+      this.doc.setFont('helvetica', 'italic');
+      this.doc.setTextColor(160, 160, 160);
+      this.doc.text('No equipment assigned', eqX, qrY + this.qrSize / 2);
+    }
+
     this.doc.setFontSize(7);
-    this.doc.setFont('helvetica', 'italic');
+    this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(150, 150, 150);
-    this.doc.text(
-      'This worksheet is a temporary field aid. Results must be entered into EquipQR.',
-      this.margin,
-      this.pageHeight + 5
-    );
+    const genText = `Generated: ${new Date().toLocaleString()}`;
+    const genWidth = this.doc.getTextWidth(genText);
+    this.doc.text(genText, (this.pageWidth - genWidth) / 2, qrY + this.qrSize / 2 - 3);
+    this.doc.setFont('helvetica', 'italic');
+    this.doc.setFontSize(6);
+    const disclaimer = 'Field aid only \u2014 enter results into EquipQR';
+    const disclaimerWidth = this.doc.getTextWidth(disclaimer);
+    this.doc.text(disclaimer, (this.pageWidth - disclaimerWidth) / 2, qrY + this.qrSize / 2 + 3);
+
     this.doc.setTextColor(0, 0, 0);
   }
 
@@ -701,7 +788,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
 
     // Final page — blank ruled lines + signature
     this.generateNotesPage(workOrder);
-    this.generatePageFooter();
+    this.applyPageChrome(data);
 
     return this.doc;
   }

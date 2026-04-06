@@ -10,15 +10,17 @@ import { logger } from '@/utils/logger';
 interface QRRedirectHandlerProps {
   equipmentId?: string | undefined;
   inventoryItemId?: string | undefined;
+  workOrderId?: string | undefined;
 }
 
-export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentId, inventoryItemId }) => {
+export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentId, inventoryItemId, workOrderId }) => {
   const [shouldNavigate, setShouldNavigate] = React.useState(false);
   const [navigationTarget, setNavigationTarget] = React.useState<string | null>(null);
   
   const { state, isSwitchingOrg, handleOrgSwitch, retry } = useQRRedirectWithOrgSwitch({
     equipmentId,
     inventoryItemId,
+    workOrderId,
     onComplete: (targetPath) => {
       // Allow parent component to run any additional logic here (analytics, toasts, etc.)
       if (import.meta.env.DEV) {
@@ -63,7 +65,10 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
   }
 
   // Organization switch required
-  if (state.needsOrgSwitch && (state.equipmentInfo || state.inventoryInfo)) {
+  const orgInfo = state.equipmentInfo || state.inventoryInfo || state.workOrderInfo;
+  if (state.needsOrgSwitch && orgInfo) {
+    const itemLabel = state.equipmentInfo ? 'equipment' : state.workOrderInfo ? 'work order' : 'item';
+    const itemTypeLabel = state.equipmentInfo ? 'Equipment' : state.workOrderInfo ? 'Work order' : 'Inventory item';
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
@@ -73,19 +78,19 @@ export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentI
               <span>Organization Switch Required</span>
             </CardTitle>
             <CardDescription>
-              This {state.equipmentInfo ? 'equipment' : 'item'} belongs to a different organization
+              This {itemLabel} belongs to a different organization
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
               <div className="text-center space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  {state.equipmentInfo ? 'Equipment' : 'Inventory item'} found in:
+                  {itemTypeLabel} found in:
                 </p>
                 <p className="font-medium text-foreground">
-                  {state.equipmentInfo?.organizationName || state.inventoryInfo?.organizationName}
+                  {orgInfo.organizationName}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Your role: {state.equipmentInfo?.userRole || state.inventoryInfo?.userRole}
+                  Your role: {orgInfo.userRole}
                 </p>
               </div>
 
