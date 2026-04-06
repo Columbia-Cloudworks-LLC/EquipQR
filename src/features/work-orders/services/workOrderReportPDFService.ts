@@ -50,6 +50,10 @@ export interface WorkOrderPDFData {
   pmData?: PreventativeMaintenance | null;
   /** Include cost items in the PDF (default: false for customer-facing docs) */
   includeCosts?: boolean;
+  /** Organization logo URL for printed worksheet branding */
+  organizationLogoUrl?: string | null;
+  /** Team image URL for printed worksheet branding */
+  teamImageUrl?: string | null;
 }
 
 /** Milliseconds in one day - used for date delta calculations */

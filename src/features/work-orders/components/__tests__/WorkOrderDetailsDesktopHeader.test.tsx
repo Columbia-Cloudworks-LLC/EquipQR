@@ -12,6 +12,8 @@ const mockUseUnifiedPermissions = vi.fn();
 const mockUseDeleteWorkOrder = vi.fn();
 const mockUseWorkOrderImageCount = vi.fn();
 const mockUseLatestExportArtifact = vi.fn();
+const mockUseQuickBooksAccess = vi.fn();
+const mockIsQuickBooksEnabled = vi.fn();
 
 vi.mock('../QuickBooksExportButton', () => ({
   QuickBooksExportButton: () => null,
@@ -51,6 +53,14 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderImageCount', () => ({
 
 vi.mock('@/features/work-orders/hooks/useLatestExportArtifact', () => ({
   useLatestExportArtifact: (...args: unknown[]) => mockUseLatestExportArtifact(...args),
+}));
+
+vi.mock('@/hooks/useQuickBooksAccess', () => ({
+  useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
+}));
+
+vi.mock('@/lib/flags', () => ({
+  isQuickBooksEnabled: (...args: unknown[]) => mockIsQuickBooksEnabled(...args),
 }));
 
 describe('WorkOrderDetailsDesktopHeader', () => {
@@ -96,6 +106,8 @@ describe('WorkOrderDetailsDesktopHeader', () => {
       isGenerating: false,
       saveToDrive: vi.fn(),
       isSavingToDrive: false,
+      downloadFieldWorksheet: vi.fn(),
+      isGeneratingWorksheet: false,
     });
 
     mockUseWorkOrderExcelExport.mockReturnValue({
@@ -138,6 +150,54 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     mockUseLatestExportArtifact.mockReturnValue({
       data: null,
     });
+
+    mockUseQuickBooksAccess.mockReturnValue({ data: false });
+    mockIsQuickBooksEnabled.mockReturnValue(false);
+  });
+
+  it('renders title and status badge in the PageHeader meta area', () => {
+    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+
+    expect(screen.getByRole('heading', { name: baseProps.workOrder.title })).toBeInTheDocument();
+    // PageHeader renders meta in both desktop and mobile slots
+    expect(screen.getAllByText('Completed')).toHaveLength(2);
+    expect(screen.getAllByText(/High\s+Priority/)).toHaveLength(2);
+  });
+
+  it('renders breadcrumbs with truncated work order ID', () => {
+    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+
+    expect(screen.getByText('Work Orders')).toBeInTheDocument();
+    expect(screen.getByText('WO-WO-1')).toBeInTheDocument();
+  });
+
+  it('shows Exports section label for managers', async () => {
+    const user = userEvent.setup();
+    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions' }));
+
+    expect(screen.getByText('Exports')).toBeInTheDocument();
+    expect(screen.getByText('Service Report PDF')).toBeInTheDocument();
+    expect(screen.getByText('Internal Work Order Packet')).toBeInTheDocument();
+  });
+
+  it('hides exports when user is not a manager', async () => {
+    render(
+      <WorkOrderDetailsDesktopHeader
+        {...baseProps}
+        permissionLevels={{ ...baseProps.permissionLevels, isManager: false }}
+      />,
+    );
+
+    // Actions menu still renders (canDelete is true via hasRole mock)
+    const actionsBtn = screen.queryByRole('button', { name: 'Actions' });
+    if (actionsBtn) {
+      const user = userEvent.setup();
+      await user.click(actionsBtn);
+      expect(screen.queryByText('Exports')).not.toBeInTheDocument();
+      expect(screen.queryByText('Service Report PDF')).not.toBeInTheDocument();
+    }
   });
 
   it('hides the Google Doc export action when the Workspace grant is missing Docs scope', async () => {
@@ -145,7 +205,7 @@ describe('WorkOrderDetailsDesktopHeader', () => {
 
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
 
-    await user.click(screen.getByRole('button', { name: /more actions/i }));
+    await user.click(screen.getByRole('button', { name: 'Actions' }));
 
     expect(screen.queryByText('Internal Work Order Packet (Google Doc)')).not.toBeInTheDocument();
   });
@@ -166,7 +226,7 @@ describe('WorkOrderDetailsDesktopHeader', () => {
 
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
 
-    await user.click(screen.getByRole('button', { name: /more actions/i }));
+    await user.click(screen.getByRole('button', { name: 'Actions' }));
 
     expect(screen.getByText('Open Last Google Doc')).toBeInTheDocument();
   });
@@ -178,8 +238,60 @@ describe('WorkOrderDetailsDesktopHeader', () => {
 
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
 
-    await user.click(screen.getByRole('button', { name: /more actions/i }));
+    await user.click(screen.getByRole('button', { name: 'Actions' }));
 
     expect(screen.queryByText('Open Last Google Doc')).not.toBeInTheDocument();
+  });
+
+  it('shows Integrations section when QuickBooks is enabled and accessible', async () => {
+    const user = userEvent.setup();
+    mockIsQuickBooksEnabled.mockReturnValue(true);
+    mockUseQuickBooksAccess.mockReturnValue({ data: true });
+
+    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions' }));
+
+    expect(screen.getByText('Integrations')).toBeInTheDocument();
+  });
+
+  it('hides Integrations section when QuickBooks is disabled', async () => {
+    const user = userEvent.setup();
+    mockIsQuickBooksEnabled.mockReturnValue(false);
+    mockUseQuickBooksAccess.mockReturnValue({ data: true });
+
+    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions' }));
+
+    expect(screen.queryByText('Integrations')).not.toBeInTheDocument();
+  });
+
+  it('hides Delete when user is not owner or admin', async () => {
+    const user = userEvent.setup();
+    mockUseUnifiedPermissions.mockReturnValue({
+      hasRole: vi.fn(() => false),
+    });
+
+    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions' }));
+
+    expect(screen.queryByText('Delete Work Order')).not.toBeInTheDocument();
+  });
+
+  it('hides the entire actions menu when no sections are visible', () => {
+    mockUseUnifiedPermissions.mockReturnValue({
+      hasRole: vi.fn(() => false),
+    });
+
+    render(
+      <WorkOrderDetailsDesktopHeader
+        {...baseProps}
+        permissionLevels={{ ...baseProps.permissionLevels, isManager: false }}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Actions' })).not.toBeInTheDocument();
   });
 });

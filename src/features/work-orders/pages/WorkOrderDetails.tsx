@@ -286,6 +286,8 @@ const WorkOrderDetails = () => {
     isGenerating: isMobilePDFGenerating,
     saveToDrive: saveMobilePDFToDrive,
     isSavingToDrive: isMobileSavingToDrive,
+    downloadFieldWorksheet: downloadMobileWorksheet,
+    isGeneratingWorksheet: isMobileWorksheetGenerating,
   } = useWorkOrderPDF({
     workOrder: workOrder ? {
       id: workOrder.id,
@@ -319,7 +321,8 @@ const WorkOrderDetails = () => {
       customerId: (equipment as { customer_id?: string | null }).customer_id ?? null,
     } : null,
     pmData,
-    organizationName: currentOrganization?.name
+    organizationName: currentOrganization?.name,
+    teamId: equipment?.team_id,
   });
   
   // Google Workspace connection status (for showing "Save to Google Drive" option)
@@ -343,6 +346,14 @@ const WorkOrderDetails = () => {
   // Handle mobile PDF save to Drive with options from dialog
   const handleMobileSaveToDrive = async (options: { includeCosts: boolean }) => {
     await saveMobilePDFToDrive(options);
+  };
+
+  const handleMobileDownloadWorksheet = async () => {
+    try {
+      await downloadMobileWorksheet();
+    } catch {
+      // Error toast is shown by the hook
+    }
   };
 
   // Only redirect if we definitely don't have the required data and aren't loading
@@ -831,6 +842,8 @@ const WorkOrderDetails = () => {
           equipmentTeamId={equipment?.team_id}
           isManager={permissionLevels.isManager}
           onDownloadPDF={() => setShowMobilePDFDialog(true)}
+          onDownloadWorksheet={handleMobileDownloadWorksheet}
+          isGeneratingWorksheet={isMobileWorksheetGenerating}
           onExportExcel={() => exportSingle(workOrder.id)}
           isExportingExcel={isExportingSingle}
           onExportGoogleDoc={canExportGoogleDoc ? () => exportSingleToDocs(workOrder.id) : undefined}

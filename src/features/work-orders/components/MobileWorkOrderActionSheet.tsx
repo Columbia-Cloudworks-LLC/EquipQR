@@ -24,6 +24,7 @@ import {
   Download, 
   FileSpreadsheet, 
   FileText,
+  ClipboardList,
   Loader2,
   MoreHorizontal,
   Trash2,
@@ -44,6 +45,8 @@ interface MobileWorkOrderActionSheetProps {
   equipmentTeamId?: string | null;
   isManager: boolean;
   onDownloadPDF: () => void;
+  onDownloadWorksheet: () => void;
+  isGeneratingWorksheet: boolean;
   onExportExcel: () => void;
   isExportingExcel: boolean;
   onExportGoogleDoc?: () => void;
@@ -58,6 +61,8 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   equipmentTeamId,
   isManager,
   onDownloadPDF,
+  onDownloadWorksheet,
+  isGeneratingWorksheet,
   onExportExcel,
   isExportingExcel,
   onExportGoogleDoc,
@@ -120,6 +125,19 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                     >
                       <Download className="h-5 w-5" />
                       <span className="text-xs">Service Report PDF</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-14 flex-col gap-1"
+                      onClick={() => handleAction(onDownloadWorksheet)}
+                      disabled={isGeneratingWorksheet}
+                    >
+                      {isGeneratingWorksheet ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <ClipboardList className="h-5 w-5" />
+                      )}
+                      <span className="text-xs">Field Worksheet</span>
                     </Button>
                     <Button
                       variant="outline"

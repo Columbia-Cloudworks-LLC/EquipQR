@@ -12,8 +12,9 @@ import {
   type WorkOrderForPDF,
   type EquipmentForPDF
 } from '@/features/work-orders/services/workOrderReportPDFService';
+import { generateFieldWorksheetPDF } from '@/features/work-orders/services/workOrderFieldWorksheetPDFService';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
-import { SERVICE_REPORT_EXPORT_POLICY } from '@/features/work-orders/constants/workOrderExportPolicy';
+import { SERVICE_REPORT_EXPORT_POLICY, FIELD_WORKSHEET_EXPORT_POLICY } from '@/features/work-orders/constants/workOrderExportPolicy';
 
 /** Response from the upload-to-google-drive edge function */
 interface GoogleDriveUploadResponse {
@@ -35,6 +36,8 @@ export interface UseWorkOrderPDFOptions {
   equipment?: EquipmentForPDF | null;
   pmData?: PreventativeMaintenance | null;
   organizationName?: string;
+  /** Team ID for fetching team branding on printed worksheets */
+  teamId?: string | null;
 }
 
 /** Options passed to downloadPDF function */
@@ -48,10 +51,14 @@ export interface UseWorkOrderPDFReturn {
   downloadPDF: (options?: DownloadPDFOptions) => Promise<void>;
   /** Generate the PDF and upload it to Google Drive. Requires Google Workspace connection. */
   saveToDrive: (options?: DownloadPDFOptions) => Promise<void>;
+  /** Generate and download a printable field worksheet for technicians. */
+  downloadFieldWorksheet: () => Promise<void>;
   /** Whether PDF generation/download is in progress */
   isGenerating: boolean;
   /** Whether Google Drive upload is in progress */
   isSavingToDrive: boolean;
+  /** Whether field worksheet generation is in progress */
+  isGeneratingWorksheet: boolean;
 }
 
 /**
@@ -69,7 +76,8 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     workOrder, 
     equipment, 
     pmData, 
-    organizationName
+    organizationName,
+    teamId,
   } = options;
   
   const { organization } = useOrganization();
@@ -77,12 +85,14 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingToDrive, setIsSavingToDrive] = useState(false);
+  const [isGeneratingWorksheet, setIsGeneratingWorksheet] = useState(false);
   
   // Use refs for the re-entry guards to avoid stale closure issues.
   // The refs always have the current value, unlike state captured in callback closure.
   // Note: The refs are reset in the finally blocks after operations complete/fail.
   const isGeneratingRef = useRef(false);
   const isSavingToDriveRef = useRef(false);
+  const isGeneratingWorksheetRef = useRef(false);
 
   const fetchCustomerName = useCallback(async (): Promise<string | null> => {
     if (!equipment?.customerId || !organizationId) {
@@ -281,10 +291,54 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     }
   }, [buildPdfData, organizationId]);
 
+  const downloadFieldWorksheet = useCallback(async () => {
+    if (isGeneratingWorksheetRef.current) return;
+
+    isGeneratingWorksheetRef.current = true;
+    setIsGeneratingWorksheet(true);
+
+    try {
+      const orgLogoUrl = (organization as Record<string, unknown> | null)?.logo as string | null ?? null;
+
+      let teamImgUrl: string | null = null;
+      if (teamId && organizationId) {
+        const { data } = await supabase
+          .from('teams')
+          .select('image_url')
+          .eq('id', teamId)
+          .eq('organization_id', organizationId)
+          .maybeSingle();
+        teamImgUrl = data?.image_url ?? null;
+      }
+
+      const worksheetData: WorkOrderPDFData = {
+        workOrder,
+        equipment: equipment ? { ...equipment } : null,
+        organizationName,
+        pmData,
+        organizationLogoUrl: orgLogoUrl,
+        teamImageUrl: teamImgUrl,
+      };
+
+      await generateFieldWorksheetPDF(worksheetData);
+
+      toast.success(`${FIELD_WORKSHEET_EXPORT_POLICY.exportName} downloaded successfully`);
+    } catch (error) {
+      logger.error('Error generating field worksheet PDF:', error);
+      toast.error('Failed to generate field worksheet. Please try again.');
+      throw error;
+    } finally {
+      isGeneratingWorksheetRef.current = false;
+      setIsGeneratingWorksheet(false);
+    }
+  }, [equipment, organizationName, pmData, workOrder, organization, teamId, organizationId]);
+
   return {
     downloadPDF,
     saveToDrive,
+    downloadFieldWorksheet,
     isGenerating,
     isSavingToDrive,
+    isGeneratingWorksheet,
   };
 };
