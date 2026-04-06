@@ -71,33 +71,31 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
       <div className="space-y-4 lg:space-y-6">
         {/* Status Management with Assignment - Only managers can change status */}
         {permissionLevels.isManager && (
-          <>
-            <WorkOrderStatusManager 
-              workOrder={{
-                ...workOrder,
-                // Pass equipment team_id for contextual assignment
-                equipmentTeamId: equipment?.team_id
-              }} 
-              organizationId={currentOrganization.id}
-              contextData={{
-                dueDate: workOrder.due_date,
-                estimatedHours: workOrder.estimated_hours,
-                equipmentId: equipment?.id,
-                equipmentName: equipment?.name,
-                pmStatus: workOrder.has_pm && pmData ? pmData.status : undefined,
-                formMode,
-                team: team || null,
-              }}
-            />
-            <WorkOrderDetailsStatusLockWarning
-              workOrder={workOrder}
-              isWorkOrderLocked={isWorkOrderLocked}
-              baseCanAddNotes={baseCanAddNotes}
-              isAdmin={permissionLevels.isManager}
-              onStatusUpdate={onStatusUpdate}
-            />
-          </>
+          <WorkOrderStatusManager 
+            workOrder={{
+              ...workOrder,
+              equipmentTeamId: equipment?.team_id
+            }} 
+            organizationId={currentOrganization.id}
+            contextData={{
+              dueDate: workOrder.due_date,
+              estimatedHours: workOrder.estimated_hours,
+              equipmentId: equipment?.id,
+              equipmentName: equipment?.name,
+              pmStatus: workOrder.has_pm && pmData ? pmData.status : undefined,
+              formMode,
+              team: team || null,
+            }}
+          />
         )}
+
+        <WorkOrderDetailsStatusLockWarning
+          workOrder={workOrder}
+          isWorkOrderLocked={isWorkOrderLocked}
+          baseCanAddNotes={baseCanAddNotes}
+          isAdmin={permissionLevels.isManager}
+          onStatusUpdate={onStatusUpdate}
+        />
 
         {/* Status Info for Requestors - now includes context data */}
         <WorkOrderDetailsRequestorStatus 

@@ -48,18 +48,13 @@ const InventoryQRCodeDisplay: React.FC<InventoryQRCodeDisplayProps> = ({ open, o
     if (!qrCodeDataUrl) return;
 
     try {
-      // Generate QR code in the selected format
-      const formatOptions = {
+      const QRCode = (await import('qrcode')).default;
+      const dataUrl = await QRCode.toDataURL(qrCodeUrl, {
         width: 256,
         margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        },
-        type: selectedFormat === 'jpg' ? 'image/jpeg' : 'image/png'
-      };
-
-      const dataUrl = await QRCode.toDataURL(qrCodeUrl, formatOptions);
+        color: { dark: '#000000', light: '#FFFFFF' },
+        type: selectedFormat === 'jpg' ? 'image/jpeg' : 'image/png',
+      });
       
       const link = document.createElement('a');
       const baseFilename = itemName ? sanitizeFilename(itemName) : `inventory-${itemId}`;
