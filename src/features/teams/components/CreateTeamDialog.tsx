@@ -171,7 +171,7 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
 
           {/* Customer Account */}
           <div className="space-y-2">
-            <Label>Customer Account</Label>
+            <Label htmlFor="customer-account-select">Customer Account</Label>
             {showNewAccount ? (
               <div className="space-y-2">
                 <Input
@@ -192,6 +192,7 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
             ) : (
               <div className="space-y-2">
                 <select
+                  id="customer-account-select"
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={selectedCustomerId ?? ''}
                   onChange={(e) => setSelectedCustomerId(e.target.value || null)}

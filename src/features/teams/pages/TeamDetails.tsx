@@ -297,7 +297,7 @@ const TeamDetails = () => {
       {team.customer_id && (
         <ExternalContactsList
           customerId={team.customer_id}
-          canManage={canEdit}
+          canManage={permissions.isOrganizationAdmin()}
         />
       )}
 

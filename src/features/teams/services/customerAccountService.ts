@@ -23,12 +23,17 @@ export async function getCustomersByOrg(organizationId: string): Promise<Custome
   return data ?? [];
 }
 
-export async function getCustomerById(customerId: string): Promise<CustomerRow | null> {
-  const { data, error } = await supabase
+export async function getCustomerById(customerId: string, organizationId?: string): Promise<CustomerRow | null> {
+  let query = supabase
     .from('customers')
     .select('*')
-    .eq('id', customerId)
-    .maybeSingle();
+    .eq('id', customerId);
+
+  if (organizationId) {
+    query = query.eq('organization_id', organizationId);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) throw error;
   return data;
@@ -45,23 +50,33 @@ export async function createCustomer(customer: CustomerInsert): Promise<Customer
   return data;
 }
 
-export async function updateCustomer(customerId: string, updates: CustomerUpdate): Promise<CustomerRow> {
-  const { data, error } = await supabase
+export async function updateCustomer(customerId: string, updates: CustomerUpdate, organizationId?: string): Promise<CustomerRow> {
+  let query = supabase
     .from('customers')
     .update(updates)
-    .eq('id', customerId)
-    .select()
-    .single();
+    .eq('id', customerId);
+
+  if (organizationId) {
+    query = query.eq('organization_id', organizationId);
+  }
+
+  const { data, error } = await query.select().single();
 
   if (error) throw error;
   return data;
 }
 
-export async function linkTeamToCustomer(teamId: string, customerId: string | null): Promise<void> {
-  const { error } = await supabase
+export async function linkTeamToCustomer(teamId: string, customerId: string | null, organizationId?: string): Promise<void> {
+  let query = supabase
     .from('teams')
     .update({ customer_id: customerId })
     .eq('id', teamId);
+
+  if (organizationId) {
+    query = query.eq('organization_id', organizationId);
+  }
+
+  const { error } = await query;
 
   if (error) throw error;
 }
@@ -210,11 +225,11 @@ export async function resolveQuickBooksCustomerId(
   organizationId: string,
   teamId: string
 ): Promise<string | null> {
-  // Primary: team.customer_id → customers.quickbooks_customer_id
   const { data: team } = await supabase
     .from('teams')
     .select('customer_id')
     .eq('id', teamId)
+    .eq('organization_id', organizationId)
     .maybeSingle();
 
   if (team?.customer_id) {
@@ -222,6 +237,7 @@ export async function resolveQuickBooksCustomerId(
       .from('customers')
       .select('quickbooks_customer_id')
       .eq('id', team.customer_id)
+      .eq('organization_id', organizationId)
       .maybeSingle();
 
     if (customer?.quickbooks_customer_id) {

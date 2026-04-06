@@ -960,17 +960,29 @@ Deno.serve(async (req) => {
     let resolvedQBCustomerId: string | null = null;
     let resolvedDisplayName: string | null = null;
 
-    const { data: teamRow } = await supabaseClient
+    const { data: teamRow, error: teamError } = await supabaseClient
       .from('teams')
       .select('customer_id')
       .eq('id', equipmentTeamId)
+      .eq('organization_id', workOrder.organization_id)
       .single();
+
+    if (teamError) {
+      logStep('Error resolving team for QB customer', {
+        work_order_id,
+        equipmentTeamId,
+        organization_id: workOrder.organization_id,
+        error: teamError.message,
+        code: teamError.code,
+      });
+    }
 
     if (teamRow?.customer_id) {
       const { data: customerAccount } = await supabaseClient
         .from('customers')
         .select('quickbooks_customer_id, name')
         .eq('id', teamRow.customer_id)
+        .eq('organization_id', workOrder.organization_id)
         .single();
 
       if (customerAccount?.quickbooks_customer_id) {

@@ -25,6 +25,7 @@ SELECT DISTINCT ON (qtc.organization_id, qtc.quickbooks_customer_id)
   now()
 FROM public.quickbooks_team_customers qtc
 WHERE qtc.quickbooks_customer_id IS NOT NULL
+ORDER BY qtc.organization_id, qtc.quickbooks_customer_id, qtc.updated_at DESC
 ON CONFLICT (organization_id, quickbooks_customer_id)
   WHERE quickbooks_customer_id IS NOT NULL
 DO NOTHING;
@@ -54,8 +55,6 @@ WHERE e.team_id = t.id
   AND t.customer_id IS NOT NULL
   AND e.customer_id IS NULL;
 
-COMMIT;
-
 -- ============================================
 -- STEP 4: Trigger to keep equipment.customer_id in sync
 -- ============================================
@@ -82,3 +81,5 @@ CREATE TRIGGER trigger_sync_equipment_customer
   AFTER UPDATE OF customer_id ON public.teams
   FOR EACH ROW
   EXECUTE FUNCTION public.sync_equipment_customer_from_team();
+
+COMMIT;

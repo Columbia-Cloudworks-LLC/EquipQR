@@ -237,7 +237,9 @@ const Teams = () => {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span tabIndex={0} className="inline-flex" aria-label={`QuickBooks synced ${new Date(team.quickbooks_synced_at).toLocaleDateString()}`}>
+                                <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent>
                               QB synced {new Date(team.quickbooks_synced_at).toLocaleDateString()}

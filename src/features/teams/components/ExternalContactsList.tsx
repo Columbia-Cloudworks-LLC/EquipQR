@@ -63,33 +63,41 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
-    if (editingId) {
-      await mutations.update.mutateAsync({
-        id: editingId,
-        updates: {
+    try {
+      if (editingId) {
+        await mutations.update.mutateAsync({
+          id: editingId,
+          updates: {
+            name: form.name.trim(),
+            email: form.email.trim() || null,
+            phone: form.phone.trim() || null,
+            role: form.role.trim() || null,
+            notes: form.notes.trim() || null,
+          },
+        });
+      } else {
+        await mutations.create.mutateAsync({
+          customer_id: customerId,
           name: form.name.trim(),
           email: form.email.trim() || null,
           phone: form.phone.trim() || null,
           role: form.role.trim() || null,
           notes: form.notes.trim() || null,
-        },
-      });
-    } else {
-      await mutations.create.mutateAsync({
-        customer_id: customerId,
-        name: form.name.trim(),
-        email: form.email.trim() || null,
-        phone: form.phone.trim() || null,
-        role: form.role.trim() || null,
-        notes: form.notes.trim() || null,
-      });
+        });
+      }
+      setDialogOpen(false);
+    } catch {
+      // onError handler in mutation hook already toasts; keep dialog open for retry
     }
-    setDialogOpen(false);
   };
 
   const handleDelete = async (contactId: string) => {
     if (!window.confirm('Remove this contact?')) return;
-    await mutations.remove.mutateAsync(contactId);
+    try {
+      await mutations.remove.mutateAsync(contactId);
+    } catch {
+      // onError handler in mutation hook already toasts
+    }
   };
 
   if (isLoading) return null;

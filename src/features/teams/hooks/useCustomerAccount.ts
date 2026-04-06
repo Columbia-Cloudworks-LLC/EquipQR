@@ -66,7 +66,7 @@ export function useCustomerMutations(organizationId: string | undefined) {
 
   const update = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: CustomerUpdate }) =>
-      updateCustomer(id, updates),
+      updateCustomer(id, updates, organizationId),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ['customer', vars.id] });
       invalidate();
@@ -78,7 +78,7 @@ export function useCustomerMutations(organizationId: string | undefined) {
 
   const link = useMutation({
     mutationFn: ({ teamId, customerId }: { teamId: string; customerId: string | null }) =>
-      linkTeamToCustomer(teamId, customerId),
+      linkTeamToCustomer(teamId, customerId, organizationId),
     onSuccess: () => invalidate(),
     onError: (err: Error) => {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });

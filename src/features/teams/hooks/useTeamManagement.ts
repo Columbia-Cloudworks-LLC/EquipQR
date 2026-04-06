@@ -28,7 +28,8 @@ export const useTeams = (organizationId?: string | undefined) => {
     queryFn: async () => {
       const allTeams = await TeamRepository.getTeamsByOrg(orgId!);
 
-      if (!isElevated && accessSnapshot && accessSnapshot.accessibleTeamIds.length > 0) {
+      if (!isElevated) {
+        if (!accessSnapshot) return [];
         const accessibleIds = new Set(accessSnapshot.accessibleTeamIds);
         return allTeams.filter(t => accessibleIds.has(t.id));
       }

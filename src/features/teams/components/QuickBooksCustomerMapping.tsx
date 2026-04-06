@@ -185,6 +185,13 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   const handleLinkExisting = async (accountId: string) => {
     try {
       await customerMutations.link.mutateAsync({ teamId, customerId: accountId });
+      const account = orgCustomers?.find(c => c.id === accountId);
+      if (account?.quickbooks_customer_id) {
+        await updateLegacyMapping.mutateAsync({
+          custId: account.quickbooks_customer_id,
+          displayName: account.quickbooks_display_name ?? account.name,
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['team', teamId] });
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       closeDialog();
