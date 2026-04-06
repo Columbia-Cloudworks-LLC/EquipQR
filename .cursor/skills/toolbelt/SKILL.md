@@ -9,15 +9,16 @@ Single source of truth for every integration available to the agent in this work
 
 ## Quick Reference
 
-| Integration | MCP Server | Primary Use |
+| Integration | Tool | Primary Use |
 |---|---|---|
-| Datadog | `plugin-datadog-datadog` | Observability: logs, metrics, APM, RUM, monitors, incidents |
-| Supabase | `plugin-supabase-supabase` | Backend: migrations, edge functions, SQL, tables, branches |
-| Vercel | `plugin-vercel-vercel` | Frontend hosting: deployments, build logs, runtime logs |
-| Figma | `plugin-figma-figma` | Design: read designs, write to canvas, Code Connect |
-| Context7 | `plugin-context7-plugin-context7` | Documentation: up-to-date library/framework docs |
-| Browser | `cursor-ide-browser` | Testing: navigate, snapshot, interact with live pages |
-| GitHub | `gh` CLI | Work tracking: issues, PRs, org project board |
+| Datadog | MCP `plugin-datadog-datadog` | Observability: logs, metrics, APM, RUM, monitors, incidents |
+| Supabase | MCP `plugin-supabase-supabase` | Backend: migrations, edge functions, SQL, tables, branches |
+| Vercel | MCP `plugin-vercel-vercel` | Frontend hosting: deployments, build logs, runtime logs |
+| Figma | MCP `plugin-figma-figma` | Design: read designs, write to canvas, Code Connect |
+| Context7 | MCP `plugin-context7-plugin-context7` | Documentation: up-to-date library/framework docs |
+| Browser | MCP `cursor-ide-browser` | Testing: navigate, snapshot, interact with live pages |
+| GitHub | CLI `gh` | Work tracking: issues, PRs, org project board |
+| Google Workspace | CLI `gws` | Docs, Sheets, Gmail, Calendar, Drive, Slides, Tasks, Meet |
 
 ---
 
@@ -251,7 +252,86 @@ gh api repos/Columbia-Cloudworks-LLC/EquipQR/pulls/123/comments
 
 ---
 
-## 8. Local Development
+## 8. Google Workspace
+
+**CLI:** `gws` v0.22.5 (on PATH at `C:\WINDOWS\gws.exe`)
+
+### Account & Auth
+
+| Key | Value |
+|---|---|
+| Authenticated account | `nicholas.king@columbiacloudworks.com` |
+| GCP project | `equipqr-prod` |
+| Credentials | `C:\Users\viral\.config\gws\credentials.enc` (AES-256-GCM, OS keyring) |
+| Client config | `C:\Users\viral\.config\gws\client_secret.json` (Desktop OAuth client) |
+
+Check auth: `gws auth status`
+
+### Key Services
+
+| Service | CLI prefix | Common operations |
+|---|---|---|
+| Drive | `gws drive` | `files list`, `files get`, `files create`, `+upload` |
+| Docs | `gws docs` | `documents create`, `documents get`, `documents batchUpdate`, `+write` |
+| Sheets | `gws sheets` | `spreadsheets create`, `spreadsheets get`, `+read`, `+append` |
+| Gmail | `gws gmail` | `+send`, `+read`, `+reply`, `+forward`, `+triage` |
+| Calendar | `gws calendar` | `events list`, `events insert`, `+agenda`, `+insert` |
+| Slides | `gws slides` | `presentations create`, `presentations get`, `presentations batchUpdate` |
+| Tasks | `gws tasks` | `tasklists list`, `tasks list`, `tasks insert` |
+| Meet | `gws meet` | `conferenceRecords list`, `spaces create` |
+| Chat | `gws chat` | `spaces list`, `spaces messages create`, `+send` |
+| Forms | `gws forms` | `forms get`, `forms create` |
+| Keep | `gws keep` | `notes list`, `notes get`, `notes create` |
+| People | `gws people` | `people connections list`, `people get` |
+
+### Helper Commands (+ prefix)
+
+Helper commands are high-level shortcuts that wrap API calls:
+
+```powershell
+gws docs +write --document DOC_ID --text "content"
+gws sheets +read --spreadsheet SHEET_ID --range "Sheet1!A1:D10"
+gws sheets +append --spreadsheet SHEET_ID --range "Sheet1" --values '[["a","b"]]'
+gws gmail +send --to user@example.com --subject "Subject" --body "Body"
+gws gmail +send --to user@example.com --subject "Report" --body "<h1>HTML</h1>" --html
+gws drive +upload --file report.pdf --folder FOLDER_ID
+gws calendar +agenda
+gws calendar +insert --summary "Meeting" --start "2026-04-07T10:00:00" --duration 60
+```
+
+### Discovery & Schema Inspection
+
+```powershell
+gws docs --help
+gws schema docs.documents.batchUpdate
+gws schema drive.files.create
+```
+
+Always run `gws schema <service>.<resource>.<method>` before calling an unfamiliar API method to discover required parameters.
+
+### Document Branding — Columbia Cloudworks LLC
+
+When creating documents, reports, emails, or any external-facing content via `gws`, the output represents **Columbia Cloudworks LLC**. Apply consistent branding:
+
+- Company name: **Columbia Cloudworks LLC**
+- Product name: **EquipQR** (when product-specific)
+- Tone: professional, confident, technically credible
+- Include company name in document titles and headers where appropriate
+- For formal deliverables (audit evidence, customer reports, executive packets), use structured section headers and clear provenance attribution
+
+### Conventions
+
+- Write commands (`+write`, `+send`, `+upload`, `batchUpdate`, `create`, `delete`) require user confirmation before execution.
+- Use `--dry-run` to preview destructive or send operations.
+- Use `--format table` for human-readable output; `--format json` (default) for programmatic use.
+- On PowerShell, wrap `--params` and `--json` values in single quotes to preserve inner double quotes.
+- For Sheets ranges containing `!`, use double quotes: `--range "Sheet1!A1:D10"`.
+- Read the `gws-shared` skill for global flags, auth, and security rules.
+- Individual service skills (`gws-docs`, `gws-sheets-read`, `gws-gmail-send`, etc.) contain detailed flag references and examples.
+
+---
+
+## 9. Local Development
 
 ### Starting the Dev Server
 
@@ -293,3 +373,10 @@ If the app is partially running, the user should run `.\dev-stop.bat` first.
 | Monitor frontend performance | Datadog `search_datadog_rum_events` or `aggregate_rum_events` |
 | Check runtime errors | Vercel `get_runtime_logs` |
 | Get security/perf advisories | Supabase `get_advisors` |
+| Create a Google Doc or report | `gws docs documents create` → `gws docs +write` |
+| Read or write a spreadsheet | `gws sheets +read` / `gws sheets +append` |
+| Send an email | `gws gmail +send` |
+| Check calendar or create event | `gws calendar +agenda` / `gws calendar +insert` |
+| Upload a file to Drive | `gws drive +upload` |
+| Create a presentation | `gws slides presentations create` |
+| Create audit/customer deliverable | `gws docs` (apply Columbia Cloudworks LLC branding) |

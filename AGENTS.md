@@ -12,6 +12,7 @@
 - When automated PR reviewers (e.g. Copilot) leave feedback, triage each comment for validity, address valid items in code, explain deferred items with rationale, then commit, push, and post a structured summary comment on the PR.
 - When code changes are ready to push (after a commit or before deployment validation), push to the remote proactively without waiting for explicit confirmation unless a blocking issue requires user intervention first.
 - For persistent security scanner or linting alerts that have survived multiple fix attempts, the user wants root-cause analysis of the underlying detection model (e.g., CodeQL taint-flow chains, sanitizer recognition patterns) before attempting another code patch.
+- When creating documents, reports, emails, or any external-facing content (audit evidence, customer deliverables, executive packets), the output represents **Columbia Cloudworks LLC** and must carry consistent professional branding: company name in titles/headers, enterprise-grade tone, no AI-attribution phrasing or informal language. Product-specific documents should also reference **EquipQR** where appropriate.
 
 ## Learned Workspace Facts
 
@@ -27,3 +28,4 @@
 - When bumping the app version in `package-lock.json`, avoid blanket `replace_all` on generic `"version": "x.y.z"` strings; unrelated dependencies can share the same semver and their entries must stay aligned with their `resolved` URLs (fix by editing only the root package blocks or reverting mistaken dependency bumps).
 - `.cursor/hooks/state/` (including `continual-learning-index.json` and related hook JSON), `.cursor/plans/`, and `.cursor/hooks/__pycache__/` are gitignored as local Cursor hook and agent metadata; agents may read or update these paths in a worktree, but they are not committed as product source.
 - A Supabase-to-Datadog log drain (US5 region) is active, streaming all backend service logs (edge, postgres, auth, realtime, edge functions, storage) into Datadog for production observability.
+- The `gws` CLI (v0.22.5) is installed on PATH and authenticated as `nicholas.king@columbiacloudworks.com` against the `equipqr-prod` GCP project; credentials are stored encrypted at `~/.config/gws/credentials.enc` using a Desktop OAuth client; 44 Google Workspace agent skills are installed at `~/.cursor/skills/gws-*` covering Docs, Sheets, Gmail, Calendar, Drive, Slides, Tasks, Meet, Chat, Forms, Keep, People, and workflow automations.

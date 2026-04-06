@@ -1,6 +1,18 @@
 # Reporting
 
+## Branding — Columbia Cloudworks LLC
+
+All output documents are authored on behalf of **Columbia Cloudworks LLC**. Apply consistent branding:
+
+- Header/title: include **Columbia Cloudworks LLC** and **EquipQR** where appropriate
+- Tone: professional, technically credible, enterprise-grade
+- For Google Docs deliverables: include company name in the document title (e.g., "Columbia Cloudworks LLC — Texas Audit Evidence Package — 2026-04")
+- For customer-facing reports: lead with a brief company context line and date
+- Never use informal language, emojis, or AI-attribution phrasing in deliverable content
+
 ## Output Files
+
+### Repository artifacts (default)
 
 Create a run folder:
 
@@ -13,6 +25,16 @@ Write:
 - `executive-report.md`
 - `visual-appendix.md`
 - `assets/` (screenshots, charts, diagrams)
+
+### Google Docs deliverables (when requested)
+
+When the user asks for a shareable or customer-ready document, create via `gws`:
+
+1. `gws docs documents create --json '{"title": "Columbia Cloudworks LLC — <Report Title> — <YYYY-MM>"}'`
+2. Populate with `gws docs +write` or `gws docs documents batchUpdate` for rich formatting
+3. Optionally share via `gws drive permissions create`
+
+Use Google Docs for external deliverables (customer reports, audit packets, executive summaries). Keep the repository markdown as the source of record.
 
 ## Artifact Purpose
 
