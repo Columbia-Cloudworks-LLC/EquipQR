@@ -80,6 +80,17 @@ Every artifact must include:
 
 Produce all required artifacts using `reporting.md`.
 
+### Preflight usability check (before first branded generation)
+
+Confirm or default the output style:
+
+- audience type (legal/regulator/executive/internal)
+- findings readability mode (narrative per question preferred for legal)
+- exhibit pagination mode (**one screenshot per page** default)
+- required metadata fields (URL, UTC timestamp, control IDs answered)
+
+If the user does not specify, use legal-grade defaults.
+
 ## Output Contract
 
 Always produce, in order:

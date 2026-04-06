@@ -502,6 +502,17 @@ powershell -ExecutionPolicy Bypass -File "C:\Users\viral\Documents\ColumbiaCloud
 
 Standard section tags: `ExecSummary`, `ScopeMethod`, `ControlResults`, `DetailedFindings`, `VisualAppendix`.
 
+For audit evidence packets, `images[]` supports richer exhibit metadata:
+
+- `title` (heading above screenshot)
+- `details` (readable explanation below screenshot)
+- `answers` (control IDs answered by this exhibit; string or array)
+- `url`
+- `capturedUtc`
+- `source`
+- `finding`
+- `notes`
+
 ### Conventions
 
 - Output defaults to `$PWD/tmp/documents/` (gitignored via `tmp/*`).
@@ -510,6 +521,17 @@ Standard section tags: `ExecSummary`, `ScopeMethod`, `ControlResults`, `Detailed
 - Status keywords in table cells (`Verified`, `Failed`, `Not Verified`, `Blocked`) are automatically color-coded.
 - Both `.docx` and `.pdf` are produced by default; use `-NoPdf` to skip PDF.
 - Re-running the same command overwrites cleanly (idempotent).
+
+### Audit exhibit rendering defaults
+
+The Word generator uses audit-safe exhibit rendering:
+
+- each screenshot starts on a new page
+- exhibit title appears at the top of that page
+- screenshot appears next
+- readable metadata block appears below image
+
+Use structured `images[]` fields instead of overloading `caption` when possible.
 
 ### When to Use Word Toolkit vs Google Workspace
 
