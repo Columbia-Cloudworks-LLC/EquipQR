@@ -6,7 +6,7 @@ All output documents are authored on behalf of **Columbia Cloudworks LLC**. Appl
 
 - Header/title: include **Columbia Cloudworks LLC** and **EquipQR** where appropriate
 - Tone: professional, technically credible, enterprise-grade
-- For Google Docs deliverables: include company name in the document title (e.g., "Columbia Cloudworks LLC — Texas Audit Evidence Package — 2026-04")
+- For Word toolkit deliverables: the template applies branding automatically (logo, headers/footers, colors)
 - For customer-facing reports: lead with a brief company context line and date
 - Never use informal language, emojis, or AI-attribution phrasing in deliverable content
 
@@ -26,15 +26,47 @@ Write:
 - `visual-appendix.md`
 - `assets/` (screenshots, charts, diagrams)
 
-### Google Docs deliverables (when requested)
+### Branded deliverables (Word Toolkit)
 
-When the user asks for a shareable or customer-ready document, create via `gws`:
+When the user asks for a shareable or customer-ready document, use the Columbia Cloudworks Word automation toolkit. Do **not** use `gws docs` for product deliverable generation.
 
-1. `gws docs documents create --json '{"title": "Columbia Cloudworks LLC — <Report Title> — <YYYY-MM>"}'`
-2. Populate with `gws docs +write` or `gws docs documents batchUpdate` for rich formatting
-3. Optionally share via `gws drive permissions create`
+**Workflow:**
 
-Use Google Docs for external deliverables (customer reports, audit packets, executive summaries). Keep the repository markdown as the source of record.
+1. Build a JSON manifest matching the `audit-packet-schema.json` schema (see `toolbelt` skill, section 9).
+2. Write the manifest to a temporary file in the project (e.g., `tmp/documents/manifest.json`).
+3. Run from the project root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "C:\Users\viral\Documents\ColumbiaCloudworks\doc-automation\scripts\New-BrandedDocument.ps1" -ManifestPath "tmp\documents\manifest.json"
+```
+
+4. Output lands in `tmp/documents/` as both `.docx` and `.pdf`.
+
+**Manifest structure for audit packets:**
+
+- `title`: e.g., "Columbia Cloudworks LLC — Texas Audit Evidence Package — 2026-04"
+- `customer`: "Columbia Cloudworks LLC"
+- `date`: ISO date string
+- `confidentiality`: "Confidential"
+- `sections`: array with tags `ExecSummary`, `ScopeMethod`, `ControlResults`, `DetailedFindings`, `VisualAppendix`
+- Each section can have `content` (text), `table` (headers + rows), and/or `images` (path + caption)
+
+The template applies all branding automatically: cover page logo, headers with logo + company name + document title, footers with confidentiality + page numbers, accent-colored table headers, and status keyword coloring (Verified = green, Failed = red, Not Verified/Blocked = amber).
+
+### Screenshot handling
+
+Browser screenshots are saved to `tmp/screenshots/` (gitignored). Follow the Screenshot Workflow in the `toolbelt` skill for capture and copy steps. Use evidence-specific filenames (e.g., `txr-ac-1-rbac-settings.png`).
+
+To embed screenshots in the branded deliverable, reference them in the manifest's `images` array with paths relative to the project root:
+
+```json
+{
+  "path": "tmp/screenshots/txr-ac-1-rbac-settings.png",
+  "caption": "Figure 1: RBAC settings page showing role enforcement"
+}
+```
+
+Screenshots are embedded directly into the Word document body at full page width with captions — no Drive upload or link-sharing required.
 
 ## Artifact Purpose
 
