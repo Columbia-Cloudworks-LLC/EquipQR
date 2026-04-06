@@ -278,7 +278,6 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
             <div onClick={(e) => e.stopPropagation()}>
               <WorkOrderQuickActions
                 workOrderId={workOrder.id}
