@@ -5,6 +5,8 @@ import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 import { logger } from '@/utils/logger';
+import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
+import { workOrders as workOrderQueryKeys, notifications as notificationQueryKeys } from '@/lib/queryKeys';
 
 interface AcceptWorkOrderParams {
   workOrderId: string;
@@ -61,11 +63,20 @@ export const useWorkOrderAcceptance = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, { organizationId }) => {
-      // Invalidate relevant queries to refresh the UI with standardized keys
-      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['workOrders', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', organizationId] });
+    onSuccess: (data, { workOrderId, organizationId }) => {
+      // Invalidate the specific work order detail so the details page re-renders immediately
+      queryClient.invalidateQueries({
+        queryKey: workOrderKeys.detail(organizationId, workOrderId),
+      });
+      // Invalidate all work order list queries
+      queryClient.invalidateQueries({ queryKey: workOrderKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: workOrderKeys.all });
+      // Legacy / alternate key shapes for backward compatibility
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.enhancedList(organizationId) });
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.legacyList(organizationId) });
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.optimized(organizationId) });
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.byId(organizationId, workOrderId) });
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.byOrg(organizationId) });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', organizationId] });
       toast.success('Work order accepted successfully');
     },
