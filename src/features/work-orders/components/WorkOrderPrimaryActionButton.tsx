@@ -83,6 +83,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
       setShowAcceptanceModal(false);
     } catch (error) {
       console.error('Error accepting work order:', error);
+      throw error;
     }
   };
 
