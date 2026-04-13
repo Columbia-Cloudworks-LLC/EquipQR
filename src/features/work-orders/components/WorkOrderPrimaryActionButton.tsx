@@ -6,6 +6,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
+import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
 import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,6 +37,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
   const organizationId = propOrganizationId || contextOrganizationId || '';
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
   const updateStatusMutation = useUpdateWorkOrderStatus();
+  const acceptanceMutation = useWorkOrderAcceptance();
   const { data: pmData } = usePMByWorkOrderId(workOrder.id);
   const { isManager, isTechnician } = useWorkOrderPermissionLevels();
   const { user } = useAuth();
@@ -71,12 +73,12 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
     }
   };
 
-  const handleAcceptanceComplete = async () => {
+  const handleAcceptanceComplete = async (assigneeId?: string) => {
     try {
-      await updateStatusMutation.mutateAsync({
+      await acceptanceMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: 'accepted',
-        organizationId
+        organizationId,
+        assigneeId,
       });
       setShowAcceptanceModal(false);
     } catch (error) {
@@ -175,7 +177,7 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
           variant={primaryAction.variant}
           size="sm"
           onClick={primaryAction.action}
-          disabled={updateStatusMutation.isPending || primaryAction.disabled}
+          disabled={updateStatusMutation.isPending || acceptanceMutation.isPending || primaryAction.disabled}
           className="font-medium"
           title={primaryAction.tooltip}
         >
