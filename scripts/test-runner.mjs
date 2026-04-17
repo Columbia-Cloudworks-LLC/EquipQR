@@ -11,11 +11,14 @@
  */
 
 import { spawn, execSync } from 'child_process';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
 const isWindows = process.platform === 'win32';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.join(__dirname, '..');
+const coverageSummaryPath = path.join(repoRoot, 'coverage', 'coverage-summary.json');
 
 // Pass through all CLI arguments to vitest
 const args = process.argv.slice(2);
@@ -38,7 +41,7 @@ const npxBin = isWindows ? 'npx.cmd' : 'npx';
 const vitestProcess = spawn(npxBin, ['vitest', 'run', ...vitestArgs], {
   stdio: ['inherit', 'pipe', 'pipe'],
   env: process.env,
-  cwd: path.join(__dirname, '..'),
+  cwd: repoRoot,
   shell: isWindows
 });
 
@@ -47,6 +50,40 @@ let lastOutputTime = Date.now();
 let testFilesCompleted = 0;
 let allTestsCompleted = false;
 let noOutputTimer = null;
+let postTestExitScheduled = false;
+
+/** After tests finish, Vitest may hang; `--coverage` needs extra time for reporters to write JSON. */
+function schedulePostTestExit() {
+  if (postTestExitScheduled || cleanupStarted) return;
+  postTestExitScheduled = true;
+
+  if (hasCoverage) {
+    const deadline = Date.now() + 60_000;
+    const tick = () => {
+      if (cleanupStarted) return;
+      if (fs.existsSync(coverageSummaryPath)) {
+        setTimeout(() => {
+          if (!cleanupStarted) forceExit(0);
+        }, 500);
+        return;
+      }
+      if (Date.now() > deadline) {
+        console.error(`\n❌ Coverage summary not written before timeout: ${coverageSummaryPath}`);
+        forceExit(1);
+        return;
+      }
+      setTimeout(tick, 250);
+    };
+    setTimeout(tick, 500);
+    return;
+  }
+
+  setTimeout(() => {
+    if (!cleanupStarted) {
+      forceExit(0);
+    }
+  }, 3000);
+}
 
 // Track output to detect test completion
 vitestProcess.stdout.on('data', (data) => {
@@ -65,12 +102,7 @@ vitestProcess.stdout.on('data', (data) => {
       text.includes(' Tests ') && text.includes('passed') ||
       text.includes('Duration')) {
     allTestsCompleted = true;
-    // Give Vitest a moment to clean up, then force exit if it hangs
-    setTimeout(() => {
-      if (!cleanupStarted) {
-        forceExit(0);
-      }
-    }, 3000);
+    schedulePostTestExit();
   }
   
   // Reset the no-output timer

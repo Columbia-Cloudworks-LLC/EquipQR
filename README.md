@@ -48,6 +48,8 @@ Detailed documentation is located in the [`/docs`](./docs/README.md) directory:
 
 EquipQR uses external services. For exact environment variables and where they’re used, see [`.env.example`](./.env.example) (source of truth) and the [Setup Guide](./docs/technical/setup.md).
 
+**Local development:** Install a Node.js version that satisfies `engines.node` in [`package.json`](./package.json). The [Setup Guide](./docs/technical/setup.md) covers **npm-only** installs, Docker Desktop for local Supabase, and pinned CLI usage (`npx supabase`, `npm run deploy:vercel`).
+
 **Required (to run the core app):**
 
 * **Supabase**: Create a project (URL + anon key) and configure Supabase Auth (email/password; optionally Google).
