@@ -4,7 +4,11 @@ import { PDFDocument, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   QBO_API_BASE,
+  QBO_DEFAULT_LABOR_RATE_CENTS,
+  QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS,
   QBO_ENVIRONMENT,
+  QBO_INVOICE_CUSTOM_FIELD_DEFINITION_IDS,
+  QBO_INVOICE_ITEM_NAMES,
   QBO_TOKEN_URL,
   getIntuitTid,
   withMinorVersion,
@@ -69,6 +73,7 @@ interface WorkOrderData {
   created_date: string;
   due_date: string | null;
   completed_date: string | null;
+  equipment_working_hours_at_creation: number | null;
   has_pm: boolean;
   equipment?: {
     name: string;
@@ -83,17 +88,30 @@ interface WorkOrderData {
 }
 
 interface WorkOrderCost {
+  id?: string;
   description: string;
   quantity: number;
   unit_price_cents: number;
-  total_price_cents: number;
+  total_price_cents: number | null;
+  inventory_item_id?: string | null;
 }
 
 interface WorkOrderNote {
+  id?: string;
   content: string;
+  hours_worked?: number | null;
+  machine_hours?: number | null;
   is_private: boolean;
   author_name: string | null;
   created_at: string;
+}
+
+interface WorkOrderStatusEvent {
+  id: string;
+  old_status: string | null;
+  new_status: string;
+  changed_at: string;
+  reason: string | null;
 }
 
 interface WorkOrderImage {
@@ -116,13 +134,19 @@ interface QuickBooksInvoice {
   CustomerRef: { value: string };
   Line: Array<{
     Amount: number;
-    DetailType: string;
+    DetailType: "SalesItemLineDetail";
     Description?: string;
-    SalesItemLineDetail?: {
+    SalesItemLineDetail: {
       ItemRef: { value: string; name?: string };
       Qty?: number;
       UnitPrice?: number;
     };
+  }>;
+  CustomField?: Array<{
+    DefinitionId: string;
+    Name?: string;
+    Type?: "StringType";
+    StringValue: string;
   }>;
   PrivateNote?: string;
   CustomerMemo?: { value: string };
@@ -194,52 +218,10 @@ async function refreshTokenIfNeeded(
   return tokenData.access_token;
 }
 
-/**
- * Build invoice description from work order data
- */
-function buildInvoiceDescription(
-  workOrder: WorkOrderData,
-  notes: WorkOrderNote[],
-  costs: WorkOrderCost[]
-): string {
-  const lines: string[] = [];
-  
-  lines.push(`Work Order: ${workOrder.title}`);
-  lines.push(`Status: ${workOrder.status}`);
-  
-  if (workOrder.equipment) {
-    lines.push(`Equipment: ${workOrder.equipment.name}`);
-    lines.push(`  Model: ${workOrder.equipment.manufacturer} ${workOrder.equipment.model}`);
-    lines.push(`  Serial: ${workOrder.equipment.serial_number}`);
-  }
-  
-  if (workOrder.description) {
-    lines.push('');
-    lines.push('Description:');
-    lines.push(workOrder.description);
-  }
-  
-  // Add public notes (customer-facing: date only, no author attribution)
-  const publicNotes = notes.filter(n => !n.is_private);
-  if (publicNotes.length > 0) {
-    lines.push('');
-    lines.push('Notes:');
-    publicNotes.forEach(note => {
-      const noteDate = new Date(note.created_at).toLocaleDateString('en-US');
-      lines.push(`- ${note.content} (${noteDate})`);
-    });
-  }
-  
-  return lines.join('\n');
-}
-
-/**
- * Build private note from private notes
- */
 function buildPrivateNote(
   workOrder: WorkOrderData,
   notes: WorkOrderNote[],
-  costs: WorkOrderCost[]
+  costs: WorkOrderCost[],
 ): string {
   const lines: string[] = [];
   
@@ -282,22 +264,141 @@ function buildPrivateNote(
   return result;
 }
 
+const getCostAmountCents = (cost: WorkOrderCost): number =>
+  cost.total_price_cents ?? cost.unit_price_cents * cost.quantity;
+
+const isTruckSuppliesCost = (cost: WorkOrderCost): boolean =>
+  /truck supplies|truck fee|travel fee|service fee|trip fee/i.test(cost.description);
+
+const isLaborCost = (cost: WorkOrderCost): boolean =>
+  /labor|labour|hour|technician|service time/i.test(cost.description);
+
+const formatTimelineTimestamp = (value: string): string => {
+  const iso = new Date(value).toISOString();
+  return `${iso.slice(0, 16)}z`;
+};
+
+const formatStatus = (status: string): string =>
+  status
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+function buildCustomerTimelineLines(
+  statusEvents: WorkOrderStatusEvent[],
+  notes: WorkOrderNote[],
+): string[] {
+  const timelineLines: Array<{ timestamp: string; text: string }> = [];
+
+  statusEvents.forEach((event) => {
+    const summary = event.reason
+      ? `Status changed to ${formatStatus(event.new_status)} - ${event.reason}`
+      : `Status changed to ${formatStatus(event.new_status)}`;
+    timelineLines.push({ timestamp: event.changed_at, text: summary });
+  });
+
+  notes
+    .filter((note) => !note.is_private)
+    .forEach((note) => {
+      timelineLines.push({ timestamp: note.created_at, text: note.content });
+    });
+
+  return timelineLines
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    .map((entry) => `${formatTimelineTimestamp(entry.timestamp)} - ${entry.text}`);
+}
+
+function buildCustomerMemo(
+  workOrder: WorkOrderData,
+  notes: WorkOrderNote[],
+  statusEvents: WorkOrderStatusEvent[],
+): string {
+  const publicNotes = notes.filter((note) => !note.is_private);
+  const latestPublicResolution = publicNotes.length > 0
+    ? publicNotes[publicNotes.length - 1].content
+    : "Resolved per work order completion.";
+
+  const header = [
+    `Initial request: ${workOrder.description || workOrder.title}.`,
+    `Resolution: ${latestPublicResolution}`,
+  ].join("\n");
+
+  const timeline = buildCustomerTimelineLines(statusEvents, notes);
+  if (timeline.length === 0) {
+    return header;
+  }
+
+  return `${header}\n\n${timeline.join("\n")}`.slice(0, 3900);
+}
+
+function getMachineHoursCustomFieldValue(
+  workOrder: WorkOrderData,
+  notes: WorkOrderNote[],
+): string {
+  const intakeHours = workOrder.equipment_working_hours_at_creation;
+  const checkoutEntry = [...notes]
+    .reverse()
+    .find((note) => note.machine_hours !== null && note.machine_hours !== undefined);
+  const checkoutHours = checkoutEntry?.machine_hours ?? null;
+
+  if (intakeHours !== null && checkoutHours !== null) {
+    return `Intake ${intakeHours} / Checkout ${checkoutHours}`;
+  }
+  if (intakeHours !== null) {
+    return `Intake ${intakeHours}`;
+  }
+  if (checkoutHours !== null) {
+    return `Checkout ${checkoutHours}`;
+  }
+  return "N/A";
+}
+
+function buildInvoiceCustomFields(
+  workOrder: WorkOrderData,
+  notes: WorkOrderNote[],
+): NonNullable<QuickBooksInvoice["CustomField"]> {
+  const makeModelValue = [workOrder.equipment?.manufacturer, workOrder.equipment?.model]
+    .filter(Boolean)
+    .join(" ")
+    .trim() || workOrder.equipment?.name || "N/A";
+
+  return [
+    {
+      DefinitionId: QBO_INVOICE_CUSTOM_FIELD_DEFINITION_IDS.makeModel,
+      Type: "StringType",
+      Name: "Make/Model",
+      StringValue: makeModelValue,
+    },
+    {
+      DefinitionId: QBO_INVOICE_CUSTOM_FIELD_DEFINITION_IDS.serial,
+      Type: "StringType",
+      Name: "Serial",
+      StringValue: workOrder.equipment?.serial_number || "N/A",
+    },
+    {
+      DefinitionId: QBO_INVOICE_CUSTOM_FIELD_DEFINITION_IDS.machineHours,
+      Type: "StringType",
+      Name: "Machine Hours",
+      StringValue: getMachineHoursCustomFieldValue(workOrder, notes),
+    },
+  ];
+}
+
 /**
- * Get an existing service item or create a new one for invoicing.
- * Priority: "EquipQR Services" → any active Service item → create new.
+ * Get an existing service item or create one for invoicing.
  */
-async function getServiceItem(
+async function getOrCreateServiceItem(
   accessToken: string,
-  realmId: string
+  realmId: string,
+  itemName: string,
 ): Promise<{ value: string; name: string }> {
   const headers = {
     "Authorization": `Bearer ${accessToken}`,
     "Accept": "application/json",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
   };
 
-  // Try "EquipQR Services" item
-  const specificQuery = `SELECT * FROM Item WHERE Name = 'EquipQR Services' AND Type = 'Service' AND Active = true`;
+  const escapedItemName = itemName.replace(/'/g, "\\'");
+  const specificQuery = `SELECT * FROM Item WHERE Name = '${escapedItemName}' AND Type = 'Service' AND Active = true`;
   const specificUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(specificQuery)}`);
   const specificResponse = await fetch(specificUrl, { method: "GET", headers });
   
@@ -307,7 +408,7 @@ async function getServiceItem(
     if (data.Fault) {
       logStep("Fault in item query response", { fault: JSON.stringify(data.Fault).substring(0, 300) });
     } else if (data.QueryResponse?.Item?.[0]) {
-      logStep("Found EquipQR Services item", { id: data.QueryResponse.Item[0].Id });
+      logStep("Found service item", { id: data.QueryResponse.Item[0].Id, itemName });
       return { 
         value: data.QueryResponse.Item[0].Id, 
         name: data.QueryResponse.Item[0].Name 
@@ -317,32 +418,7 @@ async function getServiceItem(
     throw new Error(`QuickBooks item query failed with status ${specificResponse.status}`);
   }
 
-  // Fallback to any active Service item
-  const genericQuery = `SELECT * FROM Item WHERE Type = 'Service' AND Active = true MAXRESULTS 1`;
-  const genericUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(genericQuery)}`);
-  const genericResponse = await fetch(genericUrl, { method: "GET", headers });
-  
-  if (genericResponse.ok) {
-    const data = await genericResponse.json();
-    // Check for Fault in 200 OK response
-    if (data.Fault) {
-      logStep("Fault in generic item query response", { fault: JSON.stringify(data.Fault).substring(0, 300) });
-    } else if (data.QueryResponse?.Item?.[0]) {
-      logStep("Found generic service item", { 
-        id: data.QueryResponse.Item[0].Id, 
-        name: data.QueryResponse.Item[0].Name 
-      });
-      return { 
-        value: data.QueryResponse.Item[0].Id, 
-        name: data.QueryResponse.Item[0].Name 
-      };
-    }
-  } else if (genericResponse.status === 401 || genericResponse.status === 403 || genericResponse.status >= 500) {
-    throw new Error(`QuickBooks generic item query failed with status ${genericResponse.status}`);
-  }
-
-  // Create new "EquipQR Services" item
-  logStep("No service items found, creating EquipQR Services item");
+  logStep("Service item not found, creating", { itemName });
   
   const accountQuery = `SELECT * FROM Account WHERE AccountType = 'Income' AND Active = true MAXRESULTS 1`;
   const accountUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(accountQuery)}`);
@@ -365,13 +441,13 @@ async function getServiceItem(
 
   const createUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/item`);
   const newItem = {
-    Name: "EquipQR Services",
+    Name: itemName,
     Type: "Service",
     IncomeAccountRef: {
       value: incomeAccount.Id,
       name: incomeAccount.Name
     },
-    Description: "General services for EquipQR Work Orders"
+    Description: `Auto-created service item for ${itemName}`
   };
 
   const createResponse = await fetch(createUrl, {
@@ -396,12 +472,109 @@ async function getServiceItem(
     throw new Error("QuickBooks returned invalid item structure after creation");
   }
 
-  logStep("Successfully created EquipQR Services item", { id: createdItem.Item.Id });
+  logStep("Successfully created service item", { id: createdItem.Item.Id, itemName });
   
   return { 
     value: createdItem.Item.Id, 
     name: createdItem.Item.Name 
   };
+}
+
+async function buildInvoiceLines(
+  accessToken: string,
+  realmId: string,
+  costs: WorkOrderCost[],
+  notes: WorkOrderNote[],
+): Promise<QuickBooksInvoice["Line"]> {
+  const partCosts = costs.filter((cost) => (cost.inventory_item_id ?? null) !== null);
+  const truckCosts = costs.filter(isTruckSuppliesCost);
+  const laborCandidateCosts = costs.filter(
+    (cost) => !partCosts.includes(cost) && !truckCosts.includes(cost),
+  );
+
+  const loggedHours = notes.reduce((sum, note) => sum + (note.hours_worked ?? 0), 0);
+  const laborCostsCents = laborCandidateCosts.reduce((sum, cost) => {
+    if (isLaborCost(cost) || loggedHours <= 0) {
+      return sum + getCostAmountCents(cost);
+    }
+    return sum;
+  }, 0);
+  const fallbackLaborPoolCents = laborCandidateCosts.reduce(
+    (sum, cost) => sum + getCostAmountCents(cost),
+    0,
+  );
+  const laborUnitRateCents = loggedHours > 0
+    ? (
+      QBO_DEFAULT_LABOR_RATE_CENTS > 0
+        ? QBO_DEFAULT_LABOR_RATE_CENTS
+        : Math.round((laborCostsCents || fallbackLaborPoolCents) / loggedHours)
+    )
+    : 0;
+  const laborTotalCents = loggedHours > 0
+    ? Math.max(0, Math.round(loggedHours * laborUnitRateCents))
+    : laborCostsCents;
+
+  const truckSuppliesCents = truckCosts.reduce(
+    (sum, cost) => sum + getCostAmountCents(cost),
+    0,
+  ) || QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS;
+
+  const lines: QuickBooksInvoice["Line"] = [];
+
+  if (laborTotalCents > 0) {
+    const laborItem = await getOrCreateServiceItem(
+      accessToken,
+      realmId,
+      QBO_INVOICE_ITEM_NAMES.labor,
+    );
+    lines.push({
+      Amount: laborTotalCents / 100,
+      DetailType: "SalesItemLineDetail",
+      Description: `Labor (${loggedHours.toFixed(2)} hrs)`,
+      SalesItemLineDetail: {
+        ItemRef: laborItem,
+        Qty: Number(loggedHours.toFixed(2)),
+        UnitPrice: laborUnitRateCents / 100,
+      },
+    });
+  }
+
+  for (const part of partCosts) {
+    const partAmountCents = getCostAmountCents(part);
+    if (partAmountCents <= 0) continue;
+    const partItemName = `${QBO_INVOICE_ITEM_NAMES.partsPrefix}: ${part.description}`.slice(0, 100);
+    const partItem = await getOrCreateServiceItem(accessToken, realmId, partItemName);
+    lines.push({
+      Amount: partAmountCents / 100,
+      DetailType: "SalesItemLineDetail",
+      Description: part.description,
+      SalesItemLineDetail: {
+        ItemRef: partItem,
+        Qty: part.quantity,
+        UnitPrice: part.unit_price_cents / 100,
+      },
+    });
+  }
+
+  if (truckSuppliesCents > 0) {
+    const truckSuppliesItem = await getOrCreateServiceItem(
+      accessToken,
+      realmId,
+      QBO_INVOICE_ITEM_NAMES.truckSupplies,
+    );
+    lines.push({
+      Amount: truckSuppliesCents / 100,
+      DetailType: "SalesItemLineDetail",
+      Description: "Truck Supplies",
+      SalesItemLineDetail: {
+        ItemRef: truckSuppliesItem,
+        Qty: 1,
+        UnitPrice: truckSuppliesCents / 100,
+      },
+    });
+  }
+
+  return lines;
 }
 
 /**
@@ -1046,15 +1219,21 @@ Deno.serve(async (req) => {
     // Load work order costs
     const { data: costs } = await supabaseClient
       .from('work_order_costs')
-      .select('description, quantity, unit_price_cents, total_price_cents')
+      .select('id, description, quantity, unit_price_cents, total_price_cents, inventory_item_id')
       .eq('work_order_id', work_order_id);
 
     // Load work order notes
     const { data: notes } = await supabaseClient
       .from('work_order_notes')
-      .select('content, is_private, author_name, created_at')
+      .select('id, content, is_private, author_name, created_at, hours_worked, machine_hours')
       .eq('work_order_id', work_order_id)
       .order('created_at', { ascending: true });
+
+    const { data: statusHistory } = await supabaseClient
+      .from('work_order_status_history')
+      .select('id, old_status, new_status, changed_at, reason')
+      .eq('work_order_id', work_order_id)
+      .order('changed_at', { ascending: true });
 
     // Load work order images (for PDF generation)
     // We need note IDs to filter images, so fetch notes with IDs
@@ -1098,18 +1277,29 @@ Deno.serve(async (req) => {
       clientSecret
     );
 
-    // Calculate total amount from costs
-    const totalAmountCents = (costs || []).reduce((sum, cost) => {
-      return sum + (cost.total_price_cents || cost.unit_price_cents * cost.quantity);
-    }, 0);
-    const totalAmount = totalAmountCents / 100;
-
-    // Get a service item for the invoice line
-    const serviceItem = await getServiceItem(accessToken, credentials.realm_id);
-
-    // Build invoice description and private note
-    const description = buildInvoiceDescription(workOrder as WorkOrderData, notes || [], costs || []);
-    const privateNote = buildPrivateNote(workOrder as WorkOrderData, notes || [], costs || []);
+    const invoiceLines = await buildInvoiceLines(
+      accessToken,
+      credentials.realm_id,
+      (costs || []) as WorkOrderCost[],
+      (notes || []) as WorkOrderNote[],
+    );
+    if (invoiceLines.length === 0) {
+      throw new Error("No billable line items were found for this work order.");
+    }
+    const privateNote = buildPrivateNote(
+      workOrder as WorkOrderData,
+      (notes || []) as WorkOrderNote[],
+      (costs || []) as WorkOrderCost[],
+    );
+    const customerMemo = buildCustomerMemo(
+      workOrder as WorkOrderData,
+      (notes || []) as WorkOrderNote[],
+      (statusHistory || []) as WorkOrderStatusEvent[],
+    );
+    const customFields = buildInvoiceCustomFields(
+      workOrder as WorkOrderData,
+      (notes || []) as WorkOrderNote[],
+    );
 
     // Check if this work order was already exported
     const { data: existingExport } = await supabaseClient
@@ -1176,20 +1366,10 @@ Deno.serve(async (req) => {
           Id: existingInvoice.Id,
           SyncToken: existingInvoice.SyncToken,
           CustomerRef: { value: customerMapping.quickbooks_customer_id },
-          Line: [
-            {
-              Amount: totalAmount,
-              DetailType: "SalesItemLineDetail",
-              Description: description.substring(0, 4000), // QB limit
-              SalesItemLineDetail: {
-                ItemRef: serviceItem,
-                Qty: 1,
-                UnitPrice: totalAmount,
-              },
-            },
-          ],
+          Line: invoiceLines,
+          CustomField: customFields,
           PrivateNote: privateNote,
-          CustomerMemo: { value: `Work Order: ${workOrder.title}` },
+          CustomerMemo: { value: customerMemo },
         };
 
         const updateUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/invoice`);
@@ -1350,20 +1530,10 @@ Deno.serve(async (req) => {
         const newInvoice: QuickBooksInvoice = {
           DocNumber: generatedDocNumber,
           CustomerRef: { value: customerMapping.quickbooks_customer_id },
-          Line: [
-            {
-              Amount: totalAmount,
-              DetailType: "SalesItemLineDetail",
-              Description: description.substring(0, 4000),
-              SalesItemLineDetail: {
-                ItemRef: serviceItem,
-                Qty: 1,
-                UnitPrice: totalAmount,
-              },
-            },
-          ],
+          Line: invoiceLines,
+          CustomField: customFields,
           PrivateNote: privateNote,
-          CustomerMemo: { value: `Work Order: ${workOrder.title}` },
+          CustomerMemo: { value: customerMemo },
           TxnDate: new Date().toISOString().split('T')[0],
         };
 

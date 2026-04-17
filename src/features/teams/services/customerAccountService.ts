@@ -89,6 +89,7 @@ export interface QBCustomerPayload {
   Id: string;
   DisplayName: string;
   CompanyName?: string;
+  Taxable?: boolean;
   Email?: string;
   Phone?: string;
   BillAddr?: {
@@ -137,6 +138,7 @@ export async function importCustomerFromQB(
     quickbooks_customer_id: qb.Id,
     quickbooks_display_name: qb.DisplayName,
     quickbooks_synced_at: new Date().toISOString(),
+    is_tax_exempt: qb.Taxable === undefined ? null : qb.Taxable === false,
   };
 
   return createCustomer(insert);
@@ -157,6 +159,7 @@ export async function refreshCustomerFromQB(
     shipping_address: qbAddrToJson(qb.ShipAddr),
     quickbooks_display_name: qb.DisplayName,
     quickbooks_synced_at: new Date().toISOString(),
+    is_tax_exempt: qb.Taxable === undefined ? null : qb.Taxable === false,
   };
 
   return updateCustomer(customerId, updates);

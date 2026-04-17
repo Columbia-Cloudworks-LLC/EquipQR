@@ -61,8 +61,11 @@ function qbCustomerToPayload(c: QuickBooksCustomer): QBCustomerPayload {
     Id: c.Id,
     DisplayName: c.DisplayName,
     CompanyName: c.CompanyName,
-    Email: c.PrimaryEmailAddr?.Address,
-    Phone: c.PrimaryPhone?.FreeFormNumber,
+    Taxable: c.Taxable,
+    Email: c.Email ?? c.PrimaryEmailAddr?.Address,
+    Phone: c.Phone ?? c.PrimaryPhone?.FreeFormNumber,
+    BillAddr: c.BillAddr,
+    ShipAddr: c.ShipAddr,
   };
 }
 
@@ -381,7 +384,14 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
                           : 'border-border hover:border-primary/50 hover:bg-muted/50'
                       }`}
                     >
-                      <div className="font-medium text-sm">{c.DisplayName}</div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-medium text-sm">{c.DisplayName}</div>
+                        {c.Taxable !== undefined && (
+                          <Badge variant="outline" className="text-[10px]">
+                            {c.Taxable ? 'Taxable' : 'Tax Exempt'}
+                          </Badge>
+                        )}
+                      </div>
                       {c.CompanyName && c.CompanyName !== c.DisplayName && (
                         <div className="text-xs text-muted-foreground">{c.CompanyName}</div>
                       )}

@@ -15,6 +15,8 @@ export interface WorkOrderData {
   equipment_id: string;
   organization_id: string;
   has_pm?: boolean;
+  equipment_working_hours_at_creation?: number | null;
+  machine_hours?: number | null;
   assignee?: {
     id: string;
     name: string;

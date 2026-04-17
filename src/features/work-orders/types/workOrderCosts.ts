@@ -26,6 +26,8 @@ export interface WorkOrderCost {
   // Inventory tracking fields
   inventory_item_id?: string | null;
   original_quantity?: number | null;
+  /** Optional billing bucket used for invoice/export grouping */
+  cost_category?: 'labor' | 'parts' | 'truck_supplies' | 'other' | null;
   // Computed fields from joins
   created_by_name?: string;
   createdByName?: string;

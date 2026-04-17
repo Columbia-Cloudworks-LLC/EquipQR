@@ -169,6 +169,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_tax_exempt: boolean | null
           name: string
           notes: string | null
           organization_id: string
@@ -186,6 +187,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_tax_exempt?: boolean | null
           name: string
           notes?: string | null
           organization_id: string
@@ -203,6 +205,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_tax_exempt?: boolean | null
           name?: string
           notes?: string | null
           organization_id?: string
