@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Machine hours on work order and equipment notes** — Nullable `machine_hours` column on `work_order_notes` and `equipment_notes` (migration `20260416120000_add_machine_hours_to_notes.sql`). Create and list paths persist the value; work order and equipment note UIs show a machine-hours line when greater than zero. Offline queue create payloads and merge hooks carry `machineHours` through to sync.
+
+### Fixed
+
+- **Change Team Role dialog** — Opening the role dialog for a different member no longer leaves the role selector on the previous member’s selection (state resets from the current member when the dialog opens or the member identity changes). Failed role updates now show an error toast instead of failing silently.
+
 ## [2.9.0] - 2026-04-06
 
 ### Added
