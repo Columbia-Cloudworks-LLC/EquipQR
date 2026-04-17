@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -39,7 +40,16 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
 }) => {
   const { currentOrganization } = useOrganization();
   const { updateRole } = useTeamMembers(team.id, currentOrganization?.id);
-  const [selectedRole, setSelectedRole] = useState<TeamRole | ''>(member?.role ?? '');
+  const memberUserId = member?.user_id;
+  const memberRole = member?.role;
+  const [selectedRole, setSelectedRole] = useState<TeamRole | ''>(
+    (memberRole as TeamRole) ?? ''
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    setSelectedRole((memberRole as TeamRole) ?? '');
+  }, [open, memberUserId, memberRole]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +65,7 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
       onClose();
     } catch (error) {
       logger.error('Failed to update member role', error);
+      toast.error('Could not update team role. Check your connection and try again.');
     }
   };
 

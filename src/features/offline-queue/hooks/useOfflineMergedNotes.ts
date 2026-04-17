@@ -22,6 +22,7 @@ export interface MergedNote {
   id: string;
   content: string;
   hours_worked: number;
+  machine_hours?: number | null;
   is_private: boolean;
   created_at: string;
   updated_at: string;
@@ -72,6 +73,10 @@ export function useOfflineMergedNotes<T extends { id: string }>(
         id: `${OFFLINE_NOTE_ID_PREFIX}${item.id}`,
         content: (payload.content as string) ?? '',
         hours_worked: (payload.hoursWorked as number) ?? 0,
+        machine_hours:
+          payload.machineHours !== undefined && payload.machineHours !== null
+            ? Number(payload.machineHours as number)
+            : null,
         is_private: (payload.isPrivate as boolean) ?? false,
         created_at: now,
         updated_at: now,

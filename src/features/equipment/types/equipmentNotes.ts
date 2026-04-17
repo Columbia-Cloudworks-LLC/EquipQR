@@ -20,6 +20,8 @@ export interface EquipmentNote {
   author_id: string;
   is_private: boolean;
   hours_worked: number;
+  /** Equipment meter hours recorded with this note, when provided */
+  machine_hours?: number | null;
   created_at: string;
   updated_at: string;
   last_modified_by?: string;
@@ -65,6 +67,7 @@ export interface CreateEquipmentNoteData {
   content: string;
   isPrivate: boolean;
   hoursWorked?: number;
+  machineHours?: number;
 }
 
 export interface UpdateEquipmentNoteData {

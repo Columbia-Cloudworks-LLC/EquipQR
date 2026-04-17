@@ -391,6 +391,12 @@ export const MapView: React.FC<MapViewProps> = ({
     };
   }, [isMapsLoaded, teamHQColor.fill, teamHQColor.stroke]);
 
+  React.useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7523/ingest/28f3b63b-7486-4e03-bcb4-f64564328ea9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2c818f'},body:JSON.stringify({sessionId:'2c818f',runId:'initial',hypothesisId:'H5',location:'src/features/fleet-map/components/MapView.tsx',message:'MapView lifecycle snapshot',data:{isMapsLoaded,hasMapRef:Boolean(mapRef),mapsLoadError:mapsLoadError?.message ?? null,filteredCount:filteredLocations.length,hqCount:teamHQLocations.length,selectedMarkerId:selectedMarker?.id ?? null},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion agent log
+  }, [isMapsLoaded, mapRef, mapsLoadError, filteredLocations.length, teamHQLocations.length, selectedMarker?.id]);
+
   if (!isMapsLoaded) {
     return (
       <div className="h-full w-full bg-muted animate-pulse rounded-lg flex items-center justify-center">
