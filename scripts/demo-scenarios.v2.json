@@ -1,0 +1,422 @@
+{
+  "version": 2,
+  "metadata": {
+    "name": "EquipQR Demo System v2",
+    "updatedAt": "2026-04-17T00:00:00.000Z"
+  },
+  "personas": {
+    "owner": {
+      "id": "owner",
+      "displayName": "Alex Apex",
+      "role": "Owner"
+    },
+    "dispatcher": {
+      "id": "dispatcher",
+      "displayName": "Dana Dispatch",
+      "role": "Dispatcher"
+    },
+    "technician": {
+      "id": "technician",
+      "displayName": "Taylor Tech",
+      "role": "Technician"
+    }
+  },
+  "suites": {
+    "core": [
+      "executive-overview",
+      "work-order-lifecycle",
+      "field-operations-qr"
+    ],
+    "sales": [
+      "executive-overview",
+      "field-operations-qr"
+    ],
+    "operations": [
+      "work-order-lifecycle",
+      "field-operations-qr"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "executive-overview",
+      "title": "Executive Overview",
+      "description": "Show dashboard value, fleet context, and inventory readiness in one cohesive flow.",
+      "flowToken": "demo-exec-overview",
+      "personaId": "owner",
+      "targetDurationMs": {
+        "min": 18000,
+        "max": 60000
+      },
+      "metadata": {
+        "audience": "executive",
+        "tags": [
+          "overview",
+          "dashboard",
+          "inventory"
+        ]
+      },
+      "scenes": [
+        {
+          "id": "dashboard-value",
+          "title": "Dashboard Value Snapshot",
+          "route": "/dashboard",
+          "intent": "Establish immediate business insight from the dashboard.",
+          "targetDurationMs": {
+            "min": 5000,
+            "max": 14000
+          },
+          "requiredCheckpoints": [
+            {
+              "id": "dashboard-header",
+              "type": "textVisible",
+              "text": "Dashboard"
+            }
+          ],
+          "steps": [
+            {
+              "type": "action",
+              "action": "navigateWithWait",
+              "route": "/dashboard"
+            },
+            {
+              "type": "macro",
+              "name": "openNav",
+              "args": {
+                "label": "Dashboard"
+              }
+            },
+            {
+              "type": "action",
+              "action": "pauseReadable",
+              "ms": 1200
+            },
+            {
+              "type": "action",
+              "action": "scrollSection",
+              "pixels": 520
+            }
+          ]
+        },
+        {
+          "id": "fleet-context",
+          "title": "Fleet Context in Map",
+          "route": "/dashboard/fleet-map",
+          "intent": "Demonstrate operational visibility and drill-down workflow.",
+          "targetDurationMs": {
+            "min": 6000,
+            "max": 16000
+          },
+          "requiredCheckpoints": [
+            {
+              "id": "fleet-map-route",
+              "type": "urlIncludes",
+              "value": "/dashboard/fleet-map"
+            }
+          ],
+          "steps": [
+            {
+              "type": "action",
+              "action": "navigateWithWait",
+              "route": "/dashboard/fleet-map"
+            },
+            {
+              "type": "macro",
+              "name": "openDetails",
+              "args": {
+                "kind": "equipment"
+              }
+            },
+            {
+              "type": "action",
+              "action": "pauseReadable",
+              "ms": 1000
+            }
+          ]
+        },
+        {
+          "id": "inventory-confidence",
+          "title": "Inventory Confidence",
+          "route": "/dashboard/inventory",
+          "intent": "Show low-stock filtering to close with procurement confidence.",
+          "targetDurationMs": {
+            "min": 5000,
+            "max": 14000
+          },
+          "requiredCheckpoints": [
+            {
+              "id": "inventory-route",
+              "type": "urlIncludes",
+              "value": "/dashboard/inventory"
+            }
+          ],
+          "steps": [
+            {
+              "type": "action",
+              "action": "navigateWithWait",
+              "route": "/dashboard/inventory"
+            },
+            {
+              "type": "macro",
+              "name": "filterList",
+              "args": {
+                "value": "low stock"
+              }
+            },
+            {
+              "type": "macro",
+              "name": "returnDashboard"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "work-order-lifecycle",
+      "title": "Work Order Lifecycle",
+      "description": "Create and advance a work order while demonstrating checklist and accountability.",
+      "flowToken": "demo-work-order",
+      "personaId": "dispatcher",
+      "targetDurationMs": {
+        "min": 16000,
+        "max": 65000
+      },
+      "metadata": {
+        "audience": "operations",
+        "tags": [
+          "work-orders",
+          "pm",
+          "dispatch"
+        ]
+      },
+      "scenes": [
+        {
+          "id": "open-work-orders",
+          "title": "Open Work Orders Hub",
+          "route": "/dashboard/work-orders",
+          "intent": "Start from the central operations queue.",
+          "targetDurationMs": {
+            "min": 4000,
+            "max": 12000
+          },
+          "requiredCheckpoints": [
+            {
+              "id": "work-orders-route",
+              "type": "urlIncludes",
+              "value": "/dashboard/work-orders"
+            }
+          ],
+          "steps": [
+            {
+              "type": "action",
+              "action": "navigateWithWait",
+              "route": "/dashboard/work-orders"
+            },
+            {
+              "type": "macro",
+              "name": "openNav",
+              "args": {
+                "label": "Work Orders"
+              }
+            }
+          ]
+        },
+        {
+          "id": "create-work-order",
+          "title": "Create New Work Order",
+          "route": "/dashboard/work-orders",
+          "intent": "Demonstrate quick creation workflow.",
+          "targetDurationMs": {
+            "min": 5000,
+            "max": 18000
+          },
+          "requiredCheckpoints": [
+            {
+              "id": "create-dialog",
+              "type": "textVisible",
+              "text": "Create Work Order"
+            }
+          ],
+          "steps": [
+            {
+              "type": "action",
+              "action": "clickText",
+              "text": "Create Work Order",
+              "selector": "button,[role='button']",
+              "required": true
+            },
+            {
+              "type": "action",
+              "action": "fillRole",
+              "name": "Title",
+              "value": "Demo WO v2 Lifecycle"
+            },
+            {
+              "type": "action",
+              "action": "pauseReadable",
+              "ms": 900
+            },
+            {
+              "type": "action",
+              "action": "safeClose"
+            }
+          ]
+        },
+        {
+          "id": "lifecycle-proof",
+          "title": "Lifecycle and Accountability Proof",
+          "route": "/dashboard/work-orders",
+          "intent": "Show progression, details, and return to dashboard.",
+          "targetDurationMs": {
+            "min": 6000,
+            "max": 18000
+          },
+          "requiredCheckpoints": [
+            {
+              "id": "details-visible",
+              "type": "textVisible",
+              "text": "Work Orders"
+            }
+          ],
+          "steps": [
+            {
+              "type": "macro",
+              "name": "openDetails",
+              "args": {
+                "kind": "work-order"
+              }
+            },
+            {
+              "type": "action",
+              "action": "hoverReveal",
+              "selector": "button,[role='button']"
+            },
+            {
+              "type": "macro",
+              "name": "returnDashboard"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "field-operations-qr",
+      "title": "Field Operations + QR",
+      "description": "Demonstrate equipment drill-down and QR handoff workflow.",
+      "flowToken": "demo-field-qr",
+      "personaId": "technician",
+      "targetDurationMs": {
+        "min": 14000,
+        "max": 55000
+      },
+      "metadata": {
+        "audience": "field",
+        "tags": [
+          "equipment",
+          "qr",
+          "mobile-ready"
+        ]
+      },
+      "scenes": [
+        {
+          "id": "equipment-list",
+          "title": "Find Equipment",
+          "route": "/dashboard/equipment",
+          "intent": "Locate a record from the equipment list.",
+          "targetDurationMs": {
+            "min": 4000,
+            "max": 12000
+          },
+          "requiredCheckpoints": [
+            {
+              "id": "equipment-route",
+              "type": "urlIncludes",
+              "value": "/dashboard/equipment"
+            }
+          ],
+          "steps": [
+            {
+              "type": "action",
+              "action": "navigateWithWait",
+              "route": "/dashboard/equipment"
+            },
+            {
+              "type": "macro",
+              "name": "filterList",
+              "args": {
+                "value": "demo"
+              }
+            },
+            {
+              "type": "macro",
+              "name": "openDetails",
+              "args": {
+                "kind": "equipment"
+              }
+            }
+          ]
+        },
+        {
+          "id": "qr-handoff",
+          "title": "QR Handoff",
+          "route": "/dashboard/equipment",
+          "intent": "Expose QR modal and confirm handoff journey.",
+          "targetDurationMs": {
+            "min": 5000,
+            "max": 15000
+          },
+          "requiredCheckpoints": [
+            {
+              "id": "qr-visible",
+              "type": "textVisible",
+              "text": "QR"
+            }
+          ],
+          "steps": [
+            {
+              "type": "action",
+              "action": "openMenu",
+              "selector": "button[aria-label*='QR'],button[title*='QR'],button"
+            },
+            {
+              "type": "action",
+              "action": "pauseReadable",
+              "ms": 1000
+            },
+            {
+              "type": "action",
+              "action": "safeClose"
+            }
+          ]
+        },
+        {
+          "id": "back-to-dashboard",
+          "title": "Return to Dashboard",
+          "route": "/dashboard",
+          "intent": "Close loop and return to primary workspace.",
+          "targetDurationMs": {
+            "min": 3000,
+            "max": 9000
+          },
+          "requiredCheckpoints": [
+            {
+              "id": "dashboard-url",
+              "type": "urlIncludes",
+              "value": "/dashboard"
+            }
+          ],
+          "steps": [
+            {
+              "type": "macro",
+              "name": "returnDashboard"
+            },
+            {
+              "type": "action",
+              "action": "pauseReadable",
+              "ms": 800
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

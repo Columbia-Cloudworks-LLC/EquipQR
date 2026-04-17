@@ -43,6 +43,7 @@ Detailed documentation is located in the [`/docs`](./docs/README.md) directory:
 * **🏗️ Architecture**: [System Architecture](./docs/technical/architecture.md) & [Database Schema](./docs/technical/architecture.md#database-schema)
 * **📘 Guides**: [Workflows](./docs/guides/workflows.md) & [Permissions](./docs/guides/permissions.md)
 * **⚙️ Operations**: [Deployment](./docs/ops/deployment.md), [Migrations](./docs/ops/migrations.md), [Local Supabase Development](./docs/ops/local-supabase-development.md), [DSR Compliance Runbook](./docs/ops/dsr-compliance-runbook.md) & [Disaster Recovery](./docs/ops/disaster-recovery.md)
+* **🎥 Demo Operations**: [Demo Recording Baseline](./scripts/DEMO-RECORDING.md) & [Demo System v2 Runbook](./scripts/DEMO-SYSTEM-V2.md)
 
 ## ✅ Prerequisites (Accounts & Services)
 

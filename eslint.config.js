@@ -13,6 +13,8 @@ export default tseslint.config(
       "coverage",
       "tmp",
       ".claude",
+      "e2e",
+      "playwright.config.ts",
     ],
   },
   {
