@@ -1,4 +1,3 @@
-import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
@@ -51,14 +50,37 @@ async function runProcess(command, args) {
 }
 
 async function ffmpegAvailable() {
-  const command = process.platform === 'win32' ? 'where' : 'command';
-  const args = process.platform === 'win32' ? ['ffmpeg'] : ['-v', 'ffmpeg'];
+  const command = process.platform === 'win32' ? 'where' : 'which';
+  const args = ['ffmpeg'];
   try {
     const result = await runProcess(command, args);
     return result.code === 0;
   } catch {
     return false;
   }
+}
+
+/**
+ * @param {string} value
+ */
+function validateBaseUrl(value) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new Error('Invalid --base-url: value cannot be empty.');
+  }
+  if (/[\r\n\t ]/.test(trimmed)) {
+    throw new Error('Invalid --base-url: whitespace is not allowed.');
+  }
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new Error(`Invalid --base-url: "${value}" is not a valid URL.`);
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`Invalid --base-url: only http and https are allowed (got ${parsed.protocol}).`);
+  }
+  return parsed.toString().replace(/\/+$/, '');
 }
 
 /**
@@ -74,7 +96,7 @@ function parseArgs(argv) {
     runs: 1,
     captureSceneClips: process.env.DEMO_CAPTURE_SCENE_CLIPS === 'true',
     composeScenesFlag: null,
-    baseUrl: (process.env.DEMO_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '')
+    baseUrl: validateBaseUrl(process.env.DEMO_BASE_URL || 'http://localhost:8080')
   };
 
   for (const token of argv) {
@@ -89,7 +111,9 @@ function parseArgs(argv) {
     else if (token === '--no-compose-scenes') args.composeScenesFlag = false;
     else if (token.startsWith('--scenario=')) args.scenario = token.slice('--scenario='.length).trim() || null;
     else if (token.startsWith('--suite=')) args.suite = token.slice('--suite='.length).trim() || null;
-    else if (token.startsWith('--base-url=')) args.baseUrl = token.slice('--base-url='.length).trim().replace(/\/+$/, '');
+    else if (token.startsWith('--base-url=')) {
+      args.baseUrl = validateBaseUrl(token.slice('--base-url='.length));
+    }
     else if (token.startsWith('--runs=')) {
       const runs = Number.parseInt(token.slice('--runs='.length), 10);
       args.runs = Number.isFinite(runs) ? Math.max(1, Math.min(30, runs)) : 1;

@@ -33,11 +33,18 @@ async function binaryAvailable(command) {
     const result =
       process.platform === 'win32'
         ? await runProcess('where', [command], process.cwd())
-        : await runProcess('command', ['-v', command], process.cwd());
+        : await runProcess('which', [command], process.cwd());
     return result.code === 0;
   } catch {
     return false;
   }
+}
+
+/**
+ * @param {string} value
+ */
+function escapeDrawtextValue(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
 /**
@@ -65,24 +72,36 @@ export async function composeSceneClips(opts) {
     };
   }
 
-  const listPath = path.resolve(opts.repoRoot, 'tmp', 'demos', 'compose-input.txt');
   const absoluteOutput = path.resolve(opts.repoRoot, opts.outputRelativePath);
-  const lines = opts.sceneClipRelativePaths
-    .map((clip) => path.resolve(opts.repoRoot, clip).replace(/\\/g, '/'))
-    .map((absolute) => `file '${absolute}'`)
-    .join('\n');
-  await fs.writeFile(listPath, `${lines}\n`, 'utf8');
+  const absoluteSceneClips = opts.sceneClipRelativePaths.map((clip) =>
+    path.resolve(opts.repoRoot, clip).replace(/\\/g, '/')
+  );
+  const runToken = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 
   const introText = opts.introText || 'EquipQR Demo';
   const outroText = opts.outroText || 'End of Demo';
-  const introFilter = `drawtext=text='${introText.replace(/'/g, "\\'")}':x=(w-text_w)/2:y=(h-text_h)/2:fontsize=36:fontcolor=white`;
-  const outroFilter = `drawtext=text='${outroText.replace(/'/g, "\\'")}':x=(w-text_w)/2:y=(h-text_h)/2:fontsize=36:fontcolor=white`;
+  const introFilter = `drawtext=text='${escapeDrawtextValue(introText)}':x=(w-text_w)/2:y=(h-text_h)/2:fontsize=36:fontcolor=white`;
+  const outroFilter = `drawtext=text='${escapeDrawtextValue(outroText)}':x=(w-text_w)/2:y=(h-text_h)/2:fontsize=36:fontcolor=white`;
 
-  const introPath = path.resolve(opts.repoRoot, 'tmp', 'demos', 'compose-intro.mp4');
-  const outroPath = path.resolve(opts.repoRoot, 'tmp', 'demos', 'compose-outro.mp4');
+  const introPath = path.resolve(opts.repoRoot, 'tmp', 'demos', `compose-intro-${runToken}.webm`);
+  const outroPath = path.resolve(opts.repoRoot, 'tmp', 'demos', `compose-outro-${runToken}.webm`);
   const introResult = await runProcess(
     'ffmpeg',
-    ['-y', '-f', 'lavfi', '-i', 'color=c=black:s=1366x900:d=1.5', '-vf', introFilter, introPath],
+    [
+      '-y',
+      '-f',
+      'lavfi',
+      '-i',
+      'color=c=black:s=1366x900:d=1.5',
+      '-vf',
+      introFilter,
+      '-c:v',
+      'libvpx-vp9',
+      '-pix_fmt',
+      'yuv420p',
+      '-an',
+      introPath
+    ],
     opts.repoRoot
   );
   if (introResult.code !== 0) {
@@ -91,24 +110,52 @@ export async function composeSceneClips(opts) {
 
   const outroResult = await runProcess(
     'ffmpeg',
-    ['-y', '-f', 'lavfi', '-i', 'color=c=black:s=1366x900:d=1.5', '-vf', outroFilter, outroPath],
+    [
+      '-y',
+      '-f',
+      'lavfi',
+      '-i',
+      'color=c=black:s=1366x900:d=1.5',
+      '-vf',
+      outroFilter,
+      '-c:v',
+      'libvpx-vp9',
+      '-pix_fmt',
+      'yuv420p',
+      '-an',
+      outroPath
+    ],
     opts.repoRoot
   );
   if (outroResult.code !== 0) {
     return { composed: false, skippedReason: 'outro-render-failed' };
   }
 
-  const mergedListPath = path.resolve(opts.repoRoot, 'tmp', 'demos', 'compose-merged-input.txt');
+  const mergedListPath = path.resolve(opts.repoRoot, 'tmp', 'demos', `compose-merged-input-${runToken}.txt`);
   const mergedLines = [
     `file '${introPath.replace(/\\/g, '/')}'`,
-    ...opts.sceneClipRelativePaths.map((clip) => `file '${path.resolve(opts.repoRoot, clip).replace(/\\/g, '/')}'`),
+    ...absoluteSceneClips.map((absoluteClip) => `file '${absoluteClip}'`),
     `file '${outroPath.replace(/\\/g, '/')}'`
   ].join('\n');
   await fs.writeFile(mergedListPath, `${mergedLines}\n`, 'utf8');
 
   const concatResult = await runProcess(
     'ffmpeg',
-    ['-y', '-f', 'concat', '-safe', '0', '-i', mergedListPath, '-c', 'copy', absoluteOutput],
+    [
+      '-y',
+      '-f',
+      'concat',
+      '-safe',
+      '0',
+      '-i',
+      mergedListPath,
+      '-c:v',
+      'libvpx-vp9',
+      '-pix_fmt',
+      'yuv420p',
+      '-an',
+      absoluteOutput
+    ],
     opts.repoRoot
   );
 

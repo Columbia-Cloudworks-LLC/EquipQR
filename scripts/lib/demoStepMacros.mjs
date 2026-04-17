@@ -78,6 +78,7 @@ function openDetailsMacro(args) {
       type: 'action',
       action: 'clickText',
       text: kind.includes('work') ? 'Work Orders|Open' : 'Open|Details|Equipment',
+      regex: true,
       selector: 'a,button,[role="button"],tr[role="button"]',
       required: false
     },

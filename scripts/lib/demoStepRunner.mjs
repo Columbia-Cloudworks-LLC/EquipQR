@@ -15,6 +15,13 @@ function jsString(value) {
 }
 
 /**
+ * @param {string} value
+ */
+function regexLiteral(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * @param {string} baseUrl
  * @param {string} route
  */
@@ -28,10 +35,11 @@ function buildRouteUrl(baseUrl, route) {
 
 /**
  * @param {string} command
+ * @param {string[]} [args]
  */
-async function runCommand(command) {
+async function runCommand(command, args = []) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(command, args, { shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (data) => {
@@ -50,15 +58,22 @@ async function runCommand(command) {
 }
 
 /**
- * @param {string} command
+ * @param {string[]} args
  */
-async function runPlaywright(command) {
-  const result = await runCommand(command);
+async function runPlaywright(args) {
+  const result = await runCommand('playwright-cli', args);
   const output = `${result.stdout}\n${result.stderr}`;
   if (result.code !== 0 || /^### Error/m.test(output) || /Error:\s+/m.test(output)) {
-    throw new Error(`Playwright command failed: ${command}`);
+    throw new Error(`Playwright command failed: playwright-cli ${args.join(' ')}`);
   }
   return output;
+}
+
+/**
+ * @param {string} script
+ */
+function runPlaywrightEval(script) {
+  return runPlaywright(['eval', script]);
 }
 
 /**
@@ -126,9 +141,9 @@ export function createDemoStepRunner(opts) {
     const markerFallback = 'DEMO_SELECTOR_FALLBACK';
     const markerPrimary = 'DEMO_SELECTOR_PRIMARY';
     const roleEscaped = jsString(role);
-    const nameEscaped = jsString(name);
+    const nameEscaped = jsString(regexLiteral(name));
     const fallbackJson = JSON.stringify(fallbackSelectors || []);
-    const command = `playwright-cli eval "() => {
+    const script = `() => {
       const needle = new RegExp('${nameEscaped}', 'i');
       const byRole = Array.from(document.querySelectorAll('[role=\\'${roleEscaped}\\']')).find((el) => needle.test(el.textContent || '') && !el.hasAttribute('disabled'));
       if (byRole) {
@@ -146,10 +161,10 @@ export function createDemoStepRunner(opts) {
         }
       }
       throw new Error('Required element missing for role/name strategy');
-    }"`;
+    }`;
 
     try {
-      const output = await runPlaywright(command);
+      const output = await runPlaywrightEval(script);
       if (markerSeen(output, markerFallback)) {
         const used = output
           .split('\n')
@@ -184,16 +199,16 @@ export function createDemoStepRunner(opts) {
   async function verifyCheckpoint(checkpoint) {
     if (checkpoint.type === 'urlIncludes') {
       const value = jsString(String(checkpoint.value || ''));
-      await runPlaywright(
-        `playwright-cli eval "() => { if (!window.location.href.includes('${value}')) throw new Error('Checkpoint failed: urlIncludes'); }"`
+      await runPlaywrightEval(
+        `() => { if (!window.location.href.includes('${value}')) throw new Error('Checkpoint failed: urlIncludes'); }`
       );
       return true;
     }
 
     if (checkpoint.type === 'textVisible') {
-      const text = jsString(String(checkpoint.text || checkpoint.value || ''));
-      await runPlaywright(
-        `playwright-cli eval "() => { const ok = Array.from(document.querySelectorAll('body *')).some((el) => new RegExp('${text}', 'i').test(el.textContent || '')); if (!ok) throw new Error('Checkpoint failed: textVisible'); }"`
+      const text = jsString(regexLiteral(String(checkpoint.text || checkpoint.value || '')));
+      await runPlaywrightEval(
+        `() => { const ok = Array.from(document.querySelectorAll('body *')).some((el) => new RegExp('${text}', 'i').test(el.textContent || '')); if (!ok) throw new Error('Checkpoint failed: textVisible'); }`
       );
       return true;
     }
@@ -210,8 +225,8 @@ export function createDemoStepRunner(opts) {
     switch (actionName) {
       case 'navigateWithWait': {
         const route = String(step.route || '/dashboard');
-        await runPlaywright(`playwright-cli goto ${buildRouteUrl(opts.baseUrl, route)}`);
-        await runPlaywright('playwright-cli snapshot');
+        await runPlaywright(['goto', buildRouteUrl(opts.baseUrl, route)]);
+        await runPlaywright(['snapshot']);
         await sleep(700);
         context.actionCountRef.value += 1;
         return;
@@ -233,25 +248,27 @@ export function createDemoStepRunner(opts) {
         return;
       }
       case 'clickText': {
-        const text = jsString(String(step.text || ''));
+        const rawText = String(step.text || '');
+        const pattern = step.regex === true ? rawText : regexLiteral(rawText);
+        const text = jsString(pattern);
         const selector = jsString(String(step.selector || 'button,[role="button"],a'));
         await withRetries(context.sceneId, context.stepIndex, step, async () => {
-          await runPlaywright(
-            `playwright-cli eval "() => { const el = Array.from(document.querySelectorAll('${selector}')).find((node) => new RegExp('${text}', 'i').test(node.textContent || '') && !node.hasAttribute('disabled')); if (!el) throw new Error('clickText missing element'); el.click(); }"`
+          await runPlaywrightEval(
+            `() => { const el = Array.from(document.querySelectorAll('${selector}')).find((node) => new RegExp('${text}', 'i').test(node.textContent || '') && !node.hasAttribute('disabled')); if (!el) throw new Error('clickText missing element'); el.click(); }`
           );
         });
         context.actionCountRef.value += 1;
         return;
       }
       case 'fillRole': {
-        const name = jsString(String(step.name || ''));
+        const name = jsString(regexLiteral(String(step.name || '')));
         const value = jsString(String(step.value || ''));
         const fallbackSelectors = Array.isArray(step.fallbackSelectors)
           ? step.fallbackSelectors.map((item) => String(item))
           : ['input[type="search"]', 'input', 'textarea'];
         const fallbackJson = JSON.stringify(fallbackSelectors);
         await withRetries(context.sceneId, context.stepIndex, step, async () => {
-          const output = await runPlaywright(`playwright-cli eval "() => {
+          const output = await runPlaywrightEval(`() => {
             const needle = new RegExp('${name}', 'i');
             let input = Array.from(document.querySelectorAll('label')).map((label) => {
               const t = label.textContent || '';
@@ -276,7 +293,7 @@ export function createDemoStepRunner(opts) {
             input.value = '${value}';
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
-          }"`);
+          }`);
           const fallbackLine = output
             .split('\n')
             .find((line) => line.includes('DEMO_SELECTOR_FALLBACK:'));
@@ -295,8 +312,8 @@ export function createDemoStepRunner(opts) {
       case 'selectOption': {
         const selector = jsString(String(step.selector || 'select'));
         const value = jsString(String(step.value || ''));
-        await runPlaywright(
-          `playwright-cli eval "() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('selectOption missing select'); el.value = '${value}'; el.dispatchEvent(new Event('change', { bubbles: true })); }"`
+        await runPlaywrightEval(
+          `() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('selectOption missing select'); el.value = '${value}'; el.dispatchEvent(new Event('change', { bubbles: true })); }`
         );
         context.actionCountRef.value += 1;
         return;
@@ -305,16 +322,16 @@ export function createDemoStepRunner(opts) {
       case 'openMenu':
       case 'openDialog': {
         const selector = jsString(String(step.selector || 'button,[role="button"]'));
-        await runPlaywright(
-          `playwright-cli eval "() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('open action missing selector'); el.click(); }"`
+        await runPlaywrightEval(
+          `() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('open action missing selector'); el.click(); }`
         );
         context.actionCountRef.value += 1;
         return;
       }
       case 'safeClose': {
-        await runPlaywright(`playwright-cli press Escape`).catch(async () => {
-          await runPlaywright(
-            `playwright-cli eval "() => { const closeBtn = document.querySelector('[aria-label*=\\'close\\' i],button[title*=\\'close\\' i]'); if (closeBtn) closeBtn.click(); }"`
+        await runPlaywright(['press', 'Escape']).catch(async () => {
+          await runPlaywrightEval(
+            `() => { const closeBtn = document.querySelector('[aria-label*=\\'close\\' i],button[title*=\\'close\\' i]'); if (closeBtn) closeBtn.click(); }`
           );
         });
         context.actionCountRef.value += 1;
@@ -322,25 +339,23 @@ export function createDemoStepRunner(opts) {
       }
       case 'scrollSection': {
         const pixels = Number(step.pixels) || 400;
-        await runPlaywright(
-          `playwright-cli eval "() => { window.scrollBy({ top: ${pixels}, behavior: 'smooth' }); }"`
-        );
+        await runPlaywrightEval(`() => { window.scrollBy({ top: ${pixels}, behavior: 'smooth' }); }`);
         await sleep(500);
         context.actionCountRef.value += 1;
         return;
       }
       case 'focusElement': {
         const selector = jsString(String(step.selector || 'input,button,[tabindex]'));
-        await runPlaywright(
-          `playwright-cli eval "() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('focusElement missing selector'); el.focus(); }"`
+        await runPlaywrightEval(
+          `() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('focusElement missing selector'); el.focus(); }`
         );
         context.actionCountRef.value += 1;
         return;
       }
       case 'hoverReveal': {
         const selector = jsString(String(step.selector || 'button,a,[role="button"]'));
-        await runPlaywright(
-          `playwright-cli eval "() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('hoverReveal missing selector'); el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); }"`
+        await runPlaywrightEval(
+          `() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('hoverReveal missing selector'); el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); }`
         );
         context.actionCountRef.value += 1;
         return;
@@ -362,18 +377,18 @@ export function createDemoStepRunner(opts) {
 
   return {
     async openSession() {
-      await runPlaywright('playwright-cli open about:blank');
-      await runPlaywright('playwright-cli resize 1366 900');
-      await runPlaywright('playwright-cli video-start');
+      await runPlaywright(['open', 'about:blank']);
+      await runPlaywright(['resize', '1366', '900']);
+      await runPlaywright(['video-start']);
     },
     async stopVideo(videoRelativePath) {
       const normalized = videoRelativePath.replaceAll('\\', '/');
-      await runPlaywright(`playwright-cli video-stop --filename "${normalized}"`).catch(async () => {
-        await runPlaywright(`playwright-cli video-stop ${normalized}`);
+      await runPlaywright(['video-stop', '--filename', normalized]).catch(async () => {
+        await runPlaywright(['video-stop', normalized]);
       });
     },
     async closeSession() {
-      await runCommand('playwright-cli close');
+      await runPlaywright(['close']).catch(() => undefined);
     },
     async runScene(scene, actionCountRef) {
       const startedAtMs = Date.now();

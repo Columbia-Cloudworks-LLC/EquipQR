@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
+import fs from 'fs';
 
 const personaName = process.env.DEMO_PERSONA_NAME || 'Alex Apex';
 const postLoginActionWindowMs = Number.parseInt(process.env.DEMO_ACTION_WINDOW_MS || '6500', 10);
+const storageStatePath = process.env.DEMO_STORAGE_STATE?.trim();
+const hasStorageState = Boolean(storageStatePath && fs.existsSync(storageStatePath));
 
 /**
  * Keep actions resilient: try useful interactions, but don't fail if one selector is absent.
@@ -43,7 +46,7 @@ async function performVisibleDashboardActions(page) {
 
 test.describe('demo-smoke', () => {
   test('reaches dashboard (localhost quick login or storage state)', async ({ page, baseURL }) => {
-    if (process.env.DEMO_STORAGE_STATE?.trim()) {
+    if (hasStorageState) {
       await page.goto('/dashboard');
       await expect(page).toHaveURL(/dashboard/i, { timeout: 60_000 });
       await performVisibleDashboardActions(page);

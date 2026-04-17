@@ -48,7 +48,7 @@ async function collectWebmFiles(rootDir) {
 
 /**
  * @param {number} startedAtMs
- * @returns {Promise<string | null>}
+ * @returns {Promise<{ candidate: string, mtimeMs: number } | null>}
  */
 async function findLatestPlaywrightVideo(startedAtMs) {
   const candidates = await collectWebmFiles(path.join(repoRoot, 'test-results'));
@@ -67,7 +67,7 @@ async function findLatestPlaywrightVideo(startedAtMs) {
     .filter((entry) => entry.mtimeMs >= startedAtMs - 1000)
     .sort((a, b) => b.mtimeMs - a.mtimeMs);
 
-  return (recent[0] || withTimes.sort((a, b) => b.mtimeMs - a.mtimeMs)[0]).candidate;
+  return recent[0] || withTimes.sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
 }
 
 /**
@@ -97,13 +97,27 @@ async function main() {
     }
     process.exit(testExitCode);
   }
+  if (testExitCode === 0 && latestVideo.mtimeMs < startedAtMs) {
+    throw new Error(
+      `Playwright test passed, but the selected video appears stale (mtime ${latestVideo.mtimeMs}, started ${startedAtMs}).`
+    );
+  }
+
+  const selectedStat = await fs.stat(latestVideo.candidate).catch(() => null);
+  if (!selectedStat || selectedStat.size <= 256) {
+    throw new Error(`Selected Playwright video is missing or too small: ${latestVideo.candidate}`);
+  }
 
   const relativeTarget = await allocateCanonicalArtifactRelativePath({
     flow,
     runIndex: Number.isInteger(runIndex) ? runIndex : null
   });
   const absoluteTarget = path.resolve(repoRoot, relativeTarget);
-  await fs.copyFile(latestVideo, absoluteTarget);
+  await fs.copyFile(latestVideo.candidate, absoluteTarget);
+  const copiedStat = await fs.stat(absoluteTarget).catch(() => null);
+  if (!copiedStat || copiedStat.size <= 256) {
+    throw new Error(`Finalized video is missing or too small: ${absoluteTarget}`);
+  }
   console.log(`Finalized video: ${absoluteTarget}`);
 
   process.exit(testExitCode);
