@@ -102,6 +102,32 @@ export interface TokenRefreshSummary {
 }
 
 /**
+ * QuickBooks customer payload returned by customer search/sync APIs.
+ */
+export interface QuickBooksCustomerRecord {
+  Id: string;
+  DisplayName: string;
+  CompanyName?: string;
+  Taxable?: boolean;
+  Email?: string;
+  Phone?: string;
+  BillAddr?: {
+    Line1?: string;
+    City?: string;
+    State?: string;
+    Country?: string;
+    PostalCode?: string;
+  };
+  ShipAddr?: {
+    Line1?: string;
+    City?: string;
+    State?: string;
+    Country?: string;
+    PostalCode?: string;
+  };
+}
+
+/**
  * Request payload for quickbooks-export-invoice Edge Function
  */
 export type QuickBooksExportInvoiceRequest = {

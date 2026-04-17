@@ -22,6 +22,7 @@ describe('QuickBooks Import', () => {
     Id: 'qb-42',
     DisplayName: 'Acme Corp',
     CompanyName: 'Acme Corporation',
+    Taxable: false,
     Email: 'billing@acme.com',
     Phone: '555-123-4567',
     BillAddr: {
@@ -66,6 +67,7 @@ describe('QuickBooks Import', () => {
           phone: '555-123-4567',
           quickbooks_customer_id: 'qb-42',
           quickbooks_display_name: 'Acme Corp',
+          is_tax_exempt: true,
           status: 'active',
           billing_address: expect.objectContaining({
             line1: '100 Main St',
@@ -129,6 +131,7 @@ describe('QuickBooks Import', () => {
       expect(updateArg.email).toBe('billing@acme.com');
       expect(updateArg.phone).toBe('555-123-4567');
       expect(updateArg.quickbooks_display_name).toBe('Acme Corp');
+      expect(updateArg.is_tax_exempt).toBe(true);
       expect(updateArg.quickbooks_synced_at).toBeDefined();
       // Should NOT include name, notes, account_owner_id, or status
       expect(updateArg).not.toHaveProperty('name');

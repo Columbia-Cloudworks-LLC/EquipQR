@@ -42,6 +42,61 @@ export const QBO_ENVIRONMENT: "sandbox" | "production" = IS_SANDBOX
   ? "sandbox"
   : "production";
 
+const envOrDefault = (value: string | undefined, fallback: string): string =>
+  value && value.trim().length > 0 ? value.trim() : fallback;
+
+const envNumberOrDefault = (
+  value: string | undefined,
+  fallback: number,
+): number => {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+/**
+ * QBO Definition IDs for invoice-level custom fields.
+ * These are company-specific and can be overridden per environment.
+ */
+export const QBO_INVOICE_CUSTOM_FIELD_DEFINITION_IDS = {
+  makeModel: envOrDefault(
+    Deno.env.get("QBO_INVOICE_CUSTOM_FIELD_MAKE_MODEL_DEFINITION_ID"),
+    "1",
+  ),
+  serial: envOrDefault(
+    Deno.env.get("QBO_INVOICE_CUSTOM_FIELD_SERIAL_DEFINITION_ID"),
+    "2",
+  ),
+  machineHours: envOrDefault(
+    Deno.env.get("QBO_INVOICE_CUSTOM_FIELD_MACHINE_HOURS_DEFINITION_ID"),
+    "3",
+  ),
+} as const;
+
+/**
+ * QBO item names used when creating/finding invoice line item references.
+ */
+export const QBO_INVOICE_ITEM_NAMES = {
+  labor: envOrDefault(Deno.env.get("QBO_INVOICE_LABOR_ITEM_NAME"), "Labor"),
+  truckSupplies: envOrDefault(
+    Deno.env.get("QBO_INVOICE_TRUCK_SUPPLIES_ITEM_NAME"),
+    "Truck Supplies",
+  ),
+  partsPrefix: envOrDefault(Deno.env.get("QBO_INVOICE_PARTS_ITEM_PREFIX"), "Part"),
+} as const;
+
+/** Default labor rate (in cents) used when WO time logs exist but no labor-cost amount is provided. */
+export const QBO_DEFAULT_LABOR_RATE_CENTS = envNumberOrDefault(
+  Deno.env.get("QBO_DEFAULT_LABOR_RATE_CENTS"),
+  0,
+);
+
+/** Default truck supplies fee (in cents) appended when no explicit truck fee cost is present. */
+export const QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS = envNumberOrDefault(
+  Deno.env.get("QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS"),
+  0,
+);
+
 /**
  * Extracts the `intuit_tid` header from a QuickBooks API response.
  *

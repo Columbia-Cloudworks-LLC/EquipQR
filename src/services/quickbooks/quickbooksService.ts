@@ -18,6 +18,24 @@ export interface QuickBooksCustomer {
   Id: string;
   DisplayName: string;
   CompanyName?: string;
+  Taxable?: boolean;
+  Email?: string;
+  Phone?: string;
+  BillAddr?: {
+    Line1?: string;
+    City?: string;
+    State?: string;
+    Country?: string;
+    PostalCode?: string;
+  };
+  ShipAddr?: {
+    Line1?: string;
+    City?: string;
+    State?: string;
+    Country?: string;
+    PostalCode?: string;
+  };
+  // Backward-compat for legacy response shapes.
   PrimaryEmailAddr?: { Address: string };
   PrimaryPhone?: { FreeFormNumber: string };
   Active?: boolean;
