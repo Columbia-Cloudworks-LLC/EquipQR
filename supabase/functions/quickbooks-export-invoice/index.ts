@@ -283,6 +283,11 @@ const formatStatus = (status: string): string =>
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
+const sanitizeQuickBooksQueryValue = (value: string): string => {
+  const sanitized = value.replace(/[^a-zA-Z0-9\s\-.,&()/#]/g, "").trim();
+  return sanitized.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+};
+
 function buildCustomerTimelineLines(
   statusEvents: WorkOrderStatusEvent[],
   notes: WorkOrderNote[],
@@ -304,7 +309,7 @@ function buildCustomerTimelineLines(
 
   return timelineLines
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map((entry) => `${formatTimelineTimestamp(entry.timestamp)} - ${entry.text}`);
+    .map((entry) => `${formatTimelineTimestamp(entry.timestamp)} - [${entry.text}]`);
 }
 
 function buildCustomerMemo(
@@ -397,7 +402,7 @@ async function getOrCreateServiceItem(
     "Content-Type": "application/json",
   };
 
-  const escapedItemName = itemName.replace(/'/g, "\\'");
+  const escapedItemName = sanitizeQuickBooksQueryValue(itemName);
   const specificQuery = `SELECT * FROM Item WHERE Name = '${escapedItemName}' AND Type = 'Service' AND Active = true`;
   const specificUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(specificQuery)}`);
   const specificResponse = await fetch(specificUrl, { method: "GET", headers });
@@ -514,10 +519,13 @@ async function buildInvoiceLines(
     ? Math.max(0, Math.round(loggedHours * laborUnitRateCents))
     : laborCostsCents;
 
-  const truckSuppliesCents = truckCosts.reduce(
+  const truckSuppliesSumCents = truckCosts.reduce(
     (sum, cost) => sum + getCostAmountCents(cost),
     0,
-  ) || QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS;
+  );
+  const truckSuppliesCents = truckCosts.length > 0
+    ? truckSuppliesSumCents
+    : QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS;
 
   const lines: QuickBooksInvoice["Line"] = [];
 
@@ -1231,8 +1239,9 @@ Deno.serve(async (req) => {
 
     const { data: statusHistory } = await supabaseClient
       .from('work_order_status_history')
-      .select('id, old_status, new_status, changed_at, reason')
+      .select('id, old_status, new_status, changed_at, reason, work_orders!inner(organization_id)')
       .eq('work_order_id', work_order_id)
+      .eq('work_orders.organization_id', workOrder.organization_id)
       .order('changed_at', { ascending: true });
 
     // Load work order images (for PDF generation)
