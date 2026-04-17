@@ -179,6 +179,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
       setShowAcceptanceModal(false);
     } catch (error) {
       console.error('Error accepting work order:', error);
+      throw error;
     }
   };
 

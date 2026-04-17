@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Plus, MessageSquare, Images, Clock, User, EyeOff } from 'lucide-react';
+import { Plus, MessageSquare, Images, Clock, Gauge, User, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,6 +13,7 @@ import { workOrders as workOrderQueryKeys } from '@/lib/queryKeys';
 import {
   createWorkOrderNoteWithImages,
   getWorkOrderNotesWithImages,
+  type WorkOrderNote,
 } from '@/features/work-orders/services/workOrderNotesService';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
@@ -75,19 +76,24 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       images: File[];
       machineHours?: number;
     }) => {
-      if (machineHours !== undefined && machineHours > 0) {
-        logger.debug('Machine hours provided but not persisted', { machineHours });
-      }
       const useOfflinePath = !navigator.onLine || images.length === 0;
       if (useOfflinePath && currentOrganization?.id && user?.id) {
         const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
-        const result = await service.createWorkOrderNote(workOrderId, content, hoursWorked, isPrivate);
+        const result = await service.createWorkOrderNote(workOrderId, content, hoursWorked, isPrivate, machineHours);
         if (result.queuedOffline) {
           return { queuedOffline: true, hadImages: images.length > 0 };
         }
         return { queuedOffline: false, data: result.data };
       }
-      return createWorkOrderNoteWithImages(workOrderId, content, hoursWorked, isPrivate, images);
+      return createWorkOrderNoteWithImages(
+        workOrderId,
+        content,
+        hoursWorked,
+        isPrivate,
+        images,
+        currentOrganization?.id,
+        machineHours,
+      );
     },
     onSuccess: (result) => {
       const queuedOffline = result && typeof result === 'object' && 'queuedOffline' in result && result.queuedOffline;
@@ -186,6 +192,11 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
 
   const formatHours = (hours: number) => {
     return hours > 0 ? `${hours}h` : '';
+  };
+
+  const formatMachineHours = (hours: number | null | undefined) => {
+    const n = Number(hours);
+    return Number.isFinite(n) && n > 0 ? `${n}h` : '';
   };
 
   // Filter notes based on privacy settings
@@ -292,7 +303,10 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {visibleNotes.map((note) => (
+              {visibleNotes.map((note) => {
+                const typedNote = note as WorkOrderNote & { _isPendingSync?: boolean };
+                const machineLabel = formatMachineHours(typedNote.machine_hours);
+                return (
                 <Card key={note.id}>
                   <CardContent standalone>
                     <div className="space-y-3">
@@ -301,7 +315,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                         <div className="flex items-center gap-2 text-[13px] text-muted-foreground flex-wrap">
                           <User className="h-4 w-4" />
                           <span>{note.author_name}</span>
-                          {(note as { _isPendingSync?: boolean })._isPendingSync && <PendingSyncBadge />}
+                          {typedNote._isPendingSync && <PendingSyncBadge />}
                           <span>•</span>
                           <span>{formatDate(note.created_at)}</span>
                           {formatHours(note.hours_worked) && (
@@ -309,6 +323,15 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                               <span>•</span>
                               <Clock className="h-4 w-4" />
                               <span title="Hours worked">{formatHours(note.hours_worked)} worked</span>
+                            </>
+                          )}
+                          {machineLabel && (
+                            <>
+                              <span>•</span>
+                              <Gauge className="h-4 w-4" />
+                              <span title="Machine hours">
+                                {machineLabel} machine
+                              </span>
                             </>
                           )}
                         </div>
@@ -354,7 +377,8 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

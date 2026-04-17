@@ -6,9 +6,9 @@ This guide covers setting up your local environment to work with Supabase, inclu
 
 ### Required Software
 
-- **Node.js** (v22.x recommended, v20.x supported) - [Download here](https://nodejs.org/)
+- **Node.js** — must satisfy `engines.node` in the root [`package.json`](../../package.json) (currently **Node 20.17+** or **22.9+**). We recommend the latest **22.x** LTS. [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively
-- **Docker** - Required for local Supabase instance ([Download here](https://www.docker.com/products/docker-desktop))
+- **Docker Desktop** — required for local Supabase ([Download here](https://www.docker.com/products/docker-desktop)); keep it updated for compatibility with the Supabase CLI stack
 - **Git** - [Download here](https://git-scm.com/)
 - **1Password CLI (`op`)** - Strongly recommended. `dev-start.bat` can sync `.env` and `supabase/functions/.env` automatically when available.
 
@@ -25,6 +25,8 @@ npm ci
 # Verify Supabase CLI is available
 npx supabase --version
 ```
+
+The CLI version is pinned in root `package.json` as a devDependency (patch semver, e.g. `~2.77.x`). After `npm ci`, `npx supabase --version` should match the resolved package.
 
 **Why not global installation?**
 - Global installation via `npm install -g supabase` is not supported by Supabase

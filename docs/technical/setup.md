@@ -179,8 +179,9 @@ Before you begin, ensure you have the following installed on your development ma
 
 ### Required Software
 
-- **Node.js** (v22.x recommended, v20.x supported) - [Download here](https://nodejs.org/)
+- **Node.js** — must satisfy `engines.node` in the root [`package.json`](../../package.json) (currently **Node 20.17+** or **22.9+**). We recommend the latest **22.x** LTS for local development. [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively (no yarn/pnpm/bun)
+- **Docker Desktop** — required for local Supabase ([download here](https://www.docker.com/products/docker-desktop)); `dev-start.ps1` checks `docker` on `PATH` and that the daemon is reachable
 - **Git** - [Download here](https://git-scm.com/)
 - **Modern Code Editor** - We recommend [VS Code](https://code.visualstudio.com/)
 

@@ -346,8 +346,9 @@ export class OfflineAwareWorkOrderService {
     content: string,
     hoursWorked: number = 0,
     isPrivate: boolean = false,
+    machineHours?: number,
   ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
-    if (!navigator.onLine) return this.queueEquipmentNote(equipmentId, content, hoursWorked, isPrivate);
+    if (!navigator.onLine) return this.queueEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours);
     try {
       const note = await createEquipmentNoteWithImages(
         equipmentId,
@@ -356,10 +357,11 @@ export class OfflineAwareWorkOrderService {
         isPrivate,
         [],
         this.orgId,
+        machineHours,
       );
       return { data: note, queuedOffline: false };
     } catch (error) {
-      if (isNetworkError(error)) return this.queueEquipmentNote(equipmentId, content, hoursWorked, isPrivate);
+      if (isNetworkError(error)) return this.queueEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours);
       throw error;
     }
   }
@@ -371,8 +373,9 @@ export class OfflineAwareWorkOrderService {
     content: string,
     hoursWorked: number = 0,
     isPrivate: boolean = false,
+    machineHours?: number,
   ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
-    if (!navigator.onLine) return this.queueWorkOrderNote(workOrderId, content, hoursWorked, isPrivate);
+    if (!navigator.onLine) return this.queueWorkOrderNote(workOrderId, content, hoursWorked, isPrivate, machineHours);
     try {
       const note = await createWorkOrderNoteWithImages(
         workOrderId,
@@ -381,10 +384,11 @@ export class OfflineAwareWorkOrderService {
         isPrivate,
         [],
         this.orgId,
+        machineHours,
       );
       return { data: note, queuedOffline: false };
     } catch (error) {
-      if (isNetworkError(error)) return this.queueWorkOrderNote(workOrderId, content, hoursWorked, isPrivate);
+      if (isNetworkError(error)) return this.queueWorkOrderNote(workOrderId, content, hoursWorked, isPrivate, machineHours);
       throw error;
     }
   }
@@ -480,11 +484,12 @@ export class OfflineAwareWorkOrderService {
     content: string,
     hoursWorked: number,
     isPrivate: boolean,
+    machineHours?: number,
   ): OfflineAwareResult<{ id: string; [key: string]: unknown }> {
     try {
       const item = this.queueService.enqueue({
         type: 'equipment_note',
-        payload: { equipmentId, content, hoursWorked, isPrivate },
+        payload: { equipmentId, content, hoursWorked, isPrivate, ...(machineHours !== undefined ? { machineHours } : {}) },
         organizationId: this.orgId,
         userId: this.userId,
       });
@@ -502,11 +507,12 @@ export class OfflineAwareWorkOrderService {
     content: string,
     hoursWorked: number,
     isPrivate: boolean,
+    machineHours?: number,
   ): OfflineAwareResult<{ id: string; [key: string]: unknown }> {
     try {
       const item = this.queueService.enqueue({
         type: 'work_order_note',
-        payload: { workOrderId, content, hoursWorked, isPrivate },
+        payload: { workOrderId, content, hoursWorked, isPrivate, ...(machineHours !== undefined ? { machineHours } : {}) },
         organizationId: this.orgId,
         userId: this.userId,
       });
