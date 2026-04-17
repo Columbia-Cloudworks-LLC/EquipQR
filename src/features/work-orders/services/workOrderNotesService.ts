@@ -9,6 +9,8 @@ export interface WorkOrderNote {
   author_id: string;
   content: string;
   hours_worked: number;
+  /** Equipment meter hours recorded with this note, when provided */
+  machine_hours?: number | null;
   is_private: boolean;
   created_at: string;
   updated_at: string;
@@ -37,7 +39,8 @@ export const createWorkOrderNoteWithImages = async (
   hoursWorked: number = 0,
   isPrivate: boolean = false,
   images: File[] = [],
-  organizationId?: string
+  organizationId?: string,
+  machineHours?: number | null,
 ): Promise<WorkOrderNote> => {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error('User not authenticated');
@@ -66,7 +69,8 @@ export const createWorkOrderNoteWithImages = async (
       author_id: userData.user.id,
       content,
       hours_worked: hoursWorked,
-      is_private: isPrivate
+      is_private: isPrivate,
+      ...(machineHours !== undefined ? { machine_hours: machineHours } : {}),
     })
     .select()
     .single();
@@ -216,6 +220,8 @@ export const getWorkOrderNotesWithImages = async (
 
       return {
         ...note,
+        hours_worked: Number(note.hours_worked) || 0,
+        machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
         author_name: author?.name || 'Unknown',
         images: noteImages
       };

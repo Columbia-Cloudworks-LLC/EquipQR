@@ -108,14 +108,14 @@ EquipQR™ is optimized for Lovable's hosting platform:
 
 ### Vercel Deployment
 ```bash
-# Install Vercel CLI
-npm i -g vercel
+# From repo root (CLI version pinned in npm script — no global install required)
+npm ci
 
-# Deploy to Vercel
-vercel
+# Preview deploy (pinned CLI major/minor line; bump with releases if needed)
+npx --yes vercel@51.6.1
 
-# Production deployment
-vercel --prod
+# Production deploy (same as npm run deploy:vercel)
+npx --yes vercel@51.6.1 --prod
 ```
 
 #### `vercel.json` Configuration

@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Machine hours on work order and equipment notes** — Nullable `machine_hours` column on `work_order_notes` and `equipment_notes` (migration `20260416120000_add_machine_hours_to_notes.sql`). Create and list paths persist the value; work order and equipment note UIs show a machine-hours line when greater than zero. Offline queue create payloads and merge hooks carry `machineHours` through to sync.
+
+### Changed
+
+- **npm dependencies (patch)** — Refreshed direct dependencies and devDependencies within patch semver via `npm-check-updates --target patch`; regenerated `package-lock.json` for a consistent install tree.
+- **Supabase CLI and JS client pins** — `supabase` devDependency set to `~2.77.1` and `@supabase/supabase-js` to `~2.76.1` so lockfile upgrades stay on patch lines instead of drifting across minors.
+- **Transitive `tar`** — Added npm `overrides` entry `tar@7.5.11` (addresses Dependabot-style bump from 7.5.10 under the Supabase CLI toolchain).
+- **Vercel production deploy** — `deploy:vercel` now runs `npx --yes vercel@51.6.1 --prod` so the CLI version is explicit without pulling the full `vercel` package tree into `node_modules`.
+- **Developer setup docs** — [README](README.md) prerequisites now point at `engines.node` and the setup guide; [Setup](docs/technical/setup.md), [Developer onboarding](docs/getting-started/developer-onboarding.md), [Local Supabase](docs/ops/local-supabase-development.md), and [Deployment](docs/ops/deployment.md) reference root `engines.node`, Docker Desktop, pinned Supabase CLI usage, and pinned `npx vercel` commands.
+
+### Fixed
+
+- **`scripts/test-runner.mjs` and coverage ratchet** — When running with `--coverage`, the runner now waits until `coverage/coverage-summary.json` exists before force-exiting, so `npm run test:ci` no longer kills Vitest before reporters finish writing output.
+- **`src/integrations/supabase/types.ts` parse errors** — Removed stray non-TypeScript lines (CLI upgrade notices / accidental log text) that broke ESLint parsing at file boundaries.
+- **Change Team Role dialog** — Opening the role dialog for a different member no longer leaves the role selector on the previous member’s selection (state resets from the current member when the dialog opens or the member identity changes). Failed role updates now show an error toast instead of failing silently.
+
 ## [2.9.0] - 2026-04-06
 
 ### Added

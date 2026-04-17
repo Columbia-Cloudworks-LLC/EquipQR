@@ -424,7 +424,7 @@ describe('OfflineQueueProcessor', () => {
     const result = await processor.processAll();
 
     expect(result.succeeded).toBe(1);
-    expect(mockCreateEquipmentNote).toHaveBeenCalledWith('eq-1', 'Oil changed', 2, false, [], ORG_ID);
+    expect(mockCreateEquipmentNote).toHaveBeenCalledWith('eq-1', 'Oil changed', 2, false, [], ORG_ID, undefined);
   });
 
   it('processes work_order_note with empty images array', async () => {
@@ -439,7 +439,7 @@ describe('OfflineQueueProcessor', () => {
     const result = await processor.processAll();
 
     expect(result.succeeded).toBe(1);
-    expect(mockCreateWorkOrderNote).toHaveBeenCalledWith('wo-1', 'Parts ordered', 1, true, [], ORG_ID);
+    expect(mockCreateWorkOrderNote).toHaveBeenCalledWith('wo-1', 'Parts ordered', 1, true, [], ORG_ID, undefined);
   });
 
   it('invalidates equipment query cache after equipment sync', async () => {

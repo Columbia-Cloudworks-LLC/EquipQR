@@ -278,7 +278,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) throw new Error('Session expired — please sign in again');
 
-    const { workOrderId, content, hoursWorked = 0, isPrivate = false } = item.payload;
+    const { workOrderId, content, hoursWorked = 0, isPrivate = false, machineHours } = item.payload;
     await createWorkOrderNoteWithImages(
       workOrderId,
       content,
@@ -286,6 +286,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       isPrivate,
       [],
       item.organizationId,
+      machineHours,
     );
     return { success: true };
   }) as QueueItemHandler<never>,
@@ -324,7 +325,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) throw new Error('Session expired — please sign in again');
 
-    const { equipmentId, content, hoursWorked = 0, isPrivate = false } = item.payload;
+    const { equipmentId, content, hoursWorked = 0, isPrivate = false, machineHours } = item.payload;
     await createEquipmentNoteWithImages(
       equipmentId,
       content,
@@ -332,6 +333,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       isPrivate,
       [],
       item.organizationId,
+      machineHours,
     );
     return { success: true };
   }) as QueueItemHandler<never>,

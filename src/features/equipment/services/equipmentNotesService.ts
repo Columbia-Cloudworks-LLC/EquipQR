@@ -35,6 +35,7 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
   return (data || []).map(note => ({
     ...note,
     hours_worked: Number(note.hours_worked) || 0,
+    machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
     author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
     images: (note.equipment_note_images || []).map((img: EquipmentNoteImage & { profiles?: { name?: string } }) => ({
       ...img,
@@ -55,7 +56,8 @@ export const createEquipmentNoteWithImages = async (
   hoursWorked: number = 0,
   isPrivate: boolean = false,
   images: File[] = [],
-  organizationId?: string
+  organizationId?: string,
+  machineHours?: number | null,
 ): Promise<EquipmentNote> => {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error('User not authenticated');
@@ -84,7 +86,8 @@ export const createEquipmentNoteWithImages = async (
       author_id: userData.user.id,
       content,
       hours_worked: Number(hoursWorked) || 0,
-      is_private: isPrivate || false
+      is_private: isPrivate || false,
+      ...(machineHours !== undefined ? { machine_hours: machineHours } : {}),
     })
     .select()
     .single();
@@ -150,13 +153,16 @@ export const createEquipmentNote = async (data: {
   content: string;
   hoursWorked?: number;
   isPrivate?: boolean;
+  machineHours?: number;
 }) => {
   return createEquipmentNoteWithImages(
     data.equipmentId,
     data.content,
     data.hoursWorked || 0,
     data.isPrivate || false,
-    []
+    [],
+    undefined,
+    data.machineHours,
   );
 };
 
