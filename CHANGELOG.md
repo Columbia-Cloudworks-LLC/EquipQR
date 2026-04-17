@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Machine hours on work order and equipment notes** — Nullable `machine_hours` column on `work_order_notes` and `equipment_notes` (migration `20260416120000_add_machine_hours_to_notes.sql`). Create and list paths persist the value; work order and equipment note UIs show a machine-hours line when greater than zero. Offline queue create payloads and merge hooks carry `machineHours` through to sync.
+- **Demo System v2 orchestration** — Added scenario-driven recording orchestration with multi-scene flows, suite selection, dry-run planning, reliability loops, strict production preflight enforcement, and canonical artifact finalization under `tmp/demos` via `scripts/demo-record-v2.mjs`.
+- **Demo diagnostics and quality gates** — Added metadata and diagnostics sidecars (`.metadata.json`, `.diagnostics.json`, per-scene metadata) plus quality validation for minimum duration, activity heuristics, and required checkpoints with failure taxonomy.
+- **Demo scenario engine and macro system** — Added `scripts/demo-scenarios.v2.json`, schema parsing/validation, macro expansion (`openNav`, `filterList`, `openDetails`, `returnDashboard`), and resilient action primitives with bounded retry/backoff and selector fallback telemetry.
+- **Demo operator runbook and test coverage** — Added `scripts/DEMO-SYSTEM-V2.md` and script-level tests for scenario parsing, macro expansion, diagnostics structure, quality gate pass/fail behavior, and orchestrator dry-run planning.
 
 ### Changed
 
@@ -20,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Transitive `tar`** — Added npm `overrides` entry `tar@7.5.11` (addresses Dependabot-style bump from 7.5.10 under the Supabase CLI toolchain).
 - **Vercel production deploy** — `deploy:vercel` now runs `npx --yes vercel@51.6.1 --prod` so the CLI version is explicit without pulling the full `vercel` package tree into `node_modules`.
 - **Developer setup docs** — [README](README.md) prerequisites now point at `engines.node` and the setup guide; [Setup](docs/technical/setup.md), [Developer onboarding](docs/getting-started/developer-onboarding.md), [Local Supabase](docs/ops/local-supabase-development.md), and [Deployment](docs/ops/deployment.md) reference root `engines.node`, Docker Desktop, pinned Supabase CLI usage, and pinned `npx vercel` commands.
+- **Demo recording docs surface** — Updated `scripts/DEMO-RECORDING.md` to point operators to Demo System v2 as the recommended scenario-driven path while preserving baseline v1 commands.
 
 ### Fixed
 

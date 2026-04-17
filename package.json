@@ -33,7 +33,23 @@
     "deploy:netlify": "netlify deploy --prod",
     "generate:vapid-keys": "node scripts/generate-vapid-keys.mjs",
     "generate:large-inventory": "npx tsx scripts/generate-large-inventory-seed.ts > supabase/seeds/26_large_inventory.sql",
-    "demo:gif": "node scripts/demo-gif.mjs"
+    "demo:gif": "node scripts/demo-gif.mjs",
+    "demo:video-smoke": "node scripts/demo-gif.mjs --smoke",
+    "demo:video-smoke:reliability": "node scripts/repeat-demo-smoke.mjs",
+    "demo:record:preflight": "node scripts/demo-record-preflight.mjs",
+    "demo:record:preflight:prod": "node scripts/demo-record-preflight.mjs --require-storage-state",
+    "demo:record": "npm run demo:record:preflight && node scripts/demo-record-finalize.mjs --flow=demo-record",
+    "demo:record:prod": "npm run demo:record:preflight:prod && node scripts/demo-record-finalize.mjs --flow=demo-prod",
+    "demo:record:prod:reliability": "node scripts/repeat-demo-record-prod.mjs",
+    "demo:v2:list": "node scripts/demo-record-v2.mjs list",
+    "demo:v2:run": "node scripts/demo-record-v2.mjs run --scenario=executive-overview",
+    "demo:v2:run:prod": "node scripts/demo-record-v2.mjs run --scenario=executive-overview --prod",
+    "demo:v2:suite": "node scripts/demo-record-v2.mjs suite --suite=core",
+    "demo:v2:reliability:scenario": "node scripts/demo-record-v2.mjs reliability --scenario=executive-overview --runs=3",
+    "demo:v2:reliability:suite": "node scripts/demo-record-v2.mjs reliability --suite=core --runs=2",
+    "demo:v2:compose:on": "node scripts/demo-record-v2.mjs run --scenario=executive-overview --compose-scenes --capture-scene-clips",
+    "demo:v2:compose:off": "node scripts/demo-record-v2.mjs run --scenario=executive-overview --no-compose-scenes",
+    "demo:v2:dry-run": "node scripts/demo-record-v2.mjs suite --suite=core --dry-run"
   },
   "dependencies": {
     "@hcaptcha/react-hcaptcha": "^1.12.1",
@@ -105,6 +121,7 @@
     }
   ],
   "devDependencies": {
+    "@playwright/test": "^1.51.0",
     "@eslint/js": "^9.9.1",
     "@size-limit/file": "^11.2.0",
     "@tailwindcss/typography": "^0.5.19",
