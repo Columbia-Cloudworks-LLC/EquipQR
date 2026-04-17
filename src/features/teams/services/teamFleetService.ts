@@ -51,10 +51,6 @@ export interface TeamFleetData {
   totalLocatedCount: number;
 }
 
-const debugLog = (hypothesisId: string, message: string, data: Record<string, unknown>) => {
-  fetch('http://127.0.0.1:7523/ingest/28f3b63b-7486-4e03-bcb4-f64564328ea9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2c818f'},body:JSON.stringify({sessionId:'2c818f',runId:'initial',hypothesisId,location:'src/features/teams/services/teamFleetService.ts',message,data,timestamp:Date.now()})}).catch(()=>{});
-};
-
 /**
  * Get teams that the user has access to based on their role and team memberships
  */
@@ -305,13 +301,6 @@ export const getTeamFleetData = async (
     const teams = await getAccessibleTeams(organizationId, userTeamIds, isOrgAdmin);
     
     if (teams.length === 0) {
-      // #region agent log
-      debugLog('H4', 'No accessible teams returned for organization', {
-        organizationId,
-        userTeamIdsCount: userTeamIds.length,
-        isOrgAdmin,
-      });
-      // #endregion agent log
       return {
         teams: [],
         teamEquipmentData: [],
@@ -364,17 +353,6 @@ export const getTeamFleetData = async (
     // Show map if we have at least one item with location data OR any team has an HQ location
     const anyTeamHasHQ = teamOptions.some(t => t.location_lat != null && t.location_lng != null);
     const hasLocationData = totalLocatedCount > 0 || anyTeamHasHQ;
-
-    // #region agent log
-    debugLog('H4', 'Computed fleet data summary', {
-      organizationId,
-      teamCount: teamOptions.length,
-      totalEquipmentCount,
-      totalLocatedCount,
-      anyTeamHasHQ,
-      hasLocationData,
-    });
-    // #endregion agent log
 
     return {
       teams: teamOptions,

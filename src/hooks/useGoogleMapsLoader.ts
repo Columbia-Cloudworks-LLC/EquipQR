@@ -24,10 +24,6 @@ function notify() {
   listeners.forEach((fn) => fn());
 }
 
-function debugLog(hypothesisId: string, message: string, data: Record<string, unknown>) {
-  fetch('http://127.0.0.1:7523/ingest/28f3b63b-7486-4e03-bcb4-f64564328ea9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2c818f'},body:JSON.stringify({sessionId:'2c818f',runId:'initial',hypothesisId,location:'src/hooks/useGoogleMapsLoader.ts',message,data,timestamp:Date.now()})}).catch(()=>{});
-}
-
 /**
  * Returns true when the Google Maps JS API **and** the Places library
  * are both available on the global `google` object.
@@ -85,13 +81,6 @@ function handleLoadFailure(error: Error): void {
 async function loadGoogleMapsScript(apiKey: string): Promise<void> {
   // Already loaded with this key
   if (globalIsLoaded && globalLoadedKey === apiKey && isMapsFullyLoaded()) {
-    // #region agent log
-    debugLog('H3', 'Maps loader short-circuited: already loaded', {
-      hasGoogle: typeof google !== 'undefined',
-      hasMaps: typeof google !== 'undefined' && Boolean(google.maps),
-      hasPlaces: typeof google !== 'undefined' && Boolean(google.maps?.places),
-    });
-    // #endregion agent log
     return;
   }
 
@@ -155,12 +144,6 @@ async function loadGoogleMapsScript(apiKey: string): Promise<void> {
       if (isMapsFullyLoaded()) {
         globalIsLoaded = true;
         notify();
-        // #region agent log
-        debugLog('H3', 'Google Maps script loaded successfully', {
-          hasMaps: Boolean(google.maps),
-          hasPlaces: Boolean(google.maps?.places),
-        });
-        // #endregion agent log
         resolve();
       } else {
         const err = new Error(
@@ -174,11 +157,6 @@ async function loadGoogleMapsScript(apiKey: string): Promise<void> {
     script.onerror = () => {
       const err = new Error('Failed to load Google Maps script');
       handleLoadFailure(err);
-      // #region agent log
-      debugLog('H3', 'Google Maps script failed to load', {
-        scriptId: script.id,
-      });
-      // #endregion agent log
       reject(err);
     };
 

@@ -2,12 +2,13 @@
 
 /**
  * Test runner wrapper that prevents Vitest from hanging on Windows.
- * 
+ *
  * Issue: Vitest workers don't exit cleanly due to open handles from jsdom,
  * React Query cache, or other async operations. Tests complete successfully
  * but the process hangs indefinitely before printing the final summary.
- * 
+ *
  * Solution: Monitor test output for completion patterns and force exit.
+ * When forcing exit, derive exit code from Vitest's summary (do not assume 0).
  */
 
 import { spawn, execSync } from 'child_process';
@@ -20,6 +21,43 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, '..');
 const coverageSummaryPath = path.join(repoRoot, 'coverage', 'coverage-summary.json');
 
+/** Rolling buffer so completion / failure markers can span stdout chunks. */
+const OUTPUT_TAIL_MAX = 48_000;
+let combinedTail = '';
+
+function appendOutput(chunk) {
+  const text = chunk.toString();
+  combinedTail = (combinedTail + text).slice(-OUTPUT_TAIL_MAX);
+  return text;
+}
+
+/** True when Vitest printed the final run summary block (not `Duration` alone). */
+function vitestFinalSummaryPresent(tail) {
+  return (
+    tail.includes('Test Files') &&
+    tail.includes('Start at') &&
+    tail.includes('Duration')
+  );
+}
+
+/**
+ * Heuristic: any failed tests/files in streamed Vitest output.
+ * Kept conservative so we do not exit 0 after a failed run when the child is SIGKILL'd.
+ */
+function outputSignalsTestFailure(text) {
+  if (!text) return false;
+  if (/\bFAIL\s+/m.test(text)) return true;
+  if (/Test Files\s+[^\n]*\d+\s+failed\b/i.test(text)) return true;
+  if (/(?:^|\n)\s*Tests\s+[^\n]*\d+\s+failed\b/i.test(text)) return true;
+  if (/[✗]\s+src\//.test(text)) return true;
+  if (/\bTest run failed\b/i.test(text)) return true;
+  return false;
+}
+
+function getPlannedExitCode() {
+  return outputSignalsTestFailure(combinedTail) ? 1 : 0;
+}
+
 // Pass through all CLI arguments to vitest
 const args = process.argv.slice(2);
 
@@ -28,13 +66,13 @@ const hasCoverage = args.includes('--coverage');
 const DEFAULT_TIMEOUT_MS = hasCoverage ? 8 * 60 * 1000 : 5 * 60 * 1000;
 
 // Check for custom timeout
-const timeoutArg = args.find(a => a.startsWith('--runner-timeout='));
-const timeoutMs = timeoutArg 
-  ? parseInt(timeoutArg.split('=')[1], 10) * 1000 
+const timeoutArg = args.find((a) => a.startsWith('--runner-timeout='));
+const timeoutMs = timeoutArg
+  ? parseInt(timeoutArg.split('=')[1], 10) * 1000
   : DEFAULT_TIMEOUT_MS;
 
 // Remove our custom arg before passing to vitest
-const vitestArgs = args.filter(a => !a.startsWith('--runner-timeout='));
+const vitestArgs = args.filter((a) => !a.startsWith('--runner-timeout='));
 
 // Build the command
 const npxBin = isWindows ? 'npx.cmd' : 'npx';
@@ -42,11 +80,10 @@ const vitestProcess = spawn(npxBin, ['vitest', 'run', ...vitestArgs], {
   stdio: ['inherit', 'pipe', 'pipe'],
   env: process.env,
   cwd: repoRoot,
-  shell: isWindows
+  shell: isWindows,
 });
 
 let cleanupStarted = false;
-let lastOutputTime = Date.now();
 let testFilesCompleted = 0;
 let allTestsCompleted = false;
 let noOutputTimer = null;
@@ -63,7 +100,7 @@ function schedulePostTestExit() {
       if (cleanupStarted) return;
       if (fs.existsSync(coverageSummaryPath)) {
         setTimeout(() => {
-          if (!cleanupStarted) forceExit(0);
+          if (!cleanupStarted) forceExit(getPlannedExitCode());
         }, 500);
         return;
       }
@@ -80,38 +117,33 @@ function schedulePostTestExit() {
 
   setTimeout(() => {
     if (!cleanupStarted) {
-      forceExit(0);
+      forceExit(getPlannedExitCode());
     }
   }, 3000);
 }
 
 // Track output to detect test completion
 vitestProcess.stdout.on('data', (data) => {
-  const text = data.toString();
+  const text = appendOutput(data);
   process.stdout.write(data);
-  lastOutputTime = Date.now();
-  
+
   // Count completed test files (lines starting with ✓ or ✗)
   const matches = text.match(/[✓✗] src\//g);
   if (matches) {
     testFilesCompleted += matches.length;
   }
-  
-  // Check for test summary or completion patterns
-  if (text.includes('Test Files') && text.includes('passed') ||
-      text.includes(' Tests ') && text.includes('passed') ||
-      text.includes('Duration')) {
+
+  if (vitestFinalSummaryPresent(combinedTail)) {
     allTestsCompleted = true;
     schedulePostTestExit();
   }
-  
-  // Reset the no-output timer
+
   resetNoOutputTimer();
 });
 
 vitestProcess.stderr.on('data', (data) => {
+  appendOutput(data);
   process.stderr.write(data);
-  lastOutputTime = Date.now();
   resetNoOutputTimer();
 });
 
@@ -120,13 +152,13 @@ function resetNoOutputTimer() {
   if (noOutputTimer) {
     clearTimeout(noOutputTimer);
   }
-  
+
   // Only set this timer after we've seen some test completions
   if (testFilesCompleted > 100) {
     noOutputTimer = setTimeout(() => {
       if (!cleanupStarted && !allTestsCompleted) {
         console.log('\n✅ Tests appear complete (no output for 30s). Forcing exit.');
-        forceExit(0);
+        forceExit(getPlannedExitCode());
       }
     }, 30000);
   }
@@ -149,7 +181,7 @@ function forceExit(code) {
   cleanupStarted = true;
   clearTimeout(hardTimeout);
   if (noOutputTimer) clearTimeout(noOutputTimer);
-  
+
   killProcess();
   process.exit(code);
 }
@@ -157,7 +189,8 @@ function forceExit(code) {
 // Hard timeout to prevent infinite hanging
 const hardTimeout = setTimeout(() => {
   console.log('\n⏰ Test runner timeout reached - forcing exit');
-  forceExit(testFilesCompleted > 0 ? 0 : 1);
+  const code = testFilesCompleted > 0 ? getPlannedExitCode() : 1;
+  forceExit(code);
 }, timeoutMs);
 
 vitestProcess.on('close', (code) => {
@@ -165,9 +198,10 @@ vitestProcess.on('close', (code) => {
   cleanupStarted = true;
   clearTimeout(hardTimeout);
   if (noOutputTimer) clearTimeout(noOutputTimer);
-  
-  // Normal exit
-  process.exit(code ?? 0);
+
+  const resolved =
+    typeof code === 'number' ? code : getPlannedExitCode();
+  process.exit(resolved);
 });
 
 vitestProcess.on('error', (err) => {
@@ -175,7 +209,7 @@ vitestProcess.on('error', (err) => {
   cleanupStarted = true;
   clearTimeout(hardTimeout);
   if (noOutputTimer) clearTimeout(noOutputTimer);
-  
+
   console.error('Failed to start vitest:', err);
   process.exit(1);
 });
