@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-04-18
+
 ### Added
 
 - **Machine hours on work order and equipment notes** — Nullable `machine_hours` column on `work_order_notes` and `equipment_notes` (migration `20260416120000_add_machine_hours_to_notes.sql`). Create and list paths persist the value; work order and equipment note UIs show a machine-hours line when greater than zero. Offline queue create payloads and merge hooks carry `machineHours` through to sync.
+- **QuickBooks customer tax-exempt sync** — New nullable `customers.is_tax_exempt` column (migration `20260417103000_add_customers_tax_exempt_flag.sql`) populated from QuickBooks `Customer.Taxable` on import and refresh. Customer Account card and the QuickBooks customer mapping picker now show an inline "Taxable" / "Tax Exempt" badge sourced from QBO so technicians see tax posture without leaving the team detail page.
+- **Shared QuickBooks Edge Function config** — New `supabase/functions/_shared/quickbooks-config.ts` centralizes the QBO API base URLs, OAuth token endpoint, minor-version helper, sandbox/production resolution, custom field definition IDs, item names, and default labor / truck-supplies fee fallbacks so every QBO Edge Function reads the same source of truth via env overrides.
 - **Demo System v2 orchestration** — Added scenario-driven recording orchestration with multi-scene flows, suite selection, dry-run planning, reliability loops, strict production preflight enforcement, and canonical artifact finalization under `tmp/demos` via `scripts/demo-record-v2.mjs`.
 - **Demo diagnostics and quality gates** — Added metadata and diagnostics sidecars (`.metadata.json`, `.diagnostics.json`, per-scene metadata) plus quality validation for minimum duration, activity heuristics, and required checkpoints with failure taxonomy.
 - **Demo scenario engine and macro system** — Added `scripts/demo-scenarios.v2.json`, schema parsing/validation, macro expansion (`openNav`, `filterList`, `openDetails`, `returnDashboard`), and resilient action primitives with bounded retry/backoff and selector fallback telemetry.
@@ -19,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **QuickBooks invoice export payload** — Rebuilt the `quickbooks-export-invoice` Edge Function to emit grouped invoice lines (Labor, Parts, Truck Supplies) using configured QBO item names and to set invoice-level custom fields (Make/Model, Serial, Machine Hours) by definition ID. The customer-facing memo now formats the work-order timeline with bracketed entries so QBO renders a consistent customer history. `quickbooks-search-customers` queries explicit columns (including `Taxable`) instead of `SELECT *` and surfaces `Taxable` to the mapping UI.
+- **Status history and item-name query hardening** — Status history reads in `quickbooks-export-invoice` are now scoped by organization, and the item-name lookup query is sanitized to defend against QBO query-language injection. Explicit zero truck-supplies totals are preserved instead of being replaced by default fees.
 - **npm dependencies (patch)** — Refreshed direct dependencies and devDependencies within patch semver via `npm-check-updates --target patch`; regenerated `package-lock.json` for a consistent install tree.
 - **Supabase CLI and JS client pins** — `supabase` devDependency set to `~2.77.1` and `@supabase/supabase-js` to `~2.76.1` so lockfile upgrades stay on patch lines instead of drifting across minors.
 - **Transitive `tar`** — Added npm `overrides` entry `tar@7.5.11` (addresses Dependabot-style bump from 7.5.10 under the Supabase CLI toolchain).
@@ -28,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Work order detail not refreshing after Assign & Start** ([#598](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/598)) — `useWorkOrderAcceptance.onSuccess` now invalidates `workOrderKeys.detail(orgId, workOrderId)` (the exact key the detail page reads via `useWorkOrderById`) alongside lists and legacy keys, so the detail page reflects the new assignee/status without a manual refresh.
+- **Work order acceptance modal closing on failure** — Both `handleAcceptanceComplete` paths in `WorkOrderPrimaryActionButton` now rethrow the underlying error instead of silently swallowing it, so `WorkOrderAcceptanceModal` stays open and surfaces the error toast on failed Assign & Start.
 - **`scripts/test-runner.mjs` and coverage ratchet** — When running with `--coverage`, the runner now waits until `coverage/coverage-summary.json` exists before force-exiting, so `npm run test:ci` no longer kills Vitest before reporters finish writing output.
 - **`src/integrations/supabase/types.ts` parse errors** — Removed stray non-TypeScript lines (CLI upgrade notices / accidental log text) that broke ESLint parsing at file boundaries.
 - **Change Team Role dialog** — Opening the role dialog for a different member no longer leaves the role selector on the previous member’s selection (state resets from the current member when the dialog opens or the member identity changes). Failed role updates now show an error toast instead of failing silently.
