@@ -66,8 +66,20 @@ export const createEquipmentNoteWithImages = async (
     throw new Error('organizationId is required to create an equipment note');
   }
 
+  const { data: equipmentRow, error: equipmentLookupError } = await supabase
+    .from('equipment')
+    .select('organization_id')
+    .eq('id', equipmentId)
+    .single();
+
+  if (equipmentLookupError) throw equipmentLookupError;
+
+  if (equipmentRow.organization_id !== organizationId) {
+    throw new Error('Organization mismatch for equipment note creation');
+  }
+
   const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);
-  await validateStorageQuota(organizationId, totalFileSize);
+  await validateStorageQuota(equipmentRow.organization_id, totalFileSize);
 
   // Create the note first
   const { data: note, error: noteError } = await supabase

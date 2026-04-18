@@ -54,8 +54,16 @@ function outputSignalsTestFailure(text) {
   return false;
 }
 
+function outputSignalsTestSuccess(text) {
+  if (!text || !vitestFinalSummaryPresent(text)) return false;
+  const filesPass = /Test Files\s+[^\n]*\b0 failed\b/i.test(text);
+  const testsPass = /(?:^|\n)\s*Tests\s+[^\n]*\b0 failed\b/i.test(text);
+  return filesPass && testsPass;
+}
+
 function getPlannedExitCode() {
-  return outputSignalsTestFailure(combinedTail) ? 1 : 0;
+  if (outputSignalsTestFailure(combinedTail)) return 1;
+  return outputSignalsTestSuccess(combinedTail) ? 0 : 1;
 }
 
 // Pass through all CLI arguments to vitest
@@ -157,8 +165,8 @@ function resetNoOutputTimer() {
   if (testFilesCompleted > 100) {
     noOutputTimer = setTimeout(() => {
       if (!cleanupStarted && !allTestsCompleted) {
-        console.log('\n✅ Tests appear complete (no output for 30s). Forcing exit.');
-        forceExit(getPlannedExitCode());
+        console.log('\n❌ No test output for 30s before final summary. Failing closed.');
+        forceExit(1);
       }
     }, 30000);
   }
@@ -189,8 +197,7 @@ function forceExit(code) {
 // Hard timeout to prevent infinite hanging
 const hardTimeout = setTimeout(() => {
   console.log('\n⏰ Test runner timeout reached - forcing exit');
-  const code = testFilesCompleted > 0 ? getPlannedExitCode() : 1;
-  forceExit(code);
+  forceExit(1);
 }, timeoutMs);
 
 vitestProcess.on('close', (code) => {

@@ -1274,14 +1274,16 @@ Deno.serve(async (req) => {
     // Load work order costs
     const { data: costs } = await supabaseClient
       .from('work_order_costs')
-      .select('id, description, quantity, unit_price_cents, total_price_cents, inventory_item_id')
-      .eq('work_order_id', work_order_id);
+      .select('id, description, quantity, unit_price_cents, total_price_cents, inventory_item_id, work_orders!inner(organization_id)')
+      .eq('work_order_id', work_order_id)
+      .eq('work_orders.organization_id', workOrder.organization_id);
 
     // Load work order notes
     const { data: notes } = await supabaseClient
       .from('work_order_notes')
-      .select('id, content, is_private, author_name, created_at, hours_worked, machine_hours')
+      .select('id, content, is_private, author_name, created_at, hours_worked, machine_hours, work_orders!inner(organization_id)')
       .eq('work_order_id', work_order_id)
+      .eq('work_orders.organization_id', workOrder.organization_id)
       .order('created_at', { ascending: true });
 
     const { data: statusHistory } = await supabaseClient
@@ -1295,8 +1297,9 @@ Deno.serve(async (req) => {
     // We need note IDs to filter images, so fetch notes with IDs
     const { data: notesWithIds } = await supabaseClient
       .from('work_order_notes')
-      .select('id, is_private')
-      .eq('work_order_id', work_order_id);
+      .select('id, is_private, work_orders!inner(organization_id)')
+      .eq('work_order_id', work_order_id)
+      .eq('work_orders.organization_id', workOrder.organization_id);
 
     const privateNoteIds = new Set(
       (notesWithIds || [])
@@ -1306,8 +1309,9 @@ Deno.serve(async (req) => {
 
     const { data: allImages } = await supabaseClient
       .from('work_order_images')
-      .select('id, file_name, file_url, description, note_id, created_at')
+      .select('id, file_name, file_url, description, note_id, created_at, work_orders!inner(organization_id)')
       .eq('work_order_id', work_order_id)
+      .eq('work_orders.organization_id', workOrder.organization_id)
       .order('created_at', { ascending: true });
 
     // Filter to only public images (not associated with private notes)
