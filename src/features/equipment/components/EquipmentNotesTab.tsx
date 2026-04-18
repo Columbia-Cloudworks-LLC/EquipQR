@@ -82,10 +82,15 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
       images: File[];
       machineHours?: number;
     }) => {
+      if (!currentOrganization?.id) {
+        throw new Error('No active organization selected');
+      }
+      const orgId = currentOrganization.id;
+
       // Images require Storage upload (online only), so only text-only notes can go through the offline queue
       const useOfflinePath = !navigator.onLine || images.length === 0;
-      if (useOfflinePath && currentOrganization?.id && user?.id) {
-        const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
+      if (useOfflinePath && user?.id) {
+        const service = new OfflineAwareWorkOrderService(orgId, user.id);
         const result = await service.createEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours);
         if (result.queuedOffline) {
           return { queuedOffline: true, hadImages: images.length > 0 };
@@ -98,7 +103,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
         hoursWorked,
         isPrivate,
         images,
-        currentOrganization?.id,
+        orgId,
         machineHours,
       );
     },

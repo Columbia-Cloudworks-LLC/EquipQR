@@ -83,6 +83,7 @@ export const QBO_INVOICE_ITEM_NAMES = {
     "Truck Supplies",
   ),
   partsPrefix: envOrDefault(Deno.env.get("QBO_INVOICE_PARTS_ITEM_PREFIX"), "Part"),
+  other: envOrDefault(Deno.env.get("QBO_INVOICE_OTHER_ITEM_NAME"), "Other"),
 } as const;
 
 /** Default labor rate (in cents) used when WO time logs exist but no labor-cost amount is provided. */

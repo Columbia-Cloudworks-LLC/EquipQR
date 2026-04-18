@@ -283,9 +283,21 @@ const formatStatus = (status: string): string =>
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
-const sanitizeQuickBooksQueryValue = (value: string): string => {
-  const sanitized = value.replace(/[^a-zA-Z0-9\s\-.,&()/#]/g, "").trim();
-  return sanitized.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+/**
+ * Escapes a value for safe embedding inside a single-quoted QuickBooks Query
+ * Language string literal.  QBO uses `'` as the string delimiter and `\` as
+ * the escape character, so those are the only characters we need to neutralize
+ * to defeat query-language injection.  We deliberately do NOT strip other
+ * characters (e.g. `:`, `&`, `(`, `)`) because doing so causes the lookup
+ * value to differ from the value we use when creating the item, which results
+ * in duplicate Item records on every export.
+ *
+ * Control characters and embedded newlines are still removed so the rendered
+ * query stays on a single line.
+ */
+const escapeQuickBooksQueryValue = (value: string): string => {
+  const stripped = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+  return stripped.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 };
 
 function buildCustomerTimelineLines(
@@ -402,7 +414,7 @@ async function getOrCreateServiceItem(
     "Content-Type": "application/json",
   };
 
-  const escapedItemName = sanitizeQuickBooksQueryValue(itemName);
+  const escapedItemName = escapeQuickBooksQueryValue(itemName);
   const specificQuery = `SELECT * FROM Item WHERE Name = '${escapedItemName}' AND Type = 'Service' AND Active = true`;
   const specificUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(specificQuery)}`);
   const specificResponse = await fetch(specificUrl, { method: "GET", headers });
@@ -498,13 +510,26 @@ async function buildInvoiceLines(
   );
 
   const loggedHours = notes.reduce((sum, note) => sum + (note.hours_worked ?? 0), 0);
-  const laborCostsCents = laborCandidateCosts.reduce((sum, cost) => {
-    if (isLaborCost(cost) || loggedHours <= 0) {
-      return sum + getCostAmountCents(cost);
-    }
-    return sum;
-  }, 0);
-  const fallbackLaborPoolCents = laborCandidateCosts.reduce(
+
+  // When time logs exist, only costs whose description matches the labor regex
+  // are folded into the labor line.  The remaining non-part/non-truck costs
+  // (e.g. "Disposal fee", "Environmental") still need to be billed — we emit
+  // one invoice line per cost below (each line tagged with the shared "Other"
+  // QBO item) so the invoice total matches the work order total and per-cost
+  // descriptions remain visible on the invoice.  When no time logs exist,
+  // every non-part/non-truck cost is treated as labor (legacy behavior).
+  const laborMatchedCosts = loggedHours > 0
+    ? laborCandidateCosts.filter(isLaborCost)
+    : laborCandidateCosts;
+  const otherCosts = loggedHours > 0
+    ? laborCandidateCosts.filter((cost) => !isLaborCost(cost))
+    : [];
+
+  const laborCostsCents = laborMatchedCosts.reduce(
+    (sum, cost) => sum + getCostAmountCents(cost),
+    0,
+  );
+  const otherCostsCents = otherCosts.reduce(
     (sum, cost) => sum + getCostAmountCents(cost),
     0,
   );
@@ -512,7 +537,7 @@ async function buildInvoiceLines(
     ? (
       QBO_DEFAULT_LABOR_RATE_CENTS > 0
         ? QBO_DEFAULT_LABOR_RATE_CENTS
-        : Math.round((laborCostsCents || fallbackLaborPoolCents) / loggedHours)
+        : Math.round(laborCostsCents / loggedHours)
     )
     : 0;
   const laborTotalCents = loggedHours > 0
@@ -562,6 +587,28 @@ async function buildInvoiceLines(
         UnitPrice: part.unit_price_cents / 100,
       },
     });
+  }
+
+  if (otherCostsCents > 0) {
+    const otherItem = await getOrCreateServiceItem(
+      accessToken,
+      realmId,
+      QBO_INVOICE_ITEM_NAMES.other,
+    );
+    for (const cost of otherCosts) {
+      const otherAmountCents = getCostAmountCents(cost);
+      if (otherAmountCents <= 0) continue;
+      lines.push({
+        Amount: otherAmountCents / 100,
+        DetailType: "SalesItemLineDetail",
+        Description: cost.description,
+        SalesItemLineDetail: {
+          ItemRef: otherItem,
+          Qty: cost.quantity,
+          UnitPrice: cost.unit_price_cents / 100,
+        },
+      });
+    }
   }
 
   if (truckSuppliesCents > 0) {

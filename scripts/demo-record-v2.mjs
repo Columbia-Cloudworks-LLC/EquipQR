@@ -264,7 +264,6 @@ async function runWithArgs(args) {
             );
           }
         }
-        await runner.stopVideo(videoRelativePath);
       } catch (error) {
         status = 'failed';
         failureReason = error instanceof Error ? error.message : String(error);
@@ -272,6 +271,22 @@ async function runWithArgs(args) {
           failureTaxonomy.push('ACTION_FAILURE');
         }
       } finally {
+        try {
+          await runner.stopVideo(videoRelativePath);
+        } catch (stopError) {
+          const stopMessage =
+            stopError instanceof Error ? stopError.message : String(stopError);
+          console.error(
+            `[demo:v2] stopVideo failed scenario=${scenario.id} video=${videoRelativePath}: ${stopMessage}`
+          );
+          if (!failureTaxonomy.includes('VIDEO_FINALIZE_FAILURE')) {
+            failureTaxonomy.push('VIDEO_FINALIZE_FAILURE');
+          }
+          if (status === 'passed') {
+            status = 'failed';
+            failureReason = `Video finalization failed: ${stopMessage}`;
+          }
+        }
         await runner.closeSession();
       }
 

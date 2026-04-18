@@ -56,27 +56,18 @@ export const createEquipmentNoteWithImages = async (
   hoursWorked: number = 0,
   isPrivate: boolean = false,
   images: File[] = [],
-  organizationId?: string,
+  organizationId: string,
   machineHours?: number | null,
 ): Promise<EquipmentNote> => {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error('User not authenticated');
 
-  // Get organization_id if not provided
-  let orgId = organizationId;
-  if (!orgId) {
-    const { data: equipment } = await supabase
-      .from('equipment')
-      .select('organization_id')
-      .eq('id', equipmentId)
-      .single();
-    if (!equipment) throw new Error('Equipment not found');
-    orgId = equipment.organization_id;
+  if (!organizationId) {
+    throw new Error('organizationId is required to create an equipment note');
   }
 
-  // Validate storage quota for all files before uploading
   const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);
-  await validateStorageQuota(orgId, totalFileSize);
+  await validateStorageQuota(organizationId, totalFileSize);
 
   // Create the note first
   const { data: note, error: noteError } = await supabase
@@ -150,6 +141,7 @@ export const createEquipmentNoteWithImages = async (
 // Legacy function for backward compatibility
 export const createEquipmentNote = async (data: {
   equipmentId: string;
+  organizationId: string;
   content: string;
   hoursWorked?: number;
   isPrivate?: boolean;
@@ -161,7 +153,7 @@ export const createEquipmentNote = async (data: {
     data.hoursWorked || 0,
     data.isPrivate || false,
     [],
-    undefined,
+    data.organizationId,
     data.machineHours,
   );
 };
