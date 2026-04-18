@@ -86,6 +86,14 @@ export interface WorkOrderCardProps {
   isUpdating?: boolean;
   /** Is the accept action in progress */
   isAccepting?: boolean;
+  /**
+   * Hint that this card is in the initial viewport. When true, the
+   * equipment thumbnail loads eagerly with `fetchpriority=high` so Chrome
+   * does not defer it (and does not emit the
+   * "Images loaded lazily and replaced with placeholders" intervention
+   * warning). The list parent typically passes `index < 6`.
+   */
+  isAboveTheFold?: boolean;
 }
 
 interface EquipmentThumbnailProps {
@@ -94,6 +102,8 @@ interface EquipmentThumbnailProps {
   equipmentAltContext?: string;
   className?: string;
   iconClassName?: string;
+  /** See WorkOrderCardProps.isAboveTheFold. */
+  isAboveTheFold?: boolean;
 }
 
 // ============================================
@@ -171,6 +181,7 @@ const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
   equipmentAltContext,
   className,
   iconClassName,
+  isAboveTheFold = false,
 }) => {
   const [hasImageError, setHasImageError] = useState(false);
 
@@ -195,7 +206,9 @@ const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
             : 'Work order equipment image'
       }
       className={cn('rounded-xl object-cover bg-muted ring-1 ring-border', className)}
-      loading="lazy"
+      loading={isAboveTheFold ? 'eager' : 'lazy'}
+      // The DOM property is `fetchPriority` (camelCase) in React 18+.
+      fetchPriority={isAboveTheFold ? 'high' : 'auto'}
       onError={() => setHasImageError(true)}
     />
   );
@@ -207,7 +220,8 @@ const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
 
 const DesktopCard: React.FC<WorkOrderCardProps> = memo(({ 
   workOrder, 
-  onNavigate
+  onNavigate,
+  isAboveTheFold,
 }) => {
   const permissions = useUnifiedPermissions();
   const workOrderData = mapToWorkOrderData(workOrder);
@@ -260,6 +274,7 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
             equipmentAltContext={workOrder.title}
             className="h-24 w-24 rounded-xl flex-shrink-0"
             iconClassName="h-10 w-10"
+            isAboveTheFold={isAboveTheFold}
           />
           <div className="min-w-0 flex-1">
             <CardTitle className="text-lg font-semibold leading-tight">
@@ -428,11 +443,12 @@ DesktopCard.displayName = 'DesktopCard';
 // Mobile Card Component
 // ============================================
 
-type MobileCardProps = Pick<WorkOrderCardProps, 'workOrder' | 'onNavigate'>;
+type MobileCardProps = Pick<WorkOrderCardProps, 'workOrder' | 'onNavigate' | 'isAboveTheFold'>;
 
 const MobileCard: React.FC<MobileCardProps> = memo(({
   workOrder,
   onNavigate,
+  isAboveTheFold,
 }) => {
   const dueDateValue = workOrder.dueDate ?? workOrder.due_date;
   const createdDateValue = workOrder.createdDate ?? workOrder.created_date;
@@ -495,6 +511,7 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
             equipmentAltContext={workOrder.title}
             className="h-12 w-12 rounded-lg flex-shrink-0"
             iconClassName="h-6 w-6"
+            isAboveTheFold={isAboveTheFold}
           />
           <div className="min-w-0 flex-1">
             <CardTitle className="text-[15px] font-semibold leading-snug line-clamp-2">

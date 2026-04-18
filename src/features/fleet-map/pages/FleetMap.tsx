@@ -17,7 +17,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const FleetMap: React.FC = () => {
-  const { googleMapsKey, isLoaded: isMapsLoaded, loadError: mapsLoadError, isKeyLoading: mapsKeyLoading, keyError: mapsKeyError, retry: retryMapsKey } = useGoogleMapsLoader();
+  const { googleMapsKey, mapId: googleMapsMapId, isLoaded: isMapsLoaded, loadError: mapsLoadError, isKeyLoading: mapsKeyLoading, keyError: mapsKeyError, retry: retryMapsKey } = useGoogleMapsLoader();
   const { data: teamFleetData, isLoading: teamFleetLoading, error: teamFleetError } = useTeamFleetData();
   const isMobile = useIsMobile();
 
@@ -252,11 +252,14 @@ const FleetMap: React.FC = () => {
           onEquipmentSelect={handleEquipmentSelect}
         />
 
-        {/* Full-width Map */}
+        {/* Full-width Map. We render <MapView> as soon as we have an API key —
+            the new vis.gl <APIProvider> inside MapView handles the script
+            load (with loading=async) and shows its own progressive UI. */}
         <div className="h-full w-full">
-          {isMapsLoaded ? (
+          {googleMapsKey ? (
             <MapView
               googleMapsKey={googleMapsKey}
+              mapId={googleMapsMapId}
               equipmentLocations={equipmentLocations}
               filteredLocations={equipmentLocations}
               teamHQLocations={teamHQLocations}

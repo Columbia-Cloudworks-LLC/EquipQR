@@ -1,5 +1,11 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { GoogleMap, MarkerF, InfoWindowF } from '@react-google-maps/api';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import {
+  APIProvider,
+  Map,
+  AdvancedMarker,
+  InfoWindow,
+  useMap,
+} from '@vis.gl/react-google-maps';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Clock, Wrench, Users, Navigation, Star, Maximize2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +14,7 @@ import { DATE_DISPLAY_FORMAT } from '@/config/date-formats';
 import { buildGoogleMapsUrlFromCoords } from '@/utils/effectiveLocation';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils/logger';
 
 function formatDate(dateString: string): string {
   try {
@@ -148,7 +155,6 @@ function buildMarkerSvg(fillColor: string, strokeColor: string): string {
  * Uses a map pin outline with a 5-point star center instead of a circle.
  */
 function buildStarMarkerSvg(fillColor: string, strokeColor: string): string {
-  // 5-point star centered at (14,13) with outer radius ~6, inner radius ~2.5
   return `<svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M16 0C8.268 0 2 6.268 2 14c0 10.5 14 24 14 24s14-13.5 14-24C30 6.268 23.732 0 16 0z" fill="${fillColor}" stroke="${strokeColor}" stroke-width="1.5"/>
     <path d="M16 6.5l1.9 3.8 4.2.6-3 3 .7 4.2L16 16l-3.8 2.1.7-4.2-3-3 4.2-.6z" fill="white" opacity="0.95"/>
@@ -185,119 +191,54 @@ export interface TeamHQLocation {
 
 interface MapViewProps {
   googleMapsKey: string;
+  /**
+   * Cloud-managed Map ID required for vector maps + Advanced Markers.
+   * `null` triggers a one-time console warning and renders a degraded
+   * experience (raster tiles, fallback marker rendering by Google).
+   */
+  mapId?: string | null;
   equipmentLocations: EquipmentLocation[];
   filteredLocations: EquipmentLocation[];
   /** Team HQ locations to display with star markers */
   teamHQLocations?: TeamHQLocation[];
+  /**
+   * Ignored — kept for API compatibility with the prior implementation.
+   * The vis.gl `<APIProvider>` handles loading internally.
+   */
   isMapsLoaded?: boolean;
+  /** Ignored — kept for API compatibility. */
   mapsLoadError?: Error;
   /** When set, the map centers on this equipment and opens its info window */
   focusEquipmentId?: string | null;
   onMarkerClick?: (id: string) => void;
 }
 
-const BASE_MAP_OPTIONS: google.maps.MapOptions = {
-  disableDefaultUI: false,
-  zoomControl: true,
-  streetViewControl: false,
-  mapTypeControl: true,
-  fullscreenControl: true,
-};
-
-/**
- * Dark basemap style — deep navy/charcoal palette matching the EquipQR dark shell.
- * Applied automatically when the user's OS/app theme is dark.
- */
-const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
-  { elementType: 'geometry', stylers: [{ color: '#1e2533' }] },
-  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8896aa' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#1e2533' }] },
-  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#313d52' }] },
-  { featureType: 'administrative.country', elementType: 'labels.text.fill', stylers: [{ color: '#9aa6b8' }] },
-  { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
-  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#adb9c8' }] },
-  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#1e2533' }] },
-  { featureType: 'landscape.man_made', elementType: 'geometry', stylers: [{ color: '#252e3f' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#252e3f' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#6b7a8d' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1a2d22' }] },
-  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#3d6b4a' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2c3a52' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a2233' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#8896aa' }] },
-  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#33415a' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3d5270' }] },
-  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#1e2d40' }] },
-  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#b8c8d8' }] },
-  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#6b7a8d' }] },
-  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#283245' }] },
-  { featureType: 'transit.station', elementType: 'labels.text.fill', stylers: [{ color: '#7888a0' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f1824' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d5068' }] },
-  { featureType: 'water', elementType: 'labels.text.stroke', stylers: [{ color: '#0f1824' }] },
-];
-
 // ── Component ─────────────────────────────────────────────────
 
-export const MapView: React.FC<MapViewProps> = ({
-  equipmentLocations,
+/**
+ * Inner map content. Lives inside <APIProvider> so it can use `useMap()` and
+ * the marker / info window components which require the provider context.
+ */
+const MapContent: React.FC<{
+  filteredLocations: EquipmentLocation[];
+  teamHQLocations: TeamHQLocation[];
+  focusEquipmentId?: string | null;
+  onMarkerClick?: (id: string) => void;
+}> = ({
   filteredLocations,
-  teamHQLocations = [],
-  isMapsLoaded = false,
-  mapsLoadError,
+  teamHQLocations,
   focusEquipmentId,
   onMarkerClick,
 }) => {
+  const map = useMap();
   const navigate = useNavigate();
   const [selectedMarker, setSelectedMarker] = useState<EquipmentLocation | null>(null);
   const [selectedHQ, setSelectedHQ] = useState<TeamHQLocation | null>(null);
-  const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const [themeVersion, setThemeVersion] = useState(0);
+  const hasAutoFitted = useRef(false);
 
-  const onMapLoad = useCallback((map: google.maps.Map) => {
-    setMapRef(map);
-  }, []);
-
-  // Compute the bounding box of all visible markers and fit the map to it.
-  // Called once on initial load and exposed for the "Fit All" button.
-  const fitAllMarkers = useCallback(() => {
-    if (!mapRef || typeof window === 'undefined' || !window.google?.maps) return;
-
-    const allPoints: { lat: number; lng: number }[] = [
-      ...filteredLocations.map((l) => ({ lat: l.lat, lng: l.lng })),
-      ...teamHQLocations.map((h) => ({ lat: h.lat, lng: h.lng })),
-    ];
-
-    if (allPoints.length === 0) return;
-
-    if (allPoints.length === 1) {
-      mapRef.panTo(allPoints[0]);
-      mapRef.setZoom(14);
-      return;
-    }
-
-    const bounds = new window.google.maps.LatLngBounds();
-    allPoints.forEach((p) => bounds.extend(p));
-    mapRef.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
-
-    // Cap zoom at 15 to prevent over-zooming on tightly-clustered markers.
-    window.google.maps.event.addListenerOnce(mapRef, 'idle', () => {
-      const z = mapRef.getZoom();
-      if (z !== undefined && z > 15) mapRef.setZoom(15);
-    });
-  }, [mapRef, filteredLocations, teamHQLocations]);
-
-  // Auto-fit all markers once when the map and data are both available.
-  const hasAutoFitted = React.useRef(false);
-  React.useEffect(() => {
-    if (!mapRef || hasAutoFitted.current) return;
-    if (filteredLocations.length === 0 && teamHQLocations.length === 0) return;
-    fitAllMarkers();
-    hasAutoFitted.current = true;
-  }, [mapRef, filteredLocations, teamHQLocations, fitAllMarkers]);
-
-  React.useEffect(() => {
+  // Watch for theme changes (light/dark) so token-derived colors refresh.
+  useEffect(() => {
     if (typeof window === 'undefined') return;
     const observer = new MutationObserver(() => setThemeVersion((value) => value + 1));
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
@@ -315,6 +256,8 @@ export const MapView: React.FC<MapViewProps> = ({
       };
       return accumulator;
     }, {} as Record<SourceType, MarkerColor>);
+    // themeVersion is intentionally a dep so we re-resolve on theme switch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeVersion]);
 
   const teamHQColor = useMemo<MarkerColor>(() => {
@@ -324,109 +267,66 @@ export const MapView: React.FC<MapViewProps> = ({
       stroke: darkenHex(fill, 0.3),
       label: TEAM_HQ_TOKEN.label,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeVersion]);
+
+  // Compute the bounding box of all visible markers and fit the map to it.
+  const fitAllMarkers = useCallback(() => {
+    if (!map || typeof window === 'undefined' || !window.google?.maps) return;
+
+    const allPoints: { lat: number; lng: number }[] = [
+      ...filteredLocations.map((l) => ({ lat: l.lat, lng: l.lng })),
+      ...teamHQLocations.map((h) => ({ lat: h.lat, lng: h.lng })),
+    ];
+
+    if (allPoints.length === 0) return;
+
+    if (allPoints.length === 1) {
+      map.panTo(allPoints[0]);
+      map.setZoom(14);
+      return;
+    }
+
+    const bounds = new window.google.maps.LatLngBounds();
+    allPoints.forEach((p) => bounds.extend(p));
+    map.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
+
+    // Cap zoom at 15 to prevent over-zooming on tightly-clustered markers.
+    window.google.maps.event.addListenerOnce(map, 'idle', () => {
+      const z = map.getZoom();
+      if (z !== undefined && z > 15) map.setZoom(15);
+    });
+  }, [map, filteredLocations, teamHQLocations]);
+
+  // Auto-fit all markers once when the map and data are both available.
+  useEffect(() => {
+    if (!map || hasAutoFitted.current) return;
+    if (filteredLocations.length === 0 && teamHQLocations.length === 0) return;
+    fitAllMarkers();
+    hasAutoFitted.current = true;
+  }, [map, filteredLocations, teamHQLocations, fitAllMarkers]);
 
   // Auto-focus on a specific equipment when focusEquipmentId changes
-  React.useEffect(() => {
-    if (!focusEquipmentId || !mapRef) return;
+  useEffect(() => {
+    if (!focusEquipmentId || !map) return;
     const target = filteredLocations.find((l) => l.id === focusEquipmentId);
     if (target) {
-      mapRef.panTo({ lat: target.lat, lng: target.lng });
-      mapRef.setZoom(15);
+      map.panTo({ lat: target.lat, lng: target.lng });
+      map.setZoom(15);
       setSelectedMarker(target);
     }
-  }, [focusEquipmentId, filteredLocations, mapRef]);
-
-  // Calculate bounds to fit all markers (equipment + team HQs)
-  const mapCenter = useMemo(() => {
-    const equipLocs = filteredLocations.length > 0 ? filteredLocations : equipmentLocations;
-    const allPoints: { lat: number; lng: number }[] = [
-      ...equipLocs,
-      ...teamHQLocations,
-    ];
-    if (allPoints.length === 0) return { lat: 39.8283, lng: -98.5795 };
-    const avgLat = allPoints.reduce((sum, loc) => sum + loc.lat, 0) / allPoints.length;
-    const avgLng = allPoints.reduce((sum, loc) => sum + loc.lng, 0) / allPoints.length;
-    return { lat: avgLat, lng: avgLng };
-  }, [filteredLocations, equipmentLocations, teamHQLocations]);
-
-  const mapContainerStyle = useMemo(
-    () => ({ width: '100%', height: '100%' }),
-    []
-  );
-
-  // Recompute map options whenever the theme changes so the basemap switches
-  // between light (default Google tiles) and dark (navy/charcoal custom styles).
-  const mapOptions = useMemo<google.maps.MapOptions>(() => {
-    const isDark =
-      typeof document !== 'undefined' &&
-      document.documentElement.classList.contains('dark');
-    return {
-      ...BASE_MAP_OPTIONS,
-      styles: isDark ? DARK_MAP_STYLES : [],
-    };
-  }, [themeVersion]);
-
-  // Build marker icons (memoized by source)
-  const markerIcons = useMemo(() => {
-    if (!isMapsLoaded || !window.google?.maps) return {};
-    const icons: Record<SourceType, google.maps.Icon> = {} as Record<SourceType, google.maps.Icon>;
-    for (const [source, colors] of Object.entries(sourceColors) as [SourceType, MarkerColor][]) {
-      icons[source] = {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(buildMarkerSvg(colors.fill, colors.stroke)),
-        scaledSize: new window.google.maps.Size(28, 36),
-        anchor: new window.google.maps.Point(14, 36),
-      };
-    }
-    return icons;
-  }, [isMapsLoaded, sourceColors]);
-
-  // Build team HQ star marker icon
-  const hqMarkerIcon = useMemo(() => {
-    if (!isMapsLoaded || !window.google?.maps) return undefined;
-    return {
-      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(buildStarMarkerSvg(teamHQColor.fill, teamHQColor.stroke)),
-      scaledSize: new window.google.maps.Size(32, 40),
-      anchor: new window.google.maps.Point(16, 40),
-    };
-  }, [isMapsLoaded, teamHQColor.fill, teamHQColor.stroke]);
-
-  if (!isMapsLoaded) {
-    return (
-      <div className="h-full w-full bg-muted animate-pulse rounded-lg flex items-center justify-center">
-        <p className="text-muted-foreground">Loading Google Maps...</p>
-      </div>
-    );
-  }
-
-  if (mapsLoadError) {
-    return (
-      <div className="h-full w-full bg-destructive/10 border border-destructive/20 rounded-lg flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-destructive font-medium">Failed to load Google Maps</p>
-          <p className="text-sm text-muted-foreground mt-1">{mapsLoadError.message}</p>
-        </div>
-      </div>
-    );
-  }
+  }, [focusEquipmentId, filteredLocations, map]);
 
   const sourceConfig = selectedMarker ? sourceColors[selectedMarker.source] || sourceColors.equipment : null;
   const selectedSourceType: SourceType = selectedMarker?.source ?? 'equipment';
   const selectedSourceClasses = SOURCE_TOKEN_CLASSES[selectedSourceType];
 
-  const totalMarkerCount = filteredLocations.length + teamHQLocations.length;
-
   return (
-    <div className="relative h-full w-full">
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={mapCenter}
-        zoom={totalMarkerCount === 1 ? 14 : totalMarkerCount > 0 ? 6 : 4}
-        options={mapOptions}
-        onLoad={onMapLoad}
-      >
-        {filteredLocations.map((location) => (
-          <MarkerF
+    <>
+      {filteredLocations.map((location) => {
+        const colors = sourceColors[location.source];
+        return (
+          <AdvancedMarker
             key={location.id}
             position={{ lat: location.lat, lng: location.lng }}
             onClick={() => {
@@ -434,190 +334,202 @@ export const MapView: React.FC<MapViewProps> = ({
               setSelectedMarker(location);
               onMarkerClick?.(location.id);
             }}
-            icon={markerIcons[location.source]}
-          />
-        ))}
-
-        {/* Team HQ star markers */}
-        {teamHQLocations.map((hq) => (
-          <MarkerF
-            key={`hq-${hq.id}`}
-            position={{ lat: hq.lat, lng: hq.lng }}
-            onClick={() => {
-              setSelectedMarker(null);
-              setSelectedHQ(hq);
-            }}
-            icon={hqMarkerIcon}
-            zIndex={1000}
-          />
-        ))}
-
-        {/* Team HQ info window */}
-        {selectedHQ && (
-          <InfoWindowF
-            position={{ lat: selectedHQ.lat, lng: selectedHQ.lng }}
-            onCloseClick={() => setSelectedHQ(null)}
+            title={location.name}
           >
-            <div className="w-[min(88vw,300px)] p-3">
-              {/* Header */}
-              <div className="flex items-center gap-2 mb-2">
-                <div
-                  className={cn("p-1.5 rounded-full flex-shrink-0", TEAM_HQ_CLASSES.subtle)}
+            {/* Inline SVG glyph; the vis.gl AdvancedMarker accepts arbitrary
+                children that are rendered as the marker content. */}
+            <div
+              style={{ transform: 'translateY(-18px)', pointerEvents: 'none' }}
+              dangerouslySetInnerHTML={{ __html: buildMarkerSvg(colors.fill, colors.stroke) }}
+            />
+          </AdvancedMarker>
+        );
+      })}
+
+      {/* Team HQ star markers */}
+      {teamHQLocations.map((hq) => (
+        <AdvancedMarker
+          key={`hq-${hq.id}`}
+          position={{ lat: hq.lat, lng: hq.lng }}
+          onClick={() => {
+            setSelectedMarker(null);
+            setSelectedHQ(hq);
+          }}
+          title={hq.name}
+          zIndex={1000}
+        >
+          <div
+            style={{ transform: 'translateY(-20px)', pointerEvents: 'none' }}
+            dangerouslySetInnerHTML={{ __html: buildStarMarkerSvg(teamHQColor.fill, teamHQColor.stroke) }}
+          />
+        </AdvancedMarker>
+      ))}
+
+      {/* Team HQ info window */}
+      {selectedHQ && (
+        <InfoWindow
+          position={{ lat: selectedHQ.lat, lng: selectedHQ.lng }}
+          onClose={() => setSelectedHQ(null)}
+        >
+          <div className="w-[min(88vw,300px)] p-3">
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-2">
+              <div
+                className={cn("p-1.5 rounded-full flex-shrink-0", TEAM_HQ_CLASSES.subtle)}
+              >
+                <Star className={cn("h-4 w-4", TEAM_HQ_CLASSES.icon)} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm text-foreground truncate">{selectedHQ.name}</h3>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                    TEAM_HQ_CLASSES.badge
+                  )}
                 >
-                  <Star className={cn("h-4 w-4", TEAM_HQ_CLASSES.icon)} />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-sm text-foreground truncate">{selectedHQ.name}</h3>
+                  {teamHQColor.label}
+                </span>
+              </div>
+            </div>
+
+            {/* Address */}
+            {selectedHQ.formatted_address && (
+              <div className="mb-3">
+                <ClickableAddress
+                  address={selectedHQ.formatted_address}
+                  lat={selectedHQ.lat}
+                  lng={selectedHQ.lng}
+                  className="text-xs"
+                />
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                size="sm"
+                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
+                onClick={() => navigate(`/dashboard/teams/${selectedHQ.id}`)}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                View Team
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
+                onClick={() => {
+                  window.open(buildGoogleMapsUrlFromCoords(selectedHQ.lat, selectedHQ.lng), '_blank');
+                }}
+              >
+                <Navigation className="h-3 w-3 mr-1" />
+                Directions
+              </Button>
+            </div>
+          </div>
+        </InfoWindow>
+      )}
+
+      {selectedMarker && (
+        <InfoWindow
+          position={{ lat: selectedMarker.lat, lng: selectedMarker.lng }}
+          onClose={() => setSelectedMarker(null)}
+        >
+          <div className="w-[min(92vw,350px)] p-3">
+            {/* Header */}
+            <div className="flex gap-3 mb-3">
+              {selectedMarker.image_url && (
+                <img
+                  src={selectedMarker.image_url}
+                  alt={selectedMarker.name}
+                  className="w-14 h-14 object-cover rounded-lg border flex-shrink-0"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm text-foreground truncate">{selectedMarker.name}</h3>
+                <p className="truncate text-xs text-muted-foreground" title={`${selectedMarker.manufacturer} ${selectedMarker.model}`}>
+                  {selectedMarker.manufacturer} {selectedMarker.model}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1">
                   <span
                     className={cn(
                       "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                      TEAM_HQ_CLASSES.badge
+                      selectedSourceClasses.badge
                     )}
                   >
-                    {teamHQColor.label}
+                    {sourceConfig?.label}
                   </span>
+                  {selectedMarker.team_name && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                      <Users className="h-2.5 w-2.5" />
+                      {selectedMarker.team_name}
+                    </span>
+                  )}
                 </div>
               </div>
+            </div>
 
-              {/* Address */}
-              {selectedHQ.formatted_address && (
-                <div className="mb-3">
+            {/* Details */}
+            <div className="space-y-1.5 text-xs mb-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Serial:</span>
+                <span className="font-mono truncate ml-2 text-foreground">{selectedMarker.serial_number}</span>
+              </div>
+              {selectedMarker.working_hours != null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />Hours:</span>
+                  <span className="text-foreground">{selectedMarker.working_hours.toLocaleString()}</span>
+                </div>
+              )}
+              {selectedMarker.last_maintenance && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1"><Wrench className="h-3 w-3" />Maintenance:</span>
+                  <span className="text-foreground">{formatDate(selectedMarker.last_maintenance)}</span>
+                </div>
+              )}
+              {selectedMarker.formatted_address && (
+                <div className="pt-1">
                   <ClickableAddress
-                    address={selectedHQ.formatted_address}
-                    lat={selectedHQ.lat}
-                    lng={selectedHQ.lng}
+                    address={selectedMarker.formatted_address}
+                    lat={selectedMarker.lat}
+                    lng={selectedMarker.lng}
                     className="text-xs"
                   />
                 </div>
               )}
-
-              {/* Actions */}
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  size="sm"
-                  className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
-                  onClick={() => navigate(`/dashboard/teams/${selectedHQ.id}`)}
-                >
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  View Team
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
-                  onClick={() => {
-                    window.open(buildGoogleMapsUrlFromCoords(selectedHQ.lat, selectedHQ.lng), '_blank');
-                  }}
-                >
-                  <Navigation className="h-3 w-3 mr-1" />
-                  Directions
-                </Button>
-              </div>
-            </div>
-          </InfoWindowF>
-        )}
-
-        {selectedMarker && (
-          <InfoWindowF
-            position={{ lat: selectedMarker.lat, lng: selectedMarker.lng }}
-            onCloseClick={() => setSelectedMarker(null)}
-          >
-            <div className="w-[min(92vw,350px)] p-3">
-              {/* Header */}
-              <div className="flex gap-3 mb-3">
-                {selectedMarker.image_url && (
-                  <img
-                    src={selectedMarker.image_url}
-                    alt={selectedMarker.name}
-                    className="w-14 h-14 object-cover rounded-lg border flex-shrink-0"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm text-foreground truncate">{selectedMarker.name}</h3>
-                  <p className="truncate text-xs text-muted-foreground" title={`${selectedMarker.manufacturer} ${selectedMarker.model}`}>
-                    {selectedMarker.manufacturer} {selectedMarker.model}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                        selectedSourceClasses.badge
-                      )}
-                    >
-                      {sourceConfig?.label}
-                    </span>
-                    {selectedMarker.team_name && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                        <Users className="h-2.5 w-2.5" />
-                        {selectedMarker.team_name}
-                      </span>
-                    )}
-                  </div>
+              {selectedMarker.location_updated_at && (
+                <div className="text-[10px] text-muted-foreground">
+                  Updated {getRelativeTime(selectedMarker.location_updated_at)}
                 </div>
-              </div>
-
-              {/* Details */}
-              <div className="space-y-1.5 text-xs mb-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Serial:</span>
-                  <span className="font-mono truncate ml-2 text-foreground">{selectedMarker.serial_number}</span>
-                </div>
-                {selectedMarker.working_hours != null && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />Hours:</span>
-                    <span className="text-foreground">{selectedMarker.working_hours.toLocaleString()}</span>
-                  </div>
-                )}
-                {selectedMarker.last_maintenance && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1"><Wrench className="h-3 w-3" />Maintenance:</span>
-                    <span className="text-foreground">{formatDate(selectedMarker.last_maintenance)}</span>
-                  </div>
-                )}
-                {selectedMarker.formatted_address && (
-                  <div className="pt-1">
-                    <ClickableAddress
-                      address={selectedMarker.formatted_address}
-                      lat={selectedMarker.lat}
-                      lng={selectedMarker.lng}
-                      className="text-xs"
-                    />
-                  </div>
-                )}
-                {selectedMarker.location_updated_at && (
-                  <div className="text-[10px] text-muted-foreground">
-                    Updated {getRelativeTime(selectedMarker.location_updated_at)}
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  size="sm"
-                  className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
-                  onClick={() => navigate(`/dashboard/equipment/${selectedMarker.id}`)}
-                >
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  Details
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
-                  onClick={() => {
-                    window.open(buildGoogleMapsUrlFromCoords(selectedMarker.lat, selectedMarker.lng), '_blank');
-                  }}
-                >
-                  <Navigation className="h-3 w-3 mr-1" />
-                  Directions
-                </Button>
-              </div>
+              )}
             </div>
-          </InfoWindowF>
-        )}
-      </GoogleMap>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                size="sm"
+                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
+                onClick={() => navigate(`/dashboard/equipment/${selectedMarker.id}`)}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Details
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
+                onClick={() => {
+                  window.open(buildGoogleMapsUrlFromCoords(selectedMarker.lat, selectedMarker.lng), '_blank');
+                }}
+              >
+                <Navigation className="h-3 w-3 mr-1" />
+                Directions
+              </Button>
+            </div>
+          </div>
+        </InfoWindow>
+      )}
 
       {/* Fit All button — bottom-left mirrors the legend on the right.
            Visible when the equipment panel is closed; behind the panel when open (z-20). */}
@@ -650,7 +562,84 @@ export const MapView: React.FC<MapViewProps> = ({
           )}
         </div>
       </div>
-    </div>
+
+    </>
   );
 };
 
+let warnedNoMapId = false;
+
+export const MapView: React.FC<MapViewProps> = ({
+  googleMapsKey,
+  mapId,
+  equipmentLocations,
+  filteredLocations,
+  teamHQLocations = [],
+  focusEquipmentId,
+  onMarkerClick,
+}) => {
+  const totalMarkerCount = filteredLocations.length + teamHQLocations.length;
+  const isDark =
+    typeof document !== 'undefined' &&
+    document.documentElement.classList.contains('dark');
+
+  const mapCenter = useMemo(() => {
+    const equipLocs = filteredLocations.length > 0 ? filteredLocations : equipmentLocations;
+    const allPoints: { lat: number; lng: number }[] = [
+      ...equipLocs,
+      ...teamHQLocations,
+    ];
+    if (allPoints.length === 0) return { lat: 39.8283, lng: -98.5795 };
+    const avgLat = allPoints.reduce((sum, loc) => sum + loc.lat, 0) / allPoints.length;
+    const avgLng = allPoints.reduce((sum, loc) => sum + loc.lng, 0) / allPoints.length;
+    return { lat: avgLat, lng: avgLng };
+  }, [filteredLocations, equipmentLocations, teamHQLocations]);
+
+  // One-time warning when the Map ID is missing — Advanced Markers are not
+  // available without it and Google will silently render legacy markers.
+  useEffect(() => {
+    if (!mapId && !warnedNoMapId) {
+      warnedNoMapId = true;
+      logger.warn(
+        'Fleet Map: GOOGLE_MAPS_MAP_ID is not configured. Vector maps and Advanced Markers are disabled. ' +
+          'Set the GOOGLE_MAPS_MAP_ID secret on the public-google-maps-key edge function.',
+      );
+    }
+  }, [mapId]);
+
+  return (
+    <div className="relative h-full w-full">
+      <APIProvider
+        apiKey={googleMapsKey}
+        libraries={['places', 'marker']}
+        solutionChannel="GMP_visgl_rgmlibrary_v1_default"
+      >
+        <Map
+          // mapId is required for Advanced Markers; when null the markers fall
+          // back to legacy red pins (with a deprecation warning) but the rest
+          // of the component still works.
+          mapId={mapId ?? undefined}
+          defaultCenter={mapCenter}
+          defaultZoom={totalMarkerCount === 1 ? 14 : totalMarkerCount > 0 ? 6 : 4}
+          // colorScheme follows the app theme; with a Cloud-bound style on the
+          // Map ID, the basemap can render an EquipQR-branded dark palette.
+          colorScheme={isDark ? 'DARK' : 'LIGHT'}
+          gestureHandling="greedy"
+          disableDefaultUI={false}
+          zoomControl={true}
+          streetViewControl={false}
+          mapTypeControl={true}
+          fullscreenControl={true}
+          style={{ width: '100%', height: '100%' }}
+        >
+          <MapContent
+            filteredLocations={filteredLocations}
+            teamHQLocations={teamHQLocations}
+            focusEquipmentId={focusEquipmentId}
+            onMarkerClick={onMarkerClick}
+          />
+        </Map>
+      </APIProvider>
+    </div>
+  );
+};

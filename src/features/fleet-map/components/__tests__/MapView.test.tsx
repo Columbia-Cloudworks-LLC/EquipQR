@@ -3,16 +3,26 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@/test/utils/test-utils';
 import { MapView } from '../MapView';
 
-// Mock @react-google-maps/api
-vi.mock('@react-google-maps/api', () => ({
-  GoogleMap: ({ children }: { children: React.ReactNode }) => (
+// Mock @vis.gl/react-google-maps. The real package mounts a Google Maps
+// instance via the JS SDK which is not available (and not desirable) in
+// jsdom. We replace the components with thin passthroughs and useMap with
+// a stub that returns null so the auto-fit effect is a no-op.
+vi.mock('@vis.gl/react-google-maps', () => ({
+  APIProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="api-provider">{children}</div>
+  ),
+  Map: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="google-map">{children}</div>
   ),
-  useJsApiLoader: () => ({ isLoaded: true, loadError: null }),
-  MarkerF: () => <div data-testid="marker" />,
-  InfoWindowF: ({ children }: { children: React.ReactNode }) => (
+  AdvancedMarker: ({ children, onClick }: { children?: React.ReactNode; onClick?: () => void }) => (
+    <div data-testid="marker" onClick={onClick}>
+      {children}
+    </div>
+  ),
+  InfoWindow: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="info-window">{children}</div>
   ),
+  useMap: vi.fn(() => null),
 }));
 
 // Mock react-router-dom
@@ -29,14 +39,18 @@ vi.mock('react-router-dom', async () => {
 vi.mock('@/utils/logger', () => ({
   logger: {
     debug: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
-// Mock window.google.maps for icon creation
+// Mock window.google.maps for any imperative calls that may occur during
+// the tests (e.g. fitAllMarkers if useMap returns a non-null map).
 interface GoogleMapsMock {
   maps: {
     Size: (width: number, height: number) => { width: number; height: number };
     Point: (x: number, y: number) => { x: number; y: number };
+    LatLngBounds: () => { extend: () => void; toJSON: () => unknown };
+    event: { addListenerOnce: () => void };
   };
 }
 
@@ -44,6 +58,8 @@ global.window.google = {
   maps: {
     Size: vi.fn((width: number, height: number) => ({ width, height })),
     Point: vi.fn((x: number, y: number) => ({ x, y })),
+    LatLngBounds: vi.fn(() => ({ extend: vi.fn(), toJSON: vi.fn() })),
+    event: { addListenerOnce: vi.fn() },
   },
 } as unknown as GoogleMapsMock;
 
@@ -107,16 +123,18 @@ describe('MapView', () => {
   });
 
   describe('Map Rendering', () => {
-    it('renders GoogleMap when provided with valid equipment locations', () => {
+    it('renders Map when provided with valid equipment locations', () => {
       render(
         <MapView
           googleMapsKey="test-api-key"
+          mapId="test-map-id"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={mockEquipmentLocations}
           isMapsLoaded={true}
         />
       );
 
+      expect(screen.getByTestId('api-provider')).toBeInTheDocument();
       expect(screen.getByTestId('google-map')).toBeInTheDocument();
     });
 
@@ -124,8 +142,23 @@ describe('MapView', () => {
       render(
         <MapView
           googleMapsKey="test-api-key"
+          mapId="test-map-id"
           equipmentLocations={[]}
           filteredLocations={[]}
+          isMapsLoaded={true}
+        />
+      );
+
+      expect(screen.getByTestId('google-map')).toBeInTheDocument();
+    });
+
+    it('still renders when mapId is null (degraded fallback)', () => {
+      render(
+        <MapView
+          googleMapsKey="test-api-key"
+          mapId={null}
+          equipmentLocations={mockEquipmentLocations}
+          filteredLocations={mockEquipmentLocations}
           isMapsLoaded={true}
         />
       );
@@ -141,6 +174,7 @@ describe('MapView', () => {
       render(
         <MapView
           googleMapsKey="test-api-key"
+          mapId="test-map-id"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={filteredLocations}
           isMapsLoaded={true}
@@ -155,6 +189,7 @@ describe('MapView', () => {
       render(
         <MapView
           googleMapsKey="test-api-key"
+          mapId="test-map-id"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={mockEquipmentLocations}
           isMapsLoaded={true}
@@ -169,6 +204,7 @@ describe('MapView', () => {
       render(
         <MapView
           googleMapsKey="test-api-key"
+          mapId="test-map-id"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={[]}
           isMapsLoaded={true}
@@ -181,34 +217,30 @@ describe('MapView', () => {
   });
 
   describe('Map Options', () => {
-    it('passes stable options object to GoogleMap', () => {
+    it('passes stable options object to Map across re-renders', () => {
       const { rerender } = render(
         <MapView
           googleMapsKey="test-api-key"
+          mapId="test-map-id"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={mockEquipmentLocations}
           isMapsLoaded={true}
         />
       );
-
-      // Get the initial options reference
 
       // Rerender with same props
       rerender(
         <MapView
           googleMapsKey="test-api-key"
+          mapId="test-map-id"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={mockEquipmentLocations}
           isMapsLoaded={true}
         />
       );
 
-      // Options should be stable (extracted to constant)
-      // This is verified by the fact that the component renders without errors
-      // and the options are passed correctly
+      // Component re-renders without errors and the Map is still in the DOM
       expect(screen.getByTestId('google-map')).toBeInTheDocument();
     });
   });
-
 });
-
