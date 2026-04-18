@@ -70,6 +70,10 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   const [editingDataLoadError, setEditingDataLoadError] = useState(false);
   // Ref to track current item ID to prevent race conditions when rapidly opening/closing form
   const currentEditingItemIdRef = useRef<string | null>(null);
+  // Tracks the (open + editingItem) identity that has already been initialized so we
+  // only run form.reset / collapsible reset on the closed -> open transition (or when
+  // the editingItem id changes), not on every parent re-render.
+  const lastInitKeyRef = useRef<string | null>(null);
   // Collapsible state for direct equipment links (collapsed by default to encourage rules-based approach)
   const [directLinksOpen, setDirectLinksOpen] = useState(false);
   // Collapsible state for alternate groups section
@@ -102,9 +106,23 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     }
   });
 
-  // Load editing data
+  // Initialize form state on the closed -> open transition (or when editingItem identity
+  // changes while open). Re-runs of this effect from unrelated parent re-renders are
+  // ignored via lastInitKeyRef so the user's in-flight edits (e.g. an added compatibility
+  // rule row, expanded collapsibles) are never wiped out from under them.
   useEffect(() => {
-    if (open && editingItem) {
+    if (!open) {
+      lastInitKeyRef.current = null;
+      return;
+    }
+
+    const initKey = editingItem?.id ?? '__new__';
+    if (lastInitKeyRef.current === initKey) {
+      return;
+    }
+    lastInitKeyRef.current = initKey;
+
+    if (editingItem) {
       // Reset loading/error state - async data will be loaded separately
       setIsEditingDataLoaded(false);
       setEditingDataLoadError(false);
@@ -123,10 +141,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         alternateGroupId: null,
         newAlternateGroupName: null
       });
-      // Reset collapsible states when editing
-      setDirectLinksOpen(false);
-      setAlternateGroupOpen(false);
-    } else if (open && !editingItem) {
+    } else {
       // Creating new item - no async data to load
       setIsEditingDataLoaded(true);
       setEditingDataLoadError(false);
@@ -145,31 +160,52 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
         alternateGroupId: null,
         newAlternateGroupName: null
       });
-      // Reset collapsible states for new items
-      setDirectLinksOpen(false);
-      setAlternateGroupOpen(false);
     }
-  }, [open, editingItem, form]);
+
+    // Reset collapsible states only on the open transition so user-initiated expansions
+    // mid-session are preserved across unrelated re-renders.
+    setDirectLinksOpen(false);
+    setAlternateGroupOpen(false);
+    // form is the stable object returned by useForm in RHF v7 (memoized via internal refs);
+    // intentionally excluded from deps to avoid resets from unrelated parent re-renders.
+    // editingItem is keyed via its id above (lastInitKeyRef) so only identity changes matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see comment above
+  }, [open, editingItem?.id]);
+
+  // Stable refs for callbacks/RHF api so we can react narrowly to id changes only
+  // (avoids re-running the async loader on every parent re-render).
+  const formRef = useRef(form);
+  formRef.current = form;
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   // Load compatible equipment and compatibility rules when editing.
   // Uses AbortController to properly cancel in-flight requests on unmount/re-render,
   // plus a ref to track the current item ID for additional race condition prevention.
+  //
+  // Deps are intentionally limited to the *identifying* fields of editingItem (id +
+  // organization_id) and currentOrganization.id. We deliberately exclude `form` and
+  // `toast` (read via refs) so this effect doesn't re-fire — and abort/restart its
+  // network requests — on unrelated parent re-renders.
+  const editingItemId = editingItem?.id;
+  const editingItemOrgId = editingItem?.organization_id;
+  const currentOrgId = currentOrganization?.id;
   useEffect(() => {
     // Create AbortController for this effect instance
     const abortController = new AbortController();
-    
-    if (editingItem && currentOrganization?.id) {
+
+    if (editingItemId && currentOrgId) {
       // Track which item we're loading data for
-      const itemId = editingItem.id;
+      const itemId = editingItemId;
       currentEditingItemIdRef.current = itemId;
 
       const loadEditingData = async () => {
         try {
           // SECURITY: Verify item belongs to organization (failsafe even with RLS)
-          if (editingItem.organization_id !== currentOrganization.id) {
+          if (editingItemOrgId !== currentOrgId) {
             logger.error('Security: editingItem organization mismatch', {
-              itemOrgId: editingItem.organization_id,
-              currentOrgId: currentOrganization.id
+              itemOrgId: editingItemOrgId,
+              currentOrgId
             });
             // Throw to trigger catch block and prevent form submission with empty related data
             throw new Error('Security: editingItem organization mismatch');
@@ -186,9 +222,9 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
               equipment_id,
               inventory_items!inner(organization_id)
             `)
-            .eq('inventory_item_id', editingItem.id)
-            .eq('inventory_items.organization_id', currentOrganization.id);
-          
+            .eq('inventory_item_id', itemId)
+            .eq('inventory_items.organization_id', currentOrgId);
+
           // Check for abort and stale item ID after async operation
           if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
             logger.debug('Ignoring stale/aborted editing data load for item:', itemId);
@@ -204,10 +240,13 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             .select(`
               manufacturer,
               model,
+              match_type,
+              status,
+              notes,
               inventory_items!inner(organization_id)
             `)
-            .eq('inventory_item_id', editingItem.id)
-            .eq('inventory_items.organization_id', currentOrganization.id);
+            .eq('inventory_item_id', itemId)
+            .eq('inventory_items.organization_id', currentOrgId);
 
           // Final check before updating form state
           if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
@@ -217,13 +256,16 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
 
           const rules: PartCompatibilityRuleFormData[] = (rulesData || []).map(row => ({
             manufacturer: row.manufacturer,
-            model: row.model
+            model: row.model,
+            match_type: row.match_type ?? 'exact',
+            status: row.status ?? 'unverified',
+            notes: row.notes ?? null
           }));
-          
-          // Update form with loaded data
-          form.setValue('compatibleEquipmentIds', equipmentIds);
-          form.setValue('compatibilityRules', rules);
-          
+
+          // Update form with loaded data (read RHF api via ref to keep deps stable)
+          formRef.current.setValue('compatibleEquipmentIds', equipmentIds);
+          formRef.current.setValue('compatibilityRules', rules);
+
           // Final abort check before setState to prevent React warnings about
           // updating state on unmounted components
           if (!abortController.signal.aborted) {
@@ -242,7 +284,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
           // Double-check abort signal before setState to handle race with unmount
           if (!abortController.signal.aborted) {
             setEditingDataLoadError(true);
-            toast({
+            toastRef.current({
               title: 'Failed to load item data',
               description: 'Could not load compatibility rules and settings. Please close and try again.',
               variant: 'error'
@@ -250,7 +292,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
           }
         }
       };
-      
+
       loadEditingData();
     }
 
@@ -262,7 +304,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     return () => {
       abortController.abort();
     };
-  }, [editingItem, currentOrganization?.id, form, toast]);
+  }, [editingItemId, editingItemOrgId, currentOrgId]);
 
   const onSubmit = async (data: InventoryItemFormData) => {
     if (!currentOrganization) {
@@ -540,7 +582,11 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                 <FormItem>
                   <FormControl>
                     <CompatibilityRulesEditor
-                      rules={field.value || []}
+                      // RHF infers the field value as a deeply-partial version of the
+                      // Zod schema's input shape; the editor canonicalizes it back into
+                      // PartCompatibilityRuleFormData via createBlankRule + handleRuleChange,
+                      // so a type assertion at the boundary is safe.
+                      rules={(field.value || []) as PartCompatibilityRuleFormData[]}
                       onChange={field.onChange}
                       disabled={isFormDisabled}
                     />
