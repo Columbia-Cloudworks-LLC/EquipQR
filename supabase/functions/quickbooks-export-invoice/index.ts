@@ -514,9 +514,10 @@ async function buildInvoiceLines(
   // When time logs exist, only costs whose description matches the labor regex
   // are folded into the labor line.  The remaining non-part/non-truck costs
   // (e.g. "Disposal fee", "Environmental") still need to be billed — we emit
-  // them as a single "Other" line below so the invoice total matches the work
-  // order total.  When no time logs exist, every non-part/non-truck cost is
-  // treated as labor (legacy behavior).
+  // one invoice line per cost below (each line tagged with the shared "Other"
+  // QBO item) so the invoice total matches the work order total and per-cost
+  // descriptions remain visible on the invoice.  When no time logs exist,
+  // every non-part/non-truck cost is treated as labor (legacy behavior).
   const laborMatchedCosts = loggedHours > 0
     ? laborCandidateCosts.filter(isLaborCost)
     : laborCandidateCosts;
