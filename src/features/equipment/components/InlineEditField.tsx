@@ -30,6 +30,13 @@ interface InlineEditFieldProps {
   placeholder?: string;
   className?: string;
   displayNode?: React.ReactNode;
+  /**
+   * Accessible label for the inline edit trigger. Defaults to "Edit" for
+   * back-compat; pass a field-specific value (e.g. "Edit status") so assistive
+   * tech and automation can target the right row when several inline editors
+   * sit side-by-side.
+   */
+  editAriaLabel?: string;
 }
 
 const InlineEditField: React.FC<InlineEditFieldProps> = ({
@@ -41,7 +48,8 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
   selectOptions,
   placeholder,
   className = '',
-  displayNode
+  displayNode,
+  editAriaLabel
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
@@ -128,7 +136,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
           size="sm"
           className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={() => setIsEditing(true)}
-          aria-label="Edit"
+          aria-label={editAriaLabel ?? 'Edit'}
         >
           <Edit2 className="h-3 w-3" />
         </Button>

@@ -157,7 +157,11 @@ const PMTemplateView: React.FC = () => {
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleBack}>Back to Templates</Button>
             {canEdit && (
-              <Button variant="outline" onClick={handleEdit}>
+              <Button
+                variant="outline"
+                onClick={handleEdit}
+                aria-label={template ? `Edit template ${template.name}` : 'Edit template'}
+              >
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
               </Button>
