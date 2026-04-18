@@ -8,7 +8,8 @@ import {
 import {
   loadScenarioRegistry,
   listScenarioSummaries,
-  expandScenarioSteps
+  expandScenarioSteps,
+  createSubstitutionContext
 } from './lib/demoScenarioEngine.mjs';
 import {
   buildDiagnostics,
@@ -220,8 +221,10 @@ async function runWithArgs(args) {
 
   for (let runNumber = 1; runNumber <= reliabilityRuns; runNumber += 1) {
     for (const planned of plan) {
+      const substitution = createSubstitutionContext();
       const scenario = expandScenarioSteps(
-        registry.scenarios.find((entry) => entry.id === planned.scenarioId)
+        registry.scenarios.find((entry) => entry.id === planned.scenarioId),
+        { substitution }
       );
       const runIndex = reliabilityRuns > 1 ? runNumber : null;
       const videoRelativePath = await allocateCanonicalArtifactRelativePath({
