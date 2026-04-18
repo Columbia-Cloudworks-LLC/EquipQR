@@ -298,13 +298,34 @@ const MapContent: React.FC<{
     });
   }, [map, filteredLocations, teamHQLocations]);
 
-  // Auto-fit all markers once when the map and data are both available.
+  // Build a stable signature of the visible marker identities so we can
+  // detect a meaningful dataset change (e.g. user switched the team filter)
+  // and re-fit. Comparing by id keeps us from refitting on every re-render
+  // even when the underlying data is the same.
+  const markerSignature = useMemo(
+    () =>
+      [
+        ...filteredLocations.map((l) => `e:${l.id}`),
+        ...teamHQLocations.map((h) => `t:${h.teamId}`),
+      ]
+        .sort()
+        .join('|'),
+    [filteredLocations, teamHQLocations],
+  );
+  const lastFitSignature = useRef<string | null>(null);
+
+  // Auto-fit when the map and data are both available, AND when the visible
+  // marker set changes identity (e.g. team filter switched). The signature
+  // check ensures we don't refit on cosmetic re-renders or after the user
+  // manually pans away.
   useEffect(() => {
-    if (!map || hasAutoFitted.current) return;
+    if (!map) return;
     if (filteredLocations.length === 0 && teamHQLocations.length === 0) return;
+    if (lastFitSignature.current === markerSignature) return;
     fitAllMarkers();
     hasAutoFitted.current = true;
-  }, [map, filteredLocations, teamHQLocations, fitAllMarkers]);
+    lastFitSignature.current = markerSignature;
+  }, [map, markerSignature, filteredLocations, teamHQLocations, fitAllMarkers]);
 
   // Auto-focus on a specific equipment when focusEquipmentId changes
   useEffect(() => {
@@ -579,9 +600,29 @@ export const MapView: React.FC<MapViewProps> = ({
   onMarkerClick,
 }) => {
   const totalMarkerCount = filteredLocations.length + teamHQLocations.length;
-  const isDark =
-    typeof document !== 'undefined' &&
-    document.documentElement.classList.contains('dark');
+
+  // Subscribe to <html> class mutations so the basemap colorScheme actually
+  // updates when the user toggles light/dark. Without this, isDark is a
+  // one-shot read at mount and the basemap can stay stuck in the wrong
+  // palette until an unrelated re-render happens.
+  const [themeVersion, setThemeVersion] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const observer = new MutationObserver(() => setThemeVersion((value) => value + 1));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'style'],
+    });
+    return () => observer.disconnect();
+  }, []);
+  const isDark = useMemo(
+    () =>
+      typeof document !== 'undefined' &&
+      document.documentElement.classList.contains('dark'),
+    // themeVersion is intentionally part of the deps so this re-evaluates on toggle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [themeVersion],
+  );
 
   const mapCenter = useMemo(() => {
     const equipLocs = filteredLocations.length > 0 ? filteredLocations : equipmentLocations;

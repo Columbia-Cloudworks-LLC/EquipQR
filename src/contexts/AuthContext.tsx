@@ -95,26 +95,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             //   2) queueMicrotask the RPC so it dispatches on the next tick.
             const userIdAtSignIn = session.user.id;
             queueMicrotask(() => {
-              supabase.auth.getSession().then(({ data: { session: liveSession } }) => {
-                if (!liveSession?.access_token || liveSession.user?.id !== userIdAtSignIn) {
-                  // Session is not yet (or no longer) consistent with the
-                  // SIGNED_IN payload. Skip silently — the next sign-in or
-                  // cache miss will retry. Avoid noisy console output.
-                  return;
-                }
+              supabase.auth.getSession()
+                .then(({ data: { session: liveSession } }) => {
+                  if (!liveSession?.access_token || liveSession.user?.id !== userIdAtSignIn) {
+                    // Session is not yet (or no longer) consistent with the
+                    // SIGNED_IN payload. Skip silently — the next sign-in or
+                    // cache miss will retry. Avoid noisy console output.
+                    return;
+                  }
 
-                supabase.rpc('apply_pending_admin_grants_for_user', {
-                  p_user_id: userIdAtSignIn,
-                })
-                  .then(() => {
-                    localStorage.setItem(adminGrantsCacheKey, String(Date.now()));
+                  supabase.rpc('apply_pending_admin_grants_for_user', {
+                    p_user_id: userIdAtSignIn,
                   })
-                  .catch((error) => {
-                    if (import.meta.env.DEV) {
-                      logger.warn('Failed to apply pending admin grants', error);
-                    }
-                  });
-              });
+                    .then(() => {
+                      localStorage.setItem(adminGrantsCacheKey, String(Date.now()));
+                    })
+                    .catch((error) => {
+                      if (import.meta.env.DEV) {
+                        logger.warn('Failed to apply pending admin grants', error);
+                      }
+                    });
+                })
+                .catch((error) => {
+                  // Swallow getSession() rejections so they don't surface as
+                  // unhandled promise rejections (which would defeat the
+                  // console-quieting purpose of this whole code path). The
+                  // next SIGNED_IN event will retry the grants application.
+                  if (import.meta.env.DEV) {
+                    logger.warn('Deferred getSession() failed; skipping admin grants', error);
+                  }
+                });
             });
           }
         }
