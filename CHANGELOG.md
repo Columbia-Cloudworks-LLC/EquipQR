@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Production-faithful Fleet Map seed data** ([#615](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/615)) — Refreshed equipment, team, scan-history, and geocoded-cache seeds to mirror production patterns: 6-decimal coordinate precision, `'United States'` country strings, sparse `assigned_location` data, and a 3-row jittered scan cluster on the CAT 320 Excavator so map clustering, normalization, and stale-GPS UI states are exercisable locally. Geocoded-cache fixtures now use the exact normalized form (with commas) produced by the `geocode-location` edge function so cache hits actually hit instead of falling through to a Google API call. Teams seed keeps two coordinate fixtures (one with `override_equipment_location = true`, one without) to cover both team-HQ rendering paths. Added `~120` equipment rows distributed across the 6 equipment-owning orgs to mirror prod density.
+- **Vector Fleet Map with Advanced Markers** ([#616](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/616)) — Migrated `src/features/fleet-map/components/MapView.tsx` from the deprecated `@react-google-maps/api` to `@vis.gl/react-google-maps`, switching markers to `AdvancedMarker` with vector basemaps via a Cloud-bound `mapId`. New `GOOGLE_MAPS_MAP_ID` secret is plumbed through `supabase/functions/public-google-maps-key`, `useGoogleMapsKey`, and `useGoogleMapsLoader` (documented in `.env.example`); when missing, the map falls back gracefully to legacy markers with a single dev-only warning. Basemap `colorScheme` reactively follows the app theme via a `<html>`-class `MutationObserver`, and the auto-fit logic now refits when the visible marker identity set changes (e.g. switching team filter).
+- **Maskable PWA icons** ([#616](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/616)) — `public/manifest.webmanifest` now declares correctly-sized icons plus a `purpose: "maskable"` entry, fixing PWA install warnings about icon size mismatches.
+
+### Changed
+
+- **AuthContext: defer admin-grants RPC behind `getSession()` confirmation** ([#616](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/616)) — `apply_pending_admin_grants_for_user` is now dispatched via `queueMicrotask` after re-confirming the live session (`getSession()`) so the supabase-js client has its JWT attached before the RPC fires. Eliminates the spurious `400` errors that surfaced on the dashboard when the SIGNED_IN payload raced the auth-header attachment. Both the deferred `getSession()` promise and the RPC promise are caught (DEV logs `logger.warn`; prod swallows silently and lets the next SIGNED_IN retry).
+- **Above-the-fold work-order images load eagerly** ([#616](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/616)) — `WorkOrdersList` passes `isAboveTheFold` to the first 6 `WorkOrderCard` instances; those cards request their thumbnail with `loading="eager"` and `fetchPriority="high"`, silencing the lazy-image intervention warning Chrome emits for in-viewport content.
+- **HorizontalChipRow scroll/resize measurements coalesced via rAF** ([#616](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/616)) — Dashboard chip strips no longer trigger forced-reflow violations; scroll and resize measurements are batched in a single `requestAnimationFrame` callback per frame.
+- **Google Maps script loader uses `loading=async` + `crossOrigin=anonymous`** ([#616](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/616)) — `useGoogleMapsLoader` now appends the async loading params Google recommends, removing a console warning that surfaced on every Places autocomplete fallback path.
+
+### Fixed
+
+- **Dashboard `apply_pending_admin_grants_for_user` 400 spam** ([#613](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/613), [#616](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/616)) — Migration `20260418120000_apply_pending_admin_grants_quiet_mismatch.sql` converts the SQL self-only guard to `RAISE NOTICE` + quiet return instead of `RAISE EXCEPTION`. Combined with the AuthContext `getSession()` deferral (above), this removes the recurring 400 entries from the browser console on dashboard load.
+- **`google.maps.Marker` deprecation warning on Fleet Map** ([#613](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/613), [#616](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/616)) — Resolved by the `AdvancedMarker` migration described above.
+
 ## [2.10.0] - 2026-04-18
 
 ### Added
