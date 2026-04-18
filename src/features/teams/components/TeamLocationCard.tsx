@@ -116,6 +116,7 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({
               size="sm"
               onClick={onEditClick}
               className="gap-1.5 h-8 text-muted-foreground hover:text-foreground"
+              aria-label="Edit team location"
             >
               <Edit className="h-3.5 w-3.5" />
               Edit

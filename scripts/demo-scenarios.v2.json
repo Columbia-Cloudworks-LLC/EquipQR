@@ -19,6 +19,11 @@
       "id": "technician",
       "displayName": "Taylor Tech",
       "role": "Technician"
+    },
+    "operations-manager": {
+      "id": "operations-manager",
+      "displayName": "Morgan Ops",
+      "role": "Operations Manager"
     }
   },
   "suites": {
@@ -34,6 +39,9 @@
     "operations": [
       "work-order-lifecycle",
       "field-operations-qr"
+    ],
+    "lifecycle": [
+      "equipmentLifecycleE2E"
     ]
   },
   "scenarios": [
@@ -413,6 +421,251 @@
               "type": "action",
               "action": "pauseReadable",
               "ms": 800
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "equipmentLifecycleE2E",
+      "title": "Equipment Lifecycle End-to-End",
+      "description": "Create equipment, customize it, build a team, assign it, set a PM template, and open a PM work order with a fresh hours reading.",
+      "flowToken": "demo-equipment-lifecycle-e2e",
+      "personaId": "operations-manager",
+      "targetDurationMs": {
+        "min": 60000,
+        "max": 180000
+      },
+      "metadata": {
+        "audience": "ops",
+        "tags": [
+          "equipment",
+          "team",
+          "pm",
+          "work-order",
+          "machine-hours"
+        ]
+      },
+      "scenes": [
+        {
+          "id": "create-equipment",
+          "title": "Create equipment",
+          "route": "/dashboard/equipment",
+          "intent": "Introduce a brand new asset to the fleet.",
+          "targetDurationMs": {
+            "min": 12000,
+            "max": 45000
+          },
+          "requiredCheckpoints": [
+            {
+              "id": "equipment-created",
+              "type": "textVisible",
+              "value": "Komatsu PC210LC-11 Excavator"
+            }
+          ],
+          "steps": [
+            {
+              "type": "action",
+              "action": "navigateWithWait",
+              "route": "/dashboard/equipment"
+            },
+            {
+              "type": "macro",
+              "name": "createEquipment",
+              "args": {
+                "manufacturer": "Komatsu",
+                "model": "PC210LC-11",
+                "name": "Komatsu PC210LC-11 Excavator {{randSuffix}}",
+                "serial": "KMTPC210-{{randSuffix}}",
+                "location": "South Yard, Row 2",
+                "description": "Hydraulic excavator brought online for the demo end-to-end run."
+              }
+            }
+          ]
+        },
+        {
+          "id": "personalize-equipment",
+          "title": "Customize fields and attributes",
+          "route": "/dashboard/equipment",
+          "intent": "Personalize the asset with attributes so it tells a richer story.",
+          "targetDurationMs": {
+            "min": 10000,
+            "max": 40000
+          },
+          "steps": [
+            {
+              "type": "macro",
+              "name": "openDetails",
+              "args": {
+                "name": "Komatsu PC210LC-11 Excavator {{randSuffix}}"
+              }
+            },
+            {
+              "type": "macro",
+              "name": "addCustomAttribute",
+              "args": {
+                "name": "Year",
+                "value": "2022",
+                "andSave": false
+              }
+            },
+            {
+              "type": "macro",
+              "name": "addCustomAttribute",
+              "args": {
+                "name": "Engine Family",
+                "value": "SAA6D107E-3",
+                "andSave": false
+              }
+            },
+            {
+              "type": "macro",
+              "name": "addCustomAttribute",
+              "args": {
+                "name": "Operating Weight (lb)",
+                "value": "47840",
+                "andSave": false
+              }
+            },
+            {
+              "type": "macro",
+              "name": "addCustomAttribute",
+              "args": {
+                "name": "EPA Tier",
+                "value": "Tier 4 Final",
+                "andSave": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-notes",
+          "title": "Add field notes with machine hours",
+          "route": "/dashboard/equipment",
+          "intent": "Demonstrate the v2.10.0 machine-hours capture in a real note.",
+          "targetDurationMs": {
+            "min": 10000,
+            "max": 35000
+          },
+          "steps": [
+            {
+              "type": "action",
+              "action": "clickTab",
+              "name": "Notes"
+            },
+            {
+              "type": "macro",
+              "name": "addEquipmentNote",
+              "args": {
+                "content": "Walkaround inspection complete. Fluids and visuals nominal at intake.",
+                "machineHours": 1240
+              }
+            },
+            {
+              "type": "macro",
+              "name": "addEquipmentNote",
+              "args": {
+                "content": "Operator briefing complete; PM logbook stored in cab.",
+                "machineHours": 1240
+              }
+            }
+          ]
+        },
+        {
+          "id": "team-and-assign",
+          "title": "Stand up the crew and assign equipment",
+          "route": "/dashboard/teams",
+          "intent": "Build the responsible crew and link the asset to the team.",
+          "targetDurationMs": {
+            "min": 12000,
+            "max": 50000
+          },
+          "steps": [
+            {
+              "type": "action",
+              "action": "navigateWithWait",
+              "route": "/dashboard/teams"
+            },
+            {
+              "type": "macro",
+              "name": "createTeam",
+              "args": {
+                "name": "Excavator Crew {{randSuffix}}",
+                "description": "Demo crew responsible for the new excavator."
+              }
+            },
+            {
+              "type": "macro",
+              "name": "addTeamMember",
+              "args": {
+                "name": "{{env:DEMO_TEAM_MEMBER_NAME|Pat Operator}}"
+              }
+            },
+            {
+              "type": "action",
+              "action": "navigateWithWait",
+              "route": "/dashboard/equipment"
+            },
+            {
+              "type": "macro",
+              "name": "openDetails",
+              "args": {
+                "name": "Komatsu PC210LC-11 Excavator {{randSuffix}}"
+              }
+            },
+            {
+              "type": "macro",
+              "name": "assignTeamToEquipment",
+              "args": {
+                "teamName": "Excavator Crew {{randSuffix}}"
+              }
+            }
+          ]
+        },
+        {
+          "id": "pm-template",
+          "title": "Set the default PM template",
+          "route": "/dashboard/equipment",
+          "intent": "Lock in the recurring maintenance program for the asset.",
+          "targetDurationMs": {
+            "min": 6000,
+            "max": 25000
+          },
+          "steps": [
+            {
+              "type": "macro",
+              "name": "setPmTemplate",
+              "args": {
+                "templateName": "{{env:DEMO_PM_TEMPLATE_NAME|250-Hour PM}}"
+              }
+            }
+          ]
+        },
+        {
+          "id": "pm-work-order",
+          "title": "Open the first PM work order",
+          "route": "/dashboard/equipment",
+          "intent": "Capture a fresh meter reading and create the PM work order.",
+          "targetDurationMs": {
+            "min": 12000,
+            "max": 45000
+          },
+          "requiredCheckpoints": [
+            {
+              "id": "wo-created",
+              "type": "urlIncludes",
+              "value": "/work-orders/"
+            }
+          ],
+          "steps": [
+            {
+              "type": "macro",
+              "name": "createPmWorkOrder",
+              "args": {
+                "title": "Komatsu PC210LC-11 250-hour PM {{randSuffix}}",
+                "templateName": "{{env:DEMO_PM_TEMPLATE_NAME|250-Hour PM}}",
+                "machineHours": 1290
+              }
             }
           ]
         }
