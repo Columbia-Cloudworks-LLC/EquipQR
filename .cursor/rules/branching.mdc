@@ -1,0 +1,37 @@
+---
+description: "Branching model — base off preview, target preview in PRs"
+alwaysApply: true
+---
+# Branching Model (authoritative)
+
+The remote has only two long-lived branches:
+
+| Branch | Role | Deploys to |
+|--------|------|------------|
+| `main` | Production source of truth | equipqr.app (manual promotion) |
+| `preview` | Integration / day-to-day work | preview.equipqr.app (auto on push) |
+
+There is **no `dev` branch** despite what older sections of `CONTRIBUTING.md` suggest. Treat `preview` as the integration branch.
+
+## Rules for agents
+
+1. **Always branch off `preview`** for new feature, fix, refactor, chore, or experimental work — never off `main` — unless the user explicitly says "hotfix" or "off main".
+2. **All PRs target `preview` by default.** Only open a `preview → main` PR when the user explicitly says "release", "raise", "promote to main", or similar release language.
+3. When the GitHub default branch (`main`) and this rule disagree, **this rule wins**. Do not rely on `git symbolic-ref refs/remotes/origin/HEAD`, the GitHub API `default_branch` field, or `gh pr create` defaults to choose a base.
+4. Before creating a branch, run `git fetch origin preview` and branch from `origin/preview`, e.g.:
+   ```powershell
+   git fetch origin preview
+   git switch -c feat/<short-name> origin/preview
+   ```
+5. When opening a PR, pass `--base preview` explicitly:
+   ```powershell
+   gh pr create --base preview --head <branch> --title "<conventional-commit title>"
+   ```
+6. **Hotfix exception:** If and only if the user says "hotfix", branch off `origin/main`, PR into `main`, then immediately open a follow-up PR (or merge) to bring `main` back into `preview` so the two don't diverge.
+7. **Release flow** (only on explicit user request like `/raise`, "release", "promote"):
+   - Open PR `preview → main`.
+   - After merge to `main`, do not auto-promote production; the human flips the production gate in Vercel.
+
+## Why this exists
+
+The repo follows GitLab Flow with environment branches: `feature → preview → main → production`. This is intentional and matches the deployment wiring (preview.equipqr.app on `preview`, equipqr.app on `main`). Agents that default to `main` because GitHub says so will create PRs that bypass the preview environment and break the release gate.
