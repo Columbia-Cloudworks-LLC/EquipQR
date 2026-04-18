@@ -26,6 +26,7 @@ export const useCreateEquipmentNoteWithImages = () => {
   return useMutation({
     mutationFn: (variables: {
       equipmentId: string;
+      organizationId: string;
       content: string;
       hoursWorked?: number;
       isPrivate?: boolean;
@@ -37,7 +38,7 @@ export const useCreateEquipmentNoteWithImages = () => {
       variables.hoursWorked || 0,
       variables.isPrivate || false,
       variables.images || [],
-      undefined,
+      variables.organizationId,
       variables.machineHours,
     ),
     onSuccess: (data, variables) => {
