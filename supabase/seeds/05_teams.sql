@@ -7,11 +7,16 @@
 -- 3 have any location data and 0 have a populated street address):
 --
 --   * location_address is NEVER populated (0/19 in prod).
---   * Only ~15% of teams have lat/lng coordinates (we keep 1 of 6 here).
+--   * Only ~15% of teams have lat/lng coordinates in prod; here we seed 2 of 6
+--     so we exercise both the override-true and override-false paths through
+--     the Fleet Map team-HQ rendering layer.
 --   * Where coords exist, country is the literal string 'United States'.
 --   * override_equipment_location = true is rare; we keep ONE explicit fixture
---     paired with equipment aa0e8400-...-446655440000 (CAT 320 Excavator) so
---     the team-override map hierarchy is testable in isolation.
+--     (Heavy Equipment Team) paired with equipment aa0e8400-...-446655440000
+--     (CAT 320 Excavator) so the team-override map hierarchy is testable in
+--     isolation. The second team with coords (Rental Fleet Team) keeps
+--     override = false to mirror the prod pattern of "team has known HQ but
+--     does not override its equipment locations".
 -- =====================================================
 
 INSERT INTO public.teams (

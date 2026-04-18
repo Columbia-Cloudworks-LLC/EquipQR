@@ -7,6 +7,12 @@
 -- We seed only 3 rows as cache-hit test fixtures, each clearly commented.
 -- Use 6-decimal coordinate precision and country embedded in formatted_address
 -- (matching the prod assigned_location_country = 'United States' convention).
+--
+-- normalized_text MUST exactly equal what the geocode-location edge function
+-- produces from `input_text`, otherwise lookups miss and the function falls
+-- through to a Google API call (which fails locally without GOOGLE_MAPS_SERVER_KEY).
+-- The edge function normalization is `raw.toLowerCase().trim().replace(/\s+/g, ' ')`,
+-- so commas and other punctuation are preserved.
 -- =====================================================
 
 INSERT INTO public.geocoded_locations (
@@ -25,7 +31,7 @@ INSERT INTO public.geocoded_locations (
     '9c0e8400-e29b-41d4-a716-446655440001'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
     'Dallas, TX',
-    'dallas tx',
+    'dallas, tx',
     32.776664,
     -96.796988,
     'Dallas, TX, United States',
@@ -37,7 +43,7 @@ INSERT INTO public.geocoded_locations (
     '9c0e8400-e29b-41d4-a716-446655440010'::uuid,
     '660e8400-e29b-41d4-a716-446655440001'::uuid,
     'Los Angeles, CA',
-    'los angeles ca',
+    'los angeles, ca',
     34.054908,
     -118.242643,
     'Los Angeles, CA, United States',
@@ -49,7 +55,7 @@ INSERT INTO public.geocoded_locations (
     '9c0e8400-e29b-41d4-a716-446655440030'::uuid,
     '660e8400-e29b-41d4-a716-446655440003'::uuid,
     'Giddings, TX',
-    'giddings tx',
+    'giddings, tx',
     30.182716,
     -96.936371,
     'Giddings, TX, United States',
