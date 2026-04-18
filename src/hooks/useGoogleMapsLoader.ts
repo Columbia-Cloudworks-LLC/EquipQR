@@ -133,11 +133,15 @@ async function loadGoogleMapsScript(apiKey: string): Promise<void> {
       return;
     }
 
-    // Create the script tag ourselves
+    // Create the script tag ourselves.
+    // `loading=async` is the Google-recommended bootstrap parameter that
+    // suppresses the "loaded directly without loading=async" warning and
+    // lets the SDK use its async initialization path.
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
     script.async = true;
     script.defer = true;
+    script.crossOrigin = 'anonymous';
     script.id = 'google-maps-script';
 
     script.onload = () => {
@@ -175,6 +179,12 @@ export interface UseGoogleMapsLoaderResult {
   loadError: Error | undefined;
   /** the browser-side API key (empty string while still fetching) */
   googleMapsKey: string;
+  /**
+   * Cloud-managed Map ID for vector maps + Advanced Markers. `null` while
+   * loading or when the GOOGLE_MAPS_MAP_ID secret is not configured for
+   * the current environment.
+   */
+  mapId: string | null;
   /** true while the API key is being fetched from the edge function */
   isKeyLoading: boolean;
   /** non-null when fetching the key itself failed */
@@ -186,6 +196,7 @@ export interface UseGoogleMapsLoaderResult {
 export const useGoogleMapsLoader = (): UseGoogleMapsLoaderResult => {
   const {
     googleMapsKey,
+    mapId,
     isLoading: isKeyLoading,
     error: keyError,
   } = useGoogleMapsKey();
@@ -228,6 +239,7 @@ export const useGoogleMapsLoader = (): UseGoogleMapsLoaderResult => {
     isLoaded: isLoaded && !!googleMapsKey,
     loadError,
     googleMapsKey,
+    mapId,
     isKeyLoading,
     keyError,
     retry,

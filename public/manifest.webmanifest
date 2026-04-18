@@ -9,14 +9,19 @@
   "icons": [
     {
       "src": "/icons/EquipQR-Icon-Purple-Small.png",
-      "sizes": "192x192",
+      "sizes": "100x100",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/EquipQR-Icon-Purple-Medium.png",
+      "sizes": "500x502",
       "type": "image/png"
     },
     {
       "src": "/icons/EquipQR-Icon-Purple-Large.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
-

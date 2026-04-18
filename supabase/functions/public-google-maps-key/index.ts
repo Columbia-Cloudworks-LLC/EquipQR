@@ -1,8 +1,17 @@
 /**
  * Public Google Maps Key Edge Function
  *
- * Returns the Google Maps browser API key to authenticated users.
+ * Returns the Google Maps browser API key (and the optional Map ID used for
+ * vector maps + Advanced Markers) to authenticated users.
  * Requires a valid JWT (verify_jwt=true in config.toml).
+ *
+ * Response shape:
+ *   { key: string, mapId: string | null }
+ *
+ * The Map ID is per-environment (Preview vs Production) and supplied via the
+ * GOOGLE_MAPS_MAP_ID Supabase secret. It is non-secret (visible in client
+ * network traffic) but co-located with the API key for operational simplicity
+ * — one place to rotate, one place to inspect.
  */
 
 import {
@@ -43,8 +52,13 @@ Deno.serve(async (req) => {
       return createErrorResponse("An internal error occurred", 500);
     }
 
-    logStep("Successfully returning API key");
-    return createJsonResponse({ key: browserKey });
+    // Map ID is optional. When absent the client will fall back to a raster
+    // map without Advanced Markers and emit a one-time warning. Setting the
+    // GOOGLE_MAPS_MAP_ID secret unlocks vector maps and AdvancedMarkerElement.
+    const mapId = Deno.env.get("GOOGLE_MAPS_MAP_ID") || null;
+
+    logStep("Successfully returning API key", { hasMapId: !!mapId });
+    return createJsonResponse({ key: browserKey, mapId });
   } catch (error) {
     // Log the full error server-side for debugging
     console.error("[PUBLIC-GOOGLE-MAPS-KEY] Function error:", error);

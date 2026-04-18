@@ -84,18 +84,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const shouldApplyGrants = Date.now() - lastAppliedAt > ADMIN_GRANTS_THROTTLE_MS;
 
           if (shouldApplyGrants) {
-            supabase.rpc('apply_pending_admin_grants_for_user', {
-              p_user_id: session.user.id
-            })
-              .then(() => {
-                // Store timestamp in localStorage to enable time-based throttling across windows
-                localStorage.setItem(adminGrantsCacheKey, String(Date.now()));
-              })
-              .catch((error) => {
-                if (import.meta.env.DEV) {
-                  logger.warn('Failed to apply pending admin grants', error);
-                }
-              });
+            // Defer the RPC until the supabase-js client has had a chance to
+            // attach the new session's JWT to its internal fetch wrapper.
+            // Calling immediately can race the auth state update and produce
+            // a request whose Authorization header still reflects the
+            // previous (or empty) session, causing the SQL self-only guard
+            // to mismatch and surface as an HTTP 400. We:
+            //   1) await getSession() to confirm the JWT is attached and
+            //      that its user matches the event payload, then
+            //   2) queueMicrotask the RPC so it dispatches on the next tick.
+            const userIdAtSignIn = session.user.id;
+            queueMicrotask(() => {
+              supabase.auth.getSession()
+                .then(({ data: { session: liveSession } }) => {
+                  if (!liveSession?.access_token || liveSession.user?.id !== userIdAtSignIn) {
+                    // Session is not yet (or no longer) consistent with the
+                    // SIGNED_IN payload. Skip silently — the next sign-in or
+                    // cache miss will retry. Avoid noisy console output.
+                    return;
+                  }
+
+                  supabase.rpc('apply_pending_admin_grants_for_user', {
+                    p_user_id: userIdAtSignIn,
+                  })
+                    .then(() => {
+                      localStorage.setItem(adminGrantsCacheKey, String(Date.now()));
+                    })
+                    .catch((error) => {
+                      if (import.meta.env.DEV) {
+                        logger.warn('Failed to apply pending admin grants', error);
+                      }
+                    });
+                })
+                .catch((error) => {
+                  // Swallow getSession() rejections so they don't surface as
+                  // unhandled promise rejections (which would defeat the
+                  // console-quieting purpose of this whole code path). The
+                  // next SIGNED_IN event will retry the grants application.
+                  if (import.meta.env.DEV) {
+                    logger.warn('Deferred getSession() failed; skipping admin grants', error);
+                  }
+                });
+            });
           }
         }
 
