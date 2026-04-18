@@ -176,6 +176,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                 size="sm"
                 onClick={() => onEdit(template.id)}
                 className="flex-1"
+                aria-label={`Edit template ${template.name}`}
               >
                 <Edit className="mr-1 h-3 w-3" />
                 Edit

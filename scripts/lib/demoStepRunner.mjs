@@ -370,6 +370,113 @@ export function createDemoStepRunner(opts) {
         await sleep(ms);
         return;
       }
+      case 'clickByLabel': {
+        const label = jsString(regexLiteral(String(step.label || '')));
+        if (!label) throw new Error('clickByLabel requires "label".');
+        await withRetries(context.sceneId, context.stepIndex, step, async () => {
+          await runPlaywrightEval(`() => {
+            const needle = new RegExp('${label}', 'i');
+            const el = Array.from(document.querySelectorAll('[aria-label]')).find((node) => needle.test(node.getAttribute('aria-label') || '') && !node.hasAttribute('disabled'));
+            if (!el) throw new Error('clickByLabel missing element for label');
+            el.click();
+          }`);
+        });
+        context.actionCountRef.value += 1;
+        return;
+      }
+      case 'clickHiddenButton': {
+        const label = jsString(regexLiteral(String(step.label || '')));
+        const parentSelector = jsString(String(step.parentSelector || ''));
+        if (!label) throw new Error('clickHiddenButton requires "label".');
+        await withRetries(context.sceneId, context.stepIndex, step, async () => {
+          await runPlaywrightEval(`() => {
+            const needle = new RegExp('${label}', 'i');
+            const parentSelector = '${parentSelector}';
+            const button = Array.from(document.querySelectorAll('[aria-label]')).find((node) => needle.test(node.getAttribute('aria-label') || '') && !node.hasAttribute('disabled'));
+            if (!button) throw new Error('clickHiddenButton missing button');
+            const parent = parentSelector
+              ? button.closest(parentSelector)
+              : button.closest('.group') || button.parentElement;
+            if (parent) {
+              parent.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+              parent.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+            }
+            button.click();
+          }`);
+        });
+        context.actionCountRef.value += 1;
+        return;
+      }
+      case 'fillNumberInput': {
+        const name = jsString(regexLiteral(String(step.name || step.label || '')));
+        const value = jsString(String(step.value ?? ''));
+        if (!name) throw new Error('fillNumberInput requires "name" or "label".');
+        await withRetries(context.sceneId, context.stepIndex, step, async () => {
+          await runPlaywrightEval(`() => {
+            const needle = new RegExp('${name}', 'i');
+            let input = null;
+            const labels = Array.from(document.querySelectorAll('label'));
+            for (const label of labels) {
+              if (!needle.test(label.textContent || '')) continue;
+              const id = label.getAttribute('for');
+              if (id) {
+                const candidate = document.getElementById(id);
+                if (candidate && (candidate.tagName === 'INPUT' || candidate.getAttribute('role') === 'spinbutton')) {
+                  input = candidate;
+                  break;
+                }
+              }
+              const inner = label.querySelector('input,[role=\\'spinbutton\\']');
+              if (inner) { input = inner; break; }
+            }
+            if (!input) {
+              input = Array.from(document.querySelectorAll('input[type=\\'number\\'],[role=\\'spinbutton\\']')).find((el) => needle.test(el.getAttribute('aria-label') || ''));
+            }
+            if (!input) throw new Error('fillNumberInput missing number input');
+            input.focus();
+            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+            setter.call(input, '${value}');
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            input.blur();
+          }`);
+        });
+        context.actionCountRef.value += 1;
+        return;
+      }
+      case 'clickTab': {
+        const name = jsString(regexLiteral(String(step.name || '')));
+        if (!name) throw new Error('clickTab requires "name".');
+        await withRetries(context.sceneId, context.stepIndex, step, async () => {
+          await runPlaywrightEval(`() => {
+            const needle = new RegExp('${name}', 'i');
+            const tab = Array.from(document.querySelectorAll('[role=\\'tab\\']')).find((el) => needle.test(el.textContent || '') && !el.hasAttribute('disabled'));
+            if (!tab) throw new Error('clickTab missing tab');
+            tab.click();
+          }`);
+          const deadline = Date.now() + 2000;
+          while (Date.now() < deadline) {
+            try {
+              await runPlaywrightEval(`() => {
+                const needle = new RegExp('${name}', 'i');
+                const tab = Array.from(document.querySelectorAll('[role=\\'tab\\']')).find((el) => needle.test(el.textContent || ''));
+                if (!tab) throw new Error('tab gone');
+                if (tab.getAttribute('aria-selected') !== 'true') throw new Error('tab not yet selected');
+              }`);
+              return;
+            } catch {
+              await sleep(100);
+            }
+          }
+        });
+        context.actionCountRef.value += 1;
+        return;
+      }
+      case 'pressEscape': {
+        await runPlaywright(['press', 'Escape']);
+        context.actionCountRef.value += 1;
+        return;
+      }
       default:
         throw new Error(`Unsupported demo action primitive "${actionName}".`);
     }

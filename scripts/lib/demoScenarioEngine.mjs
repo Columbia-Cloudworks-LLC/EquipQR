@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -6,6 +7,84 @@ import { expandDemoMacro } from './demoStepMacros.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultRegistryPath = path.resolve(__dirname, '..', 'demo-scenarios.v2.json');
+
+/**
+ * @param {Date} date
+ * @param {string} format - currently supports YYYY-MM-DD
+ * @returns {string}
+ */
+function formatDateToken(date, format) {
+  const yyyy = String(date.getUTCFullYear());
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  if (format === 'YYYY-MM-DD') return `${yyyy}-${mm}-${dd}`;
+  return date.toISOString();
+}
+
+/**
+ * Build a substitution context for one orchestrator run. The same context is
+ * reused across all scenes so `{{randSuffix}}` is stable for the recording.
+ *
+ * @param {{ randSuffix?: string, env?: Record<string, string | undefined>, now?: Date }} [opts]
+ */
+export function createSubstitutionContext(opts = {}) {
+  const randSuffix =
+    typeof opts.randSuffix === 'string' && opts.randSuffix
+      ? opts.randSuffix
+      : crypto.randomBytes(3).toString('hex');
+  return {
+    randSuffix,
+    env: opts.env || process.env,
+    now: opts.now instanceof Date ? opts.now : new Date()
+  };
+}
+
+/**
+ * Replace `{{randSuffix}}`, `{{env:NAME}}`, `{{env:NAME|fallback}}`, and
+ * `{{date:YYYY-MM-DD}}` tokens inside a single string. Unknown tokens are left
+ * intact so authoring mistakes remain visible during dry-runs.
+ *
+ * @param {string} value
+ * @param {ReturnType<typeof createSubstitutionContext>} ctx
+ * @returns {string}
+ */
+function applyTokensToString(value, ctx) {
+  return value.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, body) => {
+    const trimmed = String(body).trim();
+    if (trimmed === 'randSuffix') return ctx.randSuffix;
+    if (trimmed.startsWith('env:')) {
+      const rest = trimmed.slice(4);
+      const [name, fallback = ''] = rest.split('|', 2);
+      const envValue = ctx.env?.[name.trim()];
+      return typeof envValue === 'string' && envValue.length > 0 ? envValue : fallback;
+    }
+    if (trimmed.startsWith('date:')) {
+      return formatDateToken(ctx.now, trimmed.slice(5).trim());
+    }
+    return match;
+  });
+}
+
+/**
+ * Recursively apply token substitution across strings, arrays, and objects.
+ * Numbers / booleans / nulls are passed through unchanged.
+ *
+ * @param {unknown} value
+ * @param {ReturnType<typeof createSubstitutionContext>} ctx
+ * @returns {unknown}
+ */
+export function applyTokens(value, ctx) {
+  if (typeof value === 'string') return applyTokensToString(value, ctx);
+  if (Array.isArray(value)) return value.map((item) => applyTokens(item, ctx));
+  if (value && typeof value === 'object') {
+    const out = /** @type {Record<string, unknown>} */ ({});
+    for (const [key, item] of Object.entries(value)) {
+      out[key] = applyTokens(item, ctx);
+    }
+    return out;
+  }
+  return value;
+}
 
 /**
  * @param {unknown} value
@@ -269,18 +348,23 @@ export function resolveScenarioSelection(registry, selection) {
 
 /**
  * @param {ReturnType<typeof normalizeScenario>} scenario
+ * @param {{ substitution?: ReturnType<typeof createSubstitutionContext> }} [opts]
  */
-export function expandScenarioSteps(scenario) {
+export function expandScenarioSteps(scenario, opts = {}) {
+  const substitution = opts.substitution;
+  const substitute = (value) => (substitution ? applyTokens(value, substitution) : value);
+
   return {
     ...scenario,
     scenes: scenario.scenes.map((scene) => ({
       ...scene,
       steps: scene.steps.flatMap((step, index) => {
         if (step.type !== 'macro') {
-          return [{ ...step, sourceStepIndex: index }];
+          return [{ ...substitute(step), sourceStepIndex: index }];
         }
 
-        return expandDemoMacro(step).map((expandedStep) => ({
+        const substitutedMacro = substitute(step);
+        return expandDemoMacro(substitutedMacro).map((expandedStep) => ({
           ...expandedStep,
           sourceStepIndex: index
         }));
