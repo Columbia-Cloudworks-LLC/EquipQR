@@ -14,12 +14,27 @@
 # the last `} as const`. Anything outside that range is treated as noise.
 # If either anchor is missing, the existing types.ts is left untouched and
 # the captured output is echoed so the developer can see what the CLI did.
+#
+# This hook is intentionally non-blocking: every exit path is `exit 0`, and
+# any unexpected terminating error is caught and logged so it cannot abort
+# Cursor's edit pipeline.
 
-$inputJson = [Console]::In.ReadToEnd()
-$data = $inputJson | ConvertFrom-Json
-$filePath = $data.path
+# Defensive stdin parsing — match the pattern used in guard-migrations.ps1
+# so the hook tolerates payload changes or non-JSON input.
+$filePath = $null
+try {
+    $inputJson = [Console]::In.ReadToEnd()
+    if ([string]::IsNullOrWhiteSpace($inputJson)) {
+        exit 0
+    }
+    $data = $inputJson | ConvertFrom-Json -ErrorAction Stop
+    $filePath = $data.path
+} catch {
+    Write-Host "WARNING: sync-types hook could not parse stdin payload: $_"
+    exit 0
+}
 
-if ($filePath -notmatch "supabase[\\/]migrations[\\/]") {
+if (-not $filePath -or $filePath -notmatch "supabase[\\/]migrations[\\/]") {
     exit 0
 }
 
@@ -35,7 +50,7 @@ try {
 
     if (-not (Test-Path -LiteralPath $tempPath) -or (Get-Item -LiteralPath $tempPath).Length -eq 0) {
         Write-Host "ERROR: supabase gen types produced no output. Leaving $typesPath untouched."
-        exit 0
+        return
     }
 
     $rawContent = Get-Content -LiteralPath $tempPath -Raw
@@ -49,7 +64,7 @@ try {
         Write-Host "----"
         Write-Host ($rawContent.Substring(0, [Math]::Min(1000, $rawContent.Length)))
         Write-Host "----"
-        exit 0
+        return
     }
 
     $endMatch = $endMatches[$endMatches.Count - 1]
@@ -63,8 +78,29 @@ try {
     $utf8Bom = [System.Text.UTF8Encoding]::new($true)
     [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath ".").Path + "\$typesPath", $cleanContent, $utf8Bom)
 
-    cmd /c "npx prettier --write $typesPath"
-    Write-Host "Types regenerated and validated."
+    # Capture prettier output so we can surface failures instead of silently
+    # printing "validated" when formatting actually broke.
+    $prettierOutput = cmd /c "npx prettier --write $typesPath 2>&1"
+    $prettierExit = $LASTEXITCODE
+    if ($prettierExit -ne 0) {
+        $combined = if ($prettierOutput) { ($prettierOutput -join "`n") } else { '<no output>' }
+        $excerpt = if ($combined.Length -gt 500) { $combined.Substring(0, 500) } else { $combined }
+        Write-Host "WARNING: prettier exited with code $prettierExit while formatting $typesPath."
+        Write-Host "----prettier output (truncated to 500 chars)----"
+        Write-Host $excerpt
+        Write-Host "----"
+        Write-Host "Types regenerated; formatting step did not complete cleanly."
+    } else {
+        Write-Host "Types regenerated and validated."
+    }
+}
+catch {
+    # Catch any unexpected terminating error (file I/O, regex bounds, etc.)
+    # so the hook never aborts the Cursor edit pipeline with a non-zero exit.
+    Write-Host "WARNING: sync-types hook encountered an unexpected error: $_"
+    if ($_.ScriptStackTrace) {
+        Write-Host $_.ScriptStackTrace
+    }
 }
 finally {
     if (Test-Path -LiteralPath $tempPath) {
