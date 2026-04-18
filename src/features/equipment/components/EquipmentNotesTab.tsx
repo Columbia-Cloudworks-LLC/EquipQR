@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Images, Clock, User, EyeOff } from 'lucide-react';
+import { Plus, Images, Clock, Gauge, User, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -82,20 +82,30 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
       images: File[];
       machineHours?: number;
     }) => {
-      if (machineHours !== undefined && machineHours > 0) {
-        logger.debug('Machine hours provided but not persisted', { machineHours });
+      if (!currentOrganization?.id) {
+        throw new Error('No active organization selected');
       }
+      const orgId = currentOrganization.id;
+
       // Images require Storage upload (online only), so only text-only notes can go through the offline queue
       const useOfflinePath = !navigator.onLine || images.length === 0;
-      if (useOfflinePath && currentOrganization?.id && user?.id) {
-        const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
-        const result = await service.createEquipmentNote(equipmentId, content, hoursWorked, isPrivate);
+      if (useOfflinePath && user?.id) {
+        const service = new OfflineAwareWorkOrderService(orgId, user.id);
+        const result = await service.createEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours);
         if (result.queuedOffline) {
           return { queuedOffline: true, hadImages: images.length > 0 };
         }
         return { queuedOffline: false, data: result.data };
       }
-      return createEquipmentNoteWithImages(equipmentId, content, hoursWorked, isPrivate, images);
+      return createEquipmentNoteWithImages(
+        equipmentId,
+        content,
+        hoursWorked,
+        isPrivate,
+        images,
+        orgId,
+        machineHours,
+      );
     },
     onSuccess: (result) => {
       const queuedOffline = result && typeof result === 'object' && 'queuedOffline' in result && result.queuedOffline;
@@ -186,6 +196,11 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const formatHours = (hours: number | null | undefined) => {
     const numHours = Number(hours) || 0;
     return numHours > 0 ? `${numHours}h` : '';
+  };
+
+  const formatMachineHours = (hours: number | null | undefined) => {
+    const n = Number(hours);
+    return Number.isFinite(n) && n > 0 ? `${n}h` : '';
   };
 
   // Derive user display name for clipboard paste fallback
@@ -280,7 +295,16 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
                       <>
                         <span>•</span>
                         <Clock className="h-4 w-4" />
-                        <span>{formatHours(note.hours_worked)}</span>
+                        <span title="Hours worked">{formatHours(note.hours_worked)} worked</span>
+                      </>
+                    )}
+                    {formatMachineHours(note.machine_hours) && (
+                      <>
+                        <span>•</span>
+                        <Gauge className="h-4 w-4" />
+                        <span title="Machine hours">
+                          {formatMachineHours(note.machine_hours)} machine
+                        </span>
                       </>
                     )}
                   </div>

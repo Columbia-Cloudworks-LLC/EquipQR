@@ -86,6 +86,7 @@ export interface Team {
   customer_id?: string | null;
   customer_name?: string | null;
   customer_status?: string | null;
+  customer_is_tax_exempt?: boolean | null;
   quickbooks_synced_at?: string | null;
 }
 
@@ -107,6 +108,7 @@ export interface CustomerAccountSummary {
   status: string;
   email?: string | null;
   phone?: string | null;
+  is_tax_exempt?: boolean | null;
   quickbooks_customer_id?: string | null;
   quickbooks_synced_at?: string | null;
 }

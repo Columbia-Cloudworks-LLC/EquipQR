@@ -46,6 +46,14 @@ Evidence collection is read-only by default.
 
 Do not perform destructive production mutations for evidence generation.
 
+## Browser and CLI Account Alignment
+
+The Cursor IDE browser and the `gws` CLI authenticate to Google as different identities. When collecting browser evidence from `https://equipqr.app` and writing deliverables via `gws`:
+
+- Do not rely on the browser to verify `gws`-created Google Docs — use `gws docs documents get` instead.
+- If browser-based document verification is needed, share the document to the browser account first via `gws drive permissions create`.
+- Before navigating to production app pages, check codebase route definitions (`src/App.tsx` or router config) to confirm the correct paths. Common evidence routes: `/privacy-policy`, `/privacy-request`, `/dashboard/audit-log`, `/terms-of-service`.
+
 ## Conflict Handling
 
 If production surfaces disagree:

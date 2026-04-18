@@ -35,6 +35,7 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
   return (data || []).map(note => ({
     ...note,
     hours_worked: Number(note.hours_worked) || 0,
+    machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
     author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
     images: (note.equipment_note_images || []).map((img: EquipmentNoteImage & { profiles?: { name?: string } }) => ({
       ...img,
@@ -55,26 +56,30 @@ export const createEquipmentNoteWithImages = async (
   hoursWorked: number = 0,
   isPrivate: boolean = false,
   images: File[] = [],
-  organizationId?: string
+  organizationId: string,
+  machineHours?: number | null,
 ): Promise<EquipmentNote> => {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error('User not authenticated');
 
-  // Get organization_id if not provided
-  let orgId = organizationId;
-  if (!orgId) {
-    const { data: equipment } = await supabase
-      .from('equipment')
-      .select('organization_id')
-      .eq('id', equipmentId)
-      .single();
-    if (!equipment) throw new Error('Equipment not found');
-    orgId = equipment.organization_id;
+  if (!organizationId) {
+    throw new Error('organizationId is required to create an equipment note');
   }
 
-  // Validate storage quota for all files before uploading
+  const { data: equipmentRow, error: equipmentLookupError } = await supabase
+    .from('equipment')
+    .select('organization_id')
+    .eq('id', equipmentId)
+    .single();
+
+  if (equipmentLookupError) throw equipmentLookupError;
+
+  if (equipmentRow.organization_id !== organizationId) {
+    throw new Error('Organization mismatch for equipment note creation');
+  }
+
   const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);
-  await validateStorageQuota(orgId, totalFileSize);
+  await validateStorageQuota(equipmentRow.organization_id, totalFileSize);
 
   // Create the note first
   const { data: note, error: noteError } = await supabase
@@ -84,7 +89,8 @@ export const createEquipmentNoteWithImages = async (
       author_id: userData.user.id,
       content,
       hours_worked: Number(hoursWorked) || 0,
-      is_private: isPrivate || false
+      is_private: isPrivate || false,
+      ...(machineHours !== undefined ? { machine_hours: machineHours } : {}),
     })
     .select()
     .single();
@@ -147,16 +153,20 @@ export const createEquipmentNoteWithImages = async (
 // Legacy function for backward compatibility
 export const createEquipmentNote = async (data: {
   equipmentId: string;
+  organizationId: string;
   content: string;
   hoursWorked?: number;
   isPrivate?: boolean;
+  machineHours?: number;
 }) => {
   return createEquipmentNoteWithImages(
     data.equipmentId,
     data.content,
     data.hoursWorked || 0,
     data.isPrivate || false,
-    []
+    [],
+    data.organizationId,
+    data.machineHours,
   );
 };
 

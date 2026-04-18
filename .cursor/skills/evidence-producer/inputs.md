@@ -53,3 +53,11 @@ If neither auditor output nor clear standalone scope is available:
 - stop
 - request missing scope inputs
 - do not collect evidence on an implied scope
+
+## Google Docs Template Design
+
+When the input is a Google Docs pre-audit template that will be copied and filled programmatically:
+
+- **Preferred:** Use unique per-field markers (e.g., `{{TXR-AC-1-STATUS}}`, `{{TXR-AC-1-EVIDENCE}}`). This enables `replaceAllText` to target each field in a single `batchUpdate` call.
+- **Fallback:** If the template uses repeated generic labels (`Working Status:`, `Evidence Summary:`), append completed evidence as new sections after the template body. The original template sections serve as the reference; evidence responses are numbered to match.
+- Before starting evidence collection, check whether the template uses unique markers or generic labels to choose the correct write strategy.

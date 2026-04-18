@@ -6,7 +6,7 @@
 
 ## 🚜 Fleet Equipment Management Platform 🚧
 
-![Version](https://img.shields.io/badge/version-2.9.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.10.0-blue?style=for-the-badge)
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
@@ -43,10 +43,13 @@ Detailed documentation is located in the [`/docs`](./docs/README.md) directory:
 * **🏗️ Architecture**: [System Architecture](./docs/technical/architecture.md) & [Database Schema](./docs/technical/architecture.md#database-schema)
 * **📘 Guides**: [Workflows](./docs/guides/workflows.md) & [Permissions](./docs/guides/permissions.md)
 * **⚙️ Operations**: [Deployment](./docs/ops/deployment.md), [Migrations](./docs/ops/migrations.md), [Local Supabase Development](./docs/ops/local-supabase-development.md), [DSR Compliance Runbook](./docs/ops/dsr-compliance-runbook.md) & [Disaster Recovery](./docs/ops/disaster-recovery.md)
+* **🎥 Demo Operations**: [Demo Recording Baseline](./scripts/DEMO-RECORDING.md) & [Demo System v2 Runbook](./scripts/DEMO-SYSTEM-V2.md)
 
 ## ✅ Prerequisites (Accounts & Services)
 
 EquipQR uses external services. For exact environment variables and where they’re used, see [`.env.example`](./.env.example) (source of truth) and the [Setup Guide](./docs/technical/setup.md).
+
+**Local development:** Install a Node.js version that satisfies `engines.node` in [`package.json`](./package.json). The [Setup Guide](./docs/technical/setup.md) covers **npm-only** installs, Docker Desktop for local Supabase, and pinned CLI usage (`npx supabase`, `npm run deploy:vercel`).
 
 **Required (to run the core app):**
 

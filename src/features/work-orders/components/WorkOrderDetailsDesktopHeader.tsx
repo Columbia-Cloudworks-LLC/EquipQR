@@ -185,7 +185,11 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           actions={
             <>
               {canEdit && (
-                <Button variant="outline" onClick={onEditClick}>
+                <Button
+                  variant="outline"
+                  onClick={onEditClick}
+                  aria-label={formMode === 'requestor' ? 'Edit work order request' : 'Edit work order'}
+                >
                   <Edit className="h-4 w-4 mr-2" />
                   {formMode === 'requestor' ? 'Edit Request' : 'Edit'}
                 </Button>

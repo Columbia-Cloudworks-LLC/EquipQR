@@ -282,4 +282,45 @@ describe('InlineEditField', () => {
       expect(saveButton).toBeDisabled();
     });
   });
+
+  describe('Edit Aria Label', () => {
+    it('defaults the edit trigger aria-label to "Edit"', () => {
+      render(<InlineEditField value="Test Value" onSave={mockOnSave} canEdit={true} />);
+
+      const editButton = screen.getByRole('button', { name: 'Edit' });
+      expect(editButton).toBeInTheDocument();
+      expect(editButton).toHaveAttribute('aria-label', 'Edit');
+    });
+
+    it('uses the provided editAriaLabel for the edit trigger', () => {
+      render(
+        <InlineEditField
+          value="Active"
+          onSave={mockOnSave}
+          canEdit={true}
+          editAriaLabel="Edit status"
+        />
+      );
+
+      const editButton = screen.getByRole('button', { name: 'Edit status' });
+      expect(editButton).toBeInTheDocument();
+      expect(editButton).toHaveAttribute('aria-label', 'Edit status');
+      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    });
+
+    it('keeps the hover-reveal classes on the edit trigger so opacity behavior is unchanged', () => {
+      render(
+        <InlineEditField
+          value="Active"
+          onSave={mockOnSave}
+          canEdit={true}
+          editAriaLabel="Edit status"
+        />
+      );
+
+      const editButton = screen.getByRole('button', { name: 'Edit status' });
+      expect(editButton.className).toContain('opacity-0');
+      expect(editButton.className).toContain('group-hover:opacity-100');
+    });
+  });
 });

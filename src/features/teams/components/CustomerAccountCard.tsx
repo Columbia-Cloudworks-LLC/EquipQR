@@ -36,12 +36,26 @@ const CustomerAccountCard: React.FC<CustomerAccountCardProps> = ({ customerId })
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-medium">{customer.name}</span>
-          <Badge
-            variant="outline"
-            className={`text-xs ${statusStyles[status] ?? statusStyles.active}`}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {customer.is_tax_exempt !== null && customer.is_tax_exempt !== undefined && (
+              <Badge
+                variant="outline"
+                className={
+                  customer.is_tax_exempt
+                    ? 'text-xs bg-success/10 text-success border-success/30'
+                    : 'text-xs bg-muted text-muted-foreground border-border'
+                }
+              >
+                {customer.is_tax_exempt ? 'Tax Exempt' : 'Taxable'}
+              </Badge>
+            )}
+            <Badge
+              variant="outline"
+              className={`text-xs ${statusStyles[status] ?? statusStyles.active}`}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Badge>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">

@@ -27,7 +27,7 @@ Do not produce:
 - printable report assembly
 - evidence collection playbooks
 
-If the user asks for those, stop after this output and recommend a separate downstream skill.
+If the user asks for those, stop after this output and recommend the `evidence-producer` skill for evidence collection and the Columbia Cloudworks Word automation toolkit (see `toolbelt` skill, section 9) for branded deliverable generation.
 
 ## Invocation
 

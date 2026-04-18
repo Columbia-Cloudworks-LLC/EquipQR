@@ -180,6 +180,7 @@ const InlineEditWorkOrderCost: React.FC<InlineEditWorkOrderCostProps> = ({
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsEditing(true)}
+                  aria-label={`Edit cost: ${cost.description ?? 'line item'}`}
                 >
                   <Edit className="h-4 w-4" />
                 </Button>

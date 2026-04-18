@@ -43,6 +43,7 @@ interface QuickBooksCustomer {
   Id: string;
   DisplayName: string;
   CompanyName?: string;
+  Taxable?: boolean;
   PrimaryEmailAddr?: { Address: string };
   PrimaryPhone?: { FreeFormNumber: string };
   BillAddr?: {
@@ -275,7 +276,7 @@ Deno.serve(async (req) => {
     );
 
     // Build the QuickBooks Customer query
-    let customerQuery = "SELECT * FROM Customer WHERE Active = true";
+    let customerQuery = "SELECT Id, DisplayName, CompanyName, PrimaryEmailAddr, PrimaryPhone, BillAddr, ShipAddr, Taxable FROM Customer WHERE Active = true";
     if (query && query.trim()) {
       // Whitelist: allow only alphanumeric, spaces, hyphens, periods, commas, apostrophes
       // This prevents QuickBooks Query Language injection via special characters
@@ -295,7 +296,7 @@ Deno.serve(async (req) => {
       if (sanitizedQuery.length > 0) {
         // Escape single quotes for the QuickBooks query (defense-in-depth)
         const escapedQuery = sanitizedQuery.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        customerQuery = `SELECT * FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
+        customerQuery = `SELECT Id, DisplayName, CompanyName, PrimaryEmailAddr, PrimaryPhone, BillAddr, ShipAddr, Taxable FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
       }
     }
     customerQuery += " MAXRESULTS 100";
@@ -371,6 +372,7 @@ Deno.serve(async (req) => {
       Id: c.Id,
       DisplayName: c.DisplayName,
       CompanyName: c.CompanyName,
+      Taxable: c.Taxable,
       Email: c.PrimaryEmailAddr?.Address,
       Phone: c.PrimaryPhone?.FreeFormNumber,
       BillAddr: c.BillAddr ? {

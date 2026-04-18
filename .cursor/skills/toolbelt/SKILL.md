@@ -9,15 +9,16 @@ Single source of truth for every integration available to the agent in this work
 
 ## Quick Reference
 
-| Integration | MCP Server | Primary Use |
+| Integration | Tool | Primary Use |
 |---|---|---|
-| Datadog | `plugin-datadog-datadog` | Observability: logs, metrics, APM, RUM, monitors, incidents |
-| Supabase | `plugin-supabase-supabase` | Backend: migrations, edge functions, SQL, tables, branches |
-| Vercel | `plugin-vercel-vercel` | Frontend hosting: deployments, build logs, runtime logs |
-| Figma | `plugin-figma-figma` | Design: read designs, write to canvas, Code Connect |
-| Context7 | `plugin-context7-plugin-context7` | Documentation: up-to-date library/framework docs |
-| Browser | `cursor-ide-browser` | Testing: navigate, snapshot, interact with live pages |
-| GitHub | `gh` CLI | Work tracking: issues, PRs, org project board |
+| Datadog | MCP `plugin-datadog-datadog` | Observability: logs, metrics, APM, RUM, monitors, incidents |
+| Supabase | MCP `plugin-supabase-supabase` | Backend: migrations, edge functions, SQL, tables, branches |
+| Vercel | MCP `plugin-vercel-vercel` | Frontend hosting: deployments, build logs, runtime logs |
+| Figma | MCP `plugin-figma-figma` | Design: read designs, write to canvas, Code Connect |
+| Context7 | MCP `plugin-context7-plugin-context7` | Documentation: up-to-date library/framework docs |
+| Browser | MCP `cursor-ide-browser` | Testing: navigate, snapshot, interact with live pages |
+| GitHub | CLI `gh` | Work tracking: issues, PRs, org project board |
+| Google Workspace | CLI `gws` | Docs, Sheets, Gmail, Calendar, Drive, Slides, Tasks, Meet |
 
 ---
 
@@ -184,7 +185,7 @@ Extract `fileKey` and `nodeId` from Figma URLs:
 1. `browser_navigate` to a URL (reuses existing tab by default)
 2. `browser_snapshot` to get the page accessibility tree and element refs
 3. Interact using `browser_click`, `browser_fill`, `browser_type`, `browser_select_option`, etc.
-4. `browser_take_screenshot` for visual verification
+4. `browser_take_screenshot` for visual verification (save to `tmp/screenshots/`)
 5. `browser_lock` / unlock to prevent user interference during automation
 
 ### Key Tools
@@ -193,7 +194,7 @@ Extract `fileKey` and `nodeId` from Figma URLs:
 |---|---|
 | `browser_navigate` | Go to a URL |
 | `browser_snapshot` | Get page structure and refs for interaction |
-| `browser_take_screenshot` | Visual screenshot |
+| `browser_take_screenshot` | Visual screenshot (see Screenshot Workflow below) |
 | `browser_click` | Click elements by ref |
 | `browser_fill` | Replace input field content |
 | `browser_type` | Append text to input |
@@ -203,12 +204,114 @@ Extract `fileKey` and `nodeId` from Figma URLs:
 | `browser_scroll` | Scroll page or element |
 | `browser_profile_start` / `_stop` | CPU profiling |
 
+### Screenshot Workflow
+
+All browser screenshots must be saved to `tmp/screenshots/` (gitignored via `tmp/*`). The MCP tool saves to a system temp directory by default, so a copy step is required.
+
+**Step 1 — Capture:**
+
+Call `browser_take_screenshot` via the `cursor-ide-browser` MCP server:
+
+```json
+{
+  "filename": "<descriptive-name>.png",
+  "fullPage": false
+}
+```
+
+| Parameter | Required | Notes |
+|---|---|---|
+| `filename` | Recommended | Defaults to `page-{timestamp}.png` if omitted |
+| `fullPage` | No | `true` captures the full scrollable page; `false` (default) captures the viewport only |
+| `element` | No | Description of a specific element to capture |
+| `ref` | No | CSS selector for a specific element |
+| `viewId` | No | Target browser tab ID; omit to use the last interacted tab |
+
+**Step 2 — Copy to workspace:**
+
+The tool returns the saved path (typically under `AppData\Local\Temp\cursor\screenshots\`). Copy the file into the workspace temp directory:
+
+```powershell
+Copy-Item "<returned-temp-path>" "tmp/screenshots/<descriptive-name>.png"
+```
+
+**Filename conventions:**
+
+| Context | Pattern | Example |
+|---|---|---|
+| General capture | `<page>-<YYYY-MM-DD>.png` | `dashboard-2026-04-05.png` |
+| Evidence run | `<control-id>-<page>.png` | `txr-ac-1-rbac-settings.png` |
+| Visual regression | `<feature>-<state>.png` | `fleet-map-loaded.png` |
+| Timestamped series | `<page>-<YYYY-MM-DD>-<HH-MM>.png` | `dashboard-2026-04-05-14-30.png` |
+
+### Embedding Screenshots in Google Docs
+
+To embed a browser screenshot directly into a Google Doc (e.g., for audit evidence packages):
+
+**Step 1 — Capture:** Use `browser_take_screenshot` as above. Note the returned file path.
+
+**Step 2 — Upload to Drive:**
+
+```powershell
+gws drive +upload "<screenshot-path>" --name "<descriptive-name>.png" --format json
+```
+
+Save the returned `id` (the Drive file ID).
+
+**Step 3 — Share as link-accessible:** The Google Docs API fetches images by URL, so the file must be readable.
+
+```powershell
+gws drive permissions create --params '{"fileId": "<FILE_ID>"}' --json '{"type": "anyone", "role": "reader"}' --format json
+```
+
+**Step 4 — Get the document insertion index:** Find the end of the document body (or a specific position).
+
+```powershell
+# Parse endIndex from the last body content element
+gws docs documents get --params '{"documentId": "<DOC_ID>"}' --format json
+```
+
+**Step 5 — Insert the image:** Use `insertInlineImage` in a `batchUpdate` call.
+
+```powershell
+$batchJson = @"
+{
+  "requests": [
+    {
+      "insertInlineImage": {
+        "uri": "https://lh3.googleusercontent.com/d/<FILE_ID>",
+        "location": {
+          "index": <INSERT_INDEX>
+        },
+        "objectSize": {
+          "width": {
+            "magnitude": 468,
+            "unit": "PT"
+          }
+        }
+      }
+    }
+  ]
+}
+"@
+gws docs documents batchUpdate --params '{"documentId": "<DOC_ID>"}' --json $batchJson --format json
+```
+
+| Parameter | Notes |
+|---|---|
+| `uri` | Use `https://lh3.googleusercontent.com/d/<FILE_ID>` for Drive-hosted images |
+| `location.index` | Insert position; use `endIndex - 1` to append at end |
+| `objectSize.width` | Set width only; height auto-scales to preserve aspect ratio. 468 PT ≈ 6.5 inches (full page width) |
+
+**Tip:** Append a text caption via `gws docs +write` before inserting the image so the caption appears above the screenshot.
+
 ### Conventions
 
 - Always `browser_snapshot` before interacting — refs are tied to the latest snapshot.
 - Take a fresh snapshot after any action that changes the page.
 - For coordinate clicks (`browser_mouse_click_xy`), take a fresh screenshot immediately before.
 - Use `browser_lock` only after a tab exists. Correct order: navigate → lock → interact → unlock.
+- Never save screenshots to the workspace root or any tracked directory — always use `tmp/screenshots/`.
 
 ---
 
@@ -251,7 +354,198 @@ gh api repos/Columbia-Cloudworks-LLC/EquipQR/pulls/123/comments
 
 ---
 
-## 8. Local Development
+## 8. Google Workspace
+
+**CLI:** `gws` v0.22.5 (on PATH at `C:\WINDOWS\gws.exe`)
+
+### Account & Auth
+
+| Key | Value |
+|---|---|
+| Authenticated account | `nicholas.king@columbiacloudworks.com` |
+| GCP project | `equipqr-prod` |
+| Credentials | `C:\Users\viral\.config\gws\credentials.enc` (AES-256-GCM, OS keyring) |
+| Client config | `C:\Users\viral\.config\gws\client_secret.json` (Desktop OAuth client) |
+
+Check auth: `gws auth status`
+
+### Key Services
+
+| Service | CLI prefix | Common operations |
+|---|---|---|
+| Drive | `gws drive` | `files list`, `files get`, `files create`, `+upload` |
+| Docs | `gws docs` | `documents create`, `documents get`, `documents batchUpdate`, `+write` |
+| Sheets | `gws sheets` | `spreadsheets create`, `spreadsheets get`, `+read`, `+append` |
+| Gmail | `gws gmail` | `+send`, `+read`, `+reply`, `+forward`, `+triage` |
+| Calendar | `gws calendar` | `events list`, `events insert`, `+agenda`, `+insert` |
+| Slides | `gws slides` | `presentations create`, `presentations get`, `presentations batchUpdate` |
+| Tasks | `gws tasks` | `tasklists list`, `tasks list`, `tasks insert` |
+| Meet | `gws meet` | `conferenceRecords list`, `spaces create` |
+| Chat | `gws chat` | `spaces list`, `spaces messages create`, `+send` |
+| Forms | `gws forms` | `forms get`, `forms create` |
+| Keep | `gws keep` | `notes list`, `notes get`, `notes create` |
+| People | `gws people` | `people connections list`, `people get` |
+
+### Helper Commands (+ prefix)
+
+Helper commands are high-level shortcuts that wrap API calls:
+
+```powershell
+gws docs +write --document DOC_ID --text "content"
+gws sheets +read --spreadsheet SHEET_ID --range "Sheet1!A1:D10"
+gws sheets +append --spreadsheet SHEET_ID --range "Sheet1" --values '[["a","b"]]'
+gws gmail +send --to user@example.com --subject "Subject" --body "Body"
+gws gmail +send --to user@example.com --subject "Report" --body "<h1>HTML</h1>" --html
+gws drive +upload --file report.pdf --folder FOLDER_ID
+gws calendar +agenda
+gws calendar +insert --summary "Meeting" --start "2026-04-07T10:00:00" --duration 60
+```
+
+### Discovery & Schema Inspection
+
+```powershell
+gws docs --help
+gws schema docs.documents.batchUpdate
+gws schema drive.files.create
+```
+
+Always run `gws schema <service>.<resource>.<method>` before calling an unfamiliar API method to discover required parameters.
+
+### Document Branding — Columbia Cloudworks LLC
+
+When creating documents, reports, emails, or any external-facing content via `gws`, the output represents **Columbia Cloudworks LLC**. Apply consistent branding:
+
+- Company name: **Columbia Cloudworks LLC**
+- Product name: **EquipQR** (when product-specific)
+- Tone: professional, confident, technically credible
+- Include company name in document titles and headers where appropriate
+- For formal deliverables (audit evidence, customer reports, executive packets), use structured section headers and clear provenance attribution
+
+### Conventions
+
+- Write commands (`+write`, `+send`, `+upload`, `batchUpdate`, `create`, `delete`) require user confirmation before execution.
+- Use `--dry-run` to preview destructive or send operations.
+- Use `--format table` for human-readable output; `--format json` (default) for programmatic use.
+- On PowerShell, wrap `--params` and `--json` values in single quotes to preserve inner double quotes.
+- For Sheets ranges containing `!`, use double quotes: `--range "Sheet1!A1:D10"`.
+- Read the `gws-shared` skill for global flags, auth, and security rules.
+- Individual service skills (`gws-docs`, `gws-sheets-read`, `gws-gmail-send`, etc.) contain detailed flag references and examples.
+
+---
+
+## 9. Document Automation (Word Toolkit)
+
+**Location:** `C:\Users\viral\Documents\ColumbiaCloudworks\doc-automation\`
+
+This is the primary tool for generating branded Columbia Cloudworks product documents: audit packets, compliance reports, executive summaries, and customer deliverables. It produces DOCX + PDF with logos, branded headers/footers, styled tables, and embedded screenshots. Do **not** use `gws docs` for product deliverable generation.
+
+### Toolkit Structure
+
+| Path | Purpose |
+|---|---|
+| `branding/brand-constants.json` | Colors, fonts, sizes, logo references |
+| `branding/legal-copy.json` | Footer text, cover page copy, confidentiality levels |
+| `branding/logo-*.png` | Company logos (1x1, 4x3, 16x9, 9x16) |
+| `templates/audit/audit-packet-template.dotx` | Branded Word template with cover page, header logo, styles |
+| `schemas/audit-packet-schema.json` | JSON Schema for manifest input |
+| `scripts/New-BrandedDocument.ps1` | Main CLI: manifest → DOCX + PDF |
+| `scripts/New-AuditTemplate.ps1` | Regenerates the template from brand assets |
+| `examples/equipqr-audit-example.json` | Working EquipQR example manifest |
+
+### Usage
+
+Always run from the project root directory so output lands in the project's `tmp/documents/` and image paths resolve against `tmp/screenshots/`.
+
+```powershell
+# Generate branded document from manifest
+powershell -ExecutionPolicy Bypass -File "C:\Users\viral\Documents\ColumbiaCloudworks\doc-automation\scripts\New-BrandedDocument.ps1" -ManifestPath "path\to\manifest.json"
+
+# Preview without generating
+powershell -ExecutionPolicy Bypass -File "C:\Users\viral\Documents\ColumbiaCloudworks\doc-automation\scripts\New-BrandedDocument.ps1" -ManifestPath "path\to\manifest.json" -DryRun
+
+# Custom output location
+powershell -ExecutionPolicy Bypass -File "C:\Users\viral\Documents\ColumbiaCloudworks\doc-automation\scripts\New-BrandedDocument.ps1" -ManifestPath "manifest.json" -OutputDir "C:\custom\path"
+```
+
+### Manifest Format
+
+```json
+{
+  "title": "Document Title",
+  "customer": "Customer Name",
+  "date": "2026-04-06",
+  "confidentiality": "Confidential",
+  "sections": [
+    {
+      "tag": "ExecSummary",
+      "title": "Executive Summary",
+      "content": "Plain text content..."
+    },
+    {
+      "tag": "ControlResults",
+      "title": "Control Results Summary",
+      "table": {
+        "headers": ["Control", "Status", "Notes"],
+        "rows": [["AC-1", "Verified", "RBAC enforced"]]
+      }
+    },
+    {
+      "tag": "VisualAppendix",
+      "title": "Visual Appendix",
+      "images": [
+        { "path": "tmp/screenshots/screenshot.png", "caption": "Figure 1" }
+      ]
+    }
+  ]
+}
+```
+
+Standard section tags: `ExecSummary`, `ScopeMethod`, `ControlResults`, `DetailedFindings`, `VisualAppendix`.
+
+For audit evidence packets, `images[]` supports richer exhibit metadata:
+
+- `title` (heading above screenshot)
+- `details` (readable explanation below screenshot)
+- `answers` (control IDs answered by this exhibit; string or array)
+- `url`
+- `capturedUtc`
+- `source`
+- `finding`
+- `notes`
+
+### Conventions
+
+- Output defaults to `$PWD/tmp/documents/` (gitignored via `tmp/*`).
+- Image paths in manifests resolve relative to CWD (the project root).
+- Screenshots from `tmp/screenshots/` are embedded directly into the document body.
+- Status keywords in table cells (`Verified`, `Failed`, `Not Verified`, `Blocked`) are automatically color-coded.
+- Both `.docx` and `.pdf` are produced by default; use `-NoPdf` to skip PDF.
+- Re-running the same command overwrites cleanly (idempotent).
+
+### Audit exhibit rendering defaults
+
+The Word generator uses audit-safe exhibit rendering:
+
+- each screenshot starts on a new page
+- exhibit title appears at the top of that page
+- screenshot appears next
+- readable metadata block appears below image
+
+Use structured `images[]` fields instead of overloading `caption` when possible.
+
+### When to Use Word Toolkit vs Google Workspace
+
+| Scenario | Tool |
+|---|---|
+| Audit packet, compliance report, executive summary | **Word Toolkit** |
+| Customer-facing branded deliverable | **Word Toolkit** |
+| Internal email or calendar event | Google Workspace (`gws`) |
+| Spreadsheet data or append-only logs | Google Workspace (`gws sheets`) |
+| Quick plaintext note shared via Drive | Google Workspace (`gws docs`) |
+
+---
+
+## 10. Local Development
 
 ### Starting the Dev Server
 
@@ -286,6 +580,7 @@ If the app is partially running, the user should run `.\dev-stop.bat` first.
 | Inspect edge function code | Supabase `get_edge_function` |
 | Look up library API docs | Context7 `resolve-library-id` → `query-docs` |
 | Test the live app visually | Browser `browser_navigate` → `browser_snapshot` |
+| Take a browser screenshot | Browser `browser_take_screenshot` → copy to `tmp/screenshots/` |
 | Read a Figma design | Figma `get_design_context` |
 | Write to Figma canvas | Figma `use_figma` (read `figma-use` skill first) |
 | Check open issues/bugs | GitHub `gh issue list` |
@@ -293,3 +588,10 @@ If the app is partially running, the user should run `.\dev-stop.bat` first.
 | Monitor frontend performance | Datadog `search_datadog_rum_events` or `aggregate_rum_events` |
 | Check runtime errors | Vercel `get_runtime_logs` |
 | Get security/perf advisories | Supabase `get_advisors` |
+| Create a branded deliverable (audit, report) | Word Toolkit `New-BrandedDocument.ps1` (see section 9) |
+| Create a Google Doc (internal notes) | `gws docs documents create` → `gws docs +write` |
+| Read or write a spreadsheet | `gws sheets +read` / `gws sheets +append` |
+| Send an email | `gws gmail +send` |
+| Check calendar or create event | `gws calendar +agenda` / `gws calendar +insert` |
+| Upload a file to Drive | `gws drive +upload` |
+| Create a presentation | `gws slides presentations create` |

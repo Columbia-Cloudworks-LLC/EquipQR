@@ -533,6 +533,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                   fieldId={nameFieldId}
                   placeholder="Enter equipment name"
                   className="text-base"
+                  editAriaLabel="Edit name"
                 />
               </div>
             </div>
@@ -549,6 +550,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                     type="select"
                     selectOptions={[...EQUIPMENT_STATUS_OPTIONS]}
                     className="text-base"
+                    editAriaLabel="Edit status"
                   />
                 ) : (
                   <Badge className={`${getStatusColor(equipment.status || 'active')} rounded-full px-2 py-0.5 text-xs`} variant="outline">
@@ -621,6 +623,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                     selectOptions={teamOptions}
                     placeholder="Select team"
                     className="text-base"
+                    editAriaLabel="Edit assigned team"
                   />
                 ) : (
                   <span className="text-base text-foreground">
@@ -660,6 +663,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                       fieldId={manufacturerFieldId}
                       placeholder="Enter manufacturer"
                       className="text-base"
+                      editAriaLabel="Edit manufacturer"
                     />
                   </div>
                 </div>
@@ -674,6 +678,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                       fieldId={modelFieldId}
                       placeholder="Enter model"
                       className="text-base"
+                      editAriaLabel="Edit model"
                     />
                   </div>
                 </div>
@@ -688,6 +693,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                       fieldId={serialNumberFieldId}
                       placeholder="Enter serial number"
                       className="text-base"
+                      editAriaLabel="Edit serial number"
                     />
                   </div>
                 </div>
@@ -706,6 +712,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                         selectOptions={pmTemplateOptions}
                         placeholder="Select PM template"
                         className="text-base"
+                        editAriaLabel="Edit PM template"
                       />
                     ) : (
                       <span className="text-base text-foreground">
@@ -731,6 +738,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                   type="textarea"
                   placeholder="Enter equipment description"
                   className="text-base"
+                  editAriaLabel="Edit description"
                 />
               </div>
             </div>
@@ -757,6 +765,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                         fieldId={manufacturerFieldId}
                         placeholder="Enter manufacturer"
                         className="text-base"
+                        editAriaLabel="Edit manufacturer"
                       />
                     </div>
                   </div>
@@ -771,6 +780,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                         fieldId={modelFieldId}
                         placeholder="Enter model"
                         className="text-base"
+                        editAriaLabel="Edit model"
                       />
                     </div>
                   </div>
@@ -785,6 +795,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                         fieldId={serialNumberFieldId}
                         placeholder="Enter serial number"
                         className="text-base"
+                        editAriaLabel="Edit serial number"
                       />
                     </div>
                   </div>
@@ -803,6 +814,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                           selectOptions={pmTemplateOptions}
                           placeholder="Select PM template"
                           className="text-base"
+                          editAriaLabel="Edit PM template"
                         />
                       ) : (
                         <span className="text-base text-foreground">
@@ -823,6 +835,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                         type="textarea"
                         placeholder="Enter equipment description"
                         className="text-base"
+                        editAriaLabel="Edit description"
                       />
                     </div>
                   </div>
@@ -865,6 +878,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                   type="date"
                   placeholder="Select installation date"
                   className="text-base"
+                  editAriaLabel="Edit installation date"
                 />
               </div>
             </div>
@@ -880,6 +894,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                   type="date"
                   placeholder="Select warranty expiration date"
                   className="text-base"
+                  editAriaLabel="Edit warranty expiration"
                 />
               </div>
             </div>
@@ -895,6 +910,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                   type="date"
                   placeholder="Select last maintenance date"
                   className="text-base"
+                  editAriaLabel="Edit last maintenance"
                   displayNode={
                     lastMaintenanceLink ? (
                       <Link
@@ -965,6 +981,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
                 type="textarea"
                 placeholder="Enter maintenance notes or additional information"
                 className="text-base"
+                editAriaLabel="Edit notes"
               />
             </div>
           </div>

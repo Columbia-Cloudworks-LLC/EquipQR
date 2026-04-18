@@ -27,8 +27,7 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
     try {
       // Add cache busting parameter to force fresh request
       const cacheKey = `cache_bust_${Date.now()}`;
-      // Fetching Google Maps key
-      
+
       const { data, error } = await supabase.functions.invoke<GoogleMapsKeyResponse>(
         'public-google-maps-key',
         {
@@ -60,7 +59,6 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
         throw new Error('Google Maps API key not found in response');
       }
       
-      // Successfully fetched Google Maps key
       setGoogleMapsKey(data.key);
       setError(null);
     } catch (error) {

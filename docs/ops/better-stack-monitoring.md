@@ -108,3 +108,50 @@ When the database check fails or times out, the endpoint returns HTTP 503 with `
 - If the healthcheck endpoint changes its response contract, update the Better Stack keyword monitor to match.
 - If the Supabase project is migrated to a new ref, update the deep health monitor URL.
 - If `equipqr.app` DNS moves away from Vercel, recreate the `status` CNAME at the new provider.
+
+## Better Stack MCP smoke check
+
+Use this after installing or re-authenticating the Better Stack Cursor plugin to confirm MCP connectivity and read access in under five minutes. **Read-only** (no monitor, dashboard, or incident mutations).
+
+### Preconditions
+
+- Better Stack MCP server is configured and authenticated.
+- MCP server id: `plugin-better-stack-betterstack`.
+
+### Standard 4-step validation
+
+1. **Uptime monitors** — call `uptime_list_monitors_tool`. Pass: no auth/tool errors; expected monitors include **EquipQR Web** and **EquipQR API Health** (see tables above).
+2. **Uptime incidents** — call `uptime_list_incidents_tool`. Pass: success; history or empty set with valid status fields.
+3. **Telemetry inventory** — call `telemetry_list_sources_tool` or `telemetry_list_applications_tool`. Pass: success; at least one source/application when telemetry is configured.
+4. **Error tracking visibility** — call `telemetry_list_error_states_tool`, or fall back to `telemetry_list_applications_tool` if error states are not enabled. Pass: success; structured rows or empty-but-valid result.
+
+### Evidence capture template
+
+Record timestamped results (e.g. in `tmp/` or your audit notes):
+
+```text
+Smoke Check Timestamp (UTC): <YYYY-MM-DD HH:MM:SS>
+Server: plugin-better-stack-betterstack
+
+1) uptime_list_monitors_tool -> PASS|FAIL
+   Notes: <key monitor names / error details>
+
+2) uptime_list_incidents_tool -> PASS|FAIL
+   Notes: <incident summary or empty-valid result>
+
+3) telemetry_list_sources_tool or telemetry_list_applications_tool -> PASS|FAIL
+   Notes: <count or key entries>
+
+4) telemetry_list_error_states_tool (or fallback) -> PASS|FAIL
+   Notes: <state summary / fallback used>
+
+Overall: PASS|FAIL
+Next Action: <none | re-auth | verify team scope | investigate API permissions>
+```
+
+### Failure triage
+
+- **Auth errors:** re-run `mcp_auth` for server `plugin-better-stack-betterstack`.
+- **Empty results with expected data:** check Better Stack team/workspace scope and filters.
+- **Tool not found:** confirm plugin version and that server tool descriptors are loaded.
+- **Intermittent failures:** retry once, log the exact error, then stop (avoid blind retry loops).

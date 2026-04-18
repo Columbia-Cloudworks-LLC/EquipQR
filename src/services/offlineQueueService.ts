@@ -115,6 +115,7 @@ export interface OfflineQueueWorkOrderNoteItem extends OfflineQueueItemBase {
     workOrderId: string;
     content: string;
     hoursWorked?: number;
+    machineHours?: number;
     isPrivate?: boolean;
   };
 }
@@ -152,6 +153,7 @@ export interface OfflineQueueEquipmentNoteItem extends OfflineQueueItemBase {
     equipmentId: string;
     content: string;
     hoursWorked?: number;
+    machineHours?: number;
     isPrivate?: boolean;
   };
 }

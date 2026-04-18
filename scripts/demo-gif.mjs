@@ -4,12 +4,20 @@ import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import {
+  parseDemoGifArgs,
+  resolveSmokeWebmRelativePath,
+  isLocalhostBaseUrl
+} from './lib/demoGifArgs.mjs';
+import {
+  allocateCanonicalArtifactRelativePath,
+  ensureDemoDirectory
+} from './lib/demoArtifactPaths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const scenariosPath = path.join(__dirname, 'demo-scenarios.json');
-const baseUrl = 'http://localhost:8080';
 const defaultViewportByProfile = {
   desktop: { width: 1366, height: 900 },
   mobile: { width: 390, height: 844 }
@@ -65,43 +73,63 @@ async function runCommand(command, { cwd = repoRoot, allowFailure = false, quiet
   });
 }
 
-function parseArgs(args) {
-  const parsed = {
-    scenarioName: null,
-    listOnly: false,
-    category: null,
-    audience: null,
-    tag: null
-  };
+/**
+ * @param {string} combinedOutput
+ * @returns {string | null}
+ */
+function extractPageUrlFromOutput(combinedOutput) {
+  const match = combinedOutput.match(/Page URL:\s+(\S+)/im);
+  return match?.[1] ?? null;
+}
 
-  for (const arg of args) {
-    if (arg === '--list') {
-      parsed.listOnly = true;
-      continue;
+/**
+ * @param {string} pageUrl
+ * @param {string} baseUrl
+ */
+function isAuthLikeUrl(pageUrl, baseUrl) {
+  if (!pageUrl) return true;
+  try {
+    const base = new URL(baseUrl);
+    const current = new URL(pageUrl);
+    if (current.origin !== base.origin) {
+      return false;
     }
-    if (arg.startsWith('--category=')) {
-      parsed.category = arg.split('=')[1] || null;
-      continue;
-    }
-    if (arg.startsWith('--audience=')) {
-      parsed.audience = arg.split('=')[1] || null;
-      continue;
-    }
-    if (arg.startsWith('--tag=')) {
-      parsed.tag = arg.split('=')[1] || null;
-      continue;
-    }
-    if (!arg.startsWith('--') && !parsed.scenarioName) {
-      parsed.scenarioName = arg;
-    }
+    const p = current.pathname.toLowerCase();
+    return (
+      p.includes('/auth') ||
+      p.includes('/login') ||
+      p.includes('/sign-in') ||
+      p.includes('/signup')
+    );
+  } catch {
+    return true;
   }
+}
 
-  return parsed;
+/**
+ * @param {string} baseUrl
+ * @param {{ maxAttempts?: number, delayMs?: number }} [opts]
+ */
+async function waitForDashboardOrThrow(baseUrl, { maxAttempts = 12, delayMs = 1200 } = {}) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const result = await runPlaywrightCommand(`playwright-cli goto ${baseUrl}/dashboard`);
+    const output = `${result.stdout}\n${result.stderr}`;
+    const pageUrl = extractPageUrlFromOutput(output);
+    if (pageUrl && !isAuthLikeUrl(pageUrl, baseUrl)) {
+      return;
+    }
+    await sleep(delayMs);
+  }
+  throw new Error(
+    `Timed out reaching dashboard at ${baseUrl}/dashboard. ` +
+      'For production, use saved auth: run `npx playwright codegen <url> --save-storage=tmp/demos/auth.json` once, then `npm run demo:record:prod` with DEMO_STORAGE_STATE set. ' +
+      'Localhost automated persona login remains available via --base-url=http://localhost:8080.'
+  );
 }
 
 async function ensureBinaryAvailable(name) {
   const checkCommand = process.platform === 'win32' ? `where ${name}` : `command -v ${name}`;
-  const result = await runCommand(checkCommand, { allowFailure: true });
+  const result = await runCommand(checkCommand, { allowFailure: true, quiet: true });
   if (result.code !== 0) {
     throw new Error(`Required command "${name}" was not found in PATH.`);
   }
@@ -253,18 +281,26 @@ function escapeForSingleQuotedJsString(value) {
   return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
-async function loginAsAlexApex() {
-  return loginWithPersona({ persona: 'Alex Apex' });
+/**
+ * @param {string} baseUrl
+ */
+async function loginAsAlexApex(baseUrl) {
+  return loginWithPersona(baseUrl, { persona: 'Alex Apex' });
 }
 
-async function loginWithPersona({ persona = 'Alex Apex' } = {}) {
+/**
+ * @param {string} baseUrl
+ * @param {{ persona?: string }} [opts]
+ */
+async function loginWithPersona(baseUrl, { persona = 'Alex Apex' } = {}) {
   const escapedPersona = persona.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   await runPlaywrightCommand(`playwright-cli goto ${baseUrl}/auth`);
 
   async function navigateToDashboardAndCheckAuth() {
     const result = await runPlaywrightCommand(`playwright-cli goto ${baseUrl}/dashboard`);
     const output = `${result.stdout}\n${result.stderr}`;
-    return !/Page URL:\s+http:\/\/localhost:8080\/auth/i.test(output);
+    const pageUrl = extractPageUrlFromOutput(output);
+    return Boolean(pageUrl && !isAuthLikeUrl(pageUrl, baseUrl));
   }
 
   // Attempt 2: selector-based fallback.
@@ -485,8 +521,73 @@ async function runDemoAction(step) {
   }
 }
 
+/**
+ * Minimal smoke: land on app root, authenticate (localhost persona only), reach dashboard, one .webm.
+ * @param {import('./lib/demoGifArgs.mjs').DemoGifCliArgs} parsedArgs
+ */
+async function runSmokeVideoRecording(parsedArgs) {
+  const base = parsedArgs.baseUrl;
+  const runIndex = Number.parseInt(process.env.DEMO_RUN_INDEX || '', 10);
+  const webmRelativePath = parsedArgs.out
+    ? resolveSmokeWebmRelativePath({ out: parsedArgs.out })
+    : await allocateCanonicalArtifactRelativePath({
+        flow: 'demo-smoke',
+        runIndex: Number.isInteger(runIndex) ? runIndex : null
+      });
+
+  await ensureBinaryAvailable('playwright-cli');
+
+  await ensureDemoDirectory();
+
+  const viewport = defaultViewportByProfile.desktop;
+  let videoStarted = false;
+
+  try {
+    await runPlaywrightCommand('playwright-cli open about:blank');
+    await runPlaywrightCommand(`playwright-cli resize ${viewport.width} ${viewport.height}`);
+    await runPlaywrightCommand('playwright-cli video-start');
+    videoStarted = true;
+
+    await runPlaywrightCommand(`playwright-cli goto ${base}/`);
+    await sleep(900);
+
+    if (isLocalhostBaseUrl(base)) {
+      const personaName = parsedArgs.persona || 'Alex Apex';
+      if (personaName === 'Alex Apex') {
+        await loginAsAlexApex(base);
+      } else {
+        await loginWithPersona(base, { persona: personaName });
+      }
+    } else {
+      await waitForDashboardOrThrow(base);
+    }
+
+    await runPlaywrightCommand(`playwright-cli goto ${base}/dashboard`);
+    await sleep(1800);
+    await runPlaywrightCommand('playwright-cli snapshot');
+
+    await stopVideoAtPath(webmRelativePath);
+    videoStarted = false;
+
+    const webmAbsolutePath = path.resolve(repoRoot, webmRelativePath);
+    const stat = await fs.stat(webmAbsolutePath).catch(() => null);
+    if (!stat || stat.size < 256) {
+      throw new Error(`Video artifact missing or too small: ${webmRelativePath}`);
+    }
+    console.log(`Video saved: ${webmAbsolutePath}`);
+  } catch (error) {
+    console.error(`Demo generation failed: ${error instanceof Error ? error.message : String(error)}`);
+    process.exitCode = 1;
+  } finally {
+    if (videoStarted) {
+      await stopVideoAtPath(webmRelativePath).catch(() => undefined);
+    }
+    await runCommand('playwright-cli close', { allowFailure: true });
+  }
+}
+
 async function main() {
-  const parsedArgs = parseArgs(process.argv.slice(2));
+  const parsedArgs = parseDemoGifArgs(process.argv.slice(2));
   const { scenarios } = await loadManifest();
 
   if (parsedArgs.listOnly) {
@@ -498,18 +599,30 @@ async function main() {
     return;
   }
 
+  if (parsedArgs.smoke) {
+    await runSmokeVideoRecording(parsedArgs);
+    return;
+  }
+
   const scenario = await loadScenario(parsedArgs.scenarioName);
 
   await ensureBinaryAvailable('playwright-cli');
-  await ensureBinaryAvailable('ffmpeg');
+  if (!parsedArgs.videoOnly) {
+    await ensureBinaryAvailable('ffmpeg');
+  }
 
-  const demosDir = path.join(repoRoot, 'tmp', 'demos');
-  await fs.mkdir(demosDir, { recursive: true });
+  await ensureDemoDirectory();
 
-  const webmRelativePath = path.join('tmp', 'demos', `${scenario.name}.webm`);
+  const runIndex = Number.parseInt(process.env.DEMO_RUN_INDEX || '', 10);
+  const webmRelativePath = await allocateCanonicalArtifactRelativePath({
+    flow: `scenario-${scenario.name.replace(/[/\\]/g, '-')}`,
+    runIndex: Number.isInteger(runIndex) ? runIndex : null
+  });
   const gifRelativePath = path.join('tmp', 'demos', `${scenario.name}.gif`);
   const gifAbsolutePath = path.resolve(repoRoot, gifRelativePath);
+  const webmAbsolutePath = path.resolve(repoRoot, webmRelativePath);
 
+  const base = parsedArgs.baseUrl;
   let videoStarted = false;
 
   try {
@@ -521,35 +634,46 @@ async function main() {
     videoStarted = true;
 
     // Required initial app open step.
-    await runPlaywrightCommand(`playwright-cli goto ${baseUrl}`);
+    await runPlaywrightCommand(`playwright-cli goto ${base}`);
 
-    // Authenticate via Dev Quick Login persona.
-    const personaName = scenario.auth?.persona || 'Alex Apex';
-    if (personaName === 'Alex Apex') {
-      await loginAsAlexApex();
+    // Authenticate via Dev Quick Login persona (localhost / dev builds).
+    const personaName = parsedArgs.persona || scenario.auth?.persona || 'Alex Apex';
+    if (isLocalhostBaseUrl(base)) {
+      if (personaName === 'Alex Apex') {
+        await loginAsAlexApex(base);
+      } else {
+        await loginWithPersona(base, { persona: personaName });
+      }
     } else {
-      await loginWithPersona({ persona: personaName });
+      await waitForDashboardOrThrow(base);
     }
 
     // Navigate to scenario route after login.
-    await runPlaywrightCommand(`playwright-cli goto ${baseUrl}${scenario.route}`);
+    await runPlaywrightCommand(`playwright-cli goto ${base}${scenario.route}`);
     await sleep(1500);
 
     // Run scenario-specific steps.
     await runScenarioSteps(scenario);
 
-    // Stop capture and convert video to GIF.
+    // Stop capture and optionally convert video to GIF.
     await stopVideoAtPath(webmRelativePath);
     videoStarted = false;
 
-    await runCommand(
-      `ffmpeg -y -i "${webmRelativePath}" -vf "fps=10,scale=960:-1:flags=lanczos" "${gifRelativePath}"`,
-      { cwd: repoRoot }
-    );
-
-    console.log(`GIF generated: ${gifAbsolutePath}`);
+    if (!parsedArgs.videoOnly) {
+      await runCommand(
+        `ffmpeg -y -i "${webmRelativePath}" -vf "fps=10,scale=960:-1:flags=lanczos" "${gifRelativePath}"`,
+        { cwd: repoRoot }
+      );
+      console.log(`GIF generated: ${gifAbsolutePath}`);
+    } else {
+      const stat = await fs.stat(webmAbsolutePath).catch(() => null);
+      if (!stat || stat.size < 256) {
+        throw new Error(`Video artifact missing or too small: ${webmRelativePath}`);
+      }
+      console.log(`Video saved: ${webmAbsolutePath}`);
+    }
   } catch (error) {
-    console.error(`Demo generation failed: ${error.message}`);
+    console.error(`Demo generation failed: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;
   } finally {
     if (videoStarted) {

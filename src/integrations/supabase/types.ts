@@ -169,6 +169,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_tax_exempt: boolean | null
           name: string
           notes: string | null
           organization_id: string
@@ -186,6 +187,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_tax_exempt?: boolean | null
           name: string
           notes?: string | null
           organization_id: string
@@ -203,6 +205,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_tax_exempt?: boolean | null
           name?: string
           notes?: string | null
           organization_id?: string
@@ -639,6 +642,7 @@ export type Database = {
           is_private: boolean
           last_modified_at: string | null
           last_modified_by: string | null
+          machine_hours: number | null
           updated_at: string
         }
         Insert: {
@@ -652,6 +656,7 @@ export type Database = {
           is_private?: boolean
           last_modified_at?: string | null
           last_modified_by?: string | null
+          machine_hours?: number | null
           updated_at?: string
         }
         Update: {
@@ -665,6 +670,7 @@ export type Database = {
           is_private?: boolean
           last_modified_at?: string | null
           last_modified_by?: string | null
+          machine_hours?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -3374,6 +3380,7 @@ export type Database = {
           hours_worked: number | null
           id: string
           is_private: boolean
+          machine_hours: number | null
           updated_at: string
           work_order_id: string
         }
@@ -3385,6 +3392,7 @@ export type Database = {
           hours_worked?: number | null
           id?: string
           is_private?: boolean
+          machine_hours?: number | null
           updated_at?: string
           work_order_id: string
         }
@@ -3396,6 +3404,7 @@ export type Database = {
           hours_worked?: number | null
           id?: string
           is_private?: boolean
+          machine_hours?: number | null
           updated_at?: string
           work_order_id?: string
         }

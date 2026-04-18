@@ -10,8 +10,9 @@ Before you begin, ensure you have the following installed on your development ma
 
 ### Required Software
 
-- **Node.js** (v22.x recommended, v20.x supported) - [Download here](https://nodejs.org/)
+- **Node.js** — must satisfy `engines.node` in the root [`package.json`](../../package.json) (currently **Node 20.17+** or **22.9+**). We recommend the latest **22.x** LTS. [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively (no yarn/pnpm/bun)
+- **Docker Desktop** — required for the full local stack (`dev-start.bat` / Supabase). [Download here](https://www.docker.com/products/docker-desktop)
 - **Git** - [Download here](https://git-scm.com/)
 - **Modern Code Editor** - We recommend [VS Code](https://code.visualstudio.com/)
 
