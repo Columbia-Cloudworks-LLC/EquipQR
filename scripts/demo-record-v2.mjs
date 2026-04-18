@@ -274,10 +274,17 @@ async function runWithArgs(args) {
         try {
           await runner.stopVideo(videoRelativePath);
         } catch (stopError) {
+          const stopMessage =
+            stopError instanceof Error ? stopError.message : String(stopError);
+          console.error(
+            `[demo:v2] stopVideo failed scenario=${scenario.id} video=${videoRelativePath}: ${stopMessage}`
+          );
+          if (!failureTaxonomy.includes('VIDEO_FINALIZE_FAILURE')) {
+            failureTaxonomy.push('VIDEO_FINALIZE_FAILURE');
+          }
           if (status === 'passed') {
             status = 'failed';
-            failureReason = stopError instanceof Error ? stopError.message : String(stopError);
-            failureTaxonomy.push('VIDEO_FINALIZE_FAILURE');
+            failureReason = `Video finalization failed: ${stopMessage}`;
           }
         }
         await runner.closeSession();
