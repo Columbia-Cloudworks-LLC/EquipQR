@@ -50,7 +50,9 @@ const envNumberOrDefault = (
   fallback: number,
 ): number => {
   if (!value) return fallback;
-  const parsed = Number(value);
+  const normalized = value.trim();
+  if (normalized.length === 0) return fallback;
+  const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 

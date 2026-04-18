@@ -80,7 +80,23 @@ jobs:
       shell: bash
       run: |
         set -e
-        npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
+        install_with_retry() {
+          local max_attempts=3
+          local attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "npm ci attempt $attempt/$max_attempts"
+            if npm ci --prefer-offline --no-audit; then
+              return 0
+            fi
+            if [ $attempt -lt $max_attempts ]; then
+              sleep $((attempt * 15))
+            fi
+            attempt=$((attempt + 1))
+          done
+          return 1
+        }
+
+        install_with_retry || (rm -f package-lock.json && npm install --package-lock-only --no-audit && install_with_retry)
 
     - name: Run ESLint
       run: npx eslint . --format=json --output-file=eslint-report.json
@@ -335,7 +351,23 @@ jobs:
       shell: bash
       run: |
         set -e
-        npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
+        install_with_retry() {
+          local max_attempts=3
+          local attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "npm ci attempt $attempt/$max_attempts"
+            if npm ci --prefer-offline --no-audit; then
+              return 0
+            fi
+            if [ $attempt -lt $max_attempts ]; then
+              sleep $((attempt * 15))
+            fi
+            attempt=$((attempt + 1))
+          done
+          return 1
+        }
+
+        install_with_retry || (rm -f package-lock.json && npm install --package-lock-only --no-audit && install_with_retry)
 
     - name: Cache build output
       uses: actions/cache@v4
