@@ -14,8 +14,6 @@ import {
 import { MissingSecretError } from "../_shared/require-secret.ts";
 import { googleApiFetch } from "../_shared/google-api-retry.ts";
 
-const FUNCTION_NAME = "google-workspace-sync-users";
-
 interface SyncRequest {
   organizationId: string;
 }

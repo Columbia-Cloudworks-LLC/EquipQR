@@ -392,7 +392,16 @@ export function createErrorResponse(
   } else {
     const messageString = typeof error === "string" ? error : error.message;
     if (isErrorMessageSafe(messageString)) {
-      safeMessage = messageString;
+      // Defense-in-depth: bound the exposed message to MAX_ERROR_MESSAGE_LENGTH
+      // even though the allowlist already rejects messages over that length.
+      // Some allowlist patterns are prefix matches (e.g. /^Failed to (verify|...)/)
+      // and could in theory let through a longer string with debug-tail content;
+      // .slice produces a bounded substring derived from a fixed cap, breaking
+      // any Error.message → response taint chain that the allowlist alone
+      // doesn't structurally express to static analyzers (CodeQL
+      // js/stack-trace-exposure). The slice is a no-op for already-allowlisted
+      // messages, which are <= MAX_ERROR_MESSAGE_LENGTH by construction.
+      safeMessage = messageString.slice(0, MAX_ERROR_MESSAGE_LENGTH);
     } else {
       // Log the original error server-side for debugging
       console.error("[createErrorResponse] Unsafe error message blocked:", messageString);
