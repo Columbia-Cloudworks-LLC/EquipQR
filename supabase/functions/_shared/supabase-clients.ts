@@ -10,6 +10,7 @@
 import { createClient, SupabaseClient, User } from "npm:@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "./cors.ts";
 import { SAFE_ERROR_PATTERNS } from "./error-message-allowlist.ts";
+import { MissingSecretError } from "./require-secret.ts";
 
 // =============================================================================
 // Constants
@@ -360,26 +361,34 @@ function isErrorMessageSafe(error: string): boolean {
  * @param status - HTTP status code (default: 500)
  */
 export function createErrorResponse(
-  error: string,
+  error: string | Error,
   status: number = 500
 ): Response {
   // Use allowlist approach: only known-safe messages are exposed
   // This ensures defense-in-depth against stack trace exposure
   let safeMessage: string;
-  
-  if (isErrorMessageSafe(error)) {
-    safeMessage = error;
-  } else {
-    // Log the original error server-side for debugging
-    console.error("[createErrorResponse] Unsafe error message blocked:", error);
-    // Return a static generic message - no dynamic content from the error
+
+  if (error instanceof MissingSecretError) {
+    // The MissingSecretError constructor has already emitted a structured
+    // MISSING_REQUIRED_SECRET log line server-side. The client must never
+    // see the secret name, so force the generic message.
     safeMessage = GENERIC_ERROR_MESSAGE;
+  } else {
+    const messageString = typeof error === "string" ? error : error.message;
+    if (isErrorMessageSafe(messageString)) {
+      safeMessage = messageString;
+    } else {
+      // Log the original error server-side for debugging
+      console.error("[createErrorResponse] Unsafe error message blocked:", messageString);
+      // Return a static generic message - no dynamic content from the error
+      safeMessage = GENERIC_ERROR_MESSAGE;
+    }
   }
-  
+
   // Create response with only the safe static message
   // The safeMessage is either from the allowlist or a constant string literal
   const responseBody = JSON.stringify({ error: safeMessage });
-  
+
   return new Response(
     responseBody,
     {
@@ -414,4 +423,130 @@ export function handleCorsPreflightIfNeeded(req: Request): Response | null {
     return new Response(null, { headers: corsHeaders });
   }
   return null;
+}
+
+// =============================================================================
+// Correlation ID
+// =============================================================================
+
+/**
+ * Per-request context passed into handlers wrapped with `withCorrelationId`.
+ * Today this just carries the correlation id; new fields can be added without
+ * breaking existing handlers (the second arg is optional in the wrapper type).
+ */
+export interface RequestContext {
+  /** Stable identifier for this request, suitable for cross-log correlation. */
+  correlationId: string;
+}
+
+/**
+ * Header read on inbound requests to reuse an upstream-supplied id.
+ * Emitted on every outbound response so callers can correlate logs.
+ */
+const CORRELATION_HEADER = "X-Correlation-Id";
+const REQUEST_ID_HEADER = "X-Request-Id";
+
+/**
+ * Wraps a `Deno.serve` handler so every request gets a correlation id,
+ * every response carries an `X-Correlation-Id` header, and every JSON
+ * error body is augmented with a `correlation_id` field for in-app
+ * support flows.
+ *
+ * Behaviour:
+ *   - The id is taken from an inbound `X-Correlation-Id` header (preferred,
+ *     in case the platform already minted one), then `X-Request-Id`, then
+ *     a fresh `crypto.randomUUID()`.
+ *   - The response header is set on every response (success or error).
+ *   - For error responses (status >= 400) with `Content-Type: application/json`
+ *     and a JSON object body, a `correlation_id` field is injected. Success
+ *     bodies are never modified — preserving wire-format compatibility for
+ *     existing clients.
+ *   - The id is also passed to the handler via the second argument so
+ *     handlers can include it in their own structured log lines.
+ *
+ * @example
+ * Deno.serve(withCorrelationId(async (req, ctx) => {
+ *   console.log(JSON.stringify({ correlation_id: ctx.correlationId, ... }));
+ *   return createJsonResponse({ ok: true });
+ * }));
+ */
+export function withCorrelationId(
+  handler: (req: Request, ctx: RequestContext) => Promise<Response>,
+): (req: Request) => Promise<Response> {
+  return async (req: Request): Promise<Response> => {
+    const correlationId =
+      req.headers.get(CORRELATION_HEADER) ??
+      req.headers.get(REQUEST_ID_HEADER) ??
+      crypto.randomUUID();
+
+    const ctx: RequestContext = { correlationId };
+
+    let response: Response;
+    try {
+      response = await handler(req, ctx);
+    } catch (err) {
+      // The handler threw without producing a Response. Convert to a
+      // generic error response so the correlation id still reaches the
+      // client. createErrorResponse handles MissingSecretError specially.
+      console.error(
+        JSON.stringify({
+          level: "error",
+          code: "UNCAUGHT_HANDLER_ERROR",
+          correlation_id: correlationId,
+          message: err instanceof Error ? err.name : "unknown",
+        }),
+      );
+      response = createErrorResponse(err instanceof Error ? err : String(err), 500);
+    }
+
+    return decorateResponseWithCorrelationId(response, correlationId);
+  };
+}
+
+/**
+ * Adds the correlation header to a response and, for JSON error
+ * responses, injects a `correlation_id` field into the body. Returns
+ * a new Response — does not mutate the original (Response headers
+ * are immutable once a Response is constructed in some runtimes).
+ */
+async function decorateResponseWithCorrelationId(
+  response: Response,
+  correlationId: string,
+): Promise<Response> {
+  const headers = new Headers(response.headers);
+  headers.set(CORRELATION_HEADER, correlationId);
+
+  const isJson = (headers.get("Content-Type") ?? "").includes("application/json");
+  const isError = response.status >= 400;
+
+  if (!isJson || !isError) {
+    // Re-emit the response with the new header. We must clone the body
+    // because Response bodies are single-use streams.
+    const body = await response.arrayBuffer();
+    return new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
+  // Error JSON body — try to inject correlation_id without breaking
+  // ill-formed payloads. If parsing fails (non-object body), pass the
+  // body through unchanged.
+  const text = await response.text();
+  let injected = text;
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      injected = JSON.stringify({ ...parsed, correlation_id: correlationId });
+    }
+  } catch {
+    // Leave body as-is when it isn't a JSON object.
+  }
+
+  return new Response(injected, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
