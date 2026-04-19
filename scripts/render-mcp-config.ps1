@@ -146,14 +146,68 @@ if (-not $SkipGcp) {
 
             if (Get-Command gcloud -ErrorAction SilentlyContinue) {
                 Write-Step "Activating SA in gcloud config: $saEmail"
-                $null = & gcloud auth activate-service-account --key-file=$gcpKeyPath --quiet 2>&1
-                if ($LASTEXITCODE -eq 0) {
-                    $null = & gcloud config set account $saEmail --quiet 2>&1
-                    $null = & gcloud config set project equipqr-prod --quiet 2>&1
-                    Write-Ok "gcloud active account: $saEmail (project: equipqr-prod)"
-                    Write-Ok "  To switch back to your user account: gcloud config set account nicholas.king@columbiacloudworks.com"
-                } else {
-                    Write-Warn "gcloud activate-service-account failed (exit $LASTEXITCODE). MCP gcloud tool may not work until manually activated."
+
+                # On Windows, `gcloud` is itself a PowerShell wrapper
+                # (gcloud.ps1) that invokes python.exe. The Python process
+                # prints its informational/success output (e.g.
+                # "Activated service account credentials for: [...]") to
+                # stderr. PowerShell wraps each native-command stderr line
+                # as a NativeCommandError ErrorRecord. Two distinct
+                # mechanisms then turn that into a terminating exception
+                # depending on host:
+                #   - Windows PowerShell 5.1: $ErrorActionPreference = 'Stop'
+                #     is inherited into gcloud.ps1 via the dot-source/
+                #     invocation chain, so the NativeCommandError thrown
+                #     INSIDE gcloud.ps1 terminates the call before our
+                #     $LASTEXITCODE check can run.
+                #   - PowerShell 7.3+: $PSNativeCommandUseErrorActionPreference
+                #     promotes stderr writes to terminating errors when
+                #     'Stop' is in effect, with the same outcome.
+                # Either way, our `2>&1` cannot intercept the failure
+                # because it happens inside the child script, not in our
+                # invocation. The fix is to lower $ErrorActionPreference to
+                # 'Continue' for the duration of the gcloud calls so the
+                # inherited preference does not promote stderr to a
+                # terminating error, and (in PS 7) also flip the new
+                # automatic variable. We then rely solely on $LASTEXITCODE
+                # for success/failure, which is the correct signal.
+                $prevEap = $ErrorActionPreference
+                $prevNativePref = $null
+                if (Get-Variable -Name 'PSNativeCommandUseErrorActionPreference' -ErrorAction SilentlyContinue) {
+                    $prevNativePref = $PSNativeCommandUseErrorActionPreference
+                    $PSNativeCommandUseErrorActionPreference = $false
+                }
+                $ErrorActionPreference = 'Continue'
+                try {
+                    try {
+                        $null = & gcloud auth activate-service-account --key-file=$gcpKeyPath --quiet 2>&1
+                        $activateExit = $LASTEXITCODE
+                    } catch {
+                        # Defensive: even with 'Continue' some hosts may
+                        # still surface a terminating error. Treat as
+                        # activation failure with the underlying exception
+                        # message and fall through to the warning path.
+                        $activateExit = 1
+                        Write-Warn ("Caught terminating error from gcloud invocation: " + ($_.Exception.Message))
+                    }
+
+                    if ($activateExit -eq 0) {
+                        try {
+                            $null = & gcloud config set account $saEmail --quiet 2>&1
+                            $null = & gcloud config set project equipqr-prod --quiet 2>&1
+                            Write-Ok "gcloud active account: $saEmail (project: equipqr-prod)"
+                            Write-Ok "  To switch back to your user account: gcloud config set account nicholas.king@columbiacloudworks.com"
+                        } catch {
+                            Write-Warn ("gcloud config set failed: " + ($_.Exception.Message))
+                        }
+                    } else {
+                        Write-Warn "gcloud activate-service-account failed (exit $activateExit). MCP gcloud tool may not work until manually activated."
+                    }
+                } finally {
+                    $ErrorActionPreference = $prevEap
+                    if ($null -ne $prevNativePref) {
+                        $PSNativeCommandUseErrorActionPreference = $prevNativePref
+                    }
                 }
             } else {
                 Write-Warn "gcloud CLI not on PATH - skipping SA activation. MCP gcloud tool requires gcloud installed."
