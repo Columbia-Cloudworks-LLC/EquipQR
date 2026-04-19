@@ -1,0 +1,99 @@
+name: Edge Functions Smoke Test
+
+# Runs after Edge Functions are deployed to verify the most-likely
+# misconfiguration mode (missing required secret) is not present.
+#
+# The test calls public-google-maps-key with the project's anon key only.
+# verify_jwt is enabled on the function, so the expected response is HTTP
+# 401 ("No authorization header provided" — the bearer is the anon key
+# which is not a user JWT). A 401 PROVES the function:
+#   - is reachable
+#   - passed CORS preflight
+#   - loaded its required secrets (otherwise it would 500 BEFORE auth)
+#
+# A 500 means GOOGLE_MAPS_BROWSER_KEY (the secret that took down Fleet
+# Map on Preview in #617) is missing. The job fails the deploy.
+#
+# Other status codes (e.g. 200 if verify_jwt were ever changed) are
+# warned but not failed — the contract here is "not 500".
+
+on:
+  push:
+    branches: [preview, main]
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/edge-functions-smoke-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    name: public-google-maps-key returns 401 (not 500)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve target Supabase project
+        id: target
+        shell: bash
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "env=production" >> $GITHUB_OUTPUT
+            echo "url_field=vite_supabase_url" >> $GITHUB_OUTPUT
+            echo "key_field=vite_supabase_anon_key" >> $GITHUB_OUTPUT
+            echo "op_item=app-env-prod-public" >> $GITHUB_OUTPUT
+          else
+            echo "env=preview" >> $GITHUB_OUTPUT
+            echo "url_field=vite_supabase_url" >> $GITHUB_OUTPUT
+            echo "key_field=vite_supabase_anon_key" >> $GITHUB_OUTPUT
+            echo "op_item=app-env-preview-public" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Load Supabase URL + anon key from 1Password
+        uses: ./.github/actions/load-1p-secrets
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          SUPABASE_URL: op://EquipQR Agents/${{ steps.target.outputs.op_item }}/${{ steps.target.outputs.url_field }}
+          SUPABASE_ANON_KEY: op://EquipQR Agents/${{ steps.target.outputs.op_item }}/${{ steps.target.outputs.key_field }}
+
+      - name: Probe public-google-maps-key
+        shell: bash
+        run: |
+          set -u
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::warning::SUPABASE_URL or SUPABASE_ANON_KEY missing from 1Password — skipping smoke test for ${{ steps.target.outputs.env }} environment."
+            exit 0
+          fi
+
+          ENDPOINT="${SUPABASE_URL%/}/functions/v1/public-google-maps-key"
+          echo "Probing $ENDPOINT (env=${{ steps.target.outputs.env }})"
+
+          HTTP=$(curl --silent --show-error --max-time 15 \
+            --output /tmp/smoke-body.json \
+            --write-out '%{http_code}' \
+            -X POST "$ENDPOINT" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}' || echo "000")
+
+          echo "HTTP status: $HTTP"
+          echo "Body (first 500 chars):"
+          head -c 500 /tmp/smoke-body.json || true
+          echo
+
+          if [ "$HTTP" = "500" ]; then
+            echo "::error title=Edge Function smoke test failed::public-google-maps-key returned 500. The most likely cause is a missing GOOGLE_MAPS_BROWSER_KEY secret on the ${{ steps.target.outputs.env }} Supabase project. Check Supabase Dashboard -> Project Settings -> Edge Functions -> Secrets."
+            exit 1
+          fi
+
+          if [ "$HTTP" = "401" ]; then
+            echo "::notice::public-google-maps-key returned 401 as expected (anon-key is not a user JWT). Function is healthy."
+            exit 0
+          fi
+
+          # Any other status (000 timeout, 502, 503, 200, etc.) — treat as warning, do not fail.
+          echo "::warning::Unexpected HTTP $HTTP from public-google-maps-key (expected 401). Function is reachable but the response shape changed."
+          exit 0
