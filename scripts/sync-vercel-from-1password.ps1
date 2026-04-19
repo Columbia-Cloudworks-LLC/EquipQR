@@ -123,8 +123,21 @@ if (-not (Get-Command vercel -ErrorAction SilentlyContinue) -and -not (Get-Comma
     exit 1
 }
 
-$vercelCmd = if (Get-Command vercel -ErrorAction SilentlyContinue) { 'vercel' } else { 'npx vercel' }
-Write-Ok "Using Vercel CLI: $vercelCmd"
+# Resolve the Vercel CLI as a (command, prefix-args) pair so PowerShell can
+# splat it correctly. `& 'npx vercel' env ls` does NOT splat — PS treats the
+# whole 'npx vercel' string as the command name and fails with "term not
+# recognized". We capture the prefix args (e.g. ['vercel'] when using npx)
+# separately so we can do `& $vercelExe @vercelPrefix env ls ...`.
+if (Get-Command vercel -ErrorAction SilentlyContinue) {
+    $vercelExe = 'vercel'
+    $vercelPrefix = @()
+    $vercelCmdLabel = 'vercel'
+} else {
+    $vercelExe = 'npx'
+    $vercelPrefix = @('--yes', 'vercel')
+    $vercelCmdLabel = 'npx vercel'
+}
+Write-Ok "Using Vercel CLI: $vercelCmdLabel"
 
 $OP_VAULT = 'tgo2m6qbct5otqeqirjocn3joa'  # EquipQR Agents
 $vercelTokenItem = 'vercel-token'
@@ -137,6 +150,12 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($vercelToken)) {
     $env:VERCEL_TOKEN = $vercelToken.Trim()
     Write-Ok "Vercel token loaded from 1Password"
 }
+
+# Set the Vercel CLI's documented headless env vars so we don't need to run
+# `vercel link` against an arbitrary checkout. With both vars set, the CLI
+# operates against the named project/team without consulting `.vercel/project.json`.
+$env:VERCEL_PROJECT_ID = $VERCEL_PROJECT_ID
+$env:VERCEL_ORG_ID = $VERCEL_TEAM_ID
 
 $envsToProcess = if ($Environment -eq 'all') { @('production', 'preview') } else { @($Environment) }
 $totalDrift = 0
@@ -156,7 +175,15 @@ foreach ($envName in $envsToProcess) {
     }
 
     Write-Step "Listing current Vercel env vars for $envName..."
-    $vercelEnvOutput = & $vercelCmd.Split() env ls --token $env:VERCEL_TOKEN --scope $VERCEL_TEAM_ID 2>&1 | Out-String
+    # Build args incrementally so we only pass --token when we actually have one.
+    # Passing `--token ''` consumes the next flag's value (e.g. --scope) which
+    # produces confusing CLI errors. When no 1P-loaded token is present we fall
+    # through to the developer's existing `vercel login` session.
+    $vercelArgs = @($vercelPrefix) + @('env', 'ls', $envName, '--scope', $VERCEL_TEAM_ID)
+    if (-not [string]::IsNullOrEmpty($env:VERCEL_TOKEN)) {
+        $vercelArgs += @('--token', $env:VERCEL_TOKEN)
+    }
+    $vercelEnvOutput = & $vercelExe @vercelArgs 2>&1 | Out-String
     if ($LASTEXITCODE -ne 0) {
         Write-Fail "vercel env ls failed: $vercelEnvOutput"
         continue
@@ -173,26 +200,30 @@ foreach ($envName in $envsToProcess) {
         $opField = $var.ToLower()
         $opValue = & op read "op://$OP_VAULT/$opItem/$opField" 2>$null
         if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($opValue)) {
-            Write-Warn "  $var: missing in 1Password (op://$OP_VAULT/$opItem/$opField)"
+            Write-Warn "  ${var}: missing in 1Password (op://$OP_VAULT/$opItem/$opField)"
             continue
         }
         $opValue = $opValue.Trim()
 
         if ($Check) {
             if ($existingVars.Contains($var)) {
-                Write-Step "  CHECK: $var present in Vercel ($envName) — value-drift not compared (presence-only check)"
+                Write-Step "  CHECK: ${var} present in Vercel ($envName) — value-drift not compared (presence-only check)"
             } else {
-                Write-Warn "  CHECK: $var MISSING from Vercel ($envName) — would be set to a $($opValue.Length)-char value"
+                Write-Warn "  CHECK: ${var} MISSING from Vercel ($envName) — would be set to a $($opValue.Length)-char value"
                 $totalDrift++
             }
         } else {
-            Write-Step "  Setting $var in $envName..."
-            $opValue | & $vercelCmd.Split() env add $var $envName --token $env:VERCEL_TOKEN --scope $VERCEL_TEAM_ID --force
+            Write-Step "  Setting ${var} in ${envName}..."
+            $addArgs = @($vercelPrefix) + @('env', 'add', $var, $envName, '--scope', $VERCEL_TEAM_ID, '--force')
+            if (-not [string]::IsNullOrEmpty($env:VERCEL_TOKEN)) {
+                $addArgs += @('--token', $env:VERCEL_TOKEN)
+            }
+            $opValue | & $vercelExe @addArgs
             if ($LASTEXITCODE -eq 0) {
-                Write-Ok "    $var applied"
+                Write-Ok "    ${var} applied"
                 $totalApplied++
             } else {
-                Write-Fail "    $var failed (vercel env add exit $LASTEXITCODE)"
+                Write-Fail "    ${var} failed (vercel env add exit $LASTEXITCODE)"
             }
         }
     }

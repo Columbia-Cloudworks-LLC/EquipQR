@@ -146,7 +146,7 @@ foreach ($var in $cfg.Vars) {
     $opField = $var.ToLower()
     $opValue = & op read "op://$OP_VAULT/$opItem/$opField" 2>$null
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($opValue)) {
-        Write-Warn "  $var: missing in 1Password (op://$OP_VAULT/$opItem/$opField)"
+        Write-Warn "  ${var}: missing in 1Password (op://$OP_VAULT/$opItem/$opField)"
         continue
     }
     $opValue = $opValue.Trim()
@@ -154,17 +154,17 @@ foreach ($var in $cfg.Vars) {
 
     if ($Check) {
         $marker = if ($present) { 'PRESENT' } else { 'MISSING-IN-SUPABASE' }
-        Write-Step "  CHECK: $var ($marker) would be set to a $($opValue.Length)-char value"
+        Write-Step "  CHECK: ${var} ($marker) would be set to a $($opValue.Length)-char value"
         if (-not $present) { $totalDrift++ }
     } else {
-        Write-Step "  Setting $var..."
+        Write-Step "  Setting ${var}..."
         $env:SUPABASE_SECRET_VALUE = $opValue
         & npx supabase secrets set "$var=$opValue" --project-ref $ProjectRef 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) {
-            Write-Ok "    $var applied"
+            Write-Ok "    ${var} applied"
             $totalApplied++
         } else {
-            Write-Fail "    $var failed"
+            Write-Fail "    ${var} failed"
         }
         Remove-Item env:SUPABASE_SECRET_VALUE -ErrorAction SilentlyContinue
     }
