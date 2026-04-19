@@ -31,6 +31,7 @@ There is **no `dev` branch** despite what older sections of `CONTRIBUTING.md` su
 7. **Release flow** (only on explicit user request like `/raise`, "release", "promote"):
    - Open PR `preview → main`.
    - After merge to `main`, do not auto-promote production; the human flips the production gate in Vercel.
+8. **Trivial commits to `preview`** (CHANGELOG.md-only updates, `docs/`-only edits, comment-only fixes that touch zero runtime code) **may be direct-pushed** with admin bypass instead of opening a one-line PR — solo-dev velocity wins for non-runtime changes. Use `git push origin preview` (which silently bypasses the required-checks rule for repo admins) and proceed without opening a PR. Anything that touches `src/`, `supabase/migrations/`, `supabase/functions/`, `package.json`/`package-lock.json`, or any runtime file must still go through a PR with green CI, regardless of how small the change looks.
 
 ## Why this exists
 
