@@ -1,6 +1,12 @@
 import { encryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
-import { createAdminSupabaseClient } from "../_shared/supabase-clients.ts";
+import {
+  createAdminSupabaseClient,
+  withCorrelationId,
+} from "../_shared/supabase-clients.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+
+const FUNCTION_NAME = "google-workspace-oauth-callback";
 
 /**
  * Returns CORS headers for the OAuth callback. Extends the shared origin-
@@ -210,17 +216,17 @@ function isTrustedDomain(urlString: string): boolean {
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, ctx) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCallbackCorsHeaders(req) });
   }
 
   try {
-    logStep("Function started", { method: req.method });
+    logStep("Function started", { method: req.method, correlation_id: ctx.correlationId });
 
-    const clientId = Deno.env.get("GOOGLE_WORKSPACE_CLIENT_ID");
-    const clientSecret = Deno.env.get("GOOGLE_WORKSPACE_CLIENT_SECRET");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const clientId = requireSecret("GOOGLE_WORKSPACE_CLIENT_ID", { functionName: FUNCTION_NAME });
+    const clientSecret = requireSecret("GOOGLE_WORKSPACE_CLIENT_SECRET", { functionName: FUNCTION_NAME });
+    const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
     const productionUrl = Deno.env.get("PRODUCTION_URL");
     const oauthRedirectBaseUrl = Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL") || supabaseUrl;
 
@@ -230,41 +236,6 @@ Deno.serve(async (req) => {
       logStep("WARNING: PRODUCTION_URL not set, using fallback", { fallback: "https://equipqr.app" });
     }
     const resolvedProductionUrl = productionUrl || "https://equipqr.app";
-
-    if (!clientId || !clientSecret) {
-      logStep("ERROR", { message: "Missing GOOGLE_WORKSPACE_CLIENT_ID or GOOGLE_WORKSPACE_CLIENT_SECRET" });
-      const rawProductionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
-      // Validate PRODUCTION_URL to prevent open redirect attacks
-      // Use isTrustedDomain() to ensure the URL points to a trusted domain
-      let fallbackProductionUrl: string;
-      if (isTrustedDomain(rawProductionUrl)) {
-        // Additional validation: ensure the URL is well-formed and uses https
-        try {
-          const validatedUrl = new URL(rawProductionUrl);
-          if (validatedUrl.protocol === "https:" || validatedUrl.protocol === "http:") {
-            fallbackProductionUrl = rawProductionUrl;
-          } else {
-            fallbackProductionUrl = "https://equipqr.app";
-          }
-        } catch {
-          // Invalid URL format, use safe fallback
-          fallbackProductionUrl = "https://equipqr.app";
-        }
-      } else {
-        fallbackProductionUrl = "https://equipqr.app";
-      }
-      const errorCode = "oauth_failed";
-      const userMessage =
-        "Google Workspace OAuth is not configured. Please contact your administrator.";
-      const errorUrl = `${fallbackProductionUrl}/dashboard/onboarding/workspace?gw_error=${encodeURIComponent(
-        errorCode,
-      )}&gw_error_description=${encodeURIComponent(userMessage)}`;
-      return Response.redirect(errorUrl, 302);
-    }
-
-    if (!supabaseUrl) {
-      throw new Error("Supabase configuration is missing");
-    }
 
     try {
       new URL(oauthRedirectBaseUrl);
@@ -763,8 +734,21 @@ Deno.serve(async (req) => {
     const fallbackProductionUrl = isTrustedDomain(rawProductionUrl)
       ? rawProductionUrl
       : "https://equipqr.app";
+
+    // MissingSecretError: structured MISSING_REQUIRED_SECRET log already
+    // emitted by the helper. Surface a generic admin-facing message in the
+    // redirect — never the secret name.
+    if (error instanceof MissingSecretError) {
+      const errorUrl = `${fallbackProductionUrl}/dashboard/onboarding/workspace?gw_error=${encodeURIComponent(
+        "oauth_failed",
+      )}&gw_error_description=${encodeURIComponent(
+        "Google Workspace OAuth is not configured. Please contact your administrator.",
+      )}`;
+      return Response.redirect(errorUrl, 302);
+    }
+
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
+    logStep("ERROR", { message: errorMessage, correlation_id: ctx.correlationId });
 
     // Determine error type for better frontend handling using structured error properties
     const typedError = error as { code?: string; name?: string } | null | undefined;
@@ -782,5 +766,5 @@ Deno.serve(async (req) => {
     )}&gw_error_description=${encodeURIComponent(userMessage)}`;
     return Response.redirect(errorUrl, 302);
   }
-});
+}));
 

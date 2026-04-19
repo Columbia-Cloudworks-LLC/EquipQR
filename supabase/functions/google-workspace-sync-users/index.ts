@@ -5,12 +5,16 @@ import {
   createErrorResponse,
   requireUser,
   verifyOrgAdmin,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import {
   getGoogleWorkspaceAccessToken,
   GoogleWorkspaceTokenError,
 } from "../_shared/google-workspace-token.ts";
+import { MissingSecretError } from "../_shared/require-secret.ts";
 import { googleApiFetch } from "../_shared/google-api-retry.ts";
+
+const FUNCTION_NAME = "google-workspace-sync-users";
 
 interface SyncRequest {
   organizationId: string;
@@ -55,7 +59,7 @@ function buildDirectoryUrl(domain: string, pageToken?: string): string {
   return `${USERS_URL}?${params.toString()}`;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, _ctx) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -221,8 +225,11 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    if (error instanceof MissingSecretError) {
+      return createErrorResponse(error, 500);
+    }
     logStep("ERROR", { message: error instanceof Error ? error.message : String(error) });
     return createErrorResponse("Unexpected error while syncing Google Workspace users", 500);
   }
-});
+}));
 
