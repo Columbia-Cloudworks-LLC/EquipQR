@@ -75,13 +75,23 @@ The following functions use `createUserSupabaseClient()` and rely on RLS:
 - `resolve-inventory-scan` - Resolves scanned inventory items
 - `send-invitation-email` - Sends invitation emails
 
+## Authenticated-User Public-Data Endpoints (`verify_jwt = true`, no role gating)
+
+These endpoints require any signed-in user but otherwise return non-secret
+operational values to the client. The platform-level JWT check (`verify_jwt = true`
+in `supabase/config.toml`) gates anonymous traffic; the function then trusts
+that any authenticated user can read the value.
+
+| Function | Reason | Security Notes |
+|----------|--------|----------------|
+| `public-google-maps-key` | Returns the browser API key + optional Map ID needed by every authenticated client to render Fleet Map and address autocomplete | `verify_jwt = true` (anon-key callers receive 401 — verified by `.github/workflows/edge-functions-smoke-test.yml`). The browser key is HTTP-referrer-restricted in Google Cloud Console; secret is loaded via `requireSecret("GOOGLE_MAPS_BROWSER_KEY")`. The "public" in the function name refers to the *value* it returns being non-secret, NOT to anonymous access. |
+
 ## Public Endpoints (No JWT Required)
 
 These endpoints have `verify_jwt = false` and do NOT require authentication:
 
 | Function | Reason | Security Notes |
 |----------|--------|----------------|
-| `public-google-maps-key` | Returns browser API key (intentionally public) | Key is restricted in Google Cloud Console; secret loaded via `requireSecret("GOOGLE_MAPS_BROWSER_KEY")` |
 | `verify-hcaptcha` | Validates captcha tokens during signup | Only calls hCaptcha API; secret loaded via `requireSecret("HCAPTCHA_SECRET_KEY")` |
 | `parts-search` | Deprecated; returns 410 Gone | No DB access |
 

@@ -12,7 +12,13 @@
     - edge-env-preview-secrets    -> preview branch project (if branching enabled)
 
   Each item must contain individual fields per env var so each can be referenced
-  via op://EquipQR Agents/{item}/{field}.
+  via op://EquipQR Agents/{item}/{field}. Field labels are stored as the
+  lowercase env var name (e.g. `google_maps_browser_key`) to match the
+  convention used by .github/workflows/edge-functions-smoke-test.yml and
+  .github/actions/load-1p-secrets/action.yml. The script lowercases the Vars
+  list before reading from op and uses the canonical uppercase form when
+  pushing to `supabase secrets set` (Supabase secret names are case-sensitive
+  and must be uppercase).
 
 .PARAMETER Check
   Read-only mode: list drift between 1Password and Supabase.
@@ -113,7 +119,7 @@ $opItem = $cfg.OpItem
 $itemProbe = & op item get $opItem --vault $OP_VAULT --format json 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Fail "1Password item '$opItem' not found in EquipQR Agents vault."
-    Write-Fail "  Create with fields: $($cfg.Vars -join ', ')"
+    Write-Fail "  Create with fields (lowercase labels): $(($cfg.Vars | ForEach-Object { $_.ToLower() }) -join ', ')"
     exit 1
 }
 
@@ -135,9 +141,12 @@ $totalDrift = 0
 $totalApplied = 0
 
 foreach ($var in $cfg.Vars) {
-    $opValue = & op read "op://$OP_VAULT/$opItem/$var" 2>$null
+    # 1Password field labels are stored in lowercase to match the
+    # convention used by .github/workflows/* and .github/actions/load-1p-secrets.
+    $opField = $var.ToLower()
+    $opValue = & op read "op://$OP_VAULT/$opItem/$opField" 2>$null
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($opValue)) {
-        Write-Warn "  $var: missing in 1Password"
+        Write-Warn "  $var: missing in 1Password (op://$OP_VAULT/$opItem/$opField)"
         continue
     }
     $opValue = $opValue.Trim()

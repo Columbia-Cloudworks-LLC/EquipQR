@@ -13,10 +13,17 @@
 
   Each item must contain individual fields per env var (NOT a multi-line dotenv
   blob) so each can be referenced via op://EquipQR Agents/{item}/{field}.
+  Field labels are stored as the lowercase env var name (e.g. `vite_supabase_url`)
+  to match the convention used by .github/workflows/edge-functions-smoke-test.yml
+  and .github/actions/load-1p-secrets/action.yml. The script normalizes the
+  Vars list to lowercase before reading from op.
 
 .PARAMETER Check
-  Read-only mode: list drift between 1Password and Vercel, but do not modify
-  Vercel env vars. Exits non-zero if drift is detected.
+  Read-only mode. For each (env, var) pair, lists the variable as drift only
+  if it is MISSING from the target Vercel environment (presence-only drift
+  detection). Value drift detection requires `vercel env pull` and is not yet
+  implemented; if no presence drift is detected the exit code is 0 even though
+  values may have drifted. Returns non-zero if presence drift is detected.
 
 .PARAMETER Environment
   Which Vercel environment to sync: 'production' (default), 'preview', or 'all'.
@@ -37,6 +44,9 @@ $ErrorActionPreference = 'Stop'
 $VERCEL_TEAM_ID = 'team_78VeGDURoofThjZNJOKEBpP5'
 $VERCEL_PROJECT_ID = 'prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA'
 
+# Canonical env var names (uppercase). Reads from 1Password use the lowercase
+# field-label form (see notes below); writes to Vercel use the canonical
+# uppercase form (Vercel env var names are case-sensitive and must be uppercase).
 $ENV_VAR_MAP = @{
     'production' = @{
         OpItem = 'app-env-prod-public'
@@ -74,6 +84,33 @@ function Write-Step { param([string]$M) Write-Host "  [sync-vercel] $M" }
 function Write-Ok   { param([string]$M) Write-Host "  [sync-vercel] OK   $M" -ForegroundColor Green }
 function Write-Warn { param([string]$M) Write-Host "  [sync-vercel] WARN $M" -ForegroundColor Yellow }
 function Write-Fail { param([string]$M) Write-Host "  [sync-vercel] FAIL $M" -ForegroundColor Red }
+
+# Parse `vercel env ls` output and return the set of env var NAMES that exist
+# in the requested environment. The CLI prints a fixed-column table with
+# columns: name, value (masked), environments (comma-separated), created.
+# We extract the first whitespace-delimited token of each data row and only
+# keep rows whose environments column contains $TargetEnv.
+function Get-VercelEnvVarNames {
+    param(
+        [string]$RawOutput,
+        [string]$TargetEnv
+    )
+    $names = New-Object System.Collections.Generic.HashSet[string]
+    if ([string]::IsNullOrWhiteSpace($RawOutput)) { return $names }
+    foreach ($rawLine in ($RawOutput -split "`r?`n")) {
+        $line = $rawLine.Trim()
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        # Header / banner lines never contain the target env name in their
+        # cells AND start with characters like '>' '?' or 'Vercel'. Skip them.
+        if ($line -match '^(>|\?|Vercel|name|----|Environment Variables)') { continue }
+        # Match VITE_-style names; broader pattern would be \b[A-Z][A-Z0-9_]+\b
+        # but Vercel env names are conventionally upper snake.
+        if ($line -match '^\s*([A-Z][A-Z0-9_]+)\b.*\b' + [regex]::Escape($TargetEnv) + '\b') {
+            [void]$names.Add($matches[1])
+        }
+    }
+    return $names
+}
 
 Write-Step "Validating prerequisites..."
 
@@ -114,28 +151,40 @@ foreach ($envName in $envsToProcess) {
     $itemProbe = & op item get $opItem --vault $OP_VAULT --format json 2>&1
     if ($LASTEXITCODE -ne 0) {
         Write-Warn "1Password item '$opItem' not found in EquipQR Agents vault. Skipping $envName."
-        Write-Warn "  Create with fields: $($cfg.Vars -join ', ')"
+        Write-Warn "  Create with fields: $(($cfg.Vars | ForEach-Object { $_.ToLower() }) -join ', ')"
         continue
     }
 
     Write-Step "Listing current Vercel env vars for $envName..."
-    $vercelEnvJson = & $vercelCmd.Split() env ls --token $env:VERCEL_TOKEN --scope $VERCEL_TEAM_ID 2>&1
+    $vercelEnvOutput = & $vercelCmd.Split() env ls --token $env:VERCEL_TOKEN --scope $VERCEL_TEAM_ID 2>&1 | Out-String
     if ($LASTEXITCODE -ne 0) {
-        Write-Fail "vercel env ls failed: $vercelEnvJson"
+        Write-Fail "vercel env ls failed: $vercelEnvOutput"
         continue
     }
 
+    # Build the set of env var names currently defined for $envName so -Check
+    # can do real (presence) drift detection instead of unconditionally
+    # exiting 1 on every variable.
+    $existingVars = Get-VercelEnvVarNames -RawOutput $vercelEnvOutput -TargetEnv $envName
+
     foreach ($var in $cfg.Vars) {
-        $opValue = & op read "op://$OP_VAULT/$opItem/$var" 2>$null
+        # 1Password field labels are stored in lowercase to match the
+        # convention used by .github/workflows/* and .github/actions/load-1p-secrets.
+        $opField = $var.ToLower()
+        $opValue = & op read "op://$OP_VAULT/$opItem/$opField" 2>$null
         if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($opValue)) {
-            Write-Warn "  $var: missing in 1Password (op://$OP_VAULT/$opItem/$var)"
+            Write-Warn "  $var: missing in 1Password (op://$OP_VAULT/$opItem/$opField)"
             continue
         }
         $opValue = $opValue.Trim()
 
         if ($Check) {
-            Write-Step "  CHECK: $var would be set to a $($opValue.Length)-char value in $envName"
-            $totalDrift++
+            if ($existingVars.Contains($var)) {
+                Write-Step "  CHECK: $var present in Vercel ($envName) — value-drift not compared (presence-only check)"
+            } else {
+                Write-Warn "  CHECK: $var MISSING from Vercel ($envName) — would be set to a $($opValue.Length)-char value"
+                $totalDrift++
+            }
         } else {
             Write-Step "  Setting $var in $envName..."
             $opValue | & $vercelCmd.Split() env add $var $envName --token $env:VERCEL_TOKEN --scope $VERCEL_TEAM_ID --force
@@ -151,7 +200,8 @@ foreach ($envName in $envsToProcess) {
 
 Write-Host ""
 if ($Check) {
-    Write-Step "Drift summary: $totalDrift potential changes"
+    Write-Step "Drift summary: $totalDrift presence-drift entries (vars present in 1Password but missing from Vercel)"
+    Write-Step "  Note: value-drift is not detected by -Check. Use 'vercel env pull' for full value-comparison."
     if ($totalDrift -gt 0) { exit 1 } else { exit 0 }
 } else {
     Write-Ok "$totalApplied env vars applied to Vercel"
