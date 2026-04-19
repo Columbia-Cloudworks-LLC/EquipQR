@@ -31,6 +31,9 @@ on:
     paths:
       - 'supabase/functions/**'
       - '.github/workflows/edge-functions-smoke-test.yml'
+      # Trigger when the composite action this workflow depends on changes,
+      # otherwise YAML/auth fixes to the action skip CI validation.
+      - '.github/actions/load-1p-secrets/**'
   workflow_dispatch:
 
 permissions:
