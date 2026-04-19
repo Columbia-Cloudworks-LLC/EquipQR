@@ -603,15 +603,23 @@ declare global {
 
 /**
  * Inline diagnostic rendered when Google Maps fires `gm_authFailure`. Surfaces
- * the exact URL the operator must add to the API key's HTTP-referrer
- * allowlist and links to the runbook. A simple page reload is the only
- * reliable retry — the bad key has already been baked into the cached Maps
- * JS bundle. See issue #617 follow-up.
+ * the exact wildcard referrer entry the operator must add to the API key's
+ * HTTP-referrer allowlist (plus the current page URL for cross-reference with
+ * Google's own console message) and links to the runbook. A simple page
+ * reload is the only reliable retry — the bad key has already been baked
+ * into the cached Maps JS bundle. See issue #617 follow-up.
  */
 const MAPS_REFERRER_RUNBOOK_URL =
   'https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/supabase-branch-secrets.md#google-maps-api-key--http-referrer-allowlist';
 
-const MapsAuthFailureCard: React.FC<{ url: string }> = ({ url }) => (
+interface MapsAuthFailure {
+  /** Full page URL (origin + pathname) — matches Google's own console error. */
+  currentUrl: string;
+  /** Wildcard referrer pattern to paste into the API key allowlist. */
+  allowlistEntry: string;
+}
+
+const MapsAuthFailureCard: React.FC<{ failure: MapsAuthFailure }> = ({ failure }) => (
   <div
     className="flex items-center justify-center min-h-[400px] p-4"
     role="alert"
@@ -629,9 +637,25 @@ const MapsAuthFailureCard: React.FC<{ url: string }> = ({ url }) => (
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-          <p className="text-sm text-destructive font-medium">URL to authorize:</p>
-          <p className="text-sm font-mono break-all text-muted-foreground mt-1">{url}</p>
+        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md space-y-2">
+          <div>
+            <p className="text-sm text-destructive font-medium">Referrer allowlist entry to add:</p>
+            <p
+              className="text-sm font-mono break-all text-muted-foreground mt-1"
+              data-testid="maps-auth-failure-allowlist-entry"
+            >
+              {failure.allowlistEntry}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium">Current page URL (for correlation):</p>
+            <p
+              className="text-xs font-mono break-all text-muted-foreground mt-1"
+              data-testid="maps-auth-failure-current-url"
+            >
+              {failure.currentUrl}
+            </p>
+          </div>
         </div>
 
         <div className="text-sm text-muted-foreground">
@@ -642,7 +666,12 @@ const MapsAuthFailureCard: React.FC<{ url: string }> = ({ url }) => (
               Edit the API key currently set as <code className="font-mono text-xs">GOOGLE_MAPS_BROWSER_KEY</code>
               {' '}on the relevant Supabase project.
             </li>
-            <li>Under Application restrictions -&gt; HTTP referrers, add the URL above and Save.</li>
+            <li>
+              Under Application restrictions -&gt; HTTP referrers, add the
+              {' '}<strong>allowlist entry</strong> above (the
+              {' '}<code className="font-mono text-xs">/*</code> wildcard pattern, not the route-specific URL)
+              and Save.
+            </li>
             <li>Wait ~1 minute for Google to propagate, then click Try Again.</li>
           </ol>
         </div>
@@ -680,30 +709,41 @@ export const MapView: React.FC<MapViewProps> = ({
   onMarkerClick,
 }) => {
   const totalMarkerCount = filteredLocations.length + teamHQLocations.length;
-  const [mapsAuthError, setMapsAuthError] = useState<string | null>(null);
+  const [mapsAuthError, setMapsAuthError] = useState<MapsAuthFailure | null>(null);
 
   // Install Google Maps' documented auth-failure hook so we can swap in a
   // friendly diagnostic instead of letting the downstream `marker.js`
   // TypeError bubble to the global ErrorBoundary. See issue #617.
+  //
+  // Safety: we capture any prior `gm_authFailure` and chain to it so we don't
+  // silently suppress another feature's installer; on cleanup we only restore
+  // if our installed handler is still the active one (defensive against a
+  // later installer overwriting us during our lifetime), and we use `delete`
+  // when there was no prior handler so we don't leave an `undefined` field on
+  // `window`.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const previousHandler = window.gm_authFailure;
-    window.gm_authFailure = () => {
-      const currentUrl =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}${window.location.pathname}`
-          : 'this URL';
+    const installed = (): void => {
+      const currentUrl = `${window.location.origin}${window.location.pathname}`;
+      const allowlistEntry = `${window.location.origin}/*`;
       logger.error(
         '[FleetMap] Google Maps gm_authFailure fired — the API key returned by ' +
-          'public-google-maps-key is not authorized for this URL. Add the URL to the ' +
-          'key\'s HTTP-referrer allowlist in Google Cloud Console.',
-        { url: currentUrl },
+          'public-google-maps-key is not authorized for this URL. Add the wildcard ' +
+          'referrer entry to the key\'s HTTP-referrer allowlist in Google Cloud Console.',
+        { currentUrl, allowlistEntry },
       );
-      setMapsAuthError(currentUrl);
+      setMapsAuthError({ currentUrl, allowlistEntry });
+      previousHandler?.();
     };
+    window.gm_authFailure = installed;
     return () => {
-      if (window.gm_authFailure === undefined) return;
-      window.gm_authFailure = previousHandler;
+      if (window.gm_authFailure !== installed) return;
+      if (previousHandler === undefined) {
+        delete window.gm_authFailure;
+      } else {
+        window.gm_authFailure = previousHandler;
+      }
     };
   }, []);
 
@@ -755,7 +795,7 @@ export const MapView: React.FC<MapViewProps> = ({
   }, [mapId]);
 
   if (mapsAuthError) {
-    return <MapsAuthFailureCard url={mapsAuthError} />;
+    return <MapsAuthFailureCard failure={mapsAuthError} />;
   }
 
   return (

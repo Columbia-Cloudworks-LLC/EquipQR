@@ -89,7 +89,7 @@ describe('MapView gm_authFailure handling', () => {
     expect(window.gm_authFailure).toBeUndefined();
   });
 
-  it('renders the diagnostic card with the current URL when gm_authFailure fires', () => {
+  it('renders the diagnostic card with both the wildcard allowlist entry and the current URL when gm_authFailure fires', () => {
     render(
       <MapView
         googleMapsKey="test-api-key"
@@ -110,8 +110,18 @@ describe('MapView gm_authFailure handling', () => {
     expect(screen.getByTestId('maps-auth-failure-card')).toBeInTheDocument();
     expect(screen.getByText('Map could not load')).toBeInTheDocument();
 
-    const expectedUrl = `${window.location.origin}${window.location.pathname}`;
-    expect(screen.getByText(expectedUrl)).toBeInTheDocument();
+    // The card MUST surface the wildcard referrer pattern (what the operator
+    // actually pastes into the Google Cloud allowlist), not just the route-
+    // specific URL — otherwise operators add a too-narrow entry that doesn't
+    // cover other routes. See PR #636 review feedback.
+    const expectedAllowlistEntry = `${window.location.origin}/*`;
+    const expectedCurrentUrl = `${window.location.origin}${window.location.pathname}`;
+    expect(screen.getByTestId('maps-auth-failure-allowlist-entry')).toHaveTextContent(
+      expectedAllowlistEntry,
+    );
+    expect(screen.getByTestId('maps-auth-failure-current-url')).toHaveTextContent(
+      expectedCurrentUrl,
+    );
 
     // The map must be unmounted so its half-initialized children cannot crash.
     expect(screen.queryByTestId('google-map')).not.toBeInTheDocument();
@@ -164,5 +174,69 @@ describe('MapView gm_authFailure handling', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /try again/i }));
     expect(reloadSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('chains to a previously-installed gm_authFailure handler when our handler fires', () => {
+    const previousHandler = vi.fn();
+    window.gm_authFailure = previousHandler;
+
+    render(
+      <MapView
+        googleMapsKey="test-api-key"
+        mapId="test-map-id"
+        equipmentLocations={[]}
+        filteredLocations={[]}
+      />,
+    );
+
+    // We installed a new handler, replacing the prior one.
+    expect(window.gm_authFailure).not.toBe(previousHandler);
+
+    act(() => {
+      window.gm_authFailure?.();
+    });
+
+    // The prior handler must have been called as part of our handler chain.
+    expect(previousHandler).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('maps-auth-failure-card')).toBeInTheDocument();
+  });
+
+  it('restores the previously-installed handler on unmount', () => {
+    const previousHandler = vi.fn();
+    window.gm_authFailure = previousHandler;
+
+    const { unmount } = render(
+      <MapView
+        googleMapsKey="test-api-key"
+        mapId="test-map-id"
+        equipmentLocations={[]}
+        filteredLocations={[]}
+      />,
+    );
+    expect(window.gm_authFailure).not.toBe(previousHandler);
+
+    unmount();
+    expect(window.gm_authFailure).toBe(previousHandler);
+  });
+
+  it('does not overwrite a handler that was installed by something else after mount', () => {
+    const { unmount } = render(
+      <MapView
+        googleMapsKey="test-api-key"
+        mapId="test-map-id"
+        equipmentLocations={[]}
+        filteredLocations={[]}
+      />,
+    );
+
+    // Simulate another feature installing its own handler while we are mounted.
+    const otherHandler = vi.fn();
+    window.gm_authFailure = otherHandler;
+
+    unmount();
+
+    // Our cleanup must not have clobbered the third-party handler — they own
+    // it now, our identity check refused to touch it.
+    expect(window.gm_authFailure).toBe(otherHandler);
   });
 });
