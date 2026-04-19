@@ -53,6 +53,26 @@ $EDGE_SECRETS_MAP = @{
             'PRODUCTION_URL'
         )
     }
+    'olsdirkvvfegvclbpgrg' = @{
+        OpItem = 'edge-env-preview-secrets'
+        Vars = @(
+            'RESEND_API_KEY',
+            'HCAPTCHA_SECRET_KEY',
+            'TOKEN_ENCRYPTION_KEY',
+            'KDF_SALT',
+            'INTUIT_CLIENT_ID',
+            'INTUIT_CLIENT_SECRET',
+            'GOOGLE_WORKSPACE_CLIENT_ID',
+            'GOOGLE_WORKSPACE_CLIENT_SECRET',
+            'GOOGLE_MAPS_SERVER_KEY',
+            'GOOGLE_MAPS_BROWSER_KEY',
+            'GOOGLE_MAPS_MAP_ID',
+            'VAPID_PUBLIC_KEY',
+            'VAPID_PRIVATE_KEY',
+            'VAPID_SUBJECT',
+            'PRODUCTION_URL'
+        )
+    }
 }
 
 function Write-Step { param([string]$M) Write-Host "  [sync-supabase] $M" }
