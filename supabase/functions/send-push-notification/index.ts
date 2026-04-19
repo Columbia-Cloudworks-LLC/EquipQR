@@ -22,11 +22,15 @@ import {
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import { optionalSecret } from "../_shared/require-secret.ts";
 
 // Web Push library for Deno
 // Note: Using npm specifier for web-push compatibility
 import webpush from "npm:web-push@3.6.7";
+
+const FUNCTION_NAME = "send-push-notification";
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
@@ -53,12 +57,23 @@ interface PushSubscription {
  * Initialize VAPID keys for Web Push
  */
 function initializeVapid(): boolean {
-  const publicKey = Deno.env.get("VAPID_PUBLIC_KEY");
-  const privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
-  const subject = Deno.env.get("VAPID_SUBJECT") ?? "mailto:support@equipqr.app";
+  // VAPID is treated as optional — if either key is absent the function
+  // returns sent=0 gracefully (push is disabled rather than failing the
+  // request). We use optionalSecret here instead of requireSecret so this
+  // is not flagged as MISSING_REQUIRED_SECRET.
+  const publicKey = optionalSecret("VAPID_PUBLIC_KEY");
+  const privateKey = optionalSecret("VAPID_PRIVATE_KEY");
+  const subject = optionalSecret("VAPID_SUBJECT") ?? "mailto:support@equipqr.app";
 
   if (!publicKey || !privateKey) {
-    logStep("VAPID keys not configured");
+    console.log(
+      JSON.stringify({
+        level: "warn",
+        code: "VAPID_DISABLED",
+        function: FUNCTION_NAME,
+        message: "VAPID keys not configured - push notifications disabled",
+      }),
+    );
     return false;
   }
 
@@ -138,7 +153,7 @@ function validateServiceRoleAuth(req: Request): boolean {
   return expectedServiceRoleKey !== undefined && token === expectedServiceRoleKey;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, _ctx) => {
   // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -270,4 +285,4 @@ Deno.serve(async (req) => {
     });
     return createErrorResponse("Failed to send push notification", 500);
   }
-});
+}));
