@@ -272,15 +272,22 @@ const FleetMap: React.FC = () => {
             load (with loading=async) and shows its own progressive UI. */}
         <div className="h-full w-full">
           {googleMapsKey ? (
-            <MapView
-              googleMapsKey={googleMapsKey}
-              mapId={googleMapsMapId}
-              equipmentLocations={equipmentLocations}
-              filteredLocations={equipmentLocations}
-              teamHQLocations={teamHQLocations}
-              focusEquipmentId={focusEquipmentId}
-              onMarkerClick={(id) => setFocusEquipmentId(id)}
-            />
+            // The class-based <FleetMapErrorBoundary> catches render-time
+            // crashes inside <MapView> (notably the marker.js TypeError that
+            // surfaces when Google Maps rejects the API key referrer mid-init,
+            // see issue #617) so the rest of the app stays mounted instead of
+            // bubbling to the global "Something went wrong" page.
+            <FleetMapErrorBoundary>
+              <MapView
+                googleMapsKey={googleMapsKey}
+                mapId={googleMapsMapId}
+                equipmentLocations={equipmentLocations}
+                filteredLocations={equipmentLocations}
+                teamHQLocations={teamHQLocations}
+                focusEquipmentId={focusEquipmentId}
+                onMarkerClick={(id) => setFocusEquipmentId(id)}
+              />
+            </FleetMapErrorBoundary>
           ) : (
             <div className="h-full w-full bg-muted/50 flex items-center justify-center">
               <div className="text-center">
