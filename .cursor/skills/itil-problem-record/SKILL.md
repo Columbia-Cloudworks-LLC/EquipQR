@@ -82,6 +82,15 @@ If discovery cannot locate the relevant code with reasonable confidence, **STOP*
 
 **Cardinal rule:** if it does not reproduce in local dev, it does not get a root cause. The Problem Record is reproduction-driven, not speculation-driven. If local dev cannot be brought to a clean, healthy state, the issue is **deferred** until the local stack is healthy — full stop, regardless of cause. We do not ship fixes for symptoms we cannot reproduce. If it doesn't work in local dev, why would we expect it to work in production?
 
+**"Clean" is a hard threshold, not a vibe.** It means **zero warnings and zero errors of any kind** in the `dev-start.bat` output. Specifically:
+
+- Any red text in the terminal — including PowerShell `NativeCommandError` blocks, even when the underlying command exits 0 — is a failure. Treat it as such.
+- Any line beginning with `WARNING:` from `dev-start.ps1` (e.g. `WARNING: MCP config render failed`, `WARNING: One or both 1Password env syncs failed`) is a failure even though the script keeps going.
+- A 502 / 504 / EHOSTUNREACH from any `localhost:54321/functions/v1/*` call after dev-start is a failure even if you can still browse the app.
+- Yellow text counts. Skipped checks count. "Mostly works" is not a clean state.
+
+If you see any of these, **first** check `.cursor/rules/local-dev-troubleshoot.mdc` for the known failure-mode catalog — a fix may already exist or be one command away (e.g. `docker restart supabase_kong_*`). **Then** decide whether to fix the dev-tooling issue first or defer the investigation per the deferral protocol below. Never proceed with reproduction against a partially-up stack.
+
 The agent acts as an **L3 sysadmin**: it does **not** run `dev-start.bat` itself — the user does. The agent owns the diagnostic ladder, tells the user precisely what to run, where to look, and how to verify each environment, then re-probes.
 
 #### Step 3a — Liveness probe (mandatory first action)
@@ -307,7 +316,7 @@ Once approved, invoke the `itil-change-record` skill with this Problem Record as
 - **Read-only on code.** This skill must not modify production code, run migrations, push branches, or open PRs. The agent runs liveness probes and tests against the running stack but performs **no source edits**.
 - **Agent does not run `dev-start.bat`.** The user starts the stack. The agent probes, instructs, waits, re-probes. This separation prevents the agent from masking environment problems by silently bouncing services.
 - **Reproduction is mandatory; deferral is mandatory if the stack is broken.** No reproduction → no root cause → no Problem Record. If the stack cannot be brought up clean after Tier 4, post the deferral comment (Step 3e) and stop. No exceptions, regardless of how confident a hunch feels.
-- **"Clean" means zero warnings and zero errors of any kind** in the `dev-start.bat` output. Yellow text counts. Skipped checks count. If anything is not OK, escalate the bring-up tier or defer.
+- **"Clean" means zero warnings and zero errors of any kind** in the `dev-start.bat` output (see Step 3 cardinal rule above for the full definition and known-failure-mode catalog at `.cursor/rules/local-dev-troubleshoot.mdc`). Yellow text counts. Skipped checks count. If anything is not OK, escalate the bring-up tier or defer.
 - **Single issue only.** One invocation = one Problem Record for one issue.
 - **No blind guessing.** If reproduction fails on a clean stack or evidence is thin, say so in the record and recommend returning to the reporter — do not fabricate a cause.
 - **No scope creep.** If you discover unrelated bugs during reproduction, list them under **Related issues or recent commits** and recommend they be filed separately. Do not roll them into this Problem Record.
