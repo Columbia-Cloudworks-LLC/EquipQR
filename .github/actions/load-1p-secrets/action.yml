@@ -1,0 +1,32 @@
+name: Load EquipQR secrets from 1Password
+description: |
+  Wrapper around 1password/load-secrets-action@v4 that loads secrets from the
+  EquipQR Agents vault using the OP_SERVICE_ACCOUNT_TOKEN repo secret.
+
+  Pass the secrets you need as `env` in the calling step using op:// references:
+
+      - uses: ./.github/actions/load-1p-secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: op://EquipQR Agents/supabase-access-token/credential
+          CODECOV_TOKEN:         op://EquipQR Agents/codecov-token/credential
+
+  After this step, those env vars are populated and auto-masked in logs.
+
+  Do NOT use this for the built-in GITHUB_TOKEN — that is provided by GitHub
+  Actions itself and does not need 1Password.
+
+inputs:
+  export-env:
+    description: When true, secrets become env vars (default). When false, secrets become step outputs.
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Load secrets from 1Password
+      uses: 1Password/load-secrets-action@v4
+      with:
+        export-env: ${{ inputs.export-env }}
+      env:
+        OP_SERVICE_ACCOUNT_TOKEN: ${{ env.OP_SERVICE_ACCOUNT_TOKEN }}

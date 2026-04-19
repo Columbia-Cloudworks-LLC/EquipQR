@@ -128,6 +128,25 @@ Required client variables:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
+## Secrets Architecture
+
+EquipQR uses **1Password as the single source of truth** for every secret an agent or build pipeline consumes. A read-only Service Account `op-svc-equipqr-agents` has access to the `EquipQR Agents` 1Password vault (UUID `tgo2m6qbct5otqeqirjocn3joa` — scripts reference by UUID for speed). Its token, `OP_SERVICE_ACCOUNT_TOKEN`, is the only secret that lives outside 1Password — planted in:
+
+- **Cursor Cloud Agents** (Linux) — secret in `cursor.com/dashboard/cloud-agents`
+- **GitHub Actions** — repo secret on `Columbia-Cloudworks-LLC/EquipQR`
+- **Local Windows** — uses interactive `op signin` (no service-account token needed)
+
+Vendor PATs, GCP service-account JSONs, Datadog keys, etc. live as items in the `EquipQR Agents` vault. Naming convention: `equipqr-agent-{readonly|write}-{YYYY-MM}` so the rotation date is visible at a glance.
+
+Detailed flow and rotation procedures: see `.cursor/skills/secrets-rotation/SKILL.md` and the per-server breakdown in `.cursor/skills/toolbelt/SKILL.md` Section 0.
+
+Local key wiring scripts:
+- `scripts/render-mcp-config.ps1` — renders `~/.cursor/mcp.json` from `scripts/mcp.template.json`
+- `scripts/op-mcp-doctor.ps1` — health-checks every MCP
+- `scripts/agent-bootstrap.sh` — Linux Cloud Agent bootstrap (apt installs `op`, renders env files + GCP key)
+- `scripts/sync-vercel-from-1password.ps1` — pushes Vercel env vars from 1P
+- `scripts/sync-supabase-secrets-from-1password.ps1` — pushes Supabase Edge Function secrets from 1P
+
 ## Documentation
 
 - `docs/technical/setup.md` - Full setup guide

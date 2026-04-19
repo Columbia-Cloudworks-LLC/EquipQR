@@ -7,17 +7,52 @@ description: Canonical reference for all MCP servers, CLI tools, and platform in
 
 Single source of truth for every integration available to the agent in this workspace. Other skills should reference this skill instead of documenting tool usage themselves.
 
+## 0. Secrets Architecture (read this first)
+
+**1Password is the single source of truth for every secret an agent needs.** A read-only Service Account `op-svc-equipqr-agents` has access to the `EquipQR Agents` 1Password vault (UUID `tgo2m6qbct5otqeqirjocn3joa`). All scripts reference the vault by UUID — faster and avoids space-in-name parsing issues. The service account token (`OP_SERVICE_ACCOUNT_TOKEN`) lives in:
+
+- Cursor Cloud Agent secrets (for Linux Cloud Agents)
+- GitHub Actions repo secret (for CI)
+
+Local Windows uses your interactive `op signin` instead.
+
+**MCP server distribution model:**
+
+- **Plugin-managed (7 MCPs)** — installed via Cursor's plugin system; folders live under `C:\Users\viral\.cursor\projects\c-Users-viral-EquipQR\mcps\`. Auto-loaded by Cursor; do NOT add to `~/.cursor/mcp.json`. These are: `plugin-supabase-supabase`, `plugin-vercel-vercel`, `plugin-figma-figma`, `plugin-context7-plugin-context7`, `plugin-better-stack-betterstack`, `cursor-ide-browser`, `cursor-app-control`.
+- **User-level (4 MCPs)** — defined in `~/.cursor/mcp.json`, rendered by `scripts/render-mcp-config.ps1` from `scripts/mcp.template.json` via `op inject`. These are: `todiagram` (existing), `playwright-recording` (existing), `github` (new, HTTP), `gcloud` (new, stdio). **Datadog MCP is intentionally disabled for cost reduction** — to re-enable, see the `_comment_datadog` block in `scripts/mcp.template.json` and the commented test in `scripts/op-mcp-doctor.ps1`.
+
+**Auth-model split per MCP:**
+
+| MCP | Auth model | Notes |
+|---|---|---|
+| Supabase | OAuth (your Cursor identity) | Read-only enforced via URL flag `?read_only=true&project_ref=ymxkzronkhwxzcdcbnwq` |
+| Vercel | OAuth (your Cursor identity) | No read-only mode; rely on `secret-guardian.py` hook |
+| Figma | OAuth | Single-tier |
+| Better Stack | OAuth | Single-tier |
+| Context7 | None | Public |
+| Browser | None | Local |
+| GitHub | PAT (Bearer) | Two tiers: `github-prod` (readonly) + `github-write`. Read-only enforced via `X-MCP-Readonly: true` header |
+| ~~Datadog~~ | DISABLED (cost reduction) | Re-enable instructions in `scripts/mcp.template.json` |
+| Google Cloud | Service account JSON via `GOOGLE_APPLICATION_CREDENTIALS` | Two tiers: `gcp-viewer` + `gcp-editor`. Read-only enforced via IAM viewer roles |
+| ToDiagram | API key (env var) | Single-tier |
+
+**Verification:** `.\scripts\op-mcp-doctor.ps1` pings each MCP and reports green/red.
+
+**Rotation:** see `.cursor/skills/secrets-rotation/SKILL.md`.
+
 ## Quick Reference
 
 | Integration | Tool | Primary Use |
 |---|---|---|
-| Datadog | MCP `plugin-datadog-datadog` | Observability: logs, metrics, APM, RUM, monitors, incidents |
 | Supabase | MCP `plugin-supabase-supabase` | Backend: migrations, edge functions, SQL, tables, branches |
 | Vercel | MCP `plugin-vercel-vercel` | Frontend hosting: deployments, build logs, runtime logs |
+| GitHub | MCP `github` (user-level, HTTP) + CLI `gh` | Repos, issues, PRs, actions, code scanning |
+| Google Cloud | MCP `gcloud` (user-level, stdio) + CLI `gcloud` | GCP projects, IAM, Cloud Run, Logging, Monitoring, BigQuery |
 | Figma | MCP `plugin-figma-figma` | Design: read designs, write to canvas, Code Connect |
 | Context7 | MCP `plugin-context7-plugin-context7` | Documentation: up-to-date library/framework docs |
+| Better Stack | MCP `plugin-better-stack-betterstack` | Uptime monitoring, telemetry sources, error tracking |
 | Browser | MCP `cursor-ide-browser` | Testing: navigate, snapshot, interact with live pages |
-| GitHub | CLI `gh` | Work tracking: issues, PRs, org project board |
+| ~~Datadog~~ | DISABLED (cost reduction) | Was MCP `datadog`. Re-enable via `scripts/mcp.template.json` |
 | Google Workspace | CLI `gws` | Docs, Sheets, Gmail, Calendar, Drive, Slides, Tasks, Meet |
 
 ---

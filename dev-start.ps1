@@ -176,6 +176,12 @@ if ($opCli) {
     if ($LASTEXITCODE -ne 0) {
         Write-Host "        WARNING: One or both 1Password env syncs failed. Using existing .env and $DEFAULT_EDGE_ENV_FILE."
     }
+
+    Write-Host "        Rendering MCP config from EquipQR Agents vault..."
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\render-mcp-config.ps1')
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "        WARNING: MCP config render failed (exit $LASTEXITCODE). Existing ~/.cursor/mcp.json preserved."
+    }
 } else {
     Write-Host "        1Password CLI not found on PATH - using existing .env and $DEFAULT_EDGE_ENV_FILE."
 }
