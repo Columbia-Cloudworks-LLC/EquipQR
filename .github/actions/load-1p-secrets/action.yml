@@ -3,15 +3,13 @@ description: |
   Wrapper around 1password/load-secrets-action@v4 that loads secrets from the
   EquipQR Agents vault using the OP_SERVICE_ACCOUNT_TOKEN repo secret.
 
-  Pass the secrets you need as `env` in the calling step using op:// references:
-
-      - uses: ./.github/actions/load-1p-secrets
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          SUPABASE_ACCESS_TOKEN: op://EquipQR Agents/supabase-access-token/credential
-          CODECOV_TOKEN:         op://EquipQR Agents/codecov-token/credential
-
-  After this step, those env vars are populated and auto-masked in logs.
+  The calling step must pass OP_SERVICE_ACCOUNT_TOKEN through env from
+  secrets.OP_SERVICE_ACCOUNT_TOKEN, then list the secrets it needs as op://
+  references on the same env block. After this step those env vars are
+  populated and auto-masked in logs. See .github/workflows/README.md for a
+  full usage example (kept in the README to avoid the GitHub Actions
+  expression-parser pitfalls that fire when literal $-curly references
+  appear inside an action manifest).
 
   Do NOT use this for the built-in GITHUB_TOKEN — that is provided by GitHub
   Actions itself and does not need 1Password.
@@ -53,7 +51,7 @@ runs:
       run: |
         if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
           if [ "${{ inputs.required }}" = "true" ]; then
-            echo "::error title=load-1p-secrets::OP_SERVICE_ACCOUNT_TOKEN is empty. Plant it as a GHA repo secret (gh secret set OP_SERVICE_ACCOUNT_TOKEN --repo <owner>/<repo>) and ensure the calling workflow passes it via env: OP_SERVICE_ACCOUNT_TOKEN: \${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}. Or pass required: 'false' to this action for best-effort loads."
+            echo "::error title=load-1p-secrets::OP_SERVICE_ACCOUNT_TOKEN is empty. Plant it as a GHA repo secret (gh secret set OP_SERVICE_ACCOUNT_TOKEN) and ensure the calling workflow passes it through env from secrets.OP_SERVICE_ACCOUNT_TOKEN. Or pass required: false to this action for best-effort loads."
             exit 1
           fi
           echo "::warning title=load-1p-secrets::OP_SERVICE_ACCOUNT_TOKEN is empty — skipping 1Password load. op:// values will pass through as literal strings; calling step must handle this case."
