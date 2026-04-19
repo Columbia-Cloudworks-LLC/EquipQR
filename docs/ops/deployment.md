@@ -220,6 +220,8 @@ EquipQR uses these scopes for Google Workspace features:
 | `https://www.googleapis.com/auth/drive.readonly` | Picker browsing/selection in browser UI | `src/services/google-workspace/auth.ts` |
 | `https://www.googleapis.com/auth/documents` | Format Google Docs executive packets via `batchUpdate` | `src/services/google-workspace/auth.ts` |
 
+> **Workspace OAuth audit logs**: Failures in the Workspace OAuth flow (consent, token exchange, Admin SDK directory reads) are captured by the Workspace tenant, not the `equipqr-prod` Cloud project. To make those logs queryable via Cloud Logging at the org tier, see [`docs/ops/observability.md`](observability.md) — it documents the Admin Console toggle, the org-level `gcloud logging read` queries, and the IAM grants required for agent-driven verification.
+
 > **Common mistake**: Setting a secret in Vercel when it should be in Supabase (or vice versa). The `GOOGLE_MAPS_BROWSER_KEY` is a frequent offender — it is served by a Supabase Edge Function at runtime, not baked into the Vercel build.
 
 ### Netlify Deployment
