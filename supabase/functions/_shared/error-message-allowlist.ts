@@ -140,6 +140,11 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   // QuickBooks integration errors
   /^QuickBooks returned a validation error for the customer query\. Please adjust your search and try again\.$/,
 
+  // Places autocomplete errors (now routed through createErrorResponse)
+  /^Place not found$/,
+  /^Invalid request body: /,
+  /^Invalid action\. Use 'autocomplete' or 'details'\.$/,
+
   // Privacy request errors
   /^CAPTCHA verification is required$/,
   /^CAPTCHA verification failed$/,

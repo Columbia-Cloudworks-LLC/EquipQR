@@ -13,6 +13,10 @@ import {
   getIntuitTid,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
+import { withCorrelationId } from "../_shared/supabase-clients.ts";
+import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+
+const FUNCTION_NAME = "quickbooks-export-invoice";
 
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
@@ -1009,7 +1013,7 @@ async function attachPDFToInvoice(
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, ctx) => {
   const corsHeaders = getCorsHeaders(req);
 
   if (req.method === "OPTIONS") {
@@ -1017,20 +1021,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    logStep("Function started");
+    logStep("Function started", { correlation_id: ctx.correlationId });
 
-    const clientId = Deno.env.get("INTUIT_CLIENT_ID");
-    const clientSecret = Deno.env.get("INTUIT_CLIENT_SECRET");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!clientId || !clientSecret) {
-      throw new Error("QuickBooks OAuth is not configured");
-    }
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Supabase configuration is missing");
-    }
+    const clientId = requireSecret("INTUIT_CLIENT_ID", { functionName: FUNCTION_NAME });
+    const clientSecret = requireSecret("INTUIT_CLIENT_SECRET", { functionName: FUNCTION_NAME });
+    const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
+    const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
 
     // Validate authorization
     const authHeader = req.headers.get("Authorization");
@@ -1770,15 +1766,17 @@ Deno.serve(async (req) => {
   } catch (error) {
     // Log detailed error server-side only - never expose to client
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
+    if (!(error instanceof MissingSecretError)) {
+      logStep("ERROR", { message: errorMessage, correlation_id: ctx.correlationId });
+    }
 
     // Return generic error message to user to prevent information leakage
-    return new Response(JSON.stringify({ 
-      success: false, 
+    return new Response(JSON.stringify({
+      success: false,
       error: "An error occurred while exporting invoice. Please try again or contact support."
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}));

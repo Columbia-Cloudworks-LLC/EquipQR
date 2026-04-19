@@ -1,0 +1,109 @@
+---
+description: "Local dev failure modes that bite recurring — kong stale-IP, gcloud stderr, types.ts pollution, dual-loader"
+globs: "{dev-start.ps1,dev-stop.ps1,scripts/**/*.ps1,supabase/functions/**}"
+---
+# Local dev troubleshooting catalog
+
+A short list of failure modes that have already cost time in this repo and
+are virtually guaranteed to recur unless you recognize them on sight.
+
+## 1. Kong returns 502 for every `/functions/v1/*` after `dev-start.bat`
+
+**Signature**
+
+- Browser: `POST http://localhost:54321/functions/v1/<fn>` returns **502 Bad Gateway**
+- `docker logs supabase_kong_*` shows: `connect() failed (113: Host is unreachable)` or `(111: Connection refused)` while connecting to `http://172.18.0.X:8081/<fn>`
+- `docker inspect supabase_edge_runtime_*` shows a different IP than the one in the kong error
+
+**Root cause**
+
+`supabase start` brings up `supabase_kong` + `supabase_edge_runtime` together;
+kong caches edge_runtime's Docker IP in its nginx upstream pool. `supabase
+functions serve` then **recreates** the edge_runtime container with the
+locally-mounted source tree, assigning a new IP. Kong keeps the old IP.
+
+**Fix**
+
+Already permanently fixed in `dev-start.ps1` step `[8b/10]` which restarts
+kong after `supabase functions serve` boots. If kong somehow gets out of
+sync mid-session: `docker restart supabase_kong_<project_ref>` and wait
+~5s for routes to reload.
+
+**Reference:** #617 follow-up; commit `46cbf4ac`
+
+## 2. `dev-start.bat` aborts step 1b with red `python.exe : ...` + `MCP config render failed`
+
+**Signature**
+
+- Output includes a red block starting with `python.exe : Activated service account credentials for: [...]`
+- Followed by `WARNING: MCP config render failed (exit 1)`
+- gcloud activation actually succeeded — the success message is the trigger
+
+**Root cause**
+
+`gcloud auth activate-service-account` writes its success line to **stderr**,
+not stdout. Inside `gcloud.ps1` (the wrapper), `& python.exe ...` triggers
+a `NativeCommandError` for that stderr write. With `$ErrorActionPreference = 'Stop'`
+inherited from the caller, the success message becomes a terminating
+exception. PowerShell 7.3+ does the same via `$PSNativeCommandUseErrorActionPreference`.
+
+**Fix**
+
+Already permanently fixed in `scripts/render-mcp-config.ps1` (commit
+`157ab9a6`): wrap gcloud invocations in a local `$ErrorActionPreference = 'Continue'`
+block + `try/catch` + restore in `finally`. **Never** rely on `2>&1 + try/finally`
+alone — `finally` does not suppress the inherited terminating error and `2>&1`
+cannot intercept failures originating inside the child script.
+
+**Reference:** AGENTS.md → Learned Workspace Facts; commit `157ab9a6`
+
+## 3. `src/integrations/supabase/types.ts` polluted with Supabase CLI banners
+
+**Signature**
+
+- After `dev-start.bat -Force`: `git diff src/integrations/supabase/types.ts` shows extra lines like `Connecting to db 5432` at the top and `A new version of Supabase CLI is available: v2.X.X` at the bottom
+- File still passes `tsc --noEmit` today (compiler tolerates the noise) but is fragile and dirties the working tree
+
+**Root cause**
+
+`dev-start.ps1` step 6 captures stdout+stderr from `npx supabase gen types typescript --local`
+unfiltered and pipes it directly to the file. The repo already has a hardened
+extractor at `.cursor/hooks/sync-types.ps1` (anchor-based extraction between
+the first `^export type` and the last `^} as const`); dev-start doesn't use it.
+
+**Fix**
+
+Tracked in #620. Until merged, after a `-Force` run: `git checkout -- src/integrations/supabase/types.ts`
+to discard the polluted regen.
+
+## 4. Fleet Map renders with markers but no basemap tiles
+
+See [`fleet-map.mdc`](./fleet-map.mdc) — dual-loader race between
+`useGoogleMapsLoader` and `<APIProvider>`. Fix is to use `useGoogleMapsKey`
+exclusively in any component tree that mounts `<MapView>`.
+
+## 5. CSP `Refused to connect ... data:image/png;base64,...` on Fleet Map
+
+**Signature**
+
+- Browser console floods with `Refused to connect because it violates the document's Content Security Policy` from `shared-label-worker.js`
+- Blocked URI is `data:image/png;base64,...`
+
+**Root cause**
+
+Google Maps' vector basemap label renderer issues `fetch('data:image/png;base64,...')`
+for inline label sprite assets. CSP `connect-src` must include `data:`.
+
+**Fix**
+
+Already added to `vite.config.ts` and `vercel.json` (commit `b42326b0`).
+If you re-tighten CSP for any reason, do not remove `data:` from `connect-src`
+without a plan to disable Maps vector basemaps.
+
+## General rule
+
+**Local reproduction is required before claiming a fix.** If `dev-start.bat`
+(with or without `-Force`) cannot bring the stack up cleanly with **zero
+warnings or errors of any kind**, defer the work until the local environment
+is healthy rather than ship a fix that hasn't been observed working. See
+also `AGENTS.md → Learned Workspace Facts`.

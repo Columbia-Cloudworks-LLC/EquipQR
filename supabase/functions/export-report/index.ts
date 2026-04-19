@@ -12,6 +12,7 @@ import {
   verifyOrgAdmin,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
@@ -39,7 +40,7 @@ interface ExportRequest {
   format: 'csv';
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, _ctx) => {
   // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -172,7 +173,7 @@ Deno.serve(async (req) => {
     // Return generic message to client - never expose error.message directly
     return createErrorResponse("An unexpected error occurred", 500);
   }
-});
+}));
 
 /**
  * Check rate limits for export requests

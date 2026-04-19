@@ -44,6 +44,20 @@ const STATUS_OPTIONS: { value: VerificationStatus; label: string; className: str
 ];
 
 /**
+ * Single source of truth for the shape of a blank compatibility rule row.
+ *
+ * Must stay aligned with `compatibilityRuleSchema`
+ * (src/features/inventory/schemas/inventorySchema.ts) — every field returned here
+ * must be declared in the schema, otherwise Zod will silently strip it on submit.
+ */
+const createBlankRule = (): PartCompatibilityRuleFormData => ({
+  manufacturer: '',
+  model: null,
+  match_type: 'exact',
+  status: 'unverified'
+});
+
+/**
  * Validates a pattern and returns normalized preview or error message.
  */
 const validatePattern = (matchType: ModelMatchType, pattern: string): { valid: boolean; preview: string; error?: string } => {
@@ -149,7 +163,7 @@ export const CompatibilityRulesEditor: React.FC<CompatibilityRulesEditorProps> =
   }, [rules]);
 
   const handleAddRule = useCallback(() => {
-    onChange([...rules, { manufacturer: '', model: null, match_type: 'exact', status: 'unverified' }]);
+    onChange([...rules, createBlankRule()]);
   }, [rules, onChange]);
 
   const handleRemoveRule = useCallback((index: number) => {

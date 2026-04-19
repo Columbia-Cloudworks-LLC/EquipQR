@@ -17,7 +17,9 @@ import {
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import { optionalSecret } from "../_shared/require-secret.ts";
 
 const VALID_TYPES = ["access", "deletion", "correction", "opt_out", "limit_use"] as const;
 
@@ -28,7 +30,9 @@ const RATE_LIMIT_WINDOW_HOURS = 24;
 const DEDUPE_WINDOW_MINUTES = 60;
 
 async function verifyCaptcha(token: string): Promise<boolean> {
-  const secret = Deno.env.get("HCAPTCHA_SECRET_KEY");
+  // hCaptcha is optional for this endpoint; absent secret means
+  // CAPTCHA verification is skipped in dev / test environments.
+  const secret = optionalSecret("HCAPTCHA_SECRET_KEY");
   if (!secret) return true;
 
   const form = new FormData();
@@ -110,7 +114,7 @@ async function getPrimaryOrganizationIdForUser(
   return data.organization_id as string;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, _ctx) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
@@ -141,7 +145,7 @@ Deno.serve(async (req) => {
       return createErrorResponse("Invalid request type", 400);
     }
 
-    const hcaptchaConfigured = Boolean(Deno.env.get("HCAPTCHA_SECRET_KEY"));
+    const hcaptchaConfigured = Boolean(optionalSecret("HCAPTCHA_SECRET_KEY"));
     if (hcaptchaConfigured) {
       if (!captchaToken || typeof captchaToken !== "string") {
         return createErrorResponse("CAPTCHA verification is required", 400);
@@ -222,4 +226,4 @@ Deno.serve(async (req) => {
     console.error("[PRIVACY-REQUEST] Unexpected error:", err);
     return createErrorResponse("Failed to submit privacy request", 500);
   }
-});
+}));

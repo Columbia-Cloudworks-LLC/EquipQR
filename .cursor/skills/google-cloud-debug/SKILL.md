@@ -11,6 +11,12 @@ Collect trustworthy Google Cloud project context for debugging without exposing 
 
 This skill is designed for project and key troubleshooting where the agent must verify real state in Google Cloud before proposing fixes.
 
+## Tool preference (updated)
+
+Prefer the **`gcloud` MCP server** (entry name: `gcloud` in `~/.cursor/mcp.json`) over raw `gcloud` CLI calls. The MCP server is auto-authenticated via the `agent-viewer@equipqr-prod` service account JSON rendered by `scripts/render-mcp-config.ps1` from `op://EquipQR Agents/gcp-viewer/credential`. No interactive `gcloud auth login` is required.
+
+If the MCP server is unavailable (rare; check with `scripts/op-mcp-doctor.ps1`), fall back to direct `gcloud` CLI commands as documented below.
+
 ## Invocation
 
 - `/google-cloud-debug`

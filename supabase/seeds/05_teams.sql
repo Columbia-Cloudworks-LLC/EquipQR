@@ -1,7 +1,23 @@
 -- =====================================================
 -- EquipQR Seed Data - Teams
 -- =====================================================
--- 6 Teams across all organizations
+-- 6 Teams across all organizations.
+--
+-- Production-faithful team-location pattern (prod has 19 teams, of which only
+-- 3 have any location data and 0 have a populated street address):
+--
+--   * location_address is NEVER populated (0/19 in prod).
+--   * Only ~15% of teams have lat/lng coordinates in prod; here we seed 2 of 6
+--     so we exercise both the override-true and override-false paths through
+--     the Fleet Map team-HQ rendering layer.
+--   * Where coords exist, country is the literal string 'United States'.
+--   * override_equipment_location = true is rare; we keep ONE explicit fixture
+--     (Heavy Equipment Team) paired with equipment aa0e8400-...-446655440000
+--     (CAT 320 Excavator) so the team-override map hierarchy is testable in
+--     isolation. The second team with coords (Rental Fleet Team) keeps
+--     override = false to mirror the prod pattern of "team has known HQ but
+--     does not override its equipment locations".
+-- =====================================================
 
 INSERT INTO public.teams (
   id,
@@ -17,20 +33,21 @@ INSERT INTO public.teams (
   override_equipment_location,
   created_at,
   updated_at
-) VALUES 
+) VALUES
   -- Apex Construction Company Teams
+  -- Team-override fixture: paired with equipment aa0e8400-...-440000
   (
     '880e8400-e29b-41d4-a716-446655440000'::uuid,
     '660e8400-e29b-41d4-a716-446655440000'::uuid,
     'Heavy Equipment Team',
     'Manages excavators, bulldozers, and heavy construction machinery',
-    '1500 Main St',
+    NULL, -- prod never populates this
     'Dallas',
     'TX',
-    'US',
-    32.7767,
-    -96.7970,
-    true,
+    'United States',
+    32.776664,
+    -96.796988,
+    true, -- single team-override fixture
     '2024-01-01 00:00:00+00',
     '2024-01-01 00:00:00+00'
   ),
@@ -43,8 +60,8 @@ INSERT INTO public.teams (
     NULL,
     NULL,
     NULL,
-    29.7604,
-    -95.3698,
+    NULL,
+    NULL,
     false,
     '2024-01-01 00:00:00+00',
     '2024-01-01 00:00:00+00'
@@ -55,13 +72,13 @@ INSERT INTO public.teams (
     '660e8400-e29b-41d4-a716-446655440001'::uuid,
     'Rental Fleet Team',
     'Manages rental equipment inventory and maintenance',
-    '2000 Sunset Blvd',
+    NULL,
     'Los Angeles',
     'CA',
-    'US',
-    34.0522,
-    -118.2437,
-    true,
+    'United States',
+    34.054908,
+    -118.242643,
+    false,
     '2024-01-15 00:00:00+00',
     '2024-01-15 00:00:00+00'
   ),
@@ -70,10 +87,10 @@ INSERT INTO public.teams (
     '660e8400-e29b-41d4-a716-446655440001'::uuid,
     'Customer Service Team',
     'Handles customer equipment requests and support',
-    '100 Harbor Dr',
-    'San Diego',
-    'CA',
-    'US',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     NULL,
     NULL,
     false,
@@ -86,12 +103,12 @@ INSERT INTO public.teams (
     '660e8400-e29b-41d4-a716-446655440002'::uuid,
     'Grounds Crew',
     'Landscaping equipment and maintenance team',
-    '200 E Colfax Ave',
-    'Denver',
-    'CO',
-    'US',
-    39.7392,
-    -104.9903,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     false,
     '2024-02-01 00:00:00+00',
     '2024-02-01 00:00:00+00'
@@ -106,9 +123,9 @@ INSERT INTO public.teams (
     NULL,
     NULL,
     NULL,
-    41.8781,
-    -87.6298,
-    true,
+    NULL,
+    NULL,
+    false,
     '2024-02-15 00:00:00+00',
     '2024-02-15 00:00:00+00'
   )

@@ -176,6 +176,12 @@ if ($opCli) {
     if ($LASTEXITCODE -ne 0) {
         Write-Host "        WARNING: One or both 1Password env syncs failed. Using existing .env and $DEFAULT_EDGE_ENV_FILE."
     }
+
+    Write-Host "        Rendering MCP config from EquipQR Agents vault..."
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\render-mcp-config.ps1')
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "        WARNING: MCP config render failed (exit $LASTEXITCODE). Existing ~/.cursor/mcp.json preserved."
+    }
 } else {
     Write-Host "        1Password CLI not found on PATH - using existing .env and $DEFAULT_EDGE_ENV_FILE."
 }
@@ -454,6 +460,54 @@ if (Test-EdgeFunctionsServeRunning) {
         exit 1
     }
     Write-Host "        Edge Functions serve launched."
+}
+
+# ---------- 8b. Refresh kong upstream pool ----------
+# `supabase functions serve` (step 8) recreates the supabase_edge_runtime
+# Docker container with the locally-mounted source tree, which assigns it
+# a NEW container IP. Kong (started by `supabase start` in step 4) keeps
+# the OLD edge_runtime IP in its nginx upstream connection pool, so every
+# subsequent /functions/v1/* request fails with 502 Bad Gateway and a
+# kong error log line "connect() failed (113: Host is unreachable)" or
+# "connect() failed (111: Connection refused)" depending on what now
+# occupies the stale IP. Restarting kong forces it to re-resolve the
+# upstream hostname and refresh its pool. No-op if kong isn't running.
+Write-Host ""
+Write-Host " [8b/10] Refreshing kong upstream pool for new edge_runtime IP..."
+$kongName = (docker ps --filter 'name=supabase_kong_' --format '{{.Names}}' 2>$null | Select-Object -First 1)
+if ($kongName) {
+    $oldKongEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $null = & docker restart $kongName 2>&1
+    $restartExit = $LASTEXITCODE
+    $ErrorActionPreference = $oldKongEap
+    if ($restartExit -eq 0) {
+        # Wait for kong to accept HTTP requests with a real route loaded.
+        # Probing root returns a kong "no Route matched" 404 with a JSON
+        # body once routes are loaded, which is our readiness signal.
+        $kongReady = $false
+        for ($i = 0; $i -lt 30; $i++) {
+            Start-Sleep -Seconds 1
+            try {
+                $r = Invoke-WebRequest -Uri "http://localhost:$SUPABASE_API_PORT/" `
+                    -Method GET -TimeoutSec 2 -UseBasicParsing -ErrorAction Stop
+                $kongReady = $true; break
+            } catch {
+                if ($_.Exception.Response) { $kongReady = $true; break }
+            }
+        }
+        if ($kongReady) {
+            Write-Host "        Kong restarted; upstream pool refreshed."
+        } else {
+            Write-Host "        WARNING: Kong restart did not complete within 30s."
+            Write-Host "        Function calls may still 502. Manual fix: docker restart $kongName"
+        }
+    } else {
+        Write-Host "        WARNING: docker restart $kongName failed (exit $restartExit)."
+        Write-Host "        Function calls may 502 until kong is restarted manually."
+    }
+} else {
+    Write-Host "        WARNING: kong container not found - skipping refresh."
 }
 
 # ---------- 9. Vite ----------

@@ -34,3 +34,10 @@ Remove-Item ".git/COMMIT_MSG"
 - **Quote paths** with double quotes: `git add "path with spaces/file.ts"`
 - **Do not use** `&&` to chain commands — use `;` or separate calls instead, since `&&` requires PowerShell 7+.
 - **Do not use** `$(...)` bash-style command substitution in git arguments.
+
+## Worktree gotchas (Windows)
+
+- **`gh pr merge --delete-branch` fails when the PR head branch is checked out in a worktree.** The remote merge still succeeds, but the local-branch deletion errors out with `cannot delete branch '<name>' used by worktree at '<path>'`. After the failure, verify the merge succeeded with `gh pr view <num> --json state,mergedAt` and clean up the local branch manually after pruning the worktree.
+- **Avoid `cd` into a worktree path whose branch is also the active branch in another window**, since git refuses to operate on the same branch from two checkouts.
+- **Before `git worktree remove` or `Remove-Item -Recurse -Force` on a worktree directory, kill any process holding file handles inside it** (Node, vitest watcher, esbuild, VS Code/Cursor windows pointed at the worktree). Otherwise both commands fail with `Permission denied` / `The process cannot access the file because it is being used by another process` and you end up with an orphaned dir even though `git worktree prune` cleans up the bookkeeping.
+- **List worktrees first with `git worktree list`** so you know what to clean up; clean orphaned dirs only after the holding process is gone.

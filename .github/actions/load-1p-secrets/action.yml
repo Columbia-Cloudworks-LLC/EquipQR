@@ -1,0 +1,69 @@
+name: Load EquipQR secrets from 1Password
+description: |
+  Wrapper around 1password/load-secrets-action@v4 that loads secrets from the
+  EquipQR Agents vault using the OP_SERVICE_ACCOUNT_TOKEN repo secret.
+
+  The calling step must pass OP_SERVICE_ACCOUNT_TOKEN through env from
+  secrets.OP_SERVICE_ACCOUNT_TOKEN, then list the secrets it needs as op://
+  references on the same env block. After this step those env vars are
+  populated and auto-masked in logs. See .github/workflows/README.md for a
+  full usage example (kept in the README to avoid the GitHub Actions
+  expression-parser pitfalls that fire when literal $-curly references
+  appear inside an action manifest).
+
+  Do NOT use this for the built-in GITHUB_TOKEN — that is provided by GitHub
+  Actions itself and does not need 1Password.
+
+  Failure semantics:
+    - When OP_SERVICE_ACCOUNT_TOKEN is empty (e.g. on a PR from a fork that
+      cannot access repo secrets, or before the operator has planted the
+      token), this action emits a single ::warning:: and skips the load
+      step. The op:// env values pass through to the calling step as
+      LITERAL "op://..." STRINGS — calling steps must check for that and
+      either skip their work with a ::warning:: or hard-fail with a clear
+      message.
+    - When OP_SERVICE_ACCOUNT_TOKEN is present but a referenced item or
+      field does not exist in the vault, the upstream load-secrets-action
+      hard-fails the step with a 1Password CLI error. That is the correct
+      behavior — a misconfigured op:// reference is a bug, not a missing
+      credential.
+
+inputs:
+  export-env:
+    description: When true, secrets become env vars (default). When false, secrets become step outputs.
+    required: false
+    default: 'true'
+  required:
+    description: |
+      When 'true' (default) and OP_SERVICE_ACCOUNT_TOKEN is empty, the action
+      fails the step. When 'false', the action emits a ::warning:: and skips
+      the load — useful for best-effort smoke checks where the calling
+      workflow has its own downstream "secret is empty" handler.
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Validate OP_SERVICE_ACCOUNT_TOKEN presence
+      id: probe
+      shell: bash
+      run: |
+        if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
+          if [ "${{ inputs.required }}" = "true" ]; then
+            echo "::error title=load-1p-secrets::OP_SERVICE_ACCOUNT_TOKEN is empty. Plant it as a GHA repo secret (gh secret set OP_SERVICE_ACCOUNT_TOKEN) and ensure the calling workflow passes it through env from secrets.OP_SERVICE_ACCOUNT_TOKEN. Or pass required: false to this action for best-effort loads."
+            exit 1
+          fi
+          echo "::warning title=load-1p-secrets::OP_SERVICE_ACCOUNT_TOKEN is empty — skipping 1Password load. op:// values will pass through as literal strings; calling step must handle this case."
+          echo "loaded=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "loaded=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Load secrets from 1Password
+      if: steps.probe.outputs.loaded == 'true'
+      uses: 1Password/load-secrets-action@v4
+      with:
+        export-env: ${{ inputs.export-env }}
+      env:
+        OP_SERVICE_ACCOUNT_TOKEN: ${{ env.OP_SERVICE_ACCOUNT_TOKEN }}

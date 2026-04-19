@@ -1,5 +1,5 @@
 {
   "agentCanUpdateSnapshot": true,
-  "install": "npm install",
+  "install": "bash scripts/agent-bootstrap.sh && npm ci",
   "start": "npm run dev"
 }

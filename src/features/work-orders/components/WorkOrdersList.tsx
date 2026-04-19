@@ -57,9 +57,16 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
     );
   }
 
+  // Above-the-fold cutoff for eager image loading. Six cards covers the
+  // typical desktop viewport (each desktop card is ~140px tall) and the
+  // first ~3 mobile cards. Cards past this index keep `loading="lazy"`.
+  // This silences the Chrome "Images loaded lazily and replaced with
+  // placeholders" intervention warning on /dashboard/work-orders.
+  const ABOVE_FOLD_COUNT = 6;
+
   return (
     <div className="space-y-4">
-      {workOrders.map((order) => (
+      {workOrders.map((order, index) => (
         // Avoid content-visibility (cv-auto): it breaks Radix Tooltip positioning
         // (getBoundingClientRect) for PM segment tooltips on list cards.
         <div key={order.id}>
@@ -73,6 +80,7 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
             isAccepting={isAccepting}
             onAssignClick={onAssignClick}
             onReopenClick={onReopenClick}
+            isAboveTheFold={index < ABOVE_FOLD_COUNT}
           />
         </div>
       ))}

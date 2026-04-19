@@ -5,7 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, PanelLeftOpen, PanelLeftClose, Forklift } from 'lucide-react';
 import { FleetMapErrorBoundary } from '@/features/fleet-map/components/FleetMapErrorBoundary';
-import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
+// IMPORTANT: FleetMap uses useGoogleMapsKey (key/mapId only), NOT
+// useGoogleMapsLoader. The MapView wraps the map in <APIProvider> from
+// @vis.gl/react-google-maps which loads the Maps script itself with the
+// correct options (libraries=['places','marker'], proper async handshake,
+// Map ID-aware renderer init). If we ALSO injected the script via
+// useGoogleMapsLoader the two loaders race: the legacy script tag wins,
+// js-api-loader emits "No options were set before calling importLibrary",
+// the WebGL tile renderer never bootstraps, and the basemap stays blank
+// while only DOM-overlay markers render. See issue #617 follow-up.
+import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
 import { useTeamFleetData } from '@/features/teams/hooks/useTeamFleetData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MapView } from '@/features/fleet-map/components/MapView';
@@ -17,7 +26,13 @@ import PageHeader from '@/components/layout/PageHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const FleetMap: React.FC = () => {
-  const { googleMapsKey, isLoaded: isMapsLoaded, loadError: mapsLoadError, isKeyLoading: mapsKeyLoading, keyError: mapsKeyError, retry: retryMapsKey } = useGoogleMapsLoader();
+  const {
+    googleMapsKey,
+    mapId: googleMapsMapId,
+    isLoading: mapsKeyLoading,
+    error: mapsKeyError,
+    retry: retryMapsKey,
+  } = useGoogleMapsKey();
   const { data: teamFleetData, isLoading: teamFleetLoading, error: teamFleetError } = useTeamFleetData();
   const isMobile = useIsMobile();
 
@@ -252,19 +267,27 @@ const FleetMap: React.FC = () => {
           onEquipmentSelect={handleEquipmentSelect}
         />
 
-        {/* Full-width Map */}
+        {/* Full-width Map. We render <MapView> as soon as we have an API key —
+            the new vis.gl <APIProvider> inside MapView handles the script
+            load (with loading=async) and shows its own progressive UI. */}
         <div className="h-full w-full">
-          {isMapsLoaded ? (
-            <MapView
-              googleMapsKey={googleMapsKey}
-              equipmentLocations={equipmentLocations}
-              filteredLocations={equipmentLocations}
-              teamHQLocations={teamHQLocations}
-              isMapsLoaded={isMapsLoaded}
-              mapsLoadError={mapsLoadError}
-              focusEquipmentId={focusEquipmentId}
-              onMarkerClick={(id) => setFocusEquipmentId(id)}
-            />
+          {googleMapsKey ? (
+            // The class-based <FleetMapErrorBoundary> catches render-time
+            // crashes inside <MapView> (notably the marker.js TypeError that
+            // surfaces when Google Maps rejects the API key referrer mid-init,
+            // see issue #617) so the rest of the app stays mounted instead of
+            // bubbling to the global "Something went wrong" page.
+            <FleetMapErrorBoundary>
+              <MapView
+                googleMapsKey={googleMapsKey}
+                mapId={googleMapsMapId}
+                equipmentLocations={equipmentLocations}
+                filteredLocations={equipmentLocations}
+                teamHQLocations={teamHQLocations}
+                focusEquipmentId={focusEquipmentId}
+                onMarkerClick={(id) => setFocusEquipmentId(id)}
+              />
+            </FleetMapErrorBoundary>
           ) : (
             <div className="h-full w-full bg-muted/50 flex items-center justify-center">
               <div className="text-center">

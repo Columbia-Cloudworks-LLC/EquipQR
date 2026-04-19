@@ -2,9 +2,18 @@ import { z } from 'zod';
 
 /**
  * Schema for a single compatibility rule (manufacturer/model pattern).
- * 
+ *
  * - manufacturer: Required, non-empty string
  * - model: Optional; null or empty string means "Any Model"
+ * - match_type: How `model` should be interpreted (defaults to 'exact')
+ * - status: Verification lifecycle (defaults to 'unverified')
+ * - notes: Optional free-text verification notes (empty string normalized to null)
+ *
+ * Must stay in parity with `PartCompatibilityRuleFormData`
+ * (src/features/inventory/types/inventory.ts) and the payload emitted by
+ * `CompatibilityRulesEditor.handleAddRule`. Zod strips unknown keys by default,
+ * so any field used by the editor MUST be declared here or it will be silently
+ * dropped on submit.
  */
 export const compatibilityRuleSchema = z.object({
   manufacturer: z.string()
@@ -14,7 +23,14 @@ export const compatibilityRuleSchema = z.object({
     .max(255, 'Model must be less than 255 characters')
     .nullable()
     .optional()
-    .transform(val => val === '' ? null : val)  // Treat empty string as "Any Model"
+    .transform(val => val === '' ? null : val),  // Treat empty string as "Any Model"
+  match_type: z.enum(['any', 'exact', 'prefix', 'wildcard']).default('exact'),
+  status: z.enum(['unverified', 'verified', 'deprecated']).default('unverified'),
+  notes: z.string()
+    .max(500, 'Notes must be less than 500 characters')
+    .nullable()
+    .optional()
+    .transform(val => (typeof val === 'string' && val.trim() === '' ? null : val))
 });
 
 export type CompatibilityRuleFormData = z.infer<typeof compatibilityRuleSchema>;

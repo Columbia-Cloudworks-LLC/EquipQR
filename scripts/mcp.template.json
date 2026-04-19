@@ -1,0 +1,44 @@
+{
+  "_comment_purpose": "Source-of-truth template for the user-level Cursor MCP config. Rendered by scripts/render-mcp-config.ps1 (Windows) and scripts/agent-bootstrap.sh (Linux Cloud Agent). The 1Password references in this file are resolved by 'op inject' against the EquipQR Agents 1Password vault using the OP service account token (headless) or interactive op signin (local Windows). The 7 plugin-managed MCPs (supabase, vercel, figma, betterstack, context7, browser, app-control) live in the Cursor projects mcps folder and are auto-loaded by Cursor's plugin system; they are intentionally absent here.",
+  "_comment_rotation": "Token rotation procedure: see .cursor/skills/secrets-rotation/SKILL.md.",
+  "_comment_required_op_items": "This template assumes the following items exist in the EquipQR Agents 1Password vault (UUID tgo2m6qbct5otqeqirjocn3joa): 'todiagram' (field: credential), 'github-prod' (field: credential), 'gcp-viewer' (handled by render-mcp-config.ps1, not via op inject). If any item/field is missing, 'op inject' will fail with a clear error and render-mcp-config.ps1 will abort.",
+  "_comment_playwright_config": "The Playwright MCP --config path uses Cursor's ${userHome} and ${pathSeparator} placeholders so the rendered config is portable across users and operating systems. Cursor's MCP loader (not 'op inject') expands these at MCP-server launch time; 'op inject' only touches op:// references and leaves ${...} placeholders intact.",
+  "mcpServers": {
+    "todiagram": {
+      "type": "stdio",
+      "command": "todiagram.cmd",
+      "args": [],
+      "env": {
+        "TODIAGRAM_API_KEY": "op://tgo2m6qbct5otqeqirjocn3joa/todiagram/credential"
+      }
+    },
+    "playwright-recording": {
+      "type": "stdio",
+      "command": "npx.cmd",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--config=${userHome}${pathSeparator}tmp${pathSeparator}playwright-mcp-config.json"
+      ]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer op://tgo2m6qbct5otqeqirjocn3joa/github-prod/credential",
+        "X-MCP-Readonly": "true",
+        "X-MCP-Toolsets": "repos,issues,pull_requests,actions,code_security"
+      }
+    },
+    "_comment_datadog": "Datadog MCP intentionally disabled to reduce costs. To re-enable: restore the 'datadog' entry below (see git history of this file), update the URL site (mcp.{site}.datadoghq.com), confirm the API key value (NOT the key UUID) is in op://tgo2m6qbct5otqeqirjocn3joa/datadog-prod/api_key, run scripts/render-mcp-config.ps1.",
+    "gcloud": {
+      "type": "stdio",
+      "command": "npx.cmd",
+      "args": ["-y", "@google-cloud/gcloud-mcp@0.5.3"],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "${userHome}${pathSeparator}.config${pathSeparator}gcloud${pathSeparator}equipqr-agent-viewer.json",
+        "CLOUDSDK_CORE_PROJECT": "equipqr-prod"
+      }
+    }
+  }
+}

@@ -4,12 +4,21 @@ import { toast } from 'sonner';
 
 interface GoogleMapsKeyResponse {
   key?: string;
+  /**
+   * Cloud-managed Map ID enabling vector maps + Advanced Markers. Optional —
+   * older deployments that have not set the GOOGLE_MAPS_MAP_ID Supabase
+   * secret will receive `null` (or an absent field) and the Fleet Map will
+   * fall back to a raster basemap.
+   */
+  mapId?: string | null;
   error?: string;
   details?: string;
 }
 
 interface UseGoogleMapsKeyResult {
   googleMapsKey: string;
+  /** Cloud-managed Map ID; `null` until loaded or if not configured server-side. */
+  mapId: string | null;
   isLoading: boolean;
   error: string | null;
   retry: () => void;
@@ -17,6 +26,7 @@ interface UseGoogleMapsKeyResult {
 
 export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
   const [googleMapsKey, setGoogleMapsKey] = useState<string>('');
+  const [mapId, setMapId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +70,7 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
       }
       
       setGoogleMapsKey(data.key);
+      setMapId(data.mapId ?? null);
       setError(null);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch Google Maps key';
@@ -68,7 +79,7 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
       
       // Show detailed error to help with debugging
       toast.error('Map Configuration Error', {
-        description: `${errorMessage}. Check that the VITE_GOOGLE_MAPS_BROWSER_KEY secret is configured in Supabase.`,
+        description: `${errorMessage}. Check that the GOOGLE_MAPS_BROWSER_KEY secret is configured on the Supabase project (legacy: VITE_GOOGLE_MAPS_BROWSER_KEY).`,
       });
     } finally {
       setIsLoading(false);
@@ -81,6 +92,7 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
 
   return {
     googleMapsKey,
+    mapId,
     isLoading,
     error,
     retry: fetchGoogleMapsKey,

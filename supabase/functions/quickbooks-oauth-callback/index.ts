@@ -2,6 +2,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { QBO_TOKEN_URL, getIntuitTid } from "../_shared/quickbooks-config.ts";
+import { withCorrelationId } from "../_shared/supabase-clients.ts";
+import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+
+const FUNCTION_NAME = "quickbooks-oauth-callback";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   // Avoid logging sensitive data like tokens and nonces
@@ -97,7 +101,7 @@ interface OAuthState {
   timestamp: number;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, ctx) => {
   const corsHeaders = getCorsHeaders(req);
 
   // Handle CORS preflight requests
@@ -106,27 +110,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    logStep("Function started", { method: req.method });
+    logStep("Function started", { method: req.method, correlation_id: ctx.correlationId });
 
-    // Get environment variables
-    const clientId = Deno.env.get("INTUIT_CLIENT_ID");
-    const clientSecret = Deno.env.get("INTUIT_CLIENT_SECRET");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    // Required secrets — surface as MISSING_REQUIRED_SECRET via the helper.
+    const clientId = requireSecret("INTUIT_CLIENT_ID", { functionName: FUNCTION_NAME });
+    const clientSecret = requireSecret("INTUIT_CLIENT_SECRET", { functionName: FUNCTION_NAME });
+    const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
+    const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
     const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
     // QB_OAUTH_REDIRECT_BASE_URL must match what the frontend uses (VITE_QB_OAUTH_REDIRECT_BASE_URL)
     // This is required because OAuth 2.0 requires exact redirect_uri match between authorization and token exchange
     // If using a custom domain for Supabase (e.g., supabase.equipqr.app), this must be set to that domain
     const qbOAuthRedirectBaseUrl = Deno.env.get("QB_OAUTH_REDIRECT_BASE_URL") || supabaseUrl;
-
-    if (!clientId || !clientSecret) {
-      logStep("ERROR", { message: "Missing INTUIT_CLIENT_ID or INTUIT_CLIENT_SECRET" });
-      throw new Error("QuickBooks OAuth is not configured");
-    }
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Supabase configuration is missing");
-    }
 
     // Validate OAuth redirect base URL format
     // Note: qbOAuthRedirectBaseUrl is guaranteed to have a value at this point due to the earlier supabaseUrl check (lines 127-129) and fallback to supabaseUrl (line 120)
@@ -410,7 +405,12 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
+    // MissingSecretError already emitted a structured MISSING_REQUIRED_SECRET
+    // log via the helper; no need to log it again. Other errors get the
+    // existing generic logStep.
+    if (!(error instanceof MissingSecretError)) {
+      logStep("ERROR", { message: errorMessage, correlation_id: ctx.correlationId });
+    }
 
     // Get production URL for error redirect
     const productionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
@@ -418,7 +418,7 @@ Deno.serve(async (req) => {
     // Use generic user-friendly message - do not expose internal error details
     const userMessage = "Failed to connect QuickBooks. Please try again.";
     const errorUrl = `${productionUrl}/dashboard/organization?qb_error=oauth_failed&qb_error_description=${encodeURIComponent(userMessage)}`;
-    
+
     return Response.redirect(errorUrl, 302);
   }
-});
+}));

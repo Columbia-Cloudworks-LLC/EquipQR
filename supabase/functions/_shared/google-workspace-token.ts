@@ -11,6 +11,9 @@
 
 import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import { decryptToken, getTokenEncryptionKey } from "./crypto.ts";
+import { requireSecret } from "./require-secret.ts";
+
+const FUNCTION_NAME = "_shared/google-workspace-token";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
@@ -80,13 +83,18 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
  * Refreshes a Google OAuth access token using a refresh token.
  */
 async function refreshAccessToken(refreshToken: string): Promise<GoogleRefreshResponse> {
-  const clientId = Deno.env.get("GOOGLE_WORKSPACE_CLIENT_ID");
-  const clientSecret = Deno.env.get("GOOGLE_WORKSPACE_CLIENT_SECRET");
-
-  if (!clientId || !clientSecret) {
+  // Use requireSecret so missing OAuth credentials emit the structured
+  // MISSING_REQUIRED_SECRET log line. Wrap the throw so callers that
+  // expect GoogleWorkspaceTokenError continue to work.
+  let clientId: string;
+  let clientSecret: string;
+  try {
+    clientId = requireSecret("GOOGLE_WORKSPACE_CLIENT_ID", { functionName: FUNCTION_NAME });
+    clientSecret = requireSecret("GOOGLE_WORKSPACE_CLIENT_SECRET", { functionName: FUNCTION_NAME });
+  } catch {
     throw new GoogleWorkspaceTokenError(
       "Google Workspace OAuth is not configured",
-      "oauth_not_configured"
+      "oauth_not_configured",
     );
   }
 

@@ -6,8 +6,8 @@
  * block autocomplete predictions.
  *
  * Endpoints (via `action` body param):
- *   - `autocomplete`  → returns place predictions for a text input
- *   - `details`       → returns structured address for a place_id
+ *   - `autocomplete`  -> returns place predictions for a text input
+ *   - `details`       -> returns structured address for a place_id
  *
  * Requires authenticated user (verify_jwt = true).
  */
@@ -16,17 +16,32 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import {
   createUserSupabaseClient,
   requireUser,
+  createErrorResponse,
+  createJsonResponse,
+  handleCorsPreflightIfNeeded,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
 
-// ── Structured logging (no PII) ─────────────────────────────────
+const FUNCTION_NAME = "places-autocomplete";
 
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[PLACES-AUTOCOMPLETE] ${step}${detailsStr}`);
+const logStep = (
+  step: string,
+  correlationId: string,
+  details?: Record<string, unknown>,
+) => {
+  console.log(
+    JSON.stringify({
+      level: "info",
+      function: FUNCTION_NAME,
+      correlation_id: correlationId,
+      step,
+      ...details,
+    }),
+  );
 };
 
-// ── Request validation schemas ──────────────────────────────────
+// Request validation schemas
 
 const AutocompleteRequestSchema = z.object({
   action: z.literal("autocomplete"),
@@ -45,54 +60,28 @@ const RequestBodySchema = z.discriminatedUnion("action", [
   DetailsRequestSchema,
 ]);
 
-// ── Response helpers with validated CORS ─────────────────────────
+// Handler
 
-function createCorsJsonResponse(
-  req: Request,
-  data: unknown,
-  status = 200,
-): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-  });
-}
-
-function createCorsErrorResponse(
-  req: Request,
-  error: string,
-  status = 500,
-): Response {
-  return new Response(JSON.stringify({ error }), {
-    status,
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-  });
-}
-
-// ── Handler ────────────────────────────────────────────────────
-
-Deno.serve(async (req) => {
-  // Handle CORS preflight with validated origin
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+Deno.serve(withCorrelationId(async (req, ctx) => {
+  // CORS preflight with validated origin
+  const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
+  if (corsResponse) return corsResponse;
 
   try {
-    logStep("Function started");
+    logStep("Function started", ctx.correlationId);
 
-    // Prefer the new canonical name; fall back to legacy names for compat
-    const googleApiKey = Deno.env.get("GOOGLE_MAPS_SERVER_KEY") || Deno.env.get("GOOGLE_MAPS_API_KEY") || Deno.env.get("VITE_GOOGLE_MAPS_API_KEY");
-    if (!googleApiKey) {
-      throw new Error("GOOGLE_MAPS_SERVER_KEY is not configured");
-    }
+    const googleApiKey = requireSecret("GOOGLE_MAPS_SERVER_KEY", {
+      functionName: FUNCTION_NAME,
+      legacyAliases: ["GOOGLE_MAPS_API_KEY", "VITE_GOOGLE_MAPS_API_KEY"],
+    });
 
     // Authenticate
     const supabase = createUserSupabaseClient(req);
     const auth = await requireUser(req, supabase);
     if ("error" in auth) {
-      return createCorsErrorResponse(req, auth.error, auth.status);
+      return createErrorResponse(auth.error, auth.status, { req });
     }
-    logStep("User authenticated");
+    logStep("User authenticated", ctx.correlationId);
 
     // Parse and validate request body with Zod
     const rawBody: unknown = await req.json();
@@ -102,21 +91,21 @@ Deno.serve(async (req) => {
       const issues = parseResult.error.issues
         .map((i) => i.message)
         .join("; ");
-      logStep("Validation failed", { issues });
-      return createCorsErrorResponse(
-        req,
+      logStep("Validation failed", ctx.correlationId, { issues });
+      return createErrorResponse(
         "Invalid request body: " + issues,
         400,
+        { req },
       );
     }
 
     const body = parseResult.data;
 
-    // ── Autocomplete predictions ────────────────────────────
+    // Autocomplete predictions
     if (body.action === "autocomplete") {
       const { input, sessionToken } = body;
       if (input.trim().length < 2) {
-        return createCorsJsonResponse(req, { predictions: [] });
+        return createJsonResponse({ predictions: [] }, 200, { req });
       }
 
       const params = new URLSearchParams({
@@ -126,14 +115,14 @@ Deno.serve(async (req) => {
       if (sessionToken) params.set("sessiontoken", sessionToken);
 
       const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`;
-      logStep("Calling Google Autocomplete API", { inputLength: input.trim().length });
+      logStep("Calling Google Autocomplete API", ctx.correlationId, { inputLength: input.trim().length });
 
       const resp = await fetch(url);
       const data = await resp.json();
 
       if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-        logStep("Google API error", { status: data.status });
-        return createCorsJsonResponse(req, { predictions: [], status: data.status });
+        logStep("Google API error", ctx.correlationId, { status: data.status });
+        return createJsonResponse({ predictions: [], status: data.status }, 200, { req });
       }
 
       // Return a slim predictions array
@@ -145,11 +134,11 @@ Deno.serve(async (req) => {
         }),
       );
 
-      logStep("Returning predictions", { count: predictions.length });
-      return createCorsJsonResponse(req, { predictions, status: data.status });
+      logStep("Returning predictions", ctx.correlationId, { count: predictions.length });
+      return createJsonResponse({ predictions, status: data.status }, 200, { req });
     }
 
-    // ── Place details ───────────────────────────────────────
+    // Place details
     if (body.action === "details") {
       const { placeId, sessionToken } = body;
 
@@ -161,14 +150,14 @@ Deno.serve(async (req) => {
       if (sessionToken) params.set("sessiontoken", sessionToken);
 
       const url = `https://maps.googleapis.com/maps/api/place/details/json?${params}`;
-      logStep("Calling Google Place Details API");
+      logStep("Calling Google Place Details API", ctx.correlationId);
 
       const resp = await fetch(url);
       const data = await resp.json();
 
       if (data.status !== "OK" || !data.result) {
-        logStep("Google Details API error", { status: data.status });
-        return createCorsErrorResponse(req, "Place not found", 404);
+        logStep("Google Details API error", ctx.correlationId, { status: data.status });
+        return createErrorResponse("Place not found", 404, { req });
       }
 
       const result = data.result;
@@ -194,14 +183,17 @@ Deno.serve(async (req) => {
         lng: result.geometry?.location?.lng ?? null,
       };
 
-      logStep("Returning place details");
-      return createCorsJsonResponse(req, placeData);
+      logStep("Returning place details", ctx.correlationId);
+      return createJsonResponse(placeData, 200, { req });
     }
 
-    return createCorsErrorResponse(req, "Invalid action. Use 'autocomplete' or 'details'.", 400);
+    return createErrorResponse("Invalid action. Use 'autocomplete' or 'details'.", 400, { req });
   } catch (error) {
+    if (error instanceof MissingSecretError) {
+      return createErrorResponse(error, 500, { req });
+    }
     const msg = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: msg });
-    return createCorsErrorResponse(req, "An unexpected error occurred", 500);
+    logStep("ERROR", ctx.correlationId, { message: msg });
+    return createErrorResponse("An unexpected error occurred", 500, { req });
   }
-});
+}));

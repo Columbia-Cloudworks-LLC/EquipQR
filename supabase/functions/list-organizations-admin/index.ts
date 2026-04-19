@@ -1,13 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { verifySuperAdminAccess } from "../_shared/admin-validation.ts";
+import { withCorrelationId } from "../_shared/supabase-clients.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[LIST-ORGANIZATIONS-ADMIN] ${step}${detailsStr}`);
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, _ctx) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -100,5 +101,5 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}));
 

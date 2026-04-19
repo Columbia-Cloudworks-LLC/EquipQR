@@ -60,8 +60,11 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 
 | Secret Name | Required For | Example Value | Notes |
 |------------|--------------|---------------|-------|
-| `GOOGLE_MAPS_API_KEY` | `geocode-location` | `AIza...` | Google Maps API key for geocoding |
-| `VITE_GOOGLE_MAPS_BROWSER_KEY` | `public-google-maps-key` | `AIza...` | Google Maps API key exposed to browser (can be same as above) |
+| `GOOGLE_MAPS_SERVER_KEY` | `geocode-location`, `places-autocomplete` | `AIza...` | Google Maps API key used server-side. Legacy `GOOGLE_MAPS_API_KEY` still accepted as fallback. |
+| `GOOGLE_MAPS_BROWSER_KEY` | `public-google-maps-key` | `AIza...` | Google Maps API key exposed to browser (can be same as above). Legacy `VITE_GOOGLE_MAPS_BROWSER_KEY` still accepted as fallback. |
+| `GOOGLE_MAPS_MAP_ID` | `public-google-maps-key` | `1a2b3c...` | **Optional.** Cloud-managed Map ID enabling vector basemaps + AdvancedMarkerElement. When absent the Fleet Map falls back to a raster basemap with legacy markers. |
+
+> ⚠️ **The browser key value is only half the configuration.** Even after the secret is provisioned on the Supabase project, Google will reject the key at runtime with `RefererNotAllowedMapError` if the page URL is not in the key's HTTP-referrer allowlist on the upstream **Google Cloud project**. See [Google Maps API key — HTTP referrer allowlist](#google-maps-api-key--http-referrer-allowlist) below.
 
 ### QuickBooks Integration
 
@@ -91,12 +94,13 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `PRODUCTION_URL` ✅
 
 #### `geocode-location`
-- `GOOGLE_MAPS_API_KEY` ✅
+- `GOOGLE_MAPS_SERVER_KEY` ✅ (legacy `GOOGLE_MAPS_API_KEY` accepted as fallback)
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 
 #### `public-google-maps-key`
-- `VITE_GOOGLE_MAPS_BROWSER_KEY` ✅
+- `GOOGLE_MAPS_BROWSER_KEY` ✅ (legacy `VITE_GOOGLE_MAPS_BROWSER_KEY` accepted as fallback)
+- `GOOGLE_MAPS_MAP_ID` ⚠️ (Optional — unlocks vector basemaps + AdvancedMarkerElement)
 
 #### `verify-hcaptcha`
 - `HCAPTCHA_SECRET_KEY` ✅
@@ -235,8 +239,9 @@ RESEND_API_KEY=<your-resend-api-key>
 HCAPTCHA_SECRET_KEY=<your-hcaptcha-secret>
 
 # Google Maps
-GOOGLE_MAPS_API_KEY=<your-google-maps-api-key>
-VITE_GOOGLE_MAPS_BROWSER_KEY=<your-google-maps-api-key>
+GOOGLE_MAPS_SERVER_KEY=<your-google-maps-api-key>
+GOOGLE_MAPS_BROWSER_KEY=<your-google-maps-api-key>
+GOOGLE_MAPS_MAP_ID=<optional-google-maps-cloud-map-id>
 
 # GitHub Integration (Bug Reporting)
 GITHUB_PAT=<your-github-pat>
@@ -303,6 +308,46 @@ Secrets are **not automatically synced** between branches. If you add a new secr
 1. Verify `PRODUCTION_URL` is set correctly for the branch:
    - Production branch: `https://equipqr.app`
    - Preview branch: `https://preview.equipqr.app`
+
+## Google Maps API key — HTTP referrer allowlist
+
+The `GOOGLE_MAPS_BROWSER_KEY` Supabase secret only **delivers** the Google Cloud API key value to the browser. The key itself is then validated by Google's CDN against the **HTTP referrer allowlist** configured on the Google Cloud project — and that allowlist is **not** stored in Supabase, **not** synchronized between Supabase branches, and **not** rotated by `scripts/sync-supabase-secrets-from-1password.ps1`. Whenever a new Vercel domain alias, custom domain, or Supabase preview branch is added, the upstream Google Cloud allowlist must be widened by hand.
+
+### Symptom when missing
+
+In the browser DevTools console:
+
+- `Google Maps JavaScript API error: RefererNotAllowedMapError`
+- `Your site URL to be authorized: https://<that-domain>/dashboard/fleet-map`
+- Followed by `TypeError: Cannot read properties of undefined (reading 'get')` originating in `marker.js` — the downstream crash that occurs because Google Maps half-initializes before rejecting the key.
+
+In the EquipQR UI: the Fleet Map renders the in-app `MapsAuthFailureCard` diagnostic (after [issue #617 follow-up](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/617)) listing the exact URL to authorize.
+
+### Required allowlist entries
+
+Set the same allowlist on every Google Cloud API key referenced as `GOOGLE_MAPS_BROWSER_KEY` (Production Supabase project AND each branch project):
+
+- `http://localhost:8080/*` (local dev)
+- `https://equipqr.app/*` (Production)
+- `https://*.equipqr.app/*` (covers `preview.equipqr.app` and any future custom subdomain alias)
+- `https://preview.equipqr.app/*` (explicit Preview entry — keep alongside the wildcard for clarity)
+
+### Operator steps
+
+1. Open Google Cloud Console → **APIs & Services** → **Credentials** in the GCP project that owns the API key value of `GOOGLE_MAPS_BROWSER_KEY` for the affected Supabase project.
+2. Click the API key name to edit it.
+3. Under **Application restrictions** → **HTTP referrers**, ensure all the entries above exist. Add any that are missing.
+4. Under **API restrictions**, verify only `Maps JavaScript API`, `Places API`, and `Places API (New)` are enabled.
+5. Click **Save**. Propagation typically completes within ~1 minute.
+6. Reload the affected URL (e.g. `https://preview.equipqr.app/dashboard/fleet-map`) and confirm the basemap renders without `RefererNotAllowedMapError` in the console.
+
+### Why this lives outside Supabase
+
+The HTTP-referrer restriction is a property of the Google Cloud API key itself, not of the EquipQR application or its Supabase Edge Function secrets. The Supabase secret only carries the key string; Google validates the referrer header on every Maps API request against the allowlist on the key. This means the allowlist:
+
+- Is **shared** across every Supabase project / environment that resolves to the same physical Google Cloud key.
+- Cannot be rotated by `scripts/sync-supabase-secrets-from-1password.ps1` (which only touches Supabase secret values).
+- Must be re-checked whenever a new domain is brought online (custom domain, Vercel alias, additional preview branch URL).
 
 ## Related Documentation
 

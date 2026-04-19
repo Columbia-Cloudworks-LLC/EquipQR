@@ -23,21 +23,32 @@ export const HorizontalChipRow: React.FC<HorizontalChipRowProps> = ({
   gap = 'gap-2',
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const rafIdRef = useRef<number | null>(null);
   const [showLeftHint, setShowLeftHint] = useState(false);
   const [showRightHint, setShowRightHint] = useState(false);
 
+  // Schedule the actual DOM-measurement + state update on the next animation
+  // frame. Calling this synchronously inside React effects (or while another
+  // commit is in flight) forces a layout calculation that has been observed
+  // to push the main-thread budget past 30ms on /dashboard/work-orders,
+  // producing the "Forced reflow while executing JavaScript" violation.
+  // Coalesce rapid invocations (scroll + resize + children-change) by
+  // cancelling the pending frame before scheduling a new one.
   const updateScrollHints = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      const el = scrollRef.current;
+      if (!el) return;
 
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    const scrollThreshold = 8; // Small threshold to avoid flickering at edges
-    
-    // Show left hint if scrolled past the beginning
-    setShowLeftHint(scrollLeft > scrollThreshold);
-    
-    // Show right hint if there's more content to scroll
-    setShowRightHint(scrollLeft < scrollWidth - clientWidth - scrollThreshold);
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      const scrollThreshold = 8;
+
+      setShowLeftHint(scrollLeft > scrollThreshold);
+      setShowRightHint(scrollLeft < scrollWidth - clientWidth - scrollThreshold);
+    });
   }, []);
 
   useEffect(() => {
@@ -49,7 +60,7 @@ export const HorizontalChipRow: React.FC<HorizontalChipRowProps> = ({
 
     // Listen for scroll events
     el.addEventListener('scroll', updateScrollHints, { passive: true });
-    
+
     // Listen for resize to recalculate
     const resizeObserver = new ResizeObserver(updateScrollHints);
     resizeObserver.observe(el);
@@ -57,6 +68,10 @@ export const HorizontalChipRow: React.FC<HorizontalChipRowProps> = ({
     return () => {
       el.removeEventListener('scroll', updateScrollHints);
       resizeObserver.disconnect();
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
     };
   }, [updateScrollHints]);
 
