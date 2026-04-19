@@ -14,9 +14,23 @@ import {
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const FUNCTION_NAME = "send-invitation-email";
+
+// Lazy-initialize Resend so a missing RESEND_API_KEY surfaces as a
+// structured MISSING_REQUIRED_SECRET log line on first request rather
+// than an opaque "send" failure deep in the email path.
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    const key = requireSecret("RESEND_API_KEY", { functionName: FUNCTION_NAME });
+    _resend = new Resend(key);
+  }
+  return _resend;
+}
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
@@ -42,7 +56,7 @@ const escapeHtml = (unsafe: string): string => {
     .replace(/'/g, "&#039;");
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, _ctx) => {
   // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -251,7 +265,7 @@ Deno.serve(async (req) => {
     // Send the email
     logStep("Sending email", { invitationId });
 
-    const emailResponse = await resend.emails.send({
+    const emailResponse = await getResend().emails.send({
       from: "EquipQR™ <invite@equipqr.app>",
       to: [email],
       subject: `You're invited to join ${safeOrganizationName} on EquipQR™`,
@@ -265,6 +279,9 @@ Deno.serve(async (req) => {
       emailId: emailResponse.data?.id,
     });
   } catch (error: unknown) {
+    if (error instanceof MissingSecretError) {
+      return createErrorResponse(error, 500);
+    }
     // Log the full error server-side for debugging
     logStep("ERROR", {
       message: error instanceof Error ? error.message : "Unknown error",
@@ -273,4 +290,4 @@ Deno.serve(async (req) => {
     // Return generic message to client - never expose error.message directly
     return createErrorResponse("Failed to send invitation email", 500);
   }
-});
+}));

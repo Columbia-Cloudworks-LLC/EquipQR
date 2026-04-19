@@ -1,0 +1,59 @@
+---
+description: "Fleet Map: <APIProvider> is the SOLE Google Maps loader; never use useGoogleMapsLoader on FleetMap"
+globs: "src/{features/fleet-map,hooks/useGoogleMaps*}/**"
+---
+# Fleet Map — Google Maps loader contract
+
+`src/features/fleet-map/components/MapView.tsx` wraps the map in
+`<APIProvider>` from `@vis.gl/react-google-maps` (libraries=`['places', 'marker']`).
+`<APIProvider>` is the **sole authorized loader** of the Google Maps JS API
+for the Fleet Map. Do **not** also call `useGoogleMapsLoader()` from within
+the FleetMap component tree.
+
+## Why
+
+`useGoogleMapsLoader` (in `src/hooks/useGoogleMapsLoader.ts`) is a legacy
+helper that manually injects `<script src="https://maps.googleapis.com/maps/api/js?key=...&libraries=places&loading=async">`
+into the DOM. If both loaders are active, the parent component's hook fires
+first (so the legacy script tag wins), and by the time `<APIProvider>` mounts
+and calls `js-api-loader.importLibrary('maps')`, `window.google.maps` already
+exists. `js-api-loader` then emits the documented warning:
+
+> `[@googlemaps/js-api-loader] No options were set before calling importLibrary. Make sure to configure the loader using setOptions().`
+
+The Maps API is bootstrapped without the `'marker'` library and without the
+proper async-loader handshake required by the **WebGL vector tile renderer**.
+DOM-overlay markers still render (they project lat/lng to screen coords
+without needing tiles), but the basemap silently never fetches a single tile.
+Symptoms: map area is rendered, markers and the legend appear, but the
+basemap stays blank. This is exactly what regressed FleetMap on
+`preview.equipqr.app` (issue #617).
+
+## The rule
+
+In `src/features/fleet-map/pages/FleetMap.tsx` and any other component that
+mounts `<MapView>`:
+
+- **DO:** `import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey'` and
+  pass the returned `googleMapsKey` + `mapId` down to `<MapView>`.
+- **DO NOT:** import `useGoogleMapsLoader` from `@/hooks/useGoogleMapsLoader`.
+
+`useGoogleMapsKey` only fetches the API key + Map ID from the
+`public-google-maps-key` Edge Function; it does not inject any `<script>` tag.
+
+## When `useGoogleMapsLoader` IS appropriate
+
+Other surfaces that need the Maps JS API but do **not** wrap content in
+`<APIProvider>` (e.g. `TeamLocationCard`, `EquipmentDetailsTab`,
+`GooglePlacesAutocomplete`, equipment form location pickers) should keep
+using `useGoogleMapsLoader` because they need the legacy script injection.
+
+If you migrate any of those surfaces to `<APIProvider>` in the future, switch
+their loader to `useGoogleMapsKey` at the same time to avoid reintroducing
+the dual-loader race.
+
+## Reference
+
+- Original incident: [#617](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/617)
+- Fix commit: `27d81255` — `fix(fleet-map): drop legacy script-loader to let APIProvider own Maps init`
+- Migration that introduced the dual-loader hazard: PR #616 (`@react-google-maps/api` → `@vis.gl/react-google-maps`)

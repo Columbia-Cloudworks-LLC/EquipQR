@@ -20,7 +20,11 @@ import {
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+
+const FUNCTION_NAME = "github-issue-webhook";
 
 // =============================================================================
 // Constants
@@ -242,7 +246,7 @@ async function handleIssueCommentEvent(
 // Main Handler
 // =============================================================================
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, _ctx) => {
   // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -256,12 +260,9 @@ Deno.serve(async (req) => {
     // 2. Read the raw body for signature verification
     const rawBody = await req.text();
 
-    // 3. Verify webhook signature
-    const webhookSecret = Deno.env.get("GITHUB_WEBHOOK_SECRET");
-    if (!webhookSecret) {
-      logStep("ERROR: GITHUB_WEBHOOK_SECRET not configured");
-      return createErrorResponse("An unexpected error occurred", 500);
-    }
+    // 3. Verify webhook signature (requireSecret emits MISSING_REQUIRED_SECRET
+    //    if the GITHUB_WEBHOOK_SECRET is absent — handled by the catch block).
+    const webhookSecret = requireSecret("GITHUB_WEBHOOK_SECRET", { functionName: FUNCTION_NAME });
 
     const signatureHeader = req.headers.get("X-Hub-Signature-256");
     const isValid = await verifyWebhookSignature(
@@ -339,8 +340,11 @@ Deno.serve(async (req) => {
     logStep("Webhook processed", result);
     return createJsonResponse(result);
   } catch (error) {
+    if (error instanceof MissingSecretError) {
+      return createErrorResponse(error, 500);
+    }
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("[GITHUB-ISSUE-WEBHOOK] Unhandled error:", errorMessage);
     return createErrorResponse("An unexpected error occurred", 500);
   }
-});
+}));

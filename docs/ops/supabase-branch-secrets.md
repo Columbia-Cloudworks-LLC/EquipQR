@@ -60,8 +60,9 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 
 | Secret Name | Required For | Example Value | Notes |
 |------------|--------------|---------------|-------|
-| `GOOGLE_MAPS_API_KEY` | `geocode-location` | `AIza...` | Google Maps API key for geocoding |
-| `VITE_GOOGLE_MAPS_BROWSER_KEY` | `public-google-maps-key` | `AIza...` | Google Maps API key exposed to browser (can be same as above) |
+| `GOOGLE_MAPS_SERVER_KEY` | `geocode-location`, `places-autocomplete` | `AIza...` | Google Maps API key used server-side. Legacy `GOOGLE_MAPS_API_KEY` still accepted as fallback. |
+| `GOOGLE_MAPS_BROWSER_KEY` | `public-google-maps-key` | `AIza...` | Google Maps API key exposed to browser (can be same as above). Legacy `VITE_GOOGLE_MAPS_BROWSER_KEY` still accepted as fallback. |
+| `GOOGLE_MAPS_MAP_ID` | `public-google-maps-key` | `1a2b3c...` | **Optional.** Cloud-managed Map ID enabling vector basemaps + AdvancedMarkerElement. When absent the Fleet Map falls back to a raster basemap with legacy markers. |
 
 ### QuickBooks Integration
 
@@ -91,12 +92,13 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `PRODUCTION_URL` ✅
 
 #### `geocode-location`
-- `GOOGLE_MAPS_API_KEY` ✅
+- `GOOGLE_MAPS_SERVER_KEY` ✅ (legacy `GOOGLE_MAPS_API_KEY` accepted as fallback)
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 
 #### `public-google-maps-key`
-- `VITE_GOOGLE_MAPS_BROWSER_KEY` ✅
+- `GOOGLE_MAPS_BROWSER_KEY` ✅ (legacy `VITE_GOOGLE_MAPS_BROWSER_KEY` accepted as fallback)
+- `GOOGLE_MAPS_MAP_ID` ⚠️ (Optional — unlocks vector basemaps + AdvancedMarkerElement)
 
 #### `verify-hcaptcha`
 - `HCAPTCHA_SECRET_KEY` ✅
@@ -235,8 +237,9 @@ RESEND_API_KEY=<your-resend-api-key>
 HCAPTCHA_SECRET_KEY=<your-hcaptcha-secret>
 
 # Google Maps
-GOOGLE_MAPS_API_KEY=<your-google-maps-api-key>
-VITE_GOOGLE_MAPS_BROWSER_KEY=<your-google-maps-api-key>
+GOOGLE_MAPS_SERVER_KEY=<your-google-maps-api-key>
+GOOGLE_MAPS_BROWSER_KEY=<your-google-maps-api-key>
+GOOGLE_MAPS_MAP_ID=<optional-google-maps-cloud-map-id>
 
 # GitHub Integration (Bug Reporting)
 GITHUB_PAT=<your-github-pat>

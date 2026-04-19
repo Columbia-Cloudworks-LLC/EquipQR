@@ -13,11 +13,26 @@ import {
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
 
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[GEOCODE-LOCATION] ${step}${detailsStr}`);
+const FUNCTION_NAME = "geocode-location";
+
+const logStep = (
+  step: string,
+  correlationId: string,
+  details?: Record<string, unknown>,
+) => {
+  console.log(
+    JSON.stringify({
+      level: "info",
+      function: FUNCTION_NAME,
+      correlation_id: correlationId,
+      step,
+      ...details,
+    }),
+  );
 };
 
 // Normalize address text (must match client-side logic)
@@ -31,19 +46,18 @@ interface GeocodeRequest {
   input: string;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, ctx) => {
   // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    logStep("Function started");
+    logStep("Function started", ctx.correlationId);
 
-    // Prefer the new canonical name; fall back to legacy name for compat
-    const googleApiKey = Deno.env.get("GOOGLE_MAPS_SERVER_KEY") || Deno.env.get("GOOGLE_MAPS_API_KEY");
-    if (!googleApiKey) {
-      throw new Error("GOOGLE_MAPS_SERVER_KEY is not configured");
-    }
+    const googleApiKey = requireSecret("GOOGLE_MAPS_SERVER_KEY", {
+      functionName: FUNCTION_NAME,
+      legacyAliases: ["GOOGLE_MAPS_API_KEY"],
+    });
 
     // Create user-scoped client (RLS enforced)
     const supabase = createUserSupabaseClient(req);
@@ -55,7 +69,7 @@ Deno.serve(async (req) => {
     }
 
     const { user } = auth;
-    logStep("User authenticated", { userId: user.id });
+    logStep("User authenticated", ctx.correlationId, { userId: user.id });
 
     // Parse request body
     const body: GeocodeRequest = await req.json();
@@ -68,7 +82,7 @@ Deno.serve(async (req) => {
     // Verify user is member of the organization (defense-in-depth; RLS also applies)
     const membership = await verifyOrgMembership(supabase, user.id, organizationId);
     if (!membership.isMember) {
-      logStep("Org membership denied", { userId: user.id, orgId: organizationId });
+      logStep("Org membership denied", ctx.correlationId, { userId: user.id, orgId: organizationId });
       return createErrorResponse("You are not a member of this organization", 403);
     }
 
@@ -88,11 +102,11 @@ Deno.serve(async (req) => {
       .gte("created_at", oneMinuteAgo);
 
     if (!rateLimitError && (recentCount ?? 0) >= 30) {
-      logStep("Rate limit exceeded", { userId: user.id, recentCount });
+      logStep("Rate limit exceeded", ctx.correlationId, { userId: user.id, recentCount });
       return createErrorResponse("Rate limit exceeded", 429);
     }
 
-    logStep("Checking cache", { organizationId, normalizedInput });
+    logStep("Checking cache", ctx.correlationId, { organizationId, normalizedInput });
 
     // Check cache first (RLS will restrict to user's orgs)
     const { data: cached, error: cacheError } = await supabase
@@ -103,9 +117,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (cacheError) {
-      logStep("Cache check error", { error: cacheError.message });
+      logStep("Cache check error", ctx.correlationId, { error: cacheError.message });
     } else if (cached) {
-      logStep("Cache hit");
+      logStep("Cache hit", ctx.correlationId);
       return createJsonResponse({
         lat: cached.latitude,
         lng: cached.longitude,
@@ -113,7 +127,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    logStep("Cache miss, calling Google API");
+    logStep("Cache miss, calling Google API", ctx.correlationId);
 
     // Call Google Geocoding API
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
@@ -127,7 +141,7 @@ Deno.serve(async (req) => {
       !geocodeData.results ||
       geocodeData.results.length === 0
     ) {
-      logStep("Google API returned no results", { status: geocodeData.status });
+      logStep("Google API returned no results", ctx.correlationId, { status: geocodeData.status });
       return createJsonResponse({ lat: null, lng: null });
     }
 
@@ -137,7 +151,7 @@ Deno.serve(async (req) => {
     const lng = location.lng;
     const formattedAddress = result.formatted_address;
 
-    logStep("Google API success", { lat, lng, formattedAddress });
+    logStep("Google API success", ctx.correlationId, { lat, lng, formattedAddress });
 
     // Cache the result (RLS will enforce org access)
     const { error: insertError } = await supabase
@@ -157,10 +171,10 @@ Deno.serve(async (req) => {
       );
 
     if (insertError) {
-      logStep("Cache insert error", { error: insertError.message });
+      logStep("Cache insert error", ctx.correlationId, { error: insertError.message });
       // Don't fail the request - geocoding succeeded, just caching failed
     } else {
-      logStep("Cached result");
+      logStep("Cached result", ctx.correlationId);
     }
 
     return createJsonResponse({
@@ -169,8 +183,11 @@ Deno.serve(async (req) => {
       formatted_address: formattedAddress,
     });
   } catch (error) {
+    if (error instanceof MissingSecretError) {
+      return createErrorResponse(error, 500);
+    }
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
+    logStep("ERROR", ctx.correlationId, { message: errorMessage });
     return createErrorResponse("An unexpected error occurred", 500);
   }
-});
+}));

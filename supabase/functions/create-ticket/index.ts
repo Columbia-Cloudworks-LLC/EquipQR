@@ -24,7 +24,11 @@ import {
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+
+const FUNCTION_NAME = "create-ticket";
 
 // =============================================================================
 // Constants
@@ -464,7 +468,7 @@ function delay(ms: number): Promise<void> {
 // Main Handler
 // =============================================================================
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, _ctx) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
@@ -547,12 +551,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 6. Create GitHub Issue
-    const githubPat = Deno.env.get("GITHUB_PAT");
-    if (!githubPat) {
-      logStep("ERROR: GITHUB_PAT environment variable not set");
-      return createErrorResponse("An unexpected error occurred", 500);
-    }
+    // 6. Create GitHub Issue (requireSecret emits MISSING_REQUIRED_SECRET
+    //    if the GITHUB_PAT is absent — handled by the catch block below).
+    const githubPat = requireSecret("GITHUB_PAT", { functionName: FUNCTION_NAME });
 
     logStep("Creating GitHub issue");
 
@@ -665,8 +666,11 @@ Deno.serve(async (req) => {
       ticketId: ticket.id,
     });
   } catch (error) {
+    if (error instanceof MissingSecretError) {
+      return createErrorResponse(error, 500);
+    }
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("[CREATE-TICKET] Unhandled error:", errorMessage);
     return createErrorResponse("An unexpected error occurred", 500);
   }
-});
+}));

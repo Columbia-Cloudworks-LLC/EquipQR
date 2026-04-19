@@ -5,7 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, PanelLeftOpen, PanelLeftClose, Forklift } from 'lucide-react';
 import { FleetMapErrorBoundary } from '@/features/fleet-map/components/FleetMapErrorBoundary';
-import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
+// IMPORTANT: FleetMap uses useGoogleMapsKey (key/mapId only), NOT
+// useGoogleMapsLoader. The MapView wraps the map in <APIProvider> from
+// @vis.gl/react-google-maps which loads the Maps script itself with the
+// correct options (libraries=['places','marker'], proper async handshake,
+// Map ID-aware renderer init). If we ALSO injected the script via
+// useGoogleMapsLoader the two loaders race: the legacy script tag wins,
+// js-api-loader emits "No options were set before calling importLibrary",
+// the WebGL tile renderer never bootstraps, and the basemap stays blank
+// while only DOM-overlay markers render. See issue #617 follow-up.
+import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
 import { useTeamFleetData } from '@/features/teams/hooks/useTeamFleetData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MapView } from '@/features/fleet-map/components/MapView';
@@ -17,7 +26,13 @@ import PageHeader from '@/components/layout/PageHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const FleetMap: React.FC = () => {
-  const { googleMapsKey, mapId: googleMapsMapId, isLoaded: isMapsLoaded, loadError: mapsLoadError, isKeyLoading: mapsKeyLoading, keyError: mapsKeyError, retry: retryMapsKey } = useGoogleMapsLoader();
+  const {
+    googleMapsKey,
+    mapId: googleMapsMapId,
+    isLoading: mapsKeyLoading,
+    error: mapsKeyError,
+    retry: retryMapsKey,
+  } = useGoogleMapsKey();
   const { data: teamFleetData, isLoading: teamFleetLoading, error: teamFleetError } = useTeamFleetData();
   const isMobile = useIsMobile();
 
@@ -263,8 +278,6 @@ const FleetMap: React.FC = () => {
               equipmentLocations={equipmentLocations}
               filteredLocations={equipmentLocations}
               teamHQLocations={teamHQLocations}
-              isMapsLoaded={isMapsLoaded}
-              mapsLoadError={mapsLoadError}
               focusEquipmentId={focusEquipmentId}
               onMarkerClick={(id) => setFocusEquipmentId(id)}
             />

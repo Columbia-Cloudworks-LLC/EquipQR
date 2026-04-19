@@ -2,6 +2,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { QBO_TOKEN_URL, getIntuitTid } from "../_shared/quickbooks-config.ts";
+import { withCorrelationId } from "../_shared/supabase-clients.ts";
+import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+
+const FUNCTION_NAME = "quickbooks-refresh-tokens";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   // Avoid logging sensitive data like tokens
@@ -114,7 +118,7 @@ async function refreshToken(
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, ctx) => {
   const corsHeaders = getCorsHeaders(req);
 
   // Handle CORS preflight requests
@@ -123,22 +127,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    logStep("Function started");
+    logStep("Function started", { correlation_id: ctx.correlationId });
 
-    // Get environment variables
-    const clientId = Deno.env.get("INTUIT_CLIENT_ID");
-    const clientSecret = Deno.env.get("INTUIT_CLIENT_SECRET");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!clientId || !clientSecret) {
-      logStep("ERROR", { message: "Missing INTUIT_CLIENT_ID or INTUIT_CLIENT_SECRET" });
-      throw new Error("QuickBooks OAuth is not configured");
-    }
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Supabase configuration is missing");
-    }
+    // Required secrets — surface as MISSING_REQUIRED_SECRET via the helper.
+    const clientId = requireSecret("INTUIT_CLIENT_ID", { functionName: FUNCTION_NAME });
+    const clientSecret = requireSecret("INTUIT_CLIENT_SECRET", { functionName: FUNCTION_NAME });
+    const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
+    const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
 
     // Validate authorization
     const authHeader = req.headers.get("Authorization");
@@ -385,10 +380,12 @@ Deno.serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    logStep("ERROR", { message: errorMessage, stack: errorStack });
+    if (!(error instanceof MissingSecretError)) {
+      logStep("ERROR", { message: errorMessage, stack: errorStack, correlation_id: ctx.correlationId });
+    }
 
     // Return generic error message to prevent information exposure
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       success: false,
       error: "An unexpected error occurred while refreshing tokens"
     }), {
@@ -396,4 +393,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}));

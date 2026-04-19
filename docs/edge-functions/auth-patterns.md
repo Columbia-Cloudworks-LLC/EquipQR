@@ -81,8 +81,8 @@ These endpoints have `verify_jwt = false` and do NOT require authentication:
 
 | Function | Reason | Security Notes |
 |----------|--------|----------------|
-| `public-google-maps-key` | Returns browser API key (intentionally public) | Key is restricted in Google Cloud Console |
-| `verify-hcaptcha` | Validates captcha tokens during signup | Only calls hCaptcha API |
+| `public-google-maps-key` | Returns browser API key (intentionally public) | Key is restricted in Google Cloud Console; secret loaded via `requireSecret("GOOGLE_MAPS_BROWSER_KEY")` |
+| `verify-hcaptcha` | Validates captcha tokens during signup | Only calls hCaptcha API; secret loaded via `requireSecret("HCAPTCHA_SECRET_KEY")` |
 | `parts-search` | Deprecated; returns 410 Gone | No DB access |
 
 ## Adding New Functions
@@ -96,35 +96,73 @@ When adding a new Edge Function:
 
 ## Security Best Practices
 
-### Error Handling with Correlation IDs
+### Required Secrets (`requireSecret`)
 
-When handling errors in webhook handlers or other sensitive endpoints, use the error ID pattern to correlate client responses with server logs without exposing internal error details:
+Every Edge Function loads its runtime secrets through the `requireSecret`
+helper in `_shared/require-secret.ts`. This is the canonical pattern —
+do not call `Deno.env.get()` directly for secret-class env vars.
 
 ```typescript
-} catch (error) {
-  // Generate a unique error ID to correlate client response with server logs
-  const errorId = crypto.randomUUID();
+import { requireSecret, MissingSecretError } from "../_shared/require-secret.ts";
 
-  // Log the full error server-side for debugging, including the error ID
-  console.error("[FUNCTION-NAME] Error:", { errorId, error });
+const FUNCTION_NAME = "my-function";
 
-  // Return generic message to client with reference ID - never expose error.message directly
-  return new Response(`Operation failed. Reference ID: ${errorId}`, { 
-    status: 500,
-    headers: corsHeaders 
-  });
-}
+const apiKey = requireSecret("MY_API_KEY", {
+  functionName: FUNCTION_NAME,
+  legacyAliases: ["LEGACY_MY_API_KEY"], // optional, in priority order
+});
 ```
 
-**Benefits:**
-- Prevents information disclosure (CWE-209) by never exposing internal error messages
-- Enables efficient debugging by correlating client-reported reference IDs with server logs
-- Provides users with a trackable reference for support requests
+When the canonical name and every legacy alias are absent (or empty),
+the helper throws a typed `MissingSecretError` whose constructor emits
+exactly one structured log line on `console.error`:
 
-**When to use:**
-- Webhook handlers (Stripe, QuickBooks, etc.)
-- Any endpoint where errors may contain sensitive debugging info
-- OAuth callback handlers
+```json
+{"level":"error","code":"MISSING_REQUIRED_SECRET","function":"my-function","secret":"MY_API_KEY","legacyAliasesChecked":["LEGACY_MY_API_KEY"],"timestamp":"2026-04-18T..."}
+```
+
+Operators can grep `"code":"MISSING_REQUIRED_SECRET"` across all Edge
+Function logs to find every misconfiguration regardless of which
+function fired it.
+
+**Security guarantees:**
+- Secret values are NEVER logged, even partially. Only names, the
+  function tag, and a presence boolean (via the structured line) ever
+  appear on stdout/stderr.
+- `createErrorResponse(error)` accepts a `MissingSecretError` and
+  forces the generic `"An internal error occurred"` message, so the
+  secret name cannot reach the client even if a function forgets to
+  catch it explicitly.
+- For optional config (graceful degradation), use `optionalSecret`
+  instead — it returns `null` and never logs.
+
+### Correlation IDs (`withCorrelationId`)
+
+Wrap your `Deno.serve` handler with `withCorrelationId` to get
+end-to-end request correlation:
+
+```typescript
+import { withCorrelationId } from "../_shared/supabase-clients.ts";
+
+Deno.serve(withCorrelationId(async (req, ctx) => {
+  console.log(JSON.stringify({
+    correlation_id: ctx.correlationId,
+    step: "function started",
+  }));
+  // ... your handler ...
+}));
+```
+
+The wrapper:
+- Mints a fresh `crypto.randomUUID()` per request (or reuses an
+  inbound `X-Correlation-Id` / `X-Request-Id` header).
+- Sets `X-Correlation-Id` on every outbound response.
+- Injects `correlation_id` into JSON error bodies so support flows
+  can quote the id without parsing headers. Success bodies are
+  unchanged for wire-format compatibility.
+- Catches any uncaught handler exception, emits an
+  `UNCAUGHT_HANDLER_ERROR` structured log with the id, and returns
+  a generic 500 (never leaks `error.message` to the client).
 
 ### Error Message Allowlisting
 
@@ -136,7 +174,9 @@ See `SAFE_ERROR_PATTERNS` in `supabase-clients.ts` for the allowlist and add new
 
 All auth helpers are in `supabase/functions/_shared/`:
 
-- `supabase-clients.ts` - Client creation and auth helpers
+- `supabase-clients.ts` - Client creation, auth helpers, `createErrorResponse` allowlist, `withCorrelationId` wrapper
+- `require-secret.ts` - `requireSecret` / `optionalSecret` / `MissingSecretError`
 - `admin-validation.ts` - Super admin validation
-- `cors.ts` - CORS headers
+- `cors.ts` - CORS headers (`corsHeaders` static + `getCorsHeaders(req)` validated-origin)
 - `crypto.ts` - Token encryption utilities
+- `error-message-allowlist.ts` - SAFE_ERROR_PATTERNS for client-facing error strings

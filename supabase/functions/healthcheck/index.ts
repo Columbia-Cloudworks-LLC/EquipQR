@@ -3,6 +3,7 @@ import {
   createJsonResponse,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 
 const RPC_TIMEOUT_MS = 5_000;
@@ -65,7 +66,7 @@ async function runDbCheck(): Promise<DbCheck> {
 
 export const __testables = { buildHealthResponse, runDbCheck };
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, _ctx) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
@@ -76,4 +77,4 @@ Deno.serve(async (req) => {
   const dbCheck = await runDbCheck();
   const body = buildHealthResponse(dbCheck);
   return createJsonResponse(body, body.ok ? 200 : 503);
-});
+}));
