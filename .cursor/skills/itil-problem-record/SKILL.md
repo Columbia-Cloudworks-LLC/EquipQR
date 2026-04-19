@@ -1,6 +1,6 @@
 ---
 name: itil-problem-record
-description: Mandates an ITIL-style Problem Record for exactly ONE GitHub issue (the Incident Record) in EquipQR — the agent literally reproduces the issue in a verifiably clean local dev environment, performs root-cause analysis, posts the Problem Record as a comment on the GitHub issue, and outputs it in chat as the authorization context for the subsequent itil-change-record step. Acts as an L3 sysadmin: probes localhost:8080, instructs the user through the dev-start.bat / dev-stop.bat bring-up ladder, walks the user through env / secrets parity across .env, supabase/functions/.env, Supabase Dashboard, and Vercel when external integrations are in play, and defers any issue whose local stack cannot be brought up clean (no warnings, no errors of any kind). Use whenever the user asks the agent to "investigate", "diagnose", "reproduce", "triage", "do the problem record for", "look into", or "work on" a GitHub issue, references an issue number (#NNN) or issue URL with no fix yet authorized, or starts the ITIL flow on an incident. One prompt, one issue, one Problem Record.
+description: Mandates an ITIL-style Problem Record for exactly ONE GitHub issue (the Incident Record) in EquipQR — the agent literally reproduces the issue in a verifiably clean local dev environment, performs root-cause analysis, posts the Problem Record as a comment on the GitHub issue, and outputs it in chat as the authorization context for the subsequent itil-change-record step. Acts as an L3 sysadmin: probes localhost:8080, instructs the user through the dev-start.bat / dev-stop.bat bring-up ladder, walks the user through env / secrets parity across .env, supabase/functions/.env, Supabase Dashboard, and Vercel when external integrations are in play, and defers any issue whose local stack cannot be brought up clean (no warnings, no errors of any kind). Includes an "already-resolved" short-circuit: if discovery surfaces a prior fix and the symptom does NOT reproduce in the appropriate environment (local / preview / production, chosen to match where the fix has shipped), the agent presents the evidence, asks explicit permission, and — only with approval — closes the issue from within the skill citing the fix commit and shipping version. Use whenever the user asks the agent to "investigate", "diagnose", "reproduce", "triage", "do the problem record for", "look into", or "work on" a GitHub issue, references an issue number (#NNN) or issue URL with no fix yet authorized, or starts the ITIL flow on an incident. One prompt, one issue, one Problem Record.
 ---
 
 # ITIL Problem Record (EquipQR)
@@ -26,7 +26,7 @@ For **this repository only**, when the user asks the agent to investigate or ope
 2. Reproduce / establish ground truth before claiming a root cause.
 3. Produce the Problem Record using the **exact** structure below.
 4. Post it as a comment on the GitHub issue **and** print it in chat.
-5. **Stop** after posting. Do not proceed to planning, branching, or code edits — that's the `itil-change-record` skill's job.
+5. **Stop** after posting. Do not proceed to planning, branching, or code edits — that's the `itil-change-record` skill's job. The **only** exception is the already-resolved short-circuit (Step 7): if reproduction confirms the bug is already fixed in the verified environment and the user explicitly approves, the agent may close the GitHub issue from within this skill, citing the fix commit and shipping version.
 
 ## One prompt, one issue, one Problem Record
 
@@ -77,6 +77,30 @@ If the user has already approved a Problem Record and is asking for the implemen
 4. Check recent commits on the same files (`git log --oneline -- <path>`) for likely recent regressions.
 
 If discovery cannot locate the relevant code with reasonable confidence, **STOP** and ask the user for a pointer (file, route, screen). Do not invent locations.
+
+#### Step 2b — Fix-evidence sweep (mandatory)
+
+Before assuming the bug is current, check whether someone already fixed it. This is the gating evidence for the already-resolved short-circuit (Step 7).
+
+Run all four checks; record what you find:
+
+1. **Issue-number references in git log:**
+   `git log --all --oneline --grep="#<number>"`
+   Look for `fix:`, `feat:`, or merge commits that mention the issue number.
+2. **Recent commits on the implicated files:**
+   `git log --oneline --since="180 days ago" -- <files-from-Step-2-#1>`
+   Look for fix/refactor commits whose messages match the symptom.
+3. **CHANGELOG.md:** search for the issue number, the symptom phrase, or the affected feature name.
+4. **Version comparison:** compare the **app version reported in the issue body** (e.g. *Session Diagnostics → App Version*) against `node -p "require('./package.json').version"`. If the reporter is on an older version, find the version-bump commit (`git log --all --oneline --grep="bump version to <current>"`) and confirm whether any candidate fix from #1–#3 landed *before* it.
+
+Mark the investigation as **likely-already-resolved** only when **all** of these are true:
+
+- A commit explicitly references the issue number **or** describes the same symptom on the same code path.
+- That commit landed **before** the current `package.json` version-bump commit (i.e. the fix has shipped or will ship with the next promote).
+- The reporter's app version is **older** than the version that contains the fix (or app version is unknown).
+
+If likely-already-resolved is **false**, proceed to Step 3 normally (you are reproducing a current bug).
+If likely-already-resolved is **true**, proceed to Step 3 in **verification mode** (Step 3d explains what changes).
 
 ### Step 3 — Establish ground truth (reproduce locally)
 
@@ -169,13 +193,32 @@ For each key relevant to the failing flow:
 
 #### Step 3d — Reproduce (only on a verifiably clean stack)
 
+**Choose the right environment first.** Local dev is the default. Use a different environment when the fix-evidence sweep (Step 2b) shows the fix landed in code but has not yet shipped to where the user is:
+
+| Where the fix lives | Environment to verify in |
+|---|---|
+| Merged to current branch / `main`, included in the version in `package.json` | **Local dev** (current main equals what users will get next) |
+| Merged but not yet promoted to production (e.g. on `preview` branch awaiting release) | **Preview** at the deployed preview URL |
+| Already shipped to production | **Production** at `equipqr.app` |
+
+If you verify outside local dev, document the exact URL, deployment SHA / version, and the time of the test in the Problem Record — and skip the local liveness probe (it does not apply).
+
 With Vite + Supabase API + DB green and (if relevant) external integrations verified per Step 3c:
 
-**Bugs / regressions / defects:**
+**Bugs / regressions / defects (current bug — likely-already-resolved is FALSE):**
 
 1. Execute the reproduction steps from the issue body. If the issue lacks reproduction steps, derive them from the description and call that out explicitly in the Problem Record.
 2. Capture observed vs. expected behavior. Where possible, capture supporting evidence — console errors, network responses (status + redacted body), failing test output (`npm run test -- <pattern>`), screenshots from the IDE browser MCP if the issue is UI-facing.
 3. **Cannot reproduce path:** if reproduction fails on a verifiably clean stack, do **not** invent a root cause. Document the negative result in the Problem Record under **Reproduction status: Could not reproduce**, list everything you tried (steps, env state, environments verified), and recommend the issue be returned to the reporter for more detail (build version, browser, account, org ID, screenshots, exact timestamp of failure).
+
+**Verification mode (likely-already-resolved is TRUE):**
+
+The goal flips: you are no longer trying to reproduce the bug — you are trying to confirm the fix works. The reproduction steps are the same, but the assertion is inverted.
+
+1. Execute the same reproduction steps from the issue body in the environment chosen above.
+2. **Assert the absence of the symptom.** Capture positive evidence the fix works: screenshots of the previously-broken state behaving correctly, network responses showing the right shape, the new UI element / data update appearing without the workaround the reporter had to use.
+3. If the symptom **does NOT occur** → mark **Reproduction status: Already resolved in current code** and proceed. This is the trigger for Step 7 (closure with permission).
+4. If the symptom **still occurs** despite the apparent fix → the fix is incomplete or there's a second code path. Drop verification mode, flip back to standard reproduction, and treat this as a current bug. Note in the Problem Record that the prior commit `<sha>` was insufficient, and identify the gap in **Root Cause Analysis → Why it wasn't caught**.
 
 **Features / enhancements / capability gaps** — *current-state analysis* (still requires a healthy local stack):
 
@@ -250,23 +293,31 @@ Use these **exact** top-level headers (`##`).
 
 ## Reproduction / Current State
 
-**Environment:** EquipQR local dev — verified clean per Step 3 ladder.
+**Environment:** <Local dev | Preview | Production> — <verification details>.
+
+If **Local dev** — verified clean per Step 3 ladder:
 - Vite `http://localhost:8080`: 200
 - Supabase API `http://localhost:54321/rest/v1/`: <status code>
 - Postgres `localhost:54322`: Listening
 - Last bring-up command run by user: `<dev-start.bat | dev-start.bat -Force | etc.>` — exited clean, no warnings, no errors
-- Branch `<branch>`, commit `<sha>`
+- Branch `<branch>`, commit `<sha>`, app version `<package.json version>`
+
+If **Preview** or **Production** — record:
+- URL tested: `<https://...>`
+- Deployment SHA / version: `<sha or version>`
+- Time of test: `<ISO timestamp>`
+- Authenticated as: `<user / role>`
 
 **Steps:**
 1. [Exact step]
 2. [Exact step]
 3. […]
 
-**Observed:** [what actually happened — paste error text, status codes, screenshots, or "feature does not exist; relevant area is X"]
+**Observed:** [what actually happened — paste error text, status codes, screenshots, or "feature does not exist; relevant area is X". For verification mode: paste positive evidence the fix works.]
 
 **Expected:** [what should have happened, per issue or per documented behavior]
 
-**Reproduction status:** <Reproduced | Could not reproduce | Not applicable (feature/chore)>
+**Reproduction status:** <Reproduced | Could not reproduce | Already resolved in current code | Not applicable (feature/chore)>
 
 ## Evidence
 
@@ -291,13 +342,30 @@ Use these **exact** top-level headers (`##`).
 
 ## Recommended Resolution Direction
 
-[2–4 sentence non-prescriptive direction for the Change Record — e.g. "Add a null guard in `useEquipmentScan` and a Vitest case covering the empty-payload path; no schema change required." Do **not** write the implementation plan here — that's the Change Record's job. Flag any options the planner should consider.]
+[2–4 sentence non-prescriptive direction for the Change Record — e.g. "Add a null guard in `useEquipmentScan` and a Vitest case covering the empty-payload path; no schema change required." Do **not** write the implementation plan here — that's the Change Record's job. Flag any options the planner should consider.
+
+If reproduction status is **Already resolved in current code**: state that no code change is required, name the fix commit `<sha>` and the version that contains it, and recommend closing the issue. The detailed close text goes in the Closure Recommendation section below.]
+
+## Closure Recommendation (only when status is "Already resolved in current code")
+
+- **Fix commit:** `<sha>` — `<one-line summary>` — landed `<YYYY-MM-DD>`.
+- **Shipping version:** `<x.y.z>` (`package.json` at this writing). The reporter was on `<reported version>`.
+- **CHANGELOG entry:** `<file:line>` if applicable, quoted briefly.
+- **Verification:** [1–2 sentences naming the environment, what was clicked / called, and what was observed — e.g. "Local dev v2.10.0, accepted+assigned a Submitted work order as `owner@apex.test`; detail page badge transitioned Submitted → Assigned → In Progress without a manual refresh."]
+- **Reporter action:** ask the reporter to upgrade to `<x.y.z>` (or hard-refresh the SPA to pick up the new bundle) and confirm the symptom is gone.
 
 ## Authorization to Proceed
 
-Status: **Awaiting user approval to draft the Change Record.**
+If reproduction status is **Reproduced** / **Could not reproduce** / **Not applicable**:
+- Status: **Awaiting user approval to draft the Change Record.**
+- Once approved, invoke the `itil-change-record` skill with this Problem Record as input.
 
-Once approved, invoke the `itil-change-record` skill with this Problem Record as input.
+If reproduction status is **Already resolved in current code**:
+- Status: **Awaiting user approval to close issue #<number>.**
+- Two options to present to the user:
+  - **(A)** Close the issue as already-resolved, citing the fix commit and shipping version (Step 7 of this skill performs the close).
+  - **(B)** Draft an `itil-change-record` for a follow-up housekeeping change — typically a regression test that locks in the fix, or consolidation of any duplicated code paths the investigation surfaced.
+- Do **not** close the issue without explicit user approval.
 ```
 
 ### Step 6 — Post the Problem Record
@@ -309,7 +377,86 @@ Once approved, invoke the `itil-change-record` skill with this Problem Record as
    ```
    Write the body to a temp file first to preserve markdown formatting, then delete the temp file. Do **not** use `--body "..."` for multi-line content on PowerShell.
 3. Apply a label that signals investigation is complete (e.g. `triage:investigated` or `problem-record-posted`) **only if** such a label already exists in the repo (`gh label list`). Do not create new labels.
-4. **STOP.** Tell the user the Problem Record is posted and ask whether to proceed with `itil-change-record`.
+4. **STOP.** Tell the user the Problem Record is posted, then ask the next-step question via `AskQuestion` (buttons — never freeform text — they are deterministic and trivial to act on):
+
+   - If reproduction status is **Already resolved in current code** → use the Step 7 approval prompt below.
+   - Otherwise → call `AskQuestion` with this exact shape:
+
+     ```json
+     {
+       "questions": [
+         {
+           "id": "next-step",
+           "prompt": "Problem Record is posted on issue #<number>. What's next?",
+           "options": [
+             { "id": "draft-change-record", "label": "Draft the Change Record (invoke itil-change-record)" },
+             { "id": "stop",                "label": "Stop here — I'll come back to this later" }
+           ]
+         }
+       ]
+     }
+     ```
+
+### Step 7 — Closure (already-resolved path only)
+
+This step runs **only** when **all four** are true:
+
+1. The fix-evidence sweep (Step 2b) found a prior fix.
+2. Reproduction status in the posted Problem Record is **Already resolved in current code**.
+3. The verification in Step 3d showed the symptom does **not** occur in the appropriate environment.
+4. The user explicitly approved closure by selecting the **`close`** option in the `AskQuestion` prompt below. A button selection is the only accepted form of approval — silence, "ok", "thanks", a thumbs-up emoji, or freeform "yeah close it" replies do **not** count and must be re-prompted via `AskQuestion`.
+
+If any of these are false, do **not** close the issue. Stop and wait.
+
+**Approval prompt — MUST use the `AskQuestion` tool, never freeform text.**
+
+The user prefers buttons because they are deterministic and unambiguous. Call `AskQuestion` with this exact shape (substitute the bracketed values from the Problem Record you just posted):
+
+```json
+{
+  "title": "Close issue #<number> as already-resolved?",
+  "questions": [
+    {
+      "id": "close-or-housekeeping",
+      "prompt": "Status is 'Already resolved in current code', fixed in <sha> (shipped in v<x.y.z>) and verified in <environment>. What do you want to do?",
+      "options": [
+        { "id": "close",       "label": "(A) Close the issue, citing the fix commit and shipping version" },
+        { "id": "housekeeping","label": "(B) Leave open and draft a housekeeping Change Record (e.g. regression test)" },
+        { "id": "stop",        "label": "Neither — stop here, I'll decide later" }
+      ]
+    }
+  ]
+}
+```
+
+Treat the user's response strictly: only `close` is approval to perform the close. `housekeeping` switches to drafting an `itil-change-record`. `stop` leaves the issue open and ends the turn. Any freeform text reply that is not an unambiguous "yes, close it" should be re-prompted with the same `AskQuestion` call rather than interpreted.
+
+**On approval — close the issue:**
+
+1. Write the closing comment to a temp file (PowerShell-safe). The comment **must** include the fix commit SHA, the shipping version, the verified environment, and a one-line ask to the reporter:
+
+   ```markdown
+   Closing as already-resolved.
+
+   **Fix commit:** [`<sha>`](https://github.com/Columbia-Cloudworks-LLC/EquipQR/commit/<sha>) — <one-line summary>
+   **Shipping version:** v<x.y.z> (current `package.json`)
+   **CHANGELOG:** see entry under v<x.y.z>
+   **Verified in:** <Local dev | Preview | Production> — <one-line description of what was clicked / asserted>
+
+   @<reporter-handle-if-known>: please upgrade to v<x.y.z> (or hard-refresh the app to pick up the new bundle) and re-test. If the symptom still occurs after upgrade, reopen this issue with fresh diagnostics (browser version, account, screenshot, and timestamp) and we'll open a new Problem Record.
+   ```
+
+2. Post the comment, then close the issue. Use two commands — `gh issue close` only takes `--comment` (single string) which mangles multi-line markdown on PowerShell:
+
+   ```powershell
+   gh issue comment <number> --body-file <temp-file.md>
+   gh issue close   <number> --reason completed
+   ```
+
+3. Delete the temp file.
+4. Confirm closure (`gh issue view <number> --json state,closedAt`) and report the closure URL in chat.
+
+**On rejection** (user picks **(B)** or declines to close): leave the issue open and switch to drafting the housekeeping Change Record per `itil-change-record`. Do **not** post a closure comment.
 
 ## Strict guardrails
 
@@ -322,6 +469,8 @@ Once approved, invoke the `itil-change-record` skill with this Problem Record as
 - **No scope creep.** If you discover unrelated bugs during reproduction, list them under **Related issues or recent commits** and recommend they be filed separately. Do not roll them into this Problem Record.
 - **Security first.** Never paste full secrets, tokens, service-role keys, or full JWTs into the Problem Record, the GitHub comment, or chat. Reference by name + first 4–8 chars only when comparing for parity. See [security-supabase](../../rules/security-supabase.mdc).
 - **Stop at posting.** Do not draft the Change Record in the same turn unless the user explicitly asks. The user is the change authority.
+- **Closing issues is allowed only on the already-resolved path, only with explicit AskQuestion approval.** The agent may close a GitHub issue from within this skill **iff** all four Step 7 preconditions are met: (1) Step 2b's fix-evidence sweep found a prior fix, (2) the posted Problem Record's reproduction status is **Already resolved in current code**, (3) verification in Step 3d showed the symptom does not occur in the appropriate environment (local / preview / production), and (4) the user selected the `close` button in the `AskQuestion` prompt defined in Step 7 in the same turn. Never close based on code evidence alone — verification in the appropriate environment is required. Never close on implicit consent ("ok", "thanks", silence, emoji). Never close on a freeform text "yes" — re-prompt with `AskQuestion` until a button is clicked. On rejection, leave the issue open. On any uncertainty, do not close.
+- **Approval and next-step prompts MUST use `AskQuestion` with buttons.** Anywhere this skill asks the user to choose a next step (Step 6 next-step question, Step 7 close-or-housekeeping question, future similar branch points), the agent must call the `AskQuestion` tool with the exact JSON shape specified in that step. Buttons are deterministic; freeform text answers to a freeform text question are not. If a future branch point needs a new approval, add a new `AskQuestion` call rather than asking inline.
 
 ## Authoring constraints
 
