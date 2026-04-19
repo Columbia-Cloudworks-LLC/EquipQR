@@ -24,6 +24,33 @@ name: Edge Functions Smoke Test
 #
 # Other status codes (e.g. 200 if verify_jwt were ever changed) are
 # warned but not failed — the contract here is "not 500".
+#
+# ──────────────────────────────────────────────────────────────────────
+# Operator-facing requirements (learned the hard way during PR #637):
+#
+#   1. OP_SERVICE_ACCOUNT_TOKEN must be a REPO-LEVEL secret, not an
+#      environment secret. This workflow does not declare `environment:`,
+#      so environment-scoped secrets won't resolve. One token, one place
+#      to rotate, one place to audit.
+#
+#   2. The 1Password items `app-env-prod-public` and `app-env-preview-public`
+#      in the EquipQR Agents vault must contain populated `vite_supabase_url`
+#      and `vite_supabase_anon_key` fields. The other 8 fields in those
+#      items are not read by this workflow (they're consumed by
+#      scripts/sync-vercel-from-1password.ps1 for separate purposes).
+#
+#   3. `vite_supabase_url` must be the canonical *.supabase.co URL
+#      (e.g. https://olsdirkvvfegvclbpgrg.supabase.co). Custom domains
+#      like supabase.preview.equipqr.app may have CNAMEs in place but
+#      Cloudflare drops the TLS handshake unless the hostname is also
+#      registered via Supabase Dashboard → Custom Domains. Use the
+#      canonical URL for CI to avoid this failure mode.
+#
+#   4. When OP_SERVICE_ACCOUNT_TOKEN is empty (e.g. fork PRs that can't
+#      access secrets), the load step degrades gracefully and the probe
+#      step skips with a warning + exit 0. This is intentional — a
+#      missing operator credential should not red-light every PR.
+# ──────────────────────────────────────────────────────────────────────
 
 on:
   push:
