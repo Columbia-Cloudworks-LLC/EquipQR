@@ -62,6 +62,11 @@ jobs:
 
       - name: Load Supabase URL + anon key from 1Password
         uses: ./.github/actions/load-1p-secrets
+        with:
+          # Smoke test is best-effort — when OP_SERVICE_ACCOUNT_TOKEN has not
+          # been planted yet (or this is a fork PR), emit a warning and let
+          # the downstream probe step skip rather than fail the deploy.
+          required: 'false'
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           SUPABASE_URL: op://EquipQR Agents/${{ steps.target.outputs.op_item }}/${{ steps.target.outputs.url_field }}
@@ -71,8 +76,12 @@ jobs:
         shell: bash
         run: |
           set -u
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
-            echo "::warning::SUPABASE_URL or SUPABASE_ANON_KEY missing from 1Password — skipping smoke test for ${{ steps.target.outputs.env }} environment."
+          # When load-1p-secrets skipped (no OP_SERVICE_ACCOUNT_TOKEN), the
+          # op:// values pass through as literal strings. Detect both that
+          # case and the genuinely-empty case.
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ] \
+             || [[ "${SUPABASE_URL}" == op://* ]] || [[ "${SUPABASE_ANON_KEY}" == op://* ]]; then
+            echo "::warning::SUPABASE_URL or SUPABASE_ANON_KEY not resolved from 1Password — skipping smoke test for ${{ steps.target.outputs.env }} environment. Plant OP_SERVICE_ACCOUNT_TOKEN as a GHA repo secret to enable this check."
             exit 0
           fi
 
