@@ -20,20 +20,35 @@ import {
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import { MissingSecretError, optionalSecret, requireSecret } from "../_shared/require-secret.ts";
 
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[PUBLIC-GOOGLE-MAPS-KEY] ${step}${detailsStr}`);
+const FUNCTION_NAME = "public-google-maps-key";
+
+const logStep = (
+  step: string,
+  correlationId: string,
+  details?: Record<string, unknown>,
+) => {
+  console.log(
+    JSON.stringify({
+      level: "info",
+      function: FUNCTION_NAME,
+      correlation_id: correlationId,
+      step,
+      ...details,
+    }),
+  );
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, ctx) => {
   // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    logStep("Function invoked");
+    logStep("Function invoked", ctx.correlationId);
 
     // Create user-scoped client and validate authentication
     const supabase = createUserSupabaseClient(req);
@@ -42,27 +57,34 @@ Deno.serve(async (req) => {
       return createErrorResponse(auth.error, auth.status);
     }
 
-    logStep("User authenticated", { userId: auth.user.id });
+    logStep("User authenticated", ctx.correlationId, { userId: auth.user.id });
 
-    // Prefer the new name; fall back to legacy VITE_-prefixed name for compat
-    const browserKey = Deno.env.get("GOOGLE_MAPS_BROWSER_KEY") || Deno.env.get("VITE_GOOGLE_MAPS_BROWSER_KEY");
-
-    if (!browserKey) {
-      logStep("Missing API key in environment");
-      return createErrorResponse("An internal error occurred", 500);
-    }
+    const browserKey = requireSecret("GOOGLE_MAPS_BROWSER_KEY", {
+      functionName: FUNCTION_NAME,
+      legacyAliases: ["VITE_GOOGLE_MAPS_BROWSER_KEY"],
+    });
 
     // Map ID is optional. When absent the client will fall back to a raster
     // map without Advanced Markers and emit a one-time warning. Setting the
     // GOOGLE_MAPS_MAP_ID secret unlocks vector maps and AdvancedMarkerElement.
-    const mapId = Deno.env.get("GOOGLE_MAPS_MAP_ID") || null;
+    const mapId = optionalSecret("GOOGLE_MAPS_MAP_ID");
 
-    logStep("Successfully returning API key", { hasMapId: !!mapId });
+    logStep("Successfully returning API key", ctx.correlationId, { hasMapId: !!mapId });
     return createJsonResponse({ key: browserKey, mapId });
   } catch (error) {
-    // Log the full error server-side for debugging
-    console.error("[PUBLIC-GOOGLE-MAPS-KEY] Function error:", error);
-    // Return generic message to client - never expose error.message directly
+    if (error instanceof MissingSecretError) {
+      // Structured MISSING_REQUIRED_SECRET log already emitted by the
+      // helper. createErrorResponse forces the generic client message.
+      return createErrorResponse(error, 500);
+    }
+    console.error(
+      JSON.stringify({
+        level: "error",
+        function: FUNCTION_NAME,
+        correlation_id: ctx.correlationId,
+        message: error instanceof Error ? error.message : String(error),
+      }),
+    );
     return createErrorResponse("An unexpected error occurred", 500);
   }
-});
+}));

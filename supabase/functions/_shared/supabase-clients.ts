@@ -8,9 +8,24 @@
  */
 
 import { createClient, SupabaseClient, User } from "npm:@supabase/supabase-js@2.45.0";
-import { corsHeaders } from "./cors.ts";
+import { corsHeaders, getCorsHeaders } from "./cors.ts";
 import { SAFE_ERROR_PATTERNS } from "./error-message-allowlist.ts";
 import { MissingSecretError } from "./require-secret.ts";
+
+/**
+ * Options for `createErrorResponse` / `createJsonResponse`. When `req` is
+ * provided the response uses origin-validated CORS headers via
+ * `getCorsHeaders(req)`; otherwise it falls back to the static `corsHeaders`
+ * (wildcard origin) for backward compatibility.
+ */
+export interface ResponseOptions {
+  req?: Request;
+}
+
+function resolveCorsHeaders(opts?: ResponseOptions): Record<string, string> {
+  if (opts?.req) return getCorsHeaders(opts.req);
+  return corsHeaders;
+}
 
 // =============================================================================
 // Constants
@@ -362,7 +377,8 @@ function isErrorMessageSafe(error: string): boolean {
  */
 export function createErrorResponse(
   error: string | Error,
-  status: number = 500
+  status: number = 500,
+  opts?: ResponseOptions,
 ): Response {
   // Use allowlist approach: only known-safe messages are exposed
   // This ensures defense-in-depth against stack trace exposure
@@ -393,34 +409,47 @@ export function createErrorResponse(
     responseBody,
     {
       status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...resolveCorsHeaders(opts), "Content-Type": "application/json" },
     }
   );
 }
 
 /**
  * Create a JSON success response with CORS headers.
+ *
+ * When `opts.req` is supplied the response uses origin-validated CORS
+ * headers; otherwise it falls back to the static wildcard headers for
+ * backward compatibility with existing callers.
  */
 export function createJsonResponse<T>(
   data: T,
-  status: number = 200
+  status: number = 200,
+  opts?: ResponseOptions,
 ): Response {
   return new Response(
     JSON.stringify(data),
     {
       status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...resolveCorsHeaders(opts), "Content-Type": "application/json" },
     }
   );
 }
 
 /**
  * Handle CORS preflight requests.
- * Returns true if this was a preflight request (and response was sent).
+ * Returns a preflight response when applicable, otherwise null.
+ *
+ * When `opts.useValidatedOrigin` is true, the preflight response uses
+ * `getCorsHeaders(req)` so the `Access-Control-Allow-Origin` header
+ * reflects the validated request origin instead of `*`.
  */
-export function handleCorsPreflightIfNeeded(req: Request): Response | null {
+export function handleCorsPreflightIfNeeded(
+  req: Request,
+  opts?: { useValidatedOrigin?: boolean },
+): Response | null {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    const headers = opts?.useValidatedOrigin ? getCorsHeaders(req) : corsHeaders;
+    return new Response(null, { headers });
   }
   return null;
 }
