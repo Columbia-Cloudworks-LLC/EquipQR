@@ -6,10 +6,18 @@ name: Edge Functions Smoke Test
 # The test calls public-google-maps-key with the project's anon key only.
 # verify_jwt is enabled on the function, so the expected response is HTTP
 # 401 ("No authorization header provided" — the bearer is the anon key
-# which is not a user JWT). A 401 PROVES the function:
+# which is not a user JWT). A 401 RESPONSE PROVES the function:
 #   - is reachable
 #   - passed CORS preflight
-#   - loaded its required secrets (otherwise it would 500 BEFORE auth)
+#   - loaded its required GOOGLE_MAPS_BROWSER_KEY secret
+#
+# This last claim is only true because public-google-maps-key/index.ts
+# loads the required secret BEFORE running requireUser (see the function's
+# "Ordering contract" header comment). If the secret were loaded after
+# auth, an anon-key call would always 401 regardless of secret state and
+# this test would be a no-op. The function and this workflow are coupled
+# and must not drift — a Deno test in the function package locks in the
+# secret-before-auth ordering.
 #
 # A 500 means GOOGLE_MAPS_BROWSER_KEY (the secret that took down Fleet
 # Map on Preview in #617) is missing. The job fails the deploy.
