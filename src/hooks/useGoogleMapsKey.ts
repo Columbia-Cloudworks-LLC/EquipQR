@@ -79,7 +79,7 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
       
       // Show detailed error to help with debugging
       toast.error('Map Configuration Error', {
-        description: `${errorMessage}. Check that the VITE_GOOGLE_MAPS_BROWSER_KEY secret is configured in Supabase.`,
+        description: `${errorMessage}. Check that the GOOGLE_MAPS_BROWSER_KEY secret is configured on the Supabase project (legacy: VITE_GOOGLE_MAPS_BROWSER_KEY).`,
       });
     } finally {
       setIsLoading(false);
