@@ -11,7 +11,7 @@ This repository treats ITIL roles as follows:
 
 | ITIL artifact | EquipQR equivalent |
 |---|---|
-| Incident Record | A GitHub Issue |
+| Incident Record | Output of [`itil-incident-record`](../itil-incident-record/SKILL.md) — production-verified reproduction with screenshot evidence + cross-system logs, posted on a GitHub issue |
 | Problem Record | Output of [`itil-problem-record`](../itil-problem-record/SKILL.md) — root cause + reproduction posted on the issue |
 | Change Record | The output of **this** skill — implementation plan in Plan mode awaiting user approval |
 | Change Implementation | What runs after the user approves the Change Record ("clicks build") |
@@ -31,12 +31,13 @@ If the user asks for code without a plan, switch to Plan mode, produce the Chang
 
 ## Inputs
 
-The Change Record may be seeded by either:
+The Change Record may be seeded by any of:
 
-- **A Problem Record** (preferred): the output of `itil-problem-record`, posted on the relevant GitHub issue. Reference it in the **Short Description** (`Implements fix for Problem Record on #<issue>`) and reuse its **Root Cause** and **Recommended Resolution Direction** to drive **Implementation Steps**.
-- **An ad-hoc request**: a feature or modification with no GitHub Incident. In this case, fill **Business Justification** carefully — there is no Problem Record to lean on. Note in **Short Description** that there is no associated issue.
+- **A Problem Record** (preferred for bugs): the output of `itil-problem-record`, posted on the relevant GitHub issue. Reference it in the **Short Description** (`Implements fix for Problem Record on #<issue>`) and reuse its **Root Cause** and **Recommended Resolution Direction** to drive **Implementation Steps**.
+- **A Service Request** (preferred for features / enhancements / vendor integrations): the output of [`itil-service-request`](../itil-service-request/SKILL.md), posted on the relevant GitHub issue. Reference it in the **Short Description** (`Implements Service Request on #<issue>`) and reuse its **Scope**, **External Dependencies**, and **Potential Costs** to drive **Implementation Steps**, **External Dependencies**, and **Risk & Impact Analysis**.
+- **An ad-hoc request**: a feature or modification with no GitHub Incident. In this case, fill **Business Justification** carefully — there is no Problem Record or Service Request to lean on. Note in **Short Description** that there is no associated issue.
 
-If a GitHub issue is referenced but **no** Problem Record exists yet, **STOP** and recommend the user run `itil-problem-record` first. Do not skip the Problem Record step for issues with bug / regression labels.
+If a GitHub issue is referenced but **no** prior ITIL artifact exists yet, **STOP** and recommend the appropriate upstream skill: `itil-problem-record` for bugs / regressions / defects, `itil-service-request` for features / enhancements / vendor-cost asks. Do not skip the upstream step.
 
 ## When to read this skill
 
@@ -129,6 +130,7 @@ Once the user authorizes the Change Record:
 
 ## Progressive disclosure
 
-- For the prior ITIL step (reproducing and documenting the underlying problem), follow [itil-problem-record](../itil-problem-record/SKILL.md).
+- For the prior ITIL step on bug / regression issues (reproducing and documenting the underlying problem), follow [itil-problem-record](../itil-problem-record/SKILL.md). The Problem Record is most rigorous when it builds on a prior [itil-incident-record](../itil-incident-record/SKILL.md) (production-verified reproduction + cross-system evidence on the GitHub issue).
+- For the prior ITIL step on feature / enhancement / vendor-cost issues (feasibility, dollar-cost, and market-viability evaluation), follow [itil-service-request](../itil-service-request/SKILL.md).
 - For EquipQR-specific runbooks (local stack, env files, MCP integrations), follow [toolbelt](../toolbelt/SKILL.md).
 - For PR readiness once the branch is pushed, follow [raise](../raise/SKILL.md).
