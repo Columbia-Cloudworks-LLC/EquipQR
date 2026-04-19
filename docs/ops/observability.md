@@ -59,14 +59,7 @@ The same queries are reachable through the Cloud Console **Logs Explorer** by sw
 
 ### Required IAM grants for org-tier reads
 
-The agent's `equipqr-cursor-agent-viewer@equipqr-prod` service account currently holds project-level Logging roles on `equipqr-prod`, but **not** org-level roles on `476784721717`. To enable agent-driven verification of Workspace audit logs in future Change Records, grant the viewer SA at least one of the following on the **organization** resource:
-
-| Role | Covers |
-|---|---|
-| `roles/logging.viewer` | Admin Activity logs (`cloudaudit.googleapis.com%2Factivity`) — sufficient for Workspace OAuth Token Audit `GetToken` / `Request` / `Authorize` / `Deny` / `RevokeToken` |
-| `roles/logging.privateLogViewer` | Includes Data Access logs (`cloudaudit.googleapis.com%2Fdata_access`) — required for Workspace Login Audit, OAuth Token `GetTokenInfo`, and Workspace SAML Audit |
-
-Until either is granted, the agent will report `PERMISSION_DENIED` against the org resource and rely on the Workspace super-admin to run verification queries via the Cloud Console.
+As of 2026-04, the agent's `equipqr-cursor-agent-viewer@equipqr-prod` service account holds `roles/logging.privateLogViewer` (covers both `activity` and `data_access` log names) plus `roles/logging.viewAccessor` on org `476784721717`, so the queries above run successfully under the agent's default identity. See [`docs/ops/cloud-admin-access.md`](cloud-admin-access.md) for the full org-tier role posture and the impersonation chain that lets the agent elevate to the editor SA on demand.
 
 ## Project-setup baseline note
 
