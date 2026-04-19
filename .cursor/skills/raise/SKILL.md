@@ -81,7 +81,7 @@ Audit each point against the branch diff and repository sources of truth.
 1. **CHANGELOG point**: confirm `CHANGELOG.md` is updated for the release scope/version.
 2. **Version point**: confirm `package.json` and `package-lock.json` version is correct for the release intent.
 3. **README point**: confirm `README.md` still matches behavior/setup introduced by this branch.
-4. **Rough edges point**: check for unresolved rough edges in PR scope (dead/stale code, TODO/FIXME/HACK markers, naming/control-flow polish opportunities, stale docs). Apply `common-gavel` and `chisel` standards as the rubric; do not mutate code unless requested.
+4. **Rough edges point**: check for unresolved rough edges in PR scope (dead/stale code, TODO/FIXME/HACK markers, naming/control-flow polish opportunities, stale docs). Apply `common-gavel` and the `master-mason` chisel lens as the rubric; do not mutate code unless requested.
 5. **Trestle point**: confirm branch changes align with `PROJECT_ROADMAP.md` and active design intent (trestle-board alignment).
 
 Mark each point as:
