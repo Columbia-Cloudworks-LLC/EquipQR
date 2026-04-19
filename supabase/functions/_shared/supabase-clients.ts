@@ -10,7 +10,14 @@
 import { createClient, SupabaseClient, User } from "npm:@supabase/supabase-js@2.45.0";
 import { corsHeaders, getCorsHeaders } from "./cors.ts";
 import { SAFE_ERROR_PATTERNS } from "./error-message-allowlist.ts";
-import { MissingSecretError } from "./require-secret.ts";
+import { MissingSecretError, requireSecret } from "./require-secret.ts";
+
+/**
+ * Tag used in MISSING_REQUIRED_SECRET log lines emitted by helpers in
+ * this module so an operator grepping the logs can locate the call site
+ * without ambiguity.
+ */
+const SUPABASE_CLIENTS_FUNCTION_TAG = "_shared/supabase-clients";
 
 /**
  * Options for `createErrorResponse` / `createJsonResponse`. When `req` is
@@ -97,12 +104,13 @@ export interface AuthError {
  * // Only returns equipment the user has access to via RLS
  */
 export function createUserSupabaseClient(req: Request): SupabaseClient {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Missing SUPABASE_URL or SUPABASE_ANON_KEY");
-  }
+  // Route through requireSecret so a missing SUPABASE_URL or
+  // SUPABASE_ANON_KEY produces the standardized
+  // MISSING_REQUIRED_SECRET structured log line. The thrown
+  // MissingSecretError propagates to the caller, which (when wrapped
+  // in withCorrelationId) returns the generic 500 with correlation_id.
+  const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: SUPABASE_CLIENTS_FUNCTION_TAG });
+  const supabaseAnonKey = requireSecret("SUPABASE_ANON_KEY", { functionName: SUPABASE_CLIENTS_FUNCTION_TAG });
 
   const authHeader = req.headers.get("Authorization") ?? "";
 
@@ -132,12 +140,13 @@ export function createUserSupabaseClient(req: Request): SupabaseClient {
  * @returns SupabaseClient with service role privileges
  */
 export function createAdminSupabaseClient(): SupabaseClient {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  }
+  // Route through requireSecret so a missing SUPABASE_URL or
+  // SUPABASE_SERVICE_ROLE_KEY produces the standardized
+  // MISSING_REQUIRED_SECRET structured log line. Critical for ops
+  // visibility: the service role key powering admin/webhook/cron paths
+  // missing was previously a silent generic Error.
+  const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: SUPABASE_CLIENTS_FUNCTION_TAG });
+  const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: SUPABASE_CLIENTS_FUNCTION_TAG });
 
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
@@ -340,43 +349,41 @@ function isErrorMessageSafe(error: string): boolean {
 
 /**
  * Create a JSON error response with CORS headers.
- * 
- * Security (CWE-209 mitigation): This function uses an allowlist approach to
- * prevent information disclosure. Only error messages matching known-safe
- * patterns are exposed to clients. All other messages are replaced with a
- * generic error and the original is logged server-side for debugging.
- * 
- * **IMPORTANT - MAINTENANCE REQUIREMENT**: When adding new user-facing error
- * messages to Edge Functions, you MUST update the SAFE_ERROR_PATTERNS allowlist
- * in `error-message-allowlist.ts`. Failure to do so will cause your error message
- * to be replaced with a generic "An internal error occurred" message, hiding the
- * actual error from users.
- * 
- * **Steps to add a new error message**:
- * 1. Add a matching RegExp pattern to SAFE_ERROR_PATTERNS in error-message-allowlist.ts
- * 2. Ensure the pattern is specific enough to not accidentally match debug info
- * 3. Prefer explicit full-message patterns over broad prefixes when possible
- * 4. Test by calling createErrorResponse with your new message and verifying
- *    it's not replaced with the generic error
- * 5. Use `isErrorAllowlisted()` from error-message-allowlist.ts in tests to validate
- *    that commonly returned errors are covered
- * 6. Check the console for "[createErrorResponse] Unsafe error message blocked:"
- *    warnings during development
- * 
- * CALLER RESPONSIBILITY: While this function sanitizes unknown error messages,
- * callers should prefer passing known-safe string literals when possible.
- * For dynamic errors from external sources (database, third-party APIs), this
- * function provides defense-in-depth by blocking unrecognized messages.
- * 
- * TypeScript cannot enforce that only allowlisted strings are passed at compile
- * time without significant complexity (template literal types for each pattern).
- * Instead, this runtime validation ensures safety while keeping the API simple.
- * 
- * @param error - The error message (will be validated against allowlist)
+ *
+ * Security (CWE-209 mitigation): only known-safe message strings (matching
+ * SAFE_ERROR_PATTERNS in `error-message-allowlist.ts`) are exposed to
+ * clients. All other strings are replaced with a generic error and the
+ * original is logged server-side for debugging.
+ *
+ * **Type contract — narrowed deliberately for static-analyzer cleanliness:**
+ * The `error` parameter accepts only `string | MissingSecretError`. Generic
+ * `Error` objects are not accepted because:
+ *   1. `Error.message` is a value developers control and may include stack
+ *      trace data, internal identifiers, or query fragments. Static
+ *      analyzers (CodeQL `js/stack-trace-exposure`) flag any `Error.message`
+ *      → response-body data flow even when an allowlist filter sits in
+ *      between, because the allowlist returns a boolean, not a derived
+ *      sanitized string.
+ *   2. `MissingSecretError` is special: its constructor has already emitted
+ *      the structured `MISSING_REQUIRED_SECRET` log line and the secret
+ *      name must never reach the client, so this function forces the
+ *      generic message for it. No `error.message` extraction happens.
+ *   3. For any other Error you want to surface, the caller extracts the
+ *      message themselves — making the data flow explicit at the call
+ *      site where the developer can decide whether the message is safe.
+ *
+ * **MAINTENANCE — adding new user-facing error messages**: update
+ * SAFE_ERROR_PATTERNS in `error-message-allowlist.ts` AND verify with
+ * `isErrorAllowlisted()` in tests. Otherwise the message will be replaced
+ * with the generic constant.
+ *
+ * @param error - A string literal (validated against allowlist) or a
+ *                MissingSecretError (forces generic message).
  * @param status - HTTP status code (default: 500)
+ * @param opts - Optional CORS settings (uses validated origin when req is supplied)
  */
 export function createErrorResponse(
-  error: string | Error,
+  error: string | MissingSecretError,
   status: number = 500,
   opts?: ResponseOptions,
 ): Response {
@@ -389,25 +396,19 @@ export function createErrorResponse(
     // MISSING_REQUIRED_SECRET log line server-side. The client must never
     // see the secret name, so force the generic message.
     safeMessage = GENERIC_ERROR_MESSAGE;
+  } else if (isErrorMessageSafe(error)) {
+    // `error` is now narrowed to `string`. Defense-in-depth: bound the
+    // exposed message to MAX_ERROR_MESSAGE_LENGTH even though the
+    // allowlist already rejects messages over that length. Some allowlist
+    // patterns are prefix matches (e.g. /^Failed to (verify|...)/) and
+    // could in theory let through a longer string with debug-tail content;
+    // .slice produces a bounded substring derived from a fixed cap.
+    safeMessage = error.slice(0, MAX_ERROR_MESSAGE_LENGTH);
   } else {
-    const messageString = typeof error === "string" ? error : error.message;
-    if (isErrorMessageSafe(messageString)) {
-      // Defense-in-depth: bound the exposed message to MAX_ERROR_MESSAGE_LENGTH
-      // even though the allowlist already rejects messages over that length.
-      // Some allowlist patterns are prefix matches (e.g. /^Failed to (verify|...)/)
-      // and could in theory let through a longer string with debug-tail content;
-      // .slice produces a bounded substring derived from a fixed cap, breaking
-      // any Error.message → response taint chain that the allowlist alone
-      // doesn't structurally express to static analyzers (CodeQL
-      // js/stack-trace-exposure). The slice is a no-op for already-allowlisted
-      // messages, which are <= MAX_ERROR_MESSAGE_LENGTH by construction.
-      safeMessage = messageString.slice(0, MAX_ERROR_MESSAGE_LENGTH);
-    } else {
-      // Log the original error server-side for debugging
-      console.error("[createErrorResponse] Unsafe error message blocked:", messageString);
-      // Return a static generic message - no dynamic content from the error
-      safeMessage = GENERIC_ERROR_MESSAGE;
-    }
+    // Log the original (unsafe) string server-side for debugging.
+    console.error("[createErrorResponse] Unsafe error message blocked:", error);
+    // Return a static generic message - no dynamic content from the error
+    safeMessage = GENERIC_ERROR_MESSAGE;
   }
 
   // Create response with only the safe static message
@@ -485,6 +486,36 @@ const CORRELATION_HEADER = "X-Correlation-Id";
 const REQUEST_ID_HEADER = "X-Request-Id";
 
 /**
+ * Maximum accepted length for an inbound correlation id. Anything longer
+ * is treated as untrusted/oversized input and replaced with a fresh UUID
+ * to prevent header-limit failures, log bloat, and response-body bloat
+ * (correlation_id is reflected into JSON error bodies).
+ */
+const CORRELATION_ID_MAX_LENGTH = 128;
+
+/**
+ * Allowed character set for inbound correlation ids: alphanumerics plus
+ * a small set of separators commonly used by tracing systems (UUIDs,
+ * trace ids like `00-...-...-01`, request ids with colons/underscores).
+ * Anything outside this set is rejected and replaced with a fresh UUID.
+ */
+const CORRELATION_ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
+
+/**
+ * Returns the value if it is a non-empty, length- and character-bounded
+ * inbound correlation id; otherwise returns null. Correlation ids are
+ * not secrets but are reflected back to clients (header + JSON error
+ * bodies) and persisted in logs, so we apply defense-in-depth to limit
+ * the impact of malformed or hostile upstream values.
+ */
+function sanitizeInboundCorrelationId(value: string | null): string | null {
+  if (value === null) return null;
+  if (value.length === 0 || value.length > CORRELATION_ID_MAX_LENGTH) return null;
+  if (!CORRELATION_ID_PATTERN.test(value)) return null;
+  return value;
+}
+
+/**
  * Wraps a `Deno.serve` handler so every request gets a correlation id,
  * every response carries an `X-Correlation-Id` header, and every JSON
  * error body is augmented with a `correlation_id` field for in-app
@@ -512,9 +543,12 @@ export function withCorrelationId(
   handler: (req: Request, ctx: RequestContext) => Promise<Response>,
 ): (req: Request) => Promise<Response> {
   return async (req: Request): Promise<Response> => {
+    // Inbound headers are untrusted: only honor a value that's bounded in
+    // length and uses a safe character set. Otherwise mint a fresh UUID.
+    // Precedence: X-Correlation-Id > X-Request-Id > new UUID.
     const correlationId =
-      req.headers.get(CORRELATION_HEADER) ??
-      req.headers.get(REQUEST_ID_HEADER) ??
+      sanitizeInboundCorrelationId(req.headers.get(CORRELATION_HEADER)) ??
+      sanitizeInboundCorrelationId(req.headers.get(REQUEST_ID_HEADER)) ??
       crypto.randomUUID();
 
     const ctx: RequestContext = { correlationId };
@@ -523,18 +557,27 @@ export function withCorrelationId(
     try {
       response = await handler(req, ctx);
     } catch (err) {
-      // The handler threw without producing a Response. Convert to a
-      // generic error response so the correlation id still reaches the
-      // client. createErrorResponse handles MissingSecretError specially.
+      // The handler threw without producing a Response. Log the diagnostic
+      // info server-side (including the correlation id) and return the
+      // generic error message to the client. We do NOT pass the caught
+      // error object to createErrorResponse — uncaught handler errors are
+      // exactly the case where we don't want to leak any details, and
+      // limiting createErrorResponse to (string | MissingSecretError)
+      // makes that contract explicit and static-analyzer-clean.
+      // MissingSecretError-specific logging has already been emitted by
+      // the helper's constructor; the UNCAUGHT_HANDLER_ERROR line below
+      // adds the correlation id for cross-log pivoting.
       console.error(
         JSON.stringify({
           level: "error",
           code: "UNCAUGHT_HANDLER_ERROR",
           correlation_id: correlationId,
-          message: err instanceof Error ? err.name : "unknown",
+          errorName: err instanceof Error ? err.name : "unknown",
+          // err.message is intentionally NOT serialised here — the caught
+          // error is unstructured and may contain stack/SQL/PII fragments.
         }),
       );
-      response = createErrorResponse(err instanceof Error ? err : String(err), 500);
+      response = createErrorResponse(GENERIC_ERROR_MESSAGE, 500);
     }
 
     return decorateResponseWithCorrelationId(response, correlationId);
@@ -543,9 +586,16 @@ export function withCorrelationId(
 
 /**
  * Adds the correlation header to a response and, for JSON error
- * responses, injects a `correlation_id` field into the body. Returns
- * a new Response — does not mutate the original (Response headers
- * are immutable once a Response is constructed in some runtimes).
+ * responses only, injects a `correlation_id` field into the body.
+ * Returns a new Response — does not mutate the original (Response
+ * headers are immutable once a Response is constructed in some
+ * runtimes).
+ *
+ * Performance note: we only buffer the body when we actually need to
+ * mutate it (JSON error case). For all other responses (success bodies,
+ * non-JSON like CSV exports, redirects, empty responses) we re-emit
+ * with the original `response.body` ReadableStream so large payloads
+ * are not double-buffered just to add a header.
  */
 async function decorateResponseWithCorrelationId(
   response: Response,
@@ -557,20 +607,21 @@ async function decorateResponseWithCorrelationId(
   const isJson = (headers.get("Content-Type") ?? "").includes("application/json");
   const isError = response.status >= 400;
 
-  if (!isJson || !isError) {
-    // Re-emit the response with the new header. We must clone the body
-    // because Response bodies are single-use streams.
-    const body = await response.arrayBuffer();
-    return new Response(body, {
+  if (!(isJson && isError)) {
+    // No body mutation needed — pass the original ReadableStream through
+    // so we don't buffer (e.g. CSV exports go through this path).
+    // `response.body` is null for empty responses (e.g. 204, OPTIONS
+    // preflight); `new Response(null, ...)` handles that correctly.
+    return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
       headers,
     });
   }
 
-  // Error JSON body — try to inject correlation_id without breaking
-  // ill-formed payloads. If parsing fails (non-object body), pass the
-  // body through unchanged.
+  // JSON error body — buffer just this small payload to inject
+  // correlation_id without breaking ill-formed bodies. If parsing fails
+  // (non-object body), pass through unchanged.
   const text = await response.text();
   let injected = text;
   try {

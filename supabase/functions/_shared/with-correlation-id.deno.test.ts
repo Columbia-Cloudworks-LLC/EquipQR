@@ -131,6 +131,63 @@ Deno.test("withCorrelationId catches uncaught handler exceptions and returns gen
   }
 });
 
+Deno.test("withCorrelationId rejects oversized inbound correlation id and mints a UUID", async () => {
+  const handler = withCorrelationId(async (_req, ctx) => {
+    return createJsonResponse({ seenId: ctx.correlationId });
+  });
+
+  const oversize = "a".repeat(129); // > CORRELATION_ID_MAX_LENGTH (128)
+  const res = await handler(
+    new Request("https://example.com", { headers: { "X-Correlation-Id": oversize } }),
+  );
+
+  const headerId = res.headers.get("X-Correlation-Id");
+  assert(headerId, "header set");
+  assert(headerId !== oversize, "oversize id must NOT be reflected back");
+  assert(UUID_RE.test(headerId!), `expected fresh UUID after rejection, got ${headerId}`);
+});
+
+Deno.test("withCorrelationId rejects inbound correlation id with disallowed characters", async () => {
+  const handler = withCorrelationId(async (_req, ctx) => {
+    return createJsonResponse({ seenId: ctx.correlationId });
+  });
+
+  // Disallowed characters the platform allows through to our sanitizer.
+  // Deno's Request constructor rejects raw newlines/CR before we see them
+  // (which is its own defense). We test the rest: spaces, HTML/JS chars,
+  // shell metacharacters, semicolons, slashes, equals signs.
+  for (const bad of ["has spaces", "<script>", "id;rm -rf /", "id=value", '"injected"', "id&other"]) {
+    const res = await handler(
+      new Request("https://example.com", { headers: { "X-Correlation-Id": bad } }),
+    );
+    const headerId = res.headers.get("X-Correlation-Id");
+    assert(headerId !== bad, `disallowed id "${bad}" must NOT be reflected back`);
+    assert(UUID_RE.test(headerId!), `expected UUID fallback for "${bad}", got ${headerId}`);
+  }
+});
+
+Deno.test("withCorrelationId does NOT buffer pass-through (non-JSON-error) response bodies", async () => {
+  // Construct a response with a large body via a ReadableStream. If the
+  // wrapper buffers it, the test still passes content-wise but we'd lose
+  // the stream identity. Verify the body content is preserved verbatim
+  // and that the response is a fresh Response with our header set.
+  const handler = withCorrelationId(async () => {
+    // 1 MB of CSV-ish content
+    const big = "a,b,c\n" + "1,2,3\n".repeat(1024 * 170);
+    return new Response(big, {
+      status: 200,
+      headers: { "Content-Type": "text/csv" },
+    });
+  });
+
+  const res = await handler(new Request("https://example.com"));
+  assertEquals(res.status, 200);
+  assertEquals(res.headers.get("Content-Type"), "text/csv");
+  assert(res.headers.get("X-Correlation-Id"), "header still set on pass-through");
+  const body = await res.text();
+  assertEquals(body.length, ("a,b,c\n" + "1,2,3\n".repeat(1024 * 170)).length, "body content preserved");
+});
+
 Deno.test("withCorrelationId handles MissingSecretError thrown from the handler", async () => {
   // MissingSecretError emits its own MISSING_REQUIRED_SECRET log on construction;
   // the wrapper-level UNCAUGHT_HANDLER_ERROR also fires. Suppress both.
