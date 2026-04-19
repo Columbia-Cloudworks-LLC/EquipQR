@@ -126,6 +126,8 @@ The project includes a complete `vercel.json` configuration file with:
 - **Performance Headers**: Long-term caching for static assets
 - **Branch Deployment**: Automatic deployment for main and preview branches
 
+> **Adding a new domain alias?** When you bring a new Vercel alias / custom domain online (e.g. `preview.equipqr.app`, a new branch URL, or a tenant subdomain), the upstream Google Maps API key's HTTP-referrer allowlist must also be widened or the Fleet Map will fail at runtime with `RefererNotAllowedMapError`. See [Google Maps API key — HTTP referrer allowlist](./supabase-branch-secrets.md#google-maps-api-key--http-referrer-allowlist).
+
 #### Environment Variables Setup
 Configure these environment variables in your Vercel project dashboard:
 

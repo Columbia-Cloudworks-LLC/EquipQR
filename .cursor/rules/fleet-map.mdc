@@ -57,3 +57,4 @@ the dual-loader race.
 - Original incident: [#617](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/617)
 - Fix commit: `27d81255` — `fix(fleet-map): drop legacy script-loader to let APIProvider own Maps init`
 - Migration that introduced the dual-loader hazard: PR #616 (`@react-google-maps/api` → `@vis.gl/react-google-maps`)
+- Operator runbook for the upstream Google Cloud API key's HTTP-referrer allowlist (separate from the Supabase secret value): [docs/ops/supabase-branch-secrets.md → Google Maps API key — HTTP referrer allowlist](../../docs/ops/supabase-branch-secrets.md#google-maps-api-key--http-referrer-allowlist). The Fleet Map's `MapsAuthFailureCard` (in `src/features/fleet-map/components/MapView.tsx`) renders an in-app diagnostic when Google fires `gm_authFailure` — the page URL it shows is the exact entry the operator must add to the API key's allowlist.
