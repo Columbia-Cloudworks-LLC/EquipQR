@@ -1,0 +1,97 @@
+# EquipQR — Qodo Merge custom compliance checklist
+#
+# Reference: https://docs.qodo.ai/code-review/qodo-merge/features/custom-compliance
+# Schema: title (required) | compliance_label (required) | objective (required)
+#         | success_criteria + failure_criteria (at least one required; both recommended)
+#
+# Sections:
+#   1. TypeScript baseline      — seeded from qodo-ai/pr-compliance-templates,
+#                                 codebase_standards/groups/typescript
+#   2. Front-end baseline       — seeded from qodo-ai/pr-compliance-templates,
+#                                 codebase_standards/groups/front-end
+#   3. EquipQR domain           — multi-tenancy, RBAC, RLS, service-layer,
+#                                 Edge Function auth-at-entrypoint, no service_role
+#                                 outside approved Edge Functions
+#
+# Findings tagged true on `compliance_label` add a `Failed compliance check`
+# label to the PR. CI does not block on this label today; flip when desired.
+
+pr_compliances:
+
+  # ---------------------------------------------------------------------------
+  # 1. TypeScript baseline (seed: qodo-ai/pr-compliance-templates/typescript)
+  # ---------------------------------------------------------------------------
+
+  - title: "Proper Type Definitions and Avoiding 'any'"
+    compliance_label: true
+    objective: "Ensure strong typing throughout the codebase and minimize use of 'any' type"
+    success_criteria: "All function parameters and return types are explicitly defined; interfaces and types are used instead of 'any'; generic types are properly constrained; union types are used appropriately"
+    failure_criteria: "Excessive use of 'any' type, missing type annotations on functions, poorly defined interfaces, or unconstrained generics that defeat TypeScript's benefits"
+
+  - title: "Null Safety and Optional Chaining"
+    compliance_label: false
+    objective: "Ensure proper handling of null/undefined values and use modern null safety features"
+    success_criteria: "Optional chaining (?.) and nullish coalescing (??) are used appropriately; strict null checks are respected; proper type guards for null/undefined checks"
+    failure_criteria: "Unsafe property access without null checks, inappropriate use of non-null assertion (!), or missing null/undefined handling in critical paths"
+
+  - title: "Interface Design and Code Reusability"
+    compliance_label: true
+    objective: "Ensure interfaces are well-designed, cohesive, and promote code reusability"
+    success_criteria: "Interfaces have clear single responsibilities; proper use of extends and composition; generic interfaces where appropriate; discriminated unions for complex types"
+    failure_criteria: "Overly broad interfaces with unrelated properties, missing generic constraints, poor separation of concerns, or interfaces that violate the Interface Segregation Principle"
+
+  # ---------------------------------------------------------------------------
+  # 2. Front-end baseline (seed: qodo-ai/pr-compliance-templates/front-end)
+  # ---------------------------------------------------------------------------
+
+  - title: "Accessibility and Inclusive Design"
+    compliance_label: false
+    objective: "Ensure web applications are accessible to users with disabilities and follow WCAG guidelines"
+    success_criteria: "Semantic HTML elements used appropriately; proper ARIA labels and roles; keyboard navigation support; sufficient color contrast ratios; alt text for images; screen reader compatibility"
+    failure_criteria: "Generic div/span elements instead of semantic HTML, missing ARIA labels, keyboard-inaccessible elements, poor color contrast, missing alt text, or components that break screen reader functionality"
+
+  - title: "Performance Optimization and User Experience"
+    compliance_label: true
+    objective: "Ensure optimal loading performance and smooth user experience across devices"
+    success_criteria: "Images properly optimized and lazy-loaded; critical CSS inlined; JavaScript code-split appropriately; minimal render-blocking resources; responsive design for mobile devices; smooth animations and transitions"
+    failure_criteria: "Unoptimized large images, blocking CSS/JS resources, missing code splitting, poor mobile responsiveness, janky animations, or unnecessary re-renders causing performance issues"
+
+  - title: "Security and Data Protection (Front-End)"
+    compliance_label: false
+    objective: "Ensure client-side security standards and proper handling of sensitive data"
+    success_criteria: "Content Security Policy (CSP) headers configured; XSS prevention measures in place; sensitive data not stored in localStorage/sessionStorage; proper input sanitization; secure cookie handling"
+    failure_criteria: "Missing CSP headers, XSS vulnerabilities through innerHTML usage, sensitive data exposed in client storage, unsanitized user input, or insecure cookie configurations"
+
+  # ---------------------------------------------------------------------------
+  # 3. EquipQR domain compliances (multi-tenant fleet management on Supabase)
+  # ---------------------------------------------------------------------------
+
+  - title: "Multi-tenant organization scoping"
+    compliance_label: true
+    objective: "Every Supabase query that touches a tenant table must be filtered by organization_id (or the equivalent tenant column) sourced from the current user's organization context, with mutations also including organization_id in their payload. RLS is the last line of defense, not the first."
+    success_criteria: "Reads use .eq('organization_id', orgId) (or equivalent tenant column); orgId comes from useOrganization() / a service parameter, never a hardcoded UUID, URL param, or untrusted input; inserts and updates include organization_id; service functions in src/services/ and src/features/*/services/ accept organizationId as a required parameter"
+    failure_criteria: "Supabase queries on tenant tables without an explicit organization_id filter; client code that 'trusts RLS' and omits the filter; hardcoded org UUIDs; mutations missing organization_id in the insert/update payload; service functions that fetch tenant data without an organizationId argument"
+
+  - title: "Service layer boundary (no Supabase in components)"
+    compliance_label: true
+    objective: "Components in src/components/ and src/pages/ must not import the Supabase client directly. Data access must flow component -> hook (TanStack Query) -> service -> supabase, so multi-tenant scoping, query keys, and error handling stay enforceable in one place."
+    success_criteria: "Files under src/components/ and src/pages/ contain no import of @/integrations/supabase/client; data is consumed via hooks under src/hooks/ or src/features/*/hooks/ that wrap service functions in src/services/ or src/features/*/services/; query keys include orgId and other dependencies"
+    failure_criteria: "import { supabase } from '@/integrations/supabase/client' inside src/components/ or src/pages/; useQuery / useMutation in a component whose queryFn calls supabase directly; new service code authored under src/components/ or src/pages/"
+
+  - title: "RBAC permission gating before sensitive UI / actions"
+    compliance_label: true
+    objective: "Destructive or admin-only UI (Edit, Delete, Approve, Invite, role changes, billing actions) must be gated by usePermissions() or the equivalent RBAC helper. Mutations performing the action must re-check the same permission inside the handler before invoking the service."
+    success_criteria: "Edit/Delete/Approve/Invite/role-change buttons are conditionally rendered or disabled based on a usePermissions() (or equivalent) check; mutation handlers re-verify the permission before calling the service; admin-only routes are gated by the same source of truth"
+    failure_criteria: "Sensitive UI rendered unconditionally; permission hidden via CSS (display:none / opacity) instead of a real check; mutation handlers that call the service without re-checking the permission; permission checks that depend on user.email or a hardcoded UUID instead of role"
+
+  - title: "Edge Function auth-at-entrypoint"
+    compliance_label: true
+    objective: "Every Deno function under supabase/functions/ must validate the caller's identity (and role, when the action is sensitive) as the first non-CORS step in its handler — before any DB read, external API call, or secret-bearing work. Use the shared requireUser / requireSecret / optionalSecret helpers in supabase/functions/_shared/."
+    success_criteria: "Handler order is: CORS preflight -> requireSecret(...) for any required secret -> requireUser(req) -> business logic; sensitive functions also check role; responses use createErrorResponse + withCorrelationId so secret names never leak and X-Correlation-Id is set"
+    failure_criteria: "DB reads, external API calls, or secret use that occur before requireUser / requireSecret have run; ad-hoc Deno.env.get(...) on a required secret without raising MissingSecretError on absence; bespoke createCorsErrorResponse-style helpers that bypass the shared error-message-allowlist guard"
+
+  - title: "No service_role key outside approved Edge Functions"
+    compliance_label: true
+    objective: "The Supabase service-role key bypasses RLS and is a tenant-isolation break if it ever runs in client code or in an Edge Function that has not been explicitly authorized to use it. Never construct an admin client (createClient(url, SERVICE_ROLE_KEY)) anywhere under src/, and never reference SUPABASE_SERVICE_ROLE_KEY from client code."
+    success_criteria: "All client work goes through @/integrations/supabase/client (anon key); SUPABASE_SERVICE_ROLE_KEY appears only in supabase/functions/ and only in functions whose purpose explicitly requires bypassing RLS (admin tooling, system maintenance, cross-tenant aggregation), with caller identity / role still validated at the entrypoint"
+    failure_criteria: "createClient(url, SERVICE_ROLE_KEY) anywhere under src/; reference to SUPABASE_SERVICE_ROLE_KEY from src/; an Edge Function using the service role without a documented justification or without checking caller identity / role"
