@@ -452,21 +452,59 @@ if (-not $Force) {
     Write-Host ' [6/10] Type generation - skipped (use -Force to regenerate types).'
 } else {
     Write-Host " [6/10] Regenerating Supabase TypeScript types..."
+    # Why this is more involved than `Set-Content $cliOutput`:
+    # The Supabase CLI (~v2.77 on Windows) interleaves status text with the
+    # generated TypeScript on the same streams it uses for the module body.
+    # Observed prefixes on stdout: "Connecting to db <port>". Observed
+    # suffixes on stderr: the version-bump banner ("A new version of Supabase
+    # CLI is available..."). The previous step used `2>&1` to merge streams
+    # and then dumped the whole blob into types.ts, which left the file
+    # uncompilable. We now (a) divert stderr to a side file so it doesn't
+    # contaminate the capture, (b) slice the captured stdout to just the
+    # range between the first `export type ` and the last `} as const`
+    # (the same defense .cursor/hooks/sync-types.ps1 uses), and (c) write
+    # UTF-8 without BOM to match the canonical encoding of the existing file.
     $typesPath = Join-Path $repoRoot 'src\integrations\supabase\types.ts'
     $tmpPath = "$typesPath.tmp"
-    Remove-Item -LiteralPath $tmpPath -ErrorAction SilentlyContinue
+    $errPath = "$typesPath.err"
+    Remove-Item -LiteralPath $tmpPath, $errPath -ErrorAction SilentlyContinue
     $oldEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    $genOut = & npx supabase gen types typescript --local 2>&1
+    $genOut = & npx supabase gen types typescript --local 2> $errPath
     $genExit = $LASTEXITCODE
     $ErrorActionPreference = $oldEap
     if ($genExit -ne 0) {
-        Remove-Item -LiteralPath $tmpPath -ErrorAction SilentlyContinue
-        Write-Host "        FAIL: Type generation failed."
+        Write-Host "        FAIL: Type generation failed (exit $genExit)."
+        if (Test-Path -LiteralPath $errPath) {
+            Get-Content -LiteralPath $errPath -ErrorAction SilentlyContinue |
+                ForEach-Object { Write-Host "          $_" }
+        }
+        Remove-Item -LiteralPath $tmpPath, $errPath -ErrorAction SilentlyContinue
         exit 1
     }
-    $genOut | Set-Content -LiteralPath $tmpPath -Encoding utf8
+    $rawContent = if ($genOut) { ($genOut -join "`n") } else { '' }
+    $startMatch = [regex]::Match($rawContent, '(?m)^export type ')
+    $endMatches = [regex]::Matches($rawContent, '(?m)^} as const\s*$')
+    if (-not $startMatch.Success -or $endMatches.Count -eq 0) {
+        Write-Host "        FAIL: Generated output did not contain expected TypeScript markers."
+        $excerpt = if ($rawContent.Length -gt 500) { $rawContent.Substring(0, 500) } else { $rawContent }
+        Write-Host "          stdout (first 500 chars): $excerpt"
+        if (Test-Path -LiteralPath $errPath) {
+            Write-Host "          captured stderr:"
+            Get-Content -LiteralPath $errPath -TotalCount 20 -ErrorAction SilentlyContinue |
+                ForEach-Object { Write-Host "            $_" }
+        }
+        Remove-Item -LiteralPath $tmpPath, $errPath -ErrorAction SilentlyContinue
+        exit 1
+    }
+    $endMatch = $endMatches[$endMatches.Count - 1]
+    $startIdx = $startMatch.Index
+    $endIdx = $endMatch.Index + $endMatch.Length
+    $cleanContent = $rawContent.Substring($startIdx, $endIdx - $startIdx).TrimEnd() + "`n"
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($tmpPath, $cleanContent, $utf8NoBom)
     Move-Item -LiteralPath $tmpPath -Destination $typesPath -Force
+    Remove-Item -LiteralPath $errPath -ErrorAction SilentlyContinue
     Write-Host "        Types regenerated successfully."
 }
 

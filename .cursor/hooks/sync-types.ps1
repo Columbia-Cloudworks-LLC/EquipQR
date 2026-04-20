@@ -73,11 +73,13 @@ try {
     $endIdx = $endMatch.Index + $endMatch.Length
     $cleanContent = $rawContent.Substring($startIdx, $endIdx - $startIdx).TrimEnd() + "`n"
 
-    # Atomic-ish write with explicit UTF-8 + BOM to match the pre-existing
-    # file encoding. Using the .NET API avoids the Windows PowerShell 5.1
-    # vs PowerShell 7+ encoding-default differences in Set-Content/Out-File.
-    $utf8Bom = [System.Text.UTF8Encoding]::new($true)
-    [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath ".").Path + "\$typesPath", $cleanContent, $utf8Bom)
+    # Atomic-ish write with explicit UTF-8 (no BOM) to match the canonical
+    # encoding of the pre-existing file. Using the .NET API avoids the
+    # Windows PowerShell 5.1 vs PowerShell 7+ encoding-default differences
+    # in Set-Content/Out-File. (We previously wrote a BOM here, but the
+    # committed types.ts has no BOM — verified via raw byte read.)
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath ".").Path + "\$typesPath", $cleanContent, $utf8NoBom)
 
     # Capture prettier output so we can surface failures instead of silently
     # printing "validated" when formatting actually broke. Direct .cmd invocation
