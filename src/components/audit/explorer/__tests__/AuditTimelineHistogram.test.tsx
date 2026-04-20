@@ -49,9 +49,11 @@ describe('AuditTimelineHistogram', () => {
     expect(screen.queryByTestId('audit-timeline-histogram')).not.toBeInTheDocument();
   });
 
-  it('renders an empty state when there are no rows', () => {
+  it('renders a compact empty slot when there are no rows', () => {
     render(<AuditTimelineHistogram data={[]} bucket="hour" />);
+    expect(screen.getByTestId('audit-timeline-empty')).toBeInTheDocument();
     expect(screen.getByText(/No activity in this range/i)).toBeInTheDocument();
+    expect(screen.getByText(/Widen the time range above/i)).toBeInTheDocument();
   });
 
   it('renders one stacked Bar per audit action with the severity color map', () => {

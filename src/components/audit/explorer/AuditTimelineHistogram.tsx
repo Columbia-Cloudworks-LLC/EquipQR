@@ -16,7 +16,6 @@ import {
 import { format as formatDate } from 'date-fns';
 import { Activity } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import EmptyState from '@/components/ui/empty-state';
 import {
   ACTION_SEVERITY_COLOR,
   AUDIT_ACTIONS,
@@ -111,14 +110,25 @@ export function AuditTimelineHistogram({
   }
 
   if (!chartData.length) {
+    // Keep empty UI within `height` — the shared EmptyState uses py-12 + large
+    // title/description and overflows this short slot, painting over the toolbar
+    // above (overflow: visible). Compact copy only; no full-page empty pattern.
     return (
-      <div style={{ height }} className="flex items-center justify-center">
-        <EmptyState
-          icon={Activity}
-          title="No activity in this range"
-          description="Try widening the time range above."
-          className="border-0 bg-transparent py-2"
+      <div
+        style={{ height }}
+        className="flex flex-col items-center justify-center gap-0.5 overflow-hidden px-3 text-center"
+        data-testid="audit-timeline-empty"
+      >
+        <Activity
+          className="h-4 w-4 shrink-0 text-muted-foreground"
+          aria-hidden
         />
+        <p className="text-[11px] font-medium leading-tight text-muted-foreground">
+          No activity in this range
+        </p>
+        <p className="text-[10px] leading-tight text-muted-foreground/80">
+          Widen the time range above
+        </p>
       </div>
     );
   }

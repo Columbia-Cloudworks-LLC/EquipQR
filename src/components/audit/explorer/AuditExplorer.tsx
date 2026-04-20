@@ -236,7 +236,7 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
         onTimeRangeChange={handlePresetChange}
       />
 
-      <div className="rounded-md border bg-card">
+      <div className="rounded-md border bg-card overflow-hidden">
         <AuditTimelineHistogram
           data={timelineQuery.data ?? []}
           bucket={bucket}
