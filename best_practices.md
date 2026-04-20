@@ -102,17 +102,18 @@ const { canDelete } = usePermissions();
 ## Edge Function: validate auth at entrypoint
 
 Every function under `supabase/functions/` must validate the caller's
-identity (and role, when the action is sensitive) as the first
-non-CORS step in its handler — before any DB read, external API call,
-or secret-bearing work. Use the shared `requireUser` /
-`optionalSecret` helpers in `supabase/functions/_shared/`. A function
-that does work before validating auth leaks signal (timing, log
-patterns, or partial side-effects) on every unauthorized call.
+identity (and role, when sensitive) as the first non-CORS step —
+before any DB read, external API call, or secret-bearing work. Use
+the shared helpers in `supabase/functions/_shared/`
+(`handleCorsPreflightIfNeeded`, `requireSecret`,
+`createUserSupabaseClient`, `requireUser`, `createJsonResponse` /
+`createErrorResponse`, and `withCorrelationId`). Canonical reference:
+`supabase/functions/geocode-location/index.ts` — copy from there.
 
 Example code before:
 
 ```ts
-serve(async (req) => {
+Deno.serve(async (req) => {
   const body = await req.json();
   const result = await someExternalApi(body);
   return new Response(JSON.stringify(result));
@@ -122,14 +123,34 @@ serve(async (req) => {
 Example code after:
 
 ```ts
-serve(async (req) => {
-  if (req.method === 'OPTIONS') return corsPreflight(req);
-  const apiKey = requireSecret('SOME_API_KEY');
-  const user = await requireUser(req);
-  const body = await req.json();
-  const result = await someExternalApi(body, apiKey);
-  return withCorrelationId(req, jsonResponse(result));
-});
+import {
+  createUserSupabaseClient,
+  requireUser,
+  createErrorResponse,
+  createJsonResponse,
+  handleCorsPreflightIfNeeded,
+  withCorrelationId,
+} from '../_shared/supabase-clients.ts';
+import { MissingSecretError, requireSecret } from '../_shared/require-secret.ts';
+
+Deno.serve(withCorrelationId(async (req, _ctx) => {
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
+
+  try {
+    const apiKey = requireSecret('SOME_API_KEY', { functionName: 'my-function' });
+    const supabase = createUserSupabaseClient(req);
+    const auth = await requireUser(req, supabase);
+    if ('error' in auth) return createErrorResponse(auth.error, auth.status);
+
+    const body = await req.json();
+    const result = await someExternalApi(body, apiKey);
+    return createJsonResponse(result);
+  } catch (error) {
+    if (error instanceof MissingSecretError) return createErrorResponse(error, 500);
+    return createErrorResponse('An unexpected error occurred', 500);
+  }
+}));
 ```
 
 ## No `service_role` key outside approved Edge Functions
