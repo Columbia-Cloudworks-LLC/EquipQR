@@ -41,21 +41,32 @@ function isoToDateInput(iso: string | undefined): string {
   return formatDate(d, 'yyyy-MM-dd');
 }
 
-function dateInputToIso(value: string, endOfDay: boolean): string {
-  // Treat the YYYY-MM-DD value as a local-time boundary so the user gets
-  // the calendar day they selected. Convert to ISO for the API.
+/** Maps an exclusive `dateTo` ISO bound back to the inclusive end calendar day for `<input type="date">`. */
+function exclusiveUpperIsoToDateInput(iso: string | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  if (iso.includes('T')) {
+    return formatDate(new Date(d.getTime() - 1), 'yyyy-MM-dd');
+  }
+  return formatDate(d, 'yyyy-MM-dd');
+}
+
+/** Inclusive start of the selected calendar day in local time, as ISO. */
+function dateInputToStartOfDayIso(value: string): string {
   const [yyyy, mm, dd] = value.split('-').map(Number);
   if (!yyyy || !mm || !dd) return '';
-  const local = new Date(
-    yyyy,
-    mm - 1,
-    dd,
-    endOfDay ? 23 : 0,
-    endOfDay ? 59 : 0,
-    endOfDay ? 59 : 0,
-    endOfDay ? 999 : 0
-  );
-  return local.toISOString();
+  return new Date(yyyy, mm - 1, dd, 0, 0, 0, 0).toISOString();
+}
+
+/**
+ * Exclusive upper bound for `created_at < dateTo` (matches auditService):
+ * midnight at the start of the day *after* the selected "To" date in local time.
+ */
+function dateInputToExclusiveEndIso(value: string): string {
+  const [yyyy, mm, dd] = value.split('-').map(Number);
+  if (!yyyy || !mm || !dd) return '';
+  return new Date(yyyy, mm - 1, dd + 1, 0, 0, 0, 0).toISOString();
 }
 
 export function AuditLogTimeRangePicker({
@@ -66,16 +77,19 @@ export function AuditLogTimeRangePicker({
 }: AuditLogTimeRangePickerProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [draftFrom, setDraftFrom] = useState(() => isoToDateInput(isoFrom));
-  const [draftTo, setDraftTo] = useState(() => isoToDateInput(isoTo));
+  const [draftTo, setDraftTo] = useState(() => exclusiveUpperIsoToDateInput(isoTo));
 
   useEffect(() => {
     setDraftFrom(isoToDateInput(isoFrom));
-    setDraftTo(isoToDateInput(isoTo));
+    setDraftTo(exclusiveUpperIsoToDateInput(isoTo));
   }, [isoFrom, isoTo, popoverOpen]);
 
   const customLabel =
     preset === 'custom' && isoFrom && isoTo
-      ? `${formatDate(new Date(isoFrom), 'MMM d')} – ${formatDate(new Date(isoTo), 'MMM d')}`
+      ? `${formatDate(new Date(isoFrom), 'MMM d')} – ${formatDate(
+          new Date(new Date(isoTo).getTime() - 1),
+          'MMM d'
+        )}`
       : 'Custom';
 
   return (
@@ -155,8 +169,8 @@ export function AuditLogTimeRangePicker({
                 className="h-7 text-xs"
                 disabled={!draftFrom || !draftTo}
                 onClick={() => {
-                  const fromIso = dateInputToIso(draftFrom, false);
-                  const toIso = dateInputToIso(draftTo, true);
+                  const fromIso = dateInputToStartOfDayIso(draftFrom);
+                  const toIso = dateInputToExclusiveEndIso(draftTo);
                   if (!fromIso || !toIso) return;
                   onChange('custom', fromIso, toIso);
                   setPopoverOpen(false);

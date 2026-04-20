@@ -25,6 +25,18 @@ import {
   AuditLogTimelineRow,
 } from '@/types/audit';
 
+function readBucketIsoFromBarClick(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== 'object') return undefined;
+  const o = payload as Record<string, unknown>;
+  if (typeof o.bucket === 'string') return o.bucket;
+  const inner = o.payload;
+  if (inner && typeof inner === 'object' && 'bucket' in inner) {
+    const b = (inner as { bucket: unknown }).bucket;
+    if (typeof b === 'string') return b;
+  }
+  return undefined;
+}
+
 const BUCKET_LABEL_FORMAT: Record<AuditLogTimelineBucket, string> = {
   minute: 'HH:mm',
   hour: 'MMM d HH:mm',
@@ -152,7 +164,7 @@ export function AuditTimelineHistogram({
               cursor={onBucketClick ? 'pointer' : 'default'}
               onClick={(payload: unknown) => {
                 if (!onBucketClick) return;
-                const bucketIso = (payload as { bucket?: string } | undefined)?.bucket;
+                const bucketIso = readBucketIsoFromBarClick(payload);
                 if (bucketIso) onBucketClick(bucketIso);
               }}
             />

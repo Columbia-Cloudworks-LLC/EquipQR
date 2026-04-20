@@ -50,8 +50,12 @@ export const auditQueryKeys = {
   all: ['audit-log'] as const,
   entityHistory: (entityType: AuditEntityType, entityId: string) =>
     [...auditQueryKeys.all, 'entity', entityType, entityId] as const,
-  organizationLog: (orgId: string, filters?: AuditLogFilters) =>
-    [...auditQueryKeys.all, 'organization', orgId, filters] as const,
+  organizationLog: (
+    orgId: string,
+    filters?: AuditLogFilters,
+    page?: number,
+    pageSize?: number
+  ) => [...auditQueryKeys.all, 'organization', orgId, filters, page, pageSize] as const,
   userActivity: (orgId: string, userId: string) =>
     [...auditQueryKeys.all, 'user', orgId, userId] as const,
   recentActivity: (orgId: string) =>
@@ -170,7 +174,12 @@ export function useOrganizationAuditLog(
   const enabled = options?.enabled !== false && !!organizationId;
 
   const query = useQuery({
-    queryKey: auditQueryKeys.organizationLog(organizationId!, filters),
+    queryKey: auditQueryKeys.organizationLog(
+      organizationId!,
+      filters,
+      pagination?.page,
+      pagination?.pageSize
+    ),
     queryFn: async () => {
       const result = await auditService.getOrganizationAuditLog(
         organizationId!,

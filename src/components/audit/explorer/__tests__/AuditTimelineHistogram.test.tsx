@@ -92,6 +92,22 @@ describe('AuditTimelineHistogram', () => {
     expect(onBucketClick).toHaveBeenCalledWith('2026-04-20T10:00:00.000Z');
   });
 
+  it('reads bucket from nested Recharts-style payload when present', () => {
+    const onBucketClick = vi.fn();
+    render(
+      <AuditTimelineHistogram
+        data={sampleRows}
+        bucket="hour"
+        onBucketClick={onBucketClick}
+      />
+    );
+
+    const insertBar = capturedBars.find((b) => b.dataKey === 'INSERT');
+    insertBar?.onClick?.({ payload: { bucket: '2026-04-20T11:00:00.000Z' } });
+
+    expect(onBucketClick).toHaveBeenCalledWith('2026-04-20T11:00:00.000Z');
+  });
+
   it('does not invoke onBucketClick when the click payload has no bucket', () => {
     const onBucketClick = vi.fn();
     render(

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   ACTION_SEVERITY_COLOR,
   AuditAction,
@@ -8,26 +8,36 @@ import {
 } from '@/types/audit';
 import { AuditLogList, VIRTUALIZATION_THRESHOLD } from '../AuditLogList';
 
+const { mockScrollToItem } = vi.hoisted(() => ({
+  mockScrollToItem: vi.fn(),
+}));
+
 // react-window's FixedSizeList renders absolutely positioned children inside a
 // scrollable container. In a JSDOM env it cannot calculate layout, so it
 // commonly omits items. Stub it so the virtual-path test can still observe a
 // list render.
 vi.mock('react-window', () => ({
-  FixedSizeList: ({
-    itemCount,
-    children,
-  }: {
-    itemCount: number;
-    children: (props: { index: number; style: React.CSSProperties }) => React.ReactNode;
-  }) => (
-    <div data-testid="virtual-list-stub" data-item-count={itemCount}>
-      {Array.from({ length: itemCount }, (_, index) => (
-        <React.Fragment key={index}>
-          {children({ index, style: { height: 36 } })}
-        </React.Fragment>
-      ))}
-    </div>
-  ),
+  FixedSizeList: React.forwardRef(function MockFixedSizeList(
+    {
+      itemCount,
+      children,
+    }: {
+      itemCount: number;
+      children: (props: { index: number; style: React.CSSProperties }) => React.ReactNode;
+    },
+    ref: React.Ref<{ scrollToItem: (...args: unknown[]) => void }>
+  ) {
+    React.useImperativeHandle(ref, () => ({
+      scrollToItem: mockScrollToItem,
+    }));
+    return (
+      <div data-testid="virtual-list-stub" data-item-count={itemCount}>
+        {Array.from({ length: itemCount }, (_, index) => (
+          <React.Fragment key={index}>{children({ index, style: { height: 36 } })}</React.Fragment>
+        ))}
+      </div>
+    );
+  }),
 }));
 
 function makeEntry(
@@ -58,6 +68,10 @@ function makeEntry(
 }
 
 describe('AuditLogList', () => {
+  beforeEach(() => {
+    mockScrollToItem.mockClear();
+  });
+
   it('calls onSelect with the entry when a row is clicked', () => {
     const entries = [makeEntry('a'), makeEntry('b')];
     const onSelect = vi.fn();
@@ -131,6 +145,25 @@ describe('AuditLogList', () => {
 
     fireEvent.keyDown(listbox, { key: 'Enter' });
     expect(onSelect).toHaveBeenLastCalledWith(entries[1]);
+  });
+
+  it('scrolls the virtual list on keyboard navigation when virtualized', () => {
+    const entries = Array.from({ length: VIRTUALIZATION_THRESHOLD }, (_, i) =>
+      makeEntry(String(i))
+    );
+    const onSelect = vi.fn();
+    render(
+      <AuditLogList
+        entries={entries}
+        selectedId="0"
+        onSelect={onSelect}
+        height={400}
+      />
+    );
+
+    const listbox = screen.getByRole('listbox');
+    fireEvent.keyDown(listbox, { key: 'ArrowDown' });
+    expect(mockScrollToItem).toHaveBeenCalledWith(1, 'smart');
   });
 
   it('renders the empty state when there are no entries', () => {

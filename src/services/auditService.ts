@@ -67,10 +67,11 @@ function handleSuccess<T>(data: T): ServiceResponse<T> {
  * The legacy popover emitted YYYY-MM-DD strings and expected the entire end
  * date to be included (so we add one day to make the bound exclusive).
  *
- * The new audit explorer's time-range picker emits full ISO timestamps to
- * preserve sub-day boundaries when the user clicks a histogram bucket; in
- * that case the value is already the exact exclusive upper bound and must
- * not be inflated.
+ * The audit explorer emits full ISO timestamps for sub-day ranges (e.g.
+ * histogram bucket clicks) and an exclusive upper bound for custom calendar
+ * ranges (local midnight at the start of the day after the selected end
+ * date). Those values are already exact exclusive bounds and must not be
+ * inflated.
  */
 function normalizeAuditDateTo(dateTo: string): string {
   if (dateTo.includes('T')) {

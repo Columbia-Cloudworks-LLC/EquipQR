@@ -50,6 +50,21 @@ describe('deriveTimelineBucket', () => {
   });
 });
 
+describe('auditQueryKeys.organizationLog', () => {
+  it('includes page and pageSize so paginated queries cache separately', () => {
+    const filters = { dateFrom: '2026-04-20T00:00:00.000Z', dateTo: '2026-04-21T00:00:00.000Z' };
+    const a = auditQueryKeys.organizationLog('org-1', filters, 1, 200);
+    const b = auditQueryKeys.organizationLog('org-1', filters, 2, 200);
+    const c = auditQueryKeys.organizationLog('org-1', filters);
+
+    expect(a).not.toEqual(b);
+    expect(a[a.length - 2]).toBe(1);
+    expect(b[b.length - 2]).toBe(2);
+    expect(c[c.length - 2]).toBeUndefined();
+    expect(c[c.length - 1]).toBeUndefined();
+  });
+});
+
 describe('auditQueryKeys.timeline', () => {
   it('includes the org id and the full params object so distinct queries cache separately', () => {
     const a = auditQueryKeys.timeline('org-1', {

@@ -5,7 +5,7 @@
  * friendliness on small datasets.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FixedSizeList as VirtualList } from 'react-window';
 import { format as formatDate } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -119,13 +119,26 @@ export function AuditLogList({
     )
   );
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<React.ComponentRef<typeof VirtualList>>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  const scrollVirtualToIndex = useCallback(
+    (index: number) => {
+      if (entries.length >= VIRTUALIZATION_THRESHOLD) {
+        listRef.current?.scrollToItem(index, 'smart');
+      }
+    },
+    [entries.length]
+  );
+
   useEffect(() => {
     const idx = entries.findIndex((e) => e.id === selectedId);
-    if (idx >= 0) setActiveIndex(idx);
-  }, [selectedId, entries]);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
+    if (idx >= 0) {
+      setActiveIndex(idx);
+      scrollVirtualToIndex(idx);
+    }
+  }, [selectedId, entries, scrollVirtualToIndex]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -144,11 +157,13 @@ export function AuditLogList({
       const next = Math.min(entries.length - 1, activeIndex + 1);
       setActiveIndex(next);
       onSelect(entries[next]);
+      scrollVirtualToIndex(next);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       const prev = Math.max(0, activeIndex - 1);
       setActiveIndex(prev);
       onSelect(entries[prev]);
+      scrollVirtualToIndex(prev);
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (entries[activeIndex]) onSelect(entries[activeIndex]);
@@ -214,6 +229,7 @@ export function AuditLogList({
       className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
     >
       <VirtualList
+        ref={listRef}
         height={height}
         width={containerWidth || 800}
         itemCount={entries.length}
