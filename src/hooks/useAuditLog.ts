@@ -13,6 +13,7 @@ import {
   AuditLogEntry,
   AuditLogFilters,
   AuditLogPagination,
+  AuditLogTimelineBucket,
   AuditEntityType,
   FormattedAuditEntry,
   ENTITY_TYPE_LABELS,
@@ -49,15 +50,58 @@ export const auditQueryKeys = {
   all: ['audit-log'] as const,
   entityHistory: (entityType: AuditEntityType, entityId: string) =>
     [...auditQueryKeys.all, 'entity', entityType, entityId] as const,
-  organizationLog: (orgId: string, filters?: AuditLogFilters) =>
-    [...auditQueryKeys.all, 'organization', orgId, filters] as const,
+  organizationLog: (
+    orgId: string,
+    filters?: AuditLogFilters,
+    page?: number,
+    pageSize?: number
+  ) => [...auditQueryKeys.all, 'organization', orgId, filters, page, pageSize] as const,
   userActivity: (orgId: string, userId: string) =>
     [...auditQueryKeys.all, 'user', orgId, userId] as const,
   recentActivity: (orgId: string) =>
     [...auditQueryKeys.all, 'recent', orgId] as const,
   stats: (orgId: string, dateFrom?: string, dateTo?: string) =>
     [...auditQueryKeys.all, 'stats', orgId, dateFrom, dateTo] as const,
+  timeline: (
+    orgId: string,
+    params: {
+      bucket: AuditLogTimelineBucket;
+      dateFrom: string;
+      dateTo: string;
+      filters?: AuditLogFilters;
+    }
+  ) => [...auditQueryKeys.all, 'timeline', orgId, params] as const,
 };
+
+// ============================================
+// Timeline Bucket Helper
+// ============================================
+
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * ONE_HOUR_MS;
+
+/**
+ * Derives the right histogram bucket from a time-range duration. Keeps the
+ * histogram readable across vastly different ranges:
+ *   <= 1h   -> minute (60 buckets)
+ *   <= 24h  -> hour   (24 buckets)
+ *   > 24h   -> day    (capped at ~30 buckets for the 30d preset)
+ *
+ * Whitelist matches the SQL `p_bucket` validator.
+ */
+export function deriveTimelineBucket(
+  dateFrom: string | Date,
+  dateTo: string | Date
+): AuditLogTimelineBucket {
+  const fromMs =
+    dateFrom instanceof Date ? dateFrom.getTime() : new Date(dateFrom).getTime();
+  const toMs = dateTo instanceof Date ? dateTo.getTime() : new Date(dateTo).getTime();
+  const span = Math.max(0, toMs - fromMs);
+
+  if (span <= ONE_HOUR_MS) return 'minute';
+  if (span <= ONE_DAY_MS) return 'hour';
+  return 'day';
+}
 
 // ============================================
 // Entity History Hook
@@ -130,7 +174,12 @@ export function useOrganizationAuditLog(
   const enabled = options?.enabled !== false && !!organizationId;
 
   const query = useQuery({
-    queryKey: auditQueryKeys.organizationLog(organizationId!, filters),
+    queryKey: auditQueryKeys.organizationLog(
+      organizationId!,
+      filters,
+      pagination?.page,
+      pagination?.pageSize
+    ),
     queryFn: async () => {
       const result = await auditService.getOrganizationAuditLog(
         organizationId!,
@@ -193,6 +242,46 @@ export function useOrganizationAuditLogInfinite(
         return lastPage.page + 1;
       }
       return undefined;
+    },
+    enabled,
+    staleTime: 30 * 1000,
+  });
+}
+
+// ============================================
+// Timeline Aggregation Hook (issue #641)
+// ============================================
+
+/**
+ * Hook to fetch time-bucketed audit-event counts for the explorer histogram.
+ * Caller is expected to compute `dateFrom` / `dateTo` from a time-range
+ * preset and pass a stable `bucket` (use `deriveTimelineBucket` if you want
+ * the standard density mapping).
+ */
+export function useAuditTimeline(
+  organizationId: string | undefined,
+  params: {
+    bucket: AuditLogTimelineBucket;
+    dateFrom: string;
+    dateTo: string;
+    filters?: AuditLogFilters;
+  },
+  options?: {
+    enabled?: boolean;
+  }
+) {
+  const enabled = options?.enabled !== false && !!organizationId;
+
+  return useQuery({
+    queryKey: auditQueryKeys.timeline(organizationId!, params),
+    queryFn: async () => {
+      const result = await auditService.getAuditTimeline(organizationId!, params);
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Failed to fetch audit timeline');
+      }
+
+      return result.data;
     },
     enabled,
     staleTime: 30 * 1000,

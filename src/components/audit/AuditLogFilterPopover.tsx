@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Filter, X, Calendar } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import {
   Popover,
   PopoverContent,
@@ -118,42 +117,6 @@ const AuditLogFilterPopover: React.FC<AuditLogFilterPopoverProps> = ({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <Separator />
-
-          {/* Date Range */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              Date range
-            </label>
-            <div className="flex gap-2">
-              <div className="flex flex-col gap-1 flex-1">
-                <label className="text-[10px] text-muted-foreground">From</label>
-                <Input
-                  type="date"
-                  value={filters.dateFrom ?? ''}
-                  onChange={(e) =>
-                    onFilterChange({ ...filters, dateFrom: e.target.value || undefined })
-                  }
-                  className="h-8 text-xs"
-                  aria-label="Filter from date"
-                />
-              </div>
-              <div className="flex flex-col gap-1 flex-1">
-                <label className="text-[10px] text-muted-foreground">To</label>
-                <Input
-                  type="date"
-                  value={filters.dateTo ?? ''}
-                  onChange={(e) =>
-                    onFilterChange({ ...filters, dateTo: e.target.value || undefined })
-                  }
-                  className="h-8 text-xs"
-                  aria-label="Filter to date"
-                />
-              </div>
-            </div>
           </div>
 
           {activeFilterCount > 0 && (

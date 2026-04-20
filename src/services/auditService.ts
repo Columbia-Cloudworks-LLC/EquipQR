@@ -15,6 +15,8 @@ import {
   AuditEntityType,
   AuditAction,
   AuditLogCsvRow,
+  AuditLogTimelineBucket,
+  AuditLogTimelineRow,
   ENTITY_TYPE_LABELS,
   ACTION_LABELS,
   FIELD_LABELS,
@@ -59,6 +61,27 @@ function handleSuccess<T>(data: T): ServiceResponse<T> {
   };
 }
 
+/**
+ * Normalize the dateTo filter into an exclusive upper bound for `created_at`.
+ *
+ * The legacy popover emitted YYYY-MM-DD strings and expected the entire end
+ * date to be included (so we add one day to make the bound exclusive).
+ *
+ * The audit explorer emits full ISO timestamps for sub-day ranges (e.g.
+ * histogram bucket clicks) and an exclusive upper bound for custom calendar
+ * ranges (local midnight at the start of the day after the selected end
+ * date). Those values are already exact exclusive bounds and must not be
+ * inflated.
+ */
+function normalizeAuditDateTo(dateTo: string): string {
+  if (dateTo.includes('T')) {
+    return dateTo;
+  }
+  const endDate = new Date(dateTo);
+  endDate.setDate(endDate.getDate() + 1);
+  return endDate.toISOString();
+}
+
 function applyAuditFilters<T>(query: T, filters?: AuditLogFilters): T {
   let filteredQuery = query as T & {
     eq: (column: string, value: string) => T;
@@ -84,9 +107,7 @@ function applyAuditFilters<T>(query: T, filters?: AuditLogFilters): T {
   }
 
   if (filters?.dateTo) {
-    const endDate = new Date(filters.dateTo);
-    endDate.setDate(endDate.getDate() + 1);
-    filteredQuery = filteredQuery.lt('created_at', endDate.toISOString());
+    filteredQuery = filteredQuery.lt('created_at', normalizeAuditDateTo(filters.dateTo));
   }
 
   if (filters?.search) {
@@ -260,10 +281,7 @@ export const auditService = {
       }
       
       if (filters?.dateTo) {
-        // Add one day to include the entire end date
-        const endDate = new Date(filters.dateTo);
-        endDate.setDate(endDate.getDate() + 1);
-        query = query.lt('created_at', endDate.toISOString());
+        query = query.lt('created_at', normalizeAuditDateTo(filters.dateTo));
       }
       
       if (filters?.search) {
@@ -510,6 +528,49 @@ export const auditService = {
   },
 
   /**
+   * Get bucketed audit-event counts for the timeline histogram (issue #641).
+   *
+   * Calls the SECURITY DEFINER `get_audit_log_timeline` RPC, which mirrors
+   * the audit_log SELECT RLS via an explicit organization_members guard.
+   * The bucket parameter is whitelisted in SQL (`minute` / `hour` / `day`).
+   */
+  async getAuditTimeline(
+    organizationId: string,
+    params: {
+      bucket: AuditLogTimelineBucket;
+      dateFrom: string;
+      dateTo: string;
+      filters?: AuditLogFilters;
+    }
+  ): Promise<ServiceResponse<AuditLogTimelineRow[]>> {
+    try {
+      const { bucket, dateFrom, dateTo, filters } = params;
+
+      const { data, error } = await supabase.rpc('get_audit_log_timeline', {
+        p_organization_id: organizationId,
+        p_bucket: bucket,
+        p_date_from: dateFrom,
+        p_date_to: dateTo,
+        p_entity_type:
+          filters?.entityType && filters.entityType !== 'all'
+            ? filters.entityType
+            : undefined,
+        p_action:
+          filters?.action && filters.action !== 'all' ? filters.action : undefined,
+        p_actor_id: filters?.actorId ?? undefined,
+        p_search: filters?.search ?? undefined,
+      });
+
+      if (error) throw error;
+
+      const rows = (data ?? []) as AuditLogTimelineRow[];
+      return handleSuccess(rows);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  /**
    * Get summary statistics for audit log
    */
   async getAuditStats(
@@ -534,9 +595,7 @@ export const auditService = {
       }
       
       if (dateTo) {
-        const endDate = new Date(dateTo);
-        endDate.setDate(endDate.getDate() + 1);
-        query = query.lt('created_at', endDate.toISOString());
+        query = query.lt('created_at', normalizeAuditDateTo(dateTo));
       }
       
       const { data, error } = await query;

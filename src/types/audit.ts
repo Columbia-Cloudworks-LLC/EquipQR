@@ -130,6 +130,53 @@ export interface AuditLogSort {
 }
 
 // ============================================
+// Timeline Aggregation Types (issue #641)
+// ============================================
+
+/**
+ * Bucket unit accepted by the get_audit_log_timeline RPC. Whitelisted in
+ * the SQL function — keep in sync with the migration.
+ */
+export type AuditLogTimelineBucket = 'minute' | 'hour' | 'day';
+
+/**
+ * One time-bucketed action-count row returned by useAuditTimeline.
+ */
+export interface AuditLogTimelineRow {
+  /** ISO-8601 timestamp at the bucket boundary (e.g. start of the hour). */
+  bucket: string;
+  action: AuditAction;
+  count: number;
+}
+
+/**
+ * Time-range presets surfaced by AuditLogTimeRangePicker. 'custom' opens
+ * a date-range popover; everything else maps to a fixed offset from now.
+ */
+export type AuditLogTimePreset =
+  | 'last_15m'
+  | 'last_1h'
+  | 'last_24h'
+  | 'last_7d'
+  | 'last_30d'
+  | 'custom';
+
+/**
+ * Severity color for each audit action, mapped to the existing semantic
+ * tokens. Adopted from Grafana / SigNoz log-severity conventions:
+ *   INSERT (created)   -> success (green)
+ *   UPDATE (modified)  -> info (blue)
+ *   DELETE (destroyed) -> destructive (red)
+ *
+ * Recharts and the list's left stripe both consume these directly via CSS.
+ */
+export const ACTION_SEVERITY_COLOR: Record<AuditAction, string> = {
+  INSERT: 'hsl(var(--success))',
+  UPDATE: 'hsl(var(--info))',
+  DELETE: 'hsl(var(--destructive))',
+};
+
+// ============================================
 // Query Result Types
 // ============================================
 
@@ -250,15 +297,6 @@ export interface HistoryTabProps {
   entityType: AuditEntityType;
   entityId: string;
   organizationId: string;
-}
-
-/**
- * Props for the AuditLogTable component
- */
-export interface AuditLogTableProps {
-  organizationId: string;
-  filters?: AuditLogFilters;
-  onFilterChange?: (filters: AuditLogFilters) => void;
 }
 
 /**
