@@ -22,6 +22,9 @@ import EquipmentSortHeader from '@/features/equipment/components/EquipmentSortHe
 import EquipmentGrid from '@/features/equipment/components/EquipmentGrid';
 import EquipmentLoadingState from '@/features/equipment/components/EquipmentLoadingState';
 import ImportCsvWizard from '@/features/equipment/components/ImportCsvWizard';
+import EquipmentColumnPicker from '@/features/equipment/components/EquipmentColumnPicker';
+import { EQUIPMENT_TABLE_COLUMN_META } from '@/features/equipment/components/EquipmentTable';
+import { useEquipmentTableColumns } from '@/features/equipment/hooks/useEquipmentTableColumns';
 import { useOfflineMergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
 
@@ -57,6 +60,14 @@ const Equipment = () => {
   
   // Merge server equipment with pending offline queue items
   const mergedEquipment = useOfflineMergedEquipment(paginatedEquipment);
+
+  // Per-org column visibility for the dense table view (issue #633).
+  const {
+    visibleColumns,
+    toggleColumn,
+    resetToDefaults: resetColumnVisibility,
+    hasOverrides: hasColumnOverrides,
+  } = useEquipmentTableColumns(currentOrganization?.id);
 
   // PM interval status for all equipment (gated by feature flag internally)
   const { data: pmStatusList } = useOrgEquipmentPMStatuses(currentOrganization?.id);
@@ -215,6 +226,17 @@ const Equipment = () => {
         canExport={canExport}
         onImportCsv={() => setShowImportCsv(true)}
         equipment={equipment}
+        columnPicker={
+          viewMode === 'table' ? (
+            <EquipmentColumnPicker
+              allColumns={EQUIPMENT_TABLE_COLUMN_META}
+              visibleColumns={visibleColumns}
+              onToggle={toggleColumn}
+              onReset={resetColumnVisibility}
+              hasOverrides={hasColumnOverrides}
+            />
+          ) : undefined
+        }
       />
 
       {/* Mobile-only: sort + view mode below the filter bar */}
@@ -242,6 +264,7 @@ const Equipment = () => {
         pmStatuses={pmStatuses}
         sortConfig={sortConfig}
         onSortChange={updateSort}
+        visibleColumns={visibleColumns}
       />
 
       {/* Pagination */}

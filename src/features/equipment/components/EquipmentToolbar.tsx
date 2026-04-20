@@ -38,6 +38,13 @@ interface EquipmentToolbarProps {
   canExport?: boolean;
   onImportCsv?: () => void;
   equipment?: EquipmentRecord[];
+  /**
+   * Optional view-mode-specific control rendered between sort and view-mode
+   * toggle. Currently used by the table view to mount the column picker.
+   * Decoupled via `ReactNode` so the toolbar doesn't depend on equipment-
+   * specific picker components.
+   */
+  columnPicker?: React.ReactNode;
 }
 
 const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
@@ -58,6 +65,7 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
   canExport = false,
   onImportCsv,
   equipment = [],
+  columnPicker,
 }) => {
   // `filters.team` is driven by the global TopBar selection and is intentionally
   // excluded from the page-local active-filter count / chip row.
@@ -113,6 +121,9 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
           sortConfig={sortConfig}
           onSortChange={onSortChange}
         />
+
+        {/* View-mode-specific control (e.g. column picker for the table view) */}
+        {columnPicker}
 
         {/* Actions menu (import/export) */}
         {(canImport || canExport) && (

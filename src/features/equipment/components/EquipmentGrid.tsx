@@ -33,6 +33,8 @@ interface EquipmentGridProps {
   pmStatuses?: Map<string, EquipmentPMStatus>;
   sortConfig?: SortConfig;
   onSortChange?: (field: string, direction?: 'asc' | 'desc') => void;
+  /** Forwarded to `EquipmentTable` when `viewMode === 'table'`. */
+  visibleColumns?: Record<string, boolean>;
 }
 
 const EquipmentGrid: React.FC<EquipmentGridProps> = ({
@@ -48,6 +50,7 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
   pmStatuses,
   sortConfig,
   onSortChange,
+  visibleColumns,
 }) => {
   if (equipment.length === 0) {
     return (
@@ -70,6 +73,7 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
         pmStatuses={pmStatuses}
         sortConfig={sortConfig}
         onSortChange={onSortChange}
+        visibleColumns={visibleColumns}
       />
     );
   }

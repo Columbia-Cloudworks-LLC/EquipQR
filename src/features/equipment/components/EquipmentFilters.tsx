@@ -31,6 +31,12 @@ interface EquipmentFiltersProps {
   canExport?: boolean;
   onImportCsv?: () => void;
   equipment?: EquipmentRecord[];
+  /**
+   * Desktop-only view-mode-specific control. Mobile branch ignores this prop
+   * because the table view auto-falls-back to list mode on mobile (see
+   * `Equipment.tsx`).
+   */
+  columnPicker?: React.ReactNode;
 }
 
 export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
@@ -51,6 +57,7 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
   canExport,
   onImportCsv,
   equipment,
+  columnPicker,
 }) => {
   const isMobile = useIsMobile();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -106,6 +113,7 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
       canExport={canExport}
       onImportCsv={onImportCsv}
       equipment={equipment}
+      columnPicker={columnPicker}
     />
   );
 };

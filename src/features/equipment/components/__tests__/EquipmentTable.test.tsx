@@ -24,6 +24,8 @@ const mockEquipment = [
     location: 'Warehouse A',
     last_maintenance: '2026-01-15',
     team_name: 'Alpha',
+    team_id: 'team-1',
+    working_hours: 1234,
   },
   {
     id: 'eq-2',
@@ -146,8 +148,113 @@ describe('EquipmentTable', () => {
     expect(serialHeader!.className).toContain('font-mono');
   });
 
-  it('falls back to em-dash for missing team and missing last_maintenance', () => {
+  it('falls back to em-dash for missing team, missing hours, and missing last_maintenance', () => {
+    // Last Maintenance is hidden by default in the new visibility map, so the
+    // em-dash count for the second row is: missing team + missing hours = 2
+    // (plus the visible Last Maintenance em-dash from the first row's
+    // unprovided value if visibility were enabled — which it isn't).
+    render(
+      <EquipmentTable
+        equipment={mockEquipment}
+        onShowQRCode={onShowQRCode}
+        visibleColumns={{
+          name: true,
+          status: true,
+          manufacturer: true,
+          model: true,
+          serial_number: true,
+          working_hours: true,
+          location: true,
+          team_name: true,
+          last_maintenance: true,
+        }}
+      />,
+    );
+    // First row has all values; second row is missing team_id+team_name,
+    // working_hours, and last_maintenance — three em-dashes.
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('renders the Working Hours column header and a formatted number value', () => {
     render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
-    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2);
+    const headers = screen.getAllByRole('columnheader');
+    const hoursHeader = headers.find((h) => h.textContent?.includes('Hours'));
+    expect(hoursHeader).toBeDefined();
+    expect(hoursHeader!.className).toContain('font-mono');
+    expect(screen.getByText('1,234')).toBeInTheDocument();
+  });
+
+  it('renders Team as a clickable link to /dashboard/teams/{team_id} when team_id is present', () => {
+    render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
+    const teamLink = screen.getByRole('link', { name: 'Alpha' });
+    expect(teamLink).toHaveAttribute('href', '/dashboard/teams/team-1');
+  });
+
+  it('marks every data-bearing header as a sortable button', () => {
+    render(
+      <EquipmentTable
+        equipment={mockEquipment}
+        onShowQRCode={onShowQRCode}
+        sortConfig={{ field: 'name', direction: 'asc' }}
+        onSortChange={vi.fn()}
+        visibleColumns={{
+          name: true,
+          status: true,
+          manufacturer: true,
+          model: true,
+          serial_number: true,
+          working_hours: true,
+          location: true,
+          team_name: true,
+          last_maintenance: true,
+        }}
+      />,
+    );
+    const headers = screen.getAllByRole('columnheader');
+    const sortableTitles = [
+      'Name',
+      'Status',
+      'Manufacturer',
+      'Model',
+      'Serial #',
+      'Hours',
+      'Location',
+      'Team',
+      'Last Maintenance',
+    ];
+    for (const title of sortableTitles) {
+      const header = headers.find((h) => h.textContent?.includes(title));
+      expect(header, `expected header "${title}" to render`).toBeDefined();
+      expect(
+        within(header!).getAllByRole('button').length,
+        `expected header "${title}" to contain a sortable button`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it('respects visibleColumns prop and hides columns set to false', () => {
+    render(
+      <EquipmentTable
+        equipment={mockEquipment}
+        onShowQRCode={onShowQRCode}
+        visibleColumns={{
+          name: true,
+          status: false,
+          manufacturer: false,
+          model: true,
+          serial_number: true,
+          working_hours: true,
+          location: true,
+          team_name: true,
+          last_maintenance: false,
+        }}
+      />,
+    );
+    const headers = screen.getAllByRole('columnheader');
+    const headerTexts = headers.map((h) => h.textContent ?? '');
+    expect(headerTexts.some((t) => t.includes('Name'))).toBe(true);
+    expect(headerTexts.some((t) => t.includes('Status'))).toBe(false);
+    expect(headerTexts.some((t) => t.includes('Manufacturer'))).toBe(false);
+    expect(headerTexts.some((t) => t.includes('Last Maintenance'))).toBe(false);
   });
 });
