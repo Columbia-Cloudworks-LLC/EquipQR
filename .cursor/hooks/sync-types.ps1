@@ -45,8 +45,9 @@ $tempPath = Join-Path $env:TEMP ("supabase-types-{0}.ts" -f ([System.Guid]::NewG
 
 try {
     # Merge stderr into stdout so we capture banners/errors uniformly.
-    # Use cmd /c so npx resolves correctly on Windows.
-    cmd /c "npx supabase gen types typescript --local 2>&1" | Out-File -FilePath $tempPath -Encoding utf8
+    # Invoke npx.cmd directly (& operator) instead of `cmd /c` so we don't
+    # spawn an extra cmd.exe console window on Windows GUI parents.
+    & npx.cmd supabase gen types typescript --local 2>&1 | Out-File -FilePath $tempPath -Encoding utf8
 
     if (-not (Test-Path -LiteralPath $tempPath) -or (Get-Item -LiteralPath $tempPath).Length -eq 0) {
         Write-Host "ERROR: supabase gen types produced no output. Leaving $typesPath untouched."
@@ -79,8 +80,9 @@ try {
     [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath ".").Path + "\$typesPath", $cleanContent, $utf8Bom)
 
     # Capture prettier output so we can surface failures instead of silently
-    # printing "validated" when formatting actually broke.
-    $prettierOutput = cmd /c "npx prettier --write $typesPath 2>&1"
+    # printing "validated" when formatting actually broke. Direct .cmd invocation
+    # avoids spawning a visible cmd.exe console window.
+    $prettierOutput = & npx.cmd prettier --write $typesPath 2>&1
     $prettierExit = $LASTEXITCODE
     if ($prettierExit -ne 0) {
         $combined = if ($prettierOutput) { ($prettierOutput -join "`n") } else { '<no output>' }

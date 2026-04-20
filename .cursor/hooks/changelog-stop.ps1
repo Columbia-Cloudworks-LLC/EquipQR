@@ -36,7 +36,9 @@ if ($loopCount -ge 2) {
     exit 0
 }
 
-$gitStatus = cmd /c "git status --porcelain=v1 --untracked-files=all 2>nul" | Out-String
+# Invoke git.exe directly instead of going through cmd /c so we don't spawn
+# a transient cmd.exe console window on Windows GUI parents.
+$gitStatus = (& git status --porcelain=v1 --untracked-files=all 2>$null) | Out-String
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gitStatus)) {
     Write-Output '{}'
     exit 0
