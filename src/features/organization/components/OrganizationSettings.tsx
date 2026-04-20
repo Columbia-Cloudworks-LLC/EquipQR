@@ -294,7 +294,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
       </div>
 
       {/* Integrations */}
-      <div className="py-8">
+      <div id="integrations" className="py-8 scroll-mt-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
           <div className="pt-0.5">
             <h2 className="text-sm font-semibold">Integrations</h2>

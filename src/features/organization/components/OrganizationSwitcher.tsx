@@ -22,9 +22,19 @@ const formatRole = (role: string) => {
 
 interface OrganizationSwitcherProps {
   className?: string;
+  /**
+   * Visual density.
+   * - `sidebar` (default) — full-width trigger with role subtitle, used in `AppSidebar`.
+   * - `topbar` — compact, single-line trigger styled to flow inside the global
+   *   breadcrumb in `TopBar` (org name + chevron only, no role line, no logo box).
+   */
+  variant?: 'sidebar' | 'topbar';
 }
 
-const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }) => {
+const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({
+  className,
+  variant = 'sidebar',
+}) => {
   const { currentOrganization, userOrganizations, switchOrganization, isLoading } = useOrganization();
   const navigate = useNavigate();
   const [logoError, setLogoError] = useState(false);
@@ -35,7 +45,21 @@ const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }
     navigate('/dashboard');
   };
 
+  const isTopBar = variant === 'topbar';
+
   if (!currentOrganization || isLoading) {
+    if (isTopBar) {
+      return (
+        <div
+          className={cn(
+            'inline-flex items-center gap-2 px-2 py-1 h-8',
+            className
+          )}
+        >
+          <div className="h-3.5 w-24 bg-muted rounded animate-pulse" />
+        </div>
+      );
+    }
     return (
       <div className={cn("flex items-center gap-2 p-2", className)}>
         <div className="w-5 h-5 sm:w-6 sm:h-6 bg-muted rounded animate-pulse" />
@@ -50,37 +74,54 @@ const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ className }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className={cn(
-            "flex items-center gap-2 w-full justify-between p-2 h-auto text-left",
-            className
-          )}
-        >
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-primary rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {currentOrganization.logo && !logoError ? (
-                <img 
-                  src={currentOrganization.logo} 
-                  alt={`${currentOrganization.name} logo`}
-                  className="w-full h-full object-cover"
-                  onError={() => setLogoError(true)}
-                />
-              ) : (
-                <Building className="h-3 w-3 sm:h-4 sm:w-4 text-primary-foreground" />
-              )}
+        {isTopBar ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={`Switch organization (current: ${currentOrganization.name})`}
+            className={cn(
+              'inline-flex items-center gap-1 h-8 px-2 -ml-2 max-w-[14rem] text-foreground hover:text-foreground',
+              className
+            )}
+          >
+            <span className="text-sm font-medium truncate">
+              {currentOrganization.name}
+            </span>
+            <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 flex-shrink-0" />
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            className={cn(
+              "flex items-center gap-2 w-full justify-between p-2 h-auto text-left",
+              className
+            )}
+          >
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-primary rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {currentOrganization.logo && !logoError ? (
+                  <img
+                    src={currentOrganization.logo}
+                    alt={`${currentOrganization.name} logo`}
+                    className="w-full h-full object-cover"
+                    onError={() => setLogoError(true)}
+                  />
+                ) : (
+                  <Building className="h-3 w-3 sm:h-4 sm:w-4 text-primary-foreground" />
+                )}
+              </div>
+              <div className="flex flex-col items-start min-w-0 flex-1">
+                <span className="text-xs sm:text-sm font-medium truncate w-full text-left">
+                  {currentOrganization.name}
+                </span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground">
+                  {formatRole(currentOrganization.userRole)}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col items-start min-w-0 flex-1">
-              <span className="text-xs sm:text-sm font-medium truncate w-full text-left">
-                {currentOrganization.name}
-              </span>
-              <span className="text-[10px] sm:text-xs text-muted-foreground">
-                {formatRole(currentOrganization.userRole)}
-              </span>
-            </div>
-          </div>
-          <ChevronsUpDown className="h-3 w-3 sm:h-4 sm:w-4 opacity-50 flex-shrink-0" />
-        </Button>
+            <ChevronsUpDown className="h-3 w-3 sm:h-4 sm:w-4 opacity-50 flex-shrink-0" />
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56 sm:w-64" align="start" side="bottom">
         <DropdownMenuLabel className="text-xs sm:text-sm">Switch Organization</DropdownMenuLabel>
