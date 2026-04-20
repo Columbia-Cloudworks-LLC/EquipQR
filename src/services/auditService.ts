@@ -15,6 +15,8 @@ import {
   AuditEntityType,
   AuditAction,
   AuditLogCsvRow,
+  AuditLogTimelineBucket,
+  AuditLogTimelineRow,
   ENTITY_TYPE_LABELS,
   ACTION_LABELS,
   FIELD_LABELS,
@@ -504,6 +506,49 @@ export const auditService = {
 
       const jsonString = JSON.stringify(allEntries, null, 2);
       return handleSuccess(jsonString);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  /**
+   * Get bucketed audit-event counts for the timeline histogram (issue #641).
+   *
+   * Calls the SECURITY DEFINER `get_audit_log_timeline` RPC, which mirrors
+   * the audit_log SELECT RLS via an explicit organization_members guard.
+   * The bucket parameter is whitelisted in SQL (`minute` / `hour` / `day`).
+   */
+  async getAuditTimeline(
+    organizationId: string,
+    params: {
+      bucket: AuditLogTimelineBucket;
+      dateFrom: string;
+      dateTo: string;
+      filters?: AuditLogFilters;
+    }
+  ): Promise<ServiceResponse<AuditLogTimelineRow[]>> {
+    try {
+      const { bucket, dateFrom, dateTo, filters } = params;
+
+      const { data, error } = await supabase.rpc('get_audit_log_timeline', {
+        p_organization_id: organizationId,
+        p_bucket: bucket,
+        p_date_from: dateFrom,
+        p_date_to: dateTo,
+        p_entity_type:
+          filters?.entityType && filters.entityType !== 'all'
+            ? filters.entityType
+            : undefined,
+        p_action:
+          filters?.action && filters.action !== 'all' ? filters.action : undefined,
+        p_actor_id: filters?.actorId ?? undefined,
+        p_search: filters?.search ?? undefined,
+      });
+
+      if (error) throw error;
+
+      const rows = (data ?? []) as AuditLogTimelineRow[];
+      return handleSuccess(rows);
     } catch (error) {
       return handleError(error);
     }
