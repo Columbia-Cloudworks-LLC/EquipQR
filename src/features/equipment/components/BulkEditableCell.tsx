@@ -83,12 +83,29 @@ export const BulkEditableCell: React.FC<BulkEditableCellProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState<string>(() => stringifyForInput(value));
   const inputRef = useRef<HTMLInputElement>(null);
+  // Debounce timer used to disambiguate a true single-click (toggles row
+  // selection) from the first click of a double-click (mounts the editor).
+  // Without this, the two `click` events that precede `dblclick` would toggle
+  // the selection twice and either leave it unchanged or, worse, deselect a
+  // row the user still wants in the bulk-apply set.
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Keep the editor's local string in sync when the displayed value changes
     // externally (e.g., after a successful commit clears the dirty delta).
     setEditValue(stringifyForInput(value));
   }, [value]);
+
+  // Cancel any pending single-click toggle on unmount so we never call
+  // onSelectRow against a stale rowId after the parent re-renders the grid.
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+        clickTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const enterEdit = () => {
     setEditValue(stringifyForInput(value));
@@ -134,6 +151,29 @@ export const BulkEditableCell: React.FC<BulkEditableCellProps> = ({
       e.preventDefault();
       enterEdit();
     }
+  };
+
+  const handleStaticClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // `e.detail` is 1 for a true single-click and increments for each
+    // subsequent click in a multi-click sequence. Skip clicks that are part of
+    // a double/triple click (`detail > 1`); the pending single-click below is
+    // cancelled by `handleStaticDoubleClick` when the browser dispatches
+    // `dblclick`. Note: synthetic events from React Testing Library default to
+    // `detail: 0`, so we treat 0 the same as 1 — the bail-out is for `> 1`.
+    if (e.detail > 1) return;
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => {
+      onSelectRow(rowId);
+      clickTimerRef.current = null;
+    }, 250);
+  };
+
+  const handleStaticDoubleClick = () => {
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+    enterEdit();
   };
 
   const dirty = isDirty(value, initialValue);
@@ -202,8 +242,8 @@ export const BulkEditableCell: React.FC<BulkEditableCellProps> = ({
       role="button"
       tabIndex={0}
       aria-label={`${field}: ${displayText}. Single-click to select row, double-click to edit.`}
-      onClick={() => onSelectRow(rowId)}
-      onDoubleClick={enterEdit}
+      onClick={handleStaticClick}
+      onDoubleClick={handleStaticDoubleClick}
       onKeyDown={handleStaticKeyDown}
       className={cn(
         'group flex h-8 min-w-0 items-center justify-between gap-1 rounded-sm px-2',

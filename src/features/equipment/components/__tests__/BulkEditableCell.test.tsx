@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 
 import { BulkEditableCell } from '../BulkEditableCell';
 
@@ -16,6 +16,11 @@ const baseProps = {
 describe('BulkEditableCell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: false });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('static state', () => {
@@ -83,13 +88,33 @@ describe('BulkEditableCell', () => {
   });
 
   describe('selection vs edit interactions', () => {
-    it('single-click invokes onSelectRow with the rowId, does NOT enter edit', () => {
+    it('single-click invokes onSelectRow with the rowId after the dblclick debounce window, does NOT enter edit', () => {
       render(<BulkEditableCell {...baseProps} />);
       const trigger = screen.getByRole('button', { name: /manufacturer: Caterpillar/i });
       fireEvent.click(trigger);
+      // Selection toggle is debounced for 250ms so a follow-up dblclick can cancel it.
+      expect(baseProps.onSelectRow).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(250);
+      });
       expect(baseProps.onSelectRow).toHaveBeenCalledWith('eq-1');
       // Static cell still rendered; no Input mounted.
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    });
+
+    it('double-click cancels the pending single-click toggle and mounts the editor (regression: row selection must NOT flip when entering edit)', () => {
+      render(<BulkEditableCell {...baseProps} />);
+      const trigger = screen.getByRole('button', { name: /manufacturer: Caterpillar/i });
+      // Simulate the real DOM sequence: click(detail=1), click(detail=2), dblclick.
+      fireEvent.click(trigger, { detail: 1 });
+      fireEvent.click(trigger, { detail: 2 });
+      fireEvent.doubleClick(trigger);
+      // Advance past the debounce window to confirm the toggle was cancelled.
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(baseProps.onSelectRow).not.toHaveBeenCalled();
+      expect(screen.getByRole('textbox', { name: /edit manufacturer/i })).toBeInTheDocument();
     });
 
     it('double-click mounts the inline Input editor', () => {

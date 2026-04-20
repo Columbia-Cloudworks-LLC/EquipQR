@@ -78,6 +78,14 @@ function handleSuccess<T>(data: T): ApiResponse<T> {
 }
 
 /**
+ * Maximum number of concurrent per-row Supabase updates issued by
+ * `EquipmentService.batchUpdate`. Bulk saves chunk into batches of this size
+ * and run sequentially across chunks to avoid rate limiting and network
+ * saturation on large bulk-edit payloads (#627).
+ */
+const BATCH_UPDATE_CONCURRENCY = 10;
+
+/**
  * Equipment Service using static methods pattern
  * 
  * This service uses static methods rather than instance methods to avoid the need
@@ -324,6 +332,11 @@ export class EquipmentService {
    *
    * Single-row update path is identical to `update()` — same RLS policy, same
    * audit-log behavior, no new triggers. Used by the bulk-edit grid (#627).
+   *
+   * Concurrency is capped at `BATCH_UPDATE_CONCURRENCY` to avoid network
+   * saturation and per-tenant rate limiting on large bulk saves; chunks run
+   * sequentially while rows within a chunk run in parallel via
+   * `Promise.allSettled`.
    */
   static async batchUpdate(
     organizationId: string,
@@ -333,44 +346,48 @@ export class EquipmentService {
       return handleSuccess({ succeeded: [], failed: [] });
     }
 
-    const results = await Promise.allSettled(
-      updates.map(async ({ id, data }) => {
-        const { data: rows, error } = await supabase
-          .from('equipment')
-          .update(data)
-          .eq('id', id)
-          .eq('organization_id', organizationId)
-          .select('id');
-
-        if (error) {
-          return { id, error: error.message };
-        }
-        if (!rows || rows.length === 0) {
-          // Either the id is wrong or the row belongs to a different org —
-          // RLS hides the difference, so we surface a generic message.
-          return { id, error: 'Equipment not found or access denied' };
-        }
-        return { id, error: null as string | null };
-      })
-    );
-
     const succeeded: string[] = [];
     const failed: Array<{ id: string; error: string }> = [];
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      if (result.status === 'fulfilled') {
-        const { id, error } = result.value;
-        if (error) {
-          failed.push({ id, error });
+
+    for (let chunkStart = 0; chunkStart < updates.length; chunkStart += BATCH_UPDATE_CONCURRENCY) {
+      const chunk = updates.slice(chunkStart, chunkStart + BATCH_UPDATE_CONCURRENCY);
+      const results = await Promise.allSettled(
+        chunk.map(async ({ id, data }) => {
+          const { data: rows, error } = await supabase
+            .from('equipment')
+            .update(data)
+            .eq('id', id)
+            .eq('organization_id', organizationId)
+            .select('id');
+
+          if (error) {
+            return { id, error: error.message };
+          }
+          if (!rows || rows.length === 0) {
+            // Either the id is wrong or the row belongs to a different org —
+            // RLS hides the difference, so we surface a generic message.
+            return { id, error: 'Equipment not found or access denied' };
+          }
+          return { id, error: null as string | null };
+        })
+      );
+
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if (result.status === 'fulfilled') {
+          const { id, error } = result.value;
+          if (error) {
+            failed.push({ id, error });
+          } else {
+            succeeded.push(id);
+          }
         } else {
-          succeeded.push(id);
+          // Unexpected promise rejection (network / runtime). Preserve the
+          // original update payload's id so the caller can map back to the row.
+          const id = chunk[i].id;
+          const error = result.reason instanceof Error ? result.reason.message : 'Unknown error';
+          failed.push({ id, error });
         }
-      } else {
-        // Unexpected promise rejection (network / runtime). Preserve the
-        // original update payload's id so the caller can map back to the row.
-        const id = updates[i].id;
-        const error = result.reason instanceof Error ? result.reason.message : 'Unknown error';
-        failed.push({ id, error });
       }
     }
 

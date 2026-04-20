@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, WifiOff } from 'lucide-react';
 
 import Page from '@/components/layout/Page';
@@ -7,6 +7,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useEquipmentFiltering } from '@/features/equipment/hooks/useEquipmentFiltering';
 import { useBulkEditEquipment } from '@/features/equipment/hooks/useBulkEditEquipment';
 import EquipmentLoadingState from '@/features/equipment/components/EquipmentLoadingState';
@@ -44,6 +45,7 @@ const BulkEquipment: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const { canCreateEquipment } = usePermissions();
   const isOnline = useOnlineStatus();
+  const isMobile = useIsMobile();
 
   const {
     filteredAndSortedEquipment,
@@ -65,6 +67,16 @@ const BulkEquipment: React.FC = () => {
     commit,
   } = useBulkEditEquipment(filteredAndSortedEquipment);
 
+  // Bulk edit is a desktop-only surface (#627 AC#1). Mobile users that hit
+  // /dashboard/equipment/bulk directly (deep link, browser back, mistaken
+  // dropdown menu nav, etc.) are redirected to the single-item flow with
+  // `?create=true` so the existing `EquipmentForm` modal auto-opens via the
+  // initializedFromUrl effect in `Equipment.tsx`. Placed below the hook calls
+  // so React sees a stable hook order on every render.
+  if (isMobile) {
+    return <Navigate to="/dashboard/equipment?create=true" replace />;
+  }
+
   if (!currentOrganization) {
     return (
       <Page maxWidth="full" padding="responsive">
@@ -77,12 +89,17 @@ const BulkEquipment: React.FC = () => {
     );
   }
 
+  // Gate by `canCreateEquipment()` per the Service Request — bulk editing is
+  // a power-user surface scoped to roles that can already create equipment
+  // org-wide (owner / admin / member). Per-row edit gating still applies at
+  // commit time because each row write goes through the same RLS-protected
+  // `equipment.update` path used by the single-item form.
   if (!canCreateEquipment()) {
     return (
       <Page maxWidth="full" padding="responsive">
         <PageHeader
           title="Bulk Edit Equipment"
-          description="You don't have permission to edit equipment in this organization."
+          description="Bulk equipment editing is restricted to roles that can create equipment org-wide. Contact an organization administrator if you need access."
           actions={<BackToEquipmentButton />}
         />
       </Page>

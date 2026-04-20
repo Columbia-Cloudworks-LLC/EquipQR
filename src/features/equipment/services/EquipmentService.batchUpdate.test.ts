@@ -126,6 +126,37 @@ describe('EquipmentService.batchUpdate', () => {
     ]);
   });
 
+  it('chunks large batches and aggregates results across chunks (concurrency cap = 10)', async () => {
+    // 25 rows → 3 chunks of 10 + 10 + 5. Mix in 1 failure per chunk to verify
+    // accounting works across chunk boundaries.
+    const updates = Array.from({ length: 25 }, (_, i) => ({
+      id: `eq-${i + 1}`,
+      data: { name: `Updated ${i + 1}` },
+    }));
+
+    let callIndex = 0;
+    (supabase.from as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      const i = callIndex++;
+      // Fail rows 5, 15, 25 (one per chunk) so we can prove failures from
+      // each chunk land in the aggregate `failed` list.
+      if (i === 4 || i === 14 || i === 24) {
+        return makeRowMock({ data: null, error: { message: `boom-${i + 1}` } });
+      }
+      return makeRowMock({ data: [{ id: `eq-${i + 1}` }], error: null });
+    });
+
+    const result = await EquipmentService.batchUpdate(organizationId, updates);
+
+    expect(result.success).toBe(true);
+    expect(supabase.from).toHaveBeenCalledTimes(25);
+    expect(result.data?.succeeded).toHaveLength(22);
+    expect(result.data?.failed).toEqual([
+      { id: 'eq-5', error: 'boom-5' },
+      { id: 'eq-15', error: 'boom-15' },
+      { id: 'eq-25', error: 'boom-25' },
+    ]);
+  });
+
   it('captures unexpected promise rejections as per-row failures', async () => {
     let callIndex = 0;
     (supabase.from as ReturnType<typeof vi.fn>).mockImplementation(() => {

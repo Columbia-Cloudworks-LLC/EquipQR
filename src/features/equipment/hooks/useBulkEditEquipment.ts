@@ -100,7 +100,13 @@ export const useBulkEditEquipment = (
         const initial = initialById.get(id);
         const originalValue = initial?.[field];
         const existing = next.get(id) ?? {};
-        if (Object.is(value, originalValue)) {
+        // Match `BulkEditableCell.isDirty`: '' and null are treated as
+        // equivalent for diff purposes (both render as the em-dash placeholder).
+        // Without this, "clearing" a nullable field that was already null would
+        // record a '' delta the cell shows as clean — invisible dirty state
+        // that surprises users at commit time.
+        const normalize = (v: unknown): unknown => (v === '' ? null : v);
+        if (Object.is(normalize(value), normalize(originalValue))) {
           // Revert: drop the field from the delta; drop the row entirely if it has no other deltas.
           if (field in existing) {
             const rest: Record<string, unknown> = { ...(existing as Record<string, unknown>) };
