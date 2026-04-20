@@ -1,6 +1,6 @@
 ---
 name: itil-service-request
-description: Mandates an ITIL-style Service Request for exactly ONE GitHub issue (a feature request, enhancement, or capability gap) in EquipQR — the agent reads the issue, researches the cost (in dollars only, never time or effort) and feasibility of the requested feature, and when warranted scans the market for similar implementations to model the build on (preferring open-source projects). The agent makes NO code changes; it produces a Service Request comment on the issue and prints it in chat as the authorization context for a subsequent itil-change-record. Includes research-driven sections — Short Description, Description, Scope, External Dependencies, Potential Costs, Market Viability, and Examples. Use whenever the user asks the agent to "evaluate", "scope the cost of", "research", "draft a service request for", "look at this feature request", or "is this feasible" against a GitHub issue tagged feature / enhancement / chore-with-vendor-cost, references an issue number (#NNN) or issue URL framed as a feature ask, or starts the ITIL flow on a non-bug request. One prompt, one issue, one Service Request.
+description: Mandates an ITIL-style Service Request for exactly ONE GitHub issue (a feature request, enhancement, or capability gap) in EquipQR — the agent reads the issue, researches the cost (in dollars only, never time or effort) and feasibility of the requested feature, and when warranted scans the market for similar implementations to model the build on (preferring open-source projects). The agent makes NO code changes; it produces a Service Request comment on the issue and prints it in chat as the authorization context for a subsequent itil-change-record. Includes research-driven sections — Short Description, Description, Scope, External Dependencies, Potential Costs, Market Viability, Examples, and Vendor-side Setup Procedures (researched click-by-click steps for every vendor dashboard action the request implies, with "could not confirm" callouts when a feature can't be verified live). Use whenever the user asks the agent to "evaluate", "scope the cost of", "research", "draft a service request for", "look at this feature request", or "is this feasible" against a GitHub issue tagged feature / enhancement / chore-with-vendor-cost, references an issue number (#NNN) or issue URL framed as a feature ask, or starts the ITIL flow on a non-bug request. One prompt, one issue, one Service Request.
 ---
 
 # ITIL Service Request (EquipQR)
@@ -148,6 +148,41 @@ For each example, capture:
 
 If you genuinely cannot find prior art, write that out — "No comparable open-source implementation found; closest commercial reference is X." Do not pad with weak examples.
 
+#### Step 6c — Vendor-side setup-step research (mandatory whenever the request implies any 3rd-party dashboard action)
+
+The user has been explicit: **any time the request implies the user (or the agent) navigating a 3rd-party website to set something up — provisioning an API key, minting a Service Account, upgrading a plan, opting into a paid feature, installing a marketplace plugin, or any other vendor-dashboard action — the Service Request must include researched, click-by-click steps. If the steps cannot be found, the Service Request must say so explicitly so the user knows the feature might not exist or that they will need to hunt for it.**
+
+Run this step whenever **any** of the following appears in the request, the External Dependencies, the Potential Costs, or the Recommended Next Step:
+
+- Provisioning a new API key, PAT, service-account JSON, OAuth app, or webhook secret in any vendor dashboard
+- Upgrading a vendor plan tier (Pro → Team, Team → Enterprise, etc.)
+- Opting into a paid feature (audit logs, SIEM streaming, advanced retention, etc.) inside a vendor dashboard
+- Installing a marketplace plugin / extension / integration on a vendor's marketplace
+- Configuring a vendor-side webhook, SCIM provisioner, SSO integration, or audit-log destination
+- Rotating an existing credential per a published vendor procedure
+- Anything that requires the user to leave their IDE and click through a vendor portal
+
+Skip this step ONLY when the request is fully implementable inside the EquipQR codebase with zero vendor-side dashboard interaction (e.g. "add a sort dropdown to the equipment list" — no 3rd-party setup at all).
+
+For each in-scope vendor-side action, populate one labeled subsection (A, B, C, …) under **Vendor-side Setup Procedures** in the template below. Each subsection must:
+
+1. **State whether the feature was confirmed via live vendor docs in this session.** Use one of three statuses, and write the status as the first line of the subsection:
+   - **"Confirmed exists."** — followed by the source URL (vendor docs / pricing page / marketplace listing) and the date pulled.
+   - **"Confirmed exists in the EquipQR setup but currently <state>."** — when the feature is part of the EquipQR architecture today but in a non-default state (disabled, partially configured, etc.).
+   - **"Could not confirm — feature may not exist in the form the issue assumes."** — when `firecrawl` / `plugin-context7-plugin-context7` / vendor docs do not document the feature, or the documented path is plan-locked / region-locked / paywalled in a way the user might not anticipate. **Tell the user explicitly that they may need to hunt for it, contact vendor support, or that the feature might not actually exist as described.**
+2. **List the click-by-click steps** as a numbered list. Use real UI labels (button names, sidebar entries, settings tabs) as they appear in the vendor's docs. Do not paraphrase UI labels — match what the user will actually see. Include direct deep-link URLs whenever the vendor publishes them (e.g. `https://github.com/settings/personal-access-tokens/new`, `https://app.datadoghq.com/organization-settings/api-keys`). Use the vendor's exact terminology even when it conflicts with EquipQR's terminology.
+3. **Call out vendor-specific gotchas** explicitly. Examples worth including when applicable: One-Time Read modes (Datadog Application Keys post-Aug 2025), required IAM org-policy exemptions (GCP `iam.disableServiceAccountKeyCreation`), platform-specific limitations (1Password Environments local mounts being macOS/Linux only), required parent role/permission to perform the action, and any "this requires X plan tier" gates that aren't obvious from the dashboard URL alone.
+4. **State the post-setup verification step** that confirms the action worked (e.g. "re-run `.\scripts\op-mcp-doctor.ps1`", "open Cursor → Settings → Hooks → Execution Log and look for `<entry>`", "verify the table shows a checkmark icon next to enabled services").
+5. **Cross-link any cost implications back to Potential Costs.** If the action is the upgrade that unlocks the cost line item, say "see Potential Costs → Recurring cost for the price of this upgrade" so the reader does not have to triangulate.
+
+Use `firecrawl` to pull the vendor's live setup docs (preferred) and the vendor's live pricing/marketplace page when an upgrade or marketplace install is involved. Use `plugin-context7-plugin-context7` only for SDK / library docs — vendor *dashboard* procedures live on vendor marketing/docs sites, which `firecrawl` is the right tool for. Cite the exact URL and the date pulled (today's date — see `Date evaluated` at the top of the Service Request).
+
+Do NOT include screenshots in the Service Request comment — comments render as markdown and screenshots blow up the diff. Direct deep-link URLs in step lists are sufficient.
+
+If a vendor's documented path requires the user to log in to view (e.g. dashboard URLs that 302 to a login page when fetched anonymously), include the login-gated URL anyway and note "(requires authenticated session in vendor dashboard)" so the user knows the link will redirect to login first.
+
+Add a final subsection at the end called **"I. Vendor-side actions that this Service Request does NOT trigger"** (rename the letter as needed based on how many setup subsections precede it). Use this to head off the common misconception that the Service Request requires creating new vendor accounts / projects / SAs / vault items when those already exist. List each non-action with a ❌ and a one-line rationale (e.g. "❌ Create new Supabase project (`ymxkzronkhwxzcdcbnwq` is the production project; no new project needed)"). This subsection is mandatory whenever the EquipQR setup has pre-existing vendor resources that a fresh reader might assume need re-creation.
+
 ### Step 7 — Author the Service Request
 
 Use these **exact** top-level headers (`##`). The seven required field sections are mandatory and ordered.
@@ -204,6 +239,37 @@ Use these **exact** top-level headers (`##`). The seven required field sections 
 
 [If none found: "No comparable implementation found in research; closest reference is <X>." Do not invent examples to fill the section.]
 
+## Vendor-side Setup Procedures
+
+[Mandatory whenever the request implies any 3rd-party dashboard action (provisioning a key, upgrading a plan, opting into a paid feature, installing a marketplace plugin, configuring a webhook, rotating a credential per vendor procedure, etc.). Skip this section ENTIRELY only when the request is fully implementable inside the EquipQR codebase with zero vendor-side dashboard interaction.
+
+For each in-scope action, populate one labeled subsection (A, B, C, …) per Step 6c. Each subsection MUST start with a status line: "Confirmed exists." (with source URL and date pulled), "Confirmed exists in the EquipQR setup but currently <state>." (when the feature is in a non-default state today), or "Could not confirm — feature may not exist in the form the issue assumes." (when vendor docs do not document the feature; tell the user explicitly that they may need to hunt for it or that the feature might not exist as described).
+
+Each subsection MUST include: click-by-click numbered steps using real UI labels, direct deep-link URLs whenever the vendor publishes them, vendor-specific gotchas (One-Time Read modes, required org-policy exemptions, platform-specific limitations, plan-tier gates), the post-setup verification step, and a cross-link back to Potential Costs when the action is the upgrade that unlocks a cost line item.
+
+End with a final subsection "I. Vendor-side actions that this Service Request does NOT trigger" (renumber the letter as needed) listing each commonly-imagined "I need to set up X" action that is NOT required because the EquipQR vault / production project / vendor resource already exists. Use ❌ + one-line rationale per non-action.]
+
+### A. <Action name — e.g. "Mint or rotate `<credential>` <type>" or "Upgrade <vendor> to <plan>" or "Install <plugin> via <marketplace>">
+
+**<Status line — e.g. "Confirmed exists."> Source: <URL> (pulled <YYYY-MM-DD>).**
+
+1. <Step 1 — real UI label, deep link if available>
+2. <Step 2 — call out gotchas inline as sub-bullets when relevant>
+3. <…>
+
+[Verification step + cross-link to Potential Costs if applicable.]
+
+### B. <Next action…>
+
+[…]
+
+### I. Vendor-side actions that this Service Request does NOT trigger
+
+[Rename the letter to match the actual count. Mandatory whenever pre-existing vendor resources might be misread as needing re-creation.]
+
+- ❌ <Non-action> (<one-line rationale>)
+- ❌ […]
+
 ## Recommended Next Step
 
 [One of:
@@ -254,6 +320,8 @@ Treat the user's response strictly: only an explicit button selection moves to t
 - **No fabricated pricing.** Every dollar figure in **Potential Costs** must trace to a live URL pulled this session via `firecrawl`, with the date noted. If pricing is hidden behind "Contact Sales", say so — do not invent a number.
 - **No fabricated vendors.** If you cannot name a real product on a real URL, do not name one. The Service Request is a research artifact; its credibility is the only thing it has.
 - **No fabricated examples.** Open-source examples must be real GitHub repos with real URLs. Commercial examples must be real products with real marketing pages. "I think company X probably does this" is not an example.
+- **No fabricated vendor-side setup steps.** Every numbered step under **Vendor-side Setup Procedures** must trace to a vendor doc / pricing page / marketplace page that the agent pulled live this session via `firecrawl`, with the URL and date noted at the top of the subsection. If the steps cannot be confirmed, the subsection MUST start with "Could not confirm — feature may not exist in the form the issue assumes." and tell the user explicitly that they may need to hunt for it or contact vendor support.
+- **No skipping Vendor-side Setup Procedures when 3rd-party dashboard actions are implied.** Per Step 6c, this section is mandatory whenever the request implies any vendor-dashboard action — provisioning a credential, upgrading a plan, opting into a paid feature, installing a marketplace plugin, configuring a webhook/SSO/SCIM, rotating a credential per vendor procedure, etc. The section is skippable ONLY when the request is fully implementable inside the EquipQR codebase with zero vendor-side dashboard interaction.
 - **Single issue only.** One invocation = one Service Request for one issue.
 - **Bug issues belong to `itil-problem-record`, not here.** If the issue is a bug / regression / defect, stop and route the user to the right skill.
 - **No Change Record content.** Do not write Implementation Steps, Testing Plan, Backout Plan, or Branch & Commit Plan in the Service Request. Those belong to `itil-change-record` and emerge from Plan mode after the user approves this Service Request.
@@ -269,7 +337,8 @@ Treat the user's response strictly: only an explicit button selection moves to t
 - **Potential Costs**: Every figure cites a URL and a date. The **Cost confidence** field is mandatory.
 - **Market Viability**: Required when feasibility from Step 5 is "vague" or "infeasible" or when **Potential Costs → Recurring cost** is non-trivial. Optional otherwise — but write at least one sentence even when optional, so the reader knows you considered it.
 - **Examples**: 2–4 real, citable products. Open-source first. License noted for OSS. Skip only when the request is trivially small AND you note that explicitly.
-- **Recommended Next Step**: Pick exactly one of the four options. No "it depends" — make the call so the user has something to react to.
+- **Vendor-side Setup Procedures**: Mandatory whenever the request implies any 3rd-party dashboard action (see Step 6c trigger list). Each subsection must lead with a status line ("Confirmed exists." / "Confirmed exists in the EquipQR setup but currently <state>." / "Could not confirm — feature may not exist in the form the issue assumes."), include the live source URL + date pulled, use real UI labels in numbered steps, surface vendor-specific gotchas inline, end with a verification step, and cross-link cost-implication subsections back to **Potential Costs**. Always include a final "actions this Service Request does NOT trigger" subsection when pre-existing vendor resources might be misread as needing re-creation.
+- **Recommended Next Step**: Pick exactly one of the four options. No "it depends" — make the call so the user has something to react to. When **Vendor-side Setup Procedures** has subsections, cross-reference them by letter (e.g. "see **Section G**") in the conditions list so the user can act on the next step without scrolling.
 
 ## Progressive disclosure
 
